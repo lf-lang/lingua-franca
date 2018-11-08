@@ -27,6 +27,8 @@ Handler for actor
  * A4 read any inputs & either get a value or null
  * A5 access current time == time stamp of input
  * A6 request an async, callback of proc (what is current time?)
+ * A7 TR delay
+ * A8 send to output port with delay delta/deadline t+delta (i.e., actually received at t+delta' where delta' >= delta)
 
 ## TODO
 
