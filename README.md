@@ -51,6 +51,12 @@ Rust is LLVM based. Can we use the Rust frontend and our LLVM backend?
  * Good compiler support (RISC-V, Patmos)
  * WCET analysis for Patmos
 
+### Combinations with JavaScript Accessors
+
+ * Node.js can run within Rust
+ * Rust can also be compiled to WebAssembly (supported by JS interpreters)
+ * This can be explored for mixed critical, more dynamic systems
+
 ## TODO
 
 add rest of notes.
