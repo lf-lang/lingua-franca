@@ -30,6 +30,27 @@ Handler for actor
  * A7 TR delay
  * A8 send to output port with delay delta/deadline t+delta (i.e., actually received at t+delta' where delta' >= delta)
 
+## Prototype Implementation
+
+We would like to provide a prototype implementation on FlexPRET and Patmos,
+including worst-case execution time analysis of actors.
+This calls for a system language that can be used to implement real-time systems.
+Two options are considered: Rust and C.
+
+### Rust
+
+ * Safe system level language
+ * No compiler for FlexPRET or Patmos
+ * No WCET analysis
+
+Rust is LLVM based. Can we use the Rust frontend and our LLVM backend?
+
+### C
+
+ * Old, unsafe language
+ * Good compiler support (RISC-V, Patmos)
+ * WCET analysis for Patmos
+
 ## TODO
 
 add rest of notes.
