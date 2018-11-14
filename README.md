@@ -1,6 +1,6 @@
 # A Model of Computation using Pret Machines (Precision Timed Computation)
 
-Notes from an initial discussion.
+Ongoing notes from discussions.
 
 ## Objectives
 
@@ -37,14 +37,27 @@ including worst-case execution time analysis of actors.
 This calls for a system language that can be used to implement real-time systems.
 Two options are considered: Rust and C.
 
+A DSL may be interesting to use for the definition of composite actors,
+i.e hierarchical actors. A DSL within Rust may be nice.
+However, just for configuration any DSL environment (e.g., Scala) would work.
+
+Taking DSLs a step further, we can envision a DSL to also describe the
+actor functions (like in Chisel) and then spill out low-level code, which
+then can be C (like Verilog from Chisel), including #pragma annotation that
+can help WCET analysis tools.
+
 ### Rust
 
  * Safe system level language
  * No compiler for FlexPRET or Patmos
+   * There might be some work going on for RISC-V: https://abopen.com/news/rust-comes-risc-v/
  * No WCET analysis
  * Actor library: https://github.com/actix/actix
+ * DSL in Rust: https://doc.rust-lang.org/rust-by-example/macros/dsl.html
  
 Rust is LLVM based. Can we use the Rust frontend and our LLVM backend?
+We briefly explored it with Patmos LLVM port, but Rust libraries are called.
+This may be a several PM project (e.g., a master thesis).
 
 ### C
 
@@ -57,6 +70,10 @@ Rust is LLVM based. Can we use the Rust frontend and our LLVM backend?
  * Node.js can run within Rust
  * Rust can also be compiled to WebAssembly (supported by JS interpreters)
  * This can be explored for mixed critical, more dynamic systems
+
+## Further Links
+
+ * A DSL: http://www.kframework.org/index.php/Main_Page
 
 ## TODO
 
