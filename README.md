@@ -43,6 +43,7 @@ Two options are considered: Rust and C.
  * No compiler for FlexPRET or Patmos
  * No WCET analysis
  * Actor library: https://github.com/actix/actix
+ 
 Rust is LLVM based. Can we use the Rust frontend and our LLVM backend?
 
 ### C
