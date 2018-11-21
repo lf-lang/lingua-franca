@@ -94,4 +94,16 @@ This may be a several PM project (e.g., a master thesis).
 
 add rest of notes.
 
+## Rust/Tock discussion with Pat
+
+ * To get a small kernel, exclude std library with a switch and manually import
+   from core what is needed
+ * Use nightly build from Rust to get latest support
+ * Brad is working on Rust for RISC-V, which we should be able to use
+ * Working on  getting https://www.tockos.org/ running on RISC-V
+ * Tock OS (kernel) is single threaded with yield(), but applications
+   are running in individual threads
+ * Rust embedded group (IRC available)
+ * Tock has a public Slack channel
+
 
