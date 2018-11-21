@@ -30,6 +30,15 @@ Handler for actor
  * A7 TR delay
  * A8 send to output port with delay delta/deadline t+delta (i.e., actually received at t+delta' where delta' >= delta)
 
+## Questions
+
+ * Example applications?
+   * Real-time audio, time sensitive peripherals, control loop
+ * What concurrency model do we have? One or more threads per actor?
+   * Single thread per actor solve the Rust ownership issue
+ * What is the semantics of the delay operation?
+   * Maybe like a yield in a coroutine?
+
 ## Prototype Implementation
 
 We would like to provide a prototype implementation on FlexPRET and Patmos,
@@ -46,6 +55,12 @@ actor functions (like in Chisel) and then spill out low-level code, which
 then can be C (like Verilog from Chisel), including #pragma annotation that
 can help WCET analysis tools.
 
+### Shared State
+
+Within one actor there is shared state, which may be muted by different handlers.
+If those handlers are atomic with each other, we can simply pass a reference
+to this shared state. The shared state is allocated at initialization time.
+
 ### Rust
 
  * Safe system level language
@@ -56,7 +71,7 @@ can help WCET analysis tools.
  * DSL in Rust: https://doc.rust-lang.org/rust-by-example/macros/dsl.html
  
 Rust is LLVM based. Can we use the Rust frontend and our LLVM backend?
-We briefly explored it with Patmos LLVM port, but Rust libraries are called.
+We briefly explored it with the Patmos LLVM port, but Rust libraries are called.
 This may be a several PM project (e.g., a master thesis).
 
 ### C
