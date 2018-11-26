@@ -61,6 +61,38 @@ Within one actor there is shared state, which may be muted by different handlers
 If those handlers are atomic with each other, we can simply pass a reference
 to this shared state. The shared state is allocated at initialization time.
 
+### Two Versions of Delay
+
+We will explore two versions for the delay: (1) a busy wait and
+(2) scheduling a handler for an invocation at a later time.
+
+
+handler is `foo()`
+
+#### Version 1:
+
+```
+foo() {
+   do work A
+   delay until time x
+   do work B
+}
+```
+
+This needs to be a blocking delay, if work A and B need to be atomic.
+
+#### Version 2:
+
+```
+foo() {
+   work
+   call foo at time x // or any other function
+}
+```
+
+This registers foo (or a different function) for a callback at time x.
+This needs no blocking during the delay, as there is no atomic action during the delay.
+
 ### Rust
 
  * Safe system level language
