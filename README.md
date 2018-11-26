@@ -41,7 +41,9 @@ Handler for actor
 
 ## Prototype Implementation
 
-We would like to provide a prototype implementation on FlexPRET and Patmos,
+We would like to provide a prototype implementation on
+[FlexPRET](https://github.com/pretis/flexpret) and
+[Patmos](https://github.com/t-crest/patmos),
 including worst-case execution time analysis of actors.
 This calls for a system language that can be used to implement real-time systems.
 Two options are considered: Rust and C.
