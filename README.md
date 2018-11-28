@@ -1,5 +1,8 @@
 # A Model of Computation using Pret Machines (Precision Timed Computation)
 
+## Proposed names for this project
+  * Intermezzo
+  
 Ongoing notes from discussions.
 
 ## Objectives
