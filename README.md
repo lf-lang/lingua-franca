@@ -3,6 +3,7 @@
 ## Proposed names for this project
   * Intermezzo
   
+  
 Ongoing notes from discussions.
 
 ## Objectives
