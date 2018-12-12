@@ -1,33 +1,33 @@
 # A Model of Computation using Pret Machines (Precision Timed Computation)
 
 ## Proposed names for this project
-  * Intermezzo
+ * Intermezzo
+ * [please add more suggestions here]   
   
-  
-Ongoing notes from discussions.
-
 ## Objectives
 
- * Well defined simultaneity
- * Support parallel & distributed
- * Be able to construct deterministic
- * Explicitly allow nondeterminism
+### 1. Deterministic Coordination of Actors
+ * Interactions are timed (discrete) events
+ * Well-defined simultaneity
+ * Support for parallel & distributed
+ * Non-determinism must be allowed explicitly
+ 
+### 2. Real-time Guarantees
+ * Scheduler + WCET analysis
+ * Deadlines
 
 ## Features
 
- * Islands of atomicity <=> actors
- * Coordination == DE
+### Actors
+  * Private data
+  * Ports
 
-## Mutually Atomic
-
-Private data
-Time stamps on incoming messages
-
-Handler for actor
-
- * A1 computation on private data
+#### Mutually Atomic Reactions
+An actor will have all input events available at each model time before it reacts to any input event at that time stamp.
+A reaction may:
+ * A1 computate on private data
  * A2 send events to output ports
- * A3 request invocation of p at t + delta
+ * A3 request invocation of a procedure at t + delta
  * A4 read any inputs & either get a value or null
  * A5 access current time == time stamp of input
  * A6 request an async, callback of proc (what is current time?)
@@ -99,6 +99,15 @@ foo() {
 This registers foo (or a different function) for a callback at time x.
 This needs no blocking during the delay, as there is no atomic action during the delay.
 
+
+## Host Programming Languages
+
+### C
+
+ * Old, unsafe language
+ * Good compiler support (RISC-V, Patmos)
+ * WCET analysis for Patmos
+
 ### Rust
 
  * Safe system level language
@@ -112,27 +121,8 @@ Rust is LLVM based. Can we use the Rust frontend and our LLVM backend?
 We briefly explored it with the Patmos LLVM port, but Rust libraries are called.
 This may be a several PM project (e.g., a master thesis).
 
-### C
 
- * Old, unsafe language
- * Good compiler support (RISC-V, Patmos)
- * WCET analysis for Patmos
-
-### Combinations with JavaScript Accessors
-
- * Node.js can run within Rust
- * Rust can also be compiled to WebAssembly (supported by JS interpreters)
- * This can be explored for mixed critical, more dynamic systems
-
-## Further Links
-
- * A DSL: http://www.kframework.org/index.php/Main_Page
-
-## TODO
-
-add rest of notes.
-
-## Rust/Tock discussion with Pat
+##### Rust/Tock discussion with Pat
 
  * To get a small kernel, exclude std library with a switch and manually import
    from core what is needed
@@ -144,9 +134,16 @@ add rest of notes.
  * Rust embedded group (IRC available)
  * Tock has a public Slack channel
 
+#### Combinations with JavaScript Accessors
+
+ * Node.js can run within Rust (but requires IPC)
+ * Rust can also be compiled to WebAssembly (supported by JS interpreters)
+ * This can be explored for mixed critical, more dynamic systems
+
+
 ## Uses cases
 
-### Example 1
+### Precision-Timed Actuation
 Given a time unit c,
  * H3 reacts sporadically >= 100c (e.g., 10, 120, 230, ...)
  * H4 reacts periodically with period 50c (e.g., 0, 50, 100, ...)
@@ -172,7 +169,7 @@ Given a time unit c,
 We can construct a dependency graph:
 
 ```
-H3 ---> h1 ---> H2 ---> H5
+H3 ---> H1 ---> H2 ---> H5
     |
 H4 -+
 ```
@@ -180,3 +177,7 @@ H4 -+
 A feasible schedule requires that:
  * WCET(H3) + WCET(H1) + WCET(H2) <= 100c
  * WCET(H4) + WCET(H1) + WCET(H2) <= 100c
+
+## Links
+ * A DSL: http://www.kframework.org/index.php/Main_Page
+
