@@ -144,4 +144,39 @@ add rest of notes.
  * Rust embedded group (IRC available)
  * Tock has a public Slack channel
 
+## Uses cases
 
+### Example 1
+Given a time unit c,
+ * H3 reacts sporadically >= 100c (e.g., 10, 120, 230, ...)
+ * H4 reacts periodically with period 50c (e.g., 0, 50, 100, ...)
+ * Delay adds 100c to the timestamp of each incoming event
+ * Actuate shall start executing H5 _before_ r.t. clock exceeds time stamp of incoming events
+ 
+```
++--------+
+|        |          +--------+     +-------+     +---------+
+|   H3   +----------> H1     |     |       |     |         |
+|        |          |        +-----> Delay +-----> Actuate |
++--------+    +-----> H2     |     |  100  |     |   (H5)  |
+              |     +--------+     +-------+     +---------+
+              |
++--------+    |
+|        |    |
+|   H4   +----+
+|        |
++--------+
+
+```
+
+We can construct a dependency graph:
+
+```
+H3 ---> h1 ---> H2 ---> H5
+    |
+H4 -+
+```
+
+A feasible schedule requires that:
+ * WCET(H3) + WCET(H1) + WCET(H2) <= 100c
+ * WCET(H4) + WCET(H1) + WCET(H2) <= 100c
