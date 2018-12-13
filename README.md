@@ -16,14 +16,23 @@
  * Scheduler + WCET analysis
  * Deadlines
 
-## Features
+## Definitions
 
 ### Actors
-  * Private data
-  * Ports
+Actors are stateful objects that have input ports, output ports, and procedures. Actors exchange messages by producing outputs via output ports and receiving inputs via input ports. Channels between ports determine where messages are routed. All messages are timestamped; we also refer to them as events.   
 
-#### Mutually Atomic Reactions
-An actor will have all input events available at each model time before it reacts to any input event at that time stamp.
+#### Events
+Messages that arrive at an actor's input ports are considered _external_ events. Asynchronous callbacks arise due to _internal_ events (they are not observable by other actors).
+
+#### Reactions
+Some procedures are triggered by events. We call these procedures reactions. 
+A reaction is characterized by:
+ * the events that triggers it
+ * the ports that it may read from
+ * the ports that it may write to
+ * a time delay
+
+
 A reaction may:
  * A1 computate on private data
  * A2 send events to output ports
