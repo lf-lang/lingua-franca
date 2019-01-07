@@ -116,7 +116,58 @@ Section~\ref{sec:conclusion} concludes.
 \todo{Show that you know the field. All related work shall be put
 into context or contrast to our current work.}
 
+\todo{The following comments from Alessandro Ricci  to Marjan Sirjani have useful pointers to related work.}
 
+- the essential distinguishing point of actors - being them Hewitt's or Edward's -
+  is asynchronous message passing. This is not arguable, if we want to talk
+  about actors, we need to agree on this.
+
+- the value of asynchronous message passing is nowadays well recognised
+   also in the mainstream of distributed systems engineering
+   where "uncoupling" is a must
+   --- e.g. "reactive manifesto movement", Akka's actors, reactive design patterns, etc.
+   --- this is a must in service-oriented architectures community, micro-services, etc.
+
+- the fallacies of adopting RPC / RMI as foundational model has been largely
+   recognised in DS literature, even by those who introduced them
+   (e.g. "A Note on Distributed Computing", by J. Waldo)
+
+- the problem is coupling model is not only about deadlocks: it has a
+   strong impact on reactivity (in a wide sense: https://www.reactivemanifesto.org/)
+   on performance, on flexibility
+
+- Said this, of course one could find it useful to adopt RPC as a communication pattern
+  on top of the async model, in terms of Request-Response pattern.
+
+- This is largely adopted in the mainstream, e.g.:
+    "Reactive Messaging Patterns with the Actor Model: Applications and Integration in Scala and Akka"
+    "Reactive Design Patterns" - Roland Kuhn Dr. e Jamie Allen
+
+- It is true that In literature and in mainstream framework, the frequent use of this pattern leads
+  to embed it in languages and frameworks, however fully preserving the async msg passing
+  and actor semantics.   Examples range from academics (e.g. ActorFoundry) to industrial (Akka "ask").
+
+- Even if the async model is preserved, personally  (given my software engineer background)
+  I think that - at a first glance - it is not a good idea, because it  compromises the reasoning
+  and methodology in designing actors, mixing async and sync.
+
+- I can do it with agent programming languages, because in that  case it is very clear also
+  at the design/methodological level what does it mean mixing apparently sync code within async one.
+
+- Nevertheless, as soon as one defines a clear model/method for conceptually integrating
+  sync-like fragments in async code, then this could bring strong benefits.
+
+  In the mainstream for instance, in asynchronous programming frameworks, the "async/await"
+  idiom (based on co-routine under the hood) is getting more and more used, instead of
+  promises/futures... because it gives a more sync (easy) taste to the code, without creating
+  async spaghetti and nested callbacks ("callback hell").
+
+So summarising:
+
+- async msg passing as kernel is not an option today, it is a must
+- given that, RPC is naturally recovered as request-response pattern
+- if one aims at giving a more sync taste to the code, this may be done
+  without compromising the async semantics.
 
 \section{System Model}
 \label{sec:sysmod}
