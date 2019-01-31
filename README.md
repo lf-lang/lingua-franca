@@ -2,17 +2,21 @@
 
 ## Proposed names for this project
  * Intermezzo
- * [please add more suggestions here]   
+ * [please add more suggestions here]
   
 ## Objectives
 
-### 1. Deterministic Coordination of Actors
+### 1. Polyglot IDL
+ * Minimal interface definition of actors 
+ * Allow implementation of actors in arbitrary language
+
+### 2. Deterministic Coordination of Actors
  * Interactions are timed (discrete) events
  * Well-defined simultaneity
  * Support for parallel & distributed
  * Non-determinism must be allowed explicitly
  
-### 2. Real-time Guarantees
+### 3. Real-time Guarantees
  * Scheduler + WCET analysis
  * Deadlines
 
