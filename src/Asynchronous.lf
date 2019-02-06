@@ -1,0 +1,18 @@
+// Actor that, upon receiving an input URL, queries
+// that URL and asynchronously produces on its output the
+// response.
+actor Asynchronous() {
+    language JavaScript;
+    input url:string;
+    output response:string;
+    preamble {
+        var http = require('@accessors-modules/http-client');
+    }
+    // FIXME: This uses 'response' but does not declare that
+    // it produces the output. This won't work.
+    reaction(url) {
+        http.get(url, function(reply) {
+            set(response, reply.body);
+        });
+    }
+}

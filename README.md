@@ -2,6 +2,7 @@
 
 ## Proposed names for this project
  * Intermezzo
+ * Lingua Franca
  * [please add more suggestions here]
   
 ## Objectives
