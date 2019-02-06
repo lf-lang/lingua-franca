@@ -9,13 +9,15 @@ function schedule(trigger, time, isPeriodic) {
     }
 }
 function set(port, value) {
+    if (!port) {
+        throw "Illegal reference to undeclared output.";
+    }
     this.send(port, value);
 }
 set.bind(this);
 // Code generated for this particular actor.
 // Trigger data structure:
 var t = {'actor':this, 'triggerName':'t', 'reaction':reaction_t};
-var y = 'y';
 // *********** From the preamble, verbatim:
         var n = 0;
 // *********** End of preamble.
@@ -36,6 +38,8 @@ exports.initialize = function() {
 }
 function reaction_t() {
     var period = this.getParameter('period');
+    var y = 'y'; // FIXME: Too easy to cheat! User could just pass a string name
+                 // of an output port to set().
     // *********** From reaction, verbatim:
         n = n + 1;
         set(y, n + ": Hello World!");
