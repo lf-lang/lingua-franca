@@ -1,13 +1,16 @@
 ANTLR=lib/antlr-4.7.2-complete.jar
+ARG?=../src/Source.lf
 
 
-lf:
+comp:
 	java -jar $(ANTLR) LinguaFranca.g4
 	javac -classpath $(ANTLR) *.java
-	java -classpath .:$(ANTLR) GenCode
 
-test-rig:
-	java -classpath .:$(ANTLR) org.antlr.v4.gui.TestRig LinguaFranca sys -tree
+lf:
+	java -classpath .:$(ANTLR) GenCode $(ARG)
+
+gui:
+	java -classpath .:$(ANTLR) org.antlr.v4.gui.TestRig LinguaFranca sys $(ARG) -gui
 
 init:
 	-mkdir lib
