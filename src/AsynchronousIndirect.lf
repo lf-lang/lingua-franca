@@ -1,0 +1,22 @@
+// Actor that, upon receiving an input URL, queries
+// that URL and asynchronously produces on its output the
+// response. This version uses a level of indirection,
+// where the response to the http request causes a trigger
+// to be scheduled.
+actor Asynchronous() {
+    language JavaScript;
+    input url:string;
+    output response:string;
+    trigger t:object;
+    preamble {
+        var http = require('@accessors-modules/http-client');
+    }
+    reaction(url) {
+        http.get(url, function(reply) {
+            schedule(t, 0, ONCE, reply);
+        });
+    }
+    reaction(t) -> response {
+        set(response, t.body);
+    }
+}

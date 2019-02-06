@@ -1,0 +1,41 @@
+// Produce a counting sequence with the specified period
+// starting with value 1. Whenever an input arrives,
+// reset the count to the value of the input.
+
+// Body code here is written in JavaScript.
+actor Counter(period:int(1000)) {
+    language JavaScript;
+    trigger t;
+    input x:int;
+    output y:int;
+    preamble {
+        // Declare the state variable.
+        var n = 1;
+        var handle;
+    }
+    initialize {
+        // Schedule the periodic reactions.
+        handle = schedule(t, period, PERIODIC);
+        // Initialize the state variable.
+        n = 1;
+    }
+    reaction(x) {
+        // Reset the state variable.
+        n = x;
+    }
+    reaction(t) -> y {
+        // Produce the output.
+        y = n;
+        // Increment the state variable.
+        n = n + 1;
+    }
+    // The order of declarations specifies
+    // that if an input arrives at the same
+    // model time as when we are scheduled to produce
+    // an output, then we reset the state before sending
+    // the output, so the output will have the new
+    // value provided by the input.
+    // NOTE: This means that there is direct feedthrough
+    // from input to output, so this actor cannot break
+    // a deadlock in a feedback loop.
+}
