@@ -4,15 +4,15 @@ actor Source(period:int(1000)) {
     language JavaScript;
     trigger t;
     output y:string;
-    preamble {
+    preamble {-
         var n = 0;
-    }
-    initialize {
+    -}
+    initialize {-
         schedule(t, period, PERIODIC);
         n = 0;
-    }
-    reaction(t) -> y {
+    -}
+    reaction(t) -> y {-
         n = n + 1;
         set(y, n + ": Hello World!");
-    }
+    -}
 }
