@@ -1,6 +1,7 @@
 ANTLR=lib/antlr-4.7.2-complete.jar
 ARG?=../src/Source.lf
 
+all: comp gui
 
 comp:
 	java -jar $(ANTLR) LinguaFranca.g4
