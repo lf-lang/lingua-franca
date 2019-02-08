@@ -1,19 +1,21 @@
 ANTLR=lib/antlr-4.7.2-complete.jar
-ARG?=../src/Source.lf
 
-all: comp gui
+ARG?=Source
+SOURCE=../src/$(ARG).lf
+
+all: lib comp lf
 
 comp:
 	java -jar $(ANTLR) LinguaFranca.g4
 	javac -classpath $(ANTLR) *.java
 
 lf:
-	java -classpath .:$(ANTLR) GenCode $(ARG)
+	java -classpath .:$(ANTLR) GenCode $(SOURCE) > $(ARG).js
 
 gui:
-	java -classpath .:$(ANTLR) org.antlr.v4.gui.TestRig LinguaFranca sys $(ARG) -gui
+	java -classpath .:$(ANTLR) org.antlr.v4.gui.TestRig LinguaFranca sys $(SOURCE) -gui
 
-init:
+lib:
 	-mkdir lib
 	cd lib; curl -O https://www.antlr.org/download/antlr-4.7.2-complete.jar
 
