@@ -8,27 +8,27 @@ actor Counter(period:int(1000)) {
     trigger t;
     input x:int;
     output y:int;
-    preamble {
+    preamble {-
         // Declare the state variable.
         var n = 1;
         var handle;
-    }
-    initialize {
+    -}
+    initialize {-
         // Schedule the periodic reactions.
         handle = schedule(t, period, PERIODIC);
         // Initialize the state variable.
         n = 1;
-    }
-    reaction(x) {
+    -}
+    reaction(x) {-
         // Reset the state variable.
         n = x;
-    }
-    reaction(t) -> y {
+    -}
+    reaction(t) -> y {-
         // Produce the output.
         y = n;
         // Increment the state variable.
         n = n + 1;
-    }
+    -}
     // The order of declarations specifies
     // that if an input arrives at the same
     // model time as when we are scheduled to produce

@@ -21,13 +21,13 @@ inp : 'input' ID ':' type ';' ;
 outp : 'output' ID ':' type ';' ;
 trig : 'trigger' ID ';' ;
 
-pre : 'preamble' CODE ;
-init : 'initialize' CODE ;
-react : 'reaction' '(' ID ')' sets* CODE ;
+pre : 'preamble' code ;
+init : 'initialize' code ;
+react : 'reaction' '(' ID ')' sets* code ;
 
 sets : '->' ID ;
 
-// code : CODE ;
+code : CODE ;
 
 block : ~'}'* ;
 
