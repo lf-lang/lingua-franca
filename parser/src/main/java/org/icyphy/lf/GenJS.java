@@ -1,3 +1,5 @@
+package org.icyphy.lf;
+
 import java.util.*;
 
 public class GenJS extends LinguaFrancaBaseListener {

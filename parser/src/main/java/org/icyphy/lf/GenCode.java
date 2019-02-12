@@ -1,3 +1,5 @@
+package org.icyphy.lf;
+
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import java.io.FileInputStream;
