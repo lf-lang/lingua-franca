@@ -6,14 +6,14 @@ SOURCE=../src/$(ARG).lf
 all: lib comp lf
 
 comp:
-	java -jar $(ANTLR) -package org.icyphy.lf LinguaFranca.g4
+	java -jar $(ANTLR) -package org.icyphy.lf LinguaFranca.g4 -o src/main/java/org/icyphy/lf
 	sbt compile
 
 lf:
-	sbt run < $(SOURCE) > $(ARG).js
+	sbt "runMain org.icyphy.lf.GenCode $(SOURCE) $(ARG).js"
 
 gui:
-	java -classpath .:$(ANTLR) org.antlr.v4.gui.TestRig LinguaFranca sys $(SOURCE) -gui
+	java -classpath .:$(ANTLR):target/lingua-franca-1.0-SNAPSHOT.jar org.antlr.v4.gui.TestRig org.icyphy.lf.LinguaFranca sys $(SOURCE) -gui
 
 lib:
 	-mkdir lib
@@ -28,13 +28,7 @@ clean:
 	-rm -rf lib
 	-rm -rf project
 	-rm -rf target
-	-rm LinguaFranca*.java
-	-rm Expr*.java
-
-example:
-	java -jar $(ANTLR) Expr.g4
-	javac -classpath $(ANTLR) Expr*.java
-	java -classpath .:$(ANTLR) org.antlr.v4.gui.TestRig Expr prog -gui
+	-rm src/main/java/org/icyphy/lf/LinguaFranca*.*
 
 # setup in your shell
 useful:
