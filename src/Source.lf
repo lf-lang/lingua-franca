@@ -2,13 +2,12 @@
 // ": Hello World!".
 actor Source(period:int(1000)) {
     language JavaScript;
-    trigger t;
+    trigger t(period, PERIODIC);
     output y:string;
     preamble {-
         var n = 0;
     -}
     initialize {-
-        schedule(t, period, PERIODIC);
         n = 0;
     -}
     reaction(t) -> y {-
