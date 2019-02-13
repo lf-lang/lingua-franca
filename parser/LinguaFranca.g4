@@ -19,7 +19,10 @@ stat : lang
 lang : 'language' ID ';' ;
 inp : 'input' ID ':' type ';' ;
 outp : 'output' ID ':' type ';' ;
-trig : 'trigger' ID ';' ;
+trig : 'trigger' ID '(' trigparam ',' trigtype ')' ';' ;
+
+trigparam : ID ;
+trigtype : 'PERIODIC' | 'ONCE' ;
 
 pre : 'preamble' code ;
 init : 'initialize' code ;
