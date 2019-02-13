@@ -1,7 +1,10 @@
 
 # Parser (Compiler) for Lingua Franca
 
-Tests are Makefile based.
+Tests are Makefile based and use ```sbt``` for compile and run to
+have the project in a Maven style layout.
+See also [Building Java Projects With Sbt](http://xerial.org/blog/2014/03/24/sbt/).
+ 
 
 ```
 make
