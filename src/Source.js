@@ -31,8 +31,8 @@ exports.setup = function() {
 // Generated initialize function:
 exports.initialize = function() {
     var period = this.getParameter('period');
+    schedule(t, period, PERIODIC);
     // *********** From initialize, verbatim:
-        schedule(t, period, PERIODIC);
         n = 0;
     // *********** End of initialize.
 }
