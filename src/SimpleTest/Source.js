@@ -8,16 +8,18 @@ function schedule(trigger, time, isPeriodic) {
         return trigger.actor.setTimeout(trigger.reaction, time);
     }
 }
-function set(port, value) {
+function setUnbound(port, value) {
     if (!port) {
         throw "Illegal reference to undeclared output.";
     }
     this.send(port, value);
 }
-set.bind(this);
+// NOTE: bind() returns a new function.
+// It does not alter the original function.
+var set = setUnbound.bind(this);
 // Code generated for this particular actor.
 // Trigger data structure:
-var t = {'actor':this, 'triggerName':'t', 'reaction':reaction_t};
+var t = {'actor':this, 'triggerName':'t', 'reaction':reaction_t.bind(this)};
 // *********** From the preamble, verbatim:
         var n = 0;
 // *********** End of preamble.
@@ -37,7 +39,10 @@ exports.initialize = function() {
     // *********** End of initialize.
 }
 function reaction_t() {
-	console.log("FIXME3: " + this.accessorClass);
+	console.log("************************");
+    console.log(util.inspect(this));
+    console.log("************************");
+
     var period = this.getParameter('period');
     var y = 'y'; // FIXME: Too easy to cheat! User could just pass a string name
                  // of an output port to set().
@@ -46,5 +51,4 @@ function reaction_t() {
         set(y, n);
     // *********** End of reaction code.
 }
-// Bind the reaction function to this actor.
-reaction_t.bind(this);
+
