@@ -39,10 +39,6 @@ exports.initialize = function() {
     // *********** End of initialize.
 }
 function reaction_t() {
-	console.log("************************");
-    console.log(util.inspect(this));
-    console.log("************************");
-
     var period = this.getParameter('period');
     var y = 'y'; // FIXME: Too easy to cheat! User could just pass a string name
                  // of an output port to set().

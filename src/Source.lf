@@ -3,7 +3,7 @@
 actor Source(period:int(1000)) {
     language JavaScript;
     trigger t(period, PERIODIC);
-    output y:string;
+    output y:int;
     preamble {-
         var n = 0;
     -}
@@ -12,6 +12,6 @@ actor Source(period:int(1000)) {
     -}
     reaction(t) -> y {-
         n = n + 1;
-        set(y, n + ": Hello World!");
+        set(y, n);
     -}
 }
