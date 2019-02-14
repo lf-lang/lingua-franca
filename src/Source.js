@@ -8,16 +8,18 @@ function schedule(trigger, time, isPeriodic) {
         return trigger.actor.setTimeout(trigger.reaction, time);
     }
 }
-function set(port, value) {
+function setUnbound(port, value) {
     if (!port) {
         throw "Illegal reference to undeclared output.";
     }
     this.send(port, value);
 }
-set.bind(this);
+// NOTE: bind() returns a new function.
+// It does not alter the original function.
+var set = setUnbound.bind(this);
 // Code generated for this particular actor.
 // Trigger data structure:
-var t = {'actor':this, 'triggerName':'t', 'reaction':reaction_t};
+var t = {'actor':this, 'triggerName':'t', 'reaction':reaction_t.bind(this)};
 // *********** From the preamble, verbatim:
         var n = 0;
 // *********** End of preamble.
@@ -25,7 +27,7 @@ var t = {'actor':this, 'triggerName':'t', 'reaction':reaction_t};
 // Generated setup function:
 exports.setup = function() {
     this.parameter('period', {'type':'int', 'value':1000});
-    this.output('y', {'type':'string'});
+    this.output('y', {'type':'int'});
 }
 
 // Generated initialize function:
@@ -42,8 +44,7 @@ function reaction_t() {
                  // of an output port to set().
     // *********** From reaction, verbatim:
         n = n + 1;
-        set(y, n + ": Hello World!");
+        set(y, n);
     // *********** End of reaction code.
 }
-// Bind the reaction function to this actor.
-reaction_t.bind(this);
+
