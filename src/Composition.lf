@@ -1,0 +1,20 @@
+// Show how to compose actors
+actor Source(period:int(1000)) {
+    language JavaScript;
+    trigger t(period, PERIODIC);
+    output y: string;
+    preamble {-
+        var n = 0;
+    -}
+    initialize {-
+        n = 0;
+    -}
+    reaction(t) -> y {-
+        n = n + 1;
+        set(y, n + ": Hello World!");
+    -}
+}
+
+actor Sink() {
+    input p: string;
+}
