@@ -39,13 +39,13 @@ public class GenJS extends LinguaFrancaBaseListener {
         println("        return trigger.actor.setTimeout(trigger.reaction, time);");
         println("    }");
         println("}");
-        println("function set(port, value) {");
+        println("function setUnbound(port, value) {");
         println("    if (!port) {");
         println("        throw \"Illegal reference to undeclared output.\";");
         println("    }");
         println("    this.send(port, value);");
         println("}");
-        println("set.bind(this);");
+        println("var set = setUnbound.bind(this);");
     }
 
     @Override
@@ -82,7 +82,7 @@ public class GenJS extends LinguaFrancaBaseListener {
         println("// Trigger data structure:");
         for (String key : trigger.keySet()) {
             String s = "var " + key + " = {'actor':this, 'triggerName':'" + key +
-                    "', 'reaction':reaction_" + key + "};";
+                    "', 'reaction':reaction_" + key + ".bind(this)};";
             println(s);
         }
     }
@@ -145,8 +145,5 @@ public class GenJS extends LinguaFrancaBaseListener {
     @Override
     public void exitReact(LinguaFrancaParser.ReactContext ctx) {
         println("}");
-        println("// Bind the reaction function to this actor.");
-        String s = "reaction_" + ctx.ID().getText() + ".bind(this);";
-        println(s);
     }
 }
