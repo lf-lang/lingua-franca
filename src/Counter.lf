@@ -2,9 +2,9 @@
 // starting with value 1. Whenever an input arrives,
 // reset the count to the value of the input.
 
+language JavaScript;
 // Body code here is written in JavaScript.
 actor Counter(period:int(1000)) {
-    language JavaScript;
     trigger t;
     input x:int;
     output y:int;

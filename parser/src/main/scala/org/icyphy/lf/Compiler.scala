@@ -16,6 +16,12 @@ object Compiler extends App {
   val tree = parser.sys()
 
   val walker = new ParseTreeWalker()
-  walker.walk(new EmitJSJ2S(ps), tree)
+  val lang = new GetLang()
+  walker.walk(lang, tree)
+  val emitter = lang.language match {
+    case "JavaScript" => new EmitJSJ2S(ps)
+    case _ => null
+  }
+  walker.walk(emitter, tree)
   ps.println()
 }

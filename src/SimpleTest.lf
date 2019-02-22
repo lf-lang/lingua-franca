@@ -1,6 +1,6 @@
+language JavaScript;
 // Periodically produce an output consisting of a count.
 actor Source(period:int(1000)) {
-    language JavaScript;
     trigger t(period, PERIODIC);
     output y:int;
     preamble {-

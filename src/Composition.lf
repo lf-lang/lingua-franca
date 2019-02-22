@@ -1,6 +1,6 @@
 // Show how to compose actors
+language JavaScript;
 actor Source(period:int(1000)) {
-    language JavaScript;
     trigger t(period, PERIODIC);
     output y: string;
     preamble {-

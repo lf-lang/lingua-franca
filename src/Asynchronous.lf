@@ -1,8 +1,8 @@
 // Actor that, upon receiving an input URL, queries
 // that URL and asynchronously produces on its output the
 // response.
+language JavaScript;
 actor Asynchronous() {
-    language JavaScript;
     input url:string;
     output response:string;
     preamble {
