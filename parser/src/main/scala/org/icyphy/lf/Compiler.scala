@@ -19,9 +19,10 @@ object Compiler extends App {
   val lang = new GetLang()
   walker.walk(lang, tree)
   val emitter = lang.language match {
-    case "JavaScript" => new EmitJSJ2S(ps)
+    case "JavaScript" => new EmitCode(ps)
     case _ => null
   }
   walker.walk(emitter, tree)
+  emitter.printStuff()
   ps.println()
 }
