@@ -3,8 +3,8 @@
 // response. This version uses a level of indirection,
 // where the response to the http request causes a trigger
 // to be scheduled.
+language JavaScript;
 actor Asynchronous() {
-    language JavaScript;
     input url:string;
     output response:string;
     trigger t:object;

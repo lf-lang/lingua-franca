@@ -1,6 +1,6 @@
 // Actor that displays an input string.
+language JavaScript;
 actor Destination {
-    language JavaScript;
     inputs x:string;
     preamble {
         var textDisplay = require('@accessors-modules/text-display');

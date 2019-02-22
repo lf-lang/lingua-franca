@@ -1,14 +1,14 @@
 
 grammar LinguaFranca;
-sys : actor ;
+sys : lang actor ;
+lang : 'language' ID ';' ;
 actor : head '{' body '}' ;
 head : 'actor' ID '(' param* ')' ;
 param : ID ':' type def? ;
 def : '(' INTVAL ')' ;
 body : stat* ;
 
-stat : lang
-     | inp
+stat : inp
      | outp
      | trig
      | pre
@@ -16,7 +16,6 @@ stat : lang
      | react
      ;
 
-lang : 'language' ID ';' ;
 inp : 'input' ID ':' type ';' ;
 outp : 'output' ID ':' type ';' ;
 trig : 'trigger' ID '(' trigparam ',' trigtype ')' ';' ;

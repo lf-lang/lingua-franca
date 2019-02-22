@@ -1,7 +1,7 @@
 // Periodically produce an output consisting of a count followed by
 // ": Hello World!".
+language JavaScript;
 actor Source(period:int(1000)) {
-    language JavaScript;
     trigger t(period, PERIODIC);
     output y:int;
     preamble {-
