@@ -10,7 +10,9 @@ comp:
 	sbt compile
 
 lf:
-	sbt "runMain org.icyphy.lf.GenCode $(SOURCE) $(ARG).js"
+	sbt "runMain org.icyphy.lf.GenCode $(SOURCE) $(ARG).js_j"
+	sbt "runMain org.icyphy.lf.Compiler $(SOURCE) $(ARG).js"
+	diff $(ARG).js_j $(ARG).js
 
 gui:
 	java -classpath .:$(ANTLR):target/lingua-franca-1.0-SNAPSHOT.jar org.antlr.v4.gui.TestRig org.icyphy.lf.LinguaFranca sys $(SOURCE) -gui
