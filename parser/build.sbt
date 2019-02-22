@@ -4,6 +4,8 @@ name := "Lingua Franca"
 // orgnization name (e.g., the package name of the project)
 organization := "org.icyphy"
 
+scalaVersion := "2.12.7"
+
 version := "1.0-SNAPSHOT"
 
 // project description
@@ -16,7 +18,7 @@ publishMavenStyle := true
 crossPaths := false
 
 // This forbids including Scala related libraries into the dependency
-autoScalaLibrary := false
+// autoScalaLibrary := false
 
 // library dependencies. (orginization name) % (project name) % (version)
 //libraryDependencies ++= Seq(
