@@ -1,4 +1,4 @@
-# Lingua Franca: A Programming Model for Precision-Timed Computation
+# Lingua Franca: A Reactive Programming Model for Precision-Timed Computation
   
 ## Objectives
 
