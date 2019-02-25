@@ -1,21 +1,16 @@
-# A Model of Computation using Pret Machines (Precision Timed Computation)
-
-## Proposed names for this project
- * Intermezzo
- * Lingua Franca
- * [please add more suggestions here]
+# Lingua Franca: A Programming Model for Precision-Timed Computation
   
 ## Objectives
 
 ### 1. Polyglot IDL
- * Minimal interface definition of actors 
- * Allow implementation of actors in arbitrary language
+ * Specify actors on the interface level 
+ * Allow implementation of actors in arbitrary languages
 
-### 2. Deterministic Coordination of Actors
+### 2. Deterministic Coordination Semantics
  * Interactions are timed (discrete) events
- * Well-defined simultaneity
- * Support for parallel & distributed
- * Non-determinism must be allowed explicitly
+ * Well-defined notion of simultaneity
+ * Support for parallel & distributed execution
+ * Non-determinism may not arise implicitly
  
 ### 3. Real-time Guarantees
  * Scheduler + WCET analysis
