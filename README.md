@@ -1,4 +1,4 @@
-# Lingua Franca: An Interface Definition Language for Precision-Timed Reactive Components
+# Lingua Franca: A Programming Model for Precision-Timed Reactive Systems
   
 ## Objectives
 
