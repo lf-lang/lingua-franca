@@ -1,4 +1,4 @@
-# Lingua Franca: A Reactive Programming Model for Precision-Timed Computation
+# Lingua Franca: An Interface Definition Language for Precision-Timed Reactive Components
   
 ## Objectives
 
