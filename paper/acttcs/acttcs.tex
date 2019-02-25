@@ -122,6 +122,8 @@ Abstract
 \section{Related Work}
 \label{sec:related}
 
+\martin{Is this the first Actor paper? Carl Hewitt; Peter Bishop and Richard Steiger (1973). "A Universal Modular Actor Formalism for Artificial Intelligence". IJCAI.}
+
 \section{Actors}
 \label{sec:actor}
 
@@ -141,6 +143,12 @@ reaction are timestamped. When the system is simulated, the timestamp
 is equal to the model time. When the system is used for execution, the logical
 time for the release of the reaction is synchronized to wall clock time and therefore
 the output message are synchronized to wall clock time.}
+
+\martin{Question: what happens when a reaction depends on two inputs, but
+those two inputs have a different logical time?
+I assume that the reaction is fired/released when all two inputs have values
+(which means logical time is at the younger message)
+and a produced output gets the younger timestamp.}
 
 \subsection{Scribbles on Logical Time}
 
