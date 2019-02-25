@@ -5,3 +5,5 @@ exports.setup = function() {
     b.setParameter('expected", '[1, 2, 3, 4]');
     this.connect(a, 'y', b, 'x');
 }
+
+

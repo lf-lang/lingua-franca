@@ -17,6 +17,7 @@ and a host language.
 
 ## Testing using the node host
 
+SimpleTest.lf, when compiled, should produce the files in the subdirectory SimpleTest.
 Shell command:
 
 node $PTII/org/terraswarm/accessor/accessors/web/hosts/node/nodeHostShell.js
