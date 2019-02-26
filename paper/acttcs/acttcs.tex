@@ -150,6 +150,12 @@ I assume that the reaction is fired/released when all two inputs have values
 (which means logical time is at the younger message)
 and a produced output gets the younger timestamp.}
 
+\martin{We have (and maybe support) two options: (1) input is only valid when
+the timestamp equals logical time, absent at other times or (2) keeping the value
+of an input for future logical time and having a default value for system initialization time.
+(in the JS accessors this is the way it is specified, the default value gives the
+``keep'' or persistent semantic).}
+
 \subsection{Scribbles on Logical Time}
 
 Time is \emph{logical} time. This logical time be used for simulation and then
@@ -191,7 +197,18 @@ The summ of all reaction's WCET from one synchronization point (either
 sample of sensors or output of a delay actor) to another synchronization
 point (or output of an actuator) has to be less than the delay.
 
+\subsection{Dynamic Actors}
 
+For dynamic systems, e.g., an IoT that keeps running, but in different contexts
+(e.g., places), we support dynamic reconfiguration of the network of actors.
+This may be well supported when targeting a dynamic language such as JavaScript,
+but harder to implement in C.
+
+To support reconfiguration we need a more complete language then the configuration
+language LF. Therefore, our first iteration of dynamic reconfiguration is done in the
+host language JavaScript. In that case, the host language needs access to actors and
+ports. However, we can use scopes to having access to those parts of the framework
+only in well defined places.
 
 
 
