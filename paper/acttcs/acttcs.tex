@@ -210,6 +210,17 @@ host language JavaScript. In that case, the host language needs access to actors
 ports. However, we can use scopes to having access to those parts of the framework
 only in well defined places.
 
+\subsection{Call of an External Service}
+
+An actor can call an external service that will deliver the result in the future
+and use a call back to deliver the result (\martin{Marten likes to use a Future}).
+This call back is handled as described above between two model timestamps
+and the return value is timestamped with wall clock time.
+
+An actor my implement a timeout mechanism by scheduling a trigger in the future.
+{\bf This timeout TO need to be set relative to wall clock time, not logical
+time, as logical time will be behind wall clock time.}
+
 
 
 \section{Conclusion}
