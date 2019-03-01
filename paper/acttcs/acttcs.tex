@@ -56,22 +56,41 @@
 
 \begin{document}
 
-\title{Actors, Time Stamps, and Determinism for Time-Critical Systems}
+\title{Actors, Time Stamps, and Determinism \\ for Time-Critical Systems}
+
 
 \author{Edward A. Lee}
+\orcid{0000-0002-5663-0584}
+\email{eal@eecs.berkeley.edu}
+\affiliation{%
+	\institution{University of California, Berkeley}
+	%\streetaddress{}
+	%\postcode{}
+	%\city{} 
+	\country{USA} 
+}
 
 \author{Marten Lohstroh}
+\orcid{0000-0001-8833-4117}
+\email{marten@eecs.berkeley.edu}
+\affiliation{%
+	\institution{University of California, Berkeley}
+	%\streetaddress{}
+	%\postcode{}
+	%\city{} 
+	\country{USA} 
+}
 
 \author{Martin Schoeberl}
 \orcid{1234-5678-9012}
+\email{masca@dtu.dk}
 \affiliation{%
 	\institution{Technical University of Denmark}
-	\streetaddress{}
-	\postcode{2800}
-	\city{Lyngby} 
+	%\streetaddress{}
+	%\postcode{2800}
+	%\city{Lyngby} 
 	\country{Denmark} 
 }
-\email{masca@dtu.dk}
 
 
 \renewcommand{\shortauthors}{E. A. Lee et al.}
@@ -97,7 +116,6 @@ Abstract
 
 \ccsdesc[500]{Computer systems organization~Embedded systems}
 
-
 \keywords{ACM proceedings, \LaTeX, text tagging}%
 
 \ccsdesc[500]{Computer systems organization~Embedded systems}
@@ -107,10 +125,20 @@ Abstract
 
 \maketitle 
 
-\section{Introduction}
-\label{sec:intro}
 
+\section{Introduction}\label{sec:intro}
+Since their introduction by Hewitt in the early 70s, the use of actors has proliferated 
+in programming languages~\cite{a,b,c}, coordination languages~\cite{d,e}, distributed systems~\cite{f,g}, and simulation engines~\cite{h,i}. %add citations here
+Actors have much in common with objects---a paradigm focused on reducing code replication 
+by means of inheritance and increasing modularity via data hiding---but unlike %the Object Oriented Programming (OOP) paradigm
+objects, actors also provide a model for \emph{concurrency}.
+Indeed, in the original formulation of the actor model, each actor is presumed to operate concurrently alongside
+other actors that it may exchange messages with, asynchronously. The lack of any guarantees
+with respect to the ordering of messages, and the absence of a notion of time, makes this a
+very general model, but not a very useful model for the specification of systems in which
+timely execution and determinism are important. 
 
+% 
 
 %This paper is organized as follows. Section~\ref{sec:related} surveys related work.
 %Section~\ref{sec:hardware} describes the proposed time-predictable branch predictor
