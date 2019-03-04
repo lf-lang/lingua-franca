@@ -183,7 +183,7 @@ Abstract
 
 \section{Introduction}\label{sec:intro}
 Since their introduction by Hewitt in the early 70s, the use of actors has proliferated 
-in programming languages~\cite{a,b,c}, coordination languages~\cite{d,e}, distributed systems~\cite{f,g}, and simulation engines~\cite{h,i}. %add citations here
+in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
 Actors have much in common with objects---a paradigm focused on reducing code replication 
 by means of inheritance and increasing modularity via data hiding---but unlike %the Object Oriented Programming (OOP) paradigm
 objects, actors also provide a model for \emph{concurrency}.
@@ -192,6 +192,19 @@ other actors that it may exchange messages with, asynchronously. The lack of any
 with respect to the ordering of messages, and the absence of a notion of time, makes this a
 very general model, but not a very useful model for the specification of systems in which
 timely execution and determinism are important. 
+
+\section{Principles}
+
+A1 computate on private data
+A2 send events to output ports
+A3 request invocation of a procedure at t + delta
+A4 read any inputs \& either get a value or null
+A5 access current time == time stamp of input
+A6 every actor sees events in time stamp order
+A6 request an async, callback of proc (what is current time?)
+A7 TR delay
+%A8 send to output port with delay delta/deadline t+delta (i.e., actually received at t+delta' where delta' >= delta)
+
 
 % 
 
@@ -202,23 +215,42 @@ timely execution and determinism are important.
 %of the proposed branch predictor. Finally, Section~\ref{sec:conclusion} concludes
 %and gives directions for future work.
 
-\section{Examples}
+\section{Logical Time \& Physical Time}
 
-\begin{figure}
+\subsection{Deadlines}
+\begin{figure}[ht]
  \centering
  \includegraphics[width=\linewidth]{img/example-1}
  \caption{First example}
  \label{fig:example-1}
 \end{figure}
+% DAC Properties A1-9.
+% Simple examples. Which should those be?
+% First one to start with: sensor computation actuator
+% Introduce notion of a deadline
+% Why on the local platform, model should not get ahead.
+% Example 1: Synchronization to real time and deadlines
+% Example 2: Why delay has to wait
+% Example 3: shut off the lights some time after the switch has been flipped.
+% Reason to have the deadline definition as stated: detectability. Suppose the start deadline cannot be met; the
+% reaction should not be carried out (and then the violation be reported on).
 
-\begin{figure}
+\subsection{Causality}
+We don't want to run ahead of realtime, because actors can produce spontaneous events that need to be stamped with 
+pysical time, and we don't want these timestamps to be ``in the past.''
+
+\begin{figure}[ht]
  \centering
  \includegraphics[width=\linewidth]{img/example-2}
  \caption{Second example}
  \label{fig:example-2}
 \end{figure}
 
-\begin{figure}
+
+\subsection{}
+Shut off the lights some time after the switch has been flipped. Reason to have the deadline definition as stated: detectability. Suppose the start deadline cannot be met; the reaction should not be carried out (and the violation be reported on subsequently).
+
+\begin{figure}[ht]
  \centering
  \includegraphics[width=\linewidth]{img/example-3}
  \caption{Third example}
@@ -232,6 +264,24 @@ timely execution and determinism are important.
 
 \section{Actors}
 \label{sec:actor}
+
+Several frameworks have been built based, loosely or strictly, on the
+original Hewitt actor model
+\cite{Hewitt:77:Actors,Agha:97:ActorComputation}, including Akka
+\cite{AkkaAction2016},
+Ray \cite{DBLP:journals/corr/abs-1712-05889}, and Rebeca
+\cite{DBLP:journals/fuin/SirjaniMSB04}. One property of the original
+Hewitt actor model is that messages received by an actor from distinct
+sources are handled in nondeterministic order. Rebeca performs analysis
+on the model using model checking to ensure that this nondeterminism
+does not lead to behaviors that violate requirements of the application
+\cite{DBLP:conf/birthday/SirjaniJ11}. In Lingua Franca, we take a
+different approach, which is
+to ensure that messages are handled in deterministic order unless the
+model explicitly requires nondeterminism. By default, all Lingua Franca
+programs will be deterministic. We use a semantic notion of time and
+time stamps to achieve this.
+
 
 Actors communicate via ports. All data exchanged has a timestamp.
 An actor does not advance time, the reaction is considered instantaneous.
@@ -343,6 +393,6 @@ time, as logical time will be behind wall clock time.}
 % Please do not add any references to msbib.bib.
 % They get lost when I 'generate' it again.
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{msbib} 
+\bibliography{Refs} 
 
 \end{document}
