@@ -205,11 +205,31 @@ in control systems that continually interact with concurrent physical processes 
 systems), determinism makes \emph{any} software easier to test and verify.
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
-For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow. In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca}, an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
+For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow. In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
 
 \section{Actors in Lingua Franca}
+A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, our actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be exploited...
+discuss DE, SR, performance.
 
-Discuss logical time, etc.
+
+
+Inspired by \cite{LeeMatsikoudis:09:Dataflow}, reaction rules, etc...
+
+Note that because a dependency graph can be derived from the component interfaces and topology, not static analysis has to be performed on the code that implements the reactions. This is why LF can be polyglot...
+
+Central to the programming model behind LF is the relationship between the time stamps associated with the receipt of messages, which denote \emph{logical} time, and the passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
+
+% Time is \emph{logical} time. This logical time be used for simulation and then
+% we call it model time. We can also use the network of actors for the implementation
+% of the system. 
+
+% In that case wall clock time is used to timestamp input values
+% at sensors. Logical time can never advance further than wall clock time.
+% We have a notion of delay in two places: (1) as a delay actor to break up
+% feedback loops (2) at actuators to specify that an actuation shall happen before
+% (or exactly at) the logical time of the input plus the delay.
+
+
 \begin{enumerate}
 \item Messages exchanged between actors are timestamped;
 \item The arrival of a message denotes a discrete event;
@@ -237,7 +257,7 @@ Discuss logical time, etc.
 %of the proposed branch predictor. Finally, Section~\ref{sec:conclusion} concludes
 %and gives directions for future work.
 
-\section{Logical Time \& Physical Time}
+\section{A Motivating Example}
 
 \subsection{Deadlines}
 \begin{figure}[ht]
@@ -290,7 +310,7 @@ Method and tools for mixed-criticality real-time applications within PharOS \cit
 \label{sec:actor}
 
 
-Constraints can be placed on actors' allowable behaviors so that actors adhere to a well-defined model of computation, satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. This has been the guiding principle in the Ptolemy project\footnote{\url{https://ptolemy.berkeley.edu/}}, which studies modeling, simulation, and design of concurrent, real-time, embedded systems.
+% Constraints can be placed on actors' allowable behaviors so that actors adhere to a well-defined model of computation, satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. This has been the guiding principle in the Ptolemy project\footnote{\url{https://ptolemy.berkeley.edu/}}, which studies modeling, simulation, and design of concurrent, real-time, embedded systems.
 
 Several frameworks have been built based, loosely or strictly, on the
 original Hewitt actor model
