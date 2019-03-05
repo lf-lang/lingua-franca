@@ -2,6 +2,15 @@
 
 \usepackage{booktabs} % For formal tables
 
+\newcounter{myctr}
+\newenvironment{compactEnumerate}{\begin{list}{\arabic{myctr}.}
+{\usecounter{myctr}
+%\setlength{\topsep}{1mm}\setlength{\itemsep}{0.5mm}
+\setlength{\topsep}{0.3mm}\setlength{\itemsep}{0mm}
+\setlength{\parsep}{0.3mm}
+\setlength{\itemindent}{0mm}\setlength{\partopsep}{0mm}
+\setlength{\labelwidth}{15mm}
+\setlength{\leftmargin}{4mm}}}{\end{list}}
 
 % Copyright
 %\setcopyright{none}
@@ -182,29 +191,42 @@ Abstract
 
 
 \section{Introduction}\label{sec:intro}
-Since their introduction by Hewitt in the early 70s, the use of actors has proliferated 
-in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
+Since their introduction by Hewitt~\cite{Hewitt:77:Actors} in the early 70s, the use of actors has proliferated 
+in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
 Actors have much in common with objects---a paradigm focused on reducing code replication 
 by means of inheritance and increasing modularity via data hiding---but unlike %the Object Oriented Programming (OOP) paradigm
-objects, actors also provide a model for \emph{concurrency}.
+objects, actors also provide a model for \emph{concurrency}. 
 Indeed, in the original formulation of the actor model, each actor is presumed to operate concurrently alongside
 other actors that it may exchange messages with, asynchronously. The lack of any guarantees
 with respect to the ordering of messages, and the absence of a notion of time, makes this a
 very general model, but not a very useful model for the specification of systems in which
-timely execution and determinism are important. 
+timely execution and determinism are important. While precision timing plays an important role
+in control systems that continually interact with concurrent physical processes (i.e., cyber-physical
+systems), determinism makes \emph{any} software easier to test and verify.
 
-\section{Principles}
+Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
+For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}. Alternative, constraints can be placed on actors' allowable behaviors so that actors adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. In this paper, we propose a programming model that ensures ensure that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca}, an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
 
-A1 computate on private data
-A2 send events to output ports
-A3 request invocation of a procedure at t + delta
-A4 read any inputs \& either get a value or null
-A5 access current time == time stamp of input
-A6 every actor sees events in time stamp order
-A6 request an async, callback of proc (what is current time?)
-A7 TR delay
-%A8 send to output port with delay delta/deadline t+delta (i.e., actually received at t+delta' where delta' >= delta)
+\section{Actors in Lingua Franca}
 
+Discuss logical time, etc.
+\begin{enumerate}
+\item Messages exchanged between actors are timestamped;
+\item The arrival of a message denotes a discrete event;
+\item Actors carry state and a list of reactions, each of which:
+\begin{enumerate}
+\item is triggered by the presence of an event;
+\item sees events in time stamp order;
+\item can read/modify the actor's state;
+\item can set the values of output ports it has access to;
+\item can schedule future events on input ports it has access to;
+\item can read the values of input ports it has access to; and
+\begin{enumerate}
+\item The timestamp associated with a witnessed event always denotes the current logical time; and
+\item if no message arrived at a given port at the current logical time, its observed value is \emph{absent}. 
+\end{enumerate}
+\end{enumerate}
+\end{enumerate}
 
 % 
 
@@ -267,6 +289,9 @@ Method and tools for mixed-criticality real-time applications within PharOS \cit
 \section{Actors}
 \label{sec:actor}
 
+
+Constraints can be placed on actors' allowable behaviors so that actors adhere to a well-defined model of computation, satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. This has been the guiding principle in the Ptolemy project\footnote{\url{https://ptolemy.berkeley.edu/}}, which studies modeling, simulation, and design of concurrent, real-time, embedded systems.
+
 Several frameworks have been built based, loosely or strictly, on the
 original Hewitt actor model
 \cite{Hewitt:77:Actors,Agha:97:ActorComputation}, including Akka
@@ -274,15 +299,7 @@ original Hewitt actor model
 Ray \cite{DBLP:journals/corr/abs-1712-05889}, and Rebeca
 \cite{DBLP:journals/fuin/SirjaniMSB04}. One property of the original
 Hewitt actor model is that messages received by an actor from distinct
-sources are handled in nondeterministic order. Rebeca performs analysis
-on the model using model checking to ensure that this nondeterminism
-does not lead to behaviors that violate requirements of the application
-\cite{DBLP:conf/birthday/SirjaniJ11}. In Lingua Franca, we take a
-different approach, which is
-to ensure that messages are handled in deterministic order unless the
-model explicitly requires nondeterminism. By default, all Lingua Franca
-programs will be deterministic. We use a semantic notion of time and
-time stamps to achieve this.
+sources are handled in nondeterministic order. 
 
 
 Actors communicate via ports. All data exchanged has a timestamp.
