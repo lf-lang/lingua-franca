@@ -53,7 +53,7 @@
 
 \newcommand{\todo}[1]{{\emph{TODO: #1}}}
 \newcommand{\martin}[1]{{\color{blue} Martin: #1}}
-\newcommand{\benjamin}[1]{{\color{cyan} #1}}
+\newcommand{\marten}[1]{{\color{cyan} Marten: #1}}
 \newcommand{\isa}[1]{{\color{darkgreen} Isabelle: #1}}
 
 
@@ -205,17 +205,17 @@ in control systems that continually interact with concurrent physical processes 
 systems), determinism makes \emph{any} software easier to test and verify.
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
-For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow. In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
+For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11} \marten{this doesn't appear to be the correct reference}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow. In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
 
 \section{Actors in Lingua Franca}
-A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, our actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be exploited...
-discuss DE, SR, performance.
+A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, \marten{it exposes dependencies between actors that can be exploited...
+discuss DE, SR, performance.}
 
 
 
-Inspired by \cite{LeeMatsikoudis:09:Dataflow}, reaction rules, etc...
+\marten{Inspired by \cite{LeeMatsikoudis:09:Dataflow}, reaction rules, etc...
 
-Note that because a dependency graph can be derived from the component interfaces and topology, no static analysis has to be performed on the code that implements the reactions in order to construct a schedule. This is why LF can be polyglot...
+Note that because a dependency graph can be derived from the component interfaces and topology, no static analysis has to be performed on the code that implements the reactions in order to construct a schedule. This is why LF can be polyglot...}
 
 Central to the programming model behind LF is the relationship between the time stamps associated with the receipt of messages, which denote \emph{logical} time, and the passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
 
@@ -240,12 +240,15 @@ Central to the programming model behind LF is the relationship between the time 
 \item can read/modify the actor's state;
 \item can set the values of output ports it has access to;
 \item can schedule \emph{future} events on input ports it has access to;
-\item can read the values of input ports it has access to; and
+\item can read the values of input ports it has access to;
 \begin{enumerate}
-\item The timestamp associated with a witnessed event always denotes the current logical time; and
+\item the timestamp associated with an observed event always denotes the current logical time; and
 \item if no message arrived at a given port at the current logical time, its observed value is \emph{absent}. 
 \end{enumerate}
 \end{enumerate}
+\item No logical time elapses during a reaction;
+\item Any two reactions of the same actor execute atomically with respect to one another; and
+\item If two reactions of the same actor are triggered simultaneously, they execute in a predefined order;
 \end{enumerate}
 
 % 
