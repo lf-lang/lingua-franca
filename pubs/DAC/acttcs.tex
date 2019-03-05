@@ -207,11 +207,9 @@ systems), determinism makes \emph{any} software easier to test and verify.
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11} \marten{this doesn't appear to be the correct reference}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow. In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
 
-\section{Actors in Lingua Franca}
+\section{Actors in Lingua Franca}\label{sec:actor}
 A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, \marten{it exposes dependencies between actors that can be exploited...
 discuss DE, SR, performance.}
-
-
 
 \marten{Inspired by \cite{LeeMatsikoudis:09:Dataflow}, reaction rules, etc...
 
@@ -228,6 +226,17 @@ Central to the programming model behind LF is the relationship between the time 
 % We have a notion of delay in two places: (1) as a delay actor to break up
 % feedback loops (2) at actuators to specify that an actuation shall happen before
 % (or exactly at) the logical time of the input plus the delay.
+
+% Actors communicate via ports. All data exchanged has a timestamp.
+% An actor does not advance time, the reaction is considered instantaneous.
+
+% Reactions of one actor are atomic and are allowed to change state.
+% Reactions are triggered by available inputs with timestamps at logical
+% time (or older). When several reactions of an actor are enabled at the
+% same time, the definition order in LF defines the execution order.
+
+% A reaction of an actor can also be released by a trigger. A trigger
+% can be periodic triggers or a single shot timer.
 
 
 \begin{enumerate}
@@ -306,60 +315,48 @@ Shut off the lights some time after the switch has been flipped. Reason to have 
 \label{sec:related}
 Towards a real-time coordination model for mobile computing \cite{hackmann2005towards}
 Method and tools for mixed-criticality real-time applications within PharOS \cite{lemerre2011method}
+Accessors \cite{brooks2018component}
 
-\martin{Is this the first Actor paper? Carl Hewitt; Peter Bishop and Richard Steiger (1973). "A Universal Modular Actor Formalism for Artificial Intelligence". IJCAI.}
-
-\section{Actors}
-\label{sec:actor}
+%\section{Actors}
+%
 
 
 % Constraints can be placed on actors' allowable behaviors so that actors adhere to a well-defined model of computation, satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. This has been the guiding principle in the Ptolemy project\footnote{\url{https://ptolemy.berkeley.edu/}}, which studies modeling, simulation, and design of concurrent, real-time, embedded systems.
 
-Several frameworks have been built based, loosely or strictly, on the
-original Hewitt actor model
-\cite{Hewitt:77:Actors,Agha:97:ActorComputation}, including Akka
-\cite{AkkaAction2016},
-Ray \cite{DBLP:journals/corr/abs-1712-05889}, and Rebeca
-\cite{DBLP:journals/fuin/SirjaniMSB04}. One property of the original
-Hewitt actor model is that messages received by an actor from distinct
-sources are handled in nondeterministic order. 
+% Several frameworks have been built based, loosely or strictly, on the
+% original Hewitt actor model
+% \cite{Hewitt:77:Actors,Agha:97:ActorComputation}, including Akka
+% \cite{AkkaAction2016},
+% Ray \cite{DBLP:journals/corr/abs-1712-05889}, and Rebeca
+% \cite{DBLP:journals/fuin/SirjaniMSB04}. One property of the original
+% Hewitt actor model is that messages received by an actor from distinct
+% sources are handled in nondeterministic order. \marten{even messages from the same source can arrive out-of-order}
 
 
-Actors communicate via ports. All data exchanged has a timestamp.
-An actor does not advance time, the reaction is considered instantaneous.
-
-Reactions of one actor are atomic and are allowed to change state.
-Reactions are triggered by available inputs with timestamps at logical
-time (or older). When several reactions of an actor are enabled at the
-same time, the definition order in LF defines the execution order.
-
-A reaction of an actor can also be released by a trigger. A trigger
-can be periodic triggers or a single shot timer.
-
-\martin{We need to check this: Outputs generated by a time triggered
-reaction are timestamped. When the system is simulated, the timestamp
-is equal to the model time. When the system is used for execution, the logical
-time for the release of the reaction is synchronized to wall clock time and therefore
-the output message are synchronized to wall clock time.}
+% \martin{We need to check this: Outputs generated by a time triggered
+% reaction are timestamped. When the system is simulated, the timestamp
+% is equal to the model time. When the system is used for execution, the logical
+% time for the release of the reaction is synchronized to wall clock time and therefore
+% the output message are synchronized to wall clock time.}
 
 \martin{Question: what happens when a reaction depends on two inputs, but
 those two inputs have a different logical time?
 I assume that the reaction is fired/released when all two inputs have values
 (which means logical time is at the younger message)
 and a produced output gets the younger timestamp.}
+\marten{It cannot happen. As discussed earlier: we should probably discuss persistent ports as a feature to facilitate writing actors that relate messages with different timestamps.}
 
-\martin{We have (and maybe support) two options: (1) input is only valid when
-the timestamp equals logical time, absent at other times or (2) keeping the value
-of an input for future logical time and having a default value for system initialization time.
-(in the JS accessors this is the way it is specified, the default value gives the
-``keep'' or persistent semantic).}
+% \martin{We have (and maybe support) two options: (1) input is only valid when
+% the timestamp equals logical time, absent at other times or (2) keeping the value
+% of an input for future logical time and having a default value for system initialization time.
+% (in the JS accessors this is the way it is specified, the default value gives the
+% ``keep'' or persistent semantic).}
 
 \subsection{Scribbles on Logical Time}
-
 Time is \emph{logical} time. This logical time be used for simulation and then
 we call it model time. We can also use the network of actors for the implementation
 of the system. In that case wall clock time is used to timestamp input values
-at sensors. Logical time can never advance further than wall clock time.
+at sensors. Logical time can never advance further than wall clock time. \marten{Not entirely true: an optimized scheduler can do this under very specific circumstances that we'll elaborate on in the example.}
 We have a notion of delay in two places: (1) as a delay actor to break up
 feedback loops (2) at actuators to specify that an actuation shall happen before
 (or exactly at) the logical time of the input plus the delay.
