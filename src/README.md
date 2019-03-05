@@ -11,6 +11,7 @@ and a host language.
  * Asynchronous.lf: Actor that produces an asynchronous output in response to an input. WON'T WORK!
  * AsynchronousIndirect.lf: Variant using a level of indirection that could work.
  * Destination.lf: Sink actor that prints the input.
+ * MutableController.lf: Mutable accessor that is not hierarchical, but instead directly controls the instantiated accessor.
  
 ## Compositions
  * SimpleTest.lf: Two actors, one a test actor, and their composition.
