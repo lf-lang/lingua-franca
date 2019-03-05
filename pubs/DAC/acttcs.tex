@@ -205,7 +205,7 @@ in control systems that continually interact with concurrent physical processes 
 systems), determinism makes \emph{any} software easier to test and verify.
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
-For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}. Alternative, constraints can be placed on actors' allowable behaviors so that actors adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. In this paper, we propose a programming model that ensures ensure that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca}, an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
+For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow. In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca}, an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
 
 \section{Actors in Lingua Franca}
 
@@ -219,7 +219,7 @@ Discuss logical time, etc.
 \item sees events in time stamp order;
 \item can read/modify the actor's state;
 \item can set the values of output ports it has access to;
-\item can schedule future events on input ports it has access to;
+\item can schedule \emph{future} events on input ports it has access to;
 \item can read the values of input ports it has access to; and
 \begin{enumerate}
 \item The timestamp associated with a witnessed event always denotes the current logical time; and
