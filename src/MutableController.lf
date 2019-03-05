@@ -8,25 +8,25 @@ actor MutableController(param:int(0)) {
     input accessor:string;
     input control:JSON;  // Given by Controller interface
     output value:JSON;   // Given by Controller interface
-    preamble {
+    preamble {-
         var containedAccessor = null;
-    }
-    initialize {
+    -}
+    initialize {-
         containedAccessor = null;
-    }
-    reaction(accessor) {
+    -}
+    reaction(accessor) {-
         if (containedAccessor) {
             containedAccessor.wrapup();
         }
         containedAccessor = instantiate(get(accessor));
         containedAccessor.setParameter('param', param);
-    }
-    reaction(control) -> value {
+    -}
+    reaction(control) -> value {-
         if (!containedAccessor) {
             return;
         }
         containedAccessor.provideInput(inputRef, get(x));
         containedAccessor.react();
         set(value, containedAccessor.latestOutput('value'));
-    }
+    -}
 }
