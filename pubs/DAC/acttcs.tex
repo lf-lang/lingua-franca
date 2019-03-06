@@ -233,6 +233,34 @@ In this paper, we propose a programming model that ensures that messages between
   I would follow this up with an (abstract) overview of the problems with the state of the art.  Hewitt actors (nondeterminacy, no timing), is already there.
   Missing: usual annotations very unitnuitive, difficult to write, and with a zoo of different enviroments (need for a ``lingua franca'' to combine in a structured fashion).
   Perhaps I would follow this up directly proposing our LF, instead of discussing related work.}
+
+\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
+What is \emph{Lingua Franca}? 
+\begin{enumerate}
+  \item DSL (Dual to embedded: host language gets embedded into LF)
+    \begin{itemize}
+    \item Polyglot (Multi-language)
+    \item Concrete parser
+    \end{itemize}
+  \item A MoC (refining of actors)
+    \begin{itemize}
+    \item Formal specification
+    \item Concrete implementations (hosts)
+    \end{itemize}
+  \item An analysis Framework
+    \begin{itemize}
+    \item Annotations ``implicit'' from language
+    \item Concrete reasonings (e.g. WCET analysis?)
+    \end{itemize}
+\end{enumerate} 
+
+Advantages:
+\begin{enumerate}
+\item Multi-language and multi-system: allows combining (``glue'') and reuse of legacy code.
+\item Concurrency and determinism.
+\item Analysis through implicit annotations: Security, Real-time constraints, etc.
+\end{enumerate}
+\ag{perhaps we could use these to guide the examples too. We can expand the example from Fig.~\ref{fig:example-1} to be polyiglot, or the example from Fig.~\ref{fig:example-2} with the WCET analysis from the readme}
 \section{Actors in Lingua Franca}\label{sec:actor}
 A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the same approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is determined based on the topology of the actor graph, no static analysis of the actors' internals is required---actors are treated as black boxes.
 
