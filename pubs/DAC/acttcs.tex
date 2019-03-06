@@ -212,22 +212,34 @@ Extra machinery can be introduced for the formal specification and analysis of s
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11} \marten{this doesn't appear to be the correct reference}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow. In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
 
 \section{Actors in Lingua Franca}\label{sec:actor}
-A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the same approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\cite{Benveniste_Berry_1991}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is determined based on the topology of the actor graph, no static analysis of the actors' internals is required---actors are treated as black boxes.
+A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the same approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is determined based on the topology of the actor graph, no static analysis of the actors' internals is required---actors are treated as black boxes.
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
-Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. \marten{mention RPCs (in relation to Ray and Akka); example?}
+Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. \marten{discuss scoping mechanisms, mention RPCs (in relation to Ray and Akka); example?}
+
+Central to the programming model behind LF is the relationship between the time stamps associated with the receipt of messages, which denote \emph{logical} time, and the passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
+
+% Sort reactions topologically based on precedences.
+
+% Global notion of “current time” t.
+
+% Event queue containing future events.
+
+% Choose earliest time stamp t’ on the queue.
+
+% Wait for the real-time clock to match t’.
+
+% Execute actors in topological sort order.
 
 \begin{figure}[ht]
 \begin{algorithmic}[1]
- \Procedure{next}{}
+ \Procedure{execute}{}
    
  \EndProcedure
  \end{algorithmic}
-\caption{The Lingua Franca execution engine}
+\caption{The Lingua Franca execution engine \marten{Maybe too much detail}}
 \label{fig:lf-engine}
 \end{figure}
-
-Central to the programming model behind LF is the relationship between the time stamps associated with the receipt of messages, which denote \emph{logical} time, and the passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
 
 % Time is \emph{logical} time. This logical time be used for simulation and then
 % we call it model time. We can also use the network of actors for the implementation
@@ -249,7 +261,7 @@ Central to the programming model behind LF is the relationship between the time 
 
 % A reaction of an actor can also be released by a trigger. A trigger
 % can be periodic triggers or a single shot timer.
-The engine that drives the execution of LF actors (pseudo code in Figure~\ref{fig:lf-engine}) provides the following guarantees:
+The engine that drives the execution of LF actors (see Figure~\ref{fig:lf-engine}) enforces the following principles:
 
 \begin{enumerate}
 \item Messages exchanged between actors are timestamped;
@@ -264,7 +276,7 @@ The engine that drives the execution of LF actors (pseudo code in Figure~\ref{fi
 \item can read the values of input ports it has access to;
 \begin{enumerate}
 \item the time stamp associated with an observed event always denotes the current logical time; and
-\item if no message arrived at a given port at the current logical time, its value is considered \emph{absent}.
+\item if no message arrives at a given port at the current logical time, its value is considered \emph{absent}.
 \end{enumerate}
 \end{enumerate}
 \item No logical time elapses during a reaction;
@@ -272,7 +284,6 @@ The engine that drives the execution of LF actors (pseudo code in Figure~\ref{fi
 \item If two reactions of the same actor are triggered simultaneously, they execute in a predefined order;
 \end{enumerate}
 
-% 
 
 %This paper is organized as follows. Section~\ref{sec:related} surveys related work.
 %Section~\ref{sec:hardware} describes the proposed time-predictable branch predictor
@@ -284,6 +295,16 @@ The engine that drives the execution of LF actors (pseudo code in Figure~\ref{fi
 \section{A Motivating Example}
 
 \subsection{Delays \& Deadlines}
+
+We have a notion of delay in two places: (1) as a delay actor to break up
+feedback loops (2) at actuators to specify that an actuation shall happen before
+(or exactly at) the logical time of the input plus the delay.
+
+Delays deserve also the purpose to align events with wall clock time and to
+allow execution of reactions in their worst-case execution time (WCET).
+The sum of all reaction's WCET from one synchronization point (either
+sample of sensors or output of a delay actor) to another synchronization
+point (or output of an actuator) has to be less than the delay.
 \begin{figure}[ht]
  \centering
  \includegraphics[width=\linewidth]{img/example-1}
@@ -301,6 +322,20 @@ The engine that drives the execution of LF actors (pseudo code in Figure~\ref{fi
 % Reason to have the deadline definition as stated: detectability. Suppose the start deadline cannot be met; the
 % reaction should not be carried out (and then the violation be reported on).
 
+\subsection{Sporadic Events and Call Backs}
+
+Sporadic events and call backs can trigger a reaction. This reaction is allowed
+to observe and also change the state of the actor. Therefore, they are not allowed
+to preempt a reaction (reactions are atomic to each other). To enforce this atomicity
+a sporadic reaction is executed only between two logical timestamps $t_1$ and $t_2$.
+This can be enforced on a C based host by turning off interrupts when executing
+a reaction. Interrupts are enabled when all\footnote{\todo{All is a little bit restrictive,
+just for state atomicity we would not need to wait for all reaction, just for a single.
+But there is another issue that this shall happen only between two timestamps.
+I don't recall the details.}}
+reactions for timestamp $t_1$ have been executed and disabled again when logical
+time is advanced to $t_2$ where all reactions for $t_2$ are executed.
+
 \subsection{Causality}
 We don't want to run ahead of realtime, because actors can produce spontaneous events that need to be stamped with 
 pysical time, and we don't want these timestamps to be ``in the past.''
@@ -313,7 +348,7 @@ pysical time, and we don't want these timestamps to be ``in the past.''
 \end{figure}
 
 
-\subsection{}
+\subsection{Example 3}
 Shut off the lights some time after the switch has been flipped. Reason to have the deadline definition as stated: detectability. Suppose the start deadline cannot be met; the reaction should not be carried out (and the violation be reported on subsequently).
 
 \begin{figure}[ht]
@@ -323,8 +358,11 @@ Shut off the lights some time after the switch has been flipped. Reason to have 
  \label{fig:example-3}
 \end{figure}
 
+\marten{In third example, discuss how persistent ports can be used.}
+\marten{Also, discuss optimized scheduler that runs ahead of physical time.}
 \section{Related Work}
 \label{sec:related}
+
 Towards a real-time coordination model for mobile computing \cite{hackmann2005towards}
 Method and tools for mixed-criticality real-time applications within PharOS \cite{lemerre2011method}
 Accessors \cite{brooks2018component}
@@ -352,12 +390,7 @@ Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
 % time for the release of the reaction is synchronized to wall clock time and therefore
 % the output message are synchronized to wall clock time.}
 
-\martin{Question: what happens when a reaction depends on two inputs, but
-those two inputs have a different logical time?
-I assume that the reaction is fired/released when all two inputs have values
-(which means logical time is at the younger message)
-and a produced output gets the younger timestamp.}
-\marten{It cannot happen. As discussed earlier: we should probably discuss persistent ports as a feature to facilitate writing actors that relate messages with different timestamps.}
+
 
 % \martin{We have (and maybe support) two options: (1) input is only valid when
 % the timestamp equals logical time, absent at other times or (2) keeping the value
@@ -365,47 +398,26 @@ and a produced output gets the younger timestamp.}
 % (in the JS accessors this is the way it is specified, the default value gives the
 % ``keep'' or persistent semantic).}
 
-\subsection{Scribbles on Logical Time}
-Time is \emph{logical} time. This logical time be used for simulation and then
-we call it model time. We can also use the network of actors for the implementation
-of the system. In that case wall clock time is used to timestamp input values
-at sensors. Logical time can never advance further than wall clock time. \marten{Not entirely true: an optimized scheduler can do this under very specific circumstances that we'll elaborate on in the example.}
-We have a notion of delay in two places: (1) as a delay actor to break up
-feedback loops (2) at actuators to specify that an actuation shall happen before
-(or exactly at) the logical time of the input plus the delay.
+\section{The Lingua Franca Compiler Tool Chain}
+% Time is \emph{logical} time. This logical time be used for simulation and then
+% we call it model time. We can also use the network of actors for the implementation
+% of the system. In that case wall clock time is used to timestamp input values
+% at sensors. Logical time can never advance further than wall clock time. \marten{Not entirely true: an optimized scheduler can do this under very specific circumstances that we'll elaborate on in the example.}
 
-The scheduler invokes reactions of actors dependent in inputs with timestamps
-that are equal (or earlier--can this happen?) at logical time $t_1$.
-Logical time cannot advance further than wall clock time $t_w$. If next logical
-time $t_2 > t_w$ the scheduler waits till $t_w \ge t_2$.
 
-\subsection{Sporadic Events and Call Backs}
+% The scheduler invokes reactions of actors dependent in inputs with timestamps
+% that are equal (or earlier--can this happen?) at logical time $t_1$.
+% Logical time cannot advance further than wall clock time $t_w$. If next logical
+% time $t_2 > t_w$ the scheduler waits till $t_w \ge t_2$.
 
-Sporadic events and call backs can trigger a reaction. This reaction is allowed
-to observe and also change the state of the actor. Therefore, they are not allowed
-to preempt a reaction (reactions are atomic to each other). To enforce this atomicity
-a sporadic reaction is executed only between two logical timestamps $t_1$ and $t_2$.
-This can be enforced on a C based host by turning off interrupts when executing
-a reaction. Interrupts are enabled when all\footnote{\todo{All is a little bit restrictive,
-just for state atomicity we would not need to wait for all reaction, just for a single.
-But there is another issue that this shall happen only between two timestamps.
-I don't recall the details.}}
-reactions for timestamp $t_1$ have been executed and disabled again when logical
-time is advanced to $t_2$ where all reactions for $t_2$ are executed.
+
 
 
 \todo{Describe that the single threaded execution of JavaScript enforces
 the restriction of the call back not interrupting the reaction.}
 
-\subsection{More Scribbles}
 
-Delays deserve also the purpose to align events with wall clock time and to
-allow execution of reactions in their worst-case execution time (WCET).
-The summ of all reaction's WCET from one synchronization point (either
-sample of sensors or output of a delay actor) to another synchronization
-point (or output of an actuator) has to be less than the delay.
 
-\subsection{Dynamic Actors}
 
 For dynamic systems, e.g., an IoT that keeps running, but in different contexts
 (e.g., places), we support dynamic reconfiguration of the network of actors.
@@ -418,20 +430,8 @@ host language JavaScript. In that case, the host language needs access to actors
 ports. However, we can use scopes to having access to those parts of the framework
 only in well defined places.
 
-\subsection{Call of an External Service}
 
-An actor can call an external service that will deliver the result in the future
-and use a call back to deliver the result (\martin{Marten likes to use a Future}).
-This call back is handled as described above between two model timestamps
-and the return value is timestamped with wall clock time.
-
-An actor my implement a timeout mechanism by scheduling a trigger in the future.
-{\bf This timeout TO need to be set relative to wall clock time, not logical
-time, as logical time will be behind wall clock time.}
-
-
-
-\section{Conclusion}
+\section{Conclusions and Future Work}
 \label{sec:conclusion}
 
 
