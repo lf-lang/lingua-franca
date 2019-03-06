@@ -76,7 +76,7 @@
 \newcommand{\martin}[1]{\mynote{Martin}{#1}{blue}}% 
 \newcommand{\marten}[1]{\mynote{Marten}{#1}{cyan}}% 
 \newcommand{\isa}[1]{\mynote{Isabelle}{#1}{darkgreen}}% 
-\newcommand{\ag}[1]{\mynote{Andres}{#1}{asparagus}}% 
+\newcommand{\ag}[1]{\mynote{Andr\'es}{#1}{asparagus}}% 
 
 
 \begin{document}
@@ -210,7 +210,7 @@ Abstract
 Since their introduction by Hewitt~\cite{Hewitt:77:Actors} in the 70s, the use of actors has proliferated 
 in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
 Actors have much in common with objects---a paradigm focused on reducing code replication 
-by means of inheritance and increasing modularity via data hiding \ag{I would not center it about code replication, I'd argue data locality/encapsulation is the central aspect of objects (and also important in actors)}\marten{The Gang of Five refers to inheritance as \emph{white-box reuse}. We can either write ``increase code reuse'' or ``reduce code replication,'' but to me these things mean exactly the same thing}---but unlike %the Object Oriented Programming (OOP) paradigm
+by means of inheritance and increasing modularity via data hiding---but unlike %the Object Oriented Programming (OOP) paradigm
 objects, actors also provide a model for \emph{concurrency}. 
 Indeed, in the original formulation of the actor model, each actor is presumed to operate concurrently alongside
 other actors that it may exchange messages with, asynchronously. The lack of any guarantees
@@ -218,13 +218,13 @@ with respect to the ordering of messages, and the absence of a notion of time, m
 very general model, albeit a less useful one for the specification of systems in which
 timely execution and determinism are important. While precision timing plays an important role
 in control systems that continually interact with concurrent physical processes (i.e., cyber-physical
-systems), determinism makes \emph{any} software easier to test and verify\ag{I would normally cite ``the problem with threads'' here, not sure how you deal with self-references and want to limit} \marten{Feel free to add a citation. I think the referenced work should discuss more than just threads though.}.
+systems), determinism makes \emph{any} software easier to test and verify \todo{Elaborate on the problems.}.
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11} \marten{This doesn't appear to be the correct reference}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow.
 
 In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
-\ag{I'm not entirely convinced by the structure of the introduction yet. See \href{https://github.com/icyphy/lingua-franca/issues/6}{GitHub issue \#6}.}
+\todo{Elaborate on the contributions}
 
 \ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
 
@@ -249,17 +249,20 @@ What is \emph{Lingua Franca}?
 
 Advantages:
 \begin{enumerate}
-\item Multi-language and multi-system: allows combining (``glue'') and reuse of legacy code.
+\item Multi-language and multi-system: allows combining (``glue'') and reuse of legacy systems and code.
 \item Concurrency and determinism.
-\item Analysis through implicit annotations: Security, Real-time constraints, etc.
+\item Encapsulation via scoping mechanisms.
+\item Analysis through interface definitions.
+\item A semantic notion of time.
 \end{enumerate}
-\ag{perhaps we could use these to guide the examples too. We can expand the example from Fig.~\ref{fig:example-1} to be polyiglot, or the example from Fig.~\ref{fig:example-2} with the WCET analysis from the readme}
 
 \section{Actors in Lingua Franca}\label{sec:actor}
 A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the same approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is determined based on the topology of the actor graph, no static analysis of the actors' internals is required---actors are treated as black boxes.
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
-Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. \marten{discuss scoping mechanisms, mention RPCs (in relation to Ray and Akka); example?}
+Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. 
+
+\marten{discuss scoping mechanisms, mention RPCs (in relation to Ray and Akka); example?}
 
 Central to the programming model behind LF is the relationship between the time stamps associated with the receipt of messages, which denote \emph{logical} time, and the passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
 
