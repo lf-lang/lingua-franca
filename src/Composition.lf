@@ -1,20 +1,17 @@
-// Show how to compose actors
+// Composite with three actors from the Accessors library.
+// FIXME: Should the following actually be "Accessors"?
 language JavaScript;
-actor Source(period:int(1000)) {
-    trigger t(period, PERIODIC);
-    output y: string;
-    preamble {-
-        var n = 0;
-    -}
-    initialize {-
-        n = 0;
-    -}
-    reaction(t) -> y {-
-        n = n + 1;
-        set(y, n + ": Hello World!");
-    -}
-}
 
-actor Sink() {
-    input p: string;
+// Assume that the Accessors library is what is referenced here.
+import test.TrainableTest;
+import utilities.Clock;
+import utilities.Stop;
+
+composite Composition() {
+    instance a = TrainableTest(correctValues = [0,1,2,3,4,5,6,7,8,9,10]);
+    instance b = Clock(interval = 100.0);
+    instance c = Stop();
+    
+    a.output -> b.input;
+    b.output -> c.stop;
 }

@@ -39,6 +39,6 @@ actor Test(expected:JSON([])) {
 composite Top() {
     instance a = Source(period = 10),
         b = Test(expected = [1, 2, 3, 4]);
-    a.y => b.x;
+    a.y -> b.x;
 }
 main = Top();

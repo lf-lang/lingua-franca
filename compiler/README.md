@@ -1,5 +1,14 @@
 
-# Parser (Compiler) for Lingua Franca
+# Compiler for Lingua Franca
+
+## Installation
+
+This requires that Java and Scala be installed. On a Mac, you can install Scala using
+```
+brew install sbt@1
+```
+
+## Running
 
 Tests are Makefile based and use ```sbt``` for compile and run to
 have the project in a Maven style layout.
@@ -25,3 +34,12 @@ make gui ARG=Counter
 ```
 
 However, at the moment probably only Source.lf works.
+
+## Running from the Command Line
+
+To run the compiler from the command line:
+FIXME: I only know how to do this in this directory, lingua-franca/compiler.
+
+```
+sbt "runMain org.icyphy.lf.Compiler  SOURCEFILE.lf  DESTINATION.js"
+```
