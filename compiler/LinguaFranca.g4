@@ -1,12 +1,16 @@
 
 grammar LinguaFranca;
-sys : lang actor ;
+sys : lang imp* (actor | composite);
 lang : 'language' ID ';' ;
+imp : 'import' path ';' ;
 actor : head '{' body '}' ;
+composite : compositeHead '{' compositeBody '}' ;
 head : 'actor' ID '(' param* ')' ;
+compositeHead : 'composite' ID '(' param* ')' ;
 param : ID ':' type def? ;
 def : '(' INTVAL ')' ;
 body : stat* ;
+compositeBody : compositeStatement* ;
 
 stat : inp
      | outp
@@ -15,6 +19,10 @@ stat : inp
      | init
      | react
      ;
+
+compositeStatement : inp
+    | outp
+    ;
 
 inp : 'input' ID ':' type ';' ;
 outp : 'output' ID ':' type ';' ;
@@ -33,6 +41,7 @@ code : CODE ;
 
 block : ~'}'* ;
 
+path : ID | path '.' ID ;
 
 type : INT | STR ;
 
