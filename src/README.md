@@ -23,3 +23,4 @@ Shell command:
 
 node $PTII/org/terraswarm/accessor/accessors/web/hosts/node/nodeHostShell.js
   
+java -classpath "/Users/eal/GITRepositories/lingua-franca/compiler/target/classes:/Users/eal/GITRepositories/lingua-franca/compiler/lib" org.icyphy.lf.Compiler Source.lf Junk.js

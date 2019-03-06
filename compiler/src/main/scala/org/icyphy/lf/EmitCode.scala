@@ -6,7 +6,7 @@ import scala.collection.mutable
 
 class EmitCode(ps: PrintStream) extends LinguaFrancaBaseListener {
 
-  def println(s: String): Unit = {
+  def pr(s: String): Unit = {
     ps.println(s)
   }
 
@@ -14,6 +14,12 @@ class EmitCode(ps: PrintStream) extends LinguaFrancaBaseListener {
 
   var codeState = "unknown" // TODO: should be an enum
   var currentReact: Reaction = null
+
+  override def enterCompositeHead(ctx: LinguaFrancaParser.CompositeHeadContext): Unit = {
+    val name = ctx.ID().getText
+    current = new Composite(name)
+    System.actors += (name -> current)
+  }
 
   override def enterHead(ctx: LinguaFrancaParser.HeadContext): Unit = {
     val name = ctx.ID().getText
@@ -69,90 +75,90 @@ class EmitCode(ps: PrintStream) extends LinguaFrancaBaseListener {
 
     val actor = current
 
-    println("// Boilerplate included for all actors.")
-    println("var PERIODIC = true;")
-    println("var ONCE = false;")
-    println("function schedule(trigger, time, isPeriodic) {")
-    println("    if (isPeriodic) {")
-    println("        return trigger.actor.setInterval(trigger.reaction, time);")
-    println("    } else {")
-    println("        return trigger.actor.setTimeout(trigger.reaction, time);")
-    println("    }")
-    println("}")
-    println("function setUnbound(port, value) {")
-    println("    if (!port) {")
-    println("        throw \"Illegal reference to undeclared output.\";")
-    println("    }")
-    println("    this.send(port, value);")
-    println("}")
-    println("var set = setUnbound.bind(this);")
+    pr("// Boilerplate included for all actors.")
+    pr("var PERIODIC = true;")
+    pr("var ONCE = false;")
+    pr("function schedule(trigger, time, isPeriodic) {")
+    pr("    if (isPeriodic) {")
+    pr("        return trigger.actor.setInterval(trigger.reaction, time);")
+    pr("    } else {")
+    pr("        return trigger.actor.setTimeout(trigger.reaction, time);")
+    pr("    }")
+    pr("}")
+    pr("function setUnbound(port, value) {")
+    pr("    if (!port) {")
+    pr("        throw \"Illegal reference to undeclared output.\";")
+    pr("    }")
+    pr("    this.send(port, value);")
+    pr("}")
+    pr("var set = setUnbound.bind(this);")
 
     // trigger
-    println("// Code generated for this particular actor.")
-    println("// Trigger data structure:")
+    pr("// Code generated for this particular actor.")
+    pr("// Trigger data structure:")
     for (t <- actor.triggers) {
       val key = t._1
       val s = "var " + key + " = {'actor':this, 'triggerName':'" + key + "', 'reaction':reaction_" + key + ".bind(this)};"
-      println(s)
+      pr(s)
     }
 
     // preamble code
-    println(current.preCode)
+    pr(current.preCode)
     // xxx
-    println("// Generated setup function:")
-    println("exports.setup = function() {")
+    pr("// Generated setup function:")
+    pr("exports.setup = function() {")
 
     actor.parameter.foreach {
       case (k, v) => {
         // TODO: why do we need getter functions? visibility?
         val s = "    this.parameter('" + v.gid() + "', {'type':'" + v.gtyp() + "', 'value':" + v.gdefault() + "});"
-        println(s)
+        pr(s)
       }
 
     }
     actor.outPorts.foreach {
       case (k, v) => {
         val s: String = "    this.output('" + v.gid + "', {'type':'" + v.gtyp + "'});"
-        println(s)
+        pr(s)
       }
     }
-    println("}")
+    pr("}")
 
     // initialize function
     def printParam(): Unit = {
       actor.parameter.foreach {
         case (k, v) => {
           val s: String = "    var " + v.gid + " = this.getParameter('" + v.gid + "');"
-          println(s)
+          pr(s)
         }
       }
     }
 
-    println("exports.initialize = function() {")
+    pr("exports.initialize = function() {")
     printParam()
     actor.triggers.foreach {
       case (k, v) => {
         val s: String = "    schedule(" + v.gid + ", " + v.gparam + ", " + v.gtyp + ");"
-        println(s)
+        pr(s)
 
       }
     }
-    println(actor.initCode)
-    println("}")
+    pr(actor.initCode)
+    pr("}")
 
     // reaction functions
-    println("// Reaction ")
+    pr("// Reaction ")
     actor.reactions.foreach {
       case (r) => {
         var s: String = "function reaction_" + r.gt().gid() + "() {"
-        println(s)
+        pr(s)
         printParam()
         s = r.goutput
         s = "    var " + s + " = '" + s + "'; // FIXME in original .js code"
-        println(s)
-        println(r.gcoude())
+        pr(s)
+        pr(r.gcoude())
       }
-        println("}")
+        pr("}")
     }
 
   }
