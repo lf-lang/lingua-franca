@@ -10,6 +10,7 @@
 \usepackage{listings}
 \lstdefinelanguage{JavaScript}{
   keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+  morekeywords={reaction, preamble, language, actor, input, output},
   keywordstyle=\color{black}\bfseries,
   ndkeywords={class, export, boolean, throw, implements, import, this},
   ndkeywordstyle=\color{darkgray}\bfseries,
@@ -36,7 +37,7 @@
    breaklines=true,
    showtabs=false,
    captionpos=b,
-   xleftmargin=0pt, xrightmargin=0pt
+   xleftmargin=-5pt, xrightmargin=0pt
 }
 
 \newcounter{myctr}
@@ -292,10 +293,9 @@ Advantages:
 A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the same approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is determined based on the topology of the actor graph, no static analysis of the actors' internals is required---actors are treated as black boxes.
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
-Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We rely on lexical scoping rules that virtually any programmer is already familiar with to limit access to input and output ports. The interface definitions of reactions are much like function definitions. Consider the following example:
-\marten{Is this simple but not too simple, or just too simple?}
+Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We rely on lexical scoping rules that virtually any programmer is already familiar with to limit access to input and output ports. The interface definitions of reactions are much like function definitions. Consider the following example which defines a brake component as an LF-actor:
 
-\begin{minipage}{0.51\linewidth}
+\begin{minipage}{0.50\linewidth}
 % \begin{enumerate}
 %   \item First item \\
 %         This is the second line in item and this may extend to third if long
@@ -303,19 +303,30 @@ Different from actors in Ptolemy II, which implement an abstract semantics~\cite
 % \end{enumerate}
 \begin{lstlisting}[numbers=none]
 language ECMA6/Flow;
-actor Foo {
-  input x:number, y:string;
-  outputs p:number, q:string;
-  
-  reaction x-> p { x *= 2; }
-  reaction y-> q { y += q; }
-}
+actor Brake {
+  input check:any
+  input apply:number;
+  output pressed:boolean;
+  preamble {
+  	pressed = false;
+  	function actuate { ... } 
+  }
 \end{lstlisting}
 \end{minipage}%
-\begin{minipage}{0.43\linewidth}
-\begin{tabular}{|p{\linewidth}}
-\todo{put an actor here}
-\end{tabular}
+\begin{minipage}{0.50\linewidth}
+\begin{lstlisting}[numbers=none]
+  reaction(apply) -> {
+    this.pressed.set(true);
+    if (apply > 5)
+      this.actuate(apply);
+    else
+      this.pressed = false;
+  }
+  reaction(check) -> ok {
+    pressed = this.pressed;
+  }
+}
+\end{lstlisting}
 \end{minipage}%
 
 \todo{Explain this, discuss polyglot}
