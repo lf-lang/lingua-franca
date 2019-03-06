@@ -36,7 +36,7 @@
    breaklines=true,
    showtabs=false,
    captionpos=b,
-   xleftmargin=.1\textwidth, xrightmargin=.1\textwidth
+   xleftmargin=0pt, xrightmargin=0pt
 }
 
 \newcounter{myctr}
@@ -294,6 +294,13 @@ A key difference between Hewitt's notion of actors and actors in LF, is that rat
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
 Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We rely on lexical scoping rules that virtually any programmer is already familiar with to limit access to input and output ports. The interface definitions of reactions are much like function definitions. Consider the following example:
 \marten{Is this simple but not too simple, or just too simple?}
+
+\begin{minipage}{0.51\linewidth}
+% \begin{enumerate}
+%   \item First item \\
+%         This is the second line in item and this may extend to third if long
+%   \item second item\ldots
+% \end{enumerate}
 \begin{lstlisting}[numbers=none]
 language ECMA6/Flow;
 actor Foo {
@@ -304,6 +311,12 @@ actor Foo {
   reaction y-> q { y += q; }
 }
 \end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.43\linewidth}
+\begin{tabular}{|p{\linewidth}}
+\todo{put an actor here}
+\end{tabular}
+\end{minipage}%
 
 \todo{Explain this, discuss polyglot}
 \todo{Precisely because no static analysis is required...}
