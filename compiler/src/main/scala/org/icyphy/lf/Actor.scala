@@ -31,16 +31,17 @@ class Actor(name: String) {
   val parameter = new HashMap[String, Parameter]()
   val inPorts = new HashMap[String, Port]()
   val outPorts = new HashMap[String, Port]()
+
   val triggers = new HashMap[String, Trigger]()
-
   val reactions = new ListBuffer[Reaction]()
-
+  
   var preCode = ""
   var initCode = ""
+}
 
+class Composite(name: String) extends Actor(name) {
 }
 
 object System {
   val actors = new HashMap[String, Actor]() // FIXME: maybe this should be a list, as we have an order
-
 }
