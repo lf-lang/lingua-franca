@@ -205,7 +205,6 @@ Abstract
 
 \maketitle 
 
-
 \section{Introduction}\label{sec:intro}
 Since their introduction by Hewitt~\cite{Hewitt:77:Actors} in the 70s, the use of actors has proliferated 
 in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
@@ -260,11 +259,11 @@ Advantages:
 A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the same approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is determined based on the topology of the actor graph, no static analysis of the actors' internals is required---actors are treated as black boxes.
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
-Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. 
+Different from actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We rely on lexical scoping rules that virtually any programmer is already familiar with to limit access to input and output ports.
 
-\marten{discuss scoping mechanisms, mention RPCs (in relation to Ray and Akka); example?}
+Having access to this finer-grained dependency information---without performing static analysis on the code---opens up avenues for scheduling optimizations, makes the detection of zero-delay feedback less conservative, and, we conjecture, will enable deadlock-free remote procedure calls (RPCs) between actors without compromising determinism or modularity. We think that integrating RPCs into LF will be key to the broad adoption of our programming model, because it is such a omnipresent language feature, even in (non-deterministic) actor-oriented frameworks such as Ray and Akka.
 
-Central to the programming model behind LF is the relationship between the time stamps associated with the receipt of messages, which denote \emph{logical} time, and the passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
+Central to our programming model is the relationship between the time stamps associated with the receipt of messages, which denote \emph{logical} time, and the passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
 
 % Sort reactions topologically based on precedences.
 
@@ -278,15 +277,15 @@ Central to the programming model behind LF is the relationship between the time 
 
 % Execute actors in topological sort order.
 
-\begin{figure}[ht]
-\begin{algorithmic}[1]
- \Procedure{execute}{}
+% \begin{figure}[ht]
+% \begin{algorithmic}[1]
+%  \Procedure{execute}{}
    
- \EndProcedure
- \end{algorithmic}
-\caption{The Lingua Franca execution engine \marten{Maybe too much detail}}
-\label{fig:lf-engine}
-\end{figure}
+%  \EndProcedure
+%  \end{algorithmic}
+% \caption{The Lingua Franca execution engine \marten{Maybe too much detail}}
+% \label{fig:lf-engine}
+% \end{figure}
 
 % Time is \emph{logical} time. This logical time be used for simulation and then
 % we call it model time. We can also use the network of actors for the implementation
@@ -308,7 +307,8 @@ Central to the programming model behind LF is the relationship between the time 
 
 % A reaction of an actor can also be released by a trigger. A trigger
 % can be periodic triggers or a single shot timer.
-The engine that drives the execution of LF actors (see Figure~\ref{fig:lf-engine}) enforces the following principles:
+%The engine that drives the execution of LF actors (see Figure~\ref{fig:lf-engine}) enforces the following principles:
+Before discussing a number of motivating examples, we summarize our model in terms of the following principles:
 
 \begin{enumerate}
 \item Messages exchanged between actors are timestamped;
