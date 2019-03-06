@@ -210,7 +210,7 @@ Abstract
 Since their introduction by Hewitt~\cite{Hewitt:77:Actors} in the 70s, the use of actors has proliferated 
 in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
 Actors have much in common with objects---a paradigm focused on reducing code replication 
-by means of inheritance and increasing modularity via data hiding \ag{I would not center it about code replication, I'd argue data locality/encapsulation is the central aspect of objects (and also important in actors)}---but unlike %the Object Oriented Programming (OOP) paradigm
+by means of inheritance and increasing modularity via data hiding \ag{I would not center it about code replication, I'd argue data locality/encapsulation is the central aspect of objects (and also important in actors)}\marten{The Gang of Five refers to inheritance as \emph{white-box reuse}. We can either write ``increase code reuse'' or ``reduce code replication,'' but to me these things mean exactly the same thing}---but unlike %the Object Oriented Programming (OOP) paradigm
 objects, actors also provide a model for \emph{concurrency}. 
 Indeed, in the original formulation of the actor model, each actor is presumed to operate concurrently alongside
 other actors that it may exchange messages with, asynchronously. The lack of any guarantees
@@ -218,21 +218,14 @@ with respect to the ordering of messages, and the absence of a notion of time, m
 very general model, albeit a less useful one for the specification of systems in which
 timely execution and determinism are important. While precision timing plays an important role
 in control systems that continually interact with concurrent physical processes (i.e., cyber-physical
-systems), determinism makes \emph{any} software easier to test and verify\ag{I would normally cite ``the problem with threads'' here, not sure how you deal with self-references and want to limit}.
+systems), determinism makes \emph{any} software easier to test and verify\ag{I would normally cite ``the problem with threads'' here, not sure how you deal with self-references and want to limit} \marten{Feel free to add a citation. I think the referenced work should discuss more than just threads though.}.
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
-For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11} \marten{this doesn't appear to be the correct reference}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow.
-\ag{Is the introduction the right place for this? I would perhaps shift this for later.}
+For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11} \marten{This doesn't appear to be the correct reference}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow.
 
 In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
-\ag{I'm not entirely convinced by the structure of the introduction yet. This last paragraph feels it falls from the sky. Why do we need this? We're somehow missing explaining the problem we're trying to solve in this paper.
-  We barely addressed the usefulness of having a well-defined (deterministic) MoC governing the execution. Inter-language portability, which I presume is why you guys settled on this name Lingua Franca, we don't even mention.
-  Also, there's certainly a lot of work annotating code with additional guarantee's (usually a bunch of cumbersome annotations via some manifest or something). Why is our approach better? 
-\\
-  I propose to restructure this intro a bit. I like the start with Hewitt actors vs OOP, because it sets a context and already addresses a problem (concurrency).
-  I would follow this up with an (abstract) overview of the problems with the state of the art.  Hewitt actors (nondeterminacy, no timing), is already there.
-  Missing: usual annotations very unitnuitive, difficult to write, and with a zoo of different enviroments (need for a ``lingua franca'' to combine in a structured fashion).
-  Perhaps I would follow this up directly proposing our LF, instead of discussing related work.}
+\ag{I'm not entirely convinced by the structure of the introduction yet. See \href{https://github.com/icyphy/lingua-franca/issues/6}{GitHub issue \#6}.}
+
 \section{Actors in Lingua Franca}\label{sec:actor}
 A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the same approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is determined based on the topology of the actor graph, no static analysis of the actors' internals is required---actors are treated as black boxes.
 
@@ -316,6 +309,7 @@ The engine that drives the execution of LF actors (see Figure~\ref{fig:lf-engine
 
 \section{A Motivating Example}
 \ag{What do you think of swapping this section with the previous one? Perhaps a reader might be more motivated by an example first, before going into the specifics?}
+\marten{Maybe. My initial idea was to keep Section~\ref{sec:actor} short, but I think we need to provide some context before we can meaningfully discuss examples.}
 
 \subsection{Delays \& Deadlines}
 
