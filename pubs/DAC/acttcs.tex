@@ -439,7 +439,7 @@ point (or output of an actuator) has to be less than the delay.
 % Example 3: shut off the lights some time after the switch has been flipped.
 % Reason to have the deadline definition as stated: detectability. Suppose the start deadline cannot be met; the
 % reaction should not be carried out (and then the violation be reported on).
-
+ 
 \subsection{Sporadic Events and Call Backs}
 
 Sporadic events and call backs can trigger a reaction. This reaction is allowed
@@ -542,7 +542,7 @@ For dynamic systems, e.g., an IoT that keeps running, but in different contexts
 This may be well supported when targeting a dynamic language such as JavaScript,
 but harder to implement in C.
 
-To support reconfiguration we need a more complete language then the configuration
+To support reconfiguration we need a more complete language than the configuration
 language LF. Therefore, our first iteration of dynamic reconfiguration is done in the
 host language JavaScript. In that case, the host language needs access to actors and
 ports. However, we can use scopes to having access to those parts of the framework
