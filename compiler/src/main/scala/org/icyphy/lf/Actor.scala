@@ -44,4 +44,5 @@ class Composite(name: String) extends Actor(name) {
 
 object System {
   val actors = new HashMap[String, Actor]() // FIXME: maybe this should be a list, as we have an order
+  val imports = new HashMap[String, String]()
 }
