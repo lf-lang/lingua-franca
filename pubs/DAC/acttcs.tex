@@ -403,10 +403,12 @@ Before discussing a number of motivating examples, we summarize our model in ter
 \end{enumerate}
 
 \martin{Some more things for the list: reactions that are ready have a release order
-according to their definition order (in LF). We have discussed two different input ports:
+according to their definition order (in LF).}
+\marten{See item (6)}
+\martin{ We have discussed two different input ports:
 those that are only valid during the logical time of the time stamp (what did we call them?)
 and the ones that latch the value and are valid in future logical time as well.}
-
+\marten{I think we called them input ports and triggers, respectively. See item (3)(a). If unclear, we should definitely improve the wording. Same for the terminology. We could also go for external/internal input ports. Internal ports are only referenced by the actor itself; both can be considered triggers...}
 
 \section{Timing and Determinism}
 \todo{discuss timing and scheduling using actor graph examples (no code)}
