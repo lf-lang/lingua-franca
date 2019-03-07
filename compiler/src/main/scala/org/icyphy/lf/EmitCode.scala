@@ -26,6 +26,17 @@ class EmitCode(ps: PrintStream) extends LinguaFrancaBaseListener {
     current = new Actor(name)
     System.actors += (name -> current)
   }
+  
+  // import statements are assumed to specify where to find accessors to be
+  // instantiated in a composite.
+  override def enterImp(ctx: LinguaFrancaParser.ImpContext): Unit = {
+    val path = ctx.path().getText
+    val pieces = path.split('.')
+    val root = pieces.last
+    val filename = pieces.mkString("/") + ".js"
+    System.imports += (root -> filename)
+  }
+
 
   override def enterParam(ctx: LinguaFrancaParser.ParamContext): Unit = {
     current.parameter += (ctx.ID.getText -> new Parameter(ctx.ID.getText, ctx.`type`.getText, ctx.`def`.INTVAL.getText))

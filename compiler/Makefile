@@ -1,5 +1,5 @@
 ANTLR := lib/antlr-4.7.2-complete.jar
-ARG ?= Source
+ARG ?= Composition
 SOURCE := ../src/$(ARG).lf
 
 all: lib comp lf
