@@ -230,64 +230,61 @@ Abstract
 
 \ccsdesc[500]{Computer systems organization~Embedded systems}
 
-\keywords{ACM proceedings, \LaTeX, text tagging}%
-
-\ccsdesc[500]{Computer systems organization~Embedded systems}
-
 
 \keywords{actor, real-time systems, worst-case execution time}
 
 \maketitle 
 
 \section{Introduction}\label{sec:intro}
-Since their introduction by Hewitt~\cite{Hewitt:77:Actors} in the 70s, the use of actors has proliferated 
-in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
-Actors have much in common with objects---a paradigm focused on reducing code replication 
-by means of inheritance and increasing modularity via data hiding---but unlike %the Object Oriented Programming (OOP) paradigm
-objects, actors also provide a model for \emph{concurrency}. 
-Indeed, in the original formulation of the actor model, each actor is presumed to operate concurrently alongside
-other actors that it may exchange messages with, asynchronously. The lack of any guarantees
-with respect to the ordering of messages, and the absence of a notion of time, makes this a
-very general model, albeit a less useful one for the specification of systems in which
-timely execution and determinism are important. While precision timing plays an important role
-in control systems that continually interact with concurrent physical processes (i.e., cyber-physical
-systems), determinism makes \emph{any} software easier to test and verify \todo{Elaborate on the problems.}.
+Precision timing plays an important role in a plethora of modern systems, like control systems that continually interact with concurrent physical processes (i.e., cyber-physical systems).
+In order to effectively program these systems, having precise timed semantics built into a framework is extremely useful. Similarly desirable are guarantees, e.g. about meeting real-time deadlines, or sound properties, like determinism, which makes \emph{any} software easier to test and verify.
+However, the landscape of modern computing system is complex and very heterogeneous, which makes combining components already difficult, even more so enforcing a particular set of execution semantics. 
+
+%is the transition here too rough?
+A well-known programming paradigm used in this context are Hewitt~\cite{Hewitt:77:Actors} actors.
+Since their introduction in the 70s, the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
+Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors also provide a model for \emph{concurrency}. 
+Indeed, each actor is presumed to operate concurrently alongside other actors that it may exchange messages with, asynchronously. 
+These properties make actors an ideal for programming The lack of any guarantees with respect to the ordering of messages, and the absence of a notion of time, makes this a very general model, albeit a less useful one for the specification of systems in which timely execution and determinism are important.
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
-For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}. Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11} \marten{This doesn't appear to be the correct reference}. Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction. It is the latter approach we follow.
+For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}.
+Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11} \marten{This doesn't appear to be the correct reference}.
+Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution by construction.
+It is the latter approach we follow.
 
 In this paper, we propose a programming model that ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly\armin{as a desired property(?)}. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this.
-\todo{Elaborate on the contributions}
+LF is designed with a pre-compilation step on polyglot principles, allowing an analysis step to make guarantees as well as opaque actors to serve as means to combine different systems. 
 
-\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
-
-What is \emph{Lingua Franca}? 
-\begin{enumerate}
-  \item DSL (Dual to embedded: host language gets embedded into LF)
-    \begin{itemize}
-    \item Polyglot (Multi-language)
-    \item Concrete parser
-    \end{itemize}
-  \item A MoC (refining of actors)
-    \begin{itemize}
-    \item Formal specification
-    \item Concrete implementations (hosts)
-    \end{itemize}
-  \item An analysis Framework
-    \begin{itemize}
-    \item Annotations ``implicit'' from language
-    \item Concrete reasonings (e.g. WCET analysis?)
-    \end{itemize}
-\end{enumerate} 
-
-Advantages:
-\begin{enumerate}
-\item Multi-language and multi-system: allows combining (``glue'') and reuse of legacy systems and code.
-\item Concurrency and determinism.
-\item Encapsulation via scoping mechanisms.
-\item Analysis through interface definitions.
-\item A semantic notion of time.
-\end{enumerate}
+%\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
+%
+%What is \emph{Lingua Franca}? 
+%\begin{enumerate}
+%  \item DSL (Dual to embedded: host language gets embedded into LF)
+%    \begin{itemize}
+%    \item Polyglot (Multi-language)
+%    \item Concrete parser
+%    \end{itemize}
+%  \item A MoC (refining of actors)
+%    \begin{itemize}
+%    \item Formal specification
+%    \item Concrete implementations (hosts)
+%    \end{itemize}
+%  \item An analysis Framework
+%    \begin{itemize}
+%    \item Annotations ``implicit'' from language
+%    \item Concrete reasonings (e.g. WCET analysis?)
+%    \end{itemize}
+%\end{enumerate} 
+%
+%Advantages:
+%\begin{enumerate}
+%\item Multi-language and multi-system: allows combining (``glue'') and reuse of legacy systems and code.
+%\item Concurrency and determinism.
+%\item Encapsulation via scoping mechanisms.
+%\item Analysis through interface definitions.
+%\item A semantic notion of time.
+%\end{enumerate}
 
 \section{Actors in Lingua Franca}\label{sec:actor}
 A key difference between Hewitt's notion of actors and actors in LF, is that rather than having actors address other actors directly, LF actors send messages via ports, completely agnostic of the presence or absence of downstream receivers. \armin{I would suggest to start the section by giving a concise summary of what LF actually are and then making comparisons to other actor systems such as Hewitt's, Ptolemy II.} The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the same approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is determined based on the topology of the actor graph, no static analysis of the actors' internals is required---actors are treated as black boxes.
