@@ -1,5 +1,5 @@
-
 grammar LinguaFranca;
+
 sys : lang imp* (actor | composite);
 lang : 'language' ID ';' ;
 imp : 'import' path ';' ;
@@ -31,10 +31,13 @@ trig : 'trigger' ID '(' trigparam ',' trigtype ')' ';' ;
 instance : 'instance' ID '=' ID '(' assignments? ')' ';' ;
 assignments : assignment | assignments ',' assignment;
 assignment : ID '=' value;
-value : ID | NUMBER | bracketed;
+
+// FIXME: NUMBER definition breacks Source.lf
+// value : ID | bracketed;
+value : ID | number | bracketed ;
 
 // FIXME: Can we replace this with something more general? E.g., scientific notation, hex, etc.?
-NUMBER : '-'? INTVAL ('.' INTVAL)? ;
+number : '-'? INTVAL ('.' INTVAL)? ;
 
 // FIXME: String isn't right. Doesn't support escaping.
 bracketed : ('[' .*? ']') | ('{' .*? '}') | '"' .*? '"';
@@ -70,4 +73,3 @@ CODE : '{-' .*? '-}' ;
 
 LINE_COMMENT : '//' ~[\r\n]* NEWLINE -> channel(HIDDEN) ;
 COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
-
