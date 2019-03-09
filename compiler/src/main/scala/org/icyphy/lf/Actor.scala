@@ -2,9 +2,33 @@ package org.icyphy.lf
 
 import scala.collection.mutable.{HashMap, ListBuffer}
 
+class Connection(lport: String, rport: String) {
+    // Return the specification for the port as a string.
+    // If the input is "x.y", then return "x, 'y'"
+    // If the input is "x", then return "'x'"
+    def getPortSpec(port: String): String = {
+        val a = port.split('.');
+        if (a.length == 1) {
+            "'" + a(0) + "'"
+        } else if (a.length > 1) {
+            a(0) + ", '" + a(1) + "'"
+        } else {
+            "INVALID_PORT_SPEC:" + port
+        }
+    }
+    def getLPort() = getPortSpec(lport);
+    def getRPort() = getPortSpec(rport);
+}
+
 class Port(id: String, typ: String) {
   def gid() = id
   def gtyp = typ
+}
+
+class Instance(instanceName: String, actorClass: String) {
+  def getActorClass() = actorClass;
+  def getInstanceName() = instanceName;
+  val instanceParameters = new HashMap[String, String]()
 }
 
 class Parameter(id: String, typ: String, default: String) {
@@ -15,7 +39,6 @@ class Parameter(id: String, typ: String, default: String) {
 }
 
 class Trigger(id: String, param: String, typ: String) {
-
   def gid() = id
   def gparam() = param
   def gtyp() = typ
@@ -40,6 +63,8 @@ class Actor(name: String) {
 }
 
 class Composite(name: String) extends Actor(name) {
+  val instances = new HashMap[String, Instance]()
+  val connections = new ListBuffer[Connection]()
 }
 
 object System {

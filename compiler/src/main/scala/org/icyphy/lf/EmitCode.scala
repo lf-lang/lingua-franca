@@ -11,14 +11,38 @@ class EmitCode(ps: PrintStream) extends LinguaFrancaBaseListener {
   }
 
   var current: Actor = null
+  var composite: Composite = null
 
   var codeState = "unknown" // TODO: should be an enum
   var currentReact: Reaction = null
+  var currentInstance: Instance = null
+  
+  // Assignment statements to set parameters within instance constructors.
+  override def enterAssignment(ctx: LinguaFrancaParser.AssignmentContext): Unit = {
+    if (currentInstance != null) {
+        val parameterName = ctx.ID().getText
+        var parameterValue = ctx.`value`.getText
+        // FIXME: The following should be handled by the parser somehow!
+        if (parameterValue.startsWith("{-")) {
+            parameterValue = parameterValue.substring(2, parameterValue.length - 2);
+        }
+        currentInstance.instanceParameters += (parameterName -> parameterValue)
+    }
+  }
 
   override def enterCompositeHead(ctx: LinguaFrancaParser.CompositeHeadContext): Unit = {
     val name = ctx.ID().getText
-    current = new Composite(name)
+    composite = new Composite(name)
+    current = composite
     System.actors += (name -> current)
+  }
+  
+  // Handle connections such as a.out -> b.in.
+  override def enterConnection(ctx: LinguaFrancaParser.ConnectionContext): Unit = {
+    val leftPort = ctx.`lport`.getText
+    val rightPort = ctx.`rport`.getText
+    // FIXME: Check for composite.
+    composite.connections += new Connection(leftPort, rightPort);
   }
 
   override def enterHead(ctx: LinguaFrancaParser.HeadContext): Unit = {
@@ -37,9 +61,16 @@ class EmitCode(ps: PrintStream) extends LinguaFrancaBaseListener {
     System.imports += (root -> filename)
   }
 
+  // instance statement
+  override def enterInstance(ctx: LinguaFrancaParser.InstanceContext): Unit = {
+    // FIXME: Generate a friendly error if composite is null (actor is not a Composite).
+    val instanceName = ctx.ID.getText;
+    currentInstance = new Instance(instanceName, ctx.`actorClass`.getText)
+    composite.instances += (instanceName -> currentInstance)
+  }
 
   override def enterParam(ctx: LinguaFrancaParser.ParamContext): Unit = {
-    current.parameter += (ctx.ID.getText -> new Parameter(ctx.ID.getText, ctx.`type`.getText, ctx.`def`.INTVAL.getText))
+    current.parameter += (ctx.ID.getText -> new Parameter(ctx.ID.getText, ctx.`type`.getText, ctx.`value`.getText))
   }
 
   override def enterOutp(ctx: LinguaFrancaParser.OutpContext): Unit = {
@@ -115,8 +146,9 @@ class EmitCode(ps: PrintStream) extends LinguaFrancaBaseListener {
 
     // preamble code
     pr(current.preCode)
-    // xxx
-    pr("// Generated setup function:")
+    
+    /////////////////////////////////////////////////
+    // setup
     pr("exports.setup = function() {")
 
     actor.parameter.foreach {
@@ -133,8 +165,35 @@ class EmitCode(ps: PrintStream) extends LinguaFrancaBaseListener {
         pr(s)
       }
     }
+    if (composite != null) {
+        composite.instances.foreach {
+            case (k, v) => {
+                // If the actorClass was defined in an import, use that.
+                var actorClass = v.getActorClass()
+                var actorPath = System.imports(actorClass)
+                if (actorPath != null) {
+                    actorClass = actorPath;
+                }
+                val s: String = "    var " + k + " = this.instantiate('" + v.getInstanceName() + "', '" + actorClass + "');"
+                pr(s)
+                v.instanceParameters.foreach {
+                    case (name, value) => {
+                        val s: String = "    " + k + ".setParameter('" + name + "', " + value + ");"
+                        pr(s)
+                    }
+                }
+            }
+        }
+        composite.connections.foreach {
+            case (connection) => {
+                val s: String = "    this.connect(" + connection.getLPort() + ", " + connection.getRPort() + ");"
+                pr(s)
+            }
+        }
+    }
     pr("}")
 
+    /////////////////////////////////////////////////
     // initialize function
     def printParam(): Unit = {
       actor.parameter.foreach {

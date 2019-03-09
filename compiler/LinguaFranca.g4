@@ -1,14 +1,22 @@
 
 grammar LinguaFranca;
-sys : lang imp* (actor | composite);
-lang : 'language' ID ';' ;
+sys : language imp* (actor | composite);
+language:
+    'language' ID ';' ;
 imp : 'import' path ';' ;
 actor : head '{' body '}' ;
 composite : compositeHead '{' compositeBody '}' ;
-head : 'actor' ID '(' param* ')' ;
+head : 'actor' ID params? ;
 compositeHead : 'composite' ID '(' param* ')' ;
-param : ID ':' type def? ;
-def : '(' INTVAL ')' ;
+
+params:
+    '(' param (',' param)* ')';
+param:
+    ID ':' type ('(' value ')')?;
+
+value:
+    ID | NUMBER | STRING | code;
+
 body : stat* ;
 compositeBody : compositeStatement* ;
 
@@ -22,22 +30,24 @@ stat : inp
 
 compositeStatement : stat
     | instance
+    | connection
     ;
 
-inp : 'input' ID ':' type ';' ;
-outp : 'output' ID ':' type ';' ;
+connection:
+    lport '->' rport ';';
+lport: port;
+rport: port;
+port:
+    ID | (ID '.' (ID | IN | OUT)); // 'input' and 'output' are common port names.
+
+inp : IN ID ':' type ';' ;
+outp : OUT ID ':' type ';' ;
 trig : 'trigger' ID '(' trigparam ',' trigtype ')' ';' ;
 
-instance : 'instance' ID '=' ID '(' assignments? ')' ';' ;
+instance : 'instance' ID '=' actorClass '(' assignments? ')' ';' ;
+actorClass: ID;
 assignments : assignment | assignments ',' assignment;
 assignment : ID '=' value;
-value : ID | NUMBER | bracketed;
-
-// FIXME: Can we replace this with something more general? E.g., scientific notation, hex, etc.?
-NUMBER : '-'? INTVAL ('.' INTVAL)? ;
-
-// FIXME: String isn't right. Doesn't support escaping.
-bracketed : ('[' .*? ']') | ('{' .*? '}') | '"' .*? '"';
 
 trigparam : ID ;
 trigtype : 'PERIODIC' | 'ONCE' ;
@@ -46,28 +56,52 @@ pre : 'preamble' code ;
 init : 'initialize' code ;
 react : 'reaction' '(' ID ')' sets* code ;
 
-sets : '->' ID ; // FIXME: What if multiple outputs are written to?
+code: CODE;
 
-code : CODE ;
+sets : '->' ID ; // FIXME: What if multiple outputs are written to?
 
 block : ~'}'* ;
 
 path : ID | path '.' ID ;
 
-type : INT | STR ;
+// A type is in the target language, hence either an ID or target code.
+type:
+    ID | CODE ;
 
-INT : 'int' ;
-STR : 'string' ;
 IN : 'input' ;
 OUT : 'output' ;
-INTVAL : [0-9]+ ;
-ID : [a-zA-Z]+ ;          // match identifiers
-WS : [ \t\r\n]+ -> skip ; // skip spaces, tabs, newlines
-NEWLINE : 'r'? '\n' ;
+
+// FIXME: Why does the following match an empty string?
+ID:
+    [a-zA-Z]+[a-zA-Z0-9]* ;          // match identifiers
+
+WS:
+    [ \t\r\n]+ -> skip ; // skip spaces, tabs, newlines
+
+NEWLINE:
+    'r'? '\n' ;
+    
 // CMT : '/' '/' (.)*? NEWLINE -> skip ;
 
-CODE : '{-' .*? '-}' ;
+fragment ESCAPED_CODE:
+    '\\-}';
+CODE:
+    '{-' (ESCAPED_CODE | ~('\\'|'-')* ) '-}' ;
 
-LINE_COMMENT : '//' ~[\r\n]* NEWLINE -> channel(HIDDEN) ;
-COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
+fragment INTVAL:
+    '-'? [0-9]+ ;
+// FIXME: Can we replace this with something more general? E.g., scientific notation, hex, etc.?
+NUMBER:
+    '-'? INTVAL ('.' INTVAL)? ;
+
+fragment ESCAPED_CHAR:
+    '\\' ('n'|'t'|'r'|'\\');
+STRING:
+    '"' ( ESCAPED_CHAR | ~('\\'|'"') )* '"';
+
+LINE_COMMENT:
+    '//' ~[\r\n]* NEWLINE -> channel(HIDDEN) ;
+    
+COMMENT:
+    '/*' .*? '*/' -> channel(HIDDEN) ;
 
