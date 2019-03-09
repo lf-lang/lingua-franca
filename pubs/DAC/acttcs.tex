@@ -415,13 +415,16 @@ Before discussing a number of motivating examples, we summarize our model in ter
 \item If two reactions of the same actor are triggered simultaneously, they execute in a predefined order;
 \end{enumerate}
 
-\martin{Some more things for the list: reactions that are ready have a release order
-according to their definition order (in LF).}
-\marten{See item (6)}
 \martin{ We have discussed two different input ports:
 those that are only valid during the logical time of the time stamp (what did we call them?)
 and the ones that latch the value and are valid in future logical time as well.}
 \marten{I think we called them input ports and triggers, respectively. See item (3)(a). If unclear, we should definitely improve the wording. Same for the terminology. We could also go for external/internal input ports. Internal ports are only referenced by the actor itself; both can be considered triggers...}
+\martin{I don't think this is trigger. An input port may be part of a trigger, and for the ones that are only valid
+during the local time need to be part of a trigger condition. Otherwise they would not make any sense.
+The discussion came on what is the meaning when a reaction uses two inputs, but only one is
+triggering it. What is the value of the other: either absent or the last value (the latching input).
+That latching input needs a default value. And that is actually the way to specify it in the accessors
+framework (according to Edward, I have not checked).}
 
 \section{Timing and Determinism}
 \todo{discuss timing and scheduling using actor graph examples (no code)}
@@ -564,6 +567,9 @@ language LF. Therefore, our first iteration of dynamic reconfiguration is done i
 host language JavaScript. In that case, the host language needs access to actors and
 ports. However, we can use scopes to having access to those parts of the framework
 only in well defined places.
+
+\martin{Will we talk about execution hosts such as PRET machines or Patmos
+when targeting C and WCET analysis?}
 
 
 \section{Conclusions}
