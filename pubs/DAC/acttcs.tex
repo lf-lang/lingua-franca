@@ -112,6 +112,7 @@
 \newcommand{\isa}[1]{\mynote{Isabelle}{#1}{darkgreen}}% 
 \newcommand{\ag}[1]{\mynote{Andr\'es}{#1}{asparagus}}% 
 \newcommand{\armin}[1]{\mynote{Armin}{#1}{purple}}%
+\newcommand{\marjan}[1]{{\color{magenta} Marjan: #1}}%
 
 \begin{document}
 
@@ -260,7 +261,7 @@ These properties make actors an ideal for programming reactive systems. The lack
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}.
-Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{KHAMESPANAH2015184}.
+Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}.
 Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach we follow.
 
 %\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
