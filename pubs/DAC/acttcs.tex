@@ -437,12 +437,15 @@ We summarize our model in terms of the following principles:
 \item Logical time is constant during execution of a reaction.
 \item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
 \item A reaction can schedule a trigger at a future logical time.
-\item A reaction read and modify the actor's state.
-\item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion
+\item A reaction may read and modify the actor's state.
+\item A reaction can set the values of the output ports that it has declared, and if it does so, a message will be sent after the conclusion
 of the reaction with a payload equal to the final value set by the reaction.
 \item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked. \edward{Note that this has dependency implications... An output message cannot be sent until the last reaction declaring that output has had a chance to run.}
 \item At a logical time, a reaction may read inputs that are not triggering inputs, but it must declare that it reads those inputs,
 and those inputs may be \emph{absent} (no event is present at this logical time).
+\item \martin{We are not talking about delay here, but logical time is constant during reaction. There is no explicit
+mentioning that the output time stamp is the same as the input time stamp, except when having a delay on
+a reaction.}
 \end{enumerate}
 
 \martin{ We have discussed two different input ports:
