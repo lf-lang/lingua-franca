@@ -1,8 +1,8 @@
-
 grammar LinguaFranca;
 sys : language imp* (actor | composite);
 language:
     'language' ID ';' ;
+
 imp : 'import' path ';' ;
 actor : head '{' body '}' ;
 composite : compositeHead '{' compositeBody '}' ;
