@@ -237,10 +237,17 @@ Abstract
 \maketitle 
 
 \section{Introduction}\label{sec:intro}
-Precision timing plays an important role in a plethora of modern systems, ranging anywhere from embedded control systems that continually interact with concurrent physical processes (i.e., cyber-physical systems) to large-scale distributed systems requiring some measure of consistency. In order to effectively program these systems, there is a need for programming models with a semantics that includes time. In current-day general-purpose hardware and programming languages, timing properties of software are emergent--not specified. Therefore, the verification of timing properties of time-critical systems often relies on rigorous testing, but effectively testing software in the face of non-determinism is extremely challenging. We propose an actor-oriented programming model that reduces non-determinism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically.
+Precision timing plays an important role in a plethora of modern systems, ranging anywhere from embedded control systems that continually interact with concurrent physical processes (i.e., cyber-physical systems) to large-scale distributed systems requiring some measure of consistency.
+In order to effectively program these systems, there is a need for programming models with a semantics that includes time.
+In current-day general-purpose hardware and programming languages, timing properties of software are emergent--not specified.
+Therefore, the verification of timing properties of time-critical systems often relies on rigorous testing, but effectively testing software in the face of non-determinism is extremely challenging.
 
-In this paper, we propose an actor-oriented programming model for time-critical systems, based on a discrete event semantics, which  
-ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property. We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition. LF allows programmers to implement the functionality of actors using a language of their choice. By default, all Lingua Franca programs will be deterministic. We use a semantic notion of time and time stamps to achieve this. 
+In this paper, we propose an actor-oriented programming model that reduces non-determinism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically.
+Aimed at time-critical systems, our model based on a discrete event semantics, which ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
+We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition.
+LF allows programmers to implement the functionality of actors using a language of their choice.
+By default, all Lingua Franca programs will be deterministic.
+We achieve this using a semantic notion of time and time stamps.
 
 % LF is designed with a pre-compilation step on polyglot principles, allowing an analysis step to make guarantees as well as opaque actors to serve as means to combine different systems. 
 
