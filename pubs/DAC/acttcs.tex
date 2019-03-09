@@ -312,9 +312,9 @@ language ECMA6/Flow;
 actor Brake {%
   input check:any
   input apply:number
-  output pressed:boolean
+  output on:boolean
   preamble {%
-  	pressed = false
+  	state = false
   	actuate() { ... } 
   %}
 \end{lstlisting}
@@ -322,14 +322,14 @@ actor Brake {%
 \begin{minipage}{0.50\linewidth}
 \begin{lstlisting}[numbers=none]
   reaction(apply) -> {%
-    this.pressed.set(true)
+    pressed.set(true)
     if (apply > 5)
-      this.actuate(apply)
+      actuate(apply)
     else
-      this.pressed = false
+      state = false
   %}
-  reaction(check) -> ok {%
-    pressed = this.pressed
+  reaction(check) -> on {%
+    on = state
   %}
 %}
 \end{lstlisting}
