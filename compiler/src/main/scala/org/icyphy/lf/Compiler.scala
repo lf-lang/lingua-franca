@@ -18,14 +18,18 @@ object Compiler extends App {
   val walker = new ParseTreeWalker()
   val lang = new GetLanguage()
   walker.walk(lang, tree)
-  val emitter = lang.language match {
-    case "JavaScript" => new EmitCode(ps)
+  val lf = new WalkLF()
+  walker.walk(lf, tree)
+
+  val printer = lang.language match {
+    case "JavaScript" => new EmitJS(ps)
     // FIXME: The following throughs a very unfriendly null pointer exception.
     // Should instead have a generic code generator, e.g. one that generates
     // documentation.
     case _ => null
   }
-  walker.walk(emitter, tree)
-  emitter.printStuff()
+
+  // TODO: each actor into it's own file to support more than one actor in a file
+  printer.printStuff(lf.current, lf.composite)
   ps.println()
 }
