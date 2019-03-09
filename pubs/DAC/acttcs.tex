@@ -307,7 +307,7 @@ Alternatively, constraints can be placed on actors' allowable behaviors so that 
 %\section{Actors in Lingua Franca}
 % sectioning.... ?
 \section{Lingua Franca}
-In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be entirely agnostic of the presence or absence of their receiving counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is tasked with relaying messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures i) actors observe produced messages in time stamp order, and ii) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}, but, to increase efficiency, it averts performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed once per tick of the logical clock. Because the schedule is based purely on the topology of the actor graph, no static analysis of the actors' internals is required---Ptolemy actors are treated as black boxes.
+In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be entirely agnostic of the presence or absence of their receiving counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible to send messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}. However, to increase efficiency, it avoids performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. Because the schedule is based purely on the topology of the actor graph, no static analysis of the actors' internals is required---Ptolemy actors are treated as black boxes.
 \marjan{and this is built based on the assumption that we have a static topology.}
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
@@ -434,10 +434,15 @@ triggering it. What is the value of the other: either absent or the last value (
 That latching input needs a default value. And that is actually the way to specify it in the accessors
 framework (according to Edward, I have not checked).}
 \marjan{So, do we have two types of ports? one can only accept "events" and other can only accept "values"?}
+\martin{Both types are ``events'' with a time stamp that can trigger a reaction. The question is when
+a port is read that has not an event with the current logical time: is the content just ``absent'' or does it
+have the ``last seen'' value. I think both might be useful. Although it is probably syntactic sugar.
+The latching port can be simulated by a trigger on the input and storing the value in the state of
+the actor. Maybe this would be a leaner and cleaner semantic.}
 
 \section{Timing and Determinism}
 \todo{discuss timing and scheduling using actor graph examples (no code)}
-\subsection{Delays \& Deadlines}
+\subsection{Delays and Deadlines}
 $\mathcal{D}$
 We have a notion of delay in two places: (1) as a delay actor to break up
 feedback loops and (2) at actuators to specify that an actuation shall happen before
@@ -519,6 +524,8 @@ These models are more restrictive than our propsed work and lack the polyglot fl
 
 Fredlund et al. proposed timed extension of McErlang
 as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
+
+\martin{Oh boy, we have way too many references for a 4 pages position paper.}
 %\section{Actors}
 %
 
