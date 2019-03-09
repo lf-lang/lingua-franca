@@ -50,14 +50,14 @@ class EmitJS(ps: PrintStream) {
     actor.parameter.foreach {
       case (k, v) => {
         // TODO: why do we need getter functions? visibility?
-        val s = "    this.parameter('" + v.gid() + "', {'type':'" + v.gtyp() + "', 'value':" + v.gdefault() + "});"
+        val s = "    this.parameter('" + v.id + "', {'type':'" + v.typ + "', 'value':" + v.default + "});"
         pr(s)
       }
 
     }
     actor.outPorts.foreach {
       case (k, v) => {
-        val s: String = "    this.output('" + v.gid + "', {'type':'" + v.gtyp + "'});"
+        val s: String = "    this.output('" + v.id + "', {'type':'" + v.typ + "'});"
         pr(s)
       }
     }
@@ -65,12 +65,12 @@ class EmitJS(ps: PrintStream) {
       composite.instances.foreach {
         case (k, v) => {
           // If the actorClass was defined in an import, use that.
-          var actorClass = v.getActorClass()
+          var actorClass = v.actorClass
           var actorPath = System.imports(actorClass)
           if (actorPath != null) {
             actorClass = actorPath;
           }
-          val s: String = "    var " + k + " = this.instantiate('" + v.getInstanceName() + "', '" + actorClass + "');"
+          val s: String = "    var " + k + " = this.instantiate('" + v.instanceName + "', '" + actorClass + "');"
           pr(s)
           v.instanceParameters.foreach {
             case (name, value) => {
@@ -94,7 +94,7 @@ class EmitJS(ps: PrintStream) {
     def printParam(): Unit = {
       actor.parameter.foreach {
         case (k, v) => {
-          val s: String = "    var " + v.gid + " = this.getParameter('" + v.gid + "');"
+          val s: String = "    var " + v.id + " = this.getParameter('" + v.id + "');"
           pr(s)
         }
       }
@@ -104,7 +104,7 @@ class EmitJS(ps: PrintStream) {
     printParam()
     actor.triggers.foreach {
       case (k, v) => {
-        val s: String = "    schedule(" + v.gid + ", " + v.gparam + ", " + v.gtyp + ");"
+        val s: String = "    schedule(" + v.id + ", " + v.param + ", " + v.typ + ");"
         pr(s)
 
       }
@@ -116,13 +116,13 @@ class EmitJS(ps: PrintStream) {
     pr("// Reaction ")
     actor.reactions.foreach {
       case (r) => {
-        var s: String = "function reaction_" + r.gt().gid() + "() {"
+        var s: String = "function reaction_" + r.t.id + "() {"
         pr(s)
         printParam()
-        s = r.goutput
+        s = r.output
         s = "    var " + s + " = '" + s + "'; // FIXME in original .js code"
         pr(s)
-        pr(r.gcoude())
+        pr(r.code)
       }
         pr("}")
     }
