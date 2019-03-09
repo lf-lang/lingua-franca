@@ -16,10 +16,13 @@ object Compiler extends App {
   val tree = parser.sys()
 
   val walker = new ParseTreeWalker()
-  val lang = new GetLang()
+  val lang = new GetLanguage()
   walker.walk(lang, tree)
   val emitter = lang.language match {
     case "JavaScript" => new EmitCode(ps)
+    // FIXME: The following throughs a very unfriendly null pointer exception.
+    // Should instead have a generic code generator, e.g. one that generates
+    // documentation.
     case _ => null
   }
   walker.walk(emitter, tree)
