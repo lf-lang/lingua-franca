@@ -113,6 +113,7 @@
 \newcommand{\ag}[1]{\mynote{Andr\'es}{#1}{asparagus}}% 
 \newcommand{\armin}[1]{\mynote{Armin}{#1}{purple}}%
 \newcommand{\marjan}[1]{\mynote{Marjan}{#1}{magenta}}% 
+\newcommand{\edward}[1]{\mynote{Edward}{#1}{magenta}}% 
 
 
 \begin{document}
@@ -240,11 +241,11 @@ Abstract
 \section{Introduction}\label{sec:intro}
 Precision timing plays an important role in a plethora of modern systems, ranging anywhere from embedded control systems that continually interact with concurrent physical processes (i.e., cyber-physical systems) to large-scale distributed systems requiring some measure of consistency.
 In order to effectively program these systems, there is a need for programming models with a semantics that includes time.
-In current-day general-purpose hardware and programming languages, timing properties of software are emergent--not specified.
-Therefore, the verification of timing properties of time-critical systems often relies on rigorous testing, but effectively testing software in the face of non-determinism is extremely challenging.
+In current-day general-purpose hardware and programming languages, timing properties of software are emergent rather than specified.
+Therefore, the verification of timing properties of time-critical systems relies on testing, but effectively testing software in the face of non-determinism is challenging.
 
-In this paper, we propose an actor-oriented programming model that reduces non-determinism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically.
-Aimed at time-critical systems, our model based on a discrete event semantics, which ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
+In this paper, we propose an actor-oriented programming model that reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically.
+Aimed at time-critical systems, our model is based on a discrete event semantics, which ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
 We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition.
 LF allows programmers to implement the functionality of actors using a language of their choice.
 By default, all Lingua Franca programs will be deterministic.
@@ -264,15 +265,18 @@ Since then,
 %their introduction in the 70s,
 the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
 \marjan{Reo is not actor-based.} \marjan{BTW, do you want to say actor-oriented or actor-based?}
-Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors also provide a model for \emph{concurrency}. \marjan{We do have concurrent objects, and as far as I remember they are as old as objects and actors.}
-Indeed, each actor is presumed to operate concurrently alongside other actors that it may exchange messages with, asynchronously. 
-These properties make actors an ideal for programming reactive systems. The lack of any guarantees with respect to the ordering of messages, and the absence of a notion of time, makes this a very general model, albeit a less useful one for the specification of systems in which timely execution and determinism are important.
+Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects. \marjan{We do have concurrent objects, and as far as I remember they are as old as objects and actors.}\edward{I changed this to ``a better model ...}
+Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
+Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
+These properties make actors ideal for programming reactive systems.
+However, the lack of any guarantees with respect to the ordering of messages and the absence of a notion of time make this 
+model less useful for specifying systems in which timely execution and repeatable behavior are important.
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}.
-Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}.
+Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements~\cite{DBLP:conf/birthday/SirjaniJ11}.
 \marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}
-Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach we follow.
+Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach that we follow.
 
 %\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
 %
@@ -307,13 +311,23 @@ Alternatively, constraints can be placed on actors' allowable behaviors so that 
 %\section{Actors in Lingua Franca}
 % sectioning.... ?
 \section{Lingua Franca}
-In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be entirely agnostic of the presence or absence of their receiving counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible to send messages between contained actors. While this approach increases modularity, more importantly, it exposes dependencies between actors that can be used to devise a schedule that ensures (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous reactive MoC~\todo{[Benveniste,Berry,1991]}. However, to increase efficiency, it avoids performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. Because the schedule is based purely on the topology of the actor graph, no static analysis of the actors' internals is required---Ptolemy actors are treated as black boxes.
-\marjan{and this is built based on the assumption that we have a static topology.}
+In the original Hewitt actors and many modern implementations, actors have references to the actors that they communicate with.
+In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. While this approach increases modularity and, more importantly, exposes dependencies between actors.
+These dependencies can be used to devise a schedule that ensures that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}.
+To increase efficiency, our approach avoids performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. Because the schedule is based purely on the topology of the actor graph, no static analysis of the actors' internals is required---Ptolemy actors are treated as black boxes.
+Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject
+to rescheduling is contained when mutations occur during runtime.
+A runtime mutation always occurs within a composite actor whose interface remains unchanged.
+%\marjan{and this is built based on the assumption that we have a static topology.}
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
-LF actors, on the other hand, are better characterized as \emph{gray} boxes considering they reveal some key features of their internal structure, namely a closer approximation of the true dependencies between their ports. Other than actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We enforce simple lexical scoping rules, which virtually any programmer is already familiar with, to limit reactions' access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
+\edward{This paragraph needs work.}
+LF actors, on the other hand, are better characterized as \emph{gray} boxes considering they reveal some key features of their internal structure, namely a closer approximation of the true dependencies between their ports. 
+\edward{This is not quite right. The causality interfaces of Ptolemy II (Zhou et al.) expose fine-grain causality information.}
+Other than actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We enforce simple lexical scoping rules, which virtually any programmer is already familiar with, to limit reactions' access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
 
 The interface definitions of reactions are much like function definitions. Consider the following example which defines a brake component as an LF-actor:
+\edward{A brake component is probably not a good example for an ECMA 6/Flow target language. The target language should be C, or a web example should be chosen. Also, this example won't compile. What is ``pressed''? Also, ``state'' needs to be set in initialize. Also, our current syntax terminates lines with semicolons.}
 
 \begin{minipage}{0.50\linewidth}
 % \begin{enumerate}
@@ -352,10 +366,22 @@ actor Brake {%
 \todo{Explain this, discuss polyglot}
 \todo{Precisely because no static analysis is required...}
 
-Having this finer-grained dependency information available at the interface level also opens up avenues for scheduling optimizations, makes the detection of zero-delay feedback less conservative, and, we conjecture, will enable remote procedure calls (RPCs) between actors without compromising determinism or modularity. The same dependency analysis performed to devise a schedule for message delivery and rule out zero-delay feedback can be used to coordinate RPCs and guarantee deadlock freedom. We think that integrating RPCs into LF will be key to achieving wide adoption of our programming model, because it is such a omnipresent language feature, even in popular actor-based frameworks such as Ray~\cite{DBLP:journals/corr/abs-1712-05889}.
+Having this finer-grained dependency information available at the interface level also opens up avenues for scheduling optimizations, makes the detection of zero-delay feedback less conservative, and, we conjecture, will enable remote procedure calls (RPCs) between actors without compromising determinism or modularity. 
+The same dependency analysis performed to devise a schedule for message delivery and rule out zero-delay feedback can also be used to coordinate RPCs and guarantee deadlock freedom. We think that integrating RPCs into LF will be key to achieving wide adoption of our programming model, because it is such an omnipresent language feature, even in some actor-based frameworks, for example Ray~\cite{DBLP:journals/corr/abs-1712-05889}.
 \marjan{When you have atomic execution of reactions, then what does RPC mean? what is the difference between an RPC and Call-Backs (or maybe callbacks with priorities)? Maybe we just leave this out for this version of the paper?}
+\edward{I agree that this does not say enough to be understandable. An example would be needed.}
 
-Central to the LF programming model is the relationship between the time stamps associated with the receipt of messages, which denote \emph{logical} time, and the passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily in a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
+Central to the LF programming model is the relationship between the time stamps of messages.
+These time stamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in time-stamp order.
+When an actor receives multiple messages with the same time stamp, these messages are logically
+\emph{simultaneous}, and the actor handles them in a well-defined deterministic order.
+Logical time is distinct from physical time, as measured anywhere in a networked application.
+First, logical time remains constant during the execution of any reaction in any actor, and outputs produced by that reaction have
+the same logical time stamp as the inputs that trigger the reaction.
+But in LF, there is a relationship between logical time and physical time,
+a relationship that helps to reliably deliver real-time behavior.
+\edward{This relationship needs to be explained more carefully and using examples. The following is just going to be confusing. I suggest deleting it and explaining later.}
+The passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily in a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
 
 % Sort reactions topologically based on precedences.
 
@@ -400,27 +426,23 @@ Central to the LF programming model is the relationship between the time stamps 
 % A reaction of an actor can also be released by a trigger. A trigger
 % can be periodic triggers or a single shot timer.
 %The engine that drives the execution of LF actors (see Figure~\ref{fig:lf-engine}) enforces the following principles:
-Before discussing a number of motivating examples, we summarize our model in terms of the following principles:
+We summarize our model in terms of the following principles:
 
 \begin{enumerate}
-\item Messages exchanged between actors are timestamped;
-\item The arrival of a message denotes a discrete event;
-\item Actors carry input ports, triggers, output ports, state, and a list of reactions, each of which:
-\begin{enumerate}
-\item is triggered by the presence of an event on an input port (originating from another actor) or trigger (originating from the actor itself);
-\item sees events in time stamp order;
-\item can read/modify the actor's state;
-\item can set the values of output ports it has access to;
-\item can schedule \emph{future} events on triggers it has access to;
-\item can read the values of input ports it has access to;
-\begin{enumerate}
-\item the time stamp associated with an observed event always denotes the current logical time; and
-\item if no message arrives at a given port at the current logical time, its value is considered \emph{absent}.
-\end{enumerate}
-\end{enumerate}
-\item No logical time elapses during a reaction;
-\item Any two reactions of the same actor execute atomically with respect to one another; and
-\item If two reactions of the same actor are triggered simultaneously, they execute in a predefined order;
+\item Messages exchanged between actors are timestamped and denote a discrete event.
+\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
+\item A reaction is a procedure, and any two reactions of an actor are mutually exclusive; they execute atomically with respect to one another;
+\item Each reaction declares the input ports and triggers to which it reacts and to which output ports it may send messages.
+\item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined.
+\item Logical time is constant during execution of a reaction.
+\item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
+\item A reaction can schedule a trigger at a future logical time.
+\item A reaction read and modify the actor's state.
+\item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion
+of the reaction with a payload equal to the final value set by the reaction.
+\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked. \edward{Note that this has dependency implications... An output message cannot be sent until the last reaction declaring that output has had a chance to run.}
+\item At a logical time, a reaction may read inputs that are not triggering inputs, but it must declare that it reads those inputs,
+and those inputs may be \emph{absent} (no event is present at this logical time).
 \end{enumerate}
 
 \martin{ We have discussed two different input ports:
