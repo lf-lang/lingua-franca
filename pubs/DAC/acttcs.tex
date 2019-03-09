@@ -112,7 +112,8 @@
 \newcommand{\isa}[1]{\mynote{Isabelle}{#1}{darkgreen}}% 
 \newcommand{\ag}[1]{\mynote{Andr\'es}{#1}{asparagus}}% 
 \newcommand{\armin}[1]{\mynote{Armin}{#1}{purple}}%
-\newcommand{\marjan}[1]{{\color{magenta} Marjan: #1}}%
+\newcommand{\marjan}[1]{\mynote{Marjan}{#1}{magenta}}% 
+
 
 \begin{document}
 
@@ -432,6 +433,7 @@ The discussion came on what is the meaning when a reaction uses two inputs, but 
 triggering it. What is the value of the other: either absent or the last value (the latching input).
 That latching input needs a default value. And that is actually the way to specify it in the accessors
 framework (according to Edward, I have not checked).}
+\marjan{So, do we have two types of ports? one can only accept "events" and other can only accept "values"?}
 
 \section{Timing and Determinism}
 \todo{discuss timing and scheduling using actor graph examples (no code)}
