@@ -39,7 +39,7 @@ class WalkLF extends LinguaFrancaBaseListener {
     val leftPort = ctx.`lport`.getText
     val rightPort = ctx.`rport`.getText
     // FIXME: Check for composite.
-    composite.connections += new Connection(leftPort, rightPort);
+    composite.connections += new Connection(leftPort, rightPort)
   }
 
   override def enterHead(ctx: LinguaFrancaParser.HeadContext): Unit = {
@@ -61,18 +61,18 @@ class WalkLF extends LinguaFrancaBaseListener {
   // instance statement
   override def enterInstance(ctx: LinguaFrancaParser.InstanceContext): Unit = {
     // FIXME: Generate a friendly error if composite is null (actor is not a Composite).
-    val instanceName = ctx.ID.getText;
-    currentInstance = new Instance(instanceName, ctx.`actorClass`.getText)
+    val instanceName = ctx.ID.getText
+    currentInstance = Instance(instanceName, ctx.`actorClass`.getText)
     composite.instances += (instanceName -> currentInstance)
   }
 
   override def enterParam(ctx: LinguaFrancaParser.ParamContext): Unit = {
-    current.parameter += (ctx.ID.getText -> new Parameter(ctx.ID.getText, ctx.`type`.getText, ctx.`value`.getText))
+    current.parameter += (ctx.ID.getText -> Parameter(ctx.ID.getText, ctx.`type`.getText, ctx.`value`.getText))
   }
 
   override def enterOutp(ctx: LinguaFrancaParser.OutpContext): Unit = {
     // TODO: mybe not use the word `type` and `def` in the grammar
-    current.outPorts += (ctx.ID.getText -> new Port(ctx.ID.getText, ctx.`type`.getText))
+    current.outPorts += (ctx.ID.getText -> Port(ctx.ID.getText, ctx.`type`.getText))
   }
 
   override def enterPre(ctx: LinguaFrancaParser.PreContext): Unit = {
@@ -88,7 +88,7 @@ class WalkLF extends LinguaFrancaBaseListener {
     val t = current.triggers(ctx.ID.getText)
     // sets is really a list
     val s = ctx.sets(0).ID.getText
-    val r = new Reaction(t, s, "")
+    val r = Reaction(t, s, "")
     currentReact = r
     current.reactions += r
   }
@@ -105,7 +105,7 @@ class WalkLF extends LinguaFrancaBaseListener {
   }
 
   override def enterTrig(ctx: LinguaFrancaParser.TrigContext): Unit = {
-    val t = new Trigger(ctx.ID.getText, ctx.trigparam.ID.getText, ctx.trigtype.getText)
+    val t = Trigger(ctx.ID.getText, ctx.trigparam.ID.getText, ctx.trigtype.getText)
     current.triggers += (ctx.ID.getText -> t)
   }
 
