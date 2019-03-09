@@ -265,7 +265,7 @@ Since then,
 %their introduction in the 70s,
 the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
 \marjan{Reo is not actor-based.} \marjan{BTW, do you want to say actor-oriented or actor-based?}
-Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects. \marjan{We do have concurrent objects, and as far as I remember they are as old as objects and actors.}\edward{I changed this to ``a better model ...}
+Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects. \marjan{We do have concurrent objects, and as far as I remember they are as old as objects and actors.}\edward{I changed this to ``a better model ...} \marjan{Great!}
 Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
 Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
 These properties make actors ideal for programming reactive systems.
@@ -475,6 +475,7 @@ more compactly, for example with the Ptolemy II notion of ``multiports'' or ``pe
 %have the ``last seen'' value. I think both might be useful. Although it is probably syntactic sugar.
 %The latching port can be simulated by a trigger on the input and storing the value in the state of
 %the actor. Maybe this would be a leaner and cleaner semantic.}
+%\marjan{Ok, I think I understand what you mean. And I am just thinking, sometimes we need to know if the event at the other port is "new" or not too old, can we do that here? I guess we can write a code for that, keeping the "model time stamp" of the "last seen" value maybe ... }
 
 \section{Timing and Determinism}
 \todo{discuss timing and scheduling using actor graph examples (no code)}
@@ -560,8 +561,10 @@ These models are more restrictive than our propsed work and lack the polyglot fl
 
 Fredlund et al. proposed timed extension of McErlang
 as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
+In \cite{DBLP:journals/csur/BoerSHHRDJSKFY17}, de Boar et al. provided a survey on active object languages but there is no focus on timed features.
 
 \martin{Oh boy, we have way too many references for a 4 pages position paper.}
+\marjan{That's why I happily didn't add much to the Related Work section. I just wrote the McErlang part, and now I added a line on a survey that can just be commented out for this paper. I think the work of Gul, RTSynchronizer, is very close, although it is very old. Also the Theatre framework is close but can be ignored for now. }
 %\section{Actors}
 %
 
