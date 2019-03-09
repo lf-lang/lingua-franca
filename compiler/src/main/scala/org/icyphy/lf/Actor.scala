@@ -6,6 +6,7 @@ class Connection(lport: String, rport: String) {
     // Return the specification for the port as a string.
     // If the input is "x.y", then return "x, 'y'"
     // If the input is "x", then return "'x'"
+    // FIXME: this is JS code generation specific and should be moved to EmitJS.scala
     def getPortSpec(port: String): String = {
         val a = port.split('.');
         if (a.length == 1) {
@@ -20,35 +21,17 @@ class Connection(lport: String, rport: String) {
     def getRPort() = getPortSpec(rport);
 }
 
-class Port(id: String, typ: String) {
-  def gid() = id
-  def gtyp = typ
-}
+case class Port(id: String, typ: String)
 
-class Instance(instanceName: String, actorClass: String) {
-  def getActorClass() = actorClass;
-  def getInstanceName() = instanceName;
+case class Instance(instanceName: String, actorClass: String) {
   val instanceParameters = new HashMap[String, String]()
 }
 
-class Parameter(id: String, typ: String, default: String) {
-  // TODO: getter functions?????
-  def gid() = id
-  def gtyp() = typ
-  def gdefault() = default
-}
+case class Parameter(id: String, typ: String, default: String)
 
-class Trigger(id: String, param: String, typ: String) {
-  def gid() = id
-  def gparam() = param
-  def gtyp() = typ
-}
+case class Trigger(id: String, param: String, typ: String)
 
-class Reaction(t: Trigger, output: String, var code: String) {
-  def gt() = t
-  def goutput() = output
-  def gcoude() = code
-}
+case class Reaction(t: Trigger, output: String, var code: String)
 
 class Actor(name: String) {
   val parameter = new HashMap[String, Parameter]()
