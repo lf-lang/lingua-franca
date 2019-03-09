@@ -149,15 +149,16 @@
 \newblock
 
 
-\bibitem[\protect\citeauthoryear{Hewitt}{Hewitt}{1977}]%
-        {Hewitt:77:Actors}
-\bibfield{author}{\bibinfo{person}{Carl Hewitt}.}
-  \bibinfo{year}{1977}\natexlab{}.
-\newblock \showarticletitle{Viewing control structures as patterns of passing
-  messages}.
-\newblock \bibinfo{journal}{{\em Journal of Artificial Intelligence\/}}
-  \bibinfo{volume}{8}, \bibinfo{number}{3} (\bibinfo{year}{1977}),
-  \bibinfo{pages}{323--363}.
+\bibitem[\protect\citeauthoryear{Hewitt, Bishop, and Steiger}{Hewitt
+  et~al\mbox{.}}{1973}]%
+        {DBLP:conf/ijcai/HewittBS73}
+\bibfield{author}{\bibinfo{person}{Carl Hewitt}, \bibinfo{person}{Peter~Boehler
+  Bishop}, {and} \bibinfo{person}{Richard Steiger}.}
+  \bibinfo{year}{1973}\natexlab{}.
+\newblock \showarticletitle{A Universal Modular {ACTOR} Formalism for
+  Artificial Intelligence}. In \bibinfo{booktitle}{{\em Proceedings of the 3rd
+  International Joint Conference on Artificial Intelligence. Standford, CA,
+  USA, August 20-23, 1973}}. \bibinfo{pages}{235--245}.
 \newblock
 
 
