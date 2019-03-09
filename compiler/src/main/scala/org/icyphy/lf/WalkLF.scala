@@ -5,7 +5,12 @@ class WalkLF extends LinguaFrancaBaseListener {
   var current: Actor = null
   var composite: Composite = null // TODO: shouldn't composite be the current Actor?
 
-  var codeState = "unknown" // TODO: should be an enum
+  object CodeState extends Enumeration {
+    type CodeState = Value
+    val Unknown, Pre, Init, React = Value
+  }
+
+  var codeState = CodeState.Unknown
   var currentReact: Reaction = null
   var currentInstance: Instance = null
   
@@ -49,7 +54,7 @@ class WalkLF extends LinguaFrancaBaseListener {
     val path = ctx.path().getText
     val pieces = path.split('.')
     val root = pieces.last
-    val filename = pieces.mkString("/") + ".js"
+    val filename = pieces.mkString("/") + ".js" // FIXME: JS specific
     System.imports += (root -> filename)
   }
 
@@ -71,15 +76,15 @@ class WalkLF extends LinguaFrancaBaseListener {
   }
 
   override def enterPre(ctx: LinguaFrancaParser.PreContext): Unit = {
-    codeState = "pre"
+    codeState = CodeState.Pre
   }
 
   override def enterInit(ctx: LinguaFrancaParser.InitContext): Unit = {
-    codeState = "init"
+    codeState = CodeState.Init
   }
 
   override def enterReact(ctx: LinguaFrancaParser.ReactContext): Unit = {
-    codeState = "react"
+    codeState = CodeState.React
     val t = current.triggers(ctx.ID.getText)
     // sets is really a list
     val s = ctx.sets(0).ID.getText
@@ -92,9 +97,9 @@ class WalkLF extends LinguaFrancaBaseListener {
     var s: String = ctx.CODE.getText
     s = s.substring(2, s.length - 2)
     codeState match {
-      case "pre" => current.preCode = s
-      case "init" => current.initCode = s
-      case "react" => currentReact.code = s
+      case CodeState.Pre => current.preCode = s
+      case CodeState.Init => current.initCode = s
+      case CodeState.React => currentReact.code = s
       case _ => "???"
     }
   }
