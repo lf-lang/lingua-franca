@@ -511,6 +511,10 @@ S-Net~\cite{grelck2008gentle}
 Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
 Timed C \cite{Broman_timedC}
 
+Dataflow models are also closely related to the actor approach. In~\cite{wiik2018contract} the authors extend an (untimed) dataflow model with formal contracts that allow guarantees, e.g. for scheduling.
+There are timed models of dataflow~\cite{Sriram:00:Scheduling}, and even some structured approaches to use timing semantics in dataflow to execute time-critical applications in cyber-physical systems~\cite{GeilenEtAl:12:Scenarios}.
+These models are more restrictive than our propsed work and lack the polyglot flexibility of LF.
+
 Fredlund et al. proposed timed extension of McErlang
 as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
 %\section{Actors}
