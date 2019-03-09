@@ -110,6 +110,19 @@
 \url{http://dx.doi.org/10.1109/WORDS.2003.1267505}}
 
 
+\bibitem[\protect\citeauthoryear{Earle and Fredlund}{Earle and
+  Fredlund}{2012}]%
+        {DBLP:conf/forte/EarleF12}
+\bibfield{author}{\bibinfo{person}{Clara~Benac Earle} {and}
+  \bibinfo{person}{Lars{-}{\AA}ke Fredlund}.} \bibinfo{year}{2012}\natexlab{}.
+\newblock \showarticletitle{Verification of Timed Erlang Programs Using
+  McErlang}. In \bibinfo{booktitle}{{\em Formal Techniques for Distributed
+  Systems - Joint 14th {IFIP} {WG} 6.1 International Conference, {FMOODS} 2012
+  and 32nd {IFIP} {WG} 6.1 International Conference, {FORTE} 2012, Stockholm,
+  Sweden, June 13-16, 2012. Proceedings}}. \bibinfo{pages}{251--267}.
+\newblock
+
+
 \bibitem[\protect\citeauthoryear{Grelck, Scholz, and Shafarenko}{Grelck
   et~al\mbox{.}}{2008}]%
         {grelck2008gentle}
@@ -173,6 +186,20 @@
 \showISBNx{978-3-319-75771-1}
 \showDOI{%
 \url{http://dx.doi.org/10.1007/978-3-319-75771-1_32}}
+
+
+\bibitem[\protect\citeauthoryear{Khamespanah, Sirjani, Kaviani, Khosravi, and
+  Izadi}{Khamespanah et~al\mbox{.}}{2015}]%
+        {KHAMESPANAH2015184}
+\bibfield{author}{\bibinfo{person}{Ehsan Khamespanah}, \bibinfo{person}{Marjan
+  Sirjani}, \bibinfo{person}{Zeynab~Sabahi Kaviani}, \bibinfo{person}{Ramtin
+  Khosravi}, {and} \bibinfo{person}{Mohammad-Javad Izadi}.}
+  \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{Timed Rebeca schedulability and deadlock freedom
+  analysis using bounded floating time transition system}.
+\newblock \bibinfo{journal}{{\em Science of Computer Programming\/}}
+  \bibinfo{volume}{98} (\bibinfo{year}{2015}), \bibinfo{pages}{184 -- 204}.
+\newblock
 
 
 \bibitem[\protect\citeauthoryear{Lee, Liu, Muliadi, and Zheng}{Lee

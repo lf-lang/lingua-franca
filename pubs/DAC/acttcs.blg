@@ -5,7 +5,7 @@ The style file: ACM-Reference-Format.bst
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
 Database file #1: Refs.bib
-Repeated entry---line 117 of file Refs.bib
+Repeated entry---line 123 of file Refs.bib
  : @inproceedings{DBLP:conf/birthday/SirjaniJ11
  :                                             ,
 I'm skipping whatever remains of this entry
@@ -13,6 +13,8 @@ Reallocated singl_function (elt_size=4) to 100 items from 50.
 Warning--empty address in Armstrong:96:Erlang
 Warning--empty publisher in Ding2003
 Warning--empty address in Ding2003
+Warning--empty publisher in DBLP:conf/forte/EarleF12
+Warning--empty address in DBLP:conf/forte/EarleF12
 Warning--empty publisher in hackmann2005towards
 Warning--empty address in hackmann2005towards
 Warning--empty publisher in DBLP:conf/ijcai/HewittBS73
@@ -32,45 +34,45 @@ Warning--require articleno with numpages field in Rosenband:2004:MSG:996566.9965
 Warning--empty publisher in DBLP:conf/birthday/SirjaniJ11
 Warning--empty address in DBLP:conf/birthday/SirjaniJ11
 Warning--page numbers missing in both pages and numpages fields in TripakisEtAl:12:AbstractSemantics
-You've used 22 entries,
+You've used 24 entries,
             5551 wiz_defined-function locations,
-            1470 strings with 20740 characters,
-and the built_in function-call counts, 26457 in all, are:
-= -- 3249
-> -- 1097
+            1484 strings with 21409 characters,
+and the built_in function-call counts, 28883 in all, are:
+= -- 3564
+> -- 1198
 < -- 0
-+ -- 351
-- -- 557
-* -- 2076
-:= -- 2912
-add.period$ -- 114
-call.type$ -- 22
-change.case$ -- 168
-chr.to.int$ -- 22
-cite$ -- 44
-duplicate$ -- 1913
-empty$ -- 1374
-format.name$ -- 451
-if$ -- 6073
++ -- 383
+- -- 593
+* -- 2251
+:= -- 3171
+add.period$ -- 124
+call.type$ -- 24
+change.case$ -- 183
+chr.to.int$ -- 24
+cite$ -- 48
+duplicate$ -- 2109
+empty$ -- 1513
+format.name$ -- 495
+if$ -- 6674
 int.to.chr$ -- 1
 int.to.str$ -- 0
-missing$ -- 86
-newline$ -- 234
-num.names$ -- 180
-pop$ -- 780
+missing$ -- 95
+newline$ -- 249
+num.names$ -- 196
+pop$ -- 857
 preamble$ -- 1
-purify$ -- 276
+purify$ -- 301
 quote$ -- 0
-skip$ -- 552
+skip$ -- 614
 stack$ -- 0
-substring$ -- 2437
-swap$ -- 200
+substring$ -- 2624
+swap$ -- 224
 text.length$ -- 368
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 284
-warning$ -- 22
-while$ -- 174
+type$ -- 312
+warning$ -- 24
+while$ -- 191
 width$ -- 0
-write$ -- 439
+write$ -- 472
 (There was 1 error message)

@@ -255,13 +255,15 @@ The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in th
 Since then,
 %their introduction in the 70s,
 the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
-Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors also provide a model for \emph{concurrency}. 
+\marjan{Reo is not actor-based.} %\marjan{BTW, do you want to say actor-oriented or actor-based?}
+Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors also provide a model for \emph{concurrency}. \marjan{We do have concurrent objects.}
 Indeed, each actor is presumed to operate concurrently alongside other actors that it may exchange messages with, asynchronously. 
 These properties make actors an ideal for programming reactive systems. The lack of any guarantees with respect to the ordering of messages, and the absence of a notion of time, makes this a very general model, albeit a less useful one for the specification of systems in which timely execution and determinism are important.
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}.
 Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements of the simulated system~\cite{DBLP:conf/birthday/SirjaniJ11}.
+\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}
 Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach we follow.
 
 %\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
@@ -496,6 +498,9 @@ Accessors \cite{brooks2018component}
 S-Net~\cite{grelck2008gentle}
 Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
 Timed C \cite{Broman_timedC}
+
+Fredlund et al. proposed timed extension of McErlang
+as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
 %\section{Actors}
 %
 
