@@ -435,39 +435,55 @@ We summarize our model in terms of the following principles:
 \item Messages exchanged between actors are timestamped and denote a discrete event.
 \item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
 \item A reaction is a procedure, and any two reactions of an actor are mutually exclusive; they execute atomically with respect to one another;
-\item Each reaction declares the input ports and triggers to which it reacts and to which output ports it may send messages.
+\item Each reaction declares the input ports and triggers to which it reacts and to which output ports it may write.
+\item If a reaction declares that it reacts to multiple input ports, then at the time of the reaction, at least one of those
+input ports will have a message time-stamped with the time of the reaction, but the other input ports may be \emph{absent}
+(no event is present at this logical time).
+\item A reaction must also declare inputs that it does not react to but that it reads;
+at a logical time, those inputs may also be absent.
 \item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined.
 \item Logical time is constant during execution of a reaction.
 \item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
 \item A reaction can schedule a trigger at a future logical time.
-\item A reaction may read and modify the actor's state.
-\item A reaction can set the values of the output ports that it has declared, and if it does so, a message will be sent after the conclusion
+\item A reaction can read and modify the actor's state.
+\item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion
 of the reaction with a payload equal to the final value set by the reaction.
-\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked. \edward{Note that this has dependency implications... An output message cannot be sent until the last reaction declaring that output has had a chance to run.}
+\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked.
+\item No two distinct actors may send messages to the same input port of another actor;
+a composition of actors that does this is an erroneous composition.
+\item An output port may send messages to multiple input ports or multiple actors;
+these messages all bear the same time stamp.
+% \edward{Note that this has dependency implications... An output message cannot be sent until the last reaction declaring that output has had a chance to run.}
 \item At a logical time, a reaction may read inputs that are not triggering inputs, but it must declare that it reads those inputs,
 and those inputs may be \emph{absent} (no event is present at this logical time).
 \item \martin{We are not talking about delay here, but logical time is constant during reaction. There is no explicit
 mentioning that the output time stamp is the same as the input time stamp (except when having a delay on
 a reaction).}
 \end{enumerate}
+Together, these rules ensure that the execution of a composition of actors is deterministic
+in the sense that given any set of time-stamped inputs from outside the composition, the composition has exactly one behavior.
+This determinism can be proved by showing that at each logical time, every actor realizes a monotonic function in an appropriately
+chosen partial order and that the execution converges to a least fixed point in this partial order~\cite{LeeZheng:07:SRDECT}.
+Within these rules, there are various opportunities for ``syntactic sugar,'' where complex behaviors can be expressed
+more compactly, for example with the Ptolemy II notion of ``multiports'' or ``persistent ports'' \cite{Ptolemy:14:Book}.
 
-\martin{ We have discussed two different input ports:
-those that are only valid during the logical time of the time stamp (what did we call them?)
-and the ones that latch the value and are valid in future logical time as well.}
-\marten{I think we called them input ports and triggers, respectively. See item (3)(a). If unclear, we should definitely improve the wording. Same for the terminology. We could also go for external/internal input ports. Internal ports are only referenced by the actor itself; both can be considered triggers...}
-\martin{I don't think this is trigger. An input port may be part of a trigger, and for the ones that are only valid
-during the local time need to be part of a trigger condition. Otherwise they would not make any sense.
-The discussion came on what is the meaning when a reaction uses two inputs, but only one is
-triggering it. What is the value of the other: either absent or the last value (the latching input).
-That latching input needs a default value. And that is actually the way to specify it in the accessors
-framework (according to Edward, I have not checked).}
-\marjan{So, do we have two types of ports? one can only accept "events" and other can only accept "values"?}
-\martin{Both types are ``events'' with a time stamp that can trigger a reaction. The question is when
-a port is read that has not an event with the current logical time: is the content just ``absent'' or does it
-have the ``last seen'' value. I think both might be useful. Although it is probably syntactic sugar.
-The latching port can be simulated by a trigger on the input and storing the value in the state of
-the actor. Maybe this would be a leaner and cleaner semantic.}
-\marjan{Ok, I think I understand what you mean. And I am just thinking, sometimes we need to know if the event at the other port is "new" or not too old, can we do that here? I guess we can write a code for that, keeping the "model time stamp" of the "last seen" value maybe ... }
+%\martin{ We have discussed two different input ports:
+%those that are only valid during the logical time of the time stamp (what did we call them?)
+%and the ones that latch the value and are valid in future logical time as well.}
+%\marten{I think we called them input ports and triggers, respectively. See item (3)(a). If unclear, we should definitely improve the wording. Same for the terminology. We could also go for external/internal input ports. Internal ports are only referenced by the actor itself; both can be considered triggers...}
+%\martin{I don't think this is trigger. An input port may be part of a trigger, and for the ones that are only valid
+%during the local time need to be part of a trigger condition. Otherwise they would not make any sense.
+%The discussion came on what is the meaning when a reaction uses two inputs, but only one is
+%triggering it. What is the value of the other: either absent or the last value (the latching input).
+%That latching input needs a default value. And that is actually the way to specify it in the accessors
+%framework (according to Edward, I have not checked).}
+%\marjan{So, do we have two types of ports? one can only accept "events" and other can only accept "values"?}
+%\martin{Both types are ``events'' with a time stamp that can trigger a reaction. The question is when
+%a port is read that has not an event with the current logical time: is the content just ``absent'' or does it
+%have the ``last seen'' value. I think both might be useful. Although it is probably syntactic sugar.
+%The latching port can be simulated by a trigger on the input and storing the value in the state of
+%the actor. Maybe this would be a leaner and cleaner semantic.}
+%\marjan{Ok, I think I understand what you mean. And I am just thinking, sometimes we need to know if the event at the other port is "new" or not too old, can we do that here? I guess we can write a code for that, keeping the "model time stamp" of the "last seen" value maybe ... }
 
 \section{Timing and Determinism}
 \todo{discuss timing and scheduling using actor graph examples (no code)}
