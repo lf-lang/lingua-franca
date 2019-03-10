@@ -460,6 +460,10 @@ and those inputs may be \emph{absent} (no event is present at this logical time)
 mentioning that the output time stamp is the same as the input time stamp (except when having a delay on
 a reaction).}
 \end{enumerate}
+
+\marjan{Maybe a classification of above principles makes the presentation nicer, just maybe some titles (and maybe some shuffling), like trying to go top-down, first talking about Actors, then body of reactions, then how reactions are triggered and ... and finally composition of actors ...}
+\marjan{You say: We have input message or trigger; a reaction must also declare inputs that it does not react to but that it reads; now, if we have an input message at some model time but no triggers, nothing will happen until a trigger is there, right?}
+
 Together, these rules ensure that the execution of a composition of actors is deterministic
 in the sense that given any set of time-stamped inputs from outside the composition, the composition has exactly one behavior.
 This determinism can be proved by showing that at each logical time, every actor realizes a monotonic function in an appropriately
