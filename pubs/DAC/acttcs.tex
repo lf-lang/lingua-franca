@@ -263,9 +263,8 @@ The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in th
 %A well-known programming paradigm used in this context are Hewitt~\cite{Hewitt:77:Actors} actors.
 Since then,
 %their introduction in the 70s,
-the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{Arbab:04:Reo,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
-\marjan{Reo is not actor-based.} \marjan{BTW, do you want to say actor-oriented or actor-based?}
-Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects. \marjan{We do have concurrent objects, and as far as I remember they are as old as objects and actors.}\edward{I changed this to ``a better model ...} \marjan{Great!}
+the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
+Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects.
 Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
 Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
 These properties make actors ideal for programming reactive systems.
@@ -275,7 +274,7 @@ model less useful for specifying systems in which timely execution and repeatabl
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}.
 Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements~\cite{DBLP:conf/birthday/SirjaniJ11}.
-\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}
+\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}\marten{I would prefer to cite [102], [103], or [104] from \cite{DBLP:conf/birthday/SirjaniJ11} rather than \cite{DBLP:conf/birthday/SirjaniJ11} itself (it is a survey paper). I chose \cite{KHAMESPANAH2015184} because it is the most recent paper I could find that discusses the approach.}
 Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach that we follow.
 
 %\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
@@ -458,7 +457,7 @@ these messages all bear the same time stamp.
 and those inputs may be \emph{absent} (no event is present at this logical time).
 \item \martin{We are not talking about delay here, but logical time is constant during reaction. There is no explicit
 mentioning that the output time stamp is the same as the input time stamp (except when having a delay on
-a reaction).}
+a reaction).}\marten{If we implement Delay using an actor that self-schedules a delayed reaction, the claim that no time passes during a reaction still holds.}
 \end{enumerate}
 
 \marjan{Maybe a classification of above principles makes the presentation nicer, just maybe some titles (and maybe some shuffling), like trying to go top-down, first talking about Actors, then body of reactions, then how reactions are triggered and ... and finally composition of actors ...}
