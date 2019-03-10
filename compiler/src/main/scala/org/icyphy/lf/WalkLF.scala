@@ -20,7 +20,7 @@ class WalkLF extends LinguaFrancaBaseListener {
         val parameterName = ctx.ID().getText
         var parameterValue = ctx.`value`.getText
         // FIXME: The following should be handled by the parser somehow!
-        if (parameterValue.startsWith("{-")) {
+        if (parameterValue.startsWith("{=")) {
             parameterValue = parameterValue.substring(2, parameterValue.length - 2);
         }
         currentInstance.instanceParameters += (parameterName -> parameterValue)

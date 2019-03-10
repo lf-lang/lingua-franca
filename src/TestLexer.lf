@@ -1,20 +1,20 @@
 // Test the lexer with various supported syntaxes.
-language JavaScript;
+target JavaScript;
 actor TestLexer(
         period:int(1000),
         foo:string("hello"),
-        bar:foreignType({- @#$% -})
+        bar:foreignType({= @#$% =})
     ) {
     trigger t(period, PERIODIC);
     output y:int;
-    preamble {-
+    preamble {=
         var n = 0;
-    -}
-    initialize {-
+    =}
+    initialize {=
         n = 0;
-    -}
-    reaction(t) -> y {-
+    =}
+    reaction(t) -> y {=
         n = n + 1;
         set(y, n);
-    -}
+    =}
 }

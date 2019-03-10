@@ -1,31 +1,33 @@
+target JavaScript;
+
 // Periodically produce an output consisting of a count.
 actor Source(period:int(1000)) {
     language JavaScript;
     trigger t(period, PERIODIC);
     output y:int;
-    preamble {-
+    preamble {=
         var n = 0;
-    -}
-    initialize {-
+    =}
+    initialize {=
         n = 0;
-    -}
-    reaction(t) -> y(INDETERMINATE) {-
+    =}
+    reaction(t) -> y(INDETERMINATE) {=
         n = n + 1;
         set(y, n);
-    -}
+    =}
 }
 // Test input for match to expected sequence.
 // Stop executing when the expected sequence has been matched.
 actor Test(expected:JSON([])) {
     language JavaScript;
     input x:int(0);
-    preamble {-
+    preamble {=
         var i = 0;
-    -}
-    initialize {-
+    =}
+    initialize {=
         i = 0;
-    -}
-    reaction(x) deadline(10ms) {-
+    =}
+    reaction(x) deadline(10ms) {=
         if (expected[i] != x) {
             throw "Expected: " + expected[i] + ", but got: " + x;
         }
@@ -33,16 +35,16 @@ actor Test(expected:JSON([])) {
         if (i >= expected.length) {
             this.stop();
         }
-    -}
+    =}
 }
 // Compose the actors.
 composite Top() {
-    preamble {-
+    preamble {=
         var a = this.instantiate("Source");
         a.setParameter("period", 10);
         var b = this.instantiate("Test");
         b.setParameter("expected", [1, 2, 3, 4]);
         this.connect(a, "y", b, "x");
-    -}
+    =}
 }
 main = Top();

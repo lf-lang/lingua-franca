@@ -1,14 +1,14 @@
 // Logical delay.
-language JavaScript;
+target JavaScript;
 actor Delay {
    input in:object;
    output out:object;
    parameter delay:number;
    trigger trig:object;
-   reaction(in) {-
+   reaction(in) {=
       schedule(trig, delay, get(in));
-   -}
-   reaction(trig) -> out {-
+   =}
+   reaction(trig) -> out {=
       set(out, trig);
-   -}
+   =}
 }
