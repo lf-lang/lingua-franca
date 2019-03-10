@@ -1,17 +1,17 @@
 // Actor that displays an input string.
-language JavaScript;
+target JavaScript;
 actor Destination {
     inputs x:string;
-    preamble {
+    preamble {=
         var textDisplay = require('@accessors-modules/text-display');
         var display = null;
-    }
-    initialize {
+    =}
+    initialize {=
         if (display === null) {
             display = new textDisplay.TextDisplay(this.getParameter('title'));
         }
-    }
-    reaction(x) {
+    =}
+    reaction(x) {=
         display.appendText(get(x));
-    }
+    =}
 }

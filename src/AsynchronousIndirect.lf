@@ -3,20 +3,20 @@
 // response. This version uses a level of indirection,
 // where the response to the http request causes a trigger
 // to be scheduled.
-language JavaScript;
+target JavaScript;
 actor Asynchronous() {
     input url:string;
     output response:string;
     trigger t:object;
-    preamble {
+    preamble {=
         var http = require('@accessors-modules/http-client');
-    }
-    reaction(url) {
+    =}
+    reaction(url) {=
         http.get(url, function(reply) {
             schedule(t, 0, ONCE, reply);
         });
-    }
-    reaction(t) -> response {
+    =}
+    reaction(t) -> response {=
         set(response, t.body);
-    }
+    =}
 }

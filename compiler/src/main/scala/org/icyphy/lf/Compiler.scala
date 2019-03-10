@@ -16,14 +16,14 @@ object Compiler extends App {
   val tree = parser.sys()
 
   val walker = new ParseTreeWalker()
-  val lang = new GetLanguage()
-  walker.walk(lang, tree)
+  val target = new GetTarget()
+  walker.walk(target, tree)
   val lf = new WalkLF()
   walker.walk(lf, tree)
 
-  val printer = lang.language match {
+  val printer = target.target match {
     case "JavaScript" => new EmitJS(ps)
-    // FIXME: The following throughs a very unfriendly null pointer exception.
+    // FIXME: The following throws a very unfriendly null pointer exception.
     // Should instead have a generic code generator, e.g. one that generates
     // documentation.
     case _ => null

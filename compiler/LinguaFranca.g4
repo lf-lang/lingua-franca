@@ -1,7 +1,7 @@
 grammar LinguaFranca;
-sys : language imp* (actor | composite);
-language:
-    'language' ID ';' ;
+sys : target imp* (actor | composite);
+target:
+    'target' ID ';' ;
 
 imp : 'import' path ';' ;
 actor : head '{' body '}' ;
@@ -84,9 +84,9 @@ NEWLINE:
 // CMT : '/' '/' (.)*? NEWLINE -> skip ;
 
 fragment ESCAPED_CODE:
-    '\\-}';
+    '\\=}';
 CODE:
-    '{-' (ESCAPED_CODE | ~('\\'|'-')* ) '-}' ;
+    '{=' (ESCAPED_CODE | ~('\\')* ) '=}' ;
 
 fragment INTVAL:
     '-'? [0-9]+ ;
