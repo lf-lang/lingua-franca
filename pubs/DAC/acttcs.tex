@@ -8,9 +8,9 @@
 
 \definecolor{stringColor}{rgb}{0.8,0.1,0.1}
 \usepackage{listings}
-\lstdefinelanguage{JavaScript}{
+\lstdefinelanguage{LF}{
   keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
-  morekeywords={reaction, preamble, language, actor, input, output},
+  morekeywords={reaction, preamble, target, actor, input, output},
   keywordstyle=\color{black}\bfseries,
   ndkeywords={class, export, boolean, throw, implements, import, this},
   ndkeywordstyle=\color{darkgray}\bfseries,
@@ -24,7 +24,7 @@
   morestring=[b]"
 }
 \lstset{
-   language=JavaScript,
+   language=C,
    backgroundcolor=\color{white},
    extendedchars=true,
    basicstyle=\footnotesize\ttfamily,
@@ -274,7 +274,7 @@ model less useful for specifying systems in which timely execution and repeatabl
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}.
 Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements~\cite{DBLP:conf/birthday/SirjaniJ11}.
-\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}\marten{I would prefer to cite [102], [103], or [104] from \cite{DBLP:conf/birthday/SirjaniJ11} rather than \cite{DBLP:conf/birthday/SirjaniJ11} itself (it is a survey paper). I chose \cite{KHAMESPANAH2015184} because it is the most recent paper I could find that discusses the approach.}
+\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}\marten{I would prefer to cite [102], [103], or [104] from \cite{DBLP:conf/birthday/SirjaniJ11} rather than \cite{DBLP:conf/birthday/SirjaniJ11} itself (it is a survey paper). I chose \cite{KHAMESPANAH2015184} because it is the most recent paper I could find that technically discusses the approach.}
 Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach that we follow.
 
 %\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
@@ -311,22 +311,19 @@ Alternatively, constraints can be placed on actors' allowable behaviors so that 
 % sectioning.... ?
 \section{Lingua Franca}
 In the original Hewitt actors and many modern implementations, actors have references to the actors that they communicate with.
-In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. While this approach increases modularity and, more importantly, exposes dependencies between actors.
-These dependencies can be used to devise a schedule that ensures that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. This is the approach taken in the Discrete Event implementation of Ptolemy II~\cite{LeeEtAl:7:DiscreteEvents}, which is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}.
-To increase efficiency, our approach avoids performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. Because the schedule is based purely on the topology of the actor graph, no static analysis of the actors' internals is required---Ptolemy actors are treated as black boxes.
-Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject
-to rescheduling is contained when mutations occur during runtime.
-A runtime mutation always occurs within a composite actor whose interface remains unchanged.
-%\marjan{and this is built based on the assumption that we have a static topology.}
+In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. This approach increases modularity and, more importantly, exposes dependencies between actors.
+All messages communicated between LF actors are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. While this DE semantics is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}, to increase efficiency, our approach avoids performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock.
+
+Because the schedule for message delivery is based purely on the topology of the actor graph, no static analysis of the actors' internals is required---the actors are treated as black boxes. Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject to rescheduling is contained when reconfigurations occur during runtime. A runtime reconfiguration always occurs within a composite actor whose interface remains unchanged.\marten{This is not completely true. I/O dependencies may change, which may lead to scheduling problems outside of the composite. The good thing is that we can detect problems before enacting the changes, but it could potentially require communication with composites up the hierarchy.}
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
-\edward{This paragraph needs work.}
-LF actors, on the other hand, are better characterized as \emph{gray} boxes considering they reveal some key features of their internal structure, namely a closer approximation of the true dependencies between their ports. 
-\edward{This is not quite right. The causality interfaces of Ptolemy II (Zhou et al.) expose fine-grain causality information.}
-Other than actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We enforce simple lexical scoping rules, which virtually any programmer is already familiar with, to limit reactions' access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
 
-The interface definitions of reactions are much like function definitions. Consider the following example which defines a brake component as an LF-actor:
-\edward{A brake component is probably not a good example for an ECMA 6/Flow target language. The target language should be C, or a web example should be chosen. Also, this example won't compile. What is ``pressed''? Also, ``state'' needs to be set in initialize. Also, our current syntax terminates lines with semicolons.}
+% \edward{This paragraph needs work.}
+% LF actors, on the other hand, are better characterized as \emph{gray} boxes considering they reveal some key features of their internal structure, namely a closer approximation of the true dependencies between their ports. 
+% \edward{This is not quite right. The causality interfaces of Ptolemy II (Zhou et al.) expose fine-grain causality information.}
+% Other than actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We enforce simple lexical scoping rules, which virtually any programmer is already familiar with, to limit reactions' access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
+
+The interface definitions of reactions are much like those of procedures. Consider the following example which defines a brake component as an LF-actor:
 
 \begin{minipage}{0.50\linewidth}
 % \begin{enumerate}
@@ -334,31 +331,33 @@ The interface definitions of reactions are much like function definitions. Consi
 %         This is the second line in item and this may extend to third if long
 %   \item second item\ldots
 % \end{enumerate}
-\begin{lstlisting}[numbers=none]
-language ECMA6/Flow;
-actor Brake {%
-  input check:any
-  input apply:number
-  output on:boolean
-  preamble {%
-  	state = false
-  	actuate() { ... } 
-  %}
+\begin{lstlisting}[language=LF,numbers=none]
+target C;
+actor Brake {
+  input check:void;
+  input apply:int;
+  output on:bool;
+  preamble {=
+  	bool state = false;
+  	void actuate(int val) { 
+  	  ...
+  	} 
+  =}
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.50\linewidth}
 \begin{lstlisting}[numbers=none]
-  reaction(apply) -> {%
-    pressed.set(true)
+  reaction(apply) {=
+    state = true;
     if (apply > 5)
-      actuate(apply)
+      actuate(apply);
     else
-      state = false
-  %}
-  reaction(check) -> on {%
-    on = state
-  %}
-%}
+      state = false;
+  =}
+  reaction(check) sets on {=
+    on = state;
+  =}
+}
 \end{lstlisting}
 \end{minipage}%
 
@@ -461,7 +460,7 @@ a reaction).}\marten{If we implement Delay using an actor that self-schedules a 
 \end{enumerate}
 
 \marjan{Maybe a classification of above principles makes the presentation nicer, just maybe some titles (and maybe some shuffling), like trying to go top-down, first talking about Actors, then body of reactions, then how reactions are triggered and ... and finally composition of actors ...}
-\marjan{You say: We have input message or trigger; a reaction must also declare inputs that it does not react to but that it reads; now, if we have an input message at some model time but no triggers, nothing will happen until a trigger is there, right?}
+\marjan{You say: We have input message or trigger; a reaction must also declare inputs that it does not react to but that it reads; now, if we have an input message at some model time but no triggers, nothing will happen until a trigger is there, right?}\marten{Right. Nothing will happen with that particular input, not even at a later time.}
 
 Together, these rules ensure that the execution of a composition of actors is deterministic
 in the sense that given any set of time-stamped inputs from outside the composition, the composition has exactly one behavior.
