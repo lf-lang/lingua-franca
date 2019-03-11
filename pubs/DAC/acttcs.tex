@@ -118,7 +118,7 @@
 
 \begin{document}
 
-\title{Actors, Time Stamps, and Determinism \\ for Time-Critical Systems}
+\title{Actors, Time Stamps, and Determinism for Time-Critical Systems}
 
 
 \author{Marten Lohstroh}
@@ -312,21 +312,26 @@ Alternatively, constraints can be placed on actors' allowable behaviors so that 
 \section{Lingua Franca}
 In the original Hewitt actors and many modern implementations, actors have references to the actors that they communicate with.
 In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. This approach increases modularity and, more importantly, exposes dependencies between actors.
-All messages communicated between LF actors are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. While this DE semantics is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}, to increase efficiency, our approach avoids performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock.
+All messages communicated between LF actors are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. 
 
-Because the schedule for message delivery is based purely on the topology of the actor graph, no static analysis of the actors' internals is required. 
+While the semantics of LF is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}, to increase efficiency, we avoid performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. The schedule for message delivery is based purely on the topology of the actor graph.
+%, and no static analysis of the actors' internals is required. 
 %---the actors are treated as black boxes. 
-Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject to rescheduling is contained when reconfigurations occur during runtime. A runtime reconfiguration always occurs within a composite actor whose interface remains unchanged.\marten{This is not completely true. I/O dependencies may change, which may lead to scheduling problems outside of the composite. The good thing is that we can detect problems before enacting the changes, but it could potentially require communication with composites up the hierarchy.} To handle dynamic substitutions of actors safely (for instance, ruling out zero-delay feedback)
+Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject to rescheduling is contained when reconfigurations occur during runtime. A runtime reconfiguration always occurs within a composite actor that can coordinate it a predictable and orderly fashion. %whose interface remains unchanged.\marten{This is not completely true. I/O dependencies may change, which may lead to scheduling problems outside of the composite. The good thing is that we can detect problems before enacting the changes, but it could potentially require communication with composites up the hierarchy.} 
+
+While actors are useful for encapsulating state, it is often necessary for distinct but related computational activities to share state. For instance, a single actor to could serve as proxy for a device that is has to maintain a connection with, and the device (e.g, a hub for smart lights) could be capable of perform several different tasks.
+Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, in Lingua Franca, we made causality interfaces part of the language definition. We break an actor's functionality down into \emph{reactions}, each of which are subject to simple lexical scoping rules that limit their access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
+
+The functionality of a reaction can be treated as a black box; a schedule can be devised purely based on dependency information. This is why Lingua Franca is polyglot. \todo{elaborate}
+Consider the following example:
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
 
-\marten{Old paragraph:}
-LF actors, on the other hand, are better characterized as \emph{gray} boxes considering they reveal some key features of their internal structure, namely a closer approximation of the true dependencies between their ports. 
-\edward{This is not quite right. The causality interfaces of Ptolemy II (Zhou et al.) expose fine-grain causality information.}\marten{On the merit of decomposing {\tt fire} into reactions: sure, Ptolemy II uses causality interfaces, but dependencies within actors have to be \emph{declared} in Ptolemy II. Importantly, these declarations are based on assertions about actors' {\tt fire} functions, and they may or may not be true. The dependencies that we extract from our actor definitions are always complete (modulo dependencies via shared state), and sound, modulo data dependencies. I would consider this an improvement. The conclusions of the Zhou paper also hint at this problem, admitting that causality interfaces are difficult to infer (Rice's theorem), and that a solution could be to use languages that are more amenable to such analysis.}
-Other than actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We enforce simple lexical scoping rules, which virtually any programmer is already familiar with, to limit reactions' access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope.
+% \marten{Old paragraph:}
+% LF actors, on the other hand, are better characterized as \emph{gray} boxes considering they reveal some key features of their internal structure, namely a closer approximation of the true dependencies between their ports. 
+% \edward{This is not quite right. The causality interfaces of Ptolemy II (Zhou et al.) expose fine-grain causality information.}\marten{On the merit of decomposing {\tt fire} into reactions: sure, Ptolemy II uses causality interfaces, but dependencies within actors have to be \emph{declared} in Ptolemy II. Importantly, these declarations are based on assertions about actors' {\tt fire} functions, and they may or may not be true. The dependencies that we extract from our actor definitions are always complete (modulo dependencies via shared state), and sound, modulo data dependencies. I would consider this an improvement. The conclusions of the Zhou paper also hint at this problem, admitting that causality interfaces are difficult to infer (Rice's theorem), and that a solution could be to use languages that are more amenable to such analysis.}
+% Other than actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We enforce simple lexical scoping rules, which virtually any programmer is already familiar with, to limit reactions' access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope.
 
-\todo{New paragraph}
-The interface definitions of reactions are much like those of procedures. Consider the following example which defines a brake component as an LF-actor:
 
 \begin{minipage}{0.50\linewidth}
 % \begin{enumerate}
@@ -363,18 +368,11 @@ actor Brake {
 }
 \end{lstlisting}
 \end{minipage}%
+\todo{Explain example}
 
-\todo{Explain this, discuss polyglot}
-\todo{Precisely because no static analysis is required...}
-
-Having this finer-grained dependency information available at the interface level also opens up avenues for scheduling optimizations, makes the detection of zero-delay feedback less conservative, and, we conjecture, will enable remote procedure calls (RPCs) between actors without compromising determinism or modularity. 
-The same dependency analysis performed to devise a schedule for message delivery and rule out zero-delay feedback can also be used to coordinate RPCs and guarantee deadlock freedom. We think that integrating RPCs into LF will be key to achieving wide adoption of our programming model, because it is such an omnipresent language feature, even in some actor-based frameworks, for example Ray~\cite{DBLP:journals/corr/abs-1712-05889}.
-\marjan{When you have atomic execution of reactions, then what does RPC mean? what is the difference between an RPC and Call-Backs (or maybe callbacks with priorities)? Maybe we just leave this out for this version of the paper?}
-\edward{I agree that this does not say enough to be understandable. An example would be needed.}
-\martin{Do we really want to introduce RPC between actors in this paper? Isn't it syntactic sugar?
-We probably do want to introduce RPC with a callback to the outside world (the HTTP get example),
-like in the accessors world.}
-
+% \marten{Potentially save this paragraph for another paper.}
+% Aside from making the detection of zero-delay feedback less conservative, having fine-grained dependency information available at the interface level opens up avenues for scheduling optimizations, and, we conjecture, will enable remote procedure calls (RPCs) between actors without compromising determinism or modularity. \todo{relate to example}
+% The same dependency analysis performed to devise a schedule for message delivery and rule out zero-delay feedback can also be used to coordinate RPCs and guarantee deadlock freedom. We think that integrating RPCs into LF will be key to achieving wide adoption of our programming model, because it is such an omnipresent language feature, even in some actor-based frameworks, for example Ray~\cite{DBLP:journals/corr/abs-1712-05889}.
 
 
 % Sort reactions topologically based on precedences.
