@@ -1,0 +1,130 @@
+grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
+
+generate linguaFranca "http://www.icyphy.org/LinguaFranca"
+
+/////////// Overall file
+Model:
+	target=Target 
+	(imports += Import)*
+	(blocks += (Actor | Composite))+
+	;
+
+/////////// Top level elements
+Target:
+	'target' name=ID ';';
+	
+Import:
+	'import' name=Path ';';
+
+// The following enforces the order of definitions:
+// inputs, outputs, triggers, preamble, etc.
+Actor:
+	'actor' name=ID parameters=Params? '{'
+	(inputs += Input)*
+	(outputs += Output)*
+	(triggers += Trigger)*
+	(preamble = Preamble)?
+	(initialize = Initialize)?
+	(reactions += Reaction)*
+	'}';
+	
+Composite:
+	'composite' name=ID parameters=Params? '{'
+	(inputs += Input)*
+	(outputs += Output)*
+	(triggers += Trigger)*
+	(preamble = Preamble)?
+	(initialize = Initialize)?
+	(reactions += Reaction)*
+	(instances += Instance)*
+	(connections += Connection)*
+	'}';
+	
+/////////// Statements
+
+// Note explicit allowance of keywords for names of inputs, outputs, triggers.
+Input:
+	'input' name=(ID | 'input') (':' type=Type)? ';';
+
+Output:
+	'output' name=(ID | 'output') (':' type=Type)? ';';
+
+Trigger:
+	'trigger' name=(ID | 'trigger') period=Period?';';
+	
+Reaction:
+	'reaction' 
+	('(' (triggers+=ID (',' triggers+=ID)*)? ')')?
+	gets=Gets?
+	sets=Sets?
+	code=CODE;
+	
+Preamble:
+	'preamble' code=CODE;
+
+Initialize:
+	'initialize' code=CODE;
+	
+// FIXME: actorClass should be able to be a Composite.
+Instance:
+	'instance' name=ID '=' actorClass=[Actor] ('(' parameters=Assignments? ')')? ';' ;
+
+Connection:
+    leftPort=Port '->' rightPort=Port ';';
+
+/////////// Pieces
+
+Assignments:
+	assignments+=Assignment (',' assignments+=Assignment)*;
+	
+Assignment:
+	name=ID '=' value=Value;
+
+// Specification of what inputs a reaction reads.
+Gets:
+	gets+=ID (',' gets+=ID)?;
+
+// Parameters for actors and composites.
+Params:
+    '(' params+=Param (',' params+=Param)* ')';
+
+// Single parameter.
+Param:
+    name=ID (':' type=Type)? ('(' value=Value ')')?;
+
+// Periodicity spec for a trigger.
+// E.g. (1000) or (1000, PERIODIC) or (1000, ONCE)
+Period:
+	'(' period=(ID | NUMBER) (',' (periodic?='PERIODIC' | once?='ONCE'))?')';
+
+// 'input' and 'output' are allowed port names despite being keywords.
+Port:
+    ID | (ID '.' (ID | 'input' | 'output'));
+
+// Specification of what outputs a reaction writes.
+Sets:
+	'->' sets+=ID (',' sets+=ID)?;
+
+// A type is in the target language, hence either an ID or target code.
+Type:
+    ID | CODE ;
+    
+Value:
+    ID | NUMBER | STRING | CODE;
+
+/////////// Elementary components
+// Terminals must be mutually exclusive. They are used by the lexer before parsing.
+
+// FIXME: Can we replace this with something more general? E.g., scientific notation, hex, etc.?
+terminal NUMBER:
+    '-'? INT ('.' INT)? ;
+
+// FIXME: What if the code needs to contain '=}'?
+// Just escaping with \ is not a good idea because then every \ has to be escaped \\.
+// Perhaps the string EQUALS_BRACE could become '=}'?
+terminal CODE:
+    '{=' .* '=}' ;
+
+// The following cannot be terminal because it overlaps ID.
+Path:
+	ID ('.' ID)* ;
