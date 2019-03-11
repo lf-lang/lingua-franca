@@ -1,0 +1,433 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{00}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{}, \showDOI{}, and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showDOI}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showDOI #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showDOI      \undefined \def \showDOI       #1{{\tt DOI:}\penalty0{#1}\ }
+  \fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       #1{#1}          \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[\protect\citeauthoryear{Arbab}{Arbab}{2004}]%
+        {Arbab:04:Reo}
+\bibfield{author}{\bibinfo{person}{Farhad Arbab}.}
+  \bibinfo{year}{2004}\natexlab{}.
+\newblock \showarticletitle{Reo: A Channel-Based Coordination Model for
+  Component Composition}.
+\newblock \bibinfo{journal}{{\em Mathematical Structures in Computer
+  Science\/}} \bibinfo{volume}{14}, \bibinfo{number}{3} (\bibinfo{year}{2004}),
+  \bibinfo{pages}{329--366}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Armstrong, Virding, Wikstr\"{o}m, and
+  Williams}{Armstrong et~al\mbox{.}}{1996}]%
+        {Armstrong:96:Erlang}
+\bibfield{author}{\bibinfo{person}{Joe Armstrong}, \bibinfo{person}{Robert
+  Virding}, \bibinfo{person}{Claes Wikstr\"{o}m}, {and} \bibinfo{person}{Mike
+  Williams}.} \bibinfo{year}{1996}\natexlab{}.
+\newblock \bibinfo{booktitle}{{\em Concurrent programming in Erlang\/}
+  (\bibinfo{edition}{second} ed.)}.
+\newblock \bibinfo{publisher}{Prentice Hall}.
+\newblock
+\showISBNx{ISBN 0-13-508301-X}
+
+
+\bibitem[\protect\citeauthoryear{{Brooks}, {Jerad}, {Kim}, {Lee}, {Lohstroh},
+  {Nouvellet}, {Osyk}, and {Weber}}{{Brooks} et~al\mbox{.}}{2018}]%
+        {brooks2018component}
+\bibfield{author}{\bibinfo{person}{C. {Brooks}}, \bibinfo{person}{C. {Jerad}},
+  \bibinfo{person}{H. {Kim}}, \bibinfo{person}{E.~A. {Lee}},
+  \bibinfo{person}{M. {Lohstroh}}, \bibinfo{person}{V. {Nouvellet}},
+  \bibinfo{person}{B. {Osyk}}, {and} \bibinfo{person}{M. {Weber}}.}
+  \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{A Component Architecture for the Internet of
+  Things}.
+\newblock \bibinfo{journal}{{\it Proc. IEEE}} \bibinfo{volume}{106},
+  \bibinfo{number}{9} (\bibinfo{date}{September} \bibinfo{year}{2018}),
+  \bibinfo{pages}{1527--1542}.
+\newblock
+\showISSN{0018-9219}
+\showDOI{%
+\url{http://dx.doi.org/10.1109/JPROC.2018.2812598}}
+
+
+\bibitem[\protect\citeauthoryear{Desai, Gupta, Jackson, Qadeer, Rajamani, and
+  Zufferey}{Desai et~al\mbox{.}}{2013}]%
+        {desai2013p}
+\bibfield{author}{\bibinfo{person}{Ankush Desai}, \bibinfo{person}{Vivek
+  Gupta}, \bibinfo{person}{Ethan Jackson}, \bibinfo{person}{Shaz Qadeer},
+  \bibinfo{person}{Sriram Rajamani}, {and} \bibinfo{person}{Damien Zufferey}.}
+  \bibinfo{year}{2013}\natexlab{}.
+\newblock \showarticletitle{P: safe asynchronous event-driven programming}.
+\newblock \bibinfo{journal}{{\em ACM SIGPLAN Notices\/}} \bibinfo{volume}{48},
+  \bibinfo{number}{6} (\bibinfo{year}{2013}), \bibinfo{pages}{321--332}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Ding, Zheng, Agha, and Sha}{Ding
+  et~al\mbox{.}}{2003}]%
+        {Ding2003}
+\bibfield{author}{\bibinfo{person}{Hui Ding}, \bibinfo{person}{Can Zheng},
+  \bibinfo{person}{Gul Agha}, {and} \bibinfo{person}{Lui Sha}.}
+  \bibinfo{year}{2003}\natexlab{}.
+\newblock \showarticletitle{Automated Verification of the Dependability of
+  Object-Oriented Real-Time Systems}. In \bibinfo{booktitle}{{\em 2003 The
+  Ninth IEEE International Workshop on Object-Oriented Real-Time Dependable
+  Systems}}. \bibinfo{pages}{171--171}.
+\newblock
+\showDOI{%
+\url{http://dx.doi.org/10.1109/WORDS.2003.1267505}}
+
+
+\bibitem[\protect\citeauthoryear{Earle and Fredlund}{Earle and
+  Fredlund}{2012}]%
+        {DBLP:conf/forte/EarleF12}
+\bibfield{author}{\bibinfo{person}{Clara~Benac Earle} {and}
+  \bibinfo{person}{Lars{-}{\AA}ke Fredlund}.} \bibinfo{year}{2012}\natexlab{}.
+\newblock \showarticletitle{Verification of Timed Erlang Programs Using
+  McErlang}. In \bibinfo{booktitle}{{\em Formal Techniques for Distributed
+  Systems - Joint 14th {IFIP} {WG} 6.1 International Conference, {FMOODS} 2012
+  and 32nd {IFIP} {WG} 6.1 International Conference, {FORTE} 2012, Stockholm,
+  Sweden, June 13-16, 2012. Proceedings}}. \bibinfo{pages}{251--267}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Geilen, Stuijk, and Basten}{Geilen
+  et~al\mbox{.}}{2012}]%
+        {GeilenEtAl:12:Scenarios}
+\bibfield{author}{\bibinfo{person}{Marc Geilen}, \bibinfo{person}{Sander
+  Stuijk}, {and} \bibinfo{person}{Twan Basten}.}
+  \bibinfo{year}{2012}\natexlab{}.
+\newblock \showarticletitle{Predictable Dynamic Embedded Data Processing}. In
+  \bibinfo{booktitle}{{\em International Conference on Embedded Computer
+  Systems: Architectures, Modeling, and Simulation (SAMOS)}}.
+  \bibinfo{publisher}{IEEE}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Grelck, Scholz, and Shafarenko}{Grelck
+  et~al\mbox{.}}{2008}]%
+        {grelck2008gentle}
+\bibfield{author}{\bibinfo{person}{Clemens Grelck}, \bibinfo{person}{Sven-Bodo
+  Scholz}, {and} \bibinfo{person}{Alex Shafarenko}.}
+  \bibinfo{year}{2008}\natexlab{}.
+\newblock \showarticletitle{A gentle introduction to S-Net: Typed stream
+  processing and declarative coordination of asynchronous components}.
+\newblock \bibinfo{journal}{{\em Parallel Processing Letters\/}}
+  \bibinfo{volume}{18}, \bibinfo{number}{02} (\bibinfo{year}{2008}),
+  \bibinfo{pages}{221--237}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Hackmann, Gill, and Roman}{Hackmann
+  et~al\mbox{.}}{2005}]%
+        {hackmann2005towards}
+\bibfield{author}{\bibinfo{person}{Gregory Hackmann},
+  \bibinfo{person}{Christopher Gill}, {and} \bibinfo{person}{Gruia-Catalin
+  Roman}.} \bibinfo{year}{2005}\natexlab{}.
+\newblock \showarticletitle{Towards a real-time coordination model for mobile
+  computing}. In \bibinfo{booktitle}{{\em Monterey Workshop}}. Springer,
+  \bibinfo{pages}{184--202}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Haller and Odersky}{Haller and
+  Odersky}{2009}]%
+        {haller2009scala}
+\bibfield{author}{\bibinfo{person}{Philipp Haller} {and}
+  \bibinfo{person}{Martin Odersky}.} \bibinfo{year}{2009}\natexlab{}.
+\newblock \showarticletitle{Scala actors: Unifying thread-based and event-based
+  programming}.
+\newblock \bibinfo{journal}{{\em Theoretical Computer Science\/}}
+  \bibinfo{volume}{410}, \bibinfo{number}{2-3} (\bibinfo{year}{2009}),
+  \bibinfo{pages}{202--220}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Hewitt, Bishop, and Steiger}{Hewitt
+  et~al\mbox{.}}{1973}]%
+        {DBLP:conf/ijcai/HewittBS73}
+\bibfield{author}{\bibinfo{person}{Carl Hewitt}, \bibinfo{person}{Peter~Boehler
+  Bishop}, {and} \bibinfo{person}{Richard Steiger}.}
+  \bibinfo{year}{1973}\natexlab{}.
+\newblock \showarticletitle{A Universal Modular {ACTOR} Formalism for
+  Artificial Intelligence}. In \bibinfo{booktitle}{{\em Proceedings of the 3rd
+  International Joint Conference on Artificial Intelligence. Standford, CA,
+  USA, August 20-23, 1973}}. \bibinfo{pages}{235--245}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Hunt}{Hunt}{2018}]%
+        {Hunt2018}
+\bibfield{author}{\bibinfo{person}{John Hunt}.}
+  \bibinfo{year}{2018}\natexlab{}.
+\newblock \bibinfo{booktitle}{{\em Further Akka Actors}}.
+\newblock \bibinfo{publisher}{Springer International Publishing},
+  \bibinfo{address}{Cham}, \bibinfo{pages}{345--360}.
+\newblock
+\showISBNx{978-3-319-75771-1}
+\showDOI{%
+\url{http://dx.doi.org/10.1007/978-3-319-75771-1_32}}
+
+
+\bibitem[\protect\citeauthoryear{Khamespanah, Sirjani, Kaviani, Khosravi, and
+  Izadi}{Khamespanah et~al\mbox{.}}{2015}]%
+        {KHAMESPANAH2015184}
+\bibfield{author}{\bibinfo{person}{Ehsan Khamespanah}, \bibinfo{person}{Marjan
+  Sirjani}, \bibinfo{person}{Zeynab~Sabahi Kaviani}, \bibinfo{person}{Ramtin
+  Khosravi}, {and} \bibinfo{person}{Mohammad-Javad Izadi}.}
+  \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{Timed Rebeca schedulability and deadlock freedom
+  analysis using bounded floating time transition system}.
+\newblock \bibinfo{journal}{{\em Science of Computer Programming\/}}
+  \bibinfo{volume}{98} (\bibinfo{year}{2015}), \bibinfo{pages}{184 -- 204}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Lee, Liu, Muliadi, and Zheng}{Lee
+  et~al\mbox{.}}{2014}]%
+        {LeeEtAl:7:DiscreteEvents}
+\bibfield{author}{\bibinfo{person}{Edward~A. Lee}, \bibinfo{person}{Jie Liu},
+  \bibinfo{person}{Lukito Muliadi}, {and} \bibinfo{person}{Haiyang Zheng}.}
+  \bibinfo{year}{2014}\natexlab{}.
+\newblock \showarticletitle{Discrete-Event Models}.
+\newblock In \bibinfo{booktitle}{{\em System Design, Modeling, and Simulation
+  using {Ptolemy II}}}, \bibfield{editor}{\bibinfo{person}{Claudius
+  Ptolemaeus}} (Ed.). \bibinfo{publisher}{Ptolemy.org}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Lee and Matsikoudis}{Lee and
+  Matsikoudis}{2009}]%
+        {LeeMatsikoudis:09:Dataflow}
+\bibfield{author}{\bibinfo{person}{Edward~A. Lee} {and}
+  \bibinfo{person}{Eleftherios Matsikoudis}.} \bibinfo{year}{2009}\natexlab{}.
+\newblock \bibinfo{booktitle}{{\em The Semantics of Dataflow with Firing}}.
+\newblock \bibinfo{publisher}{Cambridge University Press}.
+\newblock
+\showURL{%
+\url{http://ptolemy.eecs.berkeley.edu/publications/papers/08/DataflowWithFiring/}}
+\newblock
+\shownote{Draft version available at
+  http://ptolemy.eecs.berkeley.edu/publications/papers/08/DataflowWithFiring/.}
+
+
+\bibitem[\protect\citeauthoryear{Lee and Zheng}{Lee and Zheng}{2007}]%
+        {LeeZheng:07:SRDECT}
+\bibfield{author}{\bibinfo{person}{Edward~A. Lee} {and}
+  \bibinfo{person}{Haiyang Zheng}.} \bibinfo{year}{2007}\natexlab{}.
+\newblock \showarticletitle{Leveraging Synchronous Language Principles for
+  Heterogeneous Modeling and Design of Embedded Systems}. In
+  \bibinfo{booktitle}{{\em EMSOFT}}. \bibinfo{publisher}{ACM},
+  \bibinfo{pages}{114 -- 123}.
+\newblock
+\showDOI{%
+\url{http://dx.doi.org/10.1145/1289927.1289949}}
+
+
+\bibitem[\protect\citeauthoryear{Lemerre, Ohayon, Chabrol, Jan, and
+  Jacques}{Lemerre et~al\mbox{.}}{2011}]%
+        {lemerre2011method}
+\bibfield{author}{\bibinfo{person}{Matthieu Lemerre}, \bibinfo{person}{Emmanuel
+  Ohayon}, \bibinfo{person}{Damien Chabrol}, \bibinfo{person}{Mathieu Jan},
+  {and} \bibinfo{person}{Marie-Benedicte Jacques}.}
+  \bibinfo{year}{2011}\natexlab{}.
+\newblock \showarticletitle{Method and tools for mixed-criticality real-time
+  applications within PharOS}. In \bibinfo{booktitle}{{\em 2011 14th IEEE
+  International Symposium on Object/Component/Service-Oriented Real-Time
+  Distributed Computing Workshops}}. IEEE, \bibinfo{pages}{41--48}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Moritz, Nishihara, Wang, Tumanov, Liaw, Liang,
+  Paul, Jordan, and Stoica}{Moritz et~al\mbox{.}}{2017}]%
+        {DBLP:journals/corr/abs-1712-05889}
+\bibfield{author}{\bibinfo{person}{Philipp Moritz}, \bibinfo{person}{Robert
+  Nishihara}, \bibinfo{person}{Stephanie Wang}, \bibinfo{person}{Alexey
+  Tumanov}, \bibinfo{person}{Richard Liaw}, \bibinfo{person}{Eric Liang},
+  \bibinfo{person}{William Paul}, \bibinfo{person}{Michael~I. Jordan}, {and}
+  \bibinfo{person}{Ion Stoica}.} \bibinfo{year}{2017}\natexlab{}.
+\newblock \showarticletitle{Ray: {A} Distributed Framework for Emerging {AI}
+  Applications}.
+\newblock \bibinfo{journal}{{\em CoRR\/}}  \bibinfo{volume}{abs/1712.05889}
+  (\bibinfo{year}{2017}).
+\newblock
+\showeprint[arxiv]{1712.05889}
+\showURL{%
+\url{http://arxiv.org/abs/1712.05889}}
+
+
+\bibitem[\protect\citeauthoryear{{Natarajan} and {Broman}}{{Natarajan} and
+  {Broman}}{2018}]%
+        {Broman_timedC}
+\bibfield{author}{\bibinfo{person}{S. {Natarajan}} {and} \bibinfo{person}{D.
+  {Broman}}.} \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{Timed C: An Extension to the C Programming Language
+  for Real-Time Systems}. In \bibinfo{booktitle}{{\em 2018 IEEE Real-Time and
+  Embedded Technology and Applications Symposium (RTAS)}}.
+  \bibinfo{pages}{227--239}.
+\newblock
+\showDOI{%
+\url{http://dx.doi.org/10.1109/RTAS.2018.00031}}
+
+
+\bibitem[\protect\citeauthoryear{{\"O}lveczky and Meseguer}{{\"O}lveczky and
+  Meseguer}{2008}]%
+        {olveczky:2008:real}
+\bibfield{author}{\bibinfo{person}{Peter~Csaba {\"O}lveczky} {and}
+  \bibinfo{person}{Jos{\'e} Meseguer}.} \bibinfo{year}{2008}\natexlab{}.
+\newblock \showarticletitle{The real-time Maude tool}. In
+  \bibinfo{booktitle}{{\em International Conference on Tools and Algorithms for
+  the Construction and Analysis of Systems}}. Springer,
+  \bibinfo{pages}{332--336}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Ptolemaeus}{Ptolemaeus}{2014}]%
+        {Ptolemy:14:Book}
+\bibfield{author}{\bibinfo{person}{Claudius Ptolemaeus}.}
+  \bibinfo{year}{2014}\natexlab{}.
+\newblock \bibinfo{booktitle}{{\em System Design, Modeling, and Simulation
+  using {Ptolemy II}}}.
+\newblock \bibinfo{publisher}{Ptolemy.org}, \bibinfo{address}{Berkeley, CA}.
+\newblock
+\showISBNx{978-1-304-42106-7}
+\showURL{%
+\url{http://ptolemy.org/books/Systems}}
+
+
+\bibitem[\protect\citeauthoryear{Ren, Yu, Chen, Marth, Poirot, and Shen}{Ren
+  et~al\mbox{.}}{2006}]%
+        {ARC}
+\bibfield{author}{\bibinfo{person}{Shangping Ren}, \bibinfo{person}{Yue Yu},
+  \bibinfo{person}{Nianen Chen}, \bibinfo{person}{Kevin Marth},
+  \bibinfo{person}{Pierre-Etienne Poirot}, {and} \bibinfo{person}{Limin Shen}.}
+  \bibinfo{year}{2006}\natexlab{}.
+\newblock \showarticletitle{Actors, Roles and Coordinators --- A Coordination
+  Model for Open Distributed and Embedded Systems}. In \bibinfo{booktitle}{{\em
+  Coordination Models and Languages}}, \bibfield{editor}{\bibinfo{person}{Paolo
+  Ciancarini} {and} \bibinfo{person}{Herbert Wiklicky}} (Eds.).
+  \bibinfo{publisher}{Springer Berlin Heidelberg}, \bibinfo{address}{Berlin,
+  Heidelberg}, \bibinfo{pages}{247--265}.
+\newblock
+\showISBNx{978-3-540-34695-1}
+
+
+\bibitem[\protect\citeauthoryear{Rosenband and Arvind}{Rosenband and
+  Arvind}{2004}]%
+        {Rosenband:2004:MSG:996566.996583}
+\bibfield{author}{\bibinfo{person}{Daniel~L. Rosenband} {and}
+  \bibinfo{person}{Arvind}.} \bibinfo{year}{2004}\natexlab{}.
+\newblock \showarticletitle{Modular Scheduling of Guarded Atomic Actions}. In
+  \bibinfo{booktitle}{{\em Proceedings of the 41st Annual Design Automation
+  Conference}} {\em (\bibinfo{series}{DAC '04})}. \bibinfo{publisher}{ACM},
+  \bibinfo{address}{New York, NY, USA}, \bibinfo{pages}{55--60}.
+\newblock
+\showISBNx{1-58113-828-8}
+\showDOI{%
+\url{http://dx.doi.org/10.1145/996566.996583}}
+
+
+\bibitem[\protect\citeauthoryear{Sirjani and Jaghoori}{Sirjani and
+  Jaghoori}{2011}]%
+        {DBLP:conf/birthday/SirjaniJ11}
+\bibfield{author}{\bibinfo{person}{Marjan Sirjani} {and}
+  \bibinfo{person}{Mohammad~Mahdi Jaghoori}.} \bibinfo{year}{2011}\natexlab{}.
+\newblock \showarticletitle{Ten Years of Analyzing Actors: Rebeca Experience}.
+  In \bibinfo{booktitle}{{\em Formal Modeling: Actors, Open Systems, Biological
+  Systems - Essays Dedicated to Carolyn Talcott on the Occasion of Her 70th
+  Birthday}}. \bibinfo{pages}{20--56}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Sirjani, Movaghar, Shali, and de~Boer}{Sirjani
+  et~al\mbox{.}}{2004}]%
+        {DBLP:journals/fuin/SirjaniMSB04}
+\bibfield{author}{\bibinfo{person}{Marjan Sirjani}, \bibinfo{person}{Ali
+  Movaghar}, \bibinfo{person}{Amin Shali}, {and} \bibinfo{person}{Frank~S. de
+  Boer}.} \bibinfo{year}{2004}\natexlab{}.
+\newblock \showarticletitle{Modeling and Verification of Reactive Systems using
+  Rebeca}.
+\newblock \bibinfo{journal}{{\em Fundam. Inform.\/}} \bibinfo{volume}{63},
+  \bibinfo{number}{4} (\bibinfo{year}{2004}), \bibinfo{pages}{385--410}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Sriram and Bhattacharyya}{Sriram and
+  Bhattacharyya}{2000}]%
+        {Sriram:00:Scheduling}
+\bibfield{author}{\bibinfo{person}{S. Sriram} {and} \bibinfo{person}{S.~S.
+  Bhattacharyya}.} \bibinfo{year}{2000}\natexlab{}.
+\newblock \bibinfo{booktitle}{{\em Embedded Multiprocessors: Scheduling and
+  Synchronization}}.
+\newblock \bibinfo{publisher}{Marcel Dekker, Inc. (now Taylor and Francis)}.
+\newblock
+\newblock
+\shownote{This book presents a unified and comprehensive theory for analysis
+  and implementation of multiprocessor digital signal processing (DSP) systems.
+  The novelty and utility of this theory center around its careful integration
+  of scheduling, interprocessor communication, and synchronization. This
+  integration is enabled by a new graph-theoretic framework called the
+  "synchronization graph" for analyzing and optimizing multiprocessor
+  configurations for DSP applications.}
+
+
+\bibitem[\protect\citeauthoryear{Tripakis, Stergiou, Shaver, and Lee}{Tripakis
+  et~al\mbox{.}}{2012}]%
+        {TripakisEtAl:12:AbstractSemantics}
+\bibfield{author}{\bibinfo{person}{Stavros Tripakis}, \bibinfo{person}{Christos
+  Stergiou}, \bibinfo{person}{Chris Shaver}, {and} \bibinfo{person}{Edward~A.
+  Lee}.} \bibinfo{year}{2012}\natexlab{}.
+\newblock \showarticletitle{A Modular Formal Semantics for Ptolemy}.
+\newblock \bibinfo{journal}{{\em Mathematical Structures in Computer Science
+  Journal\/}}  \bibinfo{volume}{to appear} (\bibinfo{year}{2012}).
+\newblock
+\showURL{%
+\url{http://chess.eecs.berkeley.edu/pubs/877.html}}
+
+
+\bibitem[\protect\citeauthoryear{Wiik, Ersfolk, and Wald{\'e}n}{Wiik
+  et~al\mbox{.}}{2018}]%
+        {wiik2018contract}
+\bibfield{author}{\bibinfo{person}{Jonatan Wiik}, \bibinfo{person}{Johan
+  Ersfolk}, {and} \bibinfo{person}{Marina Wald{\'e}n}.}
+  \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{A Contract-Based Approach to Scheduling and
+  Verification of Dynamic Dataflow Networks}. In \bibinfo{booktitle}{{\em 2018
+  16th ACM/IEEE International Conference on Formal Methods and Models for
+  System Design (MEMOCODE)}}. IEEE, \bibinfo{pages}{1--10}.
+\newblock
+
+
+\end{thebibliography}
