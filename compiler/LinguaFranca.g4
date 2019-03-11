@@ -7,7 +7,7 @@ imp : 'import' path ';' ;
 actor : head '{' body '}' ;
 composite : compositeHead '{' compositeBody '}' ;
 head : 'actor' ID params? ;
-compositeHead : 'composite' ID '(' param* ')' ;
+compositeHead : 'composite' ID params? ;
 
 params:
     '(' param (',' param)* ')';
