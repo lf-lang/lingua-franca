@@ -90,7 +90,7 @@ Params:
 
 // Single parameter.
 Param:
-    name=ID (':' type=Type)? ('(' value=Value ')')?;
+    'const'? name=ID (':' type=Type)? ('(' value=Value ')')?;
 
 // Periodicity spec for a trigger.
 // E.g. (1000) or (1000, PERIODIC) or (1000, ONCE)

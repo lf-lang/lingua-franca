@@ -1533,10 +1533,16 @@ ruleParam returns [EObject current=null]
 }:
 	(
 		(
+			otherlv_0='const'
+			{
+				newLeafNode(otherlv_0, grammarAccess.getParamAccess().getConstKeyword_0());
+			}
+		)?
+		(
 			(
-				lv_name_0_0=RULE_ID
+				lv_name_1_0=RULE_ID
 				{
-					newLeafNode(lv_name_0_0, grammarAccess.getParamAccess().getNameIDTerminalRuleCall_0_0());
+					newLeafNode(lv_name_1_0, grammarAccess.getParamAccess().getNameIDTerminalRuleCall_1_0());
 				}
 				{
 					if ($current==null) {
@@ -1545,22 +1551,22 @@ ruleParam returns [EObject current=null]
 					setWithLastConsumed(
 						$current,
 						"name",
-						lv_name_0_0,
+						lv_name_1_0,
 						"org.eclipse.xtext.common.Terminals.ID");
 				}
 			)
 		)
 		(
-			otherlv_1=':'
+			otherlv_2=':'
 			{
-				newLeafNode(otherlv_1, grammarAccess.getParamAccess().getColonKeyword_1_0());
+				newLeafNode(otherlv_2, grammarAccess.getParamAccess().getColonKeyword_2_0());
 			}
 			(
 				(
 					{
-						newCompositeNode(grammarAccess.getParamAccess().getTypeTypeParserRuleCall_1_1_0());
+						newCompositeNode(grammarAccess.getParamAccess().getTypeTypeParserRuleCall_2_1_0());
 					}
-					lv_type_2_0=ruleType
+					lv_type_3_0=ruleType
 					{
 						if ($current==null) {
 							$current = createModelElementForParent(grammarAccess.getParamRule());
@@ -1568,7 +1574,7 @@ ruleParam returns [EObject current=null]
 						set(
 							$current,
 							"type",
-							lv_type_2_0,
+							lv_type_3_0,
 							"org.icyphy.LinguaFranca.Type");
 						afterParserOrEnumRuleCall();
 					}
@@ -1576,16 +1582,16 @@ ruleParam returns [EObject current=null]
 			)
 		)?
 		(
-			otherlv_3='('
+			otherlv_4='('
 			{
-				newLeafNode(otherlv_3, grammarAccess.getParamAccess().getLeftParenthesisKeyword_2_0());
+				newLeafNode(otherlv_4, grammarAccess.getParamAccess().getLeftParenthesisKeyword_3_0());
 			}
 			(
 				(
 					{
-						newCompositeNode(grammarAccess.getParamAccess().getValueValueParserRuleCall_2_1_0());
+						newCompositeNode(grammarAccess.getParamAccess().getValueValueParserRuleCall_3_1_0());
 					}
-					lv_value_4_0=ruleValue
+					lv_value_5_0=ruleValue
 					{
 						if ($current==null) {
 							$current = createModelElementForParent(grammarAccess.getParamRule());
@@ -1593,15 +1599,15 @@ ruleParam returns [EObject current=null]
 						set(
 							$current,
 							"value",
-							lv_value_4_0,
+							lv_value_5_0,
 							"org.icyphy.LinguaFranca.Value");
 						afterParserOrEnumRuleCall();
 					}
 				)
 			)
-			otherlv_5=')'
+			otherlv_6=')'
 			{
-				newLeafNode(otherlv_5, grammarAccess.getParamAccess().getRightParenthesisKeyword_2_2());
+				newLeafNode(otherlv_6, grammarAccess.getParamAccess().getRightParenthesisKeyword_3_2());
 			}
 		)?
 	)
