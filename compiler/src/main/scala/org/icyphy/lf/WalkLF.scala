@@ -18,7 +18,7 @@ class WalkLF extends LinguaFrancaBaseListener {
   override def enterAssignment(ctx: LinguaFrancaParser.AssignmentContext): Unit = {
     if (currentInstance != null) {
         val parameterName = ctx.ID().getText
-        var parameterValue = ctx.`value`.getText
+        var parameterValue = ctx.lfValue.getText
         // FIXME: The following should be handled by the parser somehow!
         if (parameterValue.startsWith("{=")) {
             parameterValue = parameterValue.substring(2, parameterValue.length - 2);
@@ -50,7 +50,7 @@ class WalkLF extends LinguaFrancaBaseListener {
   
   // import statements are assumed to specify where to find accessors to be
   // instantiated in a composite.
-  override def enterImp(ctx: LinguaFrancaParser.ImpContext): Unit = {
+  override def enterLfImport(ctx: LinguaFrancaParser.LfImportContext): Unit = {
     val path = ctx.path().getText
     val pieces = path.split('.')
     val root = pieces.last
@@ -62,28 +62,27 @@ class WalkLF extends LinguaFrancaBaseListener {
   override def enterInstance(ctx: LinguaFrancaParser.InstanceContext): Unit = {
     // FIXME: Generate a friendly error if composite is null (actor is not a Composite).
     val instanceName = ctx.ID.getText
-    currentInstance = Instance(instanceName, ctx.`actorClass`.getText)
+    currentInstance = Instance(instanceName, ctx.lfActorClass.getText)
     composite.instances += (instanceName -> currentInstance)
   }
 
-  override def enterParam(ctx: LinguaFrancaParser.ParamContext): Unit = {
-    current.parameter += (ctx.ID.getText -> Parameter(ctx.ID.getText, ctx.`type`.getText, ctx.`value`.getText))
+  override def enterParameter(ctx: LinguaFrancaParser.ParameterContext): Unit = {
+    current.parameter += (ctx.ID.getText -> Parameter(ctx.ID.getText, ctx.lfType.getText, ctx.lfValue.getText))
   }
 
-  override def enterOutp(ctx: LinguaFrancaParser.OutpContext): Unit = {
-    // TODO: mybe not use the word `type` and `def` in the grammar
-    current.outPorts += (ctx.ID.getText -> Port(ctx.ID.getText, ctx.`type`.getText))
+  override def enterOutput(ctx: LinguaFrancaParser.OutputContext): Unit = {
+    current.outPorts += (ctx.ID.getText -> Port(ctx.ID.getText, ctx.lfType.getText))
   }
 
-  override def enterPre(ctx: LinguaFrancaParser.PreContext): Unit = {
+  override def enterPreamble(ctx: LinguaFrancaParser.PreambleContext): Unit = {
     codeState = CodeState.Pre
   }
 
-  override def enterInit(ctx: LinguaFrancaParser.InitContext): Unit = {
+  override def enterInitialize(ctx: LinguaFrancaParser.InitializeContext): Unit = {
     codeState = CodeState.Init
   }
 
-  override def enterReact(ctx: LinguaFrancaParser.ReactContext): Unit = {
+  override def enterReaction(ctx: LinguaFrancaParser.ReactionContext): Unit = {
     codeState = CodeState.React
     val t = current.triggers(ctx.ID.getText)
     // sets is really a list
@@ -104,8 +103,8 @@ class WalkLF extends LinguaFrancaBaseListener {
     }
   }
 
-  override def enterTrig(ctx: LinguaFrancaParser.TrigContext): Unit = {
-    val t = Trigger(ctx.ID.getText, ctx.trigparam.ID.getText, ctx.trigtype.getText)
+  override def enterTrigger(ctx: LinguaFrancaParser.TriggerContext): Unit = {
+    val t = Trigger(ctx.ID.getText, ctx.triggerParameter.ID.getText, ctx.triggerType.getText)
     current.triggers += (ctx.ID.getText -> t)
   }
 
