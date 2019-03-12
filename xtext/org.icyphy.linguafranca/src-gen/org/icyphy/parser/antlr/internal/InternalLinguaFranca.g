@@ -1149,14 +1149,19 @@ ruleInstance returns [EObject current=null]
 		}
 		(
 			(
+				lv_actorClass_3_0=RULE_ID
+				{
+					newLeafNode(lv_actorClass_3_0, grammarAccess.getInstanceAccess().getActorClassIDTerminalRuleCall_3_0());
+				}
 				{
 					if ($current==null) {
 						$current = createModelElement(grammarAccess.getInstanceRule());
 					}
-				}
-				otherlv_3=RULE_ID
-				{
-					newLeafNode(otherlv_3, grammarAccess.getInstanceAccess().getActorClassActorCrossReference_3_0());
+					setWithLastConsumed(
+						$current,
+						"actorClass",
+						lv_actorClass_3_0,
+						"org.eclipse.xtext.common.Terminals.ID");
 				}
 			)
 		)
