@@ -263,7 +263,7 @@ The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in th
 %A well-known programming paradigm used in this context are Hewitt~\cite{Hewitt:77:Actors} actors.
 Since then,
 %their introduction in the 70s,
-the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
+the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, \armin{I would give up \cite{haller2009scala} in favor of \cite{Hunt2018}} and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
 Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects.
 Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
 Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
@@ -424,6 +424,9 @@ As signified by the {\tt target} keyword, this Brake actor incorporates C code. 
 %The engine that drives the execution of LF actors (see Figure~\ref{fig:lf-engine}) enforces the following principles:
 We summarize our model in terms of the following principles:
 
+
+
+
 \begin{enumerate}
 \item Messages exchanged between actors are timestamped and denote a discrete event.
 \item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
@@ -456,6 +459,10 @@ a reaction).}\marten{If we implement Delay using an actor that self-schedules a 
 
 \marjan{Maybe a classification of above principles makes the presentation nicer, just maybe some titles (and maybe some shuffling), like trying to go top-down, first talking about Actors, then body of reactions, then how reactions are triggered and ... and finally composition of actors ...}
 \marjan{You say: We have input message or trigger; a reaction must also declare inputs that it does not react to but that it reads; now, if we have an input message at some model time but no triggers, nothing will happen until a trigger is there, right?}\marten{Right. Nothing will happen with that particular input, not even at a later time.}
+\armin{How about we split these principles in groups like this: Actors (1 2 11 14 15), Reactions (3 4 5 6 7), Time
+(8 9 10 12 13 16). 
+}
+
 
 Together, these rules ensure that the execution of a composition of actors is deterministic
 in the sense that given any set of time-stamped inputs from outside the composition, the composition has exactly one behavior.
