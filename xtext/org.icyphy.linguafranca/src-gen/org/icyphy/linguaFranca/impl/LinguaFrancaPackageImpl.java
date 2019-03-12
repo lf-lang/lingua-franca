@@ -778,9 +778,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EReference getInstance_ActorClass()
+  public EAttribute getInstance_ActorClass()
   {
-    return (EReference)instanceEClass.getEStructuralFeatures().get(1);
+    return (EAttribute)instanceEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -1126,7 +1126,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
 
     instanceEClass = createEClass(INSTANCE);
     createEAttribute(instanceEClass, INSTANCE__NAME);
-    createEReference(instanceEClass, INSTANCE__ACTOR_CLASS);
+    createEAttribute(instanceEClass, INSTANCE__ACTOR_CLASS);
     createEReference(instanceEClass, INSTANCE__PARAMETERS);
 
     connectionEClass = createEClass(CONNECTION);
@@ -1250,7 +1250,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
 
     initEClass(instanceEClass, Instance.class, "Instance", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getInstance_Name(), ecorePackage.getEString(), "name", null, 0, 1, Instance.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getInstance_ActorClass(), this.getActor(), null, "actorClass", null, 0, 1, Instance.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEAttribute(getInstance_ActorClass(), ecorePackage.getEString(), "actorClass", null, 0, 1, Instance.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getInstance_Parameters(), this.getAssignments(), null, "parameters", null, 0, 1, Instance.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(connectionEClass, Connection.class, "Connection", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);

@@ -279,7 +279,7 @@ public class LinguaFrancaSemanticSequencer extends AbstractDelegatingSemanticSeq
 	 *     Instance returns Instance
 	 *
 	 * Constraint:
-	 *     (name=ID actorClass=[Actor|ID] parameters=Assignments?)
+	 *     (name=ID actorClass=ID parameters=Assignments?)
 	 */
 	protected void sequence_Instance(ISerializationContext context, Instance semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);

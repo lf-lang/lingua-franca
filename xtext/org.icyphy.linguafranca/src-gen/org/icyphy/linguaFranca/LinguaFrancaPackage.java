@@ -601,7 +601,7 @@ public interface LinguaFrancaPackage extends EPackage
   int INSTANCE__NAME = 0;
 
   /**
-   * The feature id for the '<em><b>Actor Class</b></em>' reference.
+   * The feature id for the '<em><b>Actor Class</b></em>' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
@@ -1423,15 +1423,15 @@ public interface LinguaFrancaPackage extends EPackage
   EAttribute getInstance_Name();
 
   /**
-   * Returns the meta object for the reference '{@link org.icyphy.linguaFranca.Instance#getActorClass <em>Actor Class</em>}'.
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Instance#getActorClass <em>Actor Class</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the reference '<em>Actor Class</em>'.
+   * @return the meta object for the attribute '<em>Actor Class</em>'.
    * @see org.icyphy.linguaFranca.Instance#getActorClass()
    * @see #getInstance()
    * @generated
    */
-  EReference getInstance_ActorClass();
+  EAttribute getInstance_ActorClass();
 
   /**
    * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Instance#getParameters <em>Parameters</em>}'.
@@ -2110,12 +2110,12 @@ public interface LinguaFrancaPackage extends EPackage
     EAttribute INSTANCE__NAME = eINSTANCE.getInstance_Name();
 
     /**
-     * The meta object literal for the '<em><b>Actor Class</b></em>' reference feature.
+     * The meta object literal for the '<em><b>Actor Class</b></em>' attribute feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EReference INSTANCE__ACTOR_CLASS = eINSTANCE.getInstance_ActorClass();
+    EAttribute INSTANCE__ACTOR_CLASS = eINSTANCE.getInstance_ActorClass();
 
     /**
      * The meta object literal for the '<em><b>Parameters</b></em>' containment reference feature.

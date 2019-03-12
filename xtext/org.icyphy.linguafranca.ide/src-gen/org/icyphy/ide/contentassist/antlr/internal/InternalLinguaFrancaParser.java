@@ -14504,29 +14504,21 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Instance__ActorClassAssignment_3"
-    // InternalLinguaFranca.g:4736:1: rule__Instance__ActorClassAssignment_3 : ( ( RULE_ID ) ) ;
+    // InternalLinguaFranca.g:4736:1: rule__Instance__ActorClassAssignment_3 : ( RULE_ID ) ;
     public final void rule__Instance__ActorClassAssignment_3() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4740:1: ( ( ( RULE_ID ) ) )
-            // InternalLinguaFranca.g:4741:2: ( ( RULE_ID ) )
+            // InternalLinguaFranca.g:4740:1: ( ( RULE_ID ) )
+            // InternalLinguaFranca.g:4741:2: ( RULE_ID )
             {
-            // InternalLinguaFranca.g:4741:2: ( ( RULE_ID ) )
-            // InternalLinguaFranca.g:4742:3: ( RULE_ID )
+            // InternalLinguaFranca.g:4741:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4742:3: RULE_ID
             {
-             before(grammarAccess.getInstanceAccess().getActorClassActorCrossReference_3_0()); 
-            // InternalLinguaFranca.g:4743:3: ( RULE_ID )
-            // InternalLinguaFranca.g:4744:4: RULE_ID
-            {
-             before(grammarAccess.getInstanceAccess().getActorClassActorIDTerminalRuleCall_3_0_1()); 
+             before(grammarAccess.getInstanceAccess().getActorClassIDTerminalRuleCall_3_0()); 
             match(input,RULE_ID,FOLLOW_2); 
-             after(grammarAccess.getInstanceAccess().getActorClassActorIDTerminalRuleCall_3_0_1()); 
-
-            }
-
-             after(grammarAccess.getInstanceAccess().getActorClassActorCrossReference_3_0()); 
+             after(grammarAccess.getInstanceAccess().getActorClassIDTerminalRuleCall_3_0()); 
 
             }
 
@@ -14549,17 +14541,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Instance__ParametersAssignment_4_1"
-    // InternalLinguaFranca.g:4755:1: rule__Instance__ParametersAssignment_4_1 : ( ruleAssignments ) ;
+    // InternalLinguaFranca.g:4751:1: rule__Instance__ParametersAssignment_4_1 : ( ruleAssignments ) ;
     public final void rule__Instance__ParametersAssignment_4_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4759:1: ( ( ruleAssignments ) )
-            // InternalLinguaFranca.g:4760:2: ( ruleAssignments )
+            // InternalLinguaFranca.g:4755:1: ( ( ruleAssignments ) )
+            // InternalLinguaFranca.g:4756:2: ( ruleAssignments )
             {
-            // InternalLinguaFranca.g:4760:2: ( ruleAssignments )
-            // InternalLinguaFranca.g:4761:3: ruleAssignments
+            // InternalLinguaFranca.g:4756:2: ( ruleAssignments )
+            // InternalLinguaFranca.g:4757:3: ruleAssignments
             {
              before(grammarAccess.getInstanceAccess().getParametersAssignmentsParserRuleCall_4_1_0()); 
             pushFollow(FOLLOW_2);
@@ -14590,17 +14582,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Connection__LeftPortAssignment_0"
-    // InternalLinguaFranca.g:4770:1: rule__Connection__LeftPortAssignment_0 : ( rulePort ) ;
+    // InternalLinguaFranca.g:4766:1: rule__Connection__LeftPortAssignment_0 : ( rulePort ) ;
     public final void rule__Connection__LeftPortAssignment_0() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4774:1: ( ( rulePort ) )
-            // InternalLinguaFranca.g:4775:2: ( rulePort )
+            // InternalLinguaFranca.g:4770:1: ( ( rulePort ) )
+            // InternalLinguaFranca.g:4771:2: ( rulePort )
             {
-            // InternalLinguaFranca.g:4775:2: ( rulePort )
-            // InternalLinguaFranca.g:4776:3: rulePort
+            // InternalLinguaFranca.g:4771:2: ( rulePort )
+            // InternalLinguaFranca.g:4772:3: rulePort
             {
              before(grammarAccess.getConnectionAccess().getLeftPortPortParserRuleCall_0_0()); 
             pushFollow(FOLLOW_2);
@@ -14631,17 +14623,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Connection__RightPortAssignment_2"
-    // InternalLinguaFranca.g:4785:1: rule__Connection__RightPortAssignment_2 : ( rulePort ) ;
+    // InternalLinguaFranca.g:4781:1: rule__Connection__RightPortAssignment_2 : ( rulePort ) ;
     public final void rule__Connection__RightPortAssignment_2() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4789:1: ( ( rulePort ) )
-            // InternalLinguaFranca.g:4790:2: ( rulePort )
+            // InternalLinguaFranca.g:4785:1: ( ( rulePort ) )
+            // InternalLinguaFranca.g:4786:2: ( rulePort )
             {
-            // InternalLinguaFranca.g:4790:2: ( rulePort )
-            // InternalLinguaFranca.g:4791:3: rulePort
+            // InternalLinguaFranca.g:4786:2: ( rulePort )
+            // InternalLinguaFranca.g:4787:3: rulePort
             {
              before(grammarAccess.getConnectionAccess().getRightPortPortParserRuleCall_2_0()); 
             pushFollow(FOLLOW_2);
@@ -14672,17 +14664,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Assignments__AssignmentsAssignment_0"
-    // InternalLinguaFranca.g:4800:1: rule__Assignments__AssignmentsAssignment_0 : ( ruleAssignment ) ;
+    // InternalLinguaFranca.g:4796:1: rule__Assignments__AssignmentsAssignment_0 : ( ruleAssignment ) ;
     public final void rule__Assignments__AssignmentsAssignment_0() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4804:1: ( ( ruleAssignment ) )
-            // InternalLinguaFranca.g:4805:2: ( ruleAssignment )
+            // InternalLinguaFranca.g:4800:1: ( ( ruleAssignment ) )
+            // InternalLinguaFranca.g:4801:2: ( ruleAssignment )
             {
-            // InternalLinguaFranca.g:4805:2: ( ruleAssignment )
-            // InternalLinguaFranca.g:4806:3: ruleAssignment
+            // InternalLinguaFranca.g:4801:2: ( ruleAssignment )
+            // InternalLinguaFranca.g:4802:3: ruleAssignment
             {
              before(grammarAccess.getAssignmentsAccess().getAssignmentsAssignmentParserRuleCall_0_0()); 
             pushFollow(FOLLOW_2);
@@ -14713,17 +14705,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Assignments__AssignmentsAssignment_1_1"
-    // InternalLinguaFranca.g:4815:1: rule__Assignments__AssignmentsAssignment_1_1 : ( ruleAssignment ) ;
+    // InternalLinguaFranca.g:4811:1: rule__Assignments__AssignmentsAssignment_1_1 : ( ruleAssignment ) ;
     public final void rule__Assignments__AssignmentsAssignment_1_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4819:1: ( ( ruleAssignment ) )
-            // InternalLinguaFranca.g:4820:2: ( ruleAssignment )
+            // InternalLinguaFranca.g:4815:1: ( ( ruleAssignment ) )
+            // InternalLinguaFranca.g:4816:2: ( ruleAssignment )
             {
-            // InternalLinguaFranca.g:4820:2: ( ruleAssignment )
-            // InternalLinguaFranca.g:4821:3: ruleAssignment
+            // InternalLinguaFranca.g:4816:2: ( ruleAssignment )
+            // InternalLinguaFranca.g:4817:3: ruleAssignment
             {
              before(grammarAccess.getAssignmentsAccess().getAssignmentsAssignmentParserRuleCall_1_1_0()); 
             pushFollow(FOLLOW_2);
@@ -14754,17 +14746,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Assignment__NameAssignment_0"
-    // InternalLinguaFranca.g:4830:1: rule__Assignment__NameAssignment_0 : ( RULE_ID ) ;
+    // InternalLinguaFranca.g:4826:1: rule__Assignment__NameAssignment_0 : ( RULE_ID ) ;
     public final void rule__Assignment__NameAssignment_0() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4834:1: ( ( RULE_ID ) )
-            // InternalLinguaFranca.g:4835:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4830:1: ( ( RULE_ID ) )
+            // InternalLinguaFranca.g:4831:2: ( RULE_ID )
             {
-            // InternalLinguaFranca.g:4835:2: ( RULE_ID )
-            // InternalLinguaFranca.g:4836:3: RULE_ID
+            // InternalLinguaFranca.g:4831:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4832:3: RULE_ID
             {
              before(grammarAccess.getAssignmentAccess().getNameIDTerminalRuleCall_0_0()); 
             match(input,RULE_ID,FOLLOW_2); 
@@ -14791,17 +14783,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Assignment__ValueAssignment_2"
-    // InternalLinguaFranca.g:4845:1: rule__Assignment__ValueAssignment_2 : ( ruleValue ) ;
+    // InternalLinguaFranca.g:4841:1: rule__Assignment__ValueAssignment_2 : ( ruleValue ) ;
     public final void rule__Assignment__ValueAssignment_2() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4849:1: ( ( ruleValue ) )
-            // InternalLinguaFranca.g:4850:2: ( ruleValue )
+            // InternalLinguaFranca.g:4845:1: ( ( ruleValue ) )
+            // InternalLinguaFranca.g:4846:2: ( ruleValue )
             {
-            // InternalLinguaFranca.g:4850:2: ( ruleValue )
-            // InternalLinguaFranca.g:4851:3: ruleValue
+            // InternalLinguaFranca.g:4846:2: ( ruleValue )
+            // InternalLinguaFranca.g:4847:3: ruleValue
             {
              before(grammarAccess.getAssignmentAccess().getValueValueParserRuleCall_2_0()); 
             pushFollow(FOLLOW_2);
@@ -14832,17 +14824,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Gets__GetsAssignment_0"
-    // InternalLinguaFranca.g:4860:1: rule__Gets__GetsAssignment_0 : ( RULE_ID ) ;
+    // InternalLinguaFranca.g:4856:1: rule__Gets__GetsAssignment_0 : ( RULE_ID ) ;
     public final void rule__Gets__GetsAssignment_0() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4864:1: ( ( RULE_ID ) )
-            // InternalLinguaFranca.g:4865:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4860:1: ( ( RULE_ID ) )
+            // InternalLinguaFranca.g:4861:2: ( RULE_ID )
             {
-            // InternalLinguaFranca.g:4865:2: ( RULE_ID )
-            // InternalLinguaFranca.g:4866:3: RULE_ID
+            // InternalLinguaFranca.g:4861:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4862:3: RULE_ID
             {
              before(grammarAccess.getGetsAccess().getGetsIDTerminalRuleCall_0_0()); 
             match(input,RULE_ID,FOLLOW_2); 
@@ -14869,17 +14861,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Gets__GetsAssignment_1_1"
-    // InternalLinguaFranca.g:4875:1: rule__Gets__GetsAssignment_1_1 : ( RULE_ID ) ;
+    // InternalLinguaFranca.g:4871:1: rule__Gets__GetsAssignment_1_1 : ( RULE_ID ) ;
     public final void rule__Gets__GetsAssignment_1_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4879:1: ( ( RULE_ID ) )
-            // InternalLinguaFranca.g:4880:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4875:1: ( ( RULE_ID ) )
+            // InternalLinguaFranca.g:4876:2: ( RULE_ID )
             {
-            // InternalLinguaFranca.g:4880:2: ( RULE_ID )
-            // InternalLinguaFranca.g:4881:3: RULE_ID
+            // InternalLinguaFranca.g:4876:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4877:3: RULE_ID
             {
              before(grammarAccess.getGetsAccess().getGetsIDTerminalRuleCall_1_1_0()); 
             match(input,RULE_ID,FOLLOW_2); 
@@ -14906,17 +14898,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Params__ParamsAssignment_1"
-    // InternalLinguaFranca.g:4890:1: rule__Params__ParamsAssignment_1 : ( ruleParam ) ;
+    // InternalLinguaFranca.g:4886:1: rule__Params__ParamsAssignment_1 : ( ruleParam ) ;
     public final void rule__Params__ParamsAssignment_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4894:1: ( ( ruleParam ) )
-            // InternalLinguaFranca.g:4895:2: ( ruleParam )
+            // InternalLinguaFranca.g:4890:1: ( ( ruleParam ) )
+            // InternalLinguaFranca.g:4891:2: ( ruleParam )
             {
-            // InternalLinguaFranca.g:4895:2: ( ruleParam )
-            // InternalLinguaFranca.g:4896:3: ruleParam
+            // InternalLinguaFranca.g:4891:2: ( ruleParam )
+            // InternalLinguaFranca.g:4892:3: ruleParam
             {
              before(grammarAccess.getParamsAccess().getParamsParamParserRuleCall_1_0()); 
             pushFollow(FOLLOW_2);
@@ -14947,17 +14939,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Params__ParamsAssignment_2_1"
-    // InternalLinguaFranca.g:4905:1: rule__Params__ParamsAssignment_2_1 : ( ruleParam ) ;
+    // InternalLinguaFranca.g:4901:1: rule__Params__ParamsAssignment_2_1 : ( ruleParam ) ;
     public final void rule__Params__ParamsAssignment_2_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4909:1: ( ( ruleParam ) )
-            // InternalLinguaFranca.g:4910:2: ( ruleParam )
+            // InternalLinguaFranca.g:4905:1: ( ( ruleParam ) )
+            // InternalLinguaFranca.g:4906:2: ( ruleParam )
             {
-            // InternalLinguaFranca.g:4910:2: ( ruleParam )
-            // InternalLinguaFranca.g:4911:3: ruleParam
+            // InternalLinguaFranca.g:4906:2: ( ruleParam )
+            // InternalLinguaFranca.g:4907:3: ruleParam
             {
              before(grammarAccess.getParamsAccess().getParamsParamParserRuleCall_2_1_0()); 
             pushFollow(FOLLOW_2);
@@ -14988,17 +14980,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Param__NameAssignment_1"
-    // InternalLinguaFranca.g:4920:1: rule__Param__NameAssignment_1 : ( RULE_ID ) ;
+    // InternalLinguaFranca.g:4916:1: rule__Param__NameAssignment_1 : ( RULE_ID ) ;
     public final void rule__Param__NameAssignment_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4924:1: ( ( RULE_ID ) )
-            // InternalLinguaFranca.g:4925:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4920:1: ( ( RULE_ID ) )
+            // InternalLinguaFranca.g:4921:2: ( RULE_ID )
             {
-            // InternalLinguaFranca.g:4925:2: ( RULE_ID )
-            // InternalLinguaFranca.g:4926:3: RULE_ID
+            // InternalLinguaFranca.g:4921:2: ( RULE_ID )
+            // InternalLinguaFranca.g:4922:3: RULE_ID
             {
              before(grammarAccess.getParamAccess().getNameIDTerminalRuleCall_1_0()); 
             match(input,RULE_ID,FOLLOW_2); 
@@ -15025,17 +15017,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Param__TypeAssignment_2_1"
-    // InternalLinguaFranca.g:4935:1: rule__Param__TypeAssignment_2_1 : ( ruleType ) ;
+    // InternalLinguaFranca.g:4931:1: rule__Param__TypeAssignment_2_1 : ( ruleType ) ;
     public final void rule__Param__TypeAssignment_2_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4939:1: ( ( ruleType ) )
-            // InternalLinguaFranca.g:4940:2: ( ruleType )
+            // InternalLinguaFranca.g:4935:1: ( ( ruleType ) )
+            // InternalLinguaFranca.g:4936:2: ( ruleType )
             {
-            // InternalLinguaFranca.g:4940:2: ( ruleType )
-            // InternalLinguaFranca.g:4941:3: ruleType
+            // InternalLinguaFranca.g:4936:2: ( ruleType )
+            // InternalLinguaFranca.g:4937:3: ruleType
             {
              before(grammarAccess.getParamAccess().getTypeTypeParserRuleCall_2_1_0()); 
             pushFollow(FOLLOW_2);
@@ -15066,17 +15058,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Param__ValueAssignment_3_1"
-    // InternalLinguaFranca.g:4950:1: rule__Param__ValueAssignment_3_1 : ( ruleValue ) ;
+    // InternalLinguaFranca.g:4946:1: rule__Param__ValueAssignment_3_1 : ( ruleValue ) ;
     public final void rule__Param__ValueAssignment_3_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4954:1: ( ( ruleValue ) )
-            // InternalLinguaFranca.g:4955:2: ( ruleValue )
+            // InternalLinguaFranca.g:4950:1: ( ( ruleValue ) )
+            // InternalLinguaFranca.g:4951:2: ( ruleValue )
             {
-            // InternalLinguaFranca.g:4955:2: ( ruleValue )
-            // InternalLinguaFranca.g:4956:3: ruleValue
+            // InternalLinguaFranca.g:4951:2: ( ruleValue )
+            // InternalLinguaFranca.g:4952:3: ruleValue
             {
              before(grammarAccess.getParamAccess().getValueValueParserRuleCall_3_1_0()); 
             pushFollow(FOLLOW_2);
@@ -15107,21 +15099,21 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Period__PeriodAssignment_1"
-    // InternalLinguaFranca.g:4965:1: rule__Period__PeriodAssignment_1 : ( ( rule__Period__PeriodAlternatives_1_0 ) ) ;
+    // InternalLinguaFranca.g:4961:1: rule__Period__PeriodAssignment_1 : ( ( rule__Period__PeriodAlternatives_1_0 ) ) ;
     public final void rule__Period__PeriodAssignment_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4969:1: ( ( ( rule__Period__PeriodAlternatives_1_0 ) ) )
-            // InternalLinguaFranca.g:4970:2: ( ( rule__Period__PeriodAlternatives_1_0 ) )
+            // InternalLinguaFranca.g:4965:1: ( ( ( rule__Period__PeriodAlternatives_1_0 ) ) )
+            // InternalLinguaFranca.g:4966:2: ( ( rule__Period__PeriodAlternatives_1_0 ) )
             {
-            // InternalLinguaFranca.g:4970:2: ( ( rule__Period__PeriodAlternatives_1_0 ) )
-            // InternalLinguaFranca.g:4971:3: ( rule__Period__PeriodAlternatives_1_0 )
+            // InternalLinguaFranca.g:4966:2: ( ( rule__Period__PeriodAlternatives_1_0 ) )
+            // InternalLinguaFranca.g:4967:3: ( rule__Period__PeriodAlternatives_1_0 )
             {
              before(grammarAccess.getPeriodAccess().getPeriodAlternatives_1_0()); 
-            // InternalLinguaFranca.g:4972:3: ( rule__Period__PeriodAlternatives_1_0 )
-            // InternalLinguaFranca.g:4972:4: rule__Period__PeriodAlternatives_1_0
+            // InternalLinguaFranca.g:4968:3: ( rule__Period__PeriodAlternatives_1_0 )
+            // InternalLinguaFranca.g:4968:4: rule__Period__PeriodAlternatives_1_0
             {
             pushFollow(FOLLOW_2);
             rule__Period__PeriodAlternatives_1_0();
@@ -15154,21 +15146,21 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Period__PeriodicAssignment_2_1_0"
-    // InternalLinguaFranca.g:4980:1: rule__Period__PeriodicAssignment_2_1_0 : ( ( 'PERIODIC' ) ) ;
+    // InternalLinguaFranca.g:4976:1: rule__Period__PeriodicAssignment_2_1_0 : ( ( 'PERIODIC' ) ) ;
     public final void rule__Period__PeriodicAssignment_2_1_0() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:4984:1: ( ( ( 'PERIODIC' ) ) )
-            // InternalLinguaFranca.g:4985:2: ( ( 'PERIODIC' ) )
+            // InternalLinguaFranca.g:4980:1: ( ( ( 'PERIODIC' ) ) )
+            // InternalLinguaFranca.g:4981:2: ( ( 'PERIODIC' ) )
             {
-            // InternalLinguaFranca.g:4985:2: ( ( 'PERIODIC' ) )
-            // InternalLinguaFranca.g:4986:3: ( 'PERIODIC' )
+            // InternalLinguaFranca.g:4981:2: ( ( 'PERIODIC' ) )
+            // InternalLinguaFranca.g:4982:3: ( 'PERIODIC' )
             {
              before(grammarAccess.getPeriodAccess().getPeriodicPERIODICKeyword_2_1_0_0()); 
-            // InternalLinguaFranca.g:4987:3: ( 'PERIODIC' )
-            // InternalLinguaFranca.g:4988:4: 'PERIODIC'
+            // InternalLinguaFranca.g:4983:3: ( 'PERIODIC' )
+            // InternalLinguaFranca.g:4984:4: 'PERIODIC'
             {
              before(grammarAccess.getPeriodAccess().getPeriodicPERIODICKeyword_2_1_0_0()); 
             match(input,35,FOLLOW_2); 
@@ -15199,21 +15191,21 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Period__OnceAssignment_2_1_1"
-    // InternalLinguaFranca.g:4999:1: rule__Period__OnceAssignment_2_1_1 : ( ( 'ONCE' ) ) ;
+    // InternalLinguaFranca.g:4995:1: rule__Period__OnceAssignment_2_1_1 : ( ( 'ONCE' ) ) ;
     public final void rule__Period__OnceAssignment_2_1_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:5003:1: ( ( ( 'ONCE' ) ) )
-            // InternalLinguaFranca.g:5004:2: ( ( 'ONCE' ) )
+            // InternalLinguaFranca.g:4999:1: ( ( ( 'ONCE' ) ) )
+            // InternalLinguaFranca.g:5000:2: ( ( 'ONCE' ) )
             {
-            // InternalLinguaFranca.g:5004:2: ( ( 'ONCE' ) )
-            // InternalLinguaFranca.g:5005:3: ( 'ONCE' )
+            // InternalLinguaFranca.g:5000:2: ( ( 'ONCE' ) )
+            // InternalLinguaFranca.g:5001:3: ( 'ONCE' )
             {
              before(grammarAccess.getPeriodAccess().getOnceONCEKeyword_2_1_1_0()); 
-            // InternalLinguaFranca.g:5006:3: ( 'ONCE' )
-            // InternalLinguaFranca.g:5007:4: 'ONCE'
+            // InternalLinguaFranca.g:5002:3: ( 'ONCE' )
+            // InternalLinguaFranca.g:5003:4: 'ONCE'
             {
              before(grammarAccess.getPeriodAccess().getOnceONCEKeyword_2_1_1_0()); 
             match(input,36,FOLLOW_2); 
@@ -15244,17 +15236,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Sets__SetsAssignment_1"
-    // InternalLinguaFranca.g:5018:1: rule__Sets__SetsAssignment_1 : ( RULE_ID ) ;
+    // InternalLinguaFranca.g:5014:1: rule__Sets__SetsAssignment_1 : ( RULE_ID ) ;
     public final void rule__Sets__SetsAssignment_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:5022:1: ( ( RULE_ID ) )
-            // InternalLinguaFranca.g:5023:2: ( RULE_ID )
+            // InternalLinguaFranca.g:5018:1: ( ( RULE_ID ) )
+            // InternalLinguaFranca.g:5019:2: ( RULE_ID )
             {
-            // InternalLinguaFranca.g:5023:2: ( RULE_ID )
-            // InternalLinguaFranca.g:5024:3: RULE_ID
+            // InternalLinguaFranca.g:5019:2: ( RULE_ID )
+            // InternalLinguaFranca.g:5020:3: RULE_ID
             {
              before(grammarAccess.getSetsAccess().getSetsIDTerminalRuleCall_1_0()); 
             match(input,RULE_ID,FOLLOW_2); 
@@ -15281,17 +15273,17 @@ public class InternalLinguaFrancaParser extends AbstractInternalContentAssistPar
 
 
     // $ANTLR start "rule__Sets__SetsAssignment_2_1"
-    // InternalLinguaFranca.g:5033:1: rule__Sets__SetsAssignment_2_1 : ( RULE_ID ) ;
+    // InternalLinguaFranca.g:5029:1: rule__Sets__SetsAssignment_2_1 : ( RULE_ID ) ;
     public final void rule__Sets__SetsAssignment_2_1() throws RecognitionException {
 
         		int stackSize = keepStackSize();
         	
         try {
-            // InternalLinguaFranca.g:5037:1: ( ( RULE_ID ) )
-            // InternalLinguaFranca.g:5038:2: ( RULE_ID )
+            // InternalLinguaFranca.g:5033:1: ( ( RULE_ID ) )
+            // InternalLinguaFranca.g:5034:2: ( RULE_ID )
             {
-            // InternalLinguaFranca.g:5038:2: ( RULE_ID )
-            // InternalLinguaFranca.g:5039:3: RULE_ID
+            // InternalLinguaFranca.g:5034:2: ( RULE_ID )
+            // InternalLinguaFranca.g:5035:3: RULE_ID
             {
              before(grammarAccess.getSetsAccess().getSetsIDTerminalRuleCall_2_1_0()); 
             match(input,RULE_ID,FOLLOW_2); 
