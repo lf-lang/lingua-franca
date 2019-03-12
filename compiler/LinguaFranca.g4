@@ -1,34 +1,34 @@
 grammar LinguaFranca;
-sys : target imp* (actor | composite);
+sys : target lfImport* (actor | composite);
 target:
     'target' ID ';' ;
 
-imp : 'import' path ';' ;
+lfImport : 'import' path ';' ;
 actor : head '{' body '}' ;
 composite : compositeHead '{' compositeBody '}' ;
-head : 'actor' ID params? ;
-compositeHead : 'composite' ID params? ;
+head : 'actor' ID parameters? ;
+compositeHead : 'composite' ID parameters? ;
 
-params:
-    '(' param (',' param)* ')';
-param:
-    ID ':' type ('(' value ')')?;
+parameters:
+    '(' parameter (',' parameter)* ')';
+parameter:
+    ID ':' lfType ('(' lfValue ')')?;
 
-value:
+lfValue:
     ID | NUMBER | STRING | code;
 
-body : stat* ;
+body : statement* ;
 compositeBody : compositeStatement* ;
 
-stat : inp
-     | outp
-     | trig
-     | pre
-     | init
-     | react
+statement : input
+     | output
+     | trigger
+     | preamble
+     | initialize
+     | reaction
      ;
 
-compositeStatement : stat
+compositeStatement : statement
     | instance
     | connection
     ;
@@ -40,21 +40,21 @@ rport: port;
 port:
     ID | (ID '.' (ID | IN | OUT)); // 'input' and 'output' are common port names.
 
-inp : IN ID ':' type ';' ;
-outp : OUT ID ':' type ';' ;
-trig : 'trigger' ID '(' trigparam ',' trigtype ')' ';' ;
+input : IN ID ':' lfType ';' ;
+output : OUT ID ':' lfType ';' ;
+trigger : 'trigger' ID '(' triggerParameter ',' triggerType ')' ';' ;
 
-instance : 'instance' ID '=' actorClass '(' assignments? ')' ';' ;
-actorClass: ID;
+instance : 'instance' ID '=' lfActorClass '(' assignments? ')' ';' ;
+lfActorClass: ID;
 assignments : assignment | assignments ',' assignment;
-assignment : ID '=' value;
+assignment : ID '=' lfValue;
 
-trigparam : ID ;
-trigtype : 'PERIODIC' | 'ONCE' ;
+triggerParameter : ID ;
+triggerType : 'PERIODIC' | 'ONCE' ;
 
-pre : 'preamble' code ;
-init : 'initialize' code ;
-react : 'reaction' '(' ID ')' sets* code ;
+preamble : 'preamble' code ;
+initialize : 'initialize' code ;
+reaction : 'reaction' '(' ID ')' sets* code ;
 
 code: CODE;
 
@@ -64,8 +64,8 @@ block : ~'}'* ;
 
 path : ID | path '.' ID ;
 
-// A type is in the target language, hence either an ID or target code.
-type:
+// A lfType is in the target language, hence either an ID or target code.
+lfType:
     ID | CODE ;
 
 IN : 'input' ;
@@ -85,8 +85,14 @@ NEWLINE:
 
 fragment ESCAPED_CODE:
     '\\=}';
+// FIXME: the following matches now all code into one token, breaks Source.lf
+// What is the use of escape?
+//CODE:
+//    '{=' (ESCAPED_CODE | ~('\\')* ) '=}' ;
+
+// Back to original CODE definition for now until above is fixed
 CODE:
-    '{=' (ESCAPED_CODE | ~('\\')* ) '=}' ;
+    '{=' .*? '=}' ;
 
 fragment INTVAL:
     '-'? [0-9]+ ;

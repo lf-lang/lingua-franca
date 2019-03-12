@@ -21,4 +21,14 @@
 * Browse to src->org.icyphy->LinguaFranca.xtext (double click to open)
 * You should see the latest Lingua-Franca grammar specification.
 * Right click in that grammar file editor, select Run As->Generate Xtext Artifacts
-* 
+* Right click on the first project in the PackageExplorer, org.icyphy.linguafranca and select Run As->Eclipse Application
+* This should start a new Eclipse.
+
+## Create Lingua-Franca Project
+
+* In the new Eclipse, select File->New->Java Project
+* Give the project a name, like "test"
+* Open the project, and on the src directory, select New->File
+* Give the new a name like "test.lf" (with .lf extension).
+* IMPORTANT: A dialog appears: Do you want to convert 'test' to an Xtext Project? Say YES.
+* Start typing in Lingua-Franca!
