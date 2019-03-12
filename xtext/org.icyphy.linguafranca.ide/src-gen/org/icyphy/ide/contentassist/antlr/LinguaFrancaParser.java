@@ -68,8 +68,8 @@ public class LinguaFrancaParser extends AbstractContentAssistParser {
 			builder.put(grammarAccess.getParamsAccess().getGroup(), "rule__Params__Group__0");
 			builder.put(grammarAccess.getParamsAccess().getGroup_2(), "rule__Params__Group_2__0");
 			builder.put(grammarAccess.getParamAccess().getGroup(), "rule__Param__Group__0");
-			builder.put(grammarAccess.getParamAccess().getGroup_1(), "rule__Param__Group_1__0");
 			builder.put(grammarAccess.getParamAccess().getGroup_2(), "rule__Param__Group_2__0");
+			builder.put(grammarAccess.getParamAccess().getGroup_3(), "rule__Param__Group_3__0");
 			builder.put(grammarAccess.getPeriodAccess().getGroup(), "rule__Period__Group__0");
 			builder.put(grammarAccess.getPeriodAccess().getGroup_2(), "rule__Period__Group_2__0");
 			builder.put(grammarAccess.getPortAccess().getGroup_1(), "rule__Port__Group_1__0");
@@ -126,9 +126,9 @@ public class LinguaFrancaParser extends AbstractContentAssistParser {
 			builder.put(grammarAccess.getGetsAccess().getGetsAssignment_1_1(), "rule__Gets__GetsAssignment_1_1");
 			builder.put(grammarAccess.getParamsAccess().getParamsAssignment_1(), "rule__Params__ParamsAssignment_1");
 			builder.put(grammarAccess.getParamsAccess().getParamsAssignment_2_1(), "rule__Params__ParamsAssignment_2_1");
-			builder.put(grammarAccess.getParamAccess().getNameAssignment_0(), "rule__Param__NameAssignment_0");
-			builder.put(grammarAccess.getParamAccess().getTypeAssignment_1_1(), "rule__Param__TypeAssignment_1_1");
-			builder.put(grammarAccess.getParamAccess().getValueAssignment_2_1(), "rule__Param__ValueAssignment_2_1");
+			builder.put(grammarAccess.getParamAccess().getNameAssignment_1(), "rule__Param__NameAssignment_1");
+			builder.put(grammarAccess.getParamAccess().getTypeAssignment_2_1(), "rule__Param__TypeAssignment_2_1");
+			builder.put(grammarAccess.getParamAccess().getValueAssignment_3_1(), "rule__Param__ValueAssignment_3_1");
 			builder.put(grammarAccess.getPeriodAccess().getPeriodAssignment_1(), "rule__Period__PeriodAssignment_1");
 			builder.put(grammarAccess.getPeriodAccess().getPeriodicAssignment_2_1_0(), "rule__Period__PeriodicAssignment_2_1_0");
 			builder.put(grammarAccess.getPeriodAccess().getOnceAssignment_2_1_1(), "rule__Period__OnceAssignment_2_1_1");
