@@ -22,12 +22,14 @@ public class LinguaFrancaSyntacticSequencer extends AbstractSyntacticSequencer {
 
 	protected LinguaFrancaGrammarAccess grammarAccess;
 	protected AbstractElementAlias match_Instance___LeftParenthesisKeyword_4_0_RightParenthesisKeyword_4_2__q;
+	protected AbstractElementAlias match_Param_ConstKeyword_0_q;
 	protected AbstractElementAlias match_Reaction___LeftParenthesisKeyword_1_0_RightParenthesisKeyword_1_2__q;
 	
 	@Inject
 	protected void init(IGrammarAccess access) {
 		grammarAccess = (LinguaFrancaGrammarAccess) access;
 		match_Instance___LeftParenthesisKeyword_4_0_RightParenthesisKeyword_4_2__q = new GroupAlias(false, true, new TokenAlias(false, false, grammarAccess.getInstanceAccess().getLeftParenthesisKeyword_4_0()), new TokenAlias(false, false, grammarAccess.getInstanceAccess().getRightParenthesisKeyword_4_2()));
+		match_Param_ConstKeyword_0_q = new TokenAlias(false, true, grammarAccess.getParamAccess().getConstKeyword_0());
 		match_Reaction___LeftParenthesisKeyword_1_0_RightParenthesisKeyword_1_2__q = new GroupAlias(false, true, new TokenAlias(false, false, grammarAccess.getReactionAccess().getLeftParenthesisKeyword_1_0()), new TokenAlias(false, false, grammarAccess.getReactionAccess().getRightParenthesisKeyword_1_2()));
 	}
 	
@@ -45,6 +47,8 @@ public class LinguaFrancaSyntacticSequencer extends AbstractSyntacticSequencer {
 			List<INode> syntaxNodes = getNodesFor(transitionNodes, syntax);
 			if (match_Instance___LeftParenthesisKeyword_4_0_RightParenthesisKeyword_4_2__q.equals(syntax))
 				emit_Instance___LeftParenthesisKeyword_4_0_RightParenthesisKeyword_4_2__q(semanticObject, getLastNavigableState(), syntaxNodes);
+			else if (match_Param_ConstKeyword_0_q.equals(syntax))
+				emit_Param_ConstKeyword_0_q(semanticObject, getLastNavigableState(), syntaxNodes);
 			else if (match_Reaction___LeftParenthesisKeyword_1_0_RightParenthesisKeyword_1_2__q.equals(syntax))
 				emit_Reaction___LeftParenthesisKeyword_1_0_RightParenthesisKeyword_1_2__q(semanticObject, getLastNavigableState(), syntaxNodes);
 			else acceptNodes(getLastNavigableState(), syntaxNodes);
@@ -59,6 +63,17 @@ public class LinguaFrancaSyntacticSequencer extends AbstractSyntacticSequencer {
 	 *     actorClass=[Actor|ID] (ambiguity) ';' (rule end)
 	 */
 	protected void emit_Instance___LeftParenthesisKeyword_4_0_RightParenthesisKeyword_4_2__q(EObject semanticObject, ISynNavigable transition, List<INode> nodes) {
+		acceptNodes(transition, nodes);
+	}
+	
+	/**
+	 * Ambiguous syntax:
+	 *     'const'?
+	 *
+	 * This ambiguous syntax occurs at:
+	 *     (rule start) (ambiguity) name=ID
+	 */
+	protected void emit_Param_ConstKeyword_0_q(EObject semanticObject, ISynNavigable transition, List<INode> nodes) {
 		acceptNodes(transition, nodes);
 	}
 	
