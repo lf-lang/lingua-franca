@@ -3,10 +3,13 @@
  */
 package org.icyphy.generator
 
+import java.util.Hashtable
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.Target
 
 /**
  * Generates code from your model files on save.
@@ -14,12 +17,24 @@ import org.eclipse.xtext.generator.IGeneratorContext
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
 class LinguaFrancaGenerator extends AbstractGenerator {
+	val importTable = new Hashtable<String,String>
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-//		fsa.generateFile('greetings.txt', 'People to greet: ' + 
-//			resource.allContents
-//				.filter(Greeting)
-//				.map[name]
-//				.join(', '))
+		// First collect all the imports.
+		resource.allContents.filter(Import).map[Import import |
+			val pieces = import.name.split('.')
+    		val root = pieces.last
+    		val filename = pieces.join("/") + ".js"
+			importTable.put(root, filename)
+		]
+		// Determine which target is desired.
+		for (target : resource.allContents.toIterable.filter(Target)) {
+			// FIXME: Use reflection here?
+			if (target.name.equalsIgnoreCase("CapeCode")
+					|| target.name.equalsIgnoreCase("JavaScript")) {
+				val generator = new CapeCodeGenerator()
+				generator.doGenerate(resource, fsa, context, importTable)
+			}
+		}
 	}
 }
