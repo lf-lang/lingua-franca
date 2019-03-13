@@ -269,7 +269,7 @@ and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
 Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects.
 Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
 Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
-These properties make actors ideal for programming reactive systems.
+The inherent concurrency of actors makes them ideal for programming reactive systems.
 However, the lack of any guarantees with respect to the ordering of messages and the absence of a notion of time make this 
 model less useful for specifying systems in which timely execution and repeatable behavior are important.
 
@@ -429,7 +429,7 @@ As signified by the {\tt target} keyword, this Brake actor incorporates C code. 
 %The engine that drives the execution of LF actors (see Figure~\ref{fig:lf-engine}) enforces the following principles:
 We summarize our model in terms of the following principles.
 
-\paragraph{Message Exchange}
+\paragraph{Actors and Message Exchange}
 \begin{enumerate}
 	\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
 	\item Each actor operates in the context of a composite, which manages connections between actors, the delivery of messages, and the scheduling and execution of reactions;
