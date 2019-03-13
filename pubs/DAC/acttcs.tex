@@ -560,6 +560,7 @@ When an actor receives multiple messages with the same time stamp, these message
 Logical time is distinct from \emph{physical time}, as measured anywhere in a networked application.
 First, logical time remains constant during the execution of any reaction in any actor, and outputs produced by that reaction have
 the same logical time stamp as the inputs that trigger the reaction.
+\ag{Why do we do this? What would speak against having the timestamps of the output also be synchronized with physical time when sending them. I see more problems with having a logically instantaneous reaction than I see advantages with it.}
 But in LF, there is a relationship between logical time and physical time,
 a relationship that helps to reliably deliver real-time behavior.
 
