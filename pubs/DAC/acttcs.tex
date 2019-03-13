@@ -263,7 +263,7 @@ The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in th
 %A well-known programming paradigm used in this context are Hewitt~\cite{Hewitt:77:Actors} actors.
 Since then,
 %their introduction in the 70s,
-the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, \armin{I would give up \cite{haller2009scala} in favor of \cite{Hunt2018}} and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
+the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, \armin{I would give up \cite{haller2009scala} in favor of \cite{Hunt2018}}\marten{Why? They are mentioned in different contexts...} and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
 Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects.
 Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
 Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
@@ -273,9 +273,10 @@ model less useful for specifying systems in which timely execution and repeatabl
 
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
 For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}.
-Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate requirements~\cite{DBLP:conf/birthday/SirjaniJ11}.
-\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}\marten{I would prefer to cite [102], [103], or [104] from \cite{DBLP:conf/birthday/SirjaniJ11} rather than \cite{DBLP:conf/birthday/SirjaniJ11} itself (it is a survey paper). I chose \cite{KHAMESPANAH2015184} because it is the most recent paper I could find that technically discusses the approach.}
-\marjan{Okay, I understand, \cite{KHAMESPANAH2015184} is a good ref. for Timed Rebeca, and timed actors.  \cite{DBLP:conf/birthday/SirjaniJ11} is about anayzing actors with no timing feature. }
+Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate (timing) requirements~\cite{KHAMESPANAH2015184}.
+%\cite{DBLP:conf/birthday/SirjaniJ11}.
+%\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}\marten{I would prefer to cite [102], [103], or [104] from \cite{DBLP:conf/birthday/SirjaniJ11} rather than \cite{DBLP:conf/birthday/SirjaniJ11} itself (it is a survey paper). I chose \cite{KHAMESPANAH2015184} because it is the most recent paper I could find that technically discusses the approach.}
+%\marjan{Okay, I understand, \cite{KHAMESPANAH2015184} is a good ref. for Timed Rebeca, and timed actors.  \cite{DBLP:conf/birthday/SirjaniJ11} is about anayzing actors with no timing feature. }
 Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach that we follow.
 
 
@@ -324,7 +325,7 @@ Dynamic changes in the topology are handled hierarchically, so that the extent o
 Actors are useful for encapsulating state, though it is often necessary for distinct but related computational activities to share state. For instance, a single actor to could serve as proxy for a device that is has to maintain a connection with a device (e.g, a hub for smart lights) could be capable of perform several different tasks.
 Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, in Lingua Franca, we made causality interfaces part of the language definition. We break an actor's functionality down into \emph{reactions}, each of which is subject to simple lexical scoping rules that limit its access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
 
-Importantly, the functionality of a reaction can be treated as a black box; a schedule can be devised purely based on dependency information. This is why Lingua Franca is \emph{polyglot}. It mixes interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems, and everything in between.
+Importantly, the functionality of a reaction can be treated as a black box; a schedule can be devised purely based on dependency information. This is why we designed Lingua Franca to be polyglot. It mixes interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems, and everything in between.
 
 Consider the following example of a simple LF actor that implements a brake component:
 
@@ -363,7 +364,7 @@ actor Brake {
     if (apply > 5)
       actuate(apply);
     else
-      state = false;
+      set(state) = false;
   =}
   reaction(check) -> on {=
     on = state;
@@ -422,47 +423,77 @@ As signified by the {\tt target} keyword, this Brake actor incorporates C code. 
 % A reaction of an actor can also be released by a trigger. A trigger
 % can be periodic triggers or a single shot timer.
 %The engine that drives the execution of LF actors (see Figure~\ref{fig:lf-engine}) enforces the following principles:
-We summarize our model in terms of the following principles:
+We summarize our model in terms of the following principles.
 
-
-
-
+\paragraph{Message Exchange}
 \begin{enumerate}
-\item Messages exchanged between actors are timestamped and denote a discrete event.
-\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
-\item A reaction is a procedure, and any two reactions of an actor are mutually exclusive; they execute atomically with respect to one another;
-\item Each reaction declares the input ports and triggers to which it reacts and to which output ports it may write.
-\item If a reaction declares that it reacts to multiple input ports, then at the time of the reaction, at least one of those
-input ports will have a message time-stamped with the time of the reaction, but the other input ports may be \emph{absent}
-(no event is present at this logical time).
-\item A reaction must also declare inputs that it does not react to but that it reads;
-at a logical time, those inputs may also be absent.
-\item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined.
-\item Logical time is constant during execution of a reaction.
-\item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
-\item A reaction can schedule a trigger at a future logical time.
-\item A reaction can read and modify the actor's state.
-\item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion
-of the reaction with a payload equal to the final value set by the reaction.
-\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked.
-\item No two distinct actors may send messages to the same input port of another actor;
-a composition of actors that does this is an erroneous composition.
-\item An output port may send messages to multiple input ports or multiple actors;
-these messages all bear the same time stamp.
-% \edward{Note that this has dependency implications... An output message cannot be sent until the last reaction declaring that output has had a chance to run.}
-\item At a logical time, a reaction may read inputs that are not triggering inputs, but it must declare that it reads those inputs,
-and those inputs may be \emph{absent} (no event is present at this logical time).
-\item \martin{We are not talking about delay here, but logical time is constant during reaction. There is no explicit
-mentioning that the output time stamp is the same as the input time stamp (except when having a delay on
-a reaction).}\marten{If we implement Delay using an actor that self-schedules a delayed reaction, the claim that no time passes during a reaction still holds.}
+	\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
+	\item Each actor operates in the context of a composite, which manages connections between actors, the delivery of messages, and the scheduling and execution of reactions;
+	\item A message is sent via a port, and it is delivered to the ports of other actors via a connection; a port must be connected to the port of another actor within the same composite before it can receive messages.
+	\item An actor may send messages to multiple input ports or multiple actors;
+	these messages all bear the same time stamp.
+	\item No two distinct actors may send messages to the same input port of another actor;
+	a composition of actors that allows this is erroneous.
+	\item Messages sent/received by actors are timestamped and denote a discrete event.
 \end{enumerate}
 
-\marjan{Maybe a classification of above principles makes the presentation nicer, just maybe some titles (and maybe some shuffling), like trying to go top-down, first talking about Actors, then body of reactions, then how reactions are triggered and ... and finally composition of actors ...}
-\marjan{You say: We have input message or trigger; a reaction must also declare inputs that it does not react to but that it reads; now, if we have an input message at some model time but no triggers, nothing will happen until a trigger is there, right?}\marten{Right. Nothing will happen with that particular input, not even at a later time.}
-\armin{How about we split these principles in groups like this: Actors (1 2 11 14 15), Reactions (3 4 5 6 7), Time
-(8 9 10 12 13 16). 
-}
+\paragraph{Reactions}
+\begin{enumerate}
+	\setcounter{enumi}{6}
+	\item A reaction is a procedure, and any two reactions of an actor are mutually exclusive; they execute atomically with respect to one another.
+	\item A reaction can read and modify the actor's state.
+	\item Reactions can not be directly invoked by actors themselves (or by other actors).
+	\item Each reaction declares the input ports and triggers to which it reacts and to which output ports it may write.
+	\item At a logical time, a reaction may read inputs that are not triggering inputs, but it must declare that it reads those inputs, and those inputs may be \emph{absent} (no event is present at this logical time).
+	\item If a reaction declares that it reacts to multiple input ports, then at the time of the reaction, at least one of those
+	input ports will have a message time-stamped with the time of the reaction, but the other input ports may be \emph{absent}
+	(no event is present at this logical time).
+	\item A reaction must also declare inputs that it does not react to but that it reads;
+	at a logical time, those inputs may also be absent.
+	\item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion of the reaction with a payload equal to the final value set by the reaction.
+	\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked.
+	\item A reaction can schedule a trigger at a future logical time.
+\end{enumerate}
 
+\paragraph{Passage of Time}
+\begin{enumerate}
+	\setcounter{enumi}{16}
+	\item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined.
+	\item Logical time is constant during execution of a reaction.
+	\item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
+	\item \todo{Discuss synchronization to physical time?}
+\end{enumerate}
+
+
+%\begin{enumerate}
+%\item Messages exchanged between actors are timestamped and denote a discrete event.
+%\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
+%\item A reaction is a procedure, and any two reactions of an actor are mutually exclusive; they execute atomically with respect to one another;
+% \item Each reaction declares the input ports and triggers to which it reacts and to which output ports it may write.
+% \item If a reaction declares that it reacts to multiple input ports, then at the time of the reaction, at least one of those
+% input ports will have a message time-stamped with the time of the reaction, but the other input ports may be \emph{absent}
+% (no event is present at this logical time).
+% \item A reaction must also declare inputs that it does not react to but that it reads;
+% at a logical time, those inputs may also be absent.
+% \item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined.
+% \item Logical time is constant during execution of a reaction.
+% \item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
+% \item A reaction can schedule a trigger at a future logical time.
+% \item A reaction can read and modify the actor's state.
+%  \item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion
+% of the reaction with a payload equal to the final value set by the reaction.
+% \item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked.
+% \item No two distinct actors may send messages to the same input port of another actor;
+% a composition of actors that does this is an erroneous composition.
+% \item An output port may send messages to multiple input ports or multiple actors;
+% these messages all bear the same time stamp.
+% % \edward{Note that this has dependency implications... An output message cannot be sent until the last reaction declaring that output has had a chance to run.}
+% \item At a logical time, a reaction may read inputs that are not triggering inputs, but it must declare that it reads those inputs,
+% and those inputs may be \emph{absent} (no event is present at this logical time).
+% \item \martin{We are not talking about delay here, but logical time is constant during reaction. There is no explicit
+% mentioning that the output time stamp is the same as the input time stamp (except when having a delay on
+% a reaction).}\marten{If we implement Delay using an actor that self-schedules a delayed reaction, the claim that no time passes during a reaction still holds.}
+%\end{enumerate}
 
 Together, these rules ensure that the execution of a composition of actors is deterministic
 in the sense that given any set of time-stamped inputs from outside the composition, the composition has exactly one behavior.
