@@ -461,7 +461,7 @@ We summarize our model in terms of the following principles.
 \paragraph{Actors and Message Exchange}
 \begin{enumerate}
 	\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
-	\item Each actor operates in the context of a composite, which manages connections between actors, the delivery of messages, and the scheduling and execution of reactions;
+	\item Each actor operates in the context of a composite (i.e., an actor that contains other actors), which manages connections between actors, the delivery of messages, and the scheduling and execution of reactions;
 	\item A message is sent via a port, and it is delivered to the ports of other actors via a connection; a port must be connected to the port of another actor within the same composite before it can receive messages.
 	\item An actor may send messages to multiple input ports or multiple actors;
 	these messages all bear the same time stamp.
