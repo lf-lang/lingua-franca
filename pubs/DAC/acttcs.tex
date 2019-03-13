@@ -118,7 +118,7 @@
 
 \begin{document}
 
-\title{Actors, Time Stamps, and Determinism for Time-Critical Systems}
+\title{Lingua Franca: Actors, Time Stamps, and Determinism for Time-Critical Systems}
 
 
 \author{Marten Lohstroh}
@@ -237,15 +237,15 @@ Abstract
 \keywords{actor, real-time systems, worst-case execution time}
 
 \maketitle 
-
+\ag{Please review: I slightly revised the title with this suggestion, because I quite like how the sections of the paper correspond to the key words in the title. Adding ``Lingua Franca'' to the title not only names our work/ideas here but also helps strengthen that structural correspondence. Just a suggestion! What do you think?}
 \section{Introduction}\label{sec:intro}
 Precision timing plays an important role in a plethora of modern systems, ranging anywhere from embedded control systems that continually interact with concurrent physical processes (i.e., cyber-physical systems) to large-scale distributed systems requiring some measure of consistency.
-In order to effectively program these systems, there is a need for programming models with a semantics that includes time.
+In order to effectively program these systems, there is a need for programming models with semantics that include time.
 In current-day general-purpose hardware and programming languages, timing properties of software are emergent rather than specified.
 Therefore, the verification of timing properties of time-critical systems relies on testing, but effectively testing software in the face of non-determinism is challenging.
 
 In this paper, we propose an actor-oriented programming model that reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically.
-Aimed at time-critical systems, our model is based on a discrete event semantics, which ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
+Aimed at time-critical systems, our model is based on discrete event semantics, which ensure that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
 We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition.
 LF allows programmers to implement the functionality of actors using a language of their choice.
 By default, all Lingua Franca programs will be deterministic.
@@ -265,7 +265,7 @@ Since then,
 %their introduction in the 70s,
 %NOTE: removed citation of Scala (haller2009scala)
 the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, 
-and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
+and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. \ag{In case we need space: here we can certainly remove a citation or two.}
 Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects.
 Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
 Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
@@ -280,6 +280,35 @@ Similarly, the modeling language Rebeca performs analysis that uses a model chec
 %\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}\marten{I would prefer to cite [102], [103], or [104] from \cite{DBLP:conf/birthday/SirjaniJ11} rather than \cite{DBLP:conf/birthday/SirjaniJ11} itself (it is a survey paper). I chose \cite{KHAMESPANAH2015184} because it is the most recent paper I could find that technically discusses the approach.}
 %\marjan{Okay, I understand, \cite{KHAMESPANAH2015184} is a good ref. for Timed Rebeca, and timed actors.  \cite{DBLP:conf/birthday/SirjaniJ11} is about anayzing actors with no timing feature. }
 Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach that we follow.
+
+\subsection{Other Related Work}
+\label{sec:related}
+
+In \cite{ren1995rtsynchronizer}, Ren and Agha also propose giving actors a temporal
+semantics. As in our work, they assume a sufficiently well synchronized
+common physical time base shared by all actors, and they express timing
+requirements as constraints on message handling. Their work differs from
+ours, however, in that they build off a standard actor language, thereby
+inheriting its nondeterministic ordering of message handling, and they
+rely on separately imposing timing constraints to control the order when
+needed. In contrast, we use logical time stamps to define the order of
+message handling and ensure determinism.
+
+Dataflow models are also closely related to the actor approach. In~\cite{wiik2018contract} the authors extend an (untimed) dataflow model with formal contracts that allow guarantees, e.g. for scheduling.
+There are timed models of dataflow~\cite{Sriram:00:Scheduling}, and even some structured approaches to use timing semantics in dataflow to execute time-critical applications in cyber-physical systems~\cite{GeilenEtAl:12:Scenarios}.
+These models are more restrictive than our propsed work and lack the polyglot flexibility of LF.
+
+Fredlund et al. proposed timed extension of McErlang
+as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
+%In \cite{DBLP:journals/csur/BoerSHHRDJSKFY17}, de Boer et al. provided a survey on active object languages but there is no focus on timed features.
+
+\todo{As discussed in call: do we need these?}
+Towards a real-time coordination model for mobile computing \cite{hackmann2005towards}
+Method and tools for mixed-criticality real-time applications within PharOS \cite{lemerre2011method}
+Accessors \cite{brooks2018component}
+S-Net~\cite{grelck2008gentle}
+Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
+Timed C \cite{Broman_timedC}
 
 
 %\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
@@ -322,12 +351,12 @@ All messages communicated between LF actors are timestamped. Message exchange is
 While the semantics of LF is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}, to increase efficiency, we avoid performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. The schedule for message delivery is based purely on the topology of the actor graph.
 %, and no static analysis of the actors' internals is required. 
 %---the actors are treated as black boxes. 
-Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject to rescheduling is contained when reconfigurations occur during runtime. A runtime reconfiguration always occurs within a composite actor that can coordinate it a predictable and orderly fashion. %whose interface remains unchanged.\marten{This is not completely true. I/O dependencies may change, which may lead to scheduling problems outside of the composite. The good thing is that we can detect problems before enacting the changes, but it could potentially require communication with composites up the hierarchy.} 
+Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject to rescheduling is contained when reconfigurations occur during runtime. A runtime reconfiguration always occurs within a composite actor that can coordinate it in a predictable and orderly fashion. %whose interface remains unchanged.\marten{This is not completely true. I/O dependencies may change, which may lead to scheduling problems outside of the composite. The good thing is that we can detect problems before enacting the changes, but it could potentially require communication with composites up the hierarchy.} 
 
-Actors are useful for encapsulating state, though it is often necessary for distinct but related computational activities to share state. For instance, a single actor to could serve as proxy for a device that is has to maintain a connection with a device (e.g, a hub for smart lights) could be capable of perform several different tasks.
+Actors are useful for encapsulating state, though it is often necessary for distinct but related computational activities to share state. For instance, a single actor to could serve as proxy for a device (e.g, a hub for smart lights), for which it performs several different tasks.
 Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, in Lingua Franca, we made causality interfaces part of the language definition. We break an actor's functionality down into \emph{reactions}, each of which is subject to simple lexical scoping rules that limit its access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
 
-Importantly, the functionality of a reaction can be treated as a black box; a schedule can be devised purely based on dependency information. This is why we designed Lingua Franca to be polyglot. It mixes interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems, and everything in between.
+Importantly, the functionality of a reaction can be treated as a black box; a schedule can be devised purely based on dependency information. This is why we designed Lingua Franca to be polyglot. It mixes interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems.
 
 \todo{Probably better to briefly discuss the tool chain here (not enough space for a separate section). We could add a simple diagram.}
 
@@ -614,33 +643,6 @@ time is advanced to $t_2$ where all reactions for $t_2$ are executed.
 %  \label{fig:example-3}
 % \end{figure}
 
-\section{Related Work}
-\label{sec:related}
-
-Towards a real-time coordination model for mobile computing \cite{hackmann2005towards}
-Method and tools for mixed-criticality real-time applications within PharOS \cite{lemerre2011method}
-Accessors \cite{brooks2018component}
-S-Net~\cite{grelck2008gentle}
-Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
-Timed C \cite{Broman_timedC}
-
-Dataflow models are also closely related to the actor approach. In~\cite{wiik2018contract} the authors extend an (untimed) dataflow model with formal contracts that allow guarantees, e.g. for scheduling.
-There are timed models of dataflow~\cite{Sriram:00:Scheduling}, and even some structured approaches to use timing semantics in dataflow to execute time-critical applications in cyber-physical systems~\cite{GeilenEtAl:12:Scenarios}.
-These models are more restrictive than our propsed work and lack the polyglot flexibility of LF.
-
-Fredlund et al. proposed timed extension of McErlang
-as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
-%In \cite{DBLP:journals/csur/BoerSHHRDJSKFY17}, de Boer et al. provided a survey on active object languages but there is no focus on timed features.
-
-In \cite{ren1995rtsynchronizer}, Ren and Agha also propose giving actors a temporal
-semantics. As in our work, they assume a sufficiently well synchronized
-common physical time base shared by all actors, and they express timing
-requirements as constraints on message handling. Their work differs from
-ours, however, in that they build off a standard actor language, thereby
-inheriting its nondeterministic ordering of message handling, and they
-rely on separately imposing timing constraints to control the order when
-needed. In contrast, we use logical time stamps to define the order of
-message handling and ensure determinism.
 
 %\section{Actors}
 %
