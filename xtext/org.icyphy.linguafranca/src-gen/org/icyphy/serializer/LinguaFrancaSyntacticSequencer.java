@@ -60,7 +60,7 @@ public class LinguaFrancaSyntacticSequencer extends AbstractSyntacticSequencer {
 	 *     ('(' ')')?
 	 *
 	 * This ambiguous syntax occurs at:
-	 *     actorClass=[Actor|ID] (ambiguity) ';' (rule end)
+	 *     actorClass=ID (ambiguity) ';' (rule end)
 	 */
 	protected void emit_Instance___LeftParenthesisKeyword_4_0_RightParenthesisKeyword_4_2__q(EObject semanticObject, ISynNavigable transition, List<INode> nodes) {
 		acceptNodes(transition, nodes);

@@ -65,7 +65,7 @@
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Instance">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Instance/name"/>
-      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Instance/actorClass"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Instance/actorClass"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Instance/parameters"/>
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Connection">

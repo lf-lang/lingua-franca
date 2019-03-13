@@ -52,30 +52,30 @@ public interface Instance extends EObject
   void setName(String value);
 
   /**
-   * Returns the value of the '<em><b>Actor Class</b></em>' reference.
+   * Returns the value of the '<em><b>Actor Class</b></em>' attribute.
    * <!-- begin-user-doc -->
    * <p>
-   * If the meaning of the '<em>Actor Class</em>' reference isn't clear,
+   * If the meaning of the '<em>Actor Class</em>' attribute isn't clear,
    * there really should be more of a description here...
    * </p>
    * <!-- end-user-doc -->
-   * @return the value of the '<em>Actor Class</em>' reference.
-   * @see #setActorClass(Actor)
+   * @return the value of the '<em>Actor Class</em>' attribute.
+   * @see #setActorClass(String)
    * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getInstance_ActorClass()
    * @model
    * @generated
    */
-  Actor getActorClass();
+  String getActorClass();
 
   /**
-   * Sets the value of the '{@link org.icyphy.linguaFranca.Instance#getActorClass <em>Actor Class</em>}' reference.
+   * Sets the value of the '{@link org.icyphy.linguaFranca.Instance#getActorClass <em>Actor Class</em>}' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Actor Class</em>' reference.
+   * @param value the new value of the '<em>Actor Class</em>' attribute.
    * @see #getActorClass()
    * @generated
    */
-  void setActorClass(Actor value);
+  void setActorClass(String value);
 
   /**
    * Returns the value of the '<em><b>Parameters</b></em>' containment reference.
