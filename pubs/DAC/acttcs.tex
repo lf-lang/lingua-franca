@@ -344,6 +344,11 @@ Timed C \cite{Broman_timedC}
 %\section{Actors in Lingua Franca}
 % sectioning.... ?
 \section{Lingua Franca}
+
+\martin{Is Lingua Franca now the name for the timed actors? For me it was the language that
+describes them and is able to work with different target languages. Are we mixing here two
+orthogonal concepts?}
+
 In the original Hewitt actors and many modern implementations, actors have references to the actors that they communicate with.
 In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. This approach increases modularity and, more importantly, exposes dependencies between actors.
 All messages communicated between LF actors are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. 
