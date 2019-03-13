@@ -460,7 +460,7 @@ We summarize our model in terms of the following principles.
 
 \paragraph{Actors and Message Exchange}
 \begin{enumerate}
-	\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.\ag{are these fundamentally different from input ports, or just input ``marked'' input ports (that trigger a reaction)? I think this should be clarified at this point in the paper.}
+	\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
 	\item Each actor operates in the context of a composite, which manages connections between actors, the delivery of messages, and the scheduling and execution of reactions;
 	\item A message is sent via a port, and it is delivered to the ports of other actors via a connection; a port must be connected to the port of another actor within the same composite before it can receive messages.
 	\item An actor may send messages to multiple input ports or multiple actors;
@@ -481,8 +481,6 @@ We summarize our model in terms of the following principles.
 	\item If a reaction declares that it reacts to multiple input ports, then at the time of the reaction, at least one of those
 	input ports will have a message time-stamped with the time of the reaction, but the other input ports may be \emph{absent}
 	(no event is present at this logical time).
-	\item A reaction must also declare inputs that it does not react to but that it reads;
-	at a logical time, those inputs may also be absent.
 	\item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion of the reaction with a payload equal to the final value set by the reaction.
 	\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked. \ag{Why? Isn't this unintuitive? Why not have all messages sent (e.g. with the same timestamp and superdense ordering in the execution order of the producing reactions)?}
 	\item A reaction can schedule a trigger at a future logical time.
@@ -495,6 +493,51 @@ We summarize our model in terms of the following principles.
 	\item Logical time is constant during execution of a reaction.
 	\item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
 \end{enumerate}
+
+\begin{figure}[ht]
+ \centering
+\begin{minipage}{0.50\linewidth}
+\begin{lstlisting}[language=LF]
+target C;
+actor Src(prd:int(10)) {
+	output out;
+	trigger t(0, prd, 0);
+	constructor {=
+		int count = 0;
+	=}
+	reaction(t) {=
+		count++;
+		set(out, count);
+	=}
+}
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}{0.50\linewidth}
+\begin{lstlisting}[firstnumber=13]
+actor Dst {
+	input in;
+	reaction(in) {=
+		println(in);
+	=}
+}
+composite Model {
+	instance a = Src(prd=100);
+	instance b = Dst();
+	a.out -> b.in;
+}
+\end{lstlisting}
+\end{minipage}
+ \caption{FIXME}
+ \label{fig:lf-compiler}
+\end{figure}
+
+FIXME:
+For example, actors might be defined and composed as shown in figure FIXME.
+The first line specifies that the target language is C.
+The second line defines an actor named ``Source'' with a parameter named ``period'' that has type int and default value 10.
+This actor has an output named ``out''
+	A trigger is like an input port in that it receives messages, but it is ``private'' in the sense that it receives only messages initiated by its own actor.
+
 
 
 %\begin{enumerate}
