@@ -552,6 +552,45 @@ more compactly, for example with the Ptolemy II notion of ``multiports'' or ``pe
 %the actor. Maybe this would be a leaner and cleaner semantic.}
 %\marjan{Ok, I think I understand what you mean. And I am just thinking, sometimes we need to know if the event at the other port is "new" or not too old, can we do that here? I guess we can write a code for that, keeping the "model time stamp" of the "last seen" value maybe ... }
 
+\subsection{Compiler Tool Chain}
+
+\begin{figure}[ht]
+ \centering
+ \includegraphics[width=0.8\linewidth]{img/lf-compiler}
+ \caption{The Envisioned Tool Chain}
+ \label{fig:lf-compiler}
+\end{figure}
+
+For Lingua Franca we envision a tool chain as depicted in Figure~\ref{fig:lf-compiler}.
+Code will first be parsed for the LF semantics, producing object files or code specific to the used language and host targeted.
+Analysis such as semantic soundness or timing guarantees when permitted can be included as part of this LF compiler suite.
+\ag{this is my (perhaps outdated) understanding of the envisioned tool chain. Feel free to change this and/or ask for changes in the Figure.}
+
+% Time is \emph{logical} time. This logical time be used for simulation and then
+% we call it model time. We can also use the network of actors for the implementation
+% of the system. In that case wall clock time is used to timestamp input values
+% at sensors. Logical time can never advance further than wall clock time. \marten{Not entirely true: an optimized scheduler can do this under very specific circumstances that we'll elaborate on in the example.}
+
+
+% The scheduler invokes reactions of actors dependent in inputs with timestamps
+% that are equal (or earlier--can this happen?) at logical time $t_1$.
+% Logical time cannot advance further than wall clock time $t_w$. If next logical
+% time $t_2 > t_w$ the scheduler waits till $t_w \ge t_2$.
+
+For dynamic systems, e.g., an IoT that keeps running, but in different contexts
+(e.g., places), we support dynamic reconfiguration of the network of actors.
+This may be well supported when targeting a dynamic language such as JavaScript,
+but harder to implement in C.
+
+To support reconfiguration we need a more complete language than the configuration
+language LF. Therefore, our first iteration of dynamic reconfiguration is done in the
+host language JavaScript. In that case, the host language needs access to actors and
+ports. However, we can use scopes to having access to those parts of the framework
+only in well defined places.
+
+\martin{Will we talk about execution hosts such as PRET machines or Patmos
+when targeting C and WCET analysis?}
+
 \section{Timing and Determinism}
 Central to the LF programming model is the relationship between the time stamps of messages.
 These time stamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in time-stamp order.
@@ -675,38 +714,6 @@ time is advanced to $t_2$ where all reactions for $t_2$ are executed.
 % (in the JS accessors this is the way it is specified, the default value gives the
 % ``keep'' or persistent semantic).}
 
-\section{The Lingua Franca Compiler Tool Chain}
-% Time is \emph{logical} time. This logical time be used for simulation and then
-% we call it model time. We can also use the network of actors for the implementation
-% of the system. In that case wall clock time is used to timestamp input values
-% at sensors. Logical time can never advance further than wall clock time. \marten{Not entirely true: an optimized scheduler can do this under very specific circumstances that we'll elaborate on in the example.}
-
-
-% The scheduler invokes reactions of actors dependent in inputs with timestamps
-% that are equal (or earlier--can this happen?) at logical time $t_1$.
-% Logical time cannot advance further than wall clock time $t_w$. If next logical
-% time $t_2 > t_w$ the scheduler waits till $t_w \ge t_2$.
-
-
-
-
-
-
-
-For dynamic systems, e.g., an IoT that keeps running, but in different contexts
-(e.g., places), we support dynamic reconfiguration of the network of actors.
-This may be well supported when targeting a dynamic language such as JavaScript,
-but harder to implement in C.
-
-To support reconfiguration we need a more complete language than the configuration
-language LF. Therefore, our first iteration of dynamic reconfiguration is done in the
-host language JavaScript. In that case, the host language needs access to actors and
-ports. However, we can use scopes to having access to those parts of the framework
-only in well defined places.
-
-\martin{Will we talk about execution hosts such as PRET machines or Patmos
-when targeting C and WCET analysis?}
-
 
 \section{Conclusions}
 \label{sec:conclusion}
@@ -716,6 +723,7 @@ when targeting C and WCET analysis?}
 The work in this paper was supported in part by the National Science Foundation (NSF),
 award \#CNS-1836601 (Reconciling Safety with the Internet) and the iCyPhy Research Center
 (Industrial Cyber-Physical Systems, supported by Avast, Camozzi Industries, Denso, Ford, Siemens, and Toyota
+This  work  was also supported in part by the Center for Advancing Electronics Dresden (cfaed) and the German Academic Exchange Service (DAAD). 
 %The work presented in this paper was partially funded by the
 %Danish Council for Independent Research \textbar{} Technology and Production Sciences
 %under the project PREDICT\footnote{\url{http://predict.compute.dtu.dk/}}
