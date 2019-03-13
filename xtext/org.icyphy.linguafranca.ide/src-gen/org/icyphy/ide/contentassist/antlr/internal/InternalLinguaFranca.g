@@ -4739,13 +4739,9 @@ rule__Instance__ActorClassAssignment_3
 	}
 :
 	(
-		{ before(grammarAccess.getInstanceAccess().getActorClassActorCrossReference_3_0()); }
-		(
-			{ before(grammarAccess.getInstanceAccess().getActorClassActorIDTerminalRuleCall_3_0_1()); }
-			RULE_ID
-			{ after(grammarAccess.getInstanceAccess().getActorClassActorIDTerminalRuleCall_3_0_1()); }
-		)
-		{ after(grammarAccess.getInstanceAccess().getActorClassActorCrossReference_3_0()); }
+		{ before(grammarAccess.getInstanceAccess().getActorClassIDTerminalRuleCall_3_0()); }
+		RULE_ID
+		{ after(grammarAccess.getInstanceAccess().getActorClassIDTerminalRuleCall_3_0()); }
 	)
 ;
 finally {

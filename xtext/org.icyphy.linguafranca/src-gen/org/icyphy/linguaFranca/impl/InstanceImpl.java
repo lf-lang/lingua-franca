@@ -12,7 +12,6 @@ import org.eclipse.emf.ecore.InternalEObject;
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
 
-import org.icyphy.linguaFranca.Actor;
 import org.icyphy.linguaFranca.Assignments;
 import org.icyphy.linguaFranca.Instance;
 import org.icyphy.linguaFranca.LinguaFrancaPackage;
@@ -55,14 +54,24 @@ public class InstanceImpl extends MinimalEObjectImpl.Container implements Instan
   protected String name = NAME_EDEFAULT;
 
   /**
-   * The cached value of the '{@link #getActorClass() <em>Actor Class</em>}' reference.
+   * The default value of the '{@link #getActorClass() <em>Actor Class</em>}' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @see #getActorClass()
    * @generated
    * @ordered
    */
-  protected Actor actorClass;
+  protected static final String ACTOR_CLASS_EDEFAULT = null;
+
+  /**
+   * The cached value of the '{@link #getActorClass() <em>Actor Class</em>}' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see #getActorClass()
+   * @generated
+   * @ordered
+   */
+  protected String actorClass = ACTOR_CLASS_EDEFAULT;
 
   /**
    * The cached value of the '{@link #getParameters() <em>Parameters</em>}' containment reference.
@@ -126,27 +135,7 @@ public class InstanceImpl extends MinimalEObjectImpl.Container implements Instan
    * @generated
    */
   @Override
-  public Actor getActorClass()
-  {
-    if (actorClass != null && actorClass.eIsProxy())
-    {
-      InternalEObject oldActorClass = (InternalEObject)actorClass;
-      actorClass = (Actor)eResolveProxy(oldActorClass);
-      if (actorClass != oldActorClass)
-      {
-        if (eNotificationRequired())
-          eNotify(new ENotificationImpl(this, Notification.RESOLVE, LinguaFrancaPackage.INSTANCE__ACTOR_CLASS, oldActorClass, actorClass));
-      }
-    }
-    return actorClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  public Actor basicGetActorClass()
+  public String getActorClass()
   {
     return actorClass;
   }
@@ -157,9 +146,9 @@ public class InstanceImpl extends MinimalEObjectImpl.Container implements Instan
    * @generated
    */
   @Override
-  public void setActorClass(Actor newActorClass)
+  public void setActorClass(String newActorClass)
   {
-    Actor oldActorClass = actorClass;
+    String oldActorClass = actorClass;
     actorClass = newActorClass;
     if (eNotificationRequired())
       eNotify(new ENotificationImpl(this, Notification.SET, LinguaFrancaPackage.INSTANCE__ACTOR_CLASS, oldActorClass, actorClass));
@@ -244,8 +233,7 @@ public class InstanceImpl extends MinimalEObjectImpl.Container implements Instan
       case LinguaFrancaPackage.INSTANCE__NAME:
         return getName();
       case LinguaFrancaPackage.INSTANCE__ACTOR_CLASS:
-        if (resolve) return getActorClass();
-        return basicGetActorClass();
+        return getActorClass();
       case LinguaFrancaPackage.INSTANCE__PARAMETERS:
         return getParameters();
     }
@@ -266,7 +254,7 @@ public class InstanceImpl extends MinimalEObjectImpl.Container implements Instan
         setName((String)newValue);
         return;
       case LinguaFrancaPackage.INSTANCE__ACTOR_CLASS:
-        setActorClass((Actor)newValue);
+        setActorClass((String)newValue);
         return;
       case LinguaFrancaPackage.INSTANCE__PARAMETERS:
         setParameters((Assignments)newValue);
@@ -289,7 +277,7 @@ public class InstanceImpl extends MinimalEObjectImpl.Container implements Instan
         setName(NAME_EDEFAULT);
         return;
       case LinguaFrancaPackage.INSTANCE__ACTOR_CLASS:
-        setActorClass((Actor)null);
+        setActorClass(ACTOR_CLASS_EDEFAULT);
         return;
       case LinguaFrancaPackage.INSTANCE__PARAMETERS:
         setParameters((Assignments)null);
@@ -311,7 +299,7 @@ public class InstanceImpl extends MinimalEObjectImpl.Container implements Instan
       case LinguaFrancaPackage.INSTANCE__NAME:
         return NAME_EDEFAULT == null ? name != null : !NAME_EDEFAULT.equals(name);
       case LinguaFrancaPackage.INSTANCE__ACTOR_CLASS:
-        return actorClass != null;
+        return ACTOR_CLASS_EDEFAULT == null ? actorClass != null : !ACTOR_CLASS_EDEFAULT.equals(actorClass);
       case LinguaFrancaPackage.INSTANCE__PARAMETERS:
         return parameters != null;
     }
@@ -331,6 +319,8 @@ public class InstanceImpl extends MinimalEObjectImpl.Container implements Instan
     StringBuilder result = new StringBuilder(super.toString());
     result.append(" (name: ");
     result.append(name);
+    result.append(", actorClass: ");
+    result.append(actorClass);
     result.append(')');
     return result.toString();
   }

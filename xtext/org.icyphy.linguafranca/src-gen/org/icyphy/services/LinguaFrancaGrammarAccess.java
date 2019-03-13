@@ -8,7 +8,6 @@ import com.google.inject.Singleton;
 import java.util.List;
 import org.eclipse.xtext.Alternatives;
 import org.eclipse.xtext.Assignment;
-import org.eclipse.xtext.CrossReference;
 import org.eclipse.xtext.Grammar;
 import org.eclipse.xtext.GrammarUtil;
 import org.eclipse.xtext.Group;
@@ -617,8 +616,7 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		private final RuleCall cNameIDTerminalRuleCall_1_0 = (RuleCall)cNameAssignment_1.eContents().get(0);
 		private final Keyword cEqualsSignKeyword_2 = (Keyword)cGroup.eContents().get(2);
 		private final Assignment cActorClassAssignment_3 = (Assignment)cGroup.eContents().get(3);
-		private final CrossReference cActorClassActorCrossReference_3_0 = (CrossReference)cActorClassAssignment_3.eContents().get(0);
-		private final RuleCall cActorClassActorIDTerminalRuleCall_3_0_1 = (RuleCall)cActorClassActorCrossReference_3_0.eContents().get(1);
+		private final RuleCall cActorClassIDTerminalRuleCall_3_0 = (RuleCall)cActorClassAssignment_3.eContents().get(0);
 		private final Group cGroup_4 = (Group)cGroup.eContents().get(4);
 		private final Keyword cLeftParenthesisKeyword_4_0 = (Keyword)cGroup_4.eContents().get(0);
 		private final Assignment cParametersAssignment_4_1 = (Assignment)cGroup_4.eContents().get(1);
@@ -626,12 +624,14 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		private final Keyword cRightParenthesisKeyword_4_2 = (Keyword)cGroup_4.eContents().get(2);
 		private final Keyword cSemicolonKeyword_5 = (Keyword)cGroup.eContents().get(5);
 		
-		//// FIXME: actorClass should be able to be a Composite.
+		//// FIXME: actorClass should ideally be something like [Actor|Composite],
+		//// to get cross references to work. But this doesn't work for importing
+		//// foreign actors that are not defined in Lingua Franca.
 		//Instance:
-		//	'instance' name=ID '=' actorClass=[Actor] ('(' parameters=Assignments? ')')? ';';
+		//	'instance' name=ID '=' actorClass=ID ('(' parameters=Assignments? ')')? ';';
 		@Override public ParserRule getRule() { return rule; }
 		
-		//'instance' name=ID '=' actorClass=[Actor] ('(' parameters=Assignments? ')')? ';'
+		//'instance' name=ID '=' actorClass=ID ('(' parameters=Assignments? ')')? ';'
 		public Group getGroup() { return cGroup; }
 		
 		//'instance'
@@ -646,14 +646,11 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		//'='
 		public Keyword getEqualsSignKeyword_2() { return cEqualsSignKeyword_2; }
 		
-		//actorClass=[Actor]
+		//actorClass=ID
 		public Assignment getActorClassAssignment_3() { return cActorClassAssignment_3; }
 		
-		//[Actor]
-		public CrossReference getActorClassActorCrossReference_3_0() { return cActorClassActorCrossReference_3_0; }
-		
 		//ID
-		public RuleCall getActorClassActorIDTerminalRuleCall_3_0_1() { return cActorClassActorIDTerminalRuleCall_3_0_1; }
+		public RuleCall getActorClassIDTerminalRuleCall_3_0() { return cActorClassIDTerminalRuleCall_3_0; }
 		
 		//('(' parameters=Assignments? ')')?
 		public Group getGroup_4() { return cGroup_4; }
@@ -1369,9 +1366,11 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		return getInitializeAccess().getRule();
 	}
 	
-	//// FIXME: actorClass should be able to be a Composite.
+	//// FIXME: actorClass should ideally be something like [Actor|Composite],
+	//// to get cross references to work. But this doesn't work for importing
+	//// foreign actors that are not defined in Lingua Franca.
 	//Instance:
-	//	'instance' name=ID '=' actorClass=[Actor] ('(' parameters=Assignments? ')')? ';';
+	//	'instance' name=ID '=' actorClass=ID ('(' parameters=Assignments? ')')? ';';
 	public InstanceElements getInstanceAccess() {
 		return pInstance;
 	}
