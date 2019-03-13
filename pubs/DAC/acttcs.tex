@@ -9,8 +9,9 @@
 \definecolor{stringColor}{rgb}{0.8,0.1,0.1}
 \usepackage{listings}
 \lstdefinelanguage{LF}{
-  keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
-  morekeywords={reaction, preamble, target, actor, input, output},
+  %keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+  %more
+  keywords={reaction, preamble, target, actor, composite, trigger, input, output, constructor},
   keywordstyle=\color{black}\bfseries,
   ndkeywords={class, export, boolean, throw, implements, import, this},
   ndkeywordstyle=\color{darkgray}\bfseries,
@@ -37,7 +38,7 @@
    breaklines=true,
    showtabs=false,
    captionpos=b,
-   xleftmargin=-5pt, xrightmargin=0pt
+   %xleftmargin=-5pt, xrightmargin=0pt
 }
 
 \newcounter{myctr}
@@ -118,7 +119,7 @@
 
 \begin{document}
 
-\title{Lingua Franca: Actors, Time Stamps, and Determinism for Time-Critical Systems}
+\title{Actors, Time Stamps, and Determinism for Time-Critical Systems}
 
 
 \author{Marten Lohstroh}
@@ -210,7 +211,7 @@
 }
 
 
-\renewcommand{\shortauthors}{E. A. Lee et al.}
+\renewcommand{\shortauthors}{M. Lohstroh et al.}
 
 \begin{abstract}
 Abstract
@@ -236,8 +237,8 @@ Abstract
 
 \keywords{actor, real-time systems, worst-case execution time}
 
-\maketitle 
-\ag{Please review: I slightly revised the title with this suggestion, because I quite like how the sections of the paper correspond to the key words in the title. Adding ``Lingua Franca'' to the title not only names our work/ideas here but also helps strengthen that structural correspondence. Just a suggestion! What do you think?}
+\maketitle
+
 \section{Introduction}\label{sec:intro}
 Precision timing plays an important role in a plethora of modern systems, ranging anywhere from embedded control systems that continually interact with concurrent physical processes (i.e., cyber-physical systems) to large-scale distributed systems requiring some measure of consistency.
 In order to effectively program these systems, there is a need for programming models with semantics that include time.
@@ -246,18 +247,7 @@ Therefore, the verification of timing properties of time-critical systems relies
 
 In this paper, we propose an actor-oriented programming model that reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically.
 Aimed at time-critical systems, our model is based on discrete event semantics, which ensure that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
-We introduce \emph{Lingua Franca} (LF), an interface definition language for the description of actors and their composition.
-LF allows programmers to implement the functionality of actors using a language of their choice.
-By default, all Lingua Franca programs will be deterministic.
-We achieve this using a semantic notion of time and time stamps.
 
-% LF is designed with a pre-compilation step on polyglot principles, allowing an analysis step to make guarantees as well as opaque actors to serve as means to combine different systems. 
-
-%This functionality will live inside actors, the interfaces of which will be described in Lingua Franca to be able to analyze global timing properties of the system. 
-% Similarly desirable are guarantees, e.g. about meeting real-time deadlines, or sound properties, like determinism, which makes \emph{any} software easier to test and verify.
-% However, the landscape of modern computing system is complex and very heterogeneous, which makes combining components already difficult, even more so enforcing a particular set of execution semantics. 
-
-%is the transition here too rough?
 \section{Actors}\label{sec:actor}
 The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in the early 70s. 
 %A well-known programming paradigm used in this context are Hewitt~\cite{Hewitt:77:Actors} actors.
@@ -296,7 +286,7 @@ message handling and ensure determinism.
 
 Dataflow models are also closely related to the actor approach. In~\cite{wiik2018contract} the authors extend an (untimed) dataflow model with formal contracts that allow guarantees, e.g. for scheduling.
 There are timed models of dataflow~\cite{Sriram:00:Scheduling}, and even some structured approaches to use timing semantics in dataflow to execute time-critical applications in cyber-physical systems~\cite{GeilenEtAl:12:Scenarios}.
-These models are more restrictive than our propsed work and lack the polyglot flexibility of LF.
+These models are more restrictive than our propsed work and lack the polyglot flexibility of our approach.
 
 Fredlund et al. proposed timed extension of McErlang
 as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
@@ -310,107 +300,64 @@ S-Net~\cite{grelck2008gentle}
 Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
 Timed C \cite{Broman_timedC}
 
-
-%\ag{I tried to sum-up the big picture to help with the structure. This is based on my current understanding. It's probably not up-to-date with your project I've understood so far, so please correct me where I'm wrong.}
-%
-%What is \emph{Lingua Franca}? 
-%\begin{enumerate}
-%  \item DSL (Dual to embedded: host language gets embedded into LF)
-%    \begin{itemize}
-%    \item Polyglot (Multi-language)
-%    \item Concrete parser
-%    \end{itemize}
-%  \item A MoC (refining of actors)
-%    \begin{itemize}
-%    \item Formal specification
-%    \item Concrete implementations (hosts)
-%    \end{itemize}
-%  \item An analysis Framework
-%    \begin{itemize}
-%    \item Annotations ``implicit'' from language
-%    \item Concrete reasonings (e.g. WCET analysis?)
-%    \end{itemize}
-%\end{enumerate} 
-%
-%Advantages:
-%\begin{enumerate}
-%\item Multi-language and multi-system: allows combining (``glue'') and reuse of legacy systems and code.
-%\item Concurrency and determinism.
-%\item Encapsulation via scoping mechanisms.
-%\item Analysis through interface definitions.
-%\item A semantic notion of time.
-%\end{enumerate}
-
-%\section{Actors in Lingua Franca}
-% sectioning.... ?
-\section{Lingua Franca}
+\subsection{Modularity and Interfaces}
 In the original Hewitt actors and many modern implementations, actors have references to the actors that they communicate with.
-In Lingua Franca, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. This approach increases modularity and, more importantly, exposes dependencies between actors.
-All messages communicated between LF actors are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. 
+In our approach, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. This approach increases modularity and, more importantly, exposes dependencies between actors.
+All messages communicated between actors in our model are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. 
 
-While the semantics of LF is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}, to increase efficiency, we avoid performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. The schedule for message delivery is based purely on the topology of the actor graph.
+While this DE semantics is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}, to increase efficiency, we avoid performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. The schedule for message delivery is based purely on the topology of the actor graph.
 %, and no static analysis of the actors' internals is required. 
 %---the actors are treated as black boxes. 
 Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject to rescheduling is contained when reconfigurations occur during runtime. A runtime reconfiguration always occurs within a composite actor that can coordinate it in a predictable and orderly fashion. %whose interface remains unchanged.\marten{This is not completely true. I/O dependencies may change, which may lead to scheduling problems outside of the composite. The good thing is that we can detect problems before enacting the changes, but it could potentially require communication with composites up the hierarchy.} 
 
-Actors are useful for encapsulating state, though it is often necessary for distinct but related computational activities to share state. For instance, a single actor to could serve as proxy for a device (e.g, a hub for smart lights), for which it performs several different tasks.
-Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, in Lingua Franca, we made causality interfaces part of the language definition. We break an actor's functionality down into \emph{reactions}, each of which is subject to simple lexical scoping rules that limit its access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
+Actors are useful for encapsulating state, though it is often necessary for distinct but related computational activities to share state. For instance, a single actor to could serve as a proxy for a device (e.g, a hub for smart lights), for which it performs several different tasks.
+Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, we propose to make causality interfaces part of the language definition. Specifically, this can be done by breaking an actor's functionality down into \emph{reactions}, each of which is subject to simple lexical scoping rules that limit its access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
 
-Importantly, the functionality of a reaction can be treated as a black box; a schedule can be devised purely based on dependency information. This is why we designed Lingua Franca to be polyglot. It mixes interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems.
-
-\todo{Probably better to briefly discuss the tool chain here (not enough space for a separate section). We could add a simple diagram.}
-
-Consider the following example of a simple LF actor that implements a brake component:
+Importantly, the functionality of a reaction can be treated as a black box; a schedule can be devised purely base on dependency information. This very feature opens the possibility for polyglot language design. We can mix interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems. Consider the following example of what such a polyglot actor definition could look like:
 
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
 
-% \marten{Old paragraph:}
-% LF actors, on the other hand, are better characterized as \emph{gray} boxes considering they reveal some key features of their internal structure, namely a closer approximation of the true dependencies between their ports. 
-% \edward{This is not quite right. The causality interfaces of Ptolemy II (Zhou et al.) expose fine-grain causality information.}\marten{On the merit of decomposing {\tt fire} into reactions: sure, Ptolemy II uses causality interfaces, but dependencies within actors have to be \emph{declared} in Ptolemy II. Importantly, these declarations are based on assertions about actors' {\tt fire} functions, and they may or may not be true. The dependencies that we extract from our actor definitions are always complete (modulo dependencies via shared state), and sound, modulo data dependencies. I would consider this an improvement. The conclusions of the Zhou paper also hint at this problem, admitting that causality interfaces are difficult to infer (Rice's theorem), and that a solution could be to use languages that are more amenable to such analysis.}
-% Other than actors in Ptolemy II, which implement an abstract semantics~\cite{TripakisEtAl:12:AbstractSemantics} that requires each actor to perform all of its computation in a so-called \emph{fire} function, LF actors are broken down into smaller units we call \emph{reactions}. This approach, inspired by the characterization of dataflow processes given in \cite{LeeMatsikoudis:09:Dataflow}, exposes the dependencies between actors' inputs and output at a finer grain. We enforce simple lexical scoping rules, which virtually any programmer is already familiar with, to limit reactions' access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope.
 
-
-\begin{minipage}{0.50\linewidth}
-% \begin{enumerate}
-%   \item First item \\
-%         This is the second line in item and this may extend to third if long
-%   \item second item\ldots
-% \end{enumerate}
-\begin{lstlisting}[language=LF,numbers=none]
+\begin{figure}[ht]
+ \centering
+\begin{minipage}{0.48\linewidth}
+\begin{lstlisting}[language=LF]
 target C;
-actor Brake {
-  input check:void;
-  input apply:int;
-  output on:bool;
-  preamble {=
-  	bool state = false;
-  	void actuate(int val) { 
-  	  ...
-  	} 
-  =}
+actor Src(prd:int(10)) {
+	output out;
+	trigger t(0, prd, 0);
+	constructor {=
+		int count = 0;
+	=}
+	reaction(t) {=
+		count++;
+		set(out, count);
+	=}
+}
 \end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.50\linewidth}
-\begin{lstlisting}[numbers=none]
-  reaction(apply) {=
-    state = true;
-    if (apply > 5)
-      actuate(apply);
-    else
-      set(state) = false;
-  =}
-  reaction(check) -> on {=
-    on = state;
-  =}
+\begin{lstlisting}[language=LF,firstnumber=13]
+
+actor Dst {
+	input in;
+	reaction(in) {=
+		println(in);
+	=}
+}
+composite Model {
+	instance a = Src(prd=100);
+	instance b = Dst();
+	a.out -> b.in;
 }
 \end{lstlisting}
 \end{minipage}
+ \caption{FIXME}
+ \label{fig:lf-compiler}
+\end{figure}
 
-As signified by the {\tt target} keyword, this Brake actor incorporates C code. After declaring the actor's input and output ports, and their respective C types, a preamble delimits the first block of C code that is used to declare variables and functions that may be referenced in any of the actor's reactions. All target code is delimited by {\tt \{=} and {\tt =\}}. The first reaction is triggered by events on the {\tt apply} port; it applies the brakes when the received value is above a threshold, and sets the state (brake pressed or not) accordingly; no outputs are produced by this reaction. The second reaction, triggered by events on the {\tt check} port, simply reports the current state of the actor. To ensure determinism, if {\tt apply} and {\tt check} receive an event simultaneously (i.e., the time stamps associated with the events are equal), the reactions will be triggered in order of declaration. Each reaction runs until completion before the next reaction is triggered.
 
-% \marten{Potentially save this paragraph for another paper.}
-% Aside from making the detection of zero-delay feedback less conservative, having fine-grained dependency information available at the interface level opens up avenues for scheduling optimizations, and, we conjecture, will enable remote procedure calls (RPCs) between actors without compromising determinism or modularity. \todo{relate to example}
-% The same dependency analysis performed to devise a schedule for message delivery and rule out zero-delay feedback can also be used to coordinate RPCs and guarantee deadlock freedom. We think that integrating RPCs into LF will be key to achieving wide adoption of our programming model, because it is such an omnipresent language feature, even in some actor-based frameworks, for example Ray~\cite{DBLP:journals/corr/abs-1712-05889}.
+\section{Coordination Semantics}
 
 
 % Sort reactions topologically based on precedences.
@@ -494,42 +441,7 @@ We summarize our model in terms of the following principles.
 	\item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
 \end{enumerate}
 
-\begin{figure}[ht]
- \centering
-\begin{minipage}{0.50\linewidth}
-\begin{lstlisting}[language=LF]
-target C;
-actor Src(prd:int(10)) {
-	output out;
-	trigger t(0, prd, 0);
-	constructor {=
-		int count = 0;
-	=}
-	reaction(t) {=
-		count++;
-		set(out, count);
-	=}
-}
-\end{lstlisting}
-\end{minipage}%
-\begin{minipage}{0.50\linewidth}
-\begin{lstlisting}[firstnumber=13]
-actor Dst {
-	input in;
-	reaction(in) {=
-		println(in);
-	=}
-}
-composite Model {
-	instance a = Src(prd=100);
-	instance b = Dst();
-	a.out -> b.in;
-}
-\end{lstlisting}
-\end{minipage}
- \caption{FIXME}
- \label{fig:lf-compiler}
-\end{figure}
+
 
 FIXME:
 For example, actors might be defined and composed as shown in figure FIXME.
@@ -595,20 +507,20 @@ more compactly, for example with the Ptolemy II notion of ``multiports'' or ``pe
 %the actor. Maybe this would be a leaner and cleaner semantic.}
 %\marjan{Ok, I think I understand what you mean. And I am just thinking, sometimes we need to know if the event at the other port is "new" or not too old, can we do that here? I guess we can write a code for that, keeping the "model time stamp" of the "last seen" value maybe ... }
 
-\subsection{Compiler Tool Chain}
+% \subsection{Compiler Tool Chain}
 
-\begin{figure}[ht]
- \centering
- \includegraphics[width=0.8\linewidth]{img/lf-compiler}
- \caption{The Envisioned Tool Chain}
- \label{fig:lf-compiler}
-\end{figure}
+% \begin{figure}[ht]
+%  \centering
+%  \includegraphics[width=0.8\linewidth]{img/lf-compiler}
+%  \caption{The Envisioned Tool Chain}
+%  \label{fig:lf-compiler}
+% \end{figure}
 
-For Lingua Franca we envision a tool chain as depicted in Figure~\ref{fig:lf-compiler}.
-Code will first be parsed for the LF semantics, producing object files or code specific to the used language and host targeted.
-Analysis such as semantic soundness or timing guarantees when permitted can be included as part of this LF compiler suite.
-Different actors are integrated as composites in a (logically) distinct host.
-\ag{this is my (perhaps outdated) understanding of the envisioned tool chain. Feel free to change this and/or ask for changes in the Figure.}
+% For Lingua Franca we envision a tool chain as depicted in Figure~\ref{fig:lf-compiler}.
+% Code will first be parsed for the LF semantics, producing object files or code specific to the used language and host targeted.
+% Analysis such as semantic soundness or timing guarantees when permitted can be included as part of this LF compiler suite.
+% Different actors are integrated as composites in a (logically) distinct host.
+% \ag{this is my (perhaps outdated) understanding of the envisioned tool chain. Feel free to change this and/or ask for changes in the Figure.}
 
 % Time is \emph{logical} time. This logical time be used for simulation and then
 % we call it model time. We can also use the network of actors for the implementation
@@ -626,17 +538,15 @@ For dynamic systems, e.g., an IoT that keeps running, but in different contexts
 This may be well supported when targeting a dynamic language such as JavaScript,
 but harder to implement in C.
 
-To support reconfiguration we need a more complete language than the configuration
-language LF. Therefore, our first iteration of dynamic reconfiguration is done in the
-host language JavaScript. In that case, the host language needs access to actors and
+To support runtime reconfiguration the target language needs access to actors and
 ports. However, we can use scopes to having access to those parts of the framework
 only in well defined places.
 
 \martin{Will we talk about execution hosts such as PRET machines or Patmos
 when targeting C and WCET analysis?}
 
-\section{Timing and Determinism}
-Central to the LF programming model is the relationship between the time stamps of messages.
+\section{Time, Delays, and Deadlines}
+Central to our programming model is the relationship between the time stamps of messages.
 These time stamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in time-stamp order.
 When an actor receives multiple messages with the same time stamp, these messages are logically
 \emph{simultaneous}, and the actor handles them in a well-defined deterministic order.
@@ -644,8 +554,7 @@ Logical time is distinct from \emph{physical time}, as measured anywhere in a ne
 First, logical time remains constant during the execution of any reaction in any actor, and outputs produced by that reaction have
 the same logical time stamp as the inputs that trigger the reaction.
 \ag{Why do we do this? What would speak against having the timestamps of the output also be synchronized with physical time when sending them. I see more problems with having a logically instantaneous reaction than I see advantages with it.}
-But in LF, there is a relationship between logical time and physical time,
-a relationship that helps to reliably deliver real-time behavior.
+But if we establish a relationship between logical time and physical time, that can help to reliably deliver real-time behavior.
 
 Consider the example in Fig.~\ref{fig:actor-graph}.
 
@@ -677,7 +586,10 @@ Consider the example in Fig.~\ref{fig:actor-graph}.
  \label{fig:actor-graph}
 \end{figure}
 
-While actors react in a coordinated fashion to messages from other actors, they could register an interrupt service routine or pass a callback to an asynchronous process that gets executed sporadically, bypassing the control of the composite. Any reaction that is expected to be triggered by such an event must be scheduled explicitly. The time stamp assigned to such reaction will be will be equal to the current physical time (i.e., obtained from a clock provided by the computation platform), provided that it is greater than the last seen (or current) logical time. \marten{What do we do if there are events in the queue with a release time earlier than the current physical time? Let them go first? Or does the sporadic event go first?}
+While actors react in a coordinated fashion to messages from other actors, they could register an interrupt service routine or pass a callback to an asynchronous process that gets executed sporadically, bypassing the control of the composite. Any reaction that is expected to be triggered by such an event must be scheduled explicitly. The time stamp assigned to such reaction will be will be equal to the current physical time (i.e., obtained from a clock provided by the computation platform), provided that it is greater than the last seen (or current) logical time. 
+
+% \marten{What do we do if there are events in the queue with a release time earlier than the current physical time? Let them go first? Or does the sporadic event go first?}
+% Answer: Just assign the if our program is able to satisfy timing constraints, this situation will not occur.
 
 \paragraph{Synchronization to Physical Time}
 \begin{enumerate}
