@@ -460,7 +460,7 @@ We summarize our model in terms of the following principles.
 
 \paragraph{Actors and Message Exchange}
 \begin{enumerate}
-	\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
+	\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.\ag{are these fundamentally different from input ports, or just input ``marked'' input ports (that trigger a reaction)? I think this should be clarified at this point in the paper.}
 	\item Each actor operates in the context of a composite, which manages connections between actors, the delivery of messages, and the scheduling and execution of reactions;
 	\item A message is sent via a port, and it is delivered to the ports of other actors via a connection; a port must be connected to the port of another actor within the same composite before it can receive messages.
 	\item An actor may send messages to multiple input ports or multiple actors;
@@ -484,14 +484,14 @@ We summarize our model in terms of the following principles.
 	\item A reaction must also declare inputs that it does not react to but that it reads;
 	at a logical time, those inputs may also be absent.
 	\item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion of the reaction with a payload equal to the final value set by the reaction.
-	\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked.
+	\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked. \ag{Why? Isn't this unintuitive? Why not have all messages sent (e.g. with the same timestamp and superdense ordering in the execution order of the producing reactions)?}
 	\item A reaction can schedule a trigger at a future logical time.
 \end{enumerate}
 
 \paragraph{Passage of Logical Time}
 \begin{enumerate}
 	\setcounter{enumi}{16}
-	\item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined.
+	\item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined. \ag{At this points the signals are consumed, right? I would say this explicitly}
 	\item Logical time is constant during execution of a reaction.
 	\item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
 \end{enumerate}
