@@ -263,7 +263,9 @@ The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in th
 %A well-known programming paradigm used in this context are Hewitt~\cite{Hewitt:77:Actors} actors.
 Since then,
 %their introduction in the 70s,
-the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,haller2009scala,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, \armin{I would give up \cite{haller2009scala} in favor of \cite{Hunt2018}}\marten{Why? They are mentioned in different contexts...} and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
+%NOTE: removed citation of Scala (haller2009scala)
+the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, 
+and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}.
 Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects.
 Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
 Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
@@ -326,6 +328,8 @@ Actors are useful for encapsulating state, though it is often necessary for dist
 Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, in Lingua Franca, we made causality interfaces part of the language definition. We break an actor's functionality down into \emph{reactions}, each of which is subject to simple lexical scoping rules that limit its access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
 
 Importantly, the functionality of a reaction can be treated as a black box; a schedule can be devised purely based on dependency information. This is why we designed Lingua Franca to be polyglot. It mixes interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems, and everything in between.
+
+\todo{Probably better to briefly discuss the tool chain here (not enough space for a separate section). We could add a simple diagram.}
 
 Consider the following example of a simple LF actor that implements a brake component:
 
@@ -455,13 +459,12 @@ We summarize our model in terms of the following principles.
 	\item A reaction can schedule a trigger at a future logical time.
 \end{enumerate}
 
-\paragraph{Passage of Time}
+\paragraph{Passage of Logical Time}
 \begin{enumerate}
 	\setcounter{enumi}{16}
 	\item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined.
 	\item Logical time is constant during execution of a reaction.
 	\item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
-	\item \todo{Discuss synchronization to physical time?}
 \end{enumerate}
 
 
@@ -525,85 +528,92 @@ Central to the LF programming model is the relationship between the time stamps 
 These time stamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in time-stamp order.
 When an actor receives multiple messages with the same time stamp, these messages are logically
 \emph{simultaneous}, and the actor handles them in a well-defined deterministic order.
-Logical time is distinct from physical time, as measured anywhere in a networked application.
+Logical time is distinct from \emph{physical time}, as measured anywhere in a networked application.
 First, logical time remains constant during the execution of any reaction in any actor, and outputs produced by that reaction have
 the same logical time stamp as the inputs that trigger the reaction.
 But in LF, there is a relationship between logical time and physical time,
 a relationship that helps to reliably deliver real-time behavior.
-\edward{This relationship needs to be explained more carefully and using examples.}
-The passing of \emph{physical} time, approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily in a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
 
-\todo{discuss timing and scheduling using actor graph examples (no code)}
-\subsection{Delays and Deadlines}
-$\mathcal{D}$
-We have a notion of delay in two places: (1) as a delay actor to break up
-feedback loops and (2) at actuators to specify that an actuation shall happen before
-(or exactly at) the logical time of the input plus the delay.
+Consider the example in Fig.~\ref{fig:actor-graph}.
 
-Delays deserve also the purpose to align events with wall clock time and to
-allow execution of reactions in their worst-case execution time (WCET).
-The sum of all reaction's WCET from one synchronization point (either
-sample of sensors or output of a delay actor) to another synchronization
-point (or output of an actuator) has to be less than the delay.
+
+
+\todo{Explain delays )}
+%SCRATCHPAD:
+% We do not want to run ahead of realtime, because actors can produce spontaneous events that need to be stamped with 
+% physical time, and we don't want these timestamps to be ``in the past.''
+% The passing of \emph{physical} time is approximated by the system time of the execution platform. While logical time can be sped up or slowed down arbitrarily in a simulation, the fact that actors can interact with the physical world through sensors and actuators requires that logical time and physical time ``keep up'' with one another in order to have a temporal semantics that obeys the principle of causality (i.e., effects cannot precede causes) for all observers. 
+
+
+% \subsection{Delays and Deadlines}
+
+% We have a notion of delay in two places: (1) as a delay actor to break up
+% feedback loops and (2) at actuators to specify that an actuation shall happen before
+% (or exactly at) the logical time of the input plus the delay.
+
+% Delays deserve also the purpose to align events with wall clock time and to
+% allow execution of reactions in their worst-case execution time (WCET).
+% The sum of all reaction's WCET from one synchronization point (either
+% sample of sensors or output of a delay actor) to another synchronization
+% point (or output of an actuator) has to be less than the delay.
+
 \begin{figure}[ht]
  \centering
- \includegraphics[width=\linewidth]{img/example-1}
+ \includegraphics[width=\linewidth]{img/example}
  \caption{First example}
- \label{fig:example-1}
+ \label{fig:actor-graph}
 \end{figure}
-% DAC Properties A1-9.
-% Simple examples. Which should those be?
-% First one to start with: sensor computation actuator
-% Introduce notion of a deadline
-% Why on the local platform, model should not get ahead.
-% Example 1: Synchronization to real time and deadlines
-% Example 2: Why delay has to wait
-% Example 3: shut off the lights some time after the switch has been flipped.
-% Reason to have the deadline definition as stated: detectability. Suppose the start deadline cannot be met; the
-% reaction should not be carried out (and then the violation be reported on).
+
+While actors react in a coordinated fashion to messages from other actors, they could register an interrupt service routine or pass a callback to an asynchronous process that gets executed sporadically, bypassing the control of the composite. Any reaction that is expected to be triggered by such an event must be scheduled explicitly. The time stamp assigned to such reaction will be will be equal to the current physical time (i.e., obtained from a clock provided by the computation platform), provided that it is greater than the last seen (or current) logical time. \marten{What do we do if there are events in the queue with a release time earlier than the current physical time? Let them go first? Or does the sporadic event go first?}
+
+\paragraph{Synchronization to Physical Time}
+\begin{enumerate}
+	\setcounter{enumi}{19}
+	\item The logical time of any reaction that is scheduled inside an interrupt service routine or asynchronous callback (any computation that is not coordinated by the composite) will be equal to the current physical time (i.e., obtained from a clock provided by the computation platform). \todo{rephrase}
+	\item \todo{Define the semantics of delays?}
+\end{enumerate}
  
-\subsection{Sporadic Events and Call Backs}
 
-\martin{Call backs have not yet been introduced in the paper. We need to specify
-what they are. Similar we have not yet talked about input/sensors that may be
-sporadic events.}
+%This way, reactions can be triggered by asynchronous events without introducing possible race conditions with any on-going reactions.
 
-Sporadic events and call backs can trigger a reaction. This reaction is allowed
-to observe and also change the state of the actor. Therefore, they are not allowed
-to preempt a reaction (reactions are atomic to each other). To enforce this atomicity
-a sporadic reaction is executed only between two logical timestamps $t_1$ and $t_2$.
+% Sporadic events and call backs can trigger a reaction. This reaction is allowed
+% to observe and also change the state of the actor. Therefore, they are not allowed
+% to preempt a reaction (reactions are atomic to each other). To enforce this atomicity,
+% a sporadic event 
+%reaction is executed only between two logical timestamps $t_1$ and $t_2$.
+
+
+\todo{Describe that the single threaded execution of JavaScript enforces
+the restriction of the call back not interrupting the reaction.}
 This can be enforced on a C based host by turning off interrupts when executing
 a reaction. Interrupts are enabled when all\footnote{\todo{All is a little bit restrictive,
 just for state atomicity we would not need to wait for all reaction, just for a single.
 But there is another issue that this shall happen only between two timestamps.
-I don't recall the details.}}
+I don't recall the details.}\marten{I don't think it is too restrictive; the programmer should be able to rely on persistence of state in between two subsequent reactions that happen at the same time. If we allow the sporadic reaction to go in between, we violate this assumption.}}
 reactions for timestamp $t_1$ have been executed and disabled again when logical
 time is advanced to $t_2$ where all reactions for $t_2$ are executed.
 
-\subsection{Causality}
-We do not want to run ahead of realtime, because actors can produce spontaneous events that need to be stamped with 
-pysical time, and we don't want these timestamps to be ``in the past.''
-
-\begin{figure}[ht]
- \centering
- \includegraphics[width=\linewidth]{img/example-2}
- \caption{Second example}
- \label{fig:example-2}
-\end{figure}
+% \subsection{Causality}
 
 
-\subsection{Example 3}
-Shut off the lights some time after the switch has been flipped. Reason to have the deadline definition as stated: detectability. Suppose the start deadline cannot be met; the reaction should not be carried out (and the violation be reported on subsequently).
+% \begin{figure}[ht]
+%  \centering
+%  \includegraphics[width=\linewidth]{img/example-2}
+%  \caption{Second example}
+%  \label{fig:example-2}
+% \end{figure}
 
-\begin{figure}[ht]
- \centering
- \includegraphics[width=\linewidth]{img/example-3}
- \caption{Third example}
- \label{fig:example-3}
-\end{figure}
 
-\marten{In third example, discuss how persistent ports can be used.}
-\marten{Also, discuss optimized scheduler that runs ahead of physical time.}
+% \subsection{Example 3}
+% Shut off the lights some time after the switch has been flipped. Reason to have the deadline definition as stated: detectability. Suppose the start deadline cannot be met; the reaction should not be carried out (and the violation be reported on subsequently).
+
+% \begin{figure}[ht]
+%  \centering
+%  \includegraphics[width=\linewidth]{img/example-3}
+%  \caption{Third example}
+%  \label{fig:example-3}
+% \end{figure}
+
 \section{Related Work}
 \label{sec:related}
 
@@ -620,10 +630,18 @@ These models are more restrictive than our propsed work and lack the polyglot fl
 
 Fredlund et al. proposed timed extension of McErlang
 as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
-In \cite{DBLP:journals/csur/BoerSHHRDJSKFY17}, de Boar et al. provided a survey on active object languages but there is no focus on timed features.
+%In \cite{DBLP:journals/csur/BoerSHHRDJSKFY17}, de Boer et al. provided a survey on active object languages but there is no focus on timed features.
 
-\martin{Oh boy, we have way too many references for a 4 pages position paper.}
-\marjan{That's why I happily didn't add much to the Related Work section. I just wrote the McErlang part, and now I added a line on a survey that can just be commented out for this paper. I think the work of Gul, RTSynchronizer, is very close, although it is very old. Also the Theatre framework is close but can be ignored for now. }
+In \cite{ren1995rtsynchronizer}, Ren and Agha also propose giving actors a temporal
+semantics. As in our work, they assume a sufficiently well synchronized
+common physical time base shared by all actors, and they express timing
+requirements as constraints on message handling. Their work differs from
+ours, however, in that they build off a standard actor language, thereby
+inheriting its nondeterministic ordering of message handling, and they
+rely on separately imposing timing constraints to control the order when
+needed. In contrast, we use logical time stamps to define the order of
+message handling and ensure determinism.
+
 %\section{Actors}
 %
 
@@ -668,9 +686,6 @@ In \cite{DBLP:journals/csur/BoerSHHRDJSKFY17}, de Boar et al. provided a survey 
 
 
 
-
-\todo{Describe that the single threaded execution of JavaScript enforces
-the restriction of the call back not interrupting the reaction.}
 
 
 
