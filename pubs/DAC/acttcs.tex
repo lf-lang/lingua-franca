@@ -11,7 +11,7 @@
 \lstdefinelanguage{LF}{
   %keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
   %more
-  keywords={reaction, preamble, target, actor, composite, trigger, input, output, constructor, new},
+  keywords={reaction, preamble, target, actor, composite, trigger, input, output, constructor, new, auto},
   keywordstyle=\color{black}\bfseries,
   ndkeywords={class, export, boolean, throw, implements, import, this},
   ndkeywordstyle=\color{darkgray}\bfseries,
@@ -309,9 +309,9 @@ While this DE semantics is formally based on a synchronous/reactive MoC~\cite{Le
 Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject to rescheduling is contained when reconfigurations occur during runtime. A runtime reconfiguration always occurs within a composite actor that can coordinate it in a predictable and orderly fashion. %whose interface remains unchanged.\marten{This is not completely true. I/O dependencies may change, which may lead to scheduling problems outside of the composite. The good thing is that we can detect problems before enacting the changes, but it could potentially require communication with composites up the hierarchy.} 
 
 Actors are useful for encapsulating state, though it is often necessary for distinct but related computational activities to share state. For instance, a single actor to could serve as a proxy for a device (e.g, a hub for smart lights), for which it performs several different tasks.
-Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, we propose to make causality interfaces part of the language definition. Specifically, this can be done by breaking an actor's functionality down into \emph{reactions}, each of which is subject to simple lexical scoping rules that limit its access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope. 
+Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, we propose to make causality interfaces an integral part actor definitions. Specifically, this can be done by breaking an actor's functionality down into \emph{reactions}, each of which is subject to simple lexical scoping rules that limit its access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope.
 
-As a result, the functionality of a reaction can be treated as a black box; a schedule can be devised purely base on dependency information. This very feature opens the possibility for a \emph{polyglot} language design. We can mix interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems. For example, actors might be defined and composed as shown in Fig.~\ref{fig:code}. The first line specifies that the target language is C. The second line defines an \keyword{actor} named {\tt Source} with a \keyword{parameter} named {\tt period} that has type {\tt int} and default value 10. This actor also has an \keyword{output} named {\tt out}. A \keyword{trigger} is like an input port in that it receives messages, but it is ``private'' in the sense that it receives only messages initiated by its own actor. On line 5, a \keyword{constructor} delimits the first block of C code that is used to declare variables and functions that may be referenced in any of the actor's reactions. All target code is delimited by {\tt \{=} and {\tt =\}}. \todo{reactions and composition} 
+The functionality of a reaction can be treated as a black box; a schedule can be devised purely base on dependency information. This very feature opens the possibility for a \emph{polyglot} language design. We can mix interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems. 
 
 %Consider the following example of what such a polyglot actor definition could look like:
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
@@ -320,13 +320,13 @@ As a result, the functionality of a reaction can be treated as a black box; a sc
 \begin{minipage}{0.50\linewidth}
 \begin{lstlisting}[language=LF]
 target C;
-actor Ramp(prd:int(10)) {
+actor Ramp(p:int(10)) {
 	output out:int;
-	trigger t(0, prd, 0);
+	auto trigger t(0, p);
 	constructor {=
 		int count = 0;
 	=}
-	reaction(t) {=
+	reaction(t) -> out {=
 		count++;
 		set(out, count);
 	=}
@@ -349,11 +349,13 @@ composite App {
 }
 \end{lstlisting}
 \end{minipage}
- \caption{Ramp feeding into a print actor}
+ \caption{\keyword{Ramp} feeding into a \keyword{Print} actor}
  \label{fig:code}
 \end{figure}
 % The first reaction is triggered by events on the {\tt apply} port; it applies the brakes when the received value is above a threshold, and sets the state (brake pressed or not) accordingly; no outputs are produced by this reaction. The second reaction, triggered by events on the {\tt check} port, simply reports the current state of the actor. To ensure determinism, if {\tt apply} and {\tt check} receive an event simultaneously (i.e., the timestamps associated with the events are equal), the reactions will be triggered in order of declaration. Each reaction runs until completion before the next reaction is triggered.
 
+For example, actors might be defined and composed as shown in Fig.~\ref{fig:code}. The first line specifies that the target language is C. The second line defines an \keyword{actor} named {\tt Source} with a parameter named {\tt p} that has type {\tt int} and default value {\tt 10}. This actor also has an \keyword{output} named {\tt out}. A \keyword{trigger} is like an input port in that it receives messages, but it is ``private'' in the sense that it receives only messages initiated by its own actor. The statement on line 4 indicates that an event is expected to automatically appear at {\tt t}. The first argument passed to the \keyword{trigger} indicates a zero time offset for the arrival of the first event, and the second argument indicates the event should reoccur with a time period {\tt p}. On line 5, a \keyword{constructor} delimits the first block of C code that is used to declare variables and functions that may be referenced in any of the actor's reactions. All target code is delimited by {\tt \{=} and {\tt =\}}. A \keyword{reaction} (lines 8, 16) declares (between braces) the inputs/triggers that cause it to execute; after that, and before the target code block starts, other inputs/triggers that it may use are listed before the {\tt ->}, outputs that it may set are listed after. Finally, the \keyword{composite} declared on line 20 instantiates a {\tt Ramp} and {\tt Print} actor and connects them (line 23). 
+\marten{Not yet happy about the flow of the above paragraph.}
 
 
 \section{Coordination Semantics}
