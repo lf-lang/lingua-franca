@@ -318,7 +318,7 @@ but, to be concrete, we discuss source code examples.
 \begin{lstlisting}[language=LF]
 target C;
 reactor Ramp(p:int(10)) {
-	input reset:pure;
+	input set:int;
 	output out:int;
 	clock c(p);
 	constructor {=
@@ -328,8 +328,8 @@ reactor Ramp(p:int(10)) {
 		count++;
 		set(out, count);
 	=}
-	reaction(reset) {=
-		count = 0;
+	reaction(set) {=
+		count = set;
 	=}
 }
 \end{lstlisting}
@@ -358,8 +358,8 @@ composite App {
 Consider the source code listed in Fig. \ref{fig:code}. 
 The \texttt{Ramp} reactor emits messages, which are a counting sequence beginning at 0, at regular time intervals
 with a period given by its parameter \texttt{p}.
-\marten{Review:} It declares an output named \texttt{out} of type \texttt{int}, a
-\keyword{clock} which will trigger reactions periodically, and an input named {\tt reset} of type {\tt pure}. Pure inputs denote messages that do not carry a value. 
+It declares an output named \texttt{out} of type \texttt{int}, a
+\keyword{clock} which will trigger reactions periodically, and an input named {\tt set} of type {\tt int}.
 The \keyword{constructor} declares and initializes a state variable named \texttt{count}.
 This reactor has one \keyword{reaction}, which is triggered by the \keyword{clock} named \texttt{c} and produces
 an output on the port named \texttt{out}. \marten{Review:} If a reset message were to arrive simultaneously with a clock tick, the reset will happen \emph{after} the increment and production of output; should the opposite be desired, the two reactions have to be declared in inverse order.
