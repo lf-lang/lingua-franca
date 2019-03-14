@@ -347,24 +347,42 @@ composite App {
  \label{fig:code}
 \end{figure}
 
-\edward{Informal description of the example}
+The \texttt{Ramp} reactor sends messages that are a counting sequence beginning at 0 at regular time intervals
+with period given by its parameter \texttt{p}.
+It declares an output named \texttt{out} of type \texttt{int} and a
+\keyword{clock}, which will trigger reactions periodically.
+The \keyword{constructor} declares and initializes a state variable \texttt{count}.
+This reactor has one \keyword{reaction}, which is triggered by the \keyword{clock} named \texttt{c} and produces
+an output on the port named \texttt{out}.
+The \texttt{Print} reactor has an input port named \texttt{in} that triggers its one and only reaction.
+The \keyword{composite} defines one instance of each of these reactors and connects their ports.
+
+The body of the reactions is written in some target language, which in Fig.~\ref{fig:code} is specified to be C.
+The target code in the figure is delimited by {\tt \{=} and {\tt =\}}.
+Inputs, outputs, and triggers used by this code are declared.
+For example, line 8 declares that the reaction is triggered by the \keyword{clock} named \texttt{c} and
+produces an output on the port named \texttt{out}.
 
 Reactors can also be used to handle less predictable asynchronous behaviors,
 such as network interactions, interrupt-driven sporadic sensors, and other unpredictable events.
 A simple example is sketched in Figure \ref{fig:async}.
-That example is an reactor with a single input, \texttt{url}.
-\edward{Informal description of the example}
-
+That reactor, upon receiving an input at its \texttt{url} port,
+issues an asynchronous HTTP request over the network.
+When the reply from the remote server is received, the callback function is invoked.
+That function schedules a subsequent reaction via the \keyword{action} trigger named \texttt{arrived}.
+An \keyword{action} trigger is like an input, but messages are not received from other reactors,
+but rather as a side effect of some action of this reactor itself.
+The fact that the first reaction causes a deferred trigger is indicated by the syntax \texttt{--> arrived}.
 
 \begin{figure}[ht]
 \begin{lstlisting}[language=LF]
 reactor REST() {
 	input url:string;
 	output out:string;
-	action arrival:string;
-	reaction(url) --> arrival {=
+	action arrived:string;
+	reaction(url) --> arrived {=
 		httpRequest(url, function(reply) {
-			schedule(arrival, reply);
+			schedule(arrived, reply);
 		});
 	=}
 	reaction(arrival) -> out {=
@@ -376,17 +394,21 @@ reactor REST() {
  \label{fig:async}
 \end{figure}
 
+\todo{Examples don't illustrate ordering of reactions.}
+
 \subsection{Reactor Principles}
 
 We summarize our model in terms of the following principles.
 
-\paragraph{Actors and Message Exchange}
 \begin{enumerate}
-	\item Actors have input ports, triggers, output ports, state, and an ordered list of reactions.
-	\item Each actor operates in the context of a composite (i.e., an actor that contains other actors), which manages connections between actors, the delivery of messages, and the scheduling and execution of reactions;
-	\item A message is sent via a port, and it is delivered to the ports of other actors via a connection; a port must be connected to the port of another actor within the same composite before it can receive messages.
-	\item An actor may send messages to multiple input ports or multiple actors;
-	these messages all bear the same timestamp.
+	\item Reactors have input ports, actions, and clocks, all of which are triggers. They also have output ports, local state, and an ordered list of reactions. A reaction is a procedure in a target language that is invoked in response to a trigger event, and \emph{only} in response to a trigger event.
+	\item A composite is a reactor that contains other reactors and manages their connections.
+	The connections define the flow of messages,
+	and two reactors can be connected only if they are contained in the same composite.
+	An output port may be connected to multiple input ports, but an input port can only be connected to one output port.
+	
+	\item composite: the delivery of messages, and the scheduling and execution of reactions
+	\item messages all bear the same timestamp.
 	\item No two distinct actors may send messages to the same input port of another actor;
 	a composition of actors that allows this is erroneous.
 	\item Messages sent/received by actors are timestamped and denote a discrete event.
@@ -499,13 +521,6 @@ The functionality of a reaction can be treated as a black box; a schedule can be
 
 % The first reaction is triggered by events on the {\tt apply} port; it applies the brakes when the received value is above a threshold, and sets the state (brake pressed or not) accordingly; no outputs are produced by this reaction. The second reaction, triggered by events on the {\tt check} port, simply reports the current state of the actor. To ensure determinism, if {\tt apply} and {\tt check} receive an event simultaneously (i.e., the timestamps associated with the events are equal), the reactions will be triggered in order of declaration. Each reaction runs until completion before the next reaction is triggered.
 
-For example, actors might be defined and composed as shown in Fig.~\ref{fig:code}. The first line specifies that the target language is C. The second line defines an \keyword{actor} named {\tt Source} with a parameter named {\tt p} that has type {\tt int} and default value {\tt 10}. This actor also has an \keyword{output} named {\tt out}. A \keyword{trigger} is like an input port in that it receives messages, but it is ``private'' in the sense that it receives only messages initiated by its own actor. The statement on line 4 indicates that an event is expected to automatically appear at {\tt t}\ag{I don't understand this sentence.}. The first argument passed to the \keyword{trigger} indicates a zero time offset for the arrival of the first event, and the second argument indicates the event should reoccur with a time period {\tt p}. On line 5, a \keyword{constructor} delimits the first block of C code that is used to declare variables and functions that may be referenced in any of the actor's reactions. All target code is delimited by {\tt \{=} and {\tt =\}}.
-A \keyword{reaction} (lines 8, 16) declares the inputs or triggers that cause it to execute between braces.
-Outputs that it may set are listed after.
-If the \keyword{reaction} had additional inputs or triggers that it might use, these would be listed before the {\tt ->}. \ag{perhaps actually add to the example or remove this sentence completely? It's probably not necessary.}
-Finally, the \keyword{composite} declared on line 20 instantiates a {\tt Ramp} and {\tt Print} actors and connects them (line 23). 
-\marten{Not yet happy about the flow of the above paragraph.}
-\ag{I'd question more if we need the whole paragraph (and the example), because we're not actually presenting any concrete syntax here now. Perhaps we should remove it.}
 
 
 \section{Coordination Semantics}
