@@ -361,8 +361,14 @@ with a period given by its parameter \texttt{p}.
 \marten{Review:} It declares an output named \texttt{out} of type \texttt{int}, a
 \keyword{clock} which will trigger reactions periodically, and an input named {\tt reset} of type {\tt pure}. Pure inputs denote messages that do not carry a value. 
 The \keyword{constructor} declares and initializes a state variable named \texttt{count}.
-This reactor has one \keyword{reaction}, which is triggered by the \keyword{clock} named \texttt{c} and produces
-an output on the port named \texttt{out}. \marten{Review:} If a reset message were to arrive simultaneously with a clock tick, the reset will happen \emph{after} the increment and production of output; should the opposite be desired, the two reactions have to be declared in inverse order.
+This reactor has two \keyword{reaction}s, one triggered by the \keyword{clock} named \texttt{c}
+and one triggered by the input \texttt{set}.
+The first reaction increments the state and sends it to the port named \texttt{out}, and the second reaction
+sets the state to a specified value.
+Because there are two reactions, in order to ensure determinacy, the reactor has to define in which order to
+handle simultaneous triggers.
+Here, we assume that the order of declaration gives that order, so the reaction to \texttt{c} will be invoked
+before the reaction to \texttt{set}.
 The \texttt{Print} reactor has an input port named \texttt{in} that triggers its one and only reaction.
 The \keyword{composite} defines one instance of each of these reactors and connects their ports.
 
