@@ -354,6 +354,10 @@ composite App {
  \label{fig:code}
 \end{figure}
 
+As signified by the {\tt target} keyword, the actors definitions in Fig.~\ref{fig:code} incorporates C code. After declaring the actor's input and output ports, and their respective C types, a constructor delimits the first block of C code that is used to declare variables and functions that may be referenced in any of the actor's reactions. All target code is delimited by {\tt \{=} and {\tt =\}}. \todo{Say more about the example}
+% The first reaction is triggered by events on the {\tt apply} port; it applies the brakes when the received value is above a threshold, and sets the state (brake pressed or not) accordingly; no outputs are produced by this reaction. The second reaction, triggered by events on the {\tt check} port, simply reports the current state of the actor. To ensure determinism, if {\tt apply} and {\tt check} receive an event simultaneously (i.e., the time stamps associated with the events are equal), the reactions will be triggered in order of declaration. Each reaction runs until completion before the next reaction is triggered.
+
+
 
 \section{Coordination Semantics}
 
