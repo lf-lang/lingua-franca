@@ -11,7 +11,7 @@
 \lstdefinelanguage{LF}{
   %keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
   %more
-  keywords={reaction, preamble, target, actor, composite, trigger, input, output, constructor, new, auto},
+  keywords={reaction, preamble, target, reactor, composite, trigger, input, output, constructor, new, action, clock},
   keywordstyle=\color{black}\bfseries,
   ndkeywords={class, export, boolean, throw, implements, import, this},
   ndkeywordstyle=\color{darkgray}\bfseries,
@@ -300,21 +300,25 @@ as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. 
 % Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
 % Timed C \cite{Broman_timedC}
 
-\subsection{Reactors, Informally}
+\section{Reactors}
 
 The approach we describe in this paper replaces classical actors with a model that we call ``reactors,''
 which are similar to actors, but with important differences.
 We will explain the model first, and then discuss its advantages.
 We do not make a commitment to a specific syntax for specifying reactors,
-but, to be concrete, we show in Figure \ref{fig:code} one possible syntax
-and specific simple application.
+but, to be concrete, we discuss source code examples.
 
+% show in Figure \ref{fig:code} one possible syntax
+% and specific simple application.
+
+\subsection{Examples}
 \begin{figure}[ht]
 \centering
 \begin{minipage}{0.50\linewidth}
 \begin{lstlisting}[language=LF]
 target C;
 reactor Ramp(p:int(10)) {
+	input reset:pure;
 	output out:int;
 	clock c(p);
 	constructor {=
@@ -323,6 +327,9 @@ reactor Ramp(p:int(10)) {
 	reaction(c) -> out {=
 		count++;
 		set(out, count);
+	=}
+	reaction(reset) {=
+		count = 0;
 	=}
 }
 \end{lstlisting}
@@ -336,8 +343,9 @@ reactor Print {
 		printf("%d\n", in);
 	=}
 }
+
 composite App {
-	a = new Ramp(prd=100);
+	a = new Ramp(p=100);
 	b = new Print();
 	a.out -> b.in;
 }
@@ -347,13 +355,14 @@ composite App {
  \label{fig:code}
 \end{figure}
 
-The \texttt{Ramp} reactor sends messages that are a counting sequence beginning at 0 at regular time intervals
-with period given by its parameter \texttt{p}.
-It declares an output named \texttt{out} of type \texttt{int} and a
-\keyword{clock}, which will trigger reactions periodically.
-The \keyword{constructor} declares and initializes a state variable \texttt{count}.
+Consider the source code listed in Fig. \ref{fig:code}. 
+The \texttt{Ramp} reactor emits messages, which are a counting sequence beginning at 0, at regular time intervals
+with a period given by its parameter \texttt{p}.
+\marten{Review:} It declares an output named \texttt{out} of type \texttt{int}, a
+\keyword{clock} which will trigger reactions periodically, and an input named {\tt reset} of type {\tt pure}. Pure inputs denote messages that do not carry a value. 
+The \keyword{constructor} declares and initializes a state variable named \texttt{count}.
 This reactor has one \keyword{reaction}, which is triggered by the \keyword{clock} named \texttt{c} and produces
-an output on the port named \texttt{out}.
+an output on the port named \texttt{out}. \marten{Review:} If a reset message were to arrive simultaneously with a clock tick, the reset will happen \emph{after} the increment and production of output; should the opposite be desired, the two reactions have to be declared in inverse order.
 The \texttt{Print} reactor has an input port named \texttt{in} that triggers its one and only reaction.
 The \keyword{composite} defines one instance of each of these reactors and connects their ports.
 
@@ -394,9 +403,7 @@ reactor REST() {
  \label{fig:async}
 \end{figure}
 
-\todo{Examples don't illustrate ordering of reactions.}
-
-\subsection{Reactor Principles}
+\subsection{Principles}
 
 We summarize our model in terms of the following principles.
 
@@ -516,6 +523,17 @@ Integrating related activities into a single atomic actor with multiple ports im
 
 The functionality of a reaction can be treated as a black box; a schedule can be devised purely base on dependency information. This very feature opens the possibility for a \emph{polyglot} language design. We can mix interface definitions and composition primitives with target language code that implements the functionality of the actors. A major advantage of this approach is that our programming model can target anything from the most primitive, resource constrained, deeply embedded systems to highly dynamic distributed systems. 
 
+
+For dynamic systems, e.g., an IoT that keeps running, but in different contexts
+(e.g., places), we support dynamic reconfiguration of the network of actors.
+This may be well supported when targeting a dynamic language such as JavaScript,
+but harder to implement in C.
+
+To support runtime reconfiguration the target language needs access to actors and
+ports. However, we can use scopes to having access to those parts of the framework
+only in well defined places.
+
+
 %Consider the following example of what such a polyglot actor definition could look like:
 % also, no need for postfire % maybe mention that this optimization comes at the loss of the ability of handling some zero-delay feedback models...
 
@@ -523,7 +541,7 @@ The functionality of a reaction can be treated as a black box; a schedule can be
 
 
 
-\section{Coordination Semantics}
+%\section{Coordination Semantics}
 
 
 % Sort reactions topologically based on precedences.
@@ -596,18 +614,6 @@ The functionality of a reaction can be treated as a black box; a schedule can be
 % Logical time cannot advance further than wall clock time $t_w$. If next logical
 % time $t_2 > t_w$ the scheduler waits till $t_w \ge t_2$.
 
-For dynamic systems, e.g., an IoT that keeps running, but in different contexts
-(e.g., places), we support dynamic reconfiguration of the network of actors.
-This may be well supported when targeting a dynamic language such as JavaScript,
-but harder to implement in C.
-
-To support runtime reconfiguration the target language needs access to actors and
-ports. However, we can use scopes to having access to those parts of the framework
-only in well defined places.
-
-\martin{Will we talk about execution hosts such as PRET machines or Patmos
-when targeting C and WCET analysis?}
-
 \section{Time, Delays, and Deadlines}
 Central to our programming model is the relationship between the timestamps of messages.
 These timestamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in time-stamp order.
@@ -621,7 +627,8 @@ But if we establish a relationship between logical time and physical time, that 
 
 Consider the example in Fig.~\ref{fig:actor-graph}.
 
-
+\martin{Will we talk about execution hosts such as PRET machines or Patmos
+when targeting C and WCET analysis?}
 
 \todo{Explain delays )}
 %SCRATCHPAD:
