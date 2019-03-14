@@ -119,7 +119,7 @@
 
 \begin{document}
 
-\title{Actors, Time Stamps, and Determinism for Time-Critical Systems}
+\title{Actors, Timestamps, and Determinism for Time-Critical Systems}
 
 
 \author{Marten Lohstroh}
@@ -279,7 +279,7 @@ requirements as constraints on message handling. Their work differs from
 ours, however, in that they build off a standard actor language, thereby
 inheriting its nondeterministic ordering of message handling, and they
 rely on separately imposing timing constraints to control the order when
-needed. In contrast, we use logical time stamps to define the order of
+needed. In contrast, we use logical timestamps to define the order of
 message handling and ensure determinism.
 
 Dataflow models are also closely related to the actor approach. In~\cite{wiik2018contract} the authors extend an (untimed) dataflow model with formal contracts that allow guarantees, e.g., for scheduling.
@@ -287,7 +287,7 @@ There are timed models of dataflow~\cite{Sriram:00:Scheduling}, and even some st
 %These models are more restrictive than our proposed work and lack the polyglot flexibility of our approach.
 
 Fredlund et al. proposed timed extension of McErlang
-as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
+as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of timestamps.
 %In \cite{DBLP:journals/csur/BoerSHHRDJSKFY17}, de Boer et al. provided a survey on active object languages but there is no focus on timed features.
 
 % \todo{As discussed in call: do we need these?}
@@ -301,7 +301,7 @@ as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. 
 \subsection{Modularity and Interfaces}
 In the original Hewitt actors and many modern implementations, actors have references to the actors that they communicate with.
 In our approach, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. This approach increases modularity and, more importantly, exposes dependencies between actors.
-All messages communicated between actors in our model are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in time stamp order, and (2) actors cannot produce messages with a time stamp $t$ until all anti-dependent inputs with time stamp $t$ are known. 
+All messages communicated between actors in our model are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in timestamp order, and (2) actors cannot produce messages with a timestamp $t$ until all anti-dependent inputs with timestamp $t$ are known. 
 
 While this DE semantics is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}, to increase efficiency, we avoid performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. The schedule for message delivery is based purely on the topology of the actor graph.
 %, and no static analysis of the actors' internals is required. 
@@ -355,7 +355,7 @@ composite App {
 \end{figure}
 
 As signified by the {\tt target} keyword, the actors definitions in Fig.~\ref{fig:code} incorporates C code. After declaring the actor's input and output ports, and their respective C types, a constructor delimits the first block of C code that is used to declare variables and functions that may be referenced in any of the actor's reactions. All target code is delimited by {\tt \{=} and {\tt =\}}. \todo{Say more about the example}
-% The first reaction is triggered by events on the {\tt apply} port; it applies the brakes when the received value is above a threshold, and sets the state (brake pressed or not) accordingly; no outputs are produced by this reaction. The second reaction, triggered by events on the {\tt check} port, simply reports the current state of the actor. To ensure determinism, if {\tt apply} and {\tt check} receive an event simultaneously (i.e., the time stamps associated with the events are equal), the reactions will be triggered in order of declaration. Each reaction runs until completion before the next reaction is triggered.
+% The first reaction is triggered by events on the {\tt apply} port; it applies the brakes when the received value is above a threshold, and sets the state (brake pressed or not) accordingly; no outputs are produced by this reaction. The second reaction, triggered by events on the {\tt check} port, simply reports the current state of the actor. To ensure determinism, if {\tt apply} and {\tt check} receive an event simultaneously (i.e., the timestamps associated with the events are equal), the reactions will be triggered in order of declaration. Each reaction runs until completion before the next reaction is triggered.
 
 
 
@@ -368,7 +368,7 @@ As signified by the {\tt target} keyword, the actors definitions in Fig.~\ref{fi
 
 % Event queue containing future events.
 
-% Choose earliest time stamp t’ on the queue.
+% Choose earliest timestamp t’ on the queue.
 
 % Wait for the real-time clock to match t’.
 
@@ -413,7 +413,7 @@ We summarize our model in terms of the following principles.
 	\item Each actor operates in the context of a composite (i.e., an actor that contains other actors), which manages connections between actors, the delivery of messages, and the scheduling and execution of reactions;
 	\item A message is sent via a port, and it is delivered to the ports of other actors via a connection; a port must be connected to the port of another actor within the same composite before it can receive messages.
 	\item An actor may send messages to multiple input ports or multiple actors;
-	these messages all bear the same time stamp.
+	these messages all bear the same timestamp.
 	\item No two distinct actors may send messages to the same input port of another actor;
 	a composition of actors that allows this is erroneous.
 	\item Messages sent/received by actors are timestamped and denote a discrete event.
@@ -475,12 +475,12 @@ This actor has an output named ``out''
 % \item No two distinct actors may send messages to the same input port of another actor;
 % a composition of actors that does this is an erroneous composition.
 % \item An output port may send messages to multiple input ports or multiple actors;
-% these messages all bear the same time stamp.
+% these messages all bear the same timestamp.
 % % \edward{Note that this has dependency implications... An output message cannot be sent until the last reaction declaring that output has had a chance to run.}
 % \item At a logical time, a reaction may read inputs that are not triggering inputs, but it must declare that it reads those inputs,
 % and those inputs may be \emph{absent} (no event is present at this logical time).
 % \item \martin{We are not talking about delay here, but logical time is constant during reaction. There is no explicit
-% mentioning that the output time stamp is the same as the input time stamp (except when having a delay on
+% mentioning that the output timestamp is the same as the input timestamp (except when having a delay on
 % a reaction).}\marten{If we implement Delay using an actor that self-schedules a delayed reaction, the claim that no time passes during a reaction still holds.}
 %\end{enumerate}
 
@@ -492,7 +492,7 @@ Within these rules, there are various opportunities for ``syntactic sugar,'' whe
 more compactly, for example with the Ptolemy II notion of ``multiports'' or ``persistent ports'' \cite{Ptolemy:14:Book}.
 
 %\martin{ We have discussed two different input ports:
-%those that are only valid during the logical time of the time stamp (what did we call them?)
+%those that are only valid during the logical time of the timestamp (what did we call them?)
 %and the ones that latch the value and are valid in future logical time as well.}
 %\marten{I think we called them input ports and triggers, respectively. See item (3)(a). If unclear, we should definitely improve the wording. Same for the terminology. We could also go for external/internal input ports. Internal ports are only referenced by the actor itself; both can be considered triggers...}
 %\martin{I don't think this is trigger. An input port may be part of a trigger, and for the ones that are only valid
@@ -502,12 +502,12 @@ more compactly, for example with the Ptolemy II notion of ``multiports'' or ``pe
 %That latching input needs a default value. And that is actually the way to specify it in the accessors
 %framework (according to Edward, I have not checked).}
 %\marjan{So, do we have two types of ports? one can only accept "events" and other can only accept "values"?}
-%\martin{Both types are ``events'' with a time stamp that can trigger a reaction. The question is when
+%\martin{Both types are ``events'' with a timestamp that can trigger a reaction. The question is when
 %a port is read that has not an event with the current logical time: is the content just ``absent'' or does it
 %have the ``last seen'' value. I think both might be useful. Although it is probably syntactic sugar.
 %The latching port can be simulated by a trigger on the input and storing the value in the state of
 %the actor. Maybe this would be a leaner and cleaner semantic.}
-%\marjan{Ok, I think I understand what you mean. And I am just thinking, sometimes we need to know if the event at the other port is "new" or not too old, can we do that here? I guess we can write a code for that, keeping the "model time stamp" of the "last seen" value maybe ... }
+%\marjan{Ok, I think I understand what you mean. And I am just thinking, sometimes we need to know if the event at the other port is "new" or not too old, can we do that here? I guess we can write a code for that, keeping the "model timestamp" of the "last seen" value maybe ... }
 
 % \subsection{Compiler Tool Chain}
 
@@ -548,13 +548,13 @@ only in well defined places.
 when targeting C and WCET analysis?}
 
 \section{Time, Delays, and Deadlines}
-Central to our programming model is the relationship between the time stamps of messages.
-These time stamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in time-stamp order.
-When an actor receives multiple messages with the same time stamp, these messages are logically
+Central to our programming model is the relationship between the timestamps of messages.
+These timestamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in time-stamp order.
+When an actor receives multiple messages with the same timestamp, these messages are logically
 \emph{simultaneous}, and the actor handles them in a well-defined deterministic order.
 Logical time is distinct from \emph{physical time}, as measured anywhere in a networked application.
 First, logical time remains constant during the execution of any reaction in any actor, and outputs produced by that reaction have
-the same logical time stamp as the inputs that trigger the reaction.
+the same logical timestamp as the inputs that trigger the reaction.
 \ag{Why do we do this? What would speak against having the timestamps of the output also be synchronized with physical time when sending them. I see more problems with having a logically instantaneous reaction than I see advantages with it.}
 But if we establish a relationship between logical time and physical time, that can help to reliably deliver real-time behavior.
 
@@ -588,7 +588,7 @@ Consider the example in Fig.~\ref{fig:actor-graph}.
  \label{fig:actor-graph}
 \end{figure}
 
-While actors react in a coordinated fashion to messages from other actors, they could register an interrupt service routine or pass a callback to an asynchronous process that gets executed sporadically, bypassing the control of the composite. Any reaction that is expected to be triggered by such an event must be scheduled explicitly. The time stamp assigned to such reaction will be will be equal to the current physical time (i.e., obtained from a clock provided by the computation platform), provided that it is greater than the last seen (or current) logical time. 
+While actors react in a coordinated fashion to messages from other actors, they could register an interrupt service routine or pass a callback to an asynchronous process that gets executed sporadically, bypassing the control of the composite. Any reaction that is expected to be triggered by such an event must be scheduled explicitly. The timestamp assigned to such reaction will be will be equal to the current physical time (i.e., obtained from a clock provided by the computation platform), provided that it is greater than the last seen (or current) logical time. 
 
 % \marten{What do we do if there are events in the queue with a release time earlier than the current physical time? Let them go first? Or does the sporadic event go first?}
 % Answer: Just assign the if our program is able to satisfy timing constraints, this situation will not occur.
@@ -613,10 +613,7 @@ While actors react in a coordinated fashion to messages from other actors, they 
 \todo{Describe that the single threaded execution of JavaScript enforces
 the restriction of the call back not interrupting the reaction.}
 This can be enforced on a C based host by turning off interrupts when executing
-a reaction. Interrupts are enabled when all\footnote{\todo{All is a little bit restrictive,
-just for state atomicity we would not need to wait for all reaction, just for a single.
-But there is another issue that this shall happen only between two timestamps.
-I don't recall the details.}\marten{I don't think it is too restrictive; the programmer should be able to rely on persistence of state in between two subsequent reactions that happen at the same time. If we allow the sporadic reaction to go in between, we violate this assumption.}}
+a reaction. Interrupts are enabled when all
 reactions for timestamp $t_1$ have been executed and disabled again when logical
 time is advanced to $t_2$ where all reactions for $t_2$ are executed.
 
