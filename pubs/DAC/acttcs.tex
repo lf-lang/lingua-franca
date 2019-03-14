@@ -11,7 +11,7 @@
 \lstdefinelanguage{LF}{
   %keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
   %more
-  keywords={reaction, preamble, target, actor, composite, trigger, input, output, constructor},
+  keywords={reaction, preamble, target, actor, composite, trigger, input, output, constructor, new},
   keywordstyle=\color{black}\bfseries,
   ndkeywords={class, export, boolean, throw, implements, import, this},
   ndkeywordstyle=\color{darkgray}\bfseries,
@@ -38,7 +38,7 @@
    breaklines=true,
    showtabs=false,
    captionpos=b,
-   %xleftmargin=-5pt, xrightmargin=0pt
+   xleftmargin=7pt, xrightmargin=0pt
 }
 
 \newcounter{myctr}
@@ -243,10 +243,9 @@ Abstract
 Precision timing plays an important role in a plethora of modern systems, ranging anywhere from embedded control systems that continually interact with concurrent physical processes (i.e., cyber-physical systems) to large-scale distributed systems requiring some measure of consistency.
 In order to effectively program these systems, there is a need for programming models with semantics that include time.
 In current-day general-purpose hardware and programming languages, timing properties of software are emergent rather than specified.
-Therefore, the verification of timing properties of time-critical systems relies on testing, but effectively testing software in the face of non-determinism is challenging.
+Therefore, the verification of timing properties of time-critical systems relies on testing, but effectively testing software in the face of nondeterminism is challenging.
 
-In this paper, we propose an actor-oriented programming model that reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically.
-Aimed at time-critical systems, our model is based on discrete event semantics, which ensure that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
+In this paper, we propose an actor-oriented programming model aimed at time-critical systems. This model reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically. The coordination semantics we assume, based on discrete events, ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
 
 \section{Actors}\label{sec:actor}
 The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in the early 70s. 
@@ -255,7 +254,8 @@ Since then,
 %their introduction in the 70s,
 %NOTE: removed citation of Scala (haller2009scala)
 the use of actors has proliferated in programming languages~\cite{Armstrong:96:Erlang,desai2013p}, coordination languages~\cite{ren1995rtsynchronizer,ARC}, distributed systems~\cite{Hunt2018, DBLP:journals/corr/abs-1712-05889}, 
-and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. \ag{In case we need space: here we can certainly remove a citation or two.}
+and simulation engines~\cite{Ptolemy:14:Book,DBLP:journals/fuin/SirjaniMSB04}. 
+%\ag{In case we need space: here we can certainly remove a citation or two.}
 Actors have much in common with objects---a paradigm focused on reducing code replication by means of inheritance and increasing modularity via data encapsulation---but unlike objects, actors provide a better model for \emph{concurrency} than threads, the default model for objects.
 Indeed, each actor is presumed to operate concurrently alongside other actors with which it may exchange messages asynchronously. 
 Objects, in contrast, are usually designed assuming a single thread of control, and retrofitting them to be ``thread safe'' is challenging and error prone.
@@ -263,16 +263,14 @@ The inherent concurrency of actors makes them ideal for programming reactive sys
 However, the lack of any guarantees with respect to the ordering of messages and the absence of a notion of time make this 
 model less useful for specifying systems in which timely execution and repeatable behavior are important.
 
+\subsection{Verifiable Timing}\label{sec:related}
 Extra machinery can be introduced for the formal specification and analysis of systems composed of Hewitt actors.
-For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and (temporal) model checking tool, has been applied to actors in~\cite{Ding2003}.
-Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate (timing) requirements~\cite{KHAMESPANAH2015184}.
+For instance, Real-time Maude~\cite{olveczky:2008:real}, a timed rewriting logic framework and temporal model checking tool, has been applied to actors in~\cite{Ding2003}.
+Similarly, the modeling language Rebeca performs analysis that uses a model checker to ensure that nondeterminism allowed in the model does not lead to behaviors that violate timing requirements~\cite{KHAMESPANAH2015184}.
 %\cite{DBLP:conf/birthday/SirjaniJ11}.
 %\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}\marten{I would prefer to cite [102], [103], or [104] from \cite{DBLP:conf/birthday/SirjaniJ11} rather than \cite{DBLP:conf/birthday/SirjaniJ11} itself (it is a survey paper). I chose \cite{KHAMESPANAH2015184} because it is the most recent paper I could find that technically discusses the approach.}
 %\marjan{Okay, I understand, \cite{KHAMESPANAH2015184} is a good ref. for Timed Rebeca, and timed actors.  \cite{DBLP:conf/birthday/SirjaniJ11} is about anayzing actors with no timing feature. }
 Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach that we follow.
-
-\subsection{Other Related Work}
-\label{sec:related}
 
 In \cite{ren1995rtsynchronizer}, Ren and Agha also propose giving actors a temporal
 semantics. As in our work, they assume a sufficiently well synchronized
@@ -284,21 +282,21 @@ rely on separately imposing timing constraints to control the order when
 needed. In contrast, we use logical time stamps to define the order of
 message handling and ensure determinism.
 
-Dataflow models are also closely related to the actor approach. In~\cite{wiik2018contract} the authors extend an (untimed) dataflow model with formal contracts that allow guarantees, e.g. for scheduling.
+Dataflow models are also closely related to the actor approach. In~\cite{wiik2018contract} the authors extend an (untimed) dataflow model with formal contracts that allow guarantees, e.g., for scheduling.
 There are timed models of dataflow~\cite{Sriram:00:Scheduling}, and even some structured approaches to use timing semantics in dataflow to execute time-critical applications in cyber-physical systems~\cite{GeilenEtAl:12:Scenarios}.
-These models are more restrictive than our propsed work and lack the polyglot flexibility of our approach.
+%These models are more restrictive than our proposed work and lack the polyglot flexibility of our approach.
 
 Fredlund et al. proposed timed extension of McErlang
 as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. In this extension a new API is introduced to provide the definition and manipulation of time-stamps.
 %In \cite{DBLP:journals/csur/BoerSHHRDJSKFY17}, de Boer et al. provided a survey on active object languages but there is no focus on timed features.
 
-\todo{As discussed in call: do we need these?}
-Towards a real-time coordination model for mobile computing \cite{hackmann2005towards}
-Method and tools for mixed-criticality real-time applications within PharOS \cite{lemerre2011method}
-Accessors \cite{brooks2018component}
-S-Net~\cite{grelck2008gentle}
-Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
-Timed C \cite{Broman_timedC}
+% \todo{As discussed in call: do we need these?}
+% Towards a real-time coordination model for mobile computing \cite{hackmann2005towards}
+% Method and tools for mixed-criticality real-time applications within PharOS \cite{lemerre2011method}
+% Accessors \cite{brooks2018component}
+% S-Net~\cite{grelck2008gentle}
+% Guarded Atomic Actions~\cite{Rosenband:2004:MSG:996566.996583}
+% Timed C \cite{Broman_timedC}
 
 \subsection{Modularity and Interfaces}
 In the original Hewitt actors and many modern implementations, actors have references to the actors that they communicate with.
@@ -319,12 +317,12 @@ Importantly, the functionality of a reaction can be treated as a black box; a sc
 
 
 \begin{figure}[ht]
- \centering
-\begin{minipage}{0.48\linewidth}
+\centering
+\begin{minipage}{0.50\linewidth}
 \begin{lstlisting}[language=LF]
 target C;
-actor Src(prd:int(10)) {
-	output out;
+actor Ramp(prd:int(10)) {
+	output out:int;
 	trigger t(0, prd, 0);
 	constructor {=
 		int count = 0;
@@ -336,24 +334,24 @@ actor Src(prd:int(10)) {
 }
 \end{lstlisting}
 \end{minipage}%
-\begin{minipage}{0.50\linewidth}
+\begin{minipage}{0.45\linewidth}
 \begin{lstlisting}[language=LF,firstnumber=13]
 
-actor Dst {
-	input in;
+actor Print {
+	input in:int;
 	reaction(in) {=
-		println(in);
+		printf("%d\n", in);
 	=}
 }
-composite Model {
-	instance a = Src(prd=100);
-	instance b = Dst();
+composite App {
+	a = new Ramp(prd=100);
+	b = new Print();
 	a.out -> b.in;
 }
 \end{lstlisting}
 \end{minipage}
- \caption{FIXME}
- \label{fig:lf-compiler}
+ \caption{Ramp feeding into a print actor}
+ \label{fig:code}
 \end{figure}
 
 
