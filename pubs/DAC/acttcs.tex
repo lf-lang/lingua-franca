@@ -214,7 +214,9 @@
 \renewcommand{\shortauthors}{M. Lohstroh et al.}
 
 \begin{abstract}
-Abstract
+Programming time-critical systems is notoriously difficult, since it requires precise control over both the computational and timing aspects of the system behavior. In this paper we propose a programming model aimed at these systems. 
+Oriented on actors, our model reduces nondeterminism using has a semantic notion of time centered around timestamps.
+This allows programmers to specify timing properties and ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
 \end{abstract}
 
 %
@@ -245,7 +247,7 @@ In order to effectively program these systems, there is a need for programming m
 In current-day general-purpose hardware and programming languages, timing properties of software are emergent rather than specified.
 Therefore, the verification of timing properties of time-critical systems relies on testing, but effectively testing software in the face of nondeterminism is challenging.
 
-In this paper, we propose an actor-oriented programming model aimed at time-critical systems. This model reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically. The coordination semantics we assume, based on discrete events, ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
+In this paper, we propose an actor-oriented programming model aimed at time-critical systems. This model reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically. The coordination semantics, based on discrete events, ensure that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
 
 \section{Actors}\label{sec:actor}
 The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in the early 70s. 
@@ -301,7 +303,7 @@ as a model checker of timed Erlang programs in \cite{DBLP:conf/forte/EarleF12}. 
 \subsection{Modularity and Interfaces}
 In the original Hewitt actors and many modern implementations, actors have references to the actors that they communicate with.
 In our approach, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. This approach increases modularity and, more importantly, exposes dependencies between actors.
-All messages communicated between actors in our model are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in timestamp order, and (2) actors cannot produce messages with a timestamp $t$ until all anti-dependent inputs with timestamp $t$ are known. 
+All messages communicated between actors in our model are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics, explained in more detail in \cite{LeeEtAl:7:DiscreteEvents}, guaranteeing that (1) actors observe produced messages in timestamp order, and (2) actors cannot produce messages with a timestamp $t$ until all anti-dependent~\ag{what does this mean?} inputs with timestamp $t$ are known. 
 
 While this DE semantics is formally based on a synchronous/reactive MoC~\cite{LeeZheng:07:SRDECT}, to increase efficiency, we avoid performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. The schedule for message delivery is based purely on the topology of the actor graph.
 %, and no static analysis of the actors' internals is required. 
@@ -355,8 +357,13 @@ composite App {
 \end{figure}
 % The first reaction is triggered by events on the {\tt apply} port; it applies the brakes when the received value is above a threshold, and sets the state (brake pressed or not) accordingly; no outputs are produced by this reaction. The second reaction, triggered by events on the {\tt check} port, simply reports the current state of the actor. To ensure determinism, if {\tt apply} and {\tt check} receive an event simultaneously (i.e., the timestamps associated with the events are equal), the reactions will be triggered in order of declaration. Each reaction runs until completion before the next reaction is triggered.
 
-For example, actors might be defined and composed as shown in Fig.~\ref{fig:code}. The first line specifies that the target language is C. The second line defines an \keyword{actor} named {\tt Source} with a parameter named {\tt p} that has type {\tt int} and default value {\tt 10}. This actor also has an \keyword{output} named {\tt out}. A \keyword{trigger} is like an input port in that it receives messages, but it is ``private'' in the sense that it receives only messages initiated by its own actor. The statement on line 4 indicates that an event is expected to automatically appear at {\tt t}. The first argument passed to the \keyword{trigger} indicates a zero time offset for the arrival of the first event, and the second argument indicates the event should reoccur with a time period {\tt p}. On line 5, a \keyword{constructor} delimits the first block of C code that is used to declare variables and functions that may be referenced in any of the actor's reactions. All target code is delimited by {\tt \{=} and {\tt =\}}. A \keyword{reaction} (lines 8, 16) declares (between braces) the inputs/triggers that cause it to execute; after that, and before the target code block starts, other inputs/triggers that it may use are listed before the {\tt ->}, outputs that it may set are listed after. Finally, the \keyword{composite} declared on line 20 instantiates a {\tt Ramp} and {\tt Print} actor and connects them (line 23). 
+For example, actors might be defined and composed as shown in Fig.~\ref{fig:code}. The first line specifies that the target language is C. The second line defines an \keyword{actor} named {\tt Source} with a parameter named {\tt p} that has type {\tt int} and default value {\tt 10}. This actor also has an \keyword{output} named {\tt out}. A \keyword{trigger} is like an input port in that it receives messages, but it is ``private'' in the sense that it receives only messages initiated by its own actor. The statement on line 4 indicates that an event is expected to automatically appear at {\tt t}\ag{I don't understand this sentence.}. The first argument passed to the \keyword{trigger} indicates a zero time offset for the arrival of the first event, and the second argument indicates the event should reoccur with a time period {\tt p}. On line 5, a \keyword{constructor} delimits the first block of C code that is used to declare variables and functions that may be referenced in any of the actor's reactions. All target code is delimited by {\tt \{=} and {\tt =\}}.
+A \keyword{reaction} (lines 8, 16) declares the inputs or triggers that cause it to execute between braces.
+Outputs that it may set are listed after.
+If the \keyword{reaction} had additional inputs or triggers that it might use, these would be listed before the {\tt ->}. \ag{perhaps actually add to the example or remove this sentence completely? It's probably not necessary.}
+Finally, the \keyword{composite} declared on line 20 instantiates a {\tt Ramp} and {\tt Print} actors and connects them (line 23). 
 \marten{Not yet happy about the flow of the above paragraph.}
+\ag{I'd question more if we need the whole paragraph (and the example), because we're not actually presenting any concrete syntax here now. Perhaps we should remove it.}
 
 
 \section{Coordination Semantics}
