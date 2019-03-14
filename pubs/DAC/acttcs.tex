@@ -387,7 +387,7 @@ When the reply from the remote server is received, the callback function is invo
 That function schedules a subsequent reaction via the \keyword{action} trigger named \texttt{arrived}.
 An \keyword{action} trigger is like an input, but messages are not received from other reactors,
 but rather as a side effect of some action of this reactor itself.
-The fact that the first reaction causes a deferred trigger is indicated by the syntax \texttt{--> arrived}.
+%The fact that the first reaction causes a deferred trigger is indicated by the syntax \texttt{--> arrived}.
 
 \begin{figure}[ht]
 \begin{lstlisting}[language=LF]
@@ -395,9 +395,9 @@ reactor REST() {
 	input url:string;
 	output out:string;
 	action arrived:string;
-	reaction(url) --> arrived {=
+	reaction(url) {=
 		httpRequest(url, function(reply) {
-			schedule(arrived, reply);
+			schedule(0, arrived, reply);
 		});
 	=}
 	reaction(arrival) -> out {=
@@ -414,42 +414,59 @@ reactor REST() {
 We summarize our model in terms of the following principles.
 
 \begin{enumerate}
-	\item Reactors have input ports, actions, and clocks, all of which are triggers. They also have output ports, local state, and an ordered list of reactions. A reaction is a procedure in a target language that is invoked in response to a trigger event, and \emph{only} in response to a trigger event.
+	\item Reactors have input ports, actions, and clocks, all of which are triggers.
+	They also have output ports, local state, and an ordered list of reactions.
+	A reaction is a procedure in a target language that is invoked in response to a trigger event,
+	and \emph{only} in response to a trigger event.
 	\item A composite is a reactor that contains other reactors and manages their connections.
 	The connections define the flow of messages,
 	and two reactors can be connected only if they are contained in the same composite.
 	An output port may be connected to multiple input ports, but an input port can only be connected to one output port.
-	
-	\item composite: the delivery of messages, and the scheduling and execution of reactions
-	\item messages all bear the same timestamp.
-	\item No two distinct actors may send messages to the same input port of another actor;
-	a composition of actors that allows this is erroneous.
-	\item Messages sent/received by actors are timestamped and denote a discrete event.
+	\item Messages sent from one reactor to another, clock events, and actions each have a timestamp,
+	a value on a \emph{logical} time line.
+	These timestamped \emph{events} can trigger reactions.
+	Each port, clock, and action can have at most one such event at any logical time.
+	\item
+	Reactions are invoked in timestamp order, and the triggering event defines the logical time of the reaction.
+	Successive invocations of any single reaction occur at strictly increasing logical times.
+	The reaction itself is logically instantaneous, so any output events it produces are logically simultaneous
+	with the triggering event.
+	I.e. the two events bear the same timestamp.
+	\item \label{item:timelines}
+	No reaction of a reactor can be invoked at a logical time $t$ if any reaction of that reactor
+	has been previously invoked at 	a logical time $t' > t$.
+	\item \label{item:mutualexclusion}
+	The execution of any two reactions of a reactor are mutually exclusive;
+	they execute atomically with respect to one another.
+	Moreover, any two reactions that are invoked at the same logical time are
+	invoked in the order specified by the reactor definition.
+	This avoids race conditions between reactions accessing the reactor state variables. 
 \end{enumerate}
+One of the challenges with understanding our model is that there are two distinct timelines in play,
+the logical time line, and an implied physical time line, or wall-clock time, in which reactions are executed.
+For example, in item \ref{item:timelines}, the word ``previously'' is referring to physical time, not logical time.
+In fact, the two reactions it refers to may be logically simultaneous (occurring at the same logical time)
+even though item \ref{item:mutualexclusion} prohibits simultaneous invocation of reactions (in physical time).
 
-\paragraph{Reactions}
-\begin{enumerate}
-	\setcounter{enumi}{6}
-	\item A reaction is a procedure, and any two reactions of an actor are mutually exclusive; they execute atomically with respect to one another.
-	\item A reaction can read and modify the actor's state.
-	\item Reactions can not be directly invoked by actors themselves (or by other actors).
-	\item Each reaction declares the input ports and triggers to which it reacts and to which output ports it may write.
-	\item At a logical time, a reaction may read inputs that are not triggering inputs, but it must declare that it reads those inputs, and those inputs may be \emph{absent} (no event is present at this logical time).
-	\item If a reaction declares that it reacts to multiple input ports, then at the time of the reaction, at least one of those
-	input ports will have a message time-stamped with the time of the reaction, but the other input ports may be \emph{absent}
-	(no event is present at this logical time).
-	\item A reaction can set the values of the output ports that is it has declared, and if it does so, a message will be sent after the conclusion of the reaction with a payload equal to the final value set by the reaction.
-	\item If multiple reactions write to the same output port, then the message sent will be that set by the last reaction invoked. \ag{Why? Isn't this unintuitive? Why not have all messages sent (e.g. with the same timestamp and superdense ordering in the execution order of the producing reactions)?}
-	\item A reaction can schedule a trigger at a future logical time.
-\end{enumerate}
+A consequence of the above rules is that each reaction must declare the triggers to which
+it reacts, any additional input ports that it reads, and to which output ports it may write.
+These declarations enable a composite to analyze the dependencies between reactions across actors
+in order to ensure that the above principles are all obeyed.
+Notice that in Fig. \ref{fig:async}, the reaction to the \texttt{url} does not need to declare production
+of the action \texttt{arrived} because that action will be guaranteed (by the \texttt{schedule} function) to
+occur with a strictly greater timestamp than the triggering \texttt{url} event.
 
-\paragraph{Passage of Logical Time}
-\begin{enumerate}
-	\setcounter{enumi}{16}
-	\item At each logical time for which there is an input message or trigger, all reactions to those inputs and triggers will be invoked in the order in which the reactions are defined. \ag{At this points the signals are consumed, right? I would say this explicitly}
-	\item Logical time is constant during execution of a reaction.
-	\item For each reaction, logical time is strictly increasing; that is, a reaction will never be invoked at a logical time that is equal to or less than that of a previous invocation.
-\end{enumerate}
+The \texttt{schedule} function in Fig.~\ref{fig:async} deserves more discussion.
+This is used by a reaction to create a trigger at a future logical time.
+We require that it be a \emph{future} logical time, and consequently it has no impact on
+the ordering constraints of scheduling of reactions \emph{at} a logical time.
+
+Notice that these properties together define a logical notion of simultaneity.
+Any reaction of any reactor can only observe input events on different ports if they have the same time stamp.
+Input ports are \emph{absent} if there is no event with a timestamp matching the time of the reaction.
+Moreover, any outputs produced by a reaction are logically simultaneous with the triggers.
+Since, at a logical time, an output can only have one message, if reactions set the output more than once,
+the last value set will be the one sent at that logical time.
 
 
 %\begin{enumerate}
