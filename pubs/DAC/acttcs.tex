@@ -246,7 +246,7 @@ In order to effectively program these systems, there is a need for programming m
 In current-day general-purpose hardware and programming languages, timing properties of software are emergent rather than specified.
 Therefore, the verification of timing properties of time-critical systems relies on testing, but effectively testing software in the face of nondeterminism is challenging.
 
-In this paper, we propose an actor-oriented programming model aimed at time-critical systems. This model reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically. The coordination semantics, based on discrete events, ensure that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
+In this paper, we propose an actor-oriented programming model aimed at time-critical systems. This model reduces nondeterminism by introducing a semantic notion of time, allowing programmers to specify timing properties, which, if executed on capable hardware, can be guaranteed statically. The coordination semantics, based on discrete events, ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
 
 \section{Actors}\label{sec:actor}
 The actor model was introduced by Hewitt~\cite{DBLP:conf/ijcai/HewittBS73} in the early 70s. 
@@ -271,7 +271,7 @@ Similarly, the modeling language Rebeca performs analysis that uses a model chec
 %\cite{DBLP:conf/birthday/SirjaniJ11}.
 %\marjan{, and for the timed version in \cite{KHAMESPANAH2015184}.}\marten{I would prefer to cite [102], [103], or [104] from \cite{DBLP:conf/birthday/SirjaniJ11} rather than \cite{DBLP:conf/birthday/SirjaniJ11} itself (it is a survey paper). I chose \cite{KHAMESPANAH2015184} because it is the most recent paper I could find that technically discusses the approach.}
 %\marjan{Okay, I understand, \cite{KHAMESPANAH2015184} is a good ref. for Timed Rebeca, and timed actors.  \cite{DBLP:conf/birthday/SirjaniJ11} is about anayzing actors with no timing feature. }
-Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation (MoC), satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach that we follow.
+Alternatively, constraints can be placed on actors' allowable behaviors so that they adhere to a well-defined model of computation, satisfying desirable properties such as deadlock freedom, schedulability, bounded memory usage, and deterministic execution, by construction. It is the latter approach that we follow.
 
 In \cite{ren1995rtsynchronizer}, Ren and Agha also propose giving actors a temporal
 semantics. As in our work, they assume a sufficiently well synchronized
@@ -352,7 +352,7 @@ composite App {
  \label{fig:code}
 \end{figure}
 
-Consider the source code listed in Fig. \ref{fig:code}. 
+Consider the source code listed in Figure~\ref{fig:code}. 
 The \texttt{Ramp} \keyword{reactor} emits messages, which are a counting sequence beginning at 0, at regular time intervals
 with a period given by its parameter \texttt{p}.
 It declares an \keyword{output} named \texttt{out} of type \texttt{int}, a
@@ -360,8 +360,8 @@ It declares an \keyword{output} named \texttt{out} of type \texttt{int}, a
 The \keyword{constructor} declares and initializes a state variable named \texttt{count}.
 This reactor has a \keyword{reaction} triggered by the clock named \texttt{c}
 and one triggered by the input \texttt{set}.
-The first reaction increments the state and sends it to the port named \texttt{out}, and the second reaction
-sets the state to a specified value.
+The first reaction increments the state variable \texttt{count} and sends it to the port named \texttt{out}, and the second reaction
+sets the state variable to a specified value.
 Because there are two reactions, in order to ensure determinacy, the reactor has to define in which order to
 handle simultaneous triggers.
 Here, we assume that the order of declaration gives that order, so the reaction to \texttt{c} will be invoked
@@ -369,7 +369,7 @@ before the reaction to \texttt{set}.
 The \texttt{Print} reactor has an input port named \texttt{in} that triggers its one and only reaction.
 The \keyword{composite} defines one instance of each of these reactors and connects their ports.
 
-The body of the reactions is written in some target language; in our example in Fig.~\ref{fig:code} it is written in C.
+The body of the reactions is written in some target language; in our example in Figure~\ref{fig:code} it is written in C.
 The target code in the figure is delimited by {\tt \{=} and {\tt =\}}.
 Inputs, outputs, and triggers used by this code are declared.
 For example, line 8 declares that the reaction is triggered by the clock named \texttt{c} and
@@ -397,8 +397,8 @@ reactor HTTPGet() {
 			schedule(0, arrived, reply);
 		});
 	=}
-	reaction(arrival) -> out {=
-		set(out, arrival);
+	reaction(arrived) -> out {=
+		set(out, arrived);
 	=}
 }
 \end{lstlisting}
@@ -429,7 +429,7 @@ We summarize our model in terms of the following principles.
 	Successive invocations of any single reaction occur at strictly increasing logical times.
 	The reaction itself is logically instantaneous, so any output events it produces are logically simultaneous
 	with the triggering event.
-	I.e. the two events bear the same timestamp.
+	I.e., the two events bear the same timestamp.
 	\item \label{item:timelines}
 	No reaction of a reactor can be invoked at a logical time $t$ if any reaction of that reactor
 	has been previously invoked at 	a logical time $t' > t$.
@@ -450,17 +450,17 @@ A consequence of the above rules is that each reaction must declare the triggers
 it reacts, any additional input ports that it reads, and to which output ports it may write.
 These declarations enable a composite to analyze the dependencies between reactions across actors
 in order to ensure that the above principles are all obeyed.
-Notice that in Fig. \ref{fig:async}, the reaction to the \texttt{url} does not need to declare production
+Notice that in Figure~\ref{fig:async}, the reaction to the \texttt{url} does not need to declare production
 of the action \texttt{arrived} because that action will be guaranteed (by the \texttt{schedule} function) to
 occur with a strictly greater timestamp than the triggering \texttt{url} event.
 
-The \texttt{schedule} function in Fig.~\ref{fig:async} deserves more discussion.
+The \texttt{schedule} function in Figure~\ref{fig:async} deserves more discussion.
 This is used by a reaction to create a trigger at a future logical time.
 We require that it be a \emph{future} logical time, and consequently it has no impact on
 the ordering constraints of scheduling of reactions \emph{at} a logical time.
 
 Notice that these properties together define a logical notion of simultaneity.
-Any reaction of any reactor can only observe input events on different ports if they have the same time stamp.
+Any reaction of any reactor can only observe input events on different ports if they have the same timestamp.
 Input ports are \emph{absent} if there is no event with a timestamp matching the time of the reaction.
 Moreover, any outputs produced by a reaction are logically simultaneous with the triggers.
 Since, at a logical time, an output can only have one message, if reactions set the output more than once,
@@ -533,12 +533,13 @@ In the original Hewitt actors and many modern implementations, actors have refer
 In our approach, rather than addressing each other directly, actors exchange messages via ports. This level of indirection allows actors to be agnostic to the presence or absence of their counterparts. The connections between actors are embedded in a level of hierarchy---a composite---that is responsible for transporting messages between contained actors. This approach increases modularity and, more importantly, exposes dependencies between actors.
 
 All messages communicated between actors in our model are timestamped. Message exchange is coordinated under a discrete-event (DE) semantics \cite{LeeEtAl:7:DiscreteEvents}, which guarantees that actors observe messages in timestamp order.
-DE semantics is formally rooted in that of synchronous/reactive MoCs~\cite{LeeZheng:07:SRDECT}, to increase efficiency, we avoid performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. The schedule for message delivery is based purely on the topology of the actor graph.
+DE semantics is formally rooted in that of synchronous/reactive model of computations~\cite{LeeZheng:07:SRDECT}.
+However, to increase efficiency, we avoid performing a fixed-point computation by executing actors in topological order. That way, each actor is only executed at most once per tick of the logical clock. The schedule for message delivery is based purely on the topology of the actor graph.
 %, and no static analysis of the actors' internals is required. 
 %---the actors are treated as black boxes. 
 Dynamic changes in the topology are handled hierarchically, so that the extent of the graph that is subject to rescheduling is contained when reconfigurations occur during runtime. A runtime reconfiguration always occurs within a composite actor that can coordinate it in a predictable and orderly fashion. %whose interface remains unchanged.\marten{This is not completely true. I/O dependencies may change, which may lead to scheduling problems outside of the composite. The good thing is that we can detect problems before enacting the changes, but it could potentially require communication with composites up the hierarchy.} 
 
-Actors are useful for encapsulating state, though it is often necessary for distinct but related computational activities to share state. For instance, a single actor to could serve as a proxy for a device (e.g, a hub for smart lights), for which it performs several different tasks.
+Actors are useful for encapsulating state, though it is often necessary for distinct but related computational activities to share state. For instance, a single actor could serve as a proxy for a device (e.g, a hub for smart lights), for which it performs several different tasks.
 Integrating related activities into a single atomic actor with multiple ports improves performance and hides complexity, but we do not want to obscure internal dependencies between inputs and outputs that could inform the schedule for message delivery. Without it, for instance, the scheduler has to conservatively assume that \emph{any} output of an actor depends on \emph{all} of its inputs, and reject configurations that could introduce zero-delay feedback. Causality interfaces~\cite{ZhouLee:08:CausalityInterfaces} can be used to make dependencies visible at the interface level. Rather than relying on annotations that could potentially be unsound, or inferring them via static code analysis, we propose to make causality interfaces an integral part actor definitions. Specifically, this can be done by breaking an actor's functionality down into \emph{reactions}, each of which is subject to simple lexical scoping rules that limit its access to the actors' input and output ports, thereby eliminating dependencies between ports that are out of scope.
 
 
@@ -637,7 +638,7 @@ only in well defined places.
 
 \section{Time, Delays, and Deadlines}
 Central to our programming model is the relationship between the timestamps of messages.
-These timestamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in time-stamp order.
+These timestamps denote \emph{logical} time, and the essential semantic feature is that every actor sees messages in timestamp order.
 When an actor receives multiple messages with the same timestamp, these messages are logically
 \emph{simultaneous}, and the actor handles them in a well-defined deterministic order.
 Logical time is distinct from \emph{physical time}, as measured anywhere in a networked application.
@@ -646,7 +647,7 @@ the same logical timestamp as the inputs that trigger the reaction.
 \ag{Why do we do this? What would speak against having the timestamps of the output also be synchronized with physical time when sending them. I see more problems with having a logically instantaneous reaction than I see advantages with it.}
 But if we establish a relationship between logical time and physical time, that can help to reliably deliver real-time behavior.
 
-Consider the example in Fig.~\ref{fig:actor-graph}.
+Consider the example in Figure~\ref{fig:actor-graph}.
 
 \martin{Will we talk about execution hosts such as PRET machines or Patmos
 when targeting C and WCET analysis?}
@@ -677,7 +678,7 @@ when targeting C and WCET analysis?}
  \label{fig:actor-graph}
 \end{figure}
 
-While actors react in a coordinated fashion to messages from other actors, they could register an interrupt service routine or pass a callback to an asynchronous process that gets executed sporadically, bypassing the control of the composite. Any reaction that is expected to be triggered by such an event must be scheduled explicitly. The timestamp assigned to such reaction will be will be equal to the current physical time (i.e., obtained from a clock provided by the computation platform), provided that it is greater than the last seen (or current) logical time. 
+While actors react in a coordinated fashion to messages from other actors, they could register an interrupt service routine or pass a callback to an asynchronous process that gets executed sporadically, bypassing the control of the composite. Any reaction that is expected to be triggered by such an event must be scheduled explicitly. The timestamp assigned to such reaction will be equal to the current physical time (i.e., obtained from a clock provided by the computation platform), provided that it is greater than the last seen (or current) logical time. 
 
 % \marten{What do we do if there are events in the queue with a release time earlier than the current physical time? Let them go first? Or does the sporadic event go first?}
 % Answer: Just assign the if our program is able to satisfy timing constraints, this situation will not occur.
