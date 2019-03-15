@@ -214,9 +214,8 @@
 \renewcommand{\shortauthors}{M. Lohstroh et al.}
 
 \begin{abstract}
-Programming time-critical systems is notoriously difficult, since it requires precise control over both the computational and timing aspects of the system behavior. In this paper we propose a programming model aimed at these systems. 
-Oriented on actors, our model reduces nondeterminism using has a semantic notion of time centered around timestamps.
-This allows programmers to specify timing properties and ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
+Programming time-critical systems is notoriously difficult, since it requires precise control over both the computational and timing aspects of the system behavior. In this paper we propose an actor-oriented programming model with a semantic notion of time and a deterministic coordination semantics based on discrete events. 
+% This allows programmers to specify timing properties and ensures that messages between actors are handled in deterministic order unless nondeterminism is introduced explicitly as a desired property.
 \end{abstract}
 
 %
@@ -391,7 +390,7 @@ but rather as a side effect of some action of this reactor itself.
 
 \begin{figure}[ht]
 \begin{lstlisting}[language=LF]
-reactor REST() {
+reactor HTTPGet() {
 	input url:string;
 	output out:string;
 	action arrived:string;
