@@ -313,9 +313,8 @@ but, to be concrete, we discuss source code examples.
 \subsection{Examples}
 \begin{figure}[ht]
 \centering
-\begin{minipage}{0.50\linewidth}
+\begin{minipage}{0.50\linewidth} %target C;
 \begin{lstlisting}[language=LF]
-target C;
 reactor Ramp(p:int(10)) {
 	input set:int;
 	output out:int;
@@ -335,7 +334,6 @@ reactor Ramp(p:int(10)) {
 \end{minipage}%
 \begin{minipage}{0.45\linewidth}
 \begin{lstlisting}[language=LF,firstnumber=13]
-
 reactor Print {
 	input in:int;
 	reaction(in) {=
@@ -355,12 +353,12 @@ composite App {
 \end{figure}
 
 Consider the source code listed in Fig. \ref{fig:code}. 
-The \texttt{Ramp} reactor emits messages, which are a counting sequence beginning at 0, at regular time intervals
+The \texttt{Ramp} \keyword{reactor} emits messages, which are a counting sequence beginning at 0, at regular time intervals
 with a period given by its parameter \texttt{p}.
-It declares an output named \texttt{out} of type \texttt{int}, a
-\keyword{clock} which will trigger reactions periodically, and an input named {\tt set} of type {\tt int}.
+It declares an \keyword{output} named \texttt{out} of type \texttt{int}, a
+\keyword{clock} which will trigger reactions periodically, and an \keyword{input} named {\tt set} of type {\tt int}.
 The \keyword{constructor} declares and initializes a state variable named \texttt{count}.
-This reactor has two \keyword{reaction}s, one triggered by the \keyword{clock} named \texttt{c}
+This reactor has a \keyword{reaction} triggered by the clock named \texttt{c}
 and one triggered by the input \texttt{set}.
 The first reaction increments the state and sends it to the port named \texttt{out}, and the second reaction
 sets the state to a specified value.
@@ -371,10 +369,10 @@ before the reaction to \texttt{set}.
 The \texttt{Print} reactor has an input port named \texttt{in} that triggers its one and only reaction.
 The \keyword{composite} defines one instance of each of these reactors and connects their ports.
 
-The body of the reactions is written in some target language, which in Fig.~\ref{fig:code} is specified to be C.
+The body of the reactions is written in some target language; in our example in Fig.~\ref{fig:code} it is written in C.
 The target code in the figure is delimited by {\tt \{=} and {\tt =\}}.
 Inputs, outputs, and triggers used by this code are declared.
-For example, line 8 declares that the reaction is triggered by the \keyword{clock} named \texttt{c} and
+For example, line 8 declares that the reaction is triggered by the clock named \texttt{c} and
 produces an output on the port named \texttt{out}.
 
 Reactors can also be used to handle less predictable asynchronous behaviors,
@@ -383,8 +381,8 @@ A simple example is sketched in Figure \ref{fig:async}.
 That reactor, upon receiving an input at its \texttt{url} port,
 issues an asynchronous HTTP request over the network.
 When the reply from the remote server is received, the callback function is invoked.
-That function schedules a subsequent reaction via the \keyword{action} trigger named \texttt{arrived}.
-An \keyword{action} trigger is like an input, but messages are not received from other reactors,
+That function schedules a subsequent reaction via the \keyword{action} named \texttt{arrived}.
+An action is like an input, but messages are not received from other reactors,
 but rather as a side effect of some action of this reactor itself.
 %The fact that the first reaction causes a deferred trigger is indicated by the syntax \texttt{--> arrived}.
 
