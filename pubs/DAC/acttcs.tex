@@ -416,11 +416,12 @@ We summarize our model in terms of the following principles.
 	A reaction is a procedure in a target language that is invoked in response to a trigger event,
 	and \emph{only} in response to a trigger event.
 	\item A composite is a reactor that contains other reactors and manages their connections.
+	\marjan{So, a composite can include a reaction?}
 	The connections define the flow of messages,
 	and two reactors can be connected only if they are contained in the same composite.
 	An output port may be connected to multiple input ports, but an input port can only be connected to one output port.
 	\item Messages sent from one reactor to another, clock events, and actions each have a timestamp,
-	a value on a \emph{logical} time line.
+	a value on a \emph{logical} time line. \marjan{What is the relation between messages, actions and input ports?}
 	These timestamped \emph{events} can trigger reactions.
 	Each port, clock, and action can have at most one such event at any logical time.
 	\item
