@@ -9,6 +9,9 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Instance
+import org.icyphy.linguaFranca.Actor
+import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Output
 
 /**
  * Generator for CapeCode
@@ -20,14 +23,44 @@ class CapeCodeGenerator {
 			IFileSystemAccess2 fsa, 
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
+		
+		// Handle actors.
+		for (actor : resource.allContents.toIterable.filter(Actor)) {
+			val code = new StringBuffer
+			code.append(generateActor(actor, importTable));
+			fsa.generateFile(actor.name + ".js", code);		
+		}
+		
 		// Handle composites.
 		for (composite : resource.allContents.toIterable.filter(Composite)) {
 			val code = new StringBuffer
-			code.append(compositeSetup(composite, importTable))
+			code.append(generateComposite(composite, importTable))
 			// FIXME: More
 			fsa.generateFile(composite.name + ".js", code);		
 		}
 	}
+	
+	/** Return an instantiate statement followed by any required parameter
+	 *  assignments.
+	 *  @param instance The instance declaration.
+	 *  @param importTable Substitution table for class names (from import statements).
+	 */	
+	def generateActor(Actor actor, Hashtable<String,String> importTable)
+		'''
+		«actorSetup(actor, importTable)»
+		'''
+	
+	/** Return an instantiate statement followed by any required parameter
+	 *  assignments.
+	 *  @param instance The instance declaration.
+	 *  @param importTable Substitution table for class names (from import statements).
+	 */
+	def generateComposite(Composite composite, Hashtable<String,String> importTable)
+		'''
+		«compositeSetup(composite, importTable)»
+		'''
+	
+		
 	def boilerplate() '''
 		// Boilerplate included for all actors.
 		var PERIODIC = true;
@@ -48,10 +81,29 @@ class CapeCodeGenerator {
 		var set = setUnbound.bind(this);
 	'''
 	
+	/** Return the setup function definition for an actor.
+	 */
+	def actorSetup(Actor actor, Hashtable<String,String> importTable) '''
+		exports.setup = function () {
+			«FOR input: actor.inputs»
+				«generateInput(input)» 
+			«ENDFOR»
+			«FOR output: actor.outputs»
+				«generateOutput(output)» 
+			«ENDFOR»
+		}
+	'''
+	
 	/** Return the setup function definition for a composite.
 	 */
 	def compositeSetup(Composite composite, Hashtable<String,String> importTable) '''
 		exports.setup = function () {
+			«FOR input: composite.inputs»
+				«generateInput(input)» 
+			«ENDFOR»
+			«FOR output: composite.outputs»
+				«generateOutput(output)» 
+			«ENDFOR»
 			«FOR instance: composite.instances»
 				«instantiate(instance, importTable)»
 			«ENDFOR»
@@ -60,6 +112,16 @@ class CapeCodeGenerator {
 			«ENDFOR»
 		}
 	'''
+		
+	def generateInput(Input input) 
+		'''
+		this.intput("«input.name»"«IF input.type !== null», { 'type': «removeCodeDelimiter(input.type)»}«ENDIF»);
+		'''
+		
+	def generateOutput(Output output)
+		'''
+		this.output("«output.name»"«IF output.type !== null», { 'type': «removeCodeDelimiter(output.type)»}«ENDIF»);
+		'''
 		
 	/** Return an instantiate statement followed by any required parameter
 	 *  assignments.
