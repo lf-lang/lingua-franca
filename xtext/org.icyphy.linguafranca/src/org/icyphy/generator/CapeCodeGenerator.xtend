@@ -12,6 +12,11 @@ import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Actor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Trigger
+import org.icyphy.linguaFranca.Initialize
+import org.eclipse.emf.common.util.EList
+import org.icyphy.linguaFranca.Reaction
 
 /**
  * Generator for CapeCode
@@ -47,7 +52,22 @@ class CapeCodeGenerator {
 	 */	
 	def generateActor(Actor actor, Hashtable<String,String> importTable)
 		'''
+		«boilerplate()»
+		// Trigger data structure:
+		«FOR trigger: actor.triggers»
+			«generateTrigger(trigger)» 
+		«ENDFOR»
+		«IF actor.preamble !== null»
+		// *********** From the preamble, verbatim:
+		«removeCodeDelimiter(actor.preamble.code)»
+		// *********** End of preamble.
+		«ENDIF»
+		// Actor setup (inputs, outputs, parameters)
 		«actorSetup(actor, importTable)»
+		// Actor initialize (initialize + triggers scheduling - missing inputHandlers)
+		«generateInitialize(actor.initialize, actor.triggers)»
+		// Generate reactions
+		«generateReactions(actor.reactions)»
 		'''
 	
 	/** Return an instantiate statement followed by any required parameter
@@ -57,19 +77,31 @@ class CapeCodeGenerator {
 	 */
 	def generateComposite(Composite composite, Hashtable<String,String> importTable)
 		'''
+		«boilerplate()»
+		// Trigger data structure:
+		«FOR trigger: composite.triggers»
+			«generateTrigger(trigger)» 
+		«ENDFOR»			
+		«IF composite.preamble !== null»
+		// *********** From the preamble, verbatim:
+		«removeCodeDelimiter(composite.preamble.code)»
+		// *********** End of preamble.
+		«ENDIF»
+		// Composite setup		
 		«compositeSetup(composite, importTable)»
+		// Composite initialize (initialize + triggers scheduling - missing inputHandlers)
+		«generateInitialize(composite.initialize, composite.triggers)»
+		// Generate reactions
+		«generateReactions(composite.reactions)»
 		'''
-	
 		
 	def boilerplate() '''
 		// Boilerplate included for all actors.
-		var PERIODIC = true;
-		var ONCE = false;
-		function schedule(trigger, time, isPeriodic) {
-		    if (isPeriodic) {
-		        return trigger.actor.setInterval(trigger.reaction, time);
+		function schedule(trigger) {
+		    if (trigger.periodicity) {
+		        return trigger.actor.setInterval(trigger.reaction, trigger.period);
 		    } else {
-		        return trigger.actor.setTimeout(trigger.reaction, time);
+		    	return trigger.actor.setTimeout(trigger.reaction, trigger.period);
 		    }
 		}
 		function setUnbound(port, value) {
@@ -78,6 +110,8 @@ class CapeCodeGenerator {
 		    }
 		    this.send(port, value);
 		}
+		// NOTE: bind() returns a new function.
+		// It does not alter the original function.
 		var set = setUnbound.bind(this);
 	'''
 	
@@ -85,28 +119,46 @@ class CapeCodeGenerator {
 	 */
 	def actorSetup(Actor actor, Hashtable<String,String> importTable) '''
 		exports.setup = function () {
+			// Generated Inputs, if any
 			«FOR input: actor.inputs»
 				«generateInput(input)» 
 			«ENDFOR»
+			// Generated outputs, if any
 			«FOR output: actor.outputs»
 				«generateOutput(output)» 
 			«ENDFOR»
+			// Generated parameters, if any
+			«IF actor.parameters !== null»
+				«FOR param : actor.parameters.params»
+				«generateParameter(param)» 
+				«ENDFOR»
+			«ENDIF»
 		}
 	'''
-	
+		
 	/** Return the setup function definition for a composite.
 	 */
 	def compositeSetup(Composite composite, Hashtable<String,String> importTable) '''
 		exports.setup = function () {
+			// Generated Inputs, if any
 			«FOR input: composite.inputs»
 				«generateInput(input)» 
 			«ENDFOR»
+			// Generated outputs, if any
 			«FOR output: composite.outputs»
 				«generateOutput(output)» 
 			«ENDFOR»
+			// Generated parameters, if any
+			«IF composite.parameters !== null»
+				«FOR param : composite.parameters.params»
+				«generateParameter(param)» 
+				«ENDFOR»
+			«ENDIF»	
+			// Generated instances
 			«FOR instance: composite.instances»
 				«instantiate(instance, importTable)»
 			«ENDFOR»
+			// Generated connections
 			«FOR connection: composite.connections»
 				this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);
 			«ENDFOR»
@@ -122,7 +174,50 @@ class CapeCodeGenerator {
 		'''
 		this.output("«output.name»"«IF output.type !== null», { 'type': «removeCodeDelimiter(output.type)»}«ENDIF»);
 		'''
-		
+	
+	def generateParameter(Param param)
+		'''
+		this.parameter("«param.name»"«IF param.type === null && param.value === null»);«ELSE»,«ENDIF»
+			«IF param.type !== null && param.value !== null»{'type': «removeCodeDelimiter(param.type)», 'value': «removeCodeDelimiter(param.value)»});«ENDIF»
+			«IF param.type !== null && param.value === null»{'type': «removeCodeDelimiter(param.type)»});«ENDIF»
+			«IF param.type === null && param.value !== null»{'value': «removeCodeDelimiter(param.value)»});«ENDIF»
+		'''
+
+	def generateTrigger(Trigger trigger)
+		'''
+		var «trigger.name» = {'actor': this,
+		    'period': «IF trigger.period !== null»«trigger.period.period»«ELSE»0«ENDIF»,
+		    'periodicity': «IF trigger.period !== null»«IF trigger.period.periodic»1«ELSE»0«ENDIF»«ENDIF»,
+		    'reaction': reaction_«trigger.name».bind(this)
+		};
+		'''
+	
+	/** Return the initialize function definition for an actor or a composite.
+	 *  FIXME: See comment below for adding the input handler of reactions
+	 */
+	def generateInitialize(Initialize initialize, EList<Trigger> triggers) '''
+		exports.initialize = function () {
+			«IF initialize !== null»«removeCodeDelimiter(initialize.code)»«ENDIF»
+			«FOR trigger: triggers»
+				schedule(«trigger.name»);
+			«ENDFOR»
+			// Need to add input handler of reactions
+		};
+	'''		
+
+	/** Return reaction functions definition for an actor or a composite.
+	 *  FIXME: Missing sets and gets
+	 */
+	def generateReactions(EList<Reaction> reactions) '''
+		«FOR reaction: reactions»
+		function reaction«FOR trigger:reaction.triggers»_«trigger»«ENDFOR» () {
+			// Generating sets: wip...
+			// Generating gets: wip...
+			«removeCodeDelimiter(reaction.code)»
+		}
+		«ENDFOR»
+	'''		
+				
 	/** Return an instantiate statement followed by any required parameter
 	 *  assignments.
 	 *  @param instance The instance declaration.
