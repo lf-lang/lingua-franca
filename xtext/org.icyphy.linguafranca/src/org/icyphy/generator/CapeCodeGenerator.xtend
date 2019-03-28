@@ -65,7 +65,7 @@ class CapeCodeGenerator {
 		// Actor setup (inputs, outputs, parameters)
 		«actorSetup(actor, importTable)»
 		// Actor initialize (initialize + triggers scheduling - missing inputHandlers)
-		«generateInitialize(actor.initialize, actor.triggers)»
+		«generateInitialize(actor.initialize, actor.triggers, actor.reactions)»
 		// Generate reactions
 		«generateReactions(actor.reactions)»
 		'''
@@ -90,7 +90,7 @@ class CapeCodeGenerator {
 		// Composite setup		
 		«compositeSetup(composite, importTable)»
 		// Composite initialize (initialize + triggers scheduling - missing inputHandlers)
-		«generateInitialize(composite.initialize, composite.triggers)»
+		«generateInitialize(composite.initialize, composite.triggers, composite.reactions)»
 		// Generate reactions
 		«generateReactions(composite.reactions)»
 		'''
@@ -195,29 +195,55 @@ class CapeCodeGenerator {
 	/** Return the initialize function definition for an actor or a composite.
 	 *  FIXME: See comment below for adding the input handler of reactions
 	 */
-	def generateInitialize(Initialize initialize, EList<Trigger> triggers) '''
+	def generateInitialize(Initialize initialize, EList<Trigger> triggers, EList<Reaction> reactions) '''
 		exports.initialize = function () {
 			«IF initialize !== null»«removeCodeDelimiter(initialize.code)»«ENDIF»
 			«FOR trigger: triggers»
 				schedule(«trigger.name»);
 			«ENDFOR»
-			// Need to add input handler of reactions
+			
+			// Adding input handlers of reactions
+			«FOR reaction: reactions»
+			this.addInputHandler(«FOR trigger:reaction.triggers»"«trigger»", «ENDFOR»
+				reaction«FOR trigger:reaction.triggers»_«trigger»«ENDFOR»
+			);
+			
+			«ENDFOR»
 		};
-	'''		
+	'''			
 
 	/** Return reaction functions definition for an actor or a composite.
-	 *  FIXME: Missing sets and gets
+	 *  FIXME 1: In what sens reaction parameters (triggers) are different from gets?
+	 *  FIXME 2: Aren't 'set' instructions part of the code? If yes, Why do
+	 *           we need 'Sets' in the header of the 'reaction'? 
+	 *  FIXME 3: If the trigger of the reaction is a trigger (not an input port), then
+	 *           we use schedule.
+	 * 			 We need then to iterate over a reaction parameters to check this condition. 
 	 */
 	def generateReactions(EList<Reaction> reactions) '''
 		«FOR reaction: reactions»
 		function reaction«FOR trigger:reaction.triggers»_«trigger»«ENDFOR» () {
-			// Generating sets: wip...
-			// Generating gets: wip...
+			// Reading gets
+			«IF reaction.gets !== null»
+			«FOR get: reaction.gets.gets»
+				var «get» = this.getInput("«get»");
+			«ENDFOR»
+			«ENDIF»
+			
+			// Code verbatim from 'reaction'
 			«removeCodeDelimiter(reaction.code)»
+			
+			// Setting outputs
+			«IF reaction.sets !== null»
+			«FOR set: reaction.sets.sets»
+				set("«set»", "Don't know what value to put here?");
+			«ENDFOR»
+			«ENDIF»
 		}
+		
 		«ENDFOR»
 	'''		
-				
+		
 	/** Return an instantiate statement followed by any required parameter
 	 *  assignments.
 	 *  @param instance The instance declaration.
