@@ -6,7 +6,7 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 Model:
 	target=Target 
 	(imports += Import)*
-	(blocks += (Actor | Composite))+
+	(blocks += (Reactor | Composite))+
 	;
 
 /////////// Top level elements
@@ -18,13 +18,13 @@ Import:
 
 // The following enforces the order of definitions:
 // inputs, outputs, triggers, preamble, etc.
-Actor:
-	'actor' name=ID parameters=Params? '{'
+Reactor:
+	'reactor' name=ID parameters=Params? '{'
 	(inputs += Input)*
 	(outputs += Output)*
-	(triggers += Trigger)*
+	(clocks += Clock)*
 	(preamble = Preamble)?
-	(initialize = Initialize)?
+	(constructor = Constructor)?
 	(reactions += Reaction)*
 	'}';
 	
@@ -32,9 +32,9 @@ Composite:
 	'composite' name=ID parameters=Params? '{'
 	(inputs += Input)*
 	(outputs += Output)*
-	(triggers += Trigger)*
+	(clocks += Clock)*
 	(preamble = Preamble)?
-	(initialize = Initialize)?
+	(constructor = Constructor)?
 	(reactions += Reaction)*
 	(instances += Instance)*
 	(connections += Connection)*
@@ -42,15 +42,15 @@ Composite:
 	
 /////////// Statements
 
-// Note explicit allowance of keywords for names of inputs, outputs, triggers.
+// Note explicit allowance of keywords for names of inputs, outputs, clocks.
 Input:
 	'input' name=(ID | 'input') (':' type=Type)? ';';
 
 Output:
 	'output' name=(ID | 'output') (':' type=Type)? ';';
 
-Trigger:
-	'trigger' name=(ID | 'trigger') period=Period?';';
+Clock:
+	'clock' name=(ID | 'clock') period=Period?';';
 	
 Reaction:
 	'reaction' 
@@ -62,12 +62,12 @@ Reaction:
 Preamble:
 	'preamble' code=CODE;
 
-Initialize:
-	'initialize' code=CODE;
+Constructor:
+	'constructor' code=CODE;
 	
-// FIXME: actorClass should ideally be something like [Actor|Composite],
+// FIXME: reactorClass should ideally be something like [Reactor|Composite],
 // to get cross references to work. But this doesn't work for importing
-// foreign actors that are not defined in Lingua Franca.
+// foreign reactors that are not defined in Lingua Franca.
 Instance:
 	'instance' name=ID '=' actorClass=ID ('(' parameters=Assignments? ')')? ';' ;
 

@@ -9,7 +9,7 @@ ruleModel:
 	ruleImport
 	*
 	(
-		ruleActor
+		ruleReactor
 		    |ruleComposite
 	)+
 ;
@@ -28,9 +28,9 @@ ruleImport:
 	';'
 ;
 
-// Rule Actor
-ruleActor:
-	'actor'
+// Rule Reactor
+ruleReactor:
+	'reactor'
 	RULE_ID
 	ruleParams
 	?
@@ -39,11 +39,11 @@ ruleActor:
 	*
 	ruleOutput
 	*
-	ruleTrigger
+	ruleClock
 	*
 	rulePreamble
 	?
-	ruleInitialize
+	ruleConstructor
 	?
 	ruleReaction
 	*
@@ -61,11 +61,11 @@ ruleComposite:
 	*
 	ruleOutput
 	*
-	ruleTrigger
+	ruleClock
 	*
 	rulePreamble
 	?
-	ruleInitialize
+	ruleConstructor
 	?
 	ruleReaction
 	*
@@ -104,12 +104,12 @@ ruleOutput:
 	';'
 ;
 
-// Rule Trigger
-ruleTrigger:
-	'trigger'
+// Rule Clock
+ruleClock:
+	'clock'
 	(
 		RULE_ID
-		    |'trigger'
+		    |'clock'
 	)
 	rulePeriod
 	?
@@ -143,9 +143,9 @@ rulePreamble:
 	RULE_CODE
 ;
 
-// Rule Initialize
-ruleInitialize:
-	'initialize'
+// Rule Constructor
+ruleConstructor:
+	'constructor'
 	RULE_CODE
 ;
 
