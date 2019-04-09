@@ -9,12 +9,12 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Instance
-import org.icyphy.linguaFranca.Actor
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
-import org.icyphy.linguaFranca.Trigger
-import org.icyphy.linguaFranca.Initialize
+import org.icyphy.linguaFranca.Clock
+import org.icyphy.linguaFranca.Constructor
 import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.Reaction
 
@@ -30,10 +30,10 @@ class CapeCodeGenerator {
 			Hashtable<String,String> importTable) {
 		
 		// Handle actors.
-		for (actor : resource.allContents.toIterable.filter(Actor)) {
+		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			val code = new StringBuffer
-			code.append(generateActor(actor, importTable));
-			fsa.generateFile(actor.name + ".js", code);		
+			code.append(generateReactor(reactor, importTable));
+			fsa.generateFile(reactor.name + ".js", code);		
 		}
 		
 		// Handle composites.
@@ -50,24 +50,24 @@ class CapeCodeGenerator {
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
-	def generateActor(Actor actor, Hashtable<String,String> importTable)
+	def generateReactor(Reactor reactor, Hashtable<String,String> importTable)
 		'''
 		«boilerplate()»
 		// Trigger data structure:
-		«FOR trigger: actor.triggers»
-			«generateTrigger(trigger)» 
+		«FOR trigger: reactor.clocks»
+			«generateClock(trigger)» 
 		«ENDFOR»
-		«IF actor.preamble !== null»
+		«IF reactor.preamble !== null»
 		// *********** From the preamble, verbatim:
-		«removeCodeDelimiter(actor.preamble.code)»
+		«removeCodeDelimiter(reactor.preamble.code)»
 		// *********** End of preamble.
 		«ENDIF»
-		// Actor setup (inputs, outputs, parameters)
-		«actorSetup(actor, importTable)»
-		// Actor initialize (initialize + triggers scheduling - missing inputHandlers)
-		«generateInitialize(actor.initialize, actor.triggers, actor.reactions)»
+		// Reactor setup (inputs, outputs, parameters)
+		«reactorSetup(reactor, importTable)»
+		// Reactor initialize (initialize + triggers scheduling - missing inputHandlers)
+		«generateConstructor(reactor.constructor, reactor.clocks, reactor.reactions)»
 		// Generate reactions
-		«generateReactions(actor.reactions)»
+		«generateReactions(reactor.reactions)»
 		'''
 	
 	/** Return an instantiate statement followed by any required parameter
@@ -79,8 +79,8 @@ class CapeCodeGenerator {
 		'''
 		«boilerplate()»
 		// Trigger data structure:
-		«FOR trigger: composite.triggers»
-			«generateTrigger(trigger)» 
+		«FOR clock: composite.clocks»
+			«generateClock(clock)» 
 		«ENDFOR»			
 		«IF composite.preamble !== null»
 		// *********** From the preamble, verbatim:
@@ -90,7 +90,7 @@ class CapeCodeGenerator {
 		// Composite setup		
 		«compositeSetup(composite, importTable)»
 		// Composite initialize (initialize + triggers scheduling - missing inputHandlers)
-		«generateInitialize(composite.initialize, composite.triggers, composite.reactions)»
+		«generateConstructor(composite.constructor, composite.clocks, composite.reactions)»
 		// Generate reactions
 		«generateReactions(composite.reactions)»
 		'''
@@ -99,9 +99,9 @@ class CapeCodeGenerator {
 		// Boilerplate included for all actors.
 		function schedule(trigger) {
 		    if (trigger.periodicity) {
-		        return trigger.actor.setInterval(trigger.reaction, trigger.period);
+		        return trigger.reactor.setInterval(trigger.reaction, trigger.period);
 		    } else {
-		    	return trigger.actor.setTimeout(trigger.reaction, trigger.period);
+		    	return trigger.reactor.setTimeout(trigger.reaction, trigger.period);
 		    }
 		}
 		function setUnbound(port, value) {
@@ -115,21 +115,21 @@ class CapeCodeGenerator {
 		var set = setUnbound.bind(this);
 	'''
 	
-	/** Return the setup function definition for an actor.
+	/** Return the setup function definition for a reactor.
 	 */
-	def actorSetup(Actor actor, Hashtable<String,String> importTable) '''
+	def reactorSetup(Reactor reactor, Hashtable<String,String> importTable) '''
 		exports.setup = function () {
 			// Generated Inputs, if any
-			«FOR input: actor.inputs»
+			«FOR input: reactor.inputs»
 				«generateInput(input)» 
 			«ENDFOR»
 			// Generated outputs, if any
-			«FOR output: actor.outputs»
+			«FOR output: reactor.outputs»
 				«generateOutput(output)» 
 			«ENDFOR»
 			// Generated parameters, if any
-			«IF actor.parameters !== null»
-				«FOR param : actor.parameters.params»
+			«IF reactor.parameters !== null»
+				«FOR param : reactor.parameters.params»
 				«generateParameter(param)» 
 				«ENDFOR»
 			«ENDIF»
@@ -183,36 +183,39 @@ class CapeCodeGenerator {
 			«IF param.type === null && param.value !== null»{'value': «removeCodeDelimiter(param.value)»});«ENDIF»
 		'''
 
-	def generateTrigger(Trigger trigger)
+	def generateClock(Clock clock)
 		'''
-		var «trigger.name» = {'actor': this,
-		    'period': «IF trigger.period !== null»«trigger.period.period»«ELSE»0«ENDIF»,
-		    'periodicity': «IF trigger.period !== null»«IF trigger.period.periodic»1«ELSE»0«ENDIF»«ENDIF»,
-		    'reaction': reaction_«trigger.name».bind(this)
+		var «clock.name» = {'reactor': this,
+		    'period': «IF clock.period !== null»«clock.period.period»«ELSE»0«ENDIF»,
+		    'periodicity': «IF clock.period !== null»«IF clock.period.periodic»1«ELSE»0«ENDIF»«ELSE»0«ENDIF»,
+		    'reaction': reaction_«clock.name».bind(this)
 		};
 		'''
 	
-	/** Return the initialize function definition for an actor or a composite.
-	 *  FIXME: See comment below for adding the input handler of reactions
+	/** Return the constructor (constructor) function definition for a reactor or a composite.
+	 *  First of all, schedule clocks.
+	 *  Second, add input handlers.
+	 *  Since a reaction can be triggered by any of the triggers, it is an "OR" condition.
+	 *  FIXME: Is the sentence above this correct?
+	 *  If yes, several input handlers are added, as described below.
 	 */
-	def generateInitialize(Initialize initialize, EList<Trigger> triggers, EList<Reaction> reactions) '''
+	def generateConstructor(Constructor constructor, EList<Clock> triggers, EList<Reaction> reactions) '''
 		exports.initialize = function () {
-			«IF initialize !== null»«removeCodeDelimiter(initialize.code)»«ENDIF»
+			«IF constructor !== null»«removeCodeDelimiter(constructor.code)»«ENDIF»
 			«FOR trigger: triggers»
 				schedule(«trigger.name»);
 			«ENDFOR»
 			
 			// Adding input handlers of reactions
 			«FOR reaction: reactions»
-			this.addInputHandler(«FOR trigger:reaction.triggers»"«trigger»", «ENDFOR»
-				reaction«FOR trigger:reaction.triggers»_«trigger»«ENDFOR»
-			);
-			
+				«FOR trigger:reaction.triggers»
+					this.addInputHandler("«trigger»", reaction«FOR trig:reaction.triggers»_«trig»«ENDFOR».bind(this));
+				«ENDFOR»
 			«ENDFOR»
 		};
 	'''			
 
-	/** Return reaction functions definition for an actor or a composite.
+	/** Return reaction functions definition for a reactor or a composite.
 	 *  FIXME 1: In what sens reaction parameters (triggers) are different from gets?
 	 *  FIXME 2: Aren't 'set' instructions part of the code? If yes, Why do
 	 *           we need 'Sets' in the header of the 'reaction'? 
