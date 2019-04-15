@@ -2,7 +2,7 @@
 
 ## Installation of Eclipse and Xtext
 
-* Install Eclipse from FIXME.
+* Install Eclipse from https://www.eclipse.org/downloads/
 * Start Eclipse in a new workspace, just to be safe to not mess up my other work in any pre-existing workspace.
 * Install xtext in that workspace by following instructions at: https://www.eclipse.org/Xtext/download.html
 * See xtext documentation: https://www.eclipse.org/Xtext/documentation/index.html
@@ -32,3 +32,9 @@
 * Give the new a name like "test.lf" (with .lf extension).
 * IMPORTANT: A dialog appears: Do you want to convert 'test' to an Xtext Project? Say YES.
 * Start typing in Lingua-Franca!
+* When you save, generated code goes into ~/runtime-EclipseXtext/test (if "test" is your project name).
+
+## Working on the Lingua-Franca compiler (package org.icyphy.linguafranca)
+* The grammar is in src->org.icyphy->LinguaFranca.xtext
+* The code generator for the Accessor target is in src->org.icyphy.generator->AccessorGenerator.xtend
+* To add a code generator for a new target, edit src->org.icyphy.generator->LinguaFrancaGenerator.xtend

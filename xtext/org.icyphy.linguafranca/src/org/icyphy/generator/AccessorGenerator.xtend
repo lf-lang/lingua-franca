@@ -1,5 +1,5 @@
 /*
- * Generator for CapeCode.
+ * Generator for Accessors, JavaScript code runnable in Node, CapeCode, and Ptolemy II.
  */
 package org.icyphy.generator
 
@@ -19,10 +19,10 @@ import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.Reaction
 
 /**
- * Generator for CapeCode
+ * Generator for Accessors.
  * @author Edward A. Lee
  */
-class CapeCodeGenerator {
+class AccessorGenerator {
 	def void doGenerate(
 			Resource resource, 
 			IFileSystemAccess2 fsa, 
@@ -96,6 +96,7 @@ class CapeCodeGenerator {
 		'''
 		
 	def boilerplate() '''
+		////////////////////////
 		// Boilerplate included for all actors.
 		function schedule(trigger) {
 		    if (trigger.periodicity) {
@@ -104,15 +105,29 @@ class CapeCodeGenerator {
 		    	return trigger.reactor.setTimeout(trigger.reaction, trigger.period);
 		    }
 		}
+		// Unbound version of set() function (will be bound below).
 		function setUnbound(port, value) {
 		    if (!port) {
-		        throw \"Illegal reference to undeclared output.\";
+		        throw "Illegal reference to undeclared output.";
 		    }
 		    this.send(port, value);
 		}
 		// NOTE: bind() returns a new function.
 		// It does not alter the original function.
 		var set = setUnbound.bind(this);
+		
+		// Unbound version of get() function (will be bound below).
+		function getUnbound(port, value) {
+			if (!port) {
+		    	throw "Illegal reference to undeclared input.";
+		    }
+			return this.get(port);
+		}
+		// NOTE: bind() returns a new function.
+		// It does not alter the original function.
+		var get = getUnbound.bind(this);
+		//////////////////////// End boilerplate
+		
 	'''
 	
 	/** Return the setup function definition for a reactor.
@@ -167,7 +182,7 @@ class CapeCodeGenerator {
 		
 	def generateInput(Input input) 
 		'''
-		this.intput("«input.name»"«IF input.type !== null», { 'type': «removeCodeDelimiter(input.type)»}«ENDIF»);
+		this.input("«input.name»"«IF input.type !== null», { 'type': «removeCodeDelimiter(input.type)»}«ENDIF»);
 		'''
 		
 	def generateOutput(Output output)
@@ -178,8 +193,8 @@ class CapeCodeGenerator {
 	def generateParameter(Param param)
 		'''
 		this.parameter("«param.name»"«IF param.type === null && param.value === null»);«ELSE»,«ENDIF»
-			«IF param.type !== null && param.value !== null»{'type': «removeCodeDelimiter(param.type)», 'value': «removeCodeDelimiter(param.value)»});«ENDIF»
-			«IF param.type !== null && param.value === null»{'type': «removeCodeDelimiter(param.type)»});«ENDIF»
+			«IF param.type !== null && param.value !== null»{'type': '«removeCodeDelimiter(param.type)»', 'value': «removeCodeDelimiter(param.value)»});«ENDIF»
+			«IF param.type !== null && param.value === null»{'type': '«removeCodeDelimiter(param.type)»'});«ENDIF»
 			«IF param.type === null && param.value !== null»{'value': «removeCodeDelimiter(param.value)»});«ENDIF»
 		'''
 
@@ -226,22 +241,26 @@ class CapeCodeGenerator {
 	def generateReactions(EList<Reaction> reactions) '''
 		«FOR reaction: reactions»
 		function reaction«FOR trigger:reaction.triggers»_«trigger»«ENDFOR» () {
-			// Reading gets
+			// Define variables for triggers, gets (non-triggering inputs that are read), and sets (outputs).
+			«IF reaction.triggers !== null»
+				«FOR trigger: reaction.triggers»
+					// FIXME: This could be clock. Handling inputs only for now.
+					var «trigger» = "«trigger»";
+				«ENDFOR»
+			«ENDIF»
 			«IF reaction.gets !== null»
-			«FOR get: reaction.gets.gets»
-				var «get» = this.getInput("«get»");
-			«ENDFOR»
+				«FOR get: reaction.gets.gets»
+					var «get» = "«get»";
+				«ENDFOR»
+			«ENDIF»
+			«IF reaction.sets !== null»
+				«FOR set: reaction.sets.sets»
+					var «set» = "«set»";
+				«ENDFOR»
 			«ENDIF»
 			
 			// Code verbatim from 'reaction'
 			«removeCodeDelimiter(reaction.code)»
-			
-			// Setting outputs
-			«IF reaction.sets !== null»
-			«FOR set: reaction.sets.sets»
-				set("«set»", "Don't know what value to put here?");
-			«ENDFOR»
-			«ENDIF»
 		}
 		
 		«ENDFOR»
@@ -258,7 +277,7 @@ class CapeCodeGenerator {
 			className = instance.actorClass
 		}
 		'''
-		var «instance.name» = instantiate('«instance.name»', «className»);
+		var «instance.name» = instantiate('«instance.name»', '«className»');
 		«IF instance.parameters !== null»
 			«FOR param: instance.parameters.assignments»
 				«instance.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);
