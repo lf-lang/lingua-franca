@@ -30,9 +30,9 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 		// Determine which target is desired.
 		for (target : resource.allContents.toIterable.filter(Target)) {
 			// FIXME: Use reflection here?
-			if (target.name.equalsIgnoreCase("CapeCode")
-					|| target.name.equalsIgnoreCase("JavaScript")) {
-				val generator = new CapeCodeGenerator()
+			if (target.name.equalsIgnoreCase("Accessor")
+					|| target.name.equalsIgnoreCase("Accessors")) {
+				val generator = new AccessorGenerator()
 				generator.doGenerate(resource, fsa, context, importTable)
 			}
 		}

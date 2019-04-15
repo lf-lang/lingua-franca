@@ -21,7 +21,7 @@ import java.util.ArrayList;
 @SuppressWarnings("all")
 public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
     public static final String[] tokenNames = new String[] {
-        "<invalid>", "<EOR>", "<DOWN>", "<UP>", "RULE_ID", "RULE_CODE", "RULE_NUMBER", "RULE_STRING", "RULE_INT", "RULE_ML_COMMENT", "RULE_SL_COMMENT", "RULE_WS", "RULE_ANY_OTHER", "'target'", "';'", "'import'", "'actor'", "'{'", "'}'", "'composite'", "'input'", "':'", "'output'", "'trigger'", "'reaction'", "'('", "','", "')'", "'preamble'", "'initialize'", "'instance'", "'='", "'->'", "'const'", "'PERIODIC'", "'ONCE'", "'.'"
+        "<invalid>", "<EOR>", "<DOWN>", "<UP>", "RULE_ID", "RULE_CODE", "RULE_NUMBER", "RULE_STRING", "RULE_INT", "RULE_ML_COMMENT", "RULE_SL_COMMENT", "RULE_WS", "RULE_ANY_OTHER", "'target'", "';'", "'import'", "'reactor'", "'{'", "'}'", "'composite'", "'input'", "':'", "'output'", "'clock'", "'reaction'", "'('", "','", "')'", "'preamble'", "'constructor'", "'instance'", "'='", "'->'", "'const'", "'PERIODIC'", "'ONCE'", "'.'"
     };
     public static final int RULE_STRING=7;
     public static final int RULE_SL_COMMENT=10;
@@ -134,7 +134,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleModel"
-    // InternalLinguaFranca.g:71:1: ruleModel returns [EObject current=null] : ( ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite ) ) )+ ) ;
+    // InternalLinguaFranca.g:71:1: ruleModel returns [EObject current=null] : ( ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite ) ) )+ ) ;
     public final EObject ruleModel() throws RecognitionException {
         EObject current = null;
 
@@ -151,11 +151,11 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:77:2: ( ( ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite ) ) )+ ) )
-            // InternalLinguaFranca.g:78:2: ( ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite ) ) )+ )
+            // InternalLinguaFranca.g:77:2: ( ( ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite ) ) )+ ) )
+            // InternalLinguaFranca.g:78:2: ( ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite ) ) )+ )
             {
-            // InternalLinguaFranca.g:78:2: ( ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite ) ) )+ )
-            // InternalLinguaFranca.g:79:3: ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite ) ) )+
+            // InternalLinguaFranca.g:78:2: ( ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite ) ) )+ )
+            // InternalLinguaFranca.g:79:3: ( (lv_target_0_0= ruleTarget ) ) ( (lv_imports_1_0= ruleImport ) )* ( ( (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite ) ) )+
             {
             // InternalLinguaFranca.g:79:3: ( (lv_target_0_0= ruleTarget ) )
             // InternalLinguaFranca.g:80:4: (lv_target_0_0= ruleTarget )
@@ -237,7 +237,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                 }
             } while (true);
 
-            // InternalLinguaFranca.g:117:3: ( ( (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite ) ) )+
+            // InternalLinguaFranca.g:117:3: ( ( (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite ) ) )+
             int cnt3=0;
             loop3:
             do {
@@ -251,12 +251,12 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
                 switch (alt3) {
             	case 1 :
-            	    // InternalLinguaFranca.g:118:4: ( (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite ) )
+            	    // InternalLinguaFranca.g:118:4: ( (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite ) )
             	    {
-            	    // InternalLinguaFranca.g:118:4: ( (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite ) )
-            	    // InternalLinguaFranca.g:119:5: (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite )
+            	    // InternalLinguaFranca.g:118:4: ( (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite ) )
+            	    // InternalLinguaFranca.g:119:5: (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite )
             	    {
-            	    // InternalLinguaFranca.g:119:5: (lv_blocks_2_1= ruleActor | lv_blocks_2_2= ruleComposite )
+            	    // InternalLinguaFranca.g:119:5: (lv_blocks_2_1= ruleReactor | lv_blocks_2_2= ruleComposite )
             	    int alt2=2;
             	    int LA2_0 = input.LA(1);
 
@@ -274,13 +274,13 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             	    }
             	    switch (alt2) {
             	        case 1 :
-            	            // InternalLinguaFranca.g:120:6: lv_blocks_2_1= ruleActor
+            	            // InternalLinguaFranca.g:120:6: lv_blocks_2_1= ruleReactor
             	            {
 
-            	            						newCompositeNode(grammarAccess.getModelAccess().getBlocksActorParserRuleCall_2_0_0());
+            	            						newCompositeNode(grammarAccess.getModelAccess().getBlocksReactorParserRuleCall_2_0_0());
             	            					
             	            pushFollow(FOLLOW_4);
-            	            lv_blocks_2_1=ruleActor();
+            	            lv_blocks_2_1=ruleReactor();
 
             	            state._fsp--;
 
@@ -292,7 +292,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             	            							current,
             	            							"blocks",
             	            							lv_blocks_2_1,
-            	            							"org.icyphy.LinguaFranca.Actor");
+            	            							"org.icyphy.LinguaFranca.Reactor");
             	            						afterParserOrEnumRuleCall();
             	            					
 
@@ -592,25 +592,25 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
     // $ANTLR end "ruleImport"
 
 
-    // $ANTLR start "entryRuleActor"
-    // InternalLinguaFranca.g:249:1: entryRuleActor returns [EObject current=null] : iv_ruleActor= ruleActor EOF ;
-    public final EObject entryRuleActor() throws RecognitionException {
+    // $ANTLR start "entryRuleReactor"
+    // InternalLinguaFranca.g:249:1: entryRuleReactor returns [EObject current=null] : iv_ruleReactor= ruleReactor EOF ;
+    public final EObject entryRuleReactor() throws RecognitionException {
         EObject current = null;
 
-        EObject iv_ruleActor = null;
+        EObject iv_ruleReactor = null;
 
 
         try {
-            // InternalLinguaFranca.g:249:46: (iv_ruleActor= ruleActor EOF )
-            // InternalLinguaFranca.g:250:2: iv_ruleActor= ruleActor EOF
+            // InternalLinguaFranca.g:249:48: (iv_ruleReactor= ruleReactor EOF )
+            // InternalLinguaFranca.g:250:2: iv_ruleReactor= ruleReactor EOF
             {
-             newCompositeNode(grammarAccess.getActorRule()); 
+             newCompositeNode(grammarAccess.getReactorRule()); 
             pushFollow(FOLLOW_1);
-            iv_ruleActor=ruleActor();
+            iv_ruleReactor=ruleReactor();
 
             state._fsp--;
 
-             current =iv_ruleActor; 
+             current =iv_ruleReactor; 
             match(input,EOF,FOLLOW_2); 
 
             }
@@ -625,12 +625,12 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "entryRuleActor"
+    // $ANTLR end "entryRuleReactor"
 
 
-    // $ANTLR start "ruleActor"
-    // InternalLinguaFranca.g:256:1: ruleActor returns [EObject current=null] : (otherlv_0= 'actor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}' ) ;
-    public final EObject ruleActor() throws RecognitionException {
+    // $ANTLR start "ruleReactor"
+    // InternalLinguaFranca.g:256:1: ruleReactor returns [EObject current=null] : (otherlv_0= 'reactor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}' ) ;
+    public final EObject ruleReactor() throws RecognitionException {
         EObject current = null;
 
         Token otherlv_0=null;
@@ -643,11 +643,11 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
         EObject lv_outputs_5_0 = null;
 
-        EObject lv_triggers_6_0 = null;
+        EObject lv_clocks_6_0 = null;
 
         EObject lv_preamble_7_0 = null;
 
-        EObject lv_initialize_8_0 = null;
+        EObject lv_constructor_8_0 = null;
 
         EObject lv_reactions_9_0 = null;
 
@@ -656,15 +656,15 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:262:2: ( (otherlv_0= 'actor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}' ) )
-            // InternalLinguaFranca.g:263:2: (otherlv_0= 'actor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}' )
+            // InternalLinguaFranca.g:262:2: ( (otherlv_0= 'reactor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}' ) )
+            // InternalLinguaFranca.g:263:2: (otherlv_0= 'reactor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}' )
             {
-            // InternalLinguaFranca.g:263:2: (otherlv_0= 'actor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}' )
-            // InternalLinguaFranca.g:264:3: otherlv_0= 'actor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}'
+            // InternalLinguaFranca.g:263:2: (otherlv_0= 'reactor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}' )
+            // InternalLinguaFranca.g:264:3: otherlv_0= 'reactor' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* otherlv_10= '}'
             {
             otherlv_0=(Token)match(input,16,FOLLOW_5); 
 
-            			newLeafNode(otherlv_0, grammarAccess.getActorAccess().getActorKeyword_0());
+            			newLeafNode(otherlv_0, grammarAccess.getReactorAccess().getReactorKeyword_0());
             		
             // InternalLinguaFranca.g:268:3: ( (lv_name_1_0= RULE_ID ) )
             // InternalLinguaFranca.g:269:4: (lv_name_1_0= RULE_ID )
@@ -674,11 +674,11 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             {
             lv_name_1_0=(Token)match(input,RULE_ID,FOLLOW_7); 
 
-            					newLeafNode(lv_name_1_0, grammarAccess.getActorAccess().getNameIDTerminalRuleCall_1_0());
+            					newLeafNode(lv_name_1_0, grammarAccess.getReactorAccess().getNameIDTerminalRuleCall_1_0());
             				
 
             					if (current==null) {
-            						current = createModelElement(grammarAccess.getActorRule());
+            						current = createModelElement(grammarAccess.getReactorRule());
             					}
             					setWithLastConsumed(
             						current,
@@ -707,7 +707,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     // InternalLinguaFranca.g:288:5: lv_parameters_2_0= ruleParams
                     {
 
-                    					newCompositeNode(grammarAccess.getActorAccess().getParametersParamsParserRuleCall_2_0());
+                    					newCompositeNode(grammarAccess.getReactorAccess().getParametersParamsParserRuleCall_2_0());
                     				
                     pushFollow(FOLLOW_8);
                     lv_parameters_2_0=ruleParams();
@@ -716,7 +716,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
                     					if (current==null) {
-                    						current = createModelElementForParent(grammarAccess.getActorRule());
+                    						current = createModelElementForParent(grammarAccess.getReactorRule());
                     					}
                     					set(
                     						current,
@@ -736,7 +736,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
             otherlv_3=(Token)match(input,17,FOLLOW_9); 
 
-            			newLeafNode(otherlv_3, grammarAccess.getActorAccess().getLeftCurlyBracketKeyword_3());
+            			newLeafNode(otherlv_3, grammarAccess.getReactorAccess().getLeftCurlyBracketKeyword_3());
             		
             // InternalLinguaFranca.g:309:3: ( (lv_inputs_4_0= ruleInput ) )*
             loop5:
@@ -757,7 +757,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             	    // InternalLinguaFranca.g:311:5: lv_inputs_4_0= ruleInput
             	    {
 
-            	    					newCompositeNode(grammarAccess.getActorAccess().getInputsInputParserRuleCall_4_0());
+            	    					newCompositeNode(grammarAccess.getReactorAccess().getInputsInputParserRuleCall_4_0());
             	    				
             	    pushFollow(FOLLOW_9);
             	    lv_inputs_4_0=ruleInput();
@@ -766,7 +766,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
             	    					if (current==null) {
-            	    						current = createModelElementForParent(grammarAccess.getActorRule());
+            	    						current = createModelElementForParent(grammarAccess.getReactorRule());
             	    					}
             	    					add(
             	    						current,
@@ -806,7 +806,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             	    // InternalLinguaFranca.g:330:5: lv_outputs_5_0= ruleOutput
             	    {
 
-            	    					newCompositeNode(grammarAccess.getActorAccess().getOutputsOutputParserRuleCall_5_0());
+            	    					newCompositeNode(grammarAccess.getReactorAccess().getOutputsOutputParserRuleCall_5_0());
             	    				
             	    pushFollow(FOLLOW_10);
             	    lv_outputs_5_0=ruleOutput();
@@ -815,7 +815,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
             	    					if (current==null) {
-            	    						current = createModelElementForParent(grammarAccess.getActorRule());
+            	    						current = createModelElementForParent(grammarAccess.getReactorRule());
             	    					}
             	    					add(
             	    						current,
@@ -836,7 +836,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                 }
             } while (true);
 
-            // InternalLinguaFranca.g:347:3: ( (lv_triggers_6_0= ruleTrigger ) )*
+            // InternalLinguaFranca.g:347:3: ( (lv_clocks_6_0= ruleClock ) )*
             loop7:
             do {
                 int alt7=2;
@@ -849,28 +849,28 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
                 switch (alt7) {
             	case 1 :
-            	    // InternalLinguaFranca.g:348:4: (lv_triggers_6_0= ruleTrigger )
+            	    // InternalLinguaFranca.g:348:4: (lv_clocks_6_0= ruleClock )
             	    {
-            	    // InternalLinguaFranca.g:348:4: (lv_triggers_6_0= ruleTrigger )
-            	    // InternalLinguaFranca.g:349:5: lv_triggers_6_0= ruleTrigger
+            	    // InternalLinguaFranca.g:348:4: (lv_clocks_6_0= ruleClock )
+            	    // InternalLinguaFranca.g:349:5: lv_clocks_6_0= ruleClock
             	    {
 
-            	    					newCompositeNode(grammarAccess.getActorAccess().getTriggersTriggerParserRuleCall_6_0());
+            	    					newCompositeNode(grammarAccess.getReactorAccess().getClocksClockParserRuleCall_6_0());
             	    				
             	    pushFollow(FOLLOW_11);
-            	    lv_triggers_6_0=ruleTrigger();
+            	    lv_clocks_6_0=ruleClock();
 
             	    state._fsp--;
 
 
             	    					if (current==null) {
-            	    						current = createModelElementForParent(grammarAccess.getActorRule());
+            	    						current = createModelElementForParent(grammarAccess.getReactorRule());
             	    					}
             	    					add(
             	    						current,
-            	    						"triggers",
-            	    						lv_triggers_6_0,
-            	    						"org.icyphy.LinguaFranca.Trigger");
+            	    						"clocks",
+            	    						lv_clocks_6_0,
+            	    						"org.icyphy.LinguaFranca.Clock");
             	    					afterParserOrEnumRuleCall();
             	    				
 
@@ -900,7 +900,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     // InternalLinguaFranca.g:368:5: lv_preamble_7_0= rulePreamble
                     {
 
-                    					newCompositeNode(grammarAccess.getActorAccess().getPreamblePreambleParserRuleCall_7_0());
+                    					newCompositeNode(grammarAccess.getReactorAccess().getPreamblePreambleParserRuleCall_7_0());
                     				
                     pushFollow(FOLLOW_12);
                     lv_preamble_7_0=rulePreamble();
@@ -909,7 +909,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
                     					if (current==null) {
-                    						current = createModelElementForParent(grammarAccess.getActorRule());
+                    						current = createModelElementForParent(grammarAccess.getReactorRule());
                     					}
                     					set(
                     						current,
@@ -927,7 +927,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
             }
 
-            // InternalLinguaFranca.g:385:3: ( (lv_initialize_8_0= ruleInitialize ) )?
+            // InternalLinguaFranca.g:385:3: ( (lv_constructor_8_0= ruleConstructor ) )?
             int alt9=2;
             int LA9_0 = input.LA(1);
 
@@ -936,28 +936,28 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             }
             switch (alt9) {
                 case 1 :
-                    // InternalLinguaFranca.g:386:4: (lv_initialize_8_0= ruleInitialize )
+                    // InternalLinguaFranca.g:386:4: (lv_constructor_8_0= ruleConstructor )
                     {
-                    // InternalLinguaFranca.g:386:4: (lv_initialize_8_0= ruleInitialize )
-                    // InternalLinguaFranca.g:387:5: lv_initialize_8_0= ruleInitialize
+                    // InternalLinguaFranca.g:386:4: (lv_constructor_8_0= ruleConstructor )
+                    // InternalLinguaFranca.g:387:5: lv_constructor_8_0= ruleConstructor
                     {
 
-                    					newCompositeNode(grammarAccess.getActorAccess().getInitializeInitializeParserRuleCall_8_0());
+                    					newCompositeNode(grammarAccess.getReactorAccess().getConstructorConstructorParserRuleCall_8_0());
                     				
                     pushFollow(FOLLOW_13);
-                    lv_initialize_8_0=ruleInitialize();
+                    lv_constructor_8_0=ruleConstructor();
 
                     state._fsp--;
 
 
                     					if (current==null) {
-                    						current = createModelElementForParent(grammarAccess.getActorRule());
+                    						current = createModelElementForParent(grammarAccess.getReactorRule());
                     					}
                     					set(
                     						current,
-                    						"initialize",
-                    						lv_initialize_8_0,
-                    						"org.icyphy.LinguaFranca.Initialize");
+                    						"constructor",
+                    						lv_constructor_8_0,
+                    						"org.icyphy.LinguaFranca.Constructor");
                     					afterParserOrEnumRuleCall();
                     				
 
@@ -988,7 +988,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             	    // InternalLinguaFranca.g:406:5: lv_reactions_9_0= ruleReaction
             	    {
 
-            	    					newCompositeNode(grammarAccess.getActorAccess().getReactionsReactionParserRuleCall_9_0());
+            	    					newCompositeNode(grammarAccess.getReactorAccess().getReactionsReactionParserRuleCall_9_0());
             	    				
             	    pushFollow(FOLLOW_13);
             	    lv_reactions_9_0=ruleReaction();
@@ -997,7 +997,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
             	    					if (current==null) {
-            	    						current = createModelElementForParent(grammarAccess.getActorRule());
+            	    						current = createModelElementForParent(grammarAccess.getReactorRule());
             	    					}
             	    					add(
             	    						current,
@@ -1020,7 +1020,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
             otherlv_10=(Token)match(input,18,FOLLOW_2); 
 
-            			newLeafNode(otherlv_10, grammarAccess.getActorAccess().getRightCurlyBracketKeyword_10());
+            			newLeafNode(otherlv_10, grammarAccess.getReactorAccess().getRightCurlyBracketKeyword_10());
             		
 
             }
@@ -1041,7 +1041,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "ruleActor"
+    // $ANTLR end "ruleReactor"
 
 
     // $ANTLR start "entryRuleComposite"
@@ -1081,7 +1081,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleComposite"
-    // InternalLinguaFranca.g:438:1: ruleComposite returns [EObject current=null] : (otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}' ) ;
+    // InternalLinguaFranca.g:438:1: ruleComposite returns [EObject current=null] : (otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}' ) ;
     public final EObject ruleComposite() throws RecognitionException {
         EObject current = null;
 
@@ -1095,11 +1095,11 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
         EObject lv_outputs_5_0 = null;
 
-        EObject lv_triggers_6_0 = null;
+        EObject lv_clocks_6_0 = null;
 
         EObject lv_preamble_7_0 = null;
 
-        EObject lv_initialize_8_0 = null;
+        EObject lv_constructor_8_0 = null;
 
         EObject lv_reactions_9_0 = null;
 
@@ -1112,11 +1112,11 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:444:2: ( (otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}' ) )
-            // InternalLinguaFranca.g:445:2: (otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}' )
+            // InternalLinguaFranca.g:444:2: ( (otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}' ) )
+            // InternalLinguaFranca.g:445:2: (otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}' )
             {
-            // InternalLinguaFranca.g:445:2: (otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}' )
-            // InternalLinguaFranca.g:446:3: otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_triggers_6_0= ruleTrigger ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_initialize_8_0= ruleInitialize ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}'
+            // InternalLinguaFranca.g:445:2: (otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}' )
+            // InternalLinguaFranca.g:446:3: otherlv_0= 'composite' ( (lv_name_1_0= RULE_ID ) ) ( (lv_parameters_2_0= ruleParams ) )? otherlv_3= '{' ( (lv_inputs_4_0= ruleInput ) )* ( (lv_outputs_5_0= ruleOutput ) )* ( (lv_clocks_6_0= ruleClock ) )* ( (lv_preamble_7_0= rulePreamble ) )? ( (lv_constructor_8_0= ruleConstructor ) )? ( (lv_reactions_9_0= ruleReaction ) )* ( (lv_instances_10_0= ruleInstance ) )* ( (lv_connections_11_0= ruleConnection ) )* otherlv_12= '}'
             {
             otherlv_0=(Token)match(input,19,FOLLOW_5); 
 
@@ -1292,7 +1292,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                 }
             } while (true);
 
-            // InternalLinguaFranca.g:529:3: ( (lv_triggers_6_0= ruleTrigger ) )*
+            // InternalLinguaFranca.g:529:3: ( (lv_clocks_6_0= ruleClock ) )*
             loop14:
             do {
                 int alt14=2;
@@ -1305,16 +1305,16 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
                 switch (alt14) {
             	case 1 :
-            	    // InternalLinguaFranca.g:530:4: (lv_triggers_6_0= ruleTrigger )
+            	    // InternalLinguaFranca.g:530:4: (lv_clocks_6_0= ruleClock )
             	    {
-            	    // InternalLinguaFranca.g:530:4: (lv_triggers_6_0= ruleTrigger )
-            	    // InternalLinguaFranca.g:531:5: lv_triggers_6_0= ruleTrigger
+            	    // InternalLinguaFranca.g:530:4: (lv_clocks_6_0= ruleClock )
+            	    // InternalLinguaFranca.g:531:5: lv_clocks_6_0= ruleClock
             	    {
 
-            	    					newCompositeNode(grammarAccess.getCompositeAccess().getTriggersTriggerParserRuleCall_6_0());
+            	    					newCompositeNode(grammarAccess.getCompositeAccess().getClocksClockParserRuleCall_6_0());
             	    				
             	    pushFollow(FOLLOW_16);
-            	    lv_triggers_6_0=ruleTrigger();
+            	    lv_clocks_6_0=ruleClock();
 
             	    state._fsp--;
 
@@ -1324,9 +1324,9 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             	    					}
             	    					add(
             	    						current,
-            	    						"triggers",
-            	    						lv_triggers_6_0,
-            	    						"org.icyphy.LinguaFranca.Trigger");
+            	    						"clocks",
+            	    						lv_clocks_6_0,
+            	    						"org.icyphy.LinguaFranca.Clock");
             	    					afterParserOrEnumRuleCall();
             	    				
 
@@ -1383,7 +1383,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
             }
 
-            // InternalLinguaFranca.g:567:3: ( (lv_initialize_8_0= ruleInitialize ) )?
+            // InternalLinguaFranca.g:567:3: ( (lv_constructor_8_0= ruleConstructor ) )?
             int alt16=2;
             int LA16_0 = input.LA(1);
 
@@ -1392,16 +1392,16 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             }
             switch (alt16) {
                 case 1 :
-                    // InternalLinguaFranca.g:568:4: (lv_initialize_8_0= ruleInitialize )
+                    // InternalLinguaFranca.g:568:4: (lv_constructor_8_0= ruleConstructor )
                     {
-                    // InternalLinguaFranca.g:568:4: (lv_initialize_8_0= ruleInitialize )
-                    // InternalLinguaFranca.g:569:5: lv_initialize_8_0= ruleInitialize
+                    // InternalLinguaFranca.g:568:4: (lv_constructor_8_0= ruleConstructor )
+                    // InternalLinguaFranca.g:569:5: lv_constructor_8_0= ruleConstructor
                     {
 
-                    					newCompositeNode(grammarAccess.getCompositeAccess().getInitializeInitializeParserRuleCall_8_0());
+                    					newCompositeNode(grammarAccess.getCompositeAccess().getConstructorConstructorParserRuleCall_8_0());
                     				
                     pushFollow(FOLLOW_18);
-                    lv_initialize_8_0=ruleInitialize();
+                    lv_constructor_8_0=ruleConstructor();
 
                     state._fsp--;
 
@@ -1411,9 +1411,9 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     					}
                     					set(
                     						current,
-                    						"initialize",
-                    						lv_initialize_8_0,
-                    						"org.icyphy.LinguaFranca.Initialize");
+                    						"constructor",
+                    						lv_constructor_8_0,
+                    						"org.icyphy.LinguaFranca.Constructor");
                     					afterParserOrEnumRuleCall();
                     				
 
@@ -2016,25 +2016,25 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
     // $ANTLR end "ruleOutput"
 
 
-    // $ANTLR start "entryRuleTrigger"
-    // InternalLinguaFranca.g:817:1: entryRuleTrigger returns [EObject current=null] : iv_ruleTrigger= ruleTrigger EOF ;
-    public final EObject entryRuleTrigger() throws RecognitionException {
+    // $ANTLR start "entryRuleClock"
+    // InternalLinguaFranca.g:817:1: entryRuleClock returns [EObject current=null] : iv_ruleClock= ruleClock EOF ;
+    public final EObject entryRuleClock() throws RecognitionException {
         EObject current = null;
 
-        EObject iv_ruleTrigger = null;
+        EObject iv_ruleClock = null;
 
 
         try {
-            // InternalLinguaFranca.g:817:48: (iv_ruleTrigger= ruleTrigger EOF )
-            // InternalLinguaFranca.g:818:2: iv_ruleTrigger= ruleTrigger EOF
+            // InternalLinguaFranca.g:817:46: (iv_ruleClock= ruleClock EOF )
+            // InternalLinguaFranca.g:818:2: iv_ruleClock= ruleClock EOF
             {
-             newCompositeNode(grammarAccess.getTriggerRule()); 
+             newCompositeNode(grammarAccess.getClockRule()); 
             pushFollow(FOLLOW_1);
-            iv_ruleTrigger=ruleTrigger();
+            iv_ruleClock=ruleClock();
 
             state._fsp--;
 
-             current =iv_ruleTrigger; 
+             current =iv_ruleClock; 
             match(input,EOF,FOLLOW_2); 
 
             }
@@ -2049,12 +2049,12 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "entryRuleTrigger"
+    // $ANTLR end "entryRuleClock"
 
 
-    // $ANTLR start "ruleTrigger"
-    // InternalLinguaFranca.g:824:1: ruleTrigger returns [EObject current=null] : (otherlv_0= 'trigger' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';' ) ;
-    public final EObject ruleTrigger() throws RecognitionException {
+    // $ANTLR start "ruleClock"
+    // InternalLinguaFranca.g:824:1: ruleClock returns [EObject current=null] : (otherlv_0= 'clock' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';' ) ;
+    public final EObject ruleClock() throws RecognitionException {
         EObject current = null;
 
         Token otherlv_0=null;
@@ -2068,23 +2068,23 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:830:2: ( (otherlv_0= 'trigger' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';' ) )
-            // InternalLinguaFranca.g:831:2: (otherlv_0= 'trigger' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';' )
+            // InternalLinguaFranca.g:830:2: ( (otherlv_0= 'clock' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';' ) )
+            // InternalLinguaFranca.g:831:2: (otherlv_0= 'clock' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';' )
             {
-            // InternalLinguaFranca.g:831:2: (otherlv_0= 'trigger' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';' )
-            // InternalLinguaFranca.g:832:3: otherlv_0= 'trigger' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';'
+            // InternalLinguaFranca.g:831:2: (otherlv_0= 'clock' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';' )
+            // InternalLinguaFranca.g:832:3: otherlv_0= 'clock' ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' ) ) ) ( (lv_period_2_0= rulePeriod ) )? otherlv_3= ';'
             {
             otherlv_0=(Token)match(input,23,FOLLOW_25); 
 
-            			newLeafNode(otherlv_0, grammarAccess.getTriggerAccess().getTriggerKeyword_0());
+            			newLeafNode(otherlv_0, grammarAccess.getClockAccess().getClockKeyword_0());
             		
-            // InternalLinguaFranca.g:836:3: ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' ) ) )
-            // InternalLinguaFranca.g:837:4: ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' ) )
+            // InternalLinguaFranca.g:836:3: ( ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' ) ) )
+            // InternalLinguaFranca.g:837:4: ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' ) )
             {
-            // InternalLinguaFranca.g:837:4: ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' ) )
-            // InternalLinguaFranca.g:838:5: (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' )
+            // InternalLinguaFranca.g:837:4: ( (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' ) )
+            // InternalLinguaFranca.g:838:5: (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' )
             {
-            // InternalLinguaFranca.g:838:5: (lv_name_1_1= RULE_ID | lv_name_1_2= 'trigger' )
+            // InternalLinguaFranca.g:838:5: (lv_name_1_1= RULE_ID | lv_name_1_2= 'clock' )
             int alt24=2;
             int LA24_0 = input.LA(1);
 
@@ -2106,11 +2106,11 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     {
                     lv_name_1_1=(Token)match(input,RULE_ID,FOLLOW_26); 
 
-                    						newLeafNode(lv_name_1_1, grammarAccess.getTriggerAccess().getNameIDTerminalRuleCall_1_0_0());
+                    						newLeafNode(lv_name_1_1, grammarAccess.getClockAccess().getNameIDTerminalRuleCall_1_0_0());
                     					
 
                     						if (current==null) {
-                    							current = createModelElement(grammarAccess.getTriggerRule());
+                    							current = createModelElement(grammarAccess.getClockRule());
                     						}
                     						setWithLastConsumed(
                     							current,
@@ -2122,15 +2122,15 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // InternalLinguaFranca.g:854:6: lv_name_1_2= 'trigger'
+                    // InternalLinguaFranca.g:854:6: lv_name_1_2= 'clock'
                     {
                     lv_name_1_2=(Token)match(input,23,FOLLOW_26); 
 
-                    						newLeafNode(lv_name_1_2, grammarAccess.getTriggerAccess().getNameTriggerKeyword_1_0_1());
+                    						newLeafNode(lv_name_1_2, grammarAccess.getClockAccess().getNameClockKeyword_1_0_1());
                     					
 
                     						if (current==null) {
-                    							current = createModelElement(grammarAccess.getTriggerRule());
+                    							current = createModelElement(grammarAccess.getClockRule());
                     						}
                     						setWithLastConsumed(current, "name", lv_name_1_2, null);
                     					
@@ -2161,7 +2161,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     // InternalLinguaFranca.g:869:5: lv_period_2_0= rulePeriod
                     {
 
-                    					newCompositeNode(grammarAccess.getTriggerAccess().getPeriodPeriodParserRuleCall_2_0());
+                    					newCompositeNode(grammarAccess.getClockAccess().getPeriodPeriodParserRuleCall_2_0());
                     				
                     pushFollow(FOLLOW_6);
                     lv_period_2_0=rulePeriod();
@@ -2170,7 +2170,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
                     					if (current==null) {
-                    						current = createModelElementForParent(grammarAccess.getTriggerRule());
+                    						current = createModelElementForParent(grammarAccess.getClockRule());
                     					}
                     					set(
                     						current,
@@ -2190,7 +2190,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
             otherlv_3=(Token)match(input,14,FOLLOW_2); 
 
-            			newLeafNode(otherlv_3, grammarAccess.getTriggerAccess().getSemicolonKeyword_3());
+            			newLeafNode(otherlv_3, grammarAccess.getClockAccess().getSemicolonKeyword_3());
             		
 
             }
@@ -2211,7 +2211,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "ruleTrigger"
+    // $ANTLR end "ruleClock"
 
 
     // $ANTLR start "entryRuleReaction"
@@ -2641,25 +2641,25 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
     // $ANTLR end "rulePreamble"
 
 
-    // $ANTLR start "entryRuleInitialize"
-    // InternalLinguaFranca.g:1068:1: entryRuleInitialize returns [EObject current=null] : iv_ruleInitialize= ruleInitialize EOF ;
-    public final EObject entryRuleInitialize() throws RecognitionException {
+    // $ANTLR start "entryRuleConstructor"
+    // InternalLinguaFranca.g:1068:1: entryRuleConstructor returns [EObject current=null] : iv_ruleConstructor= ruleConstructor EOF ;
+    public final EObject entryRuleConstructor() throws RecognitionException {
         EObject current = null;
 
-        EObject iv_ruleInitialize = null;
+        EObject iv_ruleConstructor = null;
 
 
         try {
-            // InternalLinguaFranca.g:1068:51: (iv_ruleInitialize= ruleInitialize EOF )
-            // InternalLinguaFranca.g:1069:2: iv_ruleInitialize= ruleInitialize EOF
+            // InternalLinguaFranca.g:1068:52: (iv_ruleConstructor= ruleConstructor EOF )
+            // InternalLinguaFranca.g:1069:2: iv_ruleConstructor= ruleConstructor EOF
             {
-             newCompositeNode(grammarAccess.getInitializeRule()); 
+             newCompositeNode(grammarAccess.getConstructorRule()); 
             pushFollow(FOLLOW_1);
-            iv_ruleInitialize=ruleInitialize();
+            iv_ruleConstructor=ruleConstructor();
 
             state._fsp--;
 
-             current =iv_ruleInitialize; 
+             current =iv_ruleConstructor; 
             match(input,EOF,FOLLOW_2); 
 
             }
@@ -2674,12 +2674,12 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "entryRuleInitialize"
+    // $ANTLR end "entryRuleConstructor"
 
 
-    // $ANTLR start "ruleInitialize"
-    // InternalLinguaFranca.g:1075:1: ruleInitialize returns [EObject current=null] : (otherlv_0= 'initialize' ( (lv_code_1_0= RULE_CODE ) ) ) ;
-    public final EObject ruleInitialize() throws RecognitionException {
+    // $ANTLR start "ruleConstructor"
+    // InternalLinguaFranca.g:1075:1: ruleConstructor returns [EObject current=null] : (otherlv_0= 'constructor' ( (lv_code_1_0= RULE_CODE ) ) ) ;
+    public final EObject ruleConstructor() throws RecognitionException {
         EObject current = null;
 
         Token otherlv_0=null;
@@ -2689,15 +2689,15 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:1081:2: ( (otherlv_0= 'initialize' ( (lv_code_1_0= RULE_CODE ) ) ) )
-            // InternalLinguaFranca.g:1082:2: (otherlv_0= 'initialize' ( (lv_code_1_0= RULE_CODE ) ) )
+            // InternalLinguaFranca.g:1081:2: ( (otherlv_0= 'constructor' ( (lv_code_1_0= RULE_CODE ) ) ) )
+            // InternalLinguaFranca.g:1082:2: (otherlv_0= 'constructor' ( (lv_code_1_0= RULE_CODE ) ) )
             {
-            // InternalLinguaFranca.g:1082:2: (otherlv_0= 'initialize' ( (lv_code_1_0= RULE_CODE ) ) )
-            // InternalLinguaFranca.g:1083:3: otherlv_0= 'initialize' ( (lv_code_1_0= RULE_CODE ) )
+            // InternalLinguaFranca.g:1082:2: (otherlv_0= 'constructor' ( (lv_code_1_0= RULE_CODE ) ) )
+            // InternalLinguaFranca.g:1083:3: otherlv_0= 'constructor' ( (lv_code_1_0= RULE_CODE ) )
             {
             otherlv_0=(Token)match(input,29,FOLLOW_32); 
 
-            			newLeafNode(otherlv_0, grammarAccess.getInitializeAccess().getInitializeKeyword_0());
+            			newLeafNode(otherlv_0, grammarAccess.getConstructorAccess().getConstructorKeyword_0());
             		
             // InternalLinguaFranca.g:1087:3: ( (lv_code_1_0= RULE_CODE ) )
             // InternalLinguaFranca.g:1088:4: (lv_code_1_0= RULE_CODE )
@@ -2707,11 +2707,11 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             {
             lv_code_1_0=(Token)match(input,RULE_CODE,FOLLOW_2); 
 
-            					newLeafNode(lv_code_1_0, grammarAccess.getInitializeAccess().getCodeCODETerminalRuleCall_1_0());
+            					newLeafNode(lv_code_1_0, grammarAccess.getConstructorAccess().getCodeCODETerminalRuleCall_1_0());
             				
 
             					if (current==null) {
-            						current = createModelElement(grammarAccess.getInitializeRule());
+            						current = createModelElement(grammarAccess.getConstructorRule());
             					}
             					setWithLastConsumed(
             						current,
@@ -2744,7 +2744,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         }
         return current;
     }
-    // $ANTLR end "ruleInitialize"
+    // $ANTLR end "ruleConstructor"
 
 
     // $ANTLR start "entryRuleInstance"
