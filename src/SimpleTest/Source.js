@@ -3,9 +3,9 @@ var PERIODIC = true;
 var ONCE = false;
 function schedule(trigger, time, isPeriodic) {
     if (isPeriodic) {
-        return trigger.actor.setInterval(trigger.reaction, time);
+        return setInterval(trigger.reaction, time);
     } else {
-        return trigger.actor.setTimeout(trigger.reaction, time);
+        return setTimeout(trigger.reaction, time);
     }
 }
 function setUnbound(port, value) {
