@@ -54,8 +54,8 @@ class AccessorGenerator {
 		'''
 		«boilerplate()»
 		// Trigger data structure:
-		«FOR trigger: reactor.clocks»
-			«generateClock(trigger)» 
+		«FOR clock: reactor.clocks»
+			«generateClock(clock)» 
 		«ENDFOR»
 		«IF reactor.preamble !== null»
 		// *********** From the preamble, verbatim:
