@@ -97,7 +97,7 @@ Param:
 // Periodicity spec for a trigger.
 // E.g. (1000) or (1000, PERIODIC) or (1000, ONCE)
 Period:
-	'(' period=(ID | NUMBER) (',' (periodic?='PERIODIC' | once?='ONCE'))?')';
+	'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))? )?')';
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
