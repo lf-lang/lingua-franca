@@ -20,7 +20,16 @@ lib:
 
 clean:
 	$(RM) *.class *.tokens *.interp *.js *.iml src/main/java/org/icyphy/lf/LinguaFranca*.*
-	$(RM) -r lib project target
+	$(RM) -r lib project target node_modules accessors
+
+# Install accessors node host for tests
+# insallting with npm did not work for me, use the SVN method
+#	npm i @accessors-hosts/node
+setup:
+	svn co https://repo.eecs.berkeley.edu/svn-anon/projects/terraswarm/accessors/trunk/accessors
+
+test:
+	node accessors/web/hosts/node/nodeHostInvoke.js -js ../src/SimpleTest/SimpleTest.js -js ../src/SimpleTest/Source.js -js ../src/SimpleTest/Test.js ../src/SimpleTest/SimpleTest
 
 # setup in your shell
 useful:
