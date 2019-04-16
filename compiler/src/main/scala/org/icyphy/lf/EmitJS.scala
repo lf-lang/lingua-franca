@@ -13,23 +13,27 @@ class EmitJS(ps: PrintStream) {
 
     val actor = current
 
-    pr("// Boilerplate included for all actors.")
-    pr("var PERIODIC = true;")
-    pr("var ONCE = false;")
-    pr("function schedule(trigger, time, isPeriodic) {")
-    pr("    if (isPeriodic) {")
-    pr("        return trigger.actor.setInterval(trigger.reaction, time);")
-    pr("    } else {")
-    pr("        return trigger.actor.setTimeout(trigger.reaction, time);")
-    pr("    }")
-    pr("}")
-    pr("function setUnbound(port, value) {")
-    pr("    if (!port) {")
-    pr("        throw \"Illegal reference to undeclared output.\";")
-    pr("    }")
-    pr("    this.send(port, value);")
-    pr("}")
-    pr("var set = setUnbound.bind(this);")
+    val s = """
+// Boilerplate included for all actors.
+var PERIODIC = true;
+var ONCE = false;
+function schedule(trigger, time, isPeriodic) {
+    if (isPeriodic) {
+        return trigger.actor.setInterval(trigger.reaction, time);
+    } else {
+        return trigger.actor.setTimeout(trigger.reaction, time);
+    }
+}
+function setUnbound(port, value) {
+    if (!port) {
+        throw \"Illegal reference to undeclared output.\";
+    }
+    this.send(port, value);
+}
+var set = setUnbound.bind(this);
+"""
+
+    pr(s)
 
     // trigger
     pr("// Code generated for this particular actor.")
