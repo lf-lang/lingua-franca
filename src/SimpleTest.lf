@@ -1,45 +1,34 @@
-target JavaScript;
-
-// Periodically produce an output consisting of a count.
-actor Source(period:int(1000)) {
-    trigger t(period, PERIODIC);
-    output y:int;
-    preamble {=
-        var n = 0;
-    =}
-    initialize {=
-        n = 0;
-    =}
-    reaction(t) -> y {=
-        n = n + 1;
-        set(y, n);
-    =}
+target Accessor;
+reactor Source(period:int(10)) {
+	output y:int;
+	clock t(period);
+	preamble {=
+		var n = 0;
+	=}
+	reaction(t) -> y {=
+		n = n + 1;
+		set(y, n);
+	=}
 }
-// Test input for match to expected sequence.
-// Stop executing when the expected sequence has been matched.
-actor Test(expected:JSON([])) {
-    language JavaScript;
-    input x:int;
-    preamble {=
-        var i = 0;
-    =}
-    initialize {=
-        i = 0;
-    =}
-    reaction(x) {=
-        if (expected[i] != x) {
+reactor Test(expected:JSON({= [] =})) {
+	input x:int;
+	preamble {=
+		var i = 0;
+	=}
+	reaction(x) {=
+	    var input = get(x);
+		console.log('Test received: ' + input);
+        if (expected[i] != input) {
             throw "Expected: " + expected[i] + ", but got: " + x;
         }
         i += 1;
         if (i >= expected.length) {
             this.stop();
         }
-    =}
+	=} 
 }
-// Compose the actors.
-composite Top() {
-    instance a = Source(period = 10),
-        b = Test(expected = [1, 2, 3, 4]);
-    a.y -> b.x;
+composite SimpleTest {
+	instance a = Source(period = 100);
+	instance b = Test(expected = {= [1, 2, 3, 4] =});
+	a.y -> b.x;
 }
-main = Top();
