@@ -19,7 +19,11 @@ and a host language.
 ## Testing using the node host
 
 SimpleTest.lf, when compiled, should produce the files in the subdirectory SimpleTest.
-Shell command:
-
-node $PTII/org/terraswarm/accessor/accessors/web/hosts/node/nodeHostShell.js
+From within that directory, you should be able to run the SimpleTest.js code with the following command:
   
+node $PTII/org/terraswarm/accessor/accessors/web/hosts/node/nodeHostInvoke.js SimpleTest
+
+The above assumes you have Ptolemy II installed and the environment variable PTII set to its root.
+If you have only the accessor repo, then if ACCESSOR is the root directory of that repo, the following should work:
+
+node ACCESSORS/web/hosts/node/nodeHostInvoke.js SimpleTest
