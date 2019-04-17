@@ -29,7 +29,7 @@ setup:
 	svn co https://repo.eecs.berkeley.edu/svn-anon/projects/terraswarm/accessors/trunk/accessors
 
 test:
-	node accessors/web/hosts/node/nodeHostInvoke.js -js ../src/SimpleTest/SimpleTest.js -js ../src/SimpleTest/Source.js -js ../src/SimpleTest/Test.js ../src/SimpleTest/SimpleTest
+	cd ../src/SimpleTest &&  node ../../compiler/accessors/web/hosts/node/nodeHostInvoke.js SimpleTest
 
 # setup in your shell
 useful:
