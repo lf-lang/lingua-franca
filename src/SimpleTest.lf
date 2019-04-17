@@ -1,8 +1,8 @@
-target JavaScript;
+target Accessor;
 
 // Periodically produce an output consisting of a count.
 actor Source(period:int(1000)) {
-    clock t(period, 0);
+    clock t(period);
     output y:int;
     constructor {=
         var n = 0;
@@ -12,10 +12,10 @@ actor Source(period:int(1000)) {
         set(y, n);
     =}
 }
+
 // Test input for match to expected sequence.
 // Stop executing when the expected sequence has been matched.
-actor Test(expected:JSON([])) {
-    language CapeCode;
+actor Test(expected:JSON({= [] =})) {
     input x:int;
 
     constructor {=
@@ -23,15 +23,18 @@ actor Test(expected:JSON([])) {
     =}
     
     reaction(x) {=
-        if (expected[i] != x) {
+        var input = get(x);
+        console.log('Test received: ' + input);
+        if (expected[i] != input) {
             throw "Expected: " + expected[i] + ", but got: " + x;
         }
         i += 1;
         if (i >= expected.length) {
             this.stop();
         }
-    =}
+    =} 
 }
+
 // Compose the actors.
 composite Top() {
     a = new Source(period = 10);
