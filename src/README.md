@@ -27,3 +27,7 @@ The above assumes you have Ptolemy II installed and the environment variable PTI
 If you have only the accessor repo, then if ACCESSOR is the root directory of that repo, the following should work:
 
 node ACCESSORS/web/hosts/node/nodeHostInvoke.js SimpleTest
+
+The Node accessor host is described here:
+
+https://wiki.eecs.berkeley.edu/accessors/Main/NodeHost#Installing_the_node_host_using_npm
