@@ -3,10 +3,12 @@
 
 ## Installation
 
-This requires that Java and Scala be installed. On a Mac, you can install Scala using
+This requires that Java and sbt being installed. On a Mac, you can install sbt using
 ```
-brew install sbt@1
+brew install sbt
 ```
+
+```sbt``` will install Scala.
 
 ## Running
 
