@@ -233,10 +233,16 @@ rulePeriod:
 	(
 		','
 		(
-			'PERIODIC'
-			    |
-			'ONCE'
+			RULE_ID
+			    |RULE_NUMBER
 		)
+		(
+			','
+			(
+				RULE_ID
+				    |RULE_NUMBER
+			)
+		)?
 	)?
 	')'
 ;

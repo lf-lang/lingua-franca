@@ -851,22 +851,22 @@ public interface LinguaFrancaPackage extends EPackage
   int PERIOD__PERIOD = 0;
 
   /**
-   * The feature id for the '<em><b>Periodic</b></em>' attribute.
+   * The feature id for the '<em><b>Offset</b></em>' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int PERIOD__PERIODIC = 1;
+  int PERIOD__OFFSET = 1;
 
   /**
-   * The feature id for the '<em><b>Once</b></em>' attribute.
+   * The feature id for the '<em><b>Count</b></em>' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int PERIOD__ONCE = 2;
+  int PERIOD__COUNT = 2;
 
   /**
    * The number of structural features of the '<em>Period</em>' class.
@@ -1636,26 +1636,26 @@ public interface LinguaFrancaPackage extends EPackage
   EAttribute getPeriod_Period();
 
   /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Period#isPeriodic <em>Periodic</em>}'.
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Period#getOffset <em>Offset</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Periodic</em>'.
-   * @see org.icyphy.linguaFranca.Period#isPeriodic()
+   * @return the meta object for the attribute '<em>Offset</em>'.
+   * @see org.icyphy.linguaFranca.Period#getOffset()
    * @see #getPeriod()
    * @generated
    */
-  EAttribute getPeriod_Periodic();
+  EAttribute getPeriod_Offset();
 
   /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Period#isOnce <em>Once</em>}'.
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Period#getCount <em>Count</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Once</em>'.
-   * @see org.icyphy.linguaFranca.Period#isOnce()
+   * @return the meta object for the attribute '<em>Count</em>'.
+   * @see org.icyphy.linguaFranca.Period#getCount()
    * @see #getPeriod()
    * @generated
    */
-  EAttribute getPeriod_Once();
+  EAttribute getPeriod_Count();
 
   /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Sets <em>Sets</em>}'.
@@ -2284,20 +2284,20 @@ public interface LinguaFrancaPackage extends EPackage
     EAttribute PERIOD__PERIOD = eINSTANCE.getPeriod_Period();
 
     /**
-     * The meta object literal for the '<em><b>Periodic</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Offset</b></em>' attribute feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute PERIOD__PERIODIC = eINSTANCE.getPeriod_Periodic();
+    EAttribute PERIOD__OFFSET = eINSTANCE.getPeriod_Offset();
 
     /**
-     * The meta object literal for the '<em><b>Once</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Count</b></em>' attribute feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute PERIOD__ONCE = eINSTANCE.getPeriod_Once();
+    EAttribute PERIOD__COUNT = eINSTANCE.getPeriod_Count();
 
     /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.SetsImpl <em>Sets</em>}' class.

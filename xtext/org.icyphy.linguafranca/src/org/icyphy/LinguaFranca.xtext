@@ -95,7 +95,8 @@ Param:
     'const'? name=ID (':' type=Type)? ('(' value=Value ')')?;
 
 // Periodicity spec for a trigger.
-// E.g. (1000) or (1000, PERIODIC) or (1000, ONCE)
+// E.g. (1000) or (1000, 100) or (1000, 100, 10)
+// The latter means fire with period 1000, offset 100, 10 times.
 Period:
 	'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))? )?')';
 

@@ -22,8 +22,8 @@ import org.icyphy.linguaFranca.Period;
  * </p>
  * <ul>
  *   <li>{@link org.icyphy.linguaFranca.impl.PeriodImpl#getPeriod <em>Period</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.impl.PeriodImpl#isPeriodic <em>Periodic</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.impl.PeriodImpl#isOnce <em>Once</em>}</li>
+ *   <li>{@link org.icyphy.linguaFranca.impl.PeriodImpl#getOffset <em>Offset</em>}</li>
+ *   <li>{@link org.icyphy.linguaFranca.impl.PeriodImpl#getCount <em>Count</em>}</li>
  * </ul>
  *
  * @generated
@@ -51,44 +51,44 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
   protected String period = PERIOD_EDEFAULT;
 
   /**
-   * The default value of the '{@link #isPeriodic() <em>Periodic</em>}' attribute.
+   * The default value of the '{@link #getOffset() <em>Offset</em>}' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #isPeriodic()
+   * @see #getOffset()
    * @generated
    * @ordered
    */
-  protected static final boolean PERIODIC_EDEFAULT = false;
+  protected static final String OFFSET_EDEFAULT = null;
 
   /**
-   * The cached value of the '{@link #isPeriodic() <em>Periodic</em>}' attribute.
+   * The cached value of the '{@link #getOffset() <em>Offset</em>}' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #isPeriodic()
+   * @see #getOffset()
    * @generated
    * @ordered
    */
-  protected boolean periodic = PERIODIC_EDEFAULT;
+  protected String offset = OFFSET_EDEFAULT;
 
   /**
-   * The default value of the '{@link #isOnce() <em>Once</em>}' attribute.
+   * The default value of the '{@link #getCount() <em>Count</em>}' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #isOnce()
+   * @see #getCount()
    * @generated
    * @ordered
    */
-  protected static final boolean ONCE_EDEFAULT = false;
+  protected static final String COUNT_EDEFAULT = null;
 
   /**
-   * The cached value of the '{@link #isOnce() <em>Once</em>}' attribute.
+   * The cached value of the '{@link #getCount() <em>Count</em>}' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #isOnce()
+   * @see #getCount()
    * @generated
    * @ordered
    */
-  protected boolean once = ONCE_EDEFAULT;
+  protected String count = COUNT_EDEFAULT;
 
   /**
    * <!-- begin-user-doc -->
@@ -142,9 +142,9 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
    * @generated
    */
   @Override
-  public boolean isPeriodic()
+  public String getOffset()
   {
-    return periodic;
+    return offset;
   }
 
   /**
@@ -153,12 +153,12 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
    * @generated
    */
   @Override
-  public void setPeriodic(boolean newPeriodic)
+  public void setOffset(String newOffset)
   {
-    boolean oldPeriodic = periodic;
-    periodic = newPeriodic;
+    String oldOffset = offset;
+    offset = newOffset;
     if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, LinguaFrancaPackage.PERIOD__PERIODIC, oldPeriodic, periodic));
+      eNotify(new ENotificationImpl(this, Notification.SET, LinguaFrancaPackage.PERIOD__OFFSET, oldOffset, offset));
   }
 
   /**
@@ -167,9 +167,9 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
    * @generated
    */
   @Override
-  public boolean isOnce()
+  public String getCount()
   {
-    return once;
+    return count;
   }
 
   /**
@@ -178,12 +178,12 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
    * @generated
    */
   @Override
-  public void setOnce(boolean newOnce)
+  public void setCount(String newCount)
   {
-    boolean oldOnce = once;
-    once = newOnce;
+    String oldCount = count;
+    count = newCount;
     if (eNotificationRequired())
-      eNotify(new ENotificationImpl(this, Notification.SET, LinguaFrancaPackage.PERIOD__ONCE, oldOnce, once));
+      eNotify(new ENotificationImpl(this, Notification.SET, LinguaFrancaPackage.PERIOD__COUNT, oldCount, count));
   }
 
   /**
@@ -198,10 +198,10 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
     {
       case LinguaFrancaPackage.PERIOD__PERIOD:
         return getPeriod();
-      case LinguaFrancaPackage.PERIOD__PERIODIC:
-        return isPeriodic();
-      case LinguaFrancaPackage.PERIOD__ONCE:
-        return isOnce();
+      case LinguaFrancaPackage.PERIOD__OFFSET:
+        return getOffset();
+      case LinguaFrancaPackage.PERIOD__COUNT:
+        return getCount();
     }
     return super.eGet(featureID, resolve, coreType);
   }
@@ -219,11 +219,11 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
       case LinguaFrancaPackage.PERIOD__PERIOD:
         setPeriod((String)newValue);
         return;
-      case LinguaFrancaPackage.PERIOD__PERIODIC:
-        setPeriodic((Boolean)newValue);
+      case LinguaFrancaPackage.PERIOD__OFFSET:
+        setOffset((String)newValue);
         return;
-      case LinguaFrancaPackage.PERIOD__ONCE:
-        setOnce((Boolean)newValue);
+      case LinguaFrancaPackage.PERIOD__COUNT:
+        setCount((String)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -242,11 +242,11 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
       case LinguaFrancaPackage.PERIOD__PERIOD:
         setPeriod(PERIOD_EDEFAULT);
         return;
-      case LinguaFrancaPackage.PERIOD__PERIODIC:
-        setPeriodic(PERIODIC_EDEFAULT);
+      case LinguaFrancaPackage.PERIOD__OFFSET:
+        setOffset(OFFSET_EDEFAULT);
         return;
-      case LinguaFrancaPackage.PERIOD__ONCE:
-        setOnce(ONCE_EDEFAULT);
+      case LinguaFrancaPackage.PERIOD__COUNT:
+        setCount(COUNT_EDEFAULT);
         return;
     }
     super.eUnset(featureID);
@@ -264,10 +264,10 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
     {
       case LinguaFrancaPackage.PERIOD__PERIOD:
         return PERIOD_EDEFAULT == null ? period != null : !PERIOD_EDEFAULT.equals(period);
-      case LinguaFrancaPackage.PERIOD__PERIODIC:
-        return periodic != PERIODIC_EDEFAULT;
-      case LinguaFrancaPackage.PERIOD__ONCE:
-        return once != ONCE_EDEFAULT;
+      case LinguaFrancaPackage.PERIOD__OFFSET:
+        return OFFSET_EDEFAULT == null ? offset != null : !OFFSET_EDEFAULT.equals(offset);
+      case LinguaFrancaPackage.PERIOD__COUNT:
+        return COUNT_EDEFAULT == null ? count != null : !COUNT_EDEFAULT.equals(count);
     }
     return super.eIsSet(featureID);
   }
@@ -285,10 +285,10 @@ public class PeriodImpl extends MinimalEObjectImpl.Container implements Period
     StringBuilder result = new StringBuilder(super.toString());
     result.append(" (period: ");
     result.append(period);
-    result.append(", periodic: ");
-    result.append(periodic);
-    result.append(", once: ");
-    result.append(once);
+    result.append(", offset: ");
+    result.append(offset);
+    result.append(", count: ");
+    result.append(count);
     result.append(')');
     return result.toString();
   }

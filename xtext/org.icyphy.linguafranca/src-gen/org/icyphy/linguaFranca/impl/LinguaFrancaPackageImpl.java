@@ -998,7 +998,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EAttribute getPeriod_Periodic()
+  public EAttribute getPeriod_Offset()
   {
     return (EAttribute)periodEClass.getEStructuralFeatures().get(1);
   }
@@ -1009,7 +1009,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EAttribute getPeriod_Once()
+  public EAttribute getPeriod_Count()
   {
     return (EAttribute)periodEClass.getEStructuralFeatures().get(2);
   }
@@ -1153,8 +1153,8 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
 
     periodEClass = createEClass(PERIOD);
     createEAttribute(periodEClass, PERIOD__PERIOD);
-    createEAttribute(periodEClass, PERIOD__PERIODIC);
-    createEAttribute(periodEClass, PERIOD__ONCE);
+    createEAttribute(periodEClass, PERIOD__OFFSET);
+    createEAttribute(periodEClass, PERIOD__COUNT);
 
     setsEClass = createEClass(SETS);
     createEAttribute(setsEClass, SETS__SETS);
@@ -1277,8 +1277,8 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
 
     initEClass(periodEClass, Period.class, "Period", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getPeriod_Period(), ecorePackage.getEString(), "period", null, 0, 1, Period.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getPeriod_Periodic(), ecorePackage.getEBoolean(), "periodic", null, 0, 1, Period.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getPeriod_Once(), ecorePackage.getEBoolean(), "once", null, 0, 1, Period.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEAttribute(getPeriod_Offset(), ecorePackage.getEString(), "offset", null, 0, 1, Period.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEAttribute(getPeriod_Count(), ecorePackage.getEString(), "count", null, 0, 1, Period.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(setsEClass, Sets.class, "Sets", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getSets_Sets(), ecorePackage.getEString(), "sets", null, 0, -1, Sets.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

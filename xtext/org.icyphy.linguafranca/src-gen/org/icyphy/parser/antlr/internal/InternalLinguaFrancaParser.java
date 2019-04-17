@@ -21,7 +21,7 @@ import java.util.ArrayList;
 @SuppressWarnings("all")
 public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
     public static final String[] tokenNames = new String[] {
-        "<invalid>", "<EOR>", "<DOWN>", "<UP>", "RULE_ID", "RULE_CODE", "RULE_NUMBER", "RULE_STRING", "RULE_INT", "RULE_ML_COMMENT", "RULE_SL_COMMENT", "RULE_WS", "RULE_ANY_OTHER", "'target'", "';'", "'import'", "'reactor'", "'{'", "'}'", "'composite'", "'input'", "':'", "'output'", "'clock'", "'reaction'", "'('", "','", "')'", "'preamble'", "'constructor'", "'instance'", "'='", "'->'", "'const'", "'PERIODIC'", "'ONCE'", "'.'"
+        "<invalid>", "<EOR>", "<DOWN>", "<UP>", "RULE_ID", "RULE_CODE", "RULE_NUMBER", "RULE_STRING", "RULE_INT", "RULE_ML_COMMENT", "RULE_SL_COMMENT", "RULE_WS", "RULE_ANY_OTHER", "'target'", "';'", "'import'", "'reactor'", "'{'", "'}'", "'composite'", "'input'", "':'", "'output'", "'clock'", "'reaction'", "'('", "','", "')'", "'preamble'", "'constructor'", "'instance'", "'='", "'->'", "'const'", "'.'"
     };
     public static final int RULE_STRING=7;
     public static final int RULE_SL_COMMENT=10;
@@ -33,9 +33,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
     public static final int T__33=33;
     public static final int T__34=34;
     public static final int T__13=13;
-    public static final int T__35=35;
     public static final int T__14=14;
-    public static final int T__36=36;
     public static final int EOF=-1;
     public static final int T__30=30;
     public static final int T__31=31;
@@ -4023,7 +4021,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "rulePeriod"
-    // InternalLinguaFranca.g:1629:1: rulePeriod returns [EObject current=null] : (otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_periodic_3_0= 'PERIODIC' ) ) | ( (lv_once_4_0= 'ONCE' ) ) ) )? otherlv_5= ')' ) ;
+    // InternalLinguaFranca.g:1629:1: rulePeriod returns [EObject current=null] : (otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) ) ) (otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) ) )? )? otherlv_6= ')' ) ;
     public final EObject rulePeriod() throws RecognitionException {
         EObject current = null;
 
@@ -4031,19 +4029,22 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         Token lv_period_1_1=null;
         Token lv_period_1_2=null;
         Token otherlv_2=null;
-        Token lv_periodic_3_0=null;
-        Token lv_once_4_0=null;
-        Token otherlv_5=null;
+        Token lv_offset_3_1=null;
+        Token lv_offset_3_2=null;
+        Token otherlv_4=null;
+        Token lv_count_5_1=null;
+        Token lv_count_5_2=null;
+        Token otherlv_6=null;
 
 
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:1635:2: ( (otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_periodic_3_0= 'PERIODIC' ) ) | ( (lv_once_4_0= 'ONCE' ) ) ) )? otherlv_5= ')' ) )
-            // InternalLinguaFranca.g:1636:2: (otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_periodic_3_0= 'PERIODIC' ) ) | ( (lv_once_4_0= 'ONCE' ) ) ) )? otherlv_5= ')' )
+            // InternalLinguaFranca.g:1635:2: ( (otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) ) ) (otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) ) )? )? otherlv_6= ')' ) )
+            // InternalLinguaFranca.g:1636:2: (otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) ) ) (otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) ) )? )? otherlv_6= ')' )
             {
-            // InternalLinguaFranca.g:1636:2: (otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_periodic_3_0= 'PERIODIC' ) ) | ( (lv_once_4_0= 'ONCE' ) ) ) )? otherlv_5= ')' )
-            // InternalLinguaFranca.g:1637:3: otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_periodic_3_0= 'PERIODIC' ) ) | ( (lv_once_4_0= 'ONCE' ) ) ) )? otherlv_5= ')'
+            // InternalLinguaFranca.g:1636:2: (otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) ) ) (otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) ) )? )? otherlv_6= ')' )
+            // InternalLinguaFranca.g:1637:3: otherlv_0= '(' ( ( (lv_period_1_1= RULE_ID | lv_period_1_2= RULE_NUMBER ) ) ) (otherlv_2= ',' ( ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) ) ) (otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) ) )? )? otherlv_6= ')'
             {
             otherlv_0=(Token)match(input,25,FOLLOW_41); 
 
@@ -4121,29 +4122,35 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
             }
 
-            // InternalLinguaFranca.g:1676:3: (otherlv_2= ',' ( ( (lv_periodic_3_0= 'PERIODIC' ) ) | ( (lv_once_4_0= 'ONCE' ) ) ) )?
-            int alt41=2;
-            int LA41_0 = input.LA(1);
+            // InternalLinguaFranca.g:1676:3: (otherlv_2= ',' ( ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) ) ) (otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) ) )? )?
+            int alt43=2;
+            int LA43_0 = input.LA(1);
 
-            if ( (LA41_0==26) ) {
-                alt41=1;
+            if ( (LA43_0==26) ) {
+                alt43=1;
             }
-            switch (alt41) {
+            switch (alt43) {
                 case 1 :
-                    // InternalLinguaFranca.g:1677:4: otherlv_2= ',' ( ( (lv_periodic_3_0= 'PERIODIC' ) ) | ( (lv_once_4_0= 'ONCE' ) ) )
+                    // InternalLinguaFranca.g:1677:4: otherlv_2= ',' ( ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) ) ) (otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) ) )?
                     {
-                    otherlv_2=(Token)match(input,26,FOLLOW_42); 
+                    otherlv_2=(Token)match(input,26,FOLLOW_41); 
 
                     				newLeafNode(otherlv_2, grammarAccess.getPeriodAccess().getCommaKeyword_2_0());
                     			
-                    // InternalLinguaFranca.g:1681:4: ( ( (lv_periodic_3_0= 'PERIODIC' ) ) | ( (lv_once_4_0= 'ONCE' ) ) )
+                    // InternalLinguaFranca.g:1681:4: ( ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) ) )
+                    // InternalLinguaFranca.g:1682:5: ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) )
+                    {
+                    // InternalLinguaFranca.g:1682:5: ( (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER ) )
+                    // InternalLinguaFranca.g:1683:6: (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER )
+                    {
+                    // InternalLinguaFranca.g:1683:6: (lv_offset_3_1= RULE_ID | lv_offset_3_2= RULE_NUMBER )
                     int alt40=2;
                     int LA40_0 = input.LA(1);
 
-                    if ( (LA40_0==34) ) {
+                    if ( (LA40_0==RULE_ID) ) {
                         alt40=1;
                     }
-                    else if ( (LA40_0==35) ) {
+                    else if ( (LA40_0==RULE_NUMBER) ) {
                         alt40=2;
                     }
                     else {
@@ -4154,52 +4161,135 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     }
                     switch (alt40) {
                         case 1 :
-                            // InternalLinguaFranca.g:1682:5: ( (lv_periodic_3_0= 'PERIODIC' ) )
+                            // InternalLinguaFranca.g:1684:7: lv_offset_3_1= RULE_ID
                             {
-                            // InternalLinguaFranca.g:1682:5: ( (lv_periodic_3_0= 'PERIODIC' ) )
-                            // InternalLinguaFranca.g:1683:6: (lv_periodic_3_0= 'PERIODIC' )
-                            {
-                            // InternalLinguaFranca.g:1683:6: (lv_periodic_3_0= 'PERIODIC' )
-                            // InternalLinguaFranca.g:1684:7: lv_periodic_3_0= 'PERIODIC'
-                            {
-                            lv_periodic_3_0=(Token)match(input,34,FOLLOW_34); 
+                            lv_offset_3_1=(Token)match(input,RULE_ID,FOLLOW_29); 
 
-                            							newLeafNode(lv_periodic_3_0, grammarAccess.getPeriodAccess().getPeriodicPERIODICKeyword_2_1_0_0());
+                            							newLeafNode(lv_offset_3_1, grammarAccess.getPeriodAccess().getOffsetIDTerminalRuleCall_2_1_0_0());
                             						
 
                             							if (current==null) {
                             								current = createModelElement(grammarAccess.getPeriodRule());
                             							}
-                            							setWithLastConsumed(current, "periodic", true, "PERIODIC");
+                            							setWithLastConsumed(
+                            								current,
+                            								"offset",
+                            								lv_offset_3_1,
+                            								"org.eclipse.xtext.common.Terminals.ID");
                             						
-
-                            }
-
-
-                            }
-
 
                             }
                             break;
                         case 2 :
-                            // InternalLinguaFranca.g:1697:5: ( (lv_once_4_0= 'ONCE' ) )
+                            // InternalLinguaFranca.g:1699:7: lv_offset_3_2= RULE_NUMBER
                             {
-                            // InternalLinguaFranca.g:1697:5: ( (lv_once_4_0= 'ONCE' ) )
-                            // InternalLinguaFranca.g:1698:6: (lv_once_4_0= 'ONCE' )
-                            {
-                            // InternalLinguaFranca.g:1698:6: (lv_once_4_0= 'ONCE' )
-                            // InternalLinguaFranca.g:1699:7: lv_once_4_0= 'ONCE'
-                            {
-                            lv_once_4_0=(Token)match(input,35,FOLLOW_34); 
+                            lv_offset_3_2=(Token)match(input,RULE_NUMBER,FOLLOW_29); 
 
-                            							newLeafNode(lv_once_4_0, grammarAccess.getPeriodAccess().getOnceONCEKeyword_2_1_1_0());
+                            							newLeafNode(lv_offset_3_2, grammarAccess.getPeriodAccess().getOffsetNUMBERTerminalRuleCall_2_1_0_1());
                             						
 
                             							if (current==null) {
                             								current = createModelElement(grammarAccess.getPeriodRule());
                             							}
-                            							setWithLastConsumed(current, "once", true, "ONCE");
+                            							setWithLastConsumed(
+                            								current,
+                            								"offset",
+                            								lv_offset_3_2,
+                            								"org.icyphy.LinguaFranca.NUMBER");
                             						
+
+                            }
+                            break;
+
+                    }
+
+
+                    }
+
+
+                    }
+
+                    // InternalLinguaFranca.g:1716:4: (otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) ) )?
+                    int alt42=2;
+                    int LA42_0 = input.LA(1);
+
+                    if ( (LA42_0==26) ) {
+                        alt42=1;
+                    }
+                    switch (alt42) {
+                        case 1 :
+                            // InternalLinguaFranca.g:1717:5: otherlv_4= ',' ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) )
+                            {
+                            otherlv_4=(Token)match(input,26,FOLLOW_41); 
+
+                            					newLeafNode(otherlv_4, grammarAccess.getPeriodAccess().getCommaKeyword_2_2_0());
+                            				
+                            // InternalLinguaFranca.g:1721:5: ( ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) ) )
+                            // InternalLinguaFranca.g:1722:6: ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) )
+                            {
+                            // InternalLinguaFranca.g:1722:6: ( (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER ) )
+                            // InternalLinguaFranca.g:1723:7: (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER )
+                            {
+                            // InternalLinguaFranca.g:1723:7: (lv_count_5_1= RULE_ID | lv_count_5_2= RULE_NUMBER )
+                            int alt41=2;
+                            int LA41_0 = input.LA(1);
+
+                            if ( (LA41_0==RULE_ID) ) {
+                                alt41=1;
+                            }
+                            else if ( (LA41_0==RULE_NUMBER) ) {
+                                alt41=2;
+                            }
+                            else {
+                                NoViableAltException nvae =
+                                    new NoViableAltException("", 41, 0, input);
+
+                                throw nvae;
+                            }
+                            switch (alt41) {
+                                case 1 :
+                                    // InternalLinguaFranca.g:1724:8: lv_count_5_1= RULE_ID
+                                    {
+                                    lv_count_5_1=(Token)match(input,RULE_ID,FOLLOW_34); 
+
+                                    								newLeafNode(lv_count_5_1, grammarAccess.getPeriodAccess().getCountIDTerminalRuleCall_2_2_1_0_0());
+                                    							
+
+                                    								if (current==null) {
+                                    									current = createModelElement(grammarAccess.getPeriodRule());
+                                    								}
+                                    								setWithLastConsumed(
+                                    									current,
+                                    									"count",
+                                    									lv_count_5_1,
+                                    									"org.eclipse.xtext.common.Terminals.ID");
+                                    							
+
+                                    }
+                                    break;
+                                case 2 :
+                                    // InternalLinguaFranca.g:1739:8: lv_count_5_2= RULE_NUMBER
+                                    {
+                                    lv_count_5_2=(Token)match(input,RULE_NUMBER,FOLLOW_34); 
+
+                                    								newLeafNode(lv_count_5_2, grammarAccess.getPeriodAccess().getCountNUMBERTerminalRuleCall_2_2_1_0_1());
+                                    							
+
+                                    								if (current==null) {
+                                    									current = createModelElement(grammarAccess.getPeriodRule());
+                                    								}
+                                    								setWithLastConsumed(
+                                    									current,
+                                    									"count",
+                                    									lv_count_5_2,
+                                    									"org.icyphy.LinguaFranca.NUMBER");
+                                    							
+
+                                    }
+                                    break;
+
+                            }
+
 
                             }
 
@@ -4218,9 +4308,9 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
             }
 
-            otherlv_5=(Token)match(input,27,FOLLOW_2); 
+            otherlv_6=(Token)match(input,27,FOLLOW_2); 
 
-            			newLeafNode(otherlv_5, grammarAccess.getPeriodAccess().getRightParenthesisKeyword_3());
+            			newLeafNode(otherlv_6, grammarAccess.getPeriodAccess().getRightParenthesisKeyword_3());
             		
 
             }
@@ -4245,7 +4335,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRulePort"
-    // InternalLinguaFranca.g:1721:1: entryRulePort returns [String current=null] : iv_rulePort= rulePort EOF ;
+    // InternalLinguaFranca.g:1766:1: entryRulePort returns [String current=null] : iv_rulePort= rulePort EOF ;
     public final String entryRulePort() throws RecognitionException {
         String current = null;
 
@@ -4253,8 +4343,8 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // InternalLinguaFranca.g:1721:44: (iv_rulePort= rulePort EOF )
-            // InternalLinguaFranca.g:1722:2: iv_rulePort= rulePort EOF
+            // InternalLinguaFranca.g:1766:44: (iv_rulePort= rulePort EOF )
+            // InternalLinguaFranca.g:1767:2: iv_rulePort= rulePort EOF
             {
              newCompositeNode(grammarAccess.getPortRule()); 
             pushFollow(FOLLOW_1);
@@ -4281,7 +4371,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "rulePort"
-    // InternalLinguaFranca.g:1728:1: rulePort returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_ID_0= RULE_ID | (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) ) ) ;
+    // InternalLinguaFranca.g:1773:1: rulePort returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_ID_0= RULE_ID | (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) ) ) ;
     public final AntlrDatatypeRuleToken rulePort() throws RecognitionException {
         AntlrDatatypeRuleToken current = new AntlrDatatypeRuleToken();
 
@@ -4294,38 +4384,38 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:1734:2: ( (this_ID_0= RULE_ID | (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) ) ) )
-            // InternalLinguaFranca.g:1735:2: (this_ID_0= RULE_ID | (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) ) )
+            // InternalLinguaFranca.g:1779:2: ( (this_ID_0= RULE_ID | (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) ) ) )
+            // InternalLinguaFranca.g:1780:2: (this_ID_0= RULE_ID | (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) ) )
             {
-            // InternalLinguaFranca.g:1735:2: (this_ID_0= RULE_ID | (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) ) )
-            int alt43=2;
-            int LA43_0 = input.LA(1);
+            // InternalLinguaFranca.g:1780:2: (this_ID_0= RULE_ID | (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) ) )
+            int alt45=2;
+            int LA45_0 = input.LA(1);
 
-            if ( (LA43_0==RULE_ID) ) {
-                int LA43_1 = input.LA(2);
+            if ( (LA45_0==RULE_ID) ) {
+                int LA45_1 = input.LA(2);
 
-                if ( (LA43_1==EOF||LA43_1==14||LA43_1==32) ) {
-                    alt43=1;
+                if ( (LA45_1==34) ) {
+                    alt45=2;
                 }
-                else if ( (LA43_1==36) ) {
-                    alt43=2;
+                else if ( (LA45_1==EOF||LA45_1==14||LA45_1==32) ) {
+                    alt45=1;
                 }
                 else {
                     NoViableAltException nvae =
-                        new NoViableAltException("", 43, 1, input);
+                        new NoViableAltException("", 45, 1, input);
 
                     throw nvae;
                 }
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 43, 0, input);
+                    new NoViableAltException("", 45, 0, input);
 
                 throw nvae;
             }
-            switch (alt43) {
+            switch (alt45) {
                 case 1 :
-                    // InternalLinguaFranca.g:1736:3: this_ID_0= RULE_ID
+                    // InternalLinguaFranca.g:1781:3: this_ID_0= RULE_ID
                     {
                     this_ID_0=(Token)match(input,RULE_ID,FOLLOW_2); 
 
@@ -4338,51 +4428,51 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // InternalLinguaFranca.g:1744:3: (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) )
+                    // InternalLinguaFranca.g:1789:3: (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) )
                     {
-                    // InternalLinguaFranca.g:1744:3: (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) )
-                    // InternalLinguaFranca.g:1745:4: this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' )
+                    // InternalLinguaFranca.g:1789:3: (this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' ) )
+                    // InternalLinguaFranca.g:1790:4: this_ID_1= RULE_ID kw= '.' (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' )
                     {
-                    this_ID_1=(Token)match(input,RULE_ID,FOLLOW_43); 
+                    this_ID_1=(Token)match(input,RULE_ID,FOLLOW_42); 
 
                     				current.merge(this_ID_1);
                     			
 
                     				newLeafNode(this_ID_1, grammarAccess.getPortAccess().getIDTerminalRuleCall_1_0());
                     			
-                    kw=(Token)match(input,36,FOLLOW_44); 
+                    kw=(Token)match(input,34,FOLLOW_43); 
 
                     				current.merge(kw);
                     				newLeafNode(kw, grammarAccess.getPortAccess().getFullStopKeyword_1_1());
                     			
-                    // InternalLinguaFranca.g:1757:4: (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' )
-                    int alt42=3;
+                    // InternalLinguaFranca.g:1802:4: (this_ID_3= RULE_ID | kw= 'input' | kw= 'output' )
+                    int alt44=3;
                     switch ( input.LA(1) ) {
                     case RULE_ID:
                         {
-                        alt42=1;
+                        alt44=1;
                         }
                         break;
                     case 20:
                         {
-                        alt42=2;
+                        alt44=2;
                         }
                         break;
                     case 22:
                         {
-                        alt42=3;
+                        alt44=3;
                         }
                         break;
                     default:
                         NoViableAltException nvae =
-                            new NoViableAltException("", 42, 0, input);
+                            new NoViableAltException("", 44, 0, input);
 
                         throw nvae;
                     }
 
-                    switch (alt42) {
+                    switch (alt44) {
                         case 1 :
-                            // InternalLinguaFranca.g:1758:5: this_ID_3= RULE_ID
+                            // InternalLinguaFranca.g:1803:5: this_ID_3= RULE_ID
                             {
                             this_ID_3=(Token)match(input,RULE_ID,FOLLOW_2); 
 
@@ -4395,7 +4485,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                             }
                             break;
                         case 2 :
-                            // InternalLinguaFranca.g:1766:5: kw= 'input'
+                            // InternalLinguaFranca.g:1811:5: kw= 'input'
                             {
                             kw=(Token)match(input,20,FOLLOW_2); 
 
@@ -4406,7 +4496,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                             }
                             break;
                         case 3 :
-                            // InternalLinguaFranca.g:1772:5: kw= 'output'
+                            // InternalLinguaFranca.g:1817:5: kw= 'output'
                             {
                             kw=(Token)match(input,22,FOLLOW_2); 
 
@@ -4448,7 +4538,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleSets"
-    // InternalLinguaFranca.g:1783:1: entryRuleSets returns [EObject current=null] : iv_ruleSets= ruleSets EOF ;
+    // InternalLinguaFranca.g:1828:1: entryRuleSets returns [EObject current=null] : iv_ruleSets= ruleSets EOF ;
     public final EObject entryRuleSets() throws RecognitionException {
         EObject current = null;
 
@@ -4456,8 +4546,8 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // InternalLinguaFranca.g:1783:45: (iv_ruleSets= ruleSets EOF )
-            // InternalLinguaFranca.g:1784:2: iv_ruleSets= ruleSets EOF
+            // InternalLinguaFranca.g:1828:45: (iv_ruleSets= ruleSets EOF )
+            // InternalLinguaFranca.g:1829:2: iv_ruleSets= ruleSets EOF
             {
              newCompositeNode(grammarAccess.getSetsRule()); 
             pushFollow(FOLLOW_1);
@@ -4484,7 +4574,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleSets"
-    // InternalLinguaFranca.g:1790:1: ruleSets returns [EObject current=null] : (otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )? ) ;
+    // InternalLinguaFranca.g:1835:1: ruleSets returns [EObject current=null] : (otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )? ) ;
     public final EObject ruleSets() throws RecognitionException {
         EObject current = null;
 
@@ -4497,21 +4587,21 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:1796:2: ( (otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )? ) )
-            // InternalLinguaFranca.g:1797:2: (otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )? )
+            // InternalLinguaFranca.g:1841:2: ( (otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )? ) )
+            // InternalLinguaFranca.g:1842:2: (otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )? )
             {
-            // InternalLinguaFranca.g:1797:2: (otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )? )
-            // InternalLinguaFranca.g:1798:3: otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )?
+            // InternalLinguaFranca.g:1842:2: (otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )? )
+            // InternalLinguaFranca.g:1843:3: otherlv_0= '->' ( (lv_sets_1_0= RULE_ID ) ) (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )?
             {
             otherlv_0=(Token)match(input,32,FOLLOW_5); 
 
             			newLeafNode(otherlv_0, grammarAccess.getSetsAccess().getHyphenMinusGreaterThanSignKeyword_0());
             		
-            // InternalLinguaFranca.g:1802:3: ( (lv_sets_1_0= RULE_ID ) )
-            // InternalLinguaFranca.g:1803:4: (lv_sets_1_0= RULE_ID )
+            // InternalLinguaFranca.g:1847:3: ( (lv_sets_1_0= RULE_ID ) )
+            // InternalLinguaFranca.g:1848:4: (lv_sets_1_0= RULE_ID )
             {
-            // InternalLinguaFranca.g:1803:4: (lv_sets_1_0= RULE_ID )
-            // InternalLinguaFranca.g:1804:5: lv_sets_1_0= RULE_ID
+            // InternalLinguaFranca.g:1848:4: (lv_sets_1_0= RULE_ID )
+            // InternalLinguaFranca.g:1849:5: lv_sets_1_0= RULE_ID
             {
             lv_sets_1_0=(Token)match(input,RULE_ID,FOLLOW_36); 
 
@@ -4533,26 +4623,26 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
             }
 
-            // InternalLinguaFranca.g:1820:3: (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )?
-            int alt44=2;
-            int LA44_0 = input.LA(1);
+            // InternalLinguaFranca.g:1865:3: (otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) ) )?
+            int alt46=2;
+            int LA46_0 = input.LA(1);
 
-            if ( (LA44_0==26) ) {
-                alt44=1;
+            if ( (LA46_0==26) ) {
+                alt46=1;
             }
-            switch (alt44) {
+            switch (alt46) {
                 case 1 :
-                    // InternalLinguaFranca.g:1821:4: otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) )
+                    // InternalLinguaFranca.g:1866:4: otherlv_2= ',' ( (lv_sets_3_0= RULE_ID ) )
                     {
                     otherlv_2=(Token)match(input,26,FOLLOW_5); 
 
                     				newLeafNode(otherlv_2, grammarAccess.getSetsAccess().getCommaKeyword_2_0());
                     			
-                    // InternalLinguaFranca.g:1825:4: ( (lv_sets_3_0= RULE_ID ) )
-                    // InternalLinguaFranca.g:1826:5: (lv_sets_3_0= RULE_ID )
+                    // InternalLinguaFranca.g:1870:4: ( (lv_sets_3_0= RULE_ID ) )
+                    // InternalLinguaFranca.g:1871:5: (lv_sets_3_0= RULE_ID )
                     {
-                    // InternalLinguaFranca.g:1826:5: (lv_sets_3_0= RULE_ID )
-                    // InternalLinguaFranca.g:1827:6: lv_sets_3_0= RULE_ID
+                    // InternalLinguaFranca.g:1871:5: (lv_sets_3_0= RULE_ID )
+                    // InternalLinguaFranca.g:1872:6: lv_sets_3_0= RULE_ID
                     {
                     lv_sets_3_0=(Token)match(input,RULE_ID,FOLLOW_2); 
 
@@ -4603,7 +4693,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleType"
-    // InternalLinguaFranca.g:1848:1: entryRuleType returns [String current=null] : iv_ruleType= ruleType EOF ;
+    // InternalLinguaFranca.g:1893:1: entryRuleType returns [String current=null] : iv_ruleType= ruleType EOF ;
     public final String entryRuleType() throws RecognitionException {
         String current = null;
 
@@ -4611,8 +4701,8 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // InternalLinguaFranca.g:1848:44: (iv_ruleType= ruleType EOF )
-            // InternalLinguaFranca.g:1849:2: iv_ruleType= ruleType EOF
+            // InternalLinguaFranca.g:1893:44: (iv_ruleType= ruleType EOF )
+            // InternalLinguaFranca.g:1894:2: iv_ruleType= ruleType EOF
             {
              newCompositeNode(grammarAccess.getTypeRule()); 
             pushFollow(FOLLOW_1);
@@ -4639,7 +4729,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleType"
-    // InternalLinguaFranca.g:1855:1: ruleType returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_ID_0= RULE_ID | this_CODE_1= RULE_CODE ) ;
+    // InternalLinguaFranca.g:1900:1: ruleType returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_ID_0= RULE_ID | this_CODE_1= RULE_CODE ) ;
     public final AntlrDatatypeRuleToken ruleType() throws RecognitionException {
         AntlrDatatypeRuleToken current = new AntlrDatatypeRuleToken();
 
@@ -4650,28 +4740,28 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:1861:2: ( (this_ID_0= RULE_ID | this_CODE_1= RULE_CODE ) )
-            // InternalLinguaFranca.g:1862:2: (this_ID_0= RULE_ID | this_CODE_1= RULE_CODE )
+            // InternalLinguaFranca.g:1906:2: ( (this_ID_0= RULE_ID | this_CODE_1= RULE_CODE ) )
+            // InternalLinguaFranca.g:1907:2: (this_ID_0= RULE_ID | this_CODE_1= RULE_CODE )
             {
-            // InternalLinguaFranca.g:1862:2: (this_ID_0= RULE_ID | this_CODE_1= RULE_CODE )
-            int alt45=2;
-            int LA45_0 = input.LA(1);
+            // InternalLinguaFranca.g:1907:2: (this_ID_0= RULE_ID | this_CODE_1= RULE_CODE )
+            int alt47=2;
+            int LA47_0 = input.LA(1);
 
-            if ( (LA45_0==RULE_ID) ) {
-                alt45=1;
+            if ( (LA47_0==RULE_ID) ) {
+                alt47=1;
             }
-            else if ( (LA45_0==RULE_CODE) ) {
-                alt45=2;
+            else if ( (LA47_0==RULE_CODE) ) {
+                alt47=2;
             }
             else {
                 NoViableAltException nvae =
-                    new NoViableAltException("", 45, 0, input);
+                    new NoViableAltException("", 47, 0, input);
 
                 throw nvae;
             }
-            switch (alt45) {
+            switch (alt47) {
                 case 1 :
-                    // InternalLinguaFranca.g:1863:3: this_ID_0= RULE_ID
+                    // InternalLinguaFranca.g:1908:3: this_ID_0= RULE_ID
                     {
                     this_ID_0=(Token)match(input,RULE_ID,FOLLOW_2); 
 
@@ -4684,7 +4774,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // InternalLinguaFranca.g:1871:3: this_CODE_1= RULE_CODE
+                    // InternalLinguaFranca.g:1916:3: this_CODE_1= RULE_CODE
                     {
                     this_CODE_1=(Token)match(input,RULE_CODE,FOLLOW_2); 
 
@@ -4719,7 +4809,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRuleValue"
-    // InternalLinguaFranca.g:1882:1: entryRuleValue returns [String current=null] : iv_ruleValue= ruleValue EOF ;
+    // InternalLinguaFranca.g:1927:1: entryRuleValue returns [String current=null] : iv_ruleValue= ruleValue EOF ;
     public final String entryRuleValue() throws RecognitionException {
         String current = null;
 
@@ -4727,8 +4817,8 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // InternalLinguaFranca.g:1882:45: (iv_ruleValue= ruleValue EOF )
-            // InternalLinguaFranca.g:1883:2: iv_ruleValue= ruleValue EOF
+            // InternalLinguaFranca.g:1927:45: (iv_ruleValue= ruleValue EOF )
+            // InternalLinguaFranca.g:1928:2: iv_ruleValue= ruleValue EOF
             {
              newCompositeNode(grammarAccess.getValueRule()); 
             pushFollow(FOLLOW_1);
@@ -4755,7 +4845,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "ruleValue"
-    // InternalLinguaFranca.g:1889:1: ruleValue returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_ID_0= RULE_ID | this_NUMBER_1= RULE_NUMBER | this_STRING_2= RULE_STRING | this_CODE_3= RULE_CODE ) ;
+    // InternalLinguaFranca.g:1934:1: ruleValue returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_ID_0= RULE_ID | this_NUMBER_1= RULE_NUMBER | this_STRING_2= RULE_STRING | this_CODE_3= RULE_CODE ) ;
     public final AntlrDatatypeRuleToken ruleValue() throws RecognitionException {
         AntlrDatatypeRuleToken current = new AntlrDatatypeRuleToken();
 
@@ -4768,42 +4858,42 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:1895:2: ( (this_ID_0= RULE_ID | this_NUMBER_1= RULE_NUMBER | this_STRING_2= RULE_STRING | this_CODE_3= RULE_CODE ) )
-            // InternalLinguaFranca.g:1896:2: (this_ID_0= RULE_ID | this_NUMBER_1= RULE_NUMBER | this_STRING_2= RULE_STRING | this_CODE_3= RULE_CODE )
+            // InternalLinguaFranca.g:1940:2: ( (this_ID_0= RULE_ID | this_NUMBER_1= RULE_NUMBER | this_STRING_2= RULE_STRING | this_CODE_3= RULE_CODE ) )
+            // InternalLinguaFranca.g:1941:2: (this_ID_0= RULE_ID | this_NUMBER_1= RULE_NUMBER | this_STRING_2= RULE_STRING | this_CODE_3= RULE_CODE )
             {
-            // InternalLinguaFranca.g:1896:2: (this_ID_0= RULE_ID | this_NUMBER_1= RULE_NUMBER | this_STRING_2= RULE_STRING | this_CODE_3= RULE_CODE )
-            int alt46=4;
+            // InternalLinguaFranca.g:1941:2: (this_ID_0= RULE_ID | this_NUMBER_1= RULE_NUMBER | this_STRING_2= RULE_STRING | this_CODE_3= RULE_CODE )
+            int alt48=4;
             switch ( input.LA(1) ) {
             case RULE_ID:
                 {
-                alt46=1;
+                alt48=1;
                 }
                 break;
             case RULE_NUMBER:
                 {
-                alt46=2;
+                alt48=2;
                 }
                 break;
             case RULE_STRING:
                 {
-                alt46=3;
+                alt48=3;
                 }
                 break;
             case RULE_CODE:
                 {
-                alt46=4;
+                alt48=4;
                 }
                 break;
             default:
                 NoViableAltException nvae =
-                    new NoViableAltException("", 46, 0, input);
+                    new NoViableAltException("", 48, 0, input);
 
                 throw nvae;
             }
 
-            switch (alt46) {
+            switch (alt48) {
                 case 1 :
-                    // InternalLinguaFranca.g:1897:3: this_ID_0= RULE_ID
+                    // InternalLinguaFranca.g:1942:3: this_ID_0= RULE_ID
                     {
                     this_ID_0=(Token)match(input,RULE_ID,FOLLOW_2); 
 
@@ -4816,7 +4906,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 2 :
-                    // InternalLinguaFranca.g:1905:3: this_NUMBER_1= RULE_NUMBER
+                    // InternalLinguaFranca.g:1950:3: this_NUMBER_1= RULE_NUMBER
                     {
                     this_NUMBER_1=(Token)match(input,RULE_NUMBER,FOLLOW_2); 
 
@@ -4829,7 +4919,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 3 :
-                    // InternalLinguaFranca.g:1913:3: this_STRING_2= RULE_STRING
+                    // InternalLinguaFranca.g:1958:3: this_STRING_2= RULE_STRING
                     {
                     this_STRING_2=(Token)match(input,RULE_STRING,FOLLOW_2); 
 
@@ -4842,7 +4932,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
                     }
                     break;
                 case 4 :
-                    // InternalLinguaFranca.g:1921:3: this_CODE_3= RULE_CODE
+                    // InternalLinguaFranca.g:1966:3: this_CODE_3= RULE_CODE
                     {
                     this_CODE_3=(Token)match(input,RULE_CODE,FOLLOW_2); 
 
@@ -4877,7 +4967,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "entryRulePath"
-    // InternalLinguaFranca.g:1932:1: entryRulePath returns [String current=null] : iv_rulePath= rulePath EOF ;
+    // InternalLinguaFranca.g:1977:1: entryRulePath returns [String current=null] : iv_rulePath= rulePath EOF ;
     public final String entryRulePath() throws RecognitionException {
         String current = null;
 
@@ -4885,8 +4975,8 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
         try {
-            // InternalLinguaFranca.g:1932:44: (iv_rulePath= rulePath EOF )
-            // InternalLinguaFranca.g:1933:2: iv_rulePath= rulePath EOF
+            // InternalLinguaFranca.g:1977:44: (iv_rulePath= rulePath EOF )
+            // InternalLinguaFranca.g:1978:2: iv_rulePath= rulePath EOF
             {
              newCompositeNode(grammarAccess.getPathRule()); 
             pushFollow(FOLLOW_1);
@@ -4913,7 +5003,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
 
 
     // $ANTLR start "rulePath"
-    // InternalLinguaFranca.g:1939:1: rulePath returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )* ) ;
+    // InternalLinguaFranca.g:1984:1: rulePath returns [AntlrDatatypeRuleToken current=new AntlrDatatypeRuleToken()] : (this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )* ) ;
     public final AntlrDatatypeRuleToken rulePath() throws RecognitionException {
         AntlrDatatypeRuleToken current = new AntlrDatatypeRuleToken();
 
@@ -4925,40 +5015,40 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
         	enterRule();
 
         try {
-            // InternalLinguaFranca.g:1945:2: ( (this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )* ) )
-            // InternalLinguaFranca.g:1946:2: (this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )* )
+            // InternalLinguaFranca.g:1990:2: ( (this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )* ) )
+            // InternalLinguaFranca.g:1991:2: (this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )* )
             {
-            // InternalLinguaFranca.g:1946:2: (this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )* )
-            // InternalLinguaFranca.g:1947:3: this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )*
+            // InternalLinguaFranca.g:1991:2: (this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )* )
+            // InternalLinguaFranca.g:1992:3: this_ID_0= RULE_ID (kw= '.' this_ID_2= RULE_ID )*
             {
-            this_ID_0=(Token)match(input,RULE_ID,FOLLOW_45); 
+            this_ID_0=(Token)match(input,RULE_ID,FOLLOW_44); 
 
             			current.merge(this_ID_0);
             		
 
             			newLeafNode(this_ID_0, grammarAccess.getPathAccess().getIDTerminalRuleCall_0());
             		
-            // InternalLinguaFranca.g:1954:3: (kw= '.' this_ID_2= RULE_ID )*
-            loop47:
+            // InternalLinguaFranca.g:1999:3: (kw= '.' this_ID_2= RULE_ID )*
+            loop49:
             do {
-                int alt47=2;
-                int LA47_0 = input.LA(1);
+                int alt49=2;
+                int LA49_0 = input.LA(1);
 
-                if ( (LA47_0==36) ) {
-                    alt47=1;
+                if ( (LA49_0==34) ) {
+                    alt49=1;
                 }
 
 
-                switch (alt47) {
+                switch (alt49) {
             	case 1 :
-            	    // InternalLinguaFranca.g:1955:4: kw= '.' this_ID_2= RULE_ID
+            	    // InternalLinguaFranca.g:2000:4: kw= '.' this_ID_2= RULE_ID
             	    {
-            	    kw=(Token)match(input,36,FOLLOW_5); 
+            	    kw=(Token)match(input,34,FOLLOW_5); 
 
             	    				current.merge(kw);
             	    				newLeafNode(kw, grammarAccess.getPathAccess().getFullStopKeyword_1_0());
             	    			
-            	    this_ID_2=(Token)match(input,RULE_ID,FOLLOW_45); 
+            	    this_ID_2=(Token)match(input,RULE_ID,FOLLOW_44); 
 
             	    				current.merge(this_ID_2);
             	    			
@@ -4970,7 +5060,7 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
             	    break;
 
             	default :
-            	    break loop47;
+            	    break loop49;
                 }
             } while (true);
 
@@ -5041,9 +5131,8 @@ public class InternalLinguaFrancaParser extends AbstractInternalAntlrParser {
     public static final BitSet FOLLOW_39 = new BitSet(new long[]{0x0000000002200002L});
     public static final BitSet FOLLOW_40 = new BitSet(new long[]{0x0000000002000002L});
     public static final BitSet FOLLOW_41 = new BitSet(new long[]{0x0000000000000050L});
-    public static final BitSet FOLLOW_42 = new BitSet(new long[]{0x0000000C00000000L});
-    public static final BitSet FOLLOW_43 = new BitSet(new long[]{0x0000001000000000L});
-    public static final BitSet FOLLOW_44 = new BitSet(new long[]{0x0000000000500010L});
-    public static final BitSet FOLLOW_45 = new BitSet(new long[]{0x0000001000000002L});
+    public static final BitSet FOLLOW_42 = new BitSet(new long[]{0x0000000400000000L});
+    public static final BitSet FOLLOW_43 = new BitSet(new long[]{0x0000000000500010L});
+    public static final BitSet FOLLOW_44 = new BitSet(new long[]{0x0000000400000002L});
 
 }
