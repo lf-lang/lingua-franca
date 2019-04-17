@@ -23,6 +23,10 @@ import org.icyphy.linguaFranca.Reaction
  * @author Edward A. Lee
  */
 class AccessorGenerator {
+	// For each accessor, we collect a set of input and parameter names.
+	var inputs = newHashSet();
+	var parameters = newLinkedList();
+	
 	def void doGenerate(
 			Resource resource, 
 			IFileSystemAccess2 fsa, 
@@ -40,7 +44,6 @@ class AccessorGenerator {
 		for (composite : resource.allContents.toIterable.filter(Composite)) {
 			val code = new StringBuffer
 			code.append(generateComposite(composite, importTable))
-			// FIXME: More
 			fsa.generateFile(composite.name + ".js", code);		
 		}
 	}
@@ -50,10 +53,12 @@ class AccessorGenerator {
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
-	def generateReactor(Reactor reactor, Hashtable<String,String> importTable)
+	def generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
+		inputs.clear(); // Reset set of inputs.
+		parameters.clear(); // Reset set of parameters.
 		'''
 		«boilerplate()»
-		// Trigger data structure:
+		// Clock data structure:
 		«FOR clock: reactor.clocks»
 			«generateClock(clock)» 
 		«ENDFOR»
@@ -69,13 +74,16 @@ class AccessorGenerator {
 		// Generate reactions
 		«generateReactions(reactor.reactions)»
 		'''
+	}
 	
 	/** Return an instantiate statement followed by any required parameter
 	 *  assignments.
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	def generateComposite(Composite composite, Hashtable<String,String> importTable)
+	def generateComposite(Composite composite, Hashtable<String,String> importTable) {
+		inputs.clear(); // Reset set of inputs.
+		parameters.clear(); // Reset set of parameters.
 		'''
 		«boilerplate()»
 		// Trigger data structure:
@@ -94,15 +102,16 @@ class AccessorGenerator {
 		// Generate reactions
 		«generateReactions(composite.reactions)»
 		'''
+	}
 		
 	def boilerplate() '''
 		////////////////////////
 		// Boilerplate included for all actors.
 		function schedule(trigger) {
 		    if (trigger.periodicity) {
-		        return trigger.reactor.setInterval(trigger.reaction, trigger.period);
+		        return setInterval(trigger.reaction, trigger.period);
 		    } else {
-		    	return trigger.reactor.setTimeout(trigger.reaction, trigger.period);
+		    	return setTimeout(trigger.reaction, trigger.period);
 		    }
 		}
 		// Unbound version of set() function (will be bound below).
@@ -145,7 +154,7 @@ class AccessorGenerator {
 			// Generated parameters, if any
 			«IF reactor.parameters !== null»
 				«FOR param : reactor.parameters.params»
-				«generateParameter(param)» 
+					«generateParameter(param)» 
 				«ENDFOR»
 			«ENDIF»
 		}
@@ -166,7 +175,7 @@ class AccessorGenerator {
 			// Generated parameters, if any
 			«IF composite.parameters !== null»
 				«FOR param : composite.parameters.params»
-				«generateParameter(param)» 
+					«generateParameter(param)» 
 				«ENDFOR»
 			«ENDIF»	
 			// Generated instances
@@ -180,23 +189,27 @@ class AccessorGenerator {
 		}
 	'''
 		
-	def generateInput(Input input) 
+	def generateInput(Input input) {
+		inputs.add(input.name);
 		'''
-		this.input("«input.name»"«IF input.type !== null», { 'type': «removeCodeDelimiter(input.type)»}«ENDIF»);
+		this.input("«input.name»"«IF input.type !== null», { 'type': '«removeCodeDelimiter(input.type)»'}«ENDIF»);
 		'''
+	}
 		
 	def generateOutput(Output output)
 		'''
-		this.output("«output.name»"«IF output.type !== null», { 'type': «removeCodeDelimiter(output.type)»}«ENDIF»);
+		this.output("«output.name»"«IF output.type !== null», { 'type': '«removeCodeDelimiter(output.type)»'}«ENDIF»);
 		'''
 	
-	def generateParameter(Param param)
+	def generateParameter(Param param) {
+		parameters.add(param.name);
 		'''
 		this.parameter("«param.name»"«IF param.type === null && param.value === null»);«ELSE»,«ENDIF»
 			«IF param.type !== null && param.value !== null»{'type': '«removeCodeDelimiter(param.type)»', 'value': «removeCodeDelimiter(param.value)»});«ENDIF»
 			«IF param.type !== null && param.value === null»{'type': '«removeCodeDelimiter(param.type)»'});«ENDIF»
 			«IF param.type === null && param.value !== null»{'value': «removeCodeDelimiter(param.value)»});«ENDIF»
 		'''
+	}
 
 	def generateClock(Clock clock)
 		'''
@@ -224,19 +237,15 @@ class AccessorGenerator {
 			// Adding input handlers of reactions
 			«FOR reaction: reactions»
 				«FOR trigger:reaction.triggers»
-					this.addInputHandler("«trigger»", reaction«FOR trig:reaction.triggers»_«trig»«ENDFOR».bind(this));
+					«IF inputs.contains(trigger)»
+						this.addInputHandler("«trigger»", reaction«FOR trig:reaction.triggers»_«trig»«ENDFOR».bind(this));
+					«ENDIF»
 				«ENDFOR»
 			«ENDFOR»
 		};
 	'''			
 
 	/** Return reaction functions definition for a reactor or a composite.
-	 *  FIXME 1: In what sens reaction parameters (triggers) are different from gets?
-	 *  FIXME 2: Aren't 'set' instructions part of the code? If yes, Why do
-	 *           we need 'Sets' in the header of the 'reaction'? 
-	 *  FIXME 3: If the trigger of the reaction is a trigger (not an input port), then
-	 *           we use schedule.
-	 * 			 We need then to iterate over a reaction parameters to check this condition. 
 	 */
 	def generateReactions(EList<Reaction> reactions) '''
 		«FOR reaction: reactions»
@@ -244,21 +253,28 @@ class AccessorGenerator {
 			// Define variables for triggers, gets (non-triggering inputs that are read), and sets (outputs).
 			«IF reaction.triggers !== null»
 				«FOR trigger: reaction.triggers»
-					// FIXME: This could be clock. Handling inputs only for now.
-					var «trigger» = "«trigger»";
+					«IF inputs.contains(trigger)»
+						var «trigger» = "«trigger»";
+					«ENDIF»
 				«ENDFOR»
 			«ENDIF»
+			// Define variables for non-triggering inputs.
 			«IF reaction.gets !== null»
 				«FOR get: reaction.gets.gets»
 					var «get» = "«get»";
 				«ENDFOR»
 			«ENDIF»
+			// Define variables for output ports written to.
 			«IF reaction.sets !== null»
 				«FOR set: reaction.sets.sets»
 					var «set» = "«set»";
 				«ENDFOR»
 			«ENDIF»
-			
+			// Define variables for each parameter.
+		«FOR parameter: parameters»
+			var «parameter» = this.getParameter("«parameter»");
+		«ENDFOR»
+
 			// Code verbatim from 'reaction'
 			«removeCodeDelimiter(reaction.code)»
 		}
@@ -277,7 +293,7 @@ class AccessorGenerator {
 			className = instance.actorClass
 		}
 		'''
-		var «instance.name» = instantiate('«instance.name»', '«className»');
+		var «instance.name» = this.instantiate('«instance.name»', '«className»');
 		«IF instance.parameters !== null»
 			«FOR param: instance.parameters.assignments»
 				«instance.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);
