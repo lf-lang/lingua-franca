@@ -17,7 +17,7 @@ Import:
 	'import' name=Path ';';
 
 // The following enforces the order of definitions:
-// inputs, outputs, triggers, preamble, etc.
+// inputs, outputs, clocks, etc.
 Reactor:
 	'reactor' name=ID parameters=Params? '{'
 	(inputs += Input)*
