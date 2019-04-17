@@ -44,4 +44,4 @@ composite Top() {
     a.y -> b.x;
 }
 
-start new Top();
+// start new Top();
