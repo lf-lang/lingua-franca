@@ -215,7 +215,7 @@ class AccessorGenerator {
 		'''
 		var «clock.name» = {'reactor': this,
 		    'period': «IF clock.period !== null»«clock.period.period»«ELSE»0«ENDIF»,
-		    'periodicity': «IF clock.period !== null»«IF clock.period.periodic»1«ELSE»0«ENDIF»«ELSE»0«ENDIF»,
+		    'periodicity': «IF clock.period !== null»«IF clock.period.period != "" »1«ELSE»0«ENDIF»«ELSE»0«ENDIF», /* TODO: check this condition, probably wrong, but I changed it so it would compile at all*/ 
 		    'reaction': reaction_«clock.name».bind(this)
 		};
 		'''
