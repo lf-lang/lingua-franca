@@ -147,7 +147,7 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		private final Keyword cRightCurlyBracketKeyword_10 = (Keyword)cGroup.eContents().get(10);
 		
 		//// The following enforces the order of definitions:
-		//// inputs, outputs, triggers, preamble, etc.
+		//// inputs, outputs, clocks, etc.
 		//Reactor:
 		//	'reactor' name=ID parameters=Params? '{'
 		//	inputs+=Input*
@@ -922,20 +922,26 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		private final RuleCall cPeriodNUMBERTerminalRuleCall_1_0_1 = (RuleCall)cPeriodAlternatives_1_0.eContents().get(1);
 		private final Group cGroup_2 = (Group)cGroup.eContents().get(2);
 		private final Keyword cCommaKeyword_2_0 = (Keyword)cGroup_2.eContents().get(0);
-		private final Alternatives cAlternatives_2_1 = (Alternatives)cGroup_2.eContents().get(1);
-		private final Assignment cPeriodicAssignment_2_1_0 = (Assignment)cAlternatives_2_1.eContents().get(0);
-		private final Keyword cPeriodicPERIODICKeyword_2_1_0_0 = (Keyword)cPeriodicAssignment_2_1_0.eContents().get(0);
-		private final Assignment cOnceAssignment_2_1_1 = (Assignment)cAlternatives_2_1.eContents().get(1);
-		private final Keyword cOnceONCEKeyword_2_1_1_0 = (Keyword)cOnceAssignment_2_1_1.eContents().get(0);
+		private final Assignment cOffsetAssignment_2_1 = (Assignment)cGroup_2.eContents().get(1);
+		private final Alternatives cOffsetAlternatives_2_1_0 = (Alternatives)cOffsetAssignment_2_1.eContents().get(0);
+		private final RuleCall cOffsetIDTerminalRuleCall_2_1_0_0 = (RuleCall)cOffsetAlternatives_2_1_0.eContents().get(0);
+		private final RuleCall cOffsetNUMBERTerminalRuleCall_2_1_0_1 = (RuleCall)cOffsetAlternatives_2_1_0.eContents().get(1);
+		private final Group cGroup_2_2 = (Group)cGroup_2.eContents().get(2);
+		private final Keyword cCommaKeyword_2_2_0 = (Keyword)cGroup_2_2.eContents().get(0);
+		private final Assignment cCountAssignment_2_2_1 = (Assignment)cGroup_2_2.eContents().get(1);
+		private final Alternatives cCountAlternatives_2_2_1_0 = (Alternatives)cCountAssignment_2_2_1.eContents().get(0);
+		private final RuleCall cCountIDTerminalRuleCall_2_2_1_0_0 = (RuleCall)cCountAlternatives_2_2_1_0.eContents().get(0);
+		private final RuleCall cCountNUMBERTerminalRuleCall_2_2_1_0_1 = (RuleCall)cCountAlternatives_2_2_1_0.eContents().get(1);
 		private final Keyword cRightParenthesisKeyword_3 = (Keyword)cGroup.eContents().get(3);
 		
 		//// Periodicity spec for a trigger.
-		//// E.g. (1000) or (1000, PERIODIC) or (1000, ONCE)
+		//// E.g. (1000) or (1000, 100) or (1000, 100, 10)
+		//// The latter means fire with period 1000, offset 100, 10 times.
 		//Period:
-		//	'(' period=(ID | NUMBER) (',' (periodic?='PERIODIC' | once?='ONCE'))? ')';
+		//	'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))?)? ')';
 		@Override public ParserRule getRule() { return rule; }
 		
-		//'(' period=(ID | NUMBER) (',' (periodic?='PERIODIC' | once?='ONCE'))? ')'
+		//'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))?)? ')'
 		public Group getGroup() { return cGroup; }
 		
 		//'('
@@ -953,26 +959,41 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		//NUMBER
 		public RuleCall getPeriodNUMBERTerminalRuleCall_1_0_1() { return cPeriodNUMBERTerminalRuleCall_1_0_1; }
 		
-		//(',' (periodic?='PERIODIC' | once?='ONCE'))?
+		//(',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))?)?
 		public Group getGroup_2() { return cGroup_2; }
 		
 		//','
 		public Keyword getCommaKeyword_2_0() { return cCommaKeyword_2_0; }
 		
-		//periodic?='PERIODIC' | once?='ONCE'
-		public Alternatives getAlternatives_2_1() { return cAlternatives_2_1; }
+		//offset=(ID | NUMBER)
+		public Assignment getOffsetAssignment_2_1() { return cOffsetAssignment_2_1; }
 		
-		//periodic?='PERIODIC'
-		public Assignment getPeriodicAssignment_2_1_0() { return cPeriodicAssignment_2_1_0; }
+		//(ID | NUMBER)
+		public Alternatives getOffsetAlternatives_2_1_0() { return cOffsetAlternatives_2_1_0; }
 		
-		//'PERIODIC'
-		public Keyword getPeriodicPERIODICKeyword_2_1_0_0() { return cPeriodicPERIODICKeyword_2_1_0_0; }
+		//ID
+		public RuleCall getOffsetIDTerminalRuleCall_2_1_0_0() { return cOffsetIDTerminalRuleCall_2_1_0_0; }
 		
-		//once?='ONCE'
-		public Assignment getOnceAssignment_2_1_1() { return cOnceAssignment_2_1_1; }
+		//NUMBER
+		public RuleCall getOffsetNUMBERTerminalRuleCall_2_1_0_1() { return cOffsetNUMBERTerminalRuleCall_2_1_0_1; }
 		
-		//'ONCE'
-		public Keyword getOnceONCEKeyword_2_1_1_0() { return cOnceONCEKeyword_2_1_1_0; }
+		//(',' count=(ID | NUMBER))?
+		public Group getGroup_2_2() { return cGroup_2_2; }
+		
+		//','
+		public Keyword getCommaKeyword_2_2_0() { return cCommaKeyword_2_2_0; }
+		
+		//count=(ID | NUMBER)
+		public Assignment getCountAssignment_2_2_1() { return cCountAssignment_2_2_1; }
+		
+		//(ID | NUMBER)
+		public Alternatives getCountAlternatives_2_2_1_0() { return cCountAlternatives_2_2_1_0; }
+		
+		//ID
+		public RuleCall getCountIDTerminalRuleCall_2_2_1_0_0() { return cCountIDTerminalRuleCall_2_2_1_0_0; }
+		
+		//NUMBER
+		public RuleCall getCountNUMBERTerminalRuleCall_2_2_1_0_1() { return cCountNUMBERTerminalRuleCall_2_2_1_0_1; }
 		
 		//')'
 		public Keyword getRightParenthesisKeyword_3() { return cRightParenthesisKeyword_3; }
@@ -1264,7 +1285,7 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	}
 	
 	//// The following enforces the order of definitions:
-	//// inputs, outputs, triggers, preamble, etc.
+	//// inputs, outputs, clocks, etc.
 	//Reactor:
 	//	'reactor' name=ID parameters=Params? '{'
 	//	inputs+=Input*
@@ -1444,9 +1465,10 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	}
 	
 	//// Periodicity spec for a trigger.
-	//// E.g. (1000) or (1000, PERIODIC) or (1000, ONCE)
+	//// E.g. (1000) or (1000, 100) or (1000, 100, 10)
+	//// The latter means fire with period 1000, offset 100, 10 times.
 	//Period:
-	//	'(' period=(ID | NUMBER) (',' (periodic?='PERIODIC' | once?='ONCE'))? ')';
+	//	'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))?)? ')';
 	public PeriodElements getPeriodAccess() {
 		return pPeriod;
 	}

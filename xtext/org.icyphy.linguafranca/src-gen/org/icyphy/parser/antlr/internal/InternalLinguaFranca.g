@@ -1681,38 +1681,83 @@ rulePeriod returns [EObject current=null]
 			(
 				(
 					(
-						lv_periodic_3_0='PERIODIC'
+						lv_offset_3_1=RULE_ID
 						{
-							newLeafNode(lv_periodic_3_0, grammarAccess.getPeriodAccess().getPeriodicPERIODICKeyword_2_1_0_0());
+							newLeafNode(lv_offset_3_1, grammarAccess.getPeriodAccess().getOffsetIDTerminalRuleCall_2_1_0_0());
 						}
 						{
 							if ($current==null) {
 								$current = createModelElement(grammarAccess.getPeriodRule());
 							}
-							setWithLastConsumed($current, "periodic", true, "PERIODIC");
+							setWithLastConsumed(
+								$current,
+								"offset",
+								lv_offset_3_1,
+								"org.eclipse.xtext.common.Terminals.ID");
 						}
-					)
-				)
-				    |
-				(
-					(
-						lv_once_4_0='ONCE'
+						    |
+						lv_offset_3_2=RULE_NUMBER
 						{
-							newLeafNode(lv_once_4_0, grammarAccess.getPeriodAccess().getOnceONCEKeyword_2_1_1_0());
+							newLeafNode(lv_offset_3_2, grammarAccess.getPeriodAccess().getOffsetNUMBERTerminalRuleCall_2_1_0_1());
 						}
 						{
 							if ($current==null) {
 								$current = createModelElement(grammarAccess.getPeriodRule());
 							}
-							setWithLastConsumed($current, "once", true, "ONCE");
+							setWithLastConsumed(
+								$current,
+								"offset",
+								lv_offset_3_2,
+								"org.icyphy.LinguaFranca.NUMBER");
 						}
 					)
 				)
 			)
+			(
+				otherlv_4=','
+				{
+					newLeafNode(otherlv_4, grammarAccess.getPeriodAccess().getCommaKeyword_2_2_0());
+				}
+				(
+					(
+						(
+							lv_count_5_1=RULE_ID
+							{
+								newLeafNode(lv_count_5_1, grammarAccess.getPeriodAccess().getCountIDTerminalRuleCall_2_2_1_0_0());
+							}
+							{
+								if ($current==null) {
+									$current = createModelElement(grammarAccess.getPeriodRule());
+								}
+								setWithLastConsumed(
+									$current,
+									"count",
+									lv_count_5_1,
+									"org.eclipse.xtext.common.Terminals.ID");
+							}
+							    |
+							lv_count_5_2=RULE_NUMBER
+							{
+								newLeafNode(lv_count_5_2, grammarAccess.getPeriodAccess().getCountNUMBERTerminalRuleCall_2_2_1_0_1());
+							}
+							{
+								if ($current==null) {
+									$current = createModelElement(grammarAccess.getPeriodRule());
+								}
+								setWithLastConsumed(
+									$current,
+									"count",
+									lv_count_5_2,
+									"org.icyphy.LinguaFranca.NUMBER");
+							}
+						)
+					)
+				)
+			)?
 		)?
-		otherlv_5=')'
+		otherlv_6=')'
 		{
-			newLeafNode(otherlv_5, grammarAccess.getPeriodAccess().getRightParenthesisKeyword_3());
+			newLeafNode(otherlv_6, grammarAccess.getPeriodAccess().getRightParenthesisKeyword_3());
 		}
 	)
 ;

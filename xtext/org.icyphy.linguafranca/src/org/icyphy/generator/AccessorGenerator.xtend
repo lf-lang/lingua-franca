@@ -20,12 +20,13 @@ import org.icyphy.linguaFranca.Reaction
 
 /**
  * Generator for Accessors.
- * @author Edward A. Lee
+ * @author Edward A. Lee, Chadlia Jerad
  */
 class AccessorGenerator {
 	// For each accessor, we collect a set of input and parameter names.
 	var inputs = newHashSet();
 	var parameters = newLinkedList();
+	var clocks = newHashMap();
 	
 	def void doGenerate(
 			Resource resource, 
@@ -54,8 +55,9 @@ class AccessorGenerator {
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
 	def generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
-		inputs.clear(); // Reset set of inputs.
+		inputs.clear();     // Reset set of inputs.
 		parameters.clear(); // Reset set of parameters.
+		clocks.clear();     // Reset map of clock names to clock properties.
 		'''
 		«boilerplate()»
 		// Clock data structure:
@@ -69,10 +71,10 @@ class AccessorGenerator {
 		«ENDIF»
 		// Reactor setup (inputs, outputs, parameters)
 		«reactorSetup(reactor, importTable)»
-		// Reactor initialize (initialize + triggers scheduling - missing inputHandlers)
-		«generateConstructor(reactor.constructor, reactor.clocks, reactor.reactions)»
 		// Generate reactions
 		«generateReactions(reactor.reactions)»
+		// Reactor initialize (initialize + triggers scheduling + input handlers)
+		«generateConstructor(reactor.constructor, reactor.clocks, reactor.reactions)»
 		'''
 	}
 	
@@ -97,10 +99,10 @@ class AccessorGenerator {
 		«ENDIF»
 		// Composite setup		
 		«compositeSetup(composite, importTable)»
-		// Composite initialize (initialize + triggers scheduling - missing inputHandlers)
-		«generateConstructor(composite.constructor, composite.clocks, composite.reactions)»
 		// Generate reactions
 		«generateReactions(composite.reactions)»
+		// Composite initialize (initialize + triggers scheduling + inputHandlers)
+		«generateConstructor(composite.constructor, composite.clocks, composite.reactions)»
 		'''
 	}
 		
@@ -211,7 +213,22 @@ class AccessorGenerator {
 		'''
 	}
 
-	def generateClock(Clock clock)
+	def generateClock(Clock clock) {
+		// Defaults of null indicates to fire only once, immediately.
+		// Count of null means unbounded firings.
+		var period = "null"
+		var offset = "null"
+		var count = "null"
+		if (clock.period !== null) {
+			period = clock.period.period
+			if (clock.period.offset !== null) {
+				offset = clock.period.offset;
+			}
+			if (clock.period.count !== null) {
+				count = clock.period.count;
+			}
+		}
+		// clocks.add(clock.name -> {#period, offset, count));
 		'''
 		var «clock.name» = {'reactor': this,
 		    'period': «IF clock.period !== null»«clock.period.period»«ELSE»0«ENDIF»,
@@ -219,6 +236,7 @@ class AccessorGenerator {
 		    'reaction': reaction_«clock.name».bind(this)
 		};
 		'''
+	}
 	
 	/** Return the constructor (constructor) function definition for a reactor or a composite.
 	 *  First of all, schedule clocks.
@@ -246,6 +264,9 @@ class AccessorGenerator {
 	'''			
 
 	/** Return reaction functions definition for a reactor or a composite.
+	 *  FIXME: Using this naming convention for reactions is incorrect.
+	 *  Need to instead give a unique name to each reaction function and construct
+	 *  a table indicating which reactions are invoked in response to which triggers.
 	 */
 	def generateReactions(EList<Reaction> reactions) '''
 		«FOR reaction: reactions»

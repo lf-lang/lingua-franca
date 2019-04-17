@@ -15,8 +15,8 @@ import org.eclipse.emf.ecore.EObject;
  * </p>
  * <ul>
  *   <li>{@link org.icyphy.linguaFranca.Period#getPeriod <em>Period</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Period#isPeriodic <em>Periodic</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Period#isOnce <em>Once</em>}</li>
+ *   <li>{@link org.icyphy.linguaFranca.Period#getOffset <em>Offset</em>}</li>
+ *   <li>{@link org.icyphy.linguaFranca.Period#getCount <em>Count</em>}</li>
  * </ul>
  *
  * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getPeriod()
@@ -52,55 +52,55 @@ public interface Period extends EObject
   void setPeriod(String value);
 
   /**
-   * Returns the value of the '<em><b>Periodic</b></em>' attribute.
+   * Returns the value of the '<em><b>Offset</b></em>' attribute.
    * <!-- begin-user-doc -->
    * <p>
-   * If the meaning of the '<em>Periodic</em>' attribute isn't clear,
+   * If the meaning of the '<em>Offset</em>' attribute isn't clear,
    * there really should be more of a description here...
    * </p>
    * <!-- end-user-doc -->
-   * @return the value of the '<em>Periodic</em>' attribute.
-   * @see #setPeriodic(boolean)
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getPeriod_Periodic()
+   * @return the value of the '<em>Offset</em>' attribute.
+   * @see #setOffset(String)
+   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getPeriod_Offset()
    * @model
    * @generated
    */
-  boolean isPeriodic();
+  String getOffset();
 
   /**
-   * Sets the value of the '{@link org.icyphy.linguaFranca.Period#isPeriodic <em>Periodic</em>}' attribute.
+   * Sets the value of the '{@link org.icyphy.linguaFranca.Period#getOffset <em>Offset</em>}' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Periodic</em>' attribute.
-   * @see #isPeriodic()
+   * @param value the new value of the '<em>Offset</em>' attribute.
+   * @see #getOffset()
    * @generated
    */
-  void setPeriodic(boolean value);
+  void setOffset(String value);
 
   /**
-   * Returns the value of the '<em><b>Once</b></em>' attribute.
+   * Returns the value of the '<em><b>Count</b></em>' attribute.
    * <!-- begin-user-doc -->
    * <p>
-   * If the meaning of the '<em>Once</em>' attribute isn't clear,
+   * If the meaning of the '<em>Count</em>' attribute isn't clear,
    * there really should be more of a description here...
    * </p>
    * <!-- end-user-doc -->
-   * @return the value of the '<em>Once</em>' attribute.
-   * @see #setOnce(boolean)
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getPeriod_Once()
+   * @return the value of the '<em>Count</em>' attribute.
+   * @see #setCount(String)
+   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getPeriod_Count()
    * @model
    * @generated
    */
-  boolean isOnce();
+  String getCount();
 
   /**
-   * Sets the value of the '{@link org.icyphy.linguaFranca.Period#isOnce <em>Once</em>}' attribute.
+   * Sets the value of the '{@link org.icyphy.linguaFranca.Period#getCount <em>Count</em>}' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Once</em>' attribute.
-   * @see #isOnce()
+   * @param value the new value of the '<em>Count</em>' attribute.
+   * @see #getCount()
    * @generated
    */
-  void setOnce(boolean value);
+  void setCount(String value);
 
 } // Period

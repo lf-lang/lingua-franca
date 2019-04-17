@@ -92,8 +92,8 @@
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Period">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Period/period"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Period/periodic"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Period/once"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Period/offset"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Period/count"/>
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Sets">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Sets/sets"/>

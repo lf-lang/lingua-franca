@@ -330,7 +330,7 @@ public class LinguaFrancaSemanticSequencer extends AbstractDelegatingSemanticSeq
 	 *     Period returns Period
 	 *
 	 * Constraint:
-	 *     ((period=ID | period=NUMBER) (periodic?='PERIODIC' | once?='ONCE')?)
+	 *     ((period=ID | period=NUMBER) ((offset=ID | offset=NUMBER) (count=ID | count=NUMBER)?)?)
 	 */
 	protected void sequence_Period(ISerializationContext context, Period semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);
