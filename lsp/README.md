@@ -18,6 +18,8 @@ Depending on your installation you might need to run this as root: `sudo npm ins
 ## Running the example
 
 Start vscode (prom the `lsp` folder). If you don't have vscode installed you can get it from: https://code.visualstudio.com/
+If you're on a Mac, follow the instructions [here](https://code.visualstudio.com/docs/setup/mac) to add the `code` command to your `$PATH`.
+
 ```
 code .
 ```
