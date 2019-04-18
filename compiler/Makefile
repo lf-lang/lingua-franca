@@ -1,4 +1,8 @@
+# Include user makefile for local configurations
+-include config.mk
+
 ANTLR := lib/antlr-4.7.2-complete.jar
+ACCESSOR_PATH ?= accessors/web/hosts/node/
 ARG ?= Composition
 SOURCE := ../src/$(ARG).lf
 
@@ -29,7 +33,10 @@ setup:
 	svn co https://repo.eecs.berkeley.edu/svn-anon/projects/terraswarm/accessors/trunk/accessors
 
 test:
-	cd ../src/SimpleTest &&  node ../../compiler/accessors/web/hosts/node/nodeHostInvoke.js SimpleTest
+#	$(ACCESSOR_PATH)nodeHostInvoke.js $(ARG)
+# test the testing
+	cd ../src/SimpleTest &&  node ../../compiler/$(ACCESSOR_PATH)nodeHostInvoke.js SimpleTest
+
 
 # setup in your shell
 useful:

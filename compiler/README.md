@@ -37,10 +37,33 @@ make gui ARG=Counter
 
 However, at the moment probably only Source.lf works.
 
+## Testing
+
+For testing ```node``` and the accessor framework need to be installed.
+Following command installs a local copy of the accessor framefork:
+
+```
+make setup
+```
+
+If you have it already installed, you can set the variable ```ACCESSOR_PATH```
+to your installation. This is best done in a local ```config.mk``` file, which
+is included by the ```Makefile```.
+
+Testing is run with
+
+```
+make test
+```
+
+Currently only the manual generated SimpleTest example is tested.
+FIXME: change to current compiled project.
+
 ## Running from the Command Line
 
 To run the compiler from the command line:
 FIXME: I only know how to do this in this directory, lingua-franca/compiler.
+FIX will be to distribute a .jar file containing the compiler.
 
 ```
 sbt "runMain org.icyphy.lf.Compiler  SOURCEFILE.lf  DESTINATION.js"
