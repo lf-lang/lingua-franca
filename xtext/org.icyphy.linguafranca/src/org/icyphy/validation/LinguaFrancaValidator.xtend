@@ -3,6 +3,17 @@
  */
 package org.icyphy.validation
 
+import org.eclipse.xtext.validation.Check
+import org.icyphy.linguaFranca.Clock
+import org.icyphy.linguaFranca.Composite
+import org.icyphy.linguaFranca.Gets
+import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
+import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Sets
 
 /**
  * This class contains custom validation rules. 
@@ -10,6 +21,110 @@ package org.icyphy.validation
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
+	
+	var parameters = newHashSet()
+	var inputs = newHashSet()
+	var outputs = newHashSet()
+	var clocks = newHashSet()
+	var allNames = newHashSet()
+	
+	// FAST ensures that these checks run whenever a file is modified.
+	// Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
+	@Check(FAST)
+	def resetSetsReactor(Reactor reactor) {
+		parameters.clear()
+		inputs.clear()
+		outputs.clear()
+		clocks.clear()
+		allNames.clear()
+	}
+	
+	@Check(FAST)
+	def resetSetsComposite(Composite reactor) {
+		parameters.clear()
+		inputs.clear()
+		outputs.clear()
+		clocks.clear()
+		allNames.clear()
+	}
+	
+	@Check(FAST)
+	def recordParameter(Param param) {
+		parameters.add(param.name)
+		allNames.add(param.name)
+	}
+	
+	@Check(FAST)
+	def checkInput(Input input) {
+		if (allNames.contains(input.name)) {
+			error("Names of parameters, inputs, clocks, and actions must be unique: " 
+				+ input.name,
+				Literals.INPUT__NAME
+			)
+		}
+		inputs.add(input.name);
+		allNames.add(input.name)
+	}
+	
+	@Check(FAST)
+	def checkOutput(Output output) {
+		if (allNames.contains(output.name)) {
+			error("Names of parameters, inputs, clocks, and actions must be unique: " 
+				+ output.name,
+				Literals.OUTPUT__NAME
+			)
+		}
+		outputs.add(output.name);
+		allNames.add(output.name)
+	}
+	
+	@Check(FAST)
+	def checkClock(Clock clock) {
+		if (allNames.contains(clock.name)) {
+			error("Names of parameters, inputs, clocks, and actions must be unique: " 
+				+ clock.name,
+				Literals.CLOCK__NAME
+			)
+		}
+		clocks.add(clock.name);
+		allNames.add(clock.name)
+	}
+	
+	@Check(FAST)
+	def checkReaction(Reaction reaction) {
+		for (trigger: reaction.triggers) {
+			if (!inputs.contains(trigger) && !clocks.contains(trigger)) {
+				error("Reaction trigger is not an input or clock: "
+					+ trigger,
+					Literals.REACTION__TRIGGERS
+				)
+			}
+		}
+	}
+	
+	@Check(FAST)
+	def checkGets(Gets gets) {
+		for (get: gets.gets) {
+			if (!inputs.contains(get)) {
+					error("Reaction declares that it reads something that is not an input: "
+					+ get,
+					Literals.GETS__GETS
+				)
+			}
+		}
+	}
+	
+	@Check(FAST)
+	def checkSets(Sets sets) {
+		for (set: sets.sets) {
+			if (!outputs.contains(set)) {
+					error("Reaction declares that it sets something that is not an output: "
+					+ set,
+					Literals.SETS__SETS
+				)
+			}
+		}
+	}
 	
 //	public static val INVALID_NAME = 'invalidName'
 //
