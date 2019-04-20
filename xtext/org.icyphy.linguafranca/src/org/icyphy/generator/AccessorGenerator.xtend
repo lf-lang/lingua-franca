@@ -12,6 +12,8 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.nodemodel.INode
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Clock
 import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Constructor
@@ -174,6 +176,7 @@ class AccessorGenerator {
 	def reactorSetup(Reactor reactor, Hashtable<String,String> importTable) {
 		pr("exports.setup = function () {")
 		generateIO(reactor)
+		pr("}")
 	}
 		
 	/** Generate the setup function definition for a composite.
@@ -189,6 +192,7 @@ class AccessorGenerator {
 		for (connection: composite.connections) {
 			pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
 		}
+		pr("}")
 	}
 		
 	/** Generate the inputs, outputs, and parameters for a reactor.
@@ -214,6 +218,9 @@ class AccessorGenerator {
 	 */
 	def generateCompositeIO(Composite reactor) {
 		// FIXME: Completely redundant with previous method.
+		// But Composite and Reactor are completely different classes,
+		// so I don't see how to merge these.
+		
 		// Generate Inputs, if any.
 		for (input: reactor.inputs) {
 			generateInput(input)
@@ -317,8 +324,13 @@ class AccessorGenerator {
 						}
 						list.add(functionName)
 					} else {
-						// FIXME: How to report an error on the current line????
-						throw new Exception("Trigger '" + trigger + "' is neither an input nor a clock")
+						// This is checked by the validator (See LinguaFrancaValidator.xtend).
+						// Nevertheless, in case we are using a command-line tool, we report the line number.
+						// Just report the exception. Do not throw an exception so compilation can continue.
+						var node = NodeModelUtils.getNode(reaction)
+						System.err.println("Line "
+							+ node.getStartLine()
+							+ ": Trigger '" + trigger + "' is neither an input nor a clock.")
 					}
 				}
 			}
