@@ -12,7 +12,6 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.eclipse.xtext.nodemodel.INode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Clock
 import org.icyphy.linguaFranca.Composite
@@ -66,15 +65,8 @@ class AccessorGenerator {
 		}
 	}
 	
-	/** Append the specified text plus a final newline to the current
-	 *  code buffer.
-	 *  @param text The text to append.
-	 */
-	def pr(Object text) {
-		// FIXME: Handle indentation.
-		code.append(text)
-		code.append("\n")
-	}
+	////////////////////////////////////////////
+	//// Code generators.
 	
 	/** Generate a reactor definition.
 	 *  @param reactor The parsed reactor data structure.
@@ -144,11 +136,11 @@ class AccessorGenerator {
 		// Reactor initialize (initialize + triggers scheduling + input handlers)
 		generateInitialize(composite.constructor, composite.clocks, composite.reactions)
 	}
-		
+	
 	def boilerplate() '''
 		// ********* Boilerplate included for all actors.
 		// Unbound version of set() function (will be bound below).
-		function setUnbound(port, value) {
+		function __setUnbound(port, value) {
 		    if (!port) {
 		        throw "Illegal reference to undeclared output.";
 		    }
@@ -156,10 +148,10 @@ class AccessorGenerator {
 		}
 		// NOTE: bind() returns a new function.
 		// It does not alter the original function.
-		var set = setUnbound.bind(this);
+		var set = __setUnbound.bind(this);
 		
 		// Unbound version of get() function (will be bound below).
-		function getUnbound(port, value) {
+		function __getUnbound(port, value) {
 			if (!port) {
 		    	throw "Illegal reference to undeclared input.";
 		    }
@@ -167,7 +159,45 @@ class AccessorGenerator {
 		}
 		// NOTE: bind() returns a new function.
 		// It does not alter the original function.
-		var get = getUnbound.bind(this);
+		var get = __getUnbound.bind(this);
+		
+		// Variables for schedule function.
+		var TRIGGERED = -1;
+		var ONCE = -1;
+		// Map from schedule names to reaction functions.
+		var __SCHEDULE_TABLE = {}
+		
+		// Function to schedule an action. The arguments are:
+		// * action: The name of the action.
+		// * offset: The time after the current time for the first action.
+		// * period: The period at which to repeat the action, or 0 to not repeat it.
+		// FIXME: Make all but the first argument optional.
+		function schedule(action, offset, period) {
+			if (offset > 0) {
+				setTimeout(schedule, offset, action, 0, period);
+			} else {
+				if (period > 0) {
+					// FIXME
+				} else {
+					// FIXME 
+				}
+			}
+		}
+		// Dispatch the specified action.
+		function __dispatch(action) {
+			var reactions = actionTable[action];
+			if (!reactions) {
+				throw("No actions named: " + action);
+			}
+			// for (var reaction in reactions) {
+				
+			// }
+		}
+		// A table of actions indexed by the action name.
+		// Each property value is an object with function and arguments properties.
+		// The arguments property is an array of arguments or an empty array to
+		// apply no arguments.
+		var actionTable = {};
 		// ********** End boilerplate
 	'''
 	
@@ -175,7 +205,9 @@ class AccessorGenerator {
 	 */
 	def reactorSetup(Reactor reactor, Hashtable<String,String> importTable) {
 		pr("exports.setup = function () {")
+		indent()
 		generateIO(reactor)
+		unindent()
 		pr("}")
 	}
 		
@@ -183,6 +215,7 @@ class AccessorGenerator {
 	 */
 	def compositeSetup(Composite composite, Hashtable<String,String> importTable) {
 		pr("exports.setup = function () {")
+		indent()
 		generateCompositeIO(composite)
 		// Generated instances
 		for (instance: composite.instances) {
@@ -192,6 +225,7 @@ class AccessorGenerator {
 		for (connection: composite.connections) {
 			pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
 		}
+		unindent()
 		pr("}")
 	}
 		
@@ -255,10 +289,10 @@ class AccessorGenerator {
 			foundOptions = true
 		}
 		if (param.value !== null) {
-			options.add('''"value": «removeCodeDelimiter(param.type)»''')
+			options.add('''"value": «removeCodeDelimiter(param.value)»''')
 			foundOptions = true
 		}
-		pr('''this.parameter("«param.name»"«IF foundOptions»«options»«ENDIF»);''')
+		pr('''this.parameter("«param.name»"«IF foundOptions», «options»«ENDIF»);''')
 	}
 	
 	/** Generate the initialize function definition for an accessor.
@@ -270,6 +304,7 @@ class AccessorGenerator {
 		EList<Reaction> reactions
 	) {
 		pr("exports.initialize = function () {\n")
+		indent()
 		// Define variables for each parameter.
 		for(parameter: parameters) {
 			pr('''var «parameter» = this.getParameter("«parameter»");''');
@@ -277,15 +312,20 @@ class AccessorGenerator {
 		
 		// Add the input handlers.
 		for (input: handlers.keySet) {
-			pr('''this.addInputHandler("«input»", «handlers.get(input)».bind(this));''')
+			for (handler: handlers.get(input)) {
+				pr('''this.addInputHandler("«input»", «handler».bind(this));''')
+			}
 		}
 		// Add the clock reactions.
 		for (clock: clockReactions.keySet) {
 			// FIXME: Handle the variants of clock arguments.
 			val clockParams = clocks.get(clock).period
-			// FIXME: Could be null (one-time invocation).
-			pr('''setInterval(«clockReactions.get(clock).get(0)», «clockParams.period»);''')
+			// FIXME: Above could be null (one-time invocation).
+			for (handler: clockReactions.get(clock)) {
+				pr('''setInterval(«handler».bind(this), «clockParams.period»);''')
+			}
 		}
+		unindent()
 		pr("};")
 	}			
 
@@ -295,6 +335,7 @@ class AccessorGenerator {
 		val functionName = "reaction" + reactionCount++
 		for (reaction: reactions) {
 			pr('''function «functionName»() {''')
+			indent()
 			// Add variable declarations for inputs.
 			// Meanwhile, record the mapping from triggers to handlers.
 			if (reaction.triggers !== null) {
@@ -357,6 +398,7 @@ class AccessorGenerator {
 
 			// Code verbatim from 'reaction'
 			pr(removeCodeDelimiter(reaction.code))
+			unindent()
 			pr("}")
 		}
 	}	
@@ -394,12 +436,80 @@ class AccessorGenerator {
         }
     }
 	
+	////////////////////////////////////////////
+	//// Utility functions for generating code.
 	
+	var indentation = ""
+	
+	/** Append the specified text plus a final newline to the current
+	 *  code buffer.
+	 *  @param text The text to append.
+	 */
+	private def pr(Object text) {
+		// Handle multi-line text.
+		var string = text.toString
+		if (string.contains("\n")) {
+			// Replace all tabs with four spaces.
+			string = string.replaceAll("\t", "    ")
+			// Use two passes, first to find the minimum leading white space
+			// in each line of the source text.
+			var split = string.split("\n")
+			var offset = Integer.MAX_VALUE
+			var firstLine = true
+			for (line : split) {
+				// Skip the first line, which has white space stripped.
+				if (firstLine) {
+					firstLine = false
+				} else {
+					var numLeadingSpaces = line.indexOf(line.trim());
+					if (numLeadingSpaces < offset) {
+						offset = numLeadingSpaces
+					}
+				}
+			}
+			// Now make a pass for each line, replacing the offset leading
+			// spaces with the current indentation.
+			firstLine = true
+			for (line : split) {
+				code.append(indentation)
+				// Do not trim the first line
+				if (firstLine) {
+					code.append(line)
+					firstLine = false
+				} else {
+					code.append(line.substring(offset))
+				}
+				code.append("\n")
+			}
+		} else {
+			code.append(indentation)
+			code.append(text)
+			code.append("\n")
+		}
+	}
+	
+	private def indent() {
+		val buffer = new StringBuffer(indentation)
+		for (var i = 0; i < 4; i++) {
+			buffer.append(' ');
+		}
+		indentation = buffer.toString
+	}
+	
+	private def unindent() {
+		val end = indentation.length - 4;
+		if (end < 0) {
+			indentation = ""
+		} else {
+			indentation = indentation.substring(0, end)
+		}
+	}
+
 	/** If the argument starts with '{=', then remove it and the last two characters.
 	 *  @return The body without the code delimiter or the unmodified argument if it
 	 *   is not delimited.
 	 */
-	def String removeCodeDelimiter(String code) {
+	private def String removeCodeDelimiter(String code) {
 		if (code.startsWith("{=")) {
             code.substring(2, code.length - 2).trim();
         } else {

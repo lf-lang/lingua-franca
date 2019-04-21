@@ -115,7 +115,7 @@ public class LinguaFrancaParser extends AbstractContentAssistParser {
 			builder.put(grammarAccess.getReactionAccess().getCodeAssignment_4(), "rule__Reaction__CodeAssignment_4");
 			builder.put(grammarAccess.getPreambleAccess().getCodeAssignment_1(), "rule__Preamble__CodeAssignment_1");
 			builder.put(grammarAccess.getConstructorAccess().getCodeAssignment_1(), "rule__Constructor__CodeAssignment_1");
-			builder.put(grammarAccess.getInstanceAccess().getNameAssignment_1(), "rule__Instance__NameAssignment_1");
+			builder.put(grammarAccess.getInstanceAccess().getNameAssignment_0(), "rule__Instance__NameAssignment_0");
 			builder.put(grammarAccess.getInstanceAccess().getActorClassAssignment_3(), "rule__Instance__ActorClassAssignment_3");
 			builder.put(grammarAccess.getInstanceAccess().getParametersAssignment_4_1(), "rule__Instance__ParametersAssignment_4_1");
 			builder.put(grammarAccess.getConnectionAccess().getLeftPortAssignment_0(), "rule__Connection__LeftPortAssignment_0");
