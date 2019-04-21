@@ -1121,15 +1121,11 @@ ruleInstance returns [EObject current=null]
 	leaveRule();
 }:
 	(
-		otherlv_0='instance'
-		{
-			newLeafNode(otherlv_0, grammarAccess.getInstanceAccess().getInstanceKeyword_0());
-		}
 		(
 			(
-				lv_name_1_0=RULE_ID
+				lv_name_0_0=RULE_ID
 				{
-					newLeafNode(lv_name_1_0, grammarAccess.getInstanceAccess().getNameIDTerminalRuleCall_1_0());
+					newLeafNode(lv_name_0_0, grammarAccess.getInstanceAccess().getNameIDTerminalRuleCall_0_0());
 				}
 				{
 					if ($current==null) {
@@ -1138,14 +1134,18 @@ ruleInstance returns [EObject current=null]
 					setWithLastConsumed(
 						$current,
 						"name",
-						lv_name_1_0,
+						lv_name_0_0,
 						"org.eclipse.xtext.common.Terminals.ID");
 				}
 			)
 		)
-		otherlv_2='='
+		otherlv_1='='
 		{
-			newLeafNode(otherlv_2, grammarAccess.getInstanceAccess().getEqualsSignKeyword_2());
+			newLeafNode(otherlv_1, grammarAccess.getInstanceAccess().getEqualsSignKeyword_1());
+		}
+		otherlv_2='new'
+		{
+			newLeafNode(otherlv_2, grammarAccess.getInstanceAccess().getNewKeyword_2());
 		}
 		(
 			(

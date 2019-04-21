@@ -14,6 +14,7 @@ import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Sets
+import org.icyphy.linguaFranca.Target
 
 /**
  * This class contains custom validation rules. 
@@ -22,11 +23,16 @@ import org.icyphy.linguaFranca.Sets
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
+	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors'}
+	
 	var parameters = newHashSet()
 	var inputs = newHashSet()
 	var outputs = newHashSet()
 	var clocks = newHashSet()
 	var allNames = newHashSet()
+	
+	////////////////////////////////////////////////////
+	//// Functions to set up data structures for performing checks.
 	
 	// FAST ensures that these checks run whenever a file is modified.
 	// Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
@@ -54,6 +60,33 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		allNames.add(param.name)
 	}
 	
+	////////////////////////////////////////////////////
+	//// The following checks are in alphabetical order.
+	
+	@Check(FAST)
+	def checkClock(Clock clock) {
+		if (allNames.contains(clock.name)) {
+			error("Names of parameters, inputs, clocks, and actions must be unique: " 
+				+ clock.name,
+				Literals.CLOCK__NAME
+			)
+		}
+		clocks.add(clock.name);
+		allNames.add(clock.name)
+	}
+	
+	@Check(FAST)
+	def checkGets(Gets gets) {
+		for (get: gets.gets) {
+			if (!inputs.contains(get)) {
+					error("Reaction declares that it reads something that is not an input: "
+					+ get,
+					Literals.GETS__GETS
+				)
+			}
+		}
+	}
+
 	@Check(FAST)
 	def checkInput(Input input) {
 		if (allNames.contains(input.name)) {
@@ -77,19 +110,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		outputs.add(output.name);
 		allNames.add(output.name)
 	}
-	
-	@Check(FAST)
-	def checkClock(Clock clock) {
-		if (allNames.contains(clock.name)) {
-			error("Names of parameters, inputs, clocks, and actions must be unique: " 
-				+ clock.name,
-				Literals.CLOCK__NAME
-			)
-		}
-		clocks.add(clock.name);
-		allNames.add(clock.name)
-	}
-	
+		
 	@Check(FAST)
 	def checkReaction(Reaction reaction) {
 		for (trigger: reaction.triggers) {
@@ -101,19 +122,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 			}
 		}
 	}
-	
-	@Check(FAST)
-	def checkGets(Gets gets) {
-		for (get: gets.gets) {
-			if (!inputs.contains(get)) {
-					error("Reaction declares that it reads something that is not an input: "
-					+ get,
-					Literals.GETS__GETS
-				)
-			}
-		}
-	}
-	
+		
 	@Check(FAST)
 	def checkSets(Sets sets) {
 		for (set: sets.sets) {
@@ -126,15 +135,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		}
 	}
 	
-//	public static val INVALID_NAME = 'invalidName'
-//
-//	@Check
-//	def checkGreetingStartsWithCapital(Greeting greeting) {
-//		if (!Character.isUpperCase(greeting.name.charAt(0))) {
-//			warning('Name should start with a capital', 
-//					LinguaFrancaPackage.Literals.GREETING__NAME,
-//					INVALID_NAME)
-//		}
-//	}
-	
+	@Check(FAST)
+	def checkTarget(Target target) {
+		if (!KNOWN_TARGETS.contains(target.name)) {
+			warning("Unrecognized target: "
+					+ target.name,
+					Literals.TARGET__NAME)
+		}
+	}
 }

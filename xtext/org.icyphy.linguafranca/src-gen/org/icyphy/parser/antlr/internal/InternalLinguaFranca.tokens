@@ -5,14 +5,14 @@
 '.'=34
 ':'=21
 ';'=14
-'='=31
+'='=30
 'clock'=23
 'composite'=19
 'const'=33
 'constructor'=29
 'import'=15
 'input'=20
-'instance'=30
+'new'=31
 'output'=22
 'preamble'=28
 'reaction'=24

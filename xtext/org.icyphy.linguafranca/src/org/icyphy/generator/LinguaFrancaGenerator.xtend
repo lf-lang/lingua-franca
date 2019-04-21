@@ -21,20 +21,25 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		// First collect all the imports.
-		resource.allContents.filter(Import).map[Import import |
-			val pieces = import.name.split('.')
+		for (import : resource.allContents.toIterable.filter(Import)) {
+			val pieces = import.name.split("\\.")
     		val root = pieces.last
     		val filename = pieces.join("/") + ".js"
 			importTable.put(root, filename)
-		]
+		}
 		// Determine which target is desired.
+		var targetFound = false;
 		for (target : resource.allContents.toIterable.filter(Target)) {
 			// FIXME: Use reflection here?
 			if (target.name.equalsIgnoreCase("Accessor")
 					|| target.name.equalsIgnoreCase("Accessors")) {
 				val generator = new AccessorGenerator()
+				targetFound = true
 				generator.doGenerate(resource, fsa, context, importTable)
 			}
+		}
+		if (!targetFound) {
+			System.err.println("Warning: No recognized target.")
 		}
 	}
 }

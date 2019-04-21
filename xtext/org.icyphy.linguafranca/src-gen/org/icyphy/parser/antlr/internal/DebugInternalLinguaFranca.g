@@ -151,9 +151,9 @@ ruleConstructor:
 
 // Rule Instance
 ruleInstance:
-	'instance'
 	RULE_ID
 	'='
+	'new'
 	RULE_ID
 	(
 		'('

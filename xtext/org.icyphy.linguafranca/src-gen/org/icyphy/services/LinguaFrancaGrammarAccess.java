@@ -611,10 +611,10 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	public class InstanceElements extends AbstractParserRuleElementFinder {
 		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Instance");
 		private final Group cGroup = (Group)rule.eContents().get(1);
-		private final Keyword cInstanceKeyword_0 = (Keyword)cGroup.eContents().get(0);
-		private final Assignment cNameAssignment_1 = (Assignment)cGroup.eContents().get(1);
-		private final RuleCall cNameIDTerminalRuleCall_1_0 = (RuleCall)cNameAssignment_1.eContents().get(0);
-		private final Keyword cEqualsSignKeyword_2 = (Keyword)cGroup.eContents().get(2);
+		private final Assignment cNameAssignment_0 = (Assignment)cGroup.eContents().get(0);
+		private final RuleCall cNameIDTerminalRuleCall_0_0 = (RuleCall)cNameAssignment_0.eContents().get(0);
+		private final Keyword cEqualsSignKeyword_1 = (Keyword)cGroup.eContents().get(1);
+		private final Keyword cNewKeyword_2 = (Keyword)cGroup.eContents().get(2);
 		private final Assignment cActorClassAssignment_3 = (Assignment)cGroup.eContents().get(3);
 		private final RuleCall cActorClassIDTerminalRuleCall_3_0 = (RuleCall)cActorClassAssignment_3.eContents().get(0);
 		private final Group cGroup_4 = (Group)cGroup.eContents().get(4);
@@ -628,23 +628,23 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		//// to get cross references to work. But this doesn't work for importing
 		//// foreign reactors that are not defined in Lingua Franca.
 		//Instance:
-		//	'instance' name=ID '=' actorClass=ID ('(' parameters=Assignments? ')')? ';';
+		//	name=ID '=' 'new' actorClass=ID ('(' parameters=Assignments? ')')? ';';
 		@Override public ParserRule getRule() { return rule; }
 		
-		//'instance' name=ID '=' actorClass=ID ('(' parameters=Assignments? ')')? ';'
+		//name=ID '=' 'new' actorClass=ID ('(' parameters=Assignments? ')')? ';'
 		public Group getGroup() { return cGroup; }
 		
-		//'instance'
-		public Keyword getInstanceKeyword_0() { return cInstanceKeyword_0; }
-		
 		//name=ID
-		public Assignment getNameAssignment_1() { return cNameAssignment_1; }
+		public Assignment getNameAssignment_0() { return cNameAssignment_0; }
 		
 		//ID
-		public RuleCall getNameIDTerminalRuleCall_1_0() { return cNameIDTerminalRuleCall_1_0; }
+		public RuleCall getNameIDTerminalRuleCall_0_0() { return cNameIDTerminalRuleCall_0_0; }
 		
 		//'='
-		public Keyword getEqualsSignKeyword_2() { return cEqualsSignKeyword_2; }
+		public Keyword getEqualsSignKeyword_1() { return cEqualsSignKeyword_1; }
+		
+		//'new'
+		public Keyword getNewKeyword_2() { return cNewKeyword_2; }
 		
 		//actorClass=ID
 		public Assignment getActorClassAssignment_3() { return cActorClassAssignment_3; }
@@ -1391,7 +1391,7 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	//// to get cross references to work. But this doesn't work for importing
 	//// foreign reactors that are not defined in Lingua Franca.
 	//Instance:
-	//	'instance' name=ID '=' actorClass=ID ('(' parameters=Assignments? ')')? ';';
+	//	name=ID '=' 'new' actorClass=ID ('(' parameters=Assignments? ')')? ';';
 	public InstanceElements getInstanceAccess() {
 		return pInstance;
 	}
