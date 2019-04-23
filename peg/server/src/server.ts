@@ -151,13 +151,17 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// The validator creates diagnostics for all uppercase words length 2 and more
 	let text = textDocument.getText();
 	let diagnostics: Diagnostic[] = [];
-	var parsed = lf.parse(text);
-	connection.console.log("Parsed file.");
-	var test_msg = JSON.stringify(parsed);
+	try{
+	  lf.parse(text);
+	  connection.console.log("Parsed file.");
+	}
+	catch(error_obj){
+	//var test_msg = JSON.stringify(parsed);
+		 var parsed = { failure : error_obj.location, expected : error_obj.expected};
 
  	if (parsed['failure'] != undefined){
 		 //var position_start = {'line' : 0, 'character' : parsed['failure']};
-		 var position = toLineNum(parsed['input'],parsed['failure']);
+		 var position = toLineNum(text,parsed['failure']);
 
 	let diagnostic: Diagnostic = {
 		severity: DiagnosticSeverity.Warning,
@@ -184,6 +188,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 } 
 	// Send the computed diagnostics to VSCode.
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+}
 }
 
 connection.onDidChangeWatchedFiles(_change => {
