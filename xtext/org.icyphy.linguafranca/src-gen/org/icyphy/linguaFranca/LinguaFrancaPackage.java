@@ -86,13 +86,13 @@ public interface LinguaFrancaPackage extends EPackage
   int MODEL__IMPORTS = 1;
 
   /**
-   * The feature id for the '<em><b>Blocks</b></em>' containment reference list.
+   * The feature id for the '<em><b>Components</b></em>' containment reference list.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int MODEL__BLOCKS = 2;
+  int MODEL__COMPONENTS = 2;
 
   /**
    * The number of structural features of the '<em>Model</em>' class.
@@ -160,6 +160,34 @@ public interface LinguaFrancaPackage extends EPackage
   int IMPORT_FEATURE_COUNT = 1;
 
   /**
+   * The meta object id for the '{@link org.icyphy.linguaFranca.impl.ComponentImpl <em>Component</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see org.icyphy.linguaFranca.impl.ComponentImpl
+   * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getComponent()
+   * @generated
+   */
+  int COMPONENT = 3;
+
+  /**
+   * The feature id for the '<em><b>Component Body</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT__COMPONENT_BODY = 0;
+
+  /**
+   * The number of structural features of the '<em>Component</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_FEATURE_COUNT = 1;
+
+  /**
    * The meta object id for the '{@link org.icyphy.linguaFranca.impl.ReactorImpl <em>Reactor</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -167,79 +195,16 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getReactor()
    * @generated
    */
-  int REACTOR = 3;
+  int REACTOR = 4;
 
   /**
-   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * The feature id for the '<em><b>Component Body</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int REACTOR__NAME = 0;
-
-  /**
-   * The feature id for the '<em><b>Parameters</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int REACTOR__PARAMETERS = 1;
-
-  /**
-   * The feature id for the '<em><b>Inputs</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int REACTOR__INPUTS = 2;
-
-  /**
-   * The feature id for the '<em><b>Outputs</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int REACTOR__OUTPUTS = 3;
-
-  /**
-   * The feature id for the '<em><b>Clocks</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int REACTOR__CLOCKS = 4;
-
-  /**
-   * The feature id for the '<em><b>Preamble</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int REACTOR__PREAMBLE = 5;
-
-  /**
-   * The feature id for the '<em><b>Constructor</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int REACTOR__CONSTRUCTOR = 6;
-
-  /**
-   * The feature id for the '<em><b>Reactions</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int REACTOR__REACTIONS = 7;
+  int REACTOR__COMPONENT_BODY = COMPONENT__COMPONENT_BODY;
 
   /**
    * The number of structural features of the '<em>Reactor</em>' class.
@@ -248,7 +213,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    * @ordered
    */
-  int REACTOR_FEATURE_COUNT = 8;
+  int REACTOR_FEATURE_COUNT = COMPONENT_FEATURE_COUNT + 0;
 
   /**
    * The meta object id for the '{@link org.icyphy.linguaFranca.impl.CompositeImpl <em>Composite</em>}' class.
@@ -258,79 +223,16 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getComposite()
    * @generated
    */
-  int COMPOSITE = 4;
+  int COMPOSITE = 5;
 
   /**
-   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * The feature id for the '<em><b>Component Body</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int COMPOSITE__NAME = 0;
-
-  /**
-   * The feature id for the '<em><b>Parameters</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int COMPOSITE__PARAMETERS = 1;
-
-  /**
-   * The feature id for the '<em><b>Inputs</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int COMPOSITE__INPUTS = 2;
-
-  /**
-   * The feature id for the '<em><b>Outputs</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int COMPOSITE__OUTPUTS = 3;
-
-  /**
-   * The feature id for the '<em><b>Clocks</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int COMPOSITE__CLOCKS = 4;
-
-  /**
-   * The feature id for the '<em><b>Preamble</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int COMPOSITE__PREAMBLE = 5;
-
-  /**
-   * The feature id for the '<em><b>Constructor</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int COMPOSITE__CONSTRUCTOR = 6;
-
-  /**
-   * The feature id for the '<em><b>Reactions</b></em>' containment reference list.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int COMPOSITE__REACTIONS = 7;
+  int COMPOSITE__COMPONENT_BODY = COMPONENT__COMPONENT_BODY;
 
   /**
    * The feature id for the '<em><b>Instances</b></em>' containment reference list.
@@ -339,7 +241,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    * @ordered
    */
-  int COMPOSITE__INSTANCES = 8;
+  int COMPOSITE__INSTANCES = COMPONENT_FEATURE_COUNT + 0;
 
   /**
    * The feature id for the '<em><b>Connections</b></em>' containment reference list.
@@ -348,7 +250,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    * @ordered
    */
-  int COMPOSITE__CONNECTIONS = 9;
+  int COMPOSITE__CONNECTIONS = COMPONENT_FEATURE_COUNT + 1;
 
   /**
    * The number of structural features of the '<em>Composite</em>' class.
@@ -357,7 +259,98 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    * @ordered
    */
-  int COMPOSITE_FEATURE_COUNT = 10;
+  int COMPOSITE_FEATURE_COUNT = COMPONENT_FEATURE_COUNT + 2;
+
+  /**
+   * The meta object id for the '{@link org.icyphy.linguaFranca.impl.ComponentBodyImpl <em>Component Body</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see org.icyphy.linguaFranca.impl.ComponentBodyImpl
+   * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getComponentBody()
+   * @generated
+   */
+  int COMPONENT_BODY = 6;
+
+  /**
+   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY__NAME = 0;
+
+  /**
+   * The feature id for the '<em><b>Parameters</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY__PARAMETERS = 1;
+
+  /**
+   * The feature id for the '<em><b>Inputs</b></em>' containment reference list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY__INPUTS = 2;
+
+  /**
+   * The feature id for the '<em><b>Outputs</b></em>' containment reference list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY__OUTPUTS = 3;
+
+  /**
+   * The feature id for the '<em><b>Timers</b></em>' containment reference list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY__TIMERS = 4;
+
+  /**
+   * The feature id for the '<em><b>Actions</b></em>' containment reference list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY__ACTIONS = 5;
+
+  /**
+   * The feature id for the '<em><b>Preamble</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY__PREAMBLE = 6;
+
+  /**
+   * The feature id for the '<em><b>Reactions</b></em>' containment reference list.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY__REACTIONS = 7;
+
+  /**
+   * The number of structural features of the '<em>Component Body</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int COMPONENT_BODY_FEATURE_COUNT = 8;
 
   /**
    * The meta object id for the '{@link org.icyphy.linguaFranca.impl.InputImpl <em>Input</em>}' class.
@@ -367,7 +360,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getInput()
    * @generated
    */
-  int INPUT = 5;
+  int INPUT = 7;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -404,7 +397,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getOutput()
    * @generated
    */
-  int OUTPUT = 6;
+  int OUTPUT = 8;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -434,14 +427,14 @@ public interface LinguaFrancaPackage extends EPackage
   int OUTPUT_FEATURE_COUNT = 2;
 
   /**
-   * The meta object id for the '{@link org.icyphy.linguaFranca.impl.ClockImpl <em>Clock</em>}' class.
+   * The meta object id for the '{@link org.icyphy.linguaFranca.impl.TimerImpl <em>Timer</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see org.icyphy.linguaFranca.impl.ClockImpl
-   * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getClock()
+   * @see org.icyphy.linguaFranca.impl.TimerImpl
+   * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getTimer()
    * @generated
    */
-  int CLOCK = 7;
+  int TIMER = 9;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -450,25 +443,62 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    * @ordered
    */
-  int CLOCK__NAME = 0;
+  int TIMER__NAME = 0;
 
   /**
-   * The feature id for the '<em><b>Period</b></em>' containment reference.
+   * The feature id for the '<em><b>Timing</b></em>' containment reference.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int CLOCK__PERIOD = 1;
+  int TIMER__TIMING = 1;
 
   /**
-   * The number of structural features of the '<em>Clock</em>' class.
+   * The number of structural features of the '<em>Timer</em>' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int CLOCK_FEATURE_COUNT = 2;
+  int TIMER_FEATURE_COUNT = 2;
+
+  /**
+   * The meta object id for the '{@link org.icyphy.linguaFranca.impl.ActionImpl <em>Action</em>}' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see org.icyphy.linguaFranca.impl.ActionImpl
+   * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getAction()
+   * @generated
+   */
+  int ACTION = 10;
+
+  /**
+   * The feature id for the '<em><b>Name</b></em>' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int ACTION__NAME = 0;
+
+  /**
+   * The feature id for the '<em><b>Timing</b></em>' containment reference.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int ACTION__TIMING = 1;
+
+  /**
+   * The number of structural features of the '<em>Action</em>' class.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   * @ordered
+   */
+  int ACTION_FEATURE_COUNT = 2;
 
   /**
    * The meta object id for the '{@link org.icyphy.linguaFranca.impl.ReactionImpl <em>Reaction</em>}' class.
@@ -478,7 +508,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getReaction()
    * @generated
    */
-  int REACTION = 8;
+  int REACTION = 11;
 
   /**
    * The feature id for the '<em><b>Triggers</b></em>' attribute list.
@@ -533,7 +563,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getPreamble()
    * @generated
    */
-  int PREAMBLE = 9;
+  int PREAMBLE = 12;
 
   /**
    * The feature id for the '<em><b>Code</b></em>' attribute.
@@ -554,34 +584,6 @@ public interface LinguaFrancaPackage extends EPackage
   int PREAMBLE_FEATURE_COUNT = 1;
 
   /**
-   * The meta object id for the '{@link org.icyphy.linguaFranca.impl.ConstructorImpl <em>Constructor</em>}' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @see org.icyphy.linguaFranca.impl.ConstructorImpl
-   * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getConstructor()
-   * @generated
-   */
-  int CONSTRUCTOR = 10;
-
-  /**
-   * The feature id for the '<em><b>Code</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int CONSTRUCTOR__CODE = 0;
-
-  /**
-   * The number of structural features of the '<em>Constructor</em>' class.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int CONSTRUCTOR_FEATURE_COUNT = 1;
-
-  /**
    * The meta object id for the '{@link org.icyphy.linguaFranca.impl.InstanceImpl <em>Instance</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -589,7 +591,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getInstance()
    * @generated
    */
-  int INSTANCE = 11;
+  int INSTANCE = 13;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -635,7 +637,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getConnection()
    * @generated
    */
-  int CONNECTION = 12;
+  int CONNECTION = 14;
 
   /**
    * The feature id for the '<em><b>Left Port</b></em>' attribute.
@@ -672,7 +674,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getAssignments()
    * @generated
    */
-  int ASSIGNMENTS = 13;
+  int ASSIGNMENTS = 15;
 
   /**
    * The feature id for the '<em><b>Assignments</b></em>' containment reference list.
@@ -700,7 +702,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getAssignment()
    * @generated
    */
-  int ASSIGNMENT = 14;
+  int ASSIGNMENT = 16;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -737,7 +739,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getGets()
    * @generated
    */
-  int GETS = 15;
+  int GETS = 17;
 
   /**
    * The feature id for the '<em><b>Gets</b></em>' attribute list.
@@ -765,7 +767,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getParams()
    * @generated
    */
-  int PARAMS = 16;
+  int PARAMS = 18;
 
   /**
    * The feature id for the '<em><b>Params</b></em>' containment reference list.
@@ -793,7 +795,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getParam()
    * @generated
    */
-  int PARAM = 17;
+  int PARAM = 19;
 
   /**
    * The feature id for the '<em><b>Name</b></em>' attribute.
@@ -832,23 +834,14 @@ public interface LinguaFrancaPackage extends EPackage
   int PARAM_FEATURE_COUNT = 3;
 
   /**
-   * The meta object id for the '{@link org.icyphy.linguaFranca.impl.PeriodImpl <em>Period</em>}' class.
+   * The meta object id for the '{@link org.icyphy.linguaFranca.impl.TimingImpl <em>Timing</em>}' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see org.icyphy.linguaFranca.impl.PeriodImpl
-   * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getPeriod()
+   * @see org.icyphy.linguaFranca.impl.TimingImpl
+   * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getTiming()
    * @generated
    */
-  int PERIOD = 18;
-
-  /**
-   * The feature id for the '<em><b>Period</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   * @ordered
-   */
-  int PERIOD__PERIOD = 0;
+  int TIMING = 20;
 
   /**
    * The feature id for the '<em><b>Offset</b></em>' attribute.
@@ -857,25 +850,25 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    * @ordered
    */
-  int PERIOD__OFFSET = 1;
+  int TIMING__OFFSET = 0;
 
   /**
-   * The feature id for the '<em><b>Count</b></em>' attribute.
+   * The feature id for the '<em><b>Period</b></em>' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int PERIOD__COUNT = 2;
+  int TIMING__PERIOD = 1;
 
   /**
-   * The number of structural features of the '<em>Period</em>' class.
+   * The number of structural features of the '<em>Timing</em>' class.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int PERIOD_FEATURE_COUNT = 3;
+  int TIMING_FEATURE_COUNT = 2;
 
   /**
    * The meta object id for the '{@link org.icyphy.linguaFranca.impl.SetsImpl <em>Sets</em>}' class.
@@ -885,7 +878,7 @@ public interface LinguaFrancaPackage extends EPackage
    * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getSets()
    * @generated
    */
-  int SETS = 19;
+  int SETS = 21;
 
   /**
    * The feature id for the '<em><b>Sets</b></em>' attribute list.
@@ -939,15 +932,15 @@ public interface LinguaFrancaPackage extends EPackage
   EReference getModel_Imports();
 
   /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Model#getBlocks <em>Blocks</em>}'.
+   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Model#getComponents <em>Components</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Blocks</em>'.
-   * @see org.icyphy.linguaFranca.Model#getBlocks()
+   * @return the meta object for the containment reference list '<em>Components</em>'.
+   * @see org.icyphy.linguaFranca.Model#getComponents()
    * @see #getModel()
    * @generated
    */
-  EReference getModel_Blocks();
+  EReference getModel_Components();
 
   /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Target <em>Target</em>}'.
@@ -992,6 +985,27 @@ public interface LinguaFrancaPackage extends EPackage
   EAttribute getImport_Name();
 
   /**
+   * Returns the meta object for class '{@link org.icyphy.linguaFranca.Component <em>Component</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Component</em>'.
+   * @see org.icyphy.linguaFranca.Component
+   * @generated
+   */
+  EClass getComponent();
+
+  /**
+   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Component#getComponentBody <em>Component Body</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Component Body</em>'.
+   * @see org.icyphy.linguaFranca.Component#getComponentBody()
+   * @see #getComponent()
+   * @generated
+   */
+  EReference getComponent_ComponentBody();
+
+  /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Reactor <em>Reactor</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -1002,94 +1016,6 @@ public interface LinguaFrancaPackage extends EPackage
   EClass getReactor();
 
   /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Reactor#getName <em>Name</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Name</em>'.
-   * @see org.icyphy.linguaFranca.Reactor#getName()
-   * @see #getReactor()
-   * @generated
-   */
-  EAttribute getReactor_Name();
-
-  /**
-   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Reactor#getParameters <em>Parameters</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Parameters</em>'.
-   * @see org.icyphy.linguaFranca.Reactor#getParameters()
-   * @see #getReactor()
-   * @generated
-   */
-  EReference getReactor_Parameters();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Reactor#getInputs <em>Inputs</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Inputs</em>'.
-   * @see org.icyphy.linguaFranca.Reactor#getInputs()
-   * @see #getReactor()
-   * @generated
-   */
-  EReference getReactor_Inputs();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Reactor#getOutputs <em>Outputs</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Outputs</em>'.
-   * @see org.icyphy.linguaFranca.Reactor#getOutputs()
-   * @see #getReactor()
-   * @generated
-   */
-  EReference getReactor_Outputs();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Reactor#getClocks <em>Clocks</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Clocks</em>'.
-   * @see org.icyphy.linguaFranca.Reactor#getClocks()
-   * @see #getReactor()
-   * @generated
-   */
-  EReference getReactor_Clocks();
-
-  /**
-   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Reactor#getPreamble <em>Preamble</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Preamble</em>'.
-   * @see org.icyphy.linguaFranca.Reactor#getPreamble()
-   * @see #getReactor()
-   * @generated
-   */
-  EReference getReactor_Preamble();
-
-  /**
-   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Reactor#getConstructor <em>Constructor</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Constructor</em>'.
-   * @see org.icyphy.linguaFranca.Reactor#getConstructor()
-   * @see #getReactor()
-   * @generated
-   */
-  EReference getReactor_Constructor();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Reactor#getReactions <em>Reactions</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Reactions</em>'.
-   * @see org.icyphy.linguaFranca.Reactor#getReactions()
-   * @see #getReactor()
-   * @generated
-   */
-  EReference getReactor_Reactions();
-
-  /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Composite <em>Composite</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -1098,94 +1024,6 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    */
   EClass getComposite();
-
-  /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Composite#getName <em>Name</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Name</em>'.
-   * @see org.icyphy.linguaFranca.Composite#getName()
-   * @see #getComposite()
-   * @generated
-   */
-  EAttribute getComposite_Name();
-
-  /**
-   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Composite#getParameters <em>Parameters</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Parameters</em>'.
-   * @see org.icyphy.linguaFranca.Composite#getParameters()
-   * @see #getComposite()
-   * @generated
-   */
-  EReference getComposite_Parameters();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Composite#getInputs <em>Inputs</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Inputs</em>'.
-   * @see org.icyphy.linguaFranca.Composite#getInputs()
-   * @see #getComposite()
-   * @generated
-   */
-  EReference getComposite_Inputs();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Composite#getOutputs <em>Outputs</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Outputs</em>'.
-   * @see org.icyphy.linguaFranca.Composite#getOutputs()
-   * @see #getComposite()
-   * @generated
-   */
-  EReference getComposite_Outputs();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Composite#getClocks <em>Clocks</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Clocks</em>'.
-   * @see org.icyphy.linguaFranca.Composite#getClocks()
-   * @see #getComposite()
-   * @generated
-   */
-  EReference getComposite_Clocks();
-
-  /**
-   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Composite#getPreamble <em>Preamble</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Preamble</em>'.
-   * @see org.icyphy.linguaFranca.Composite#getPreamble()
-   * @see #getComposite()
-   * @generated
-   */
-  EReference getComposite_Preamble();
-
-  /**
-   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Composite#getConstructor <em>Constructor</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Constructor</em>'.
-   * @see org.icyphy.linguaFranca.Composite#getConstructor()
-   * @see #getComposite()
-   * @generated
-   */
-  EReference getComposite_Constructor();
-
-  /**
-   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Composite#getReactions <em>Reactions</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the containment reference list '<em>Reactions</em>'.
-   * @see org.icyphy.linguaFranca.Composite#getReactions()
-   * @see #getComposite()
-   * @generated
-   */
-  EReference getComposite_Reactions();
 
   /**
    * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.Composite#getInstances <em>Instances</em>}'.
@@ -1208,6 +1046,104 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    */
   EReference getComposite_Connections();
+
+  /**
+   * Returns the meta object for class '{@link org.icyphy.linguaFranca.ComponentBody <em>Component Body</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Component Body</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody
+   * @generated
+   */
+  EClass getComponentBody();
+
+  /**
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.ComponentBody#getName <em>Name</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the attribute '<em>Name</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody#getName()
+   * @see #getComponentBody()
+   * @generated
+   */
+  EAttribute getComponentBody_Name();
+
+  /**
+   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.ComponentBody#getParameters <em>Parameters</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Parameters</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody#getParameters()
+   * @see #getComponentBody()
+   * @generated
+   */
+  EReference getComponentBody_Parameters();
+
+  /**
+   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.ComponentBody#getInputs <em>Inputs</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference list '<em>Inputs</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody#getInputs()
+   * @see #getComponentBody()
+   * @generated
+   */
+  EReference getComponentBody_Inputs();
+
+  /**
+   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.ComponentBody#getOutputs <em>Outputs</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference list '<em>Outputs</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody#getOutputs()
+   * @see #getComponentBody()
+   * @generated
+   */
+  EReference getComponentBody_Outputs();
+
+  /**
+   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.ComponentBody#getTimers <em>Timers</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference list '<em>Timers</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody#getTimers()
+   * @see #getComponentBody()
+   * @generated
+   */
+  EReference getComponentBody_Timers();
+
+  /**
+   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.ComponentBody#getActions <em>Actions</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference list '<em>Actions</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody#getActions()
+   * @see #getComponentBody()
+   * @generated
+   */
+  EReference getComponentBody_Actions();
+
+  /**
+   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.ComponentBody#getPreamble <em>Preamble</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Preamble</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody#getPreamble()
+   * @see #getComponentBody()
+   * @generated
+   */
+  EReference getComponentBody_Preamble();
+
+  /**
+   * Returns the meta object for the containment reference list '{@link org.icyphy.linguaFranca.ComponentBody#getReactions <em>Reactions</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference list '<em>Reactions</em>'.
+   * @see org.icyphy.linguaFranca.ComponentBody#getReactions()
+   * @see #getComponentBody()
+   * @generated
+   */
+  EReference getComponentBody_Reactions();
 
   /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Input <em>Input</em>}'.
@@ -1274,36 +1210,68 @@ public interface LinguaFrancaPackage extends EPackage
   EAttribute getOutput_Type();
 
   /**
-   * Returns the meta object for class '{@link org.icyphy.linguaFranca.Clock <em>Clock</em>}'.
+   * Returns the meta object for class '{@link org.icyphy.linguaFranca.Timer <em>Timer</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Clock</em>'.
-   * @see org.icyphy.linguaFranca.Clock
+   * @return the meta object for class '<em>Timer</em>'.
+   * @see org.icyphy.linguaFranca.Timer
    * @generated
    */
-  EClass getClock();
+  EClass getTimer();
 
   /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Clock#getName <em>Name</em>}'.
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Timer#getName <em>Name</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @return the meta object for the attribute '<em>Name</em>'.
-   * @see org.icyphy.linguaFranca.Clock#getName()
-   * @see #getClock()
+   * @see org.icyphy.linguaFranca.Timer#getName()
+   * @see #getTimer()
    * @generated
    */
-  EAttribute getClock_Name();
+  EAttribute getTimer_Name();
 
   /**
-   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Clock#getPeriod <em>Period</em>}'.
+   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Timer#getTiming <em>Timing</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Period</em>'.
-   * @see org.icyphy.linguaFranca.Clock#getPeriod()
-   * @see #getClock()
+   * @return the meta object for the containment reference '<em>Timing</em>'.
+   * @see org.icyphy.linguaFranca.Timer#getTiming()
+   * @see #getTimer()
    * @generated
    */
-  EReference getClock_Period();
+  EReference getTimer_Timing();
+
+  /**
+   * Returns the meta object for class '{@link org.icyphy.linguaFranca.Action <em>Action</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for class '<em>Action</em>'.
+   * @see org.icyphy.linguaFranca.Action
+   * @generated
+   */
+  EClass getAction();
+
+  /**
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Action#getName <em>Name</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the attribute '<em>Name</em>'.
+   * @see org.icyphy.linguaFranca.Action#getName()
+   * @see #getAction()
+   * @generated
+   */
+  EAttribute getAction_Name();
+
+  /**
+   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Action#getTiming <em>Timing</em>}'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return the meta object for the containment reference '<em>Timing</em>'.
+   * @see org.icyphy.linguaFranca.Action#getTiming()
+   * @see #getAction()
+   * @generated
+   */
+  EReference getAction_Timing();
 
   /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Reaction <em>Reaction</em>}'.
@@ -1379,27 +1347,6 @@ public interface LinguaFrancaPackage extends EPackage
    * @generated
    */
   EAttribute getPreamble_Code();
-
-  /**
-   * Returns the meta object for class '{@link org.icyphy.linguaFranca.Constructor <em>Constructor</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Constructor</em>'.
-   * @see org.icyphy.linguaFranca.Constructor
-   * @generated
-   */
-  EClass getConstructor();
-
-  /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Constructor#getCode <em>Code</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Code</em>'.
-   * @see org.icyphy.linguaFranca.Constructor#getCode()
-   * @see #getConstructor()
-   * @generated
-   */
-  EAttribute getConstructor_Code();
 
   /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Instance <em>Instance</em>}'.
@@ -1615,47 +1562,36 @@ public interface LinguaFrancaPackage extends EPackage
   EAttribute getParam_Value();
 
   /**
-   * Returns the meta object for class '{@link org.icyphy.linguaFranca.Period <em>Period</em>}'.
+   * Returns the meta object for class '{@link org.icyphy.linguaFranca.Timing <em>Timing</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for class '<em>Period</em>'.
-   * @see org.icyphy.linguaFranca.Period
+   * @return the meta object for class '<em>Timing</em>'.
+   * @see org.icyphy.linguaFranca.Timing
    * @generated
    */
-  EClass getPeriod();
+  EClass getTiming();
 
   /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Period#getPeriod <em>Period</em>}'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Period</em>'.
-   * @see org.icyphy.linguaFranca.Period#getPeriod()
-   * @see #getPeriod()
-   * @generated
-   */
-  EAttribute getPeriod_Period();
-
-  /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Period#getOffset <em>Offset</em>}'.
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Timing#getOffset <em>Offset</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @return the meta object for the attribute '<em>Offset</em>'.
-   * @see org.icyphy.linguaFranca.Period#getOffset()
-   * @see #getPeriod()
+   * @see org.icyphy.linguaFranca.Timing#getOffset()
+   * @see #getTiming()
    * @generated
    */
-  EAttribute getPeriod_Offset();
+  EAttribute getTiming_Offset();
 
   /**
-   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Period#getCount <em>Count</em>}'.
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Timing#getPeriod <em>Period</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the attribute '<em>Count</em>'.
-   * @see org.icyphy.linguaFranca.Period#getCount()
-   * @see #getPeriod()
+   * @return the meta object for the attribute '<em>Period</em>'.
+   * @see org.icyphy.linguaFranca.Timing#getPeriod()
+   * @see #getTiming()
    * @generated
    */
-  EAttribute getPeriod_Count();
+  EAttribute getTiming_Period();
 
   /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Sets <em>Sets</em>}'.
@@ -1728,12 +1664,12 @@ public interface LinguaFrancaPackage extends EPackage
     EReference MODEL__IMPORTS = eINSTANCE.getModel_Imports();
 
     /**
-     * The meta object literal for the '<em><b>Blocks</b></em>' containment reference list feature.
+     * The meta object literal for the '<em><b>Components</b></em>' containment reference list feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EReference MODEL__BLOCKS = eINSTANCE.getModel_Blocks();
+    EReference MODEL__COMPONENTS = eINSTANCE.getModel_Components();
 
     /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.TargetImpl <em>Target</em>}' class.
@@ -1772,6 +1708,24 @@ public interface LinguaFrancaPackage extends EPackage
     EAttribute IMPORT__NAME = eINSTANCE.getImport_Name();
 
     /**
+     * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.ComponentImpl <em>Component</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see org.icyphy.linguaFranca.impl.ComponentImpl
+     * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getComponent()
+     * @generated
+     */
+    EClass COMPONENT = eINSTANCE.getComponent();
+
+    /**
+     * The meta object literal for the '<em><b>Component Body</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference COMPONENT__COMPONENT_BODY = eINSTANCE.getComponent_ComponentBody();
+
+    /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.ReactorImpl <em>Reactor</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
@@ -1782,70 +1736,6 @@ public interface LinguaFrancaPackage extends EPackage
     EClass REACTOR = eINSTANCE.getReactor();
 
     /**
-     * The meta object literal for the '<em><b>Name</b></em>' attribute feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EAttribute REACTOR__NAME = eINSTANCE.getReactor_Name();
-
-    /**
-     * The meta object literal for the '<em><b>Parameters</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference REACTOR__PARAMETERS = eINSTANCE.getReactor_Parameters();
-
-    /**
-     * The meta object literal for the '<em><b>Inputs</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference REACTOR__INPUTS = eINSTANCE.getReactor_Inputs();
-
-    /**
-     * The meta object literal for the '<em><b>Outputs</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference REACTOR__OUTPUTS = eINSTANCE.getReactor_Outputs();
-
-    /**
-     * The meta object literal for the '<em><b>Clocks</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference REACTOR__CLOCKS = eINSTANCE.getReactor_Clocks();
-
-    /**
-     * The meta object literal for the '<em><b>Preamble</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference REACTOR__PREAMBLE = eINSTANCE.getReactor_Preamble();
-
-    /**
-     * The meta object literal for the '<em><b>Constructor</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference REACTOR__CONSTRUCTOR = eINSTANCE.getReactor_Constructor();
-
-    /**
-     * The meta object literal for the '<em><b>Reactions</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference REACTOR__REACTIONS = eINSTANCE.getReactor_Reactions();
-
-    /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.CompositeImpl <em>Composite</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
@@ -1854,70 +1744,6 @@ public interface LinguaFrancaPackage extends EPackage
      * @generated
      */
     EClass COMPOSITE = eINSTANCE.getComposite();
-
-    /**
-     * The meta object literal for the '<em><b>Name</b></em>' attribute feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EAttribute COMPOSITE__NAME = eINSTANCE.getComposite_Name();
-
-    /**
-     * The meta object literal for the '<em><b>Parameters</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference COMPOSITE__PARAMETERS = eINSTANCE.getComposite_Parameters();
-
-    /**
-     * The meta object literal for the '<em><b>Inputs</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference COMPOSITE__INPUTS = eINSTANCE.getComposite_Inputs();
-
-    /**
-     * The meta object literal for the '<em><b>Outputs</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference COMPOSITE__OUTPUTS = eINSTANCE.getComposite_Outputs();
-
-    /**
-     * The meta object literal for the '<em><b>Clocks</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference COMPOSITE__CLOCKS = eINSTANCE.getComposite_Clocks();
-
-    /**
-     * The meta object literal for the '<em><b>Preamble</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference COMPOSITE__PREAMBLE = eINSTANCE.getComposite_Preamble();
-
-    /**
-     * The meta object literal for the '<em><b>Constructor</b></em>' containment reference feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference COMPOSITE__CONSTRUCTOR = eINSTANCE.getComposite_Constructor();
-
-    /**
-     * The meta object literal for the '<em><b>Reactions</b></em>' containment reference list feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EReference COMPOSITE__REACTIONS = eINSTANCE.getComposite_Reactions();
 
     /**
      * The meta object literal for the '<em><b>Instances</b></em>' containment reference list feature.
@@ -1934,6 +1760,80 @@ public interface LinguaFrancaPackage extends EPackage
      * @generated
      */
     EReference COMPOSITE__CONNECTIONS = eINSTANCE.getComposite_Connections();
+
+    /**
+     * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.ComponentBodyImpl <em>Component Body</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see org.icyphy.linguaFranca.impl.ComponentBodyImpl
+     * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getComponentBody()
+     * @generated
+     */
+    EClass COMPONENT_BODY = eINSTANCE.getComponentBody();
+
+    /**
+     * The meta object literal for the '<em><b>Name</b></em>' attribute feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EAttribute COMPONENT_BODY__NAME = eINSTANCE.getComponentBody_Name();
+
+    /**
+     * The meta object literal for the '<em><b>Parameters</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference COMPONENT_BODY__PARAMETERS = eINSTANCE.getComponentBody_Parameters();
+
+    /**
+     * The meta object literal for the '<em><b>Inputs</b></em>' containment reference list feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference COMPONENT_BODY__INPUTS = eINSTANCE.getComponentBody_Inputs();
+
+    /**
+     * The meta object literal for the '<em><b>Outputs</b></em>' containment reference list feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference COMPONENT_BODY__OUTPUTS = eINSTANCE.getComponentBody_Outputs();
+
+    /**
+     * The meta object literal for the '<em><b>Timers</b></em>' containment reference list feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference COMPONENT_BODY__TIMERS = eINSTANCE.getComponentBody_Timers();
+
+    /**
+     * The meta object literal for the '<em><b>Actions</b></em>' containment reference list feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference COMPONENT_BODY__ACTIONS = eINSTANCE.getComponentBody_Actions();
+
+    /**
+     * The meta object literal for the '<em><b>Preamble</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference COMPONENT_BODY__PREAMBLE = eINSTANCE.getComponentBody_Preamble();
+
+    /**
+     * The meta object literal for the '<em><b>Reactions</b></em>' containment reference list feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference COMPONENT_BODY__REACTIONS = eINSTANCE.getComponentBody_Reactions();
 
     /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.InputImpl <em>Input</em>}' class.
@@ -1988,14 +1888,14 @@ public interface LinguaFrancaPackage extends EPackage
     EAttribute OUTPUT__TYPE = eINSTANCE.getOutput_Type();
 
     /**
-     * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.ClockImpl <em>Clock</em>}' class.
+     * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.TimerImpl <em>Timer</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
-     * @see org.icyphy.linguaFranca.impl.ClockImpl
-     * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getClock()
+     * @see org.icyphy.linguaFranca.impl.TimerImpl
+     * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getTimer()
      * @generated
      */
-    EClass CLOCK = eINSTANCE.getClock();
+    EClass TIMER = eINSTANCE.getTimer();
 
     /**
      * The meta object literal for the '<em><b>Name</b></em>' attribute feature.
@@ -2003,15 +1903,41 @@ public interface LinguaFrancaPackage extends EPackage
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute CLOCK__NAME = eINSTANCE.getClock_Name();
+    EAttribute TIMER__NAME = eINSTANCE.getTimer_Name();
 
     /**
-     * The meta object literal for the '<em><b>Period</b></em>' containment reference feature.
+     * The meta object literal for the '<em><b>Timing</b></em>' containment reference feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EReference CLOCK__PERIOD = eINSTANCE.getClock_Period();
+    EReference TIMER__TIMING = eINSTANCE.getTimer_Timing();
+
+    /**
+     * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.ActionImpl <em>Action</em>}' class.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @see org.icyphy.linguaFranca.impl.ActionImpl
+     * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getAction()
+     * @generated
+     */
+    EClass ACTION = eINSTANCE.getAction();
+
+    /**
+     * The meta object literal for the '<em><b>Name</b></em>' attribute feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EAttribute ACTION__NAME = eINSTANCE.getAction_Name();
+
+    /**
+     * The meta object literal for the '<em><b>Timing</b></em>' containment reference feature.
+     * <!-- begin-user-doc -->
+     * <!-- end-user-doc -->
+     * @generated
+     */
+    EReference ACTION__TIMING = eINSTANCE.getAction_Timing();
 
     /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.ReactionImpl <em>Reaction</em>}' class.
@@ -2072,24 +1998,6 @@ public interface LinguaFrancaPackage extends EPackage
      * @generated
      */
     EAttribute PREAMBLE__CODE = eINSTANCE.getPreamble_Code();
-
-    /**
-     * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.ConstructorImpl <em>Constructor</em>}' class.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @see org.icyphy.linguaFranca.impl.ConstructorImpl
-     * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getConstructor()
-     * @generated
-     */
-    EClass CONSTRUCTOR = eINSTANCE.getConstructor();
-
-    /**
-     * The meta object literal for the '<em><b>Code</b></em>' attribute feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EAttribute CONSTRUCTOR__CODE = eINSTANCE.getConstructor_Code();
 
     /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.InstanceImpl <em>Instance</em>}' class.
@@ -2266,22 +2174,14 @@ public interface LinguaFrancaPackage extends EPackage
     EAttribute PARAM__VALUE = eINSTANCE.getParam_Value();
 
     /**
-     * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.PeriodImpl <em>Period</em>}' class.
+     * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.TimingImpl <em>Timing</em>}' class.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
-     * @see org.icyphy.linguaFranca.impl.PeriodImpl
-     * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getPeriod()
+     * @see org.icyphy.linguaFranca.impl.TimingImpl
+     * @see org.icyphy.linguaFranca.impl.LinguaFrancaPackageImpl#getTiming()
      * @generated
      */
-    EClass PERIOD = eINSTANCE.getPeriod();
-
-    /**
-     * The meta object literal for the '<em><b>Period</b></em>' attribute feature.
-     * <!-- begin-user-doc -->
-     * <!-- end-user-doc -->
-     * @generated
-     */
-    EAttribute PERIOD__PERIOD = eINSTANCE.getPeriod_Period();
+    EClass TIMING = eINSTANCE.getTiming();
 
     /**
      * The meta object literal for the '<em><b>Offset</b></em>' attribute feature.
@@ -2289,15 +2189,15 @@ public interface LinguaFrancaPackage extends EPackage
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute PERIOD__OFFSET = eINSTANCE.getPeriod_Offset();
+    EAttribute TIMING__OFFSET = eINSTANCE.getTiming_Offset();
 
     /**
-     * The meta object literal for the '<em><b>Count</b></em>' attribute feature.
+     * The meta object literal for the '<em><b>Period</b></em>' attribute feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EAttribute PERIOD__COUNT = eINSTANCE.getPeriod_Count();
+    EAttribute TIMING__PERIOD = eINSTANCE.getTiming_Period();
 
     /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.SetsImpl <em>Sets</em>}' class.

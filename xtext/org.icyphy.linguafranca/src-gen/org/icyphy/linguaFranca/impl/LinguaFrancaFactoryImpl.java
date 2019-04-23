@@ -68,14 +68,16 @@ public class LinguaFrancaFactoryImpl extends EFactoryImpl implements LinguaFranc
       case LinguaFrancaPackage.MODEL: return createModel();
       case LinguaFrancaPackage.TARGET: return createTarget();
       case LinguaFrancaPackage.IMPORT: return createImport();
+      case LinguaFrancaPackage.COMPONENT: return createComponent();
       case LinguaFrancaPackage.REACTOR: return createReactor();
       case LinguaFrancaPackage.COMPOSITE: return createComposite();
+      case LinguaFrancaPackage.COMPONENT_BODY: return createComponentBody();
       case LinguaFrancaPackage.INPUT: return createInput();
       case LinguaFrancaPackage.OUTPUT: return createOutput();
-      case LinguaFrancaPackage.CLOCK: return createClock();
+      case LinguaFrancaPackage.TIMER: return createTimer();
+      case LinguaFrancaPackage.ACTION: return createAction();
       case LinguaFrancaPackage.REACTION: return createReaction();
       case LinguaFrancaPackage.PREAMBLE: return createPreamble();
-      case LinguaFrancaPackage.CONSTRUCTOR: return createConstructor();
       case LinguaFrancaPackage.INSTANCE: return createInstance();
       case LinguaFrancaPackage.CONNECTION: return createConnection();
       case LinguaFrancaPackage.ASSIGNMENTS: return createAssignments();
@@ -83,7 +85,7 @@ public class LinguaFrancaFactoryImpl extends EFactoryImpl implements LinguaFranc
       case LinguaFrancaPackage.GETS: return createGets();
       case LinguaFrancaPackage.PARAMS: return createParams();
       case LinguaFrancaPackage.PARAM: return createParam();
-      case LinguaFrancaPackage.PERIOD: return createPeriod();
+      case LinguaFrancaPackage.TIMING: return createTiming();
       case LinguaFrancaPackage.SETS: return createSets();
       default:
         throw new IllegalArgumentException("The class '" + eClass.getName() + "' is not a valid classifier");
@@ -132,6 +134,18 @@ public class LinguaFrancaFactoryImpl extends EFactoryImpl implements LinguaFranc
    * @generated
    */
   @Override
+  public Component createComponent()
+  {
+    ComponentImpl component = new ComponentImpl();
+    return component;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
   public Reactor createReactor()
   {
     ReactorImpl reactor = new ReactorImpl();
@@ -148,6 +162,18 @@ public class LinguaFrancaFactoryImpl extends EFactoryImpl implements LinguaFranc
   {
     CompositeImpl composite = new CompositeImpl();
     return composite;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public ComponentBody createComponentBody()
+  {
+    ComponentBodyImpl componentBody = new ComponentBodyImpl();
+    return componentBody;
   }
 
   /**
@@ -180,10 +206,22 @@ public class LinguaFrancaFactoryImpl extends EFactoryImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public Clock createClock()
+  public Timer createTimer()
   {
-    ClockImpl clock = new ClockImpl();
-    return clock;
+    TimerImpl timer = new TimerImpl();
+    return timer;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public Action createAction()
+  {
+    ActionImpl action = new ActionImpl();
+    return action;
   }
 
   /**
@@ -208,18 +246,6 @@ public class LinguaFrancaFactoryImpl extends EFactoryImpl implements LinguaFranc
   {
     PreambleImpl preamble = new PreambleImpl();
     return preamble;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public Constructor createConstructor()
-  {
-    ConstructorImpl constructor = new ConstructorImpl();
-    return constructor;
   }
 
   /**
@@ -312,10 +338,10 @@ public class LinguaFrancaFactoryImpl extends EFactoryImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public Period createPeriod()
+  public Timing createTiming()
   {
-    PeriodImpl period = new PeriodImpl();
-    return period;
+    TimingImpl timing = new TimingImpl();
+    return timing;
   }
 
   /**

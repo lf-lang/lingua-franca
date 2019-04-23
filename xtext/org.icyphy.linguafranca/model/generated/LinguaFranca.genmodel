@@ -9,7 +9,7 @@
     <genClasses ecoreClass="LinguaFranca.ecore#//Model">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Model/target"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Model/imports"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Model/blocks"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Model/components"/>
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Target">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Target/name"/>
@@ -17,27 +17,23 @@
     <genClasses ecoreClass="LinguaFranca.ecore#//Import">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Import/name"/>
     </genClasses>
-    <genClasses ecoreClass="LinguaFranca.ecore#//Reactor">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Reactor/name"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Reactor/parameters"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Reactor/inputs"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Reactor/outputs"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Reactor/clocks"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Reactor/preamble"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Reactor/constructor"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Reactor/reactions"/>
+    <genClasses ecoreClass="LinguaFranca.ecore#//Component">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Component/componentBody"/>
     </genClasses>
+    <genClasses ecoreClass="LinguaFranca.ecore#//Reactor"/>
     <genClasses ecoreClass="LinguaFranca.ecore#//Composite">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Composite/name"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/parameters"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/inputs"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/outputs"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/clocks"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/preamble"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/constructor"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/reactions"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/instances"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Composite/connections"/>
+    </genClasses>
+    <genClasses ecoreClass="LinguaFranca.ecore#//ComponentBody">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//ComponentBody/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//ComponentBody/parameters"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//ComponentBody/inputs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//ComponentBody/outputs"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//ComponentBody/timers"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//ComponentBody/actions"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//ComponentBody/preamble"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//ComponentBody/reactions"/>
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Input">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Input/name"/>
@@ -47,9 +43,13 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Output/name"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Output/type"/>
     </genClasses>
-    <genClasses ecoreClass="LinguaFranca.ecore#//Clock">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Clock/name"/>
-      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Clock/period"/>
+    <genClasses ecoreClass="LinguaFranca.ecore#//Timer">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Timer/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Timer/timing"/>
+    </genClasses>
+    <genClasses ecoreClass="LinguaFranca.ecore#//Action">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Action/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LinguaFranca.ecore#//Action/timing"/>
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Reaction">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Reaction/triggers"/>
@@ -59,9 +59,6 @@
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Preamble">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Preamble/code"/>
-    </genClasses>
-    <genClasses ecoreClass="LinguaFranca.ecore#//Constructor">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Constructor/code"/>
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Instance">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Instance/name"/>
@@ -90,10 +87,9 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Param/type"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Param/value"/>
     </genClasses>
-    <genClasses ecoreClass="LinguaFranca.ecore#//Period">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Period/period"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Period/offset"/>
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Period/count"/>
+    <genClasses ecoreClass="LinguaFranca.ecore#//Timing">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Timing/offset"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Timing/period"/>
     </genClasses>
     <genClasses ecoreClass="LinguaFranca.ecore#//Sets">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LinguaFranca.ecore#//Sets/sets"/>

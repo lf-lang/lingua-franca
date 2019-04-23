@@ -18,7 +18,7 @@ import org.eclipse.emf.ecore.EObject;
  * <ul>
  *   <li>{@link org.icyphy.linguaFranca.Model#getTarget <em>Target</em>}</li>
  *   <li>{@link org.icyphy.linguaFranca.Model#getImports <em>Imports</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Model#getBlocks <em>Blocks</em>}</li>
+ *   <li>{@link org.icyphy.linguaFranca.Model#getComponents <em>Components</em>}</li>
  * </ul>
  *
  * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getModel()
@@ -70,19 +70,19 @@ public interface Model extends EObject
   EList<Import> getImports();
 
   /**
-   * Returns the value of the '<em><b>Blocks</b></em>' containment reference list.
-   * The list contents are of type {@link org.eclipse.emf.ecore.EObject}.
+   * Returns the value of the '<em><b>Components</b></em>' containment reference list.
+   * The list contents are of type {@link org.icyphy.linguaFranca.Component}.
    * <!-- begin-user-doc -->
    * <p>
-   * If the meaning of the '<em>Blocks</em>' containment reference list isn't clear,
+   * If the meaning of the '<em>Components</em>' containment reference list isn't clear,
    * there really should be more of a description here...
    * </p>
    * <!-- end-user-doc -->
-   * @return the value of the '<em>Blocks</em>' containment reference list.
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getModel_Blocks()
+   * @return the value of the '<em>Components</em>' containment reference list.
+   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getModel_Components()
    * @model containment="true"
    * @generated
    */
-  EList<EObject> getBlocks();
+  EList<Component> getComponents();
 
 } // Model

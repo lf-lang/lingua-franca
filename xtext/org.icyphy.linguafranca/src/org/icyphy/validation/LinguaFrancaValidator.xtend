@@ -4,17 +4,16 @@
 package org.icyphy.validation
 
 import org.eclipse.xtext.validation.Check
-import org.icyphy.linguaFranca.Clock
-import org.icyphy.linguaFranca.Composite
+import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Gets
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Sets
 import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.Timer
 
 /**
  * This class contains custom validation rules. 
@@ -28,7 +27,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	var parameters = newHashSet()
 	var inputs = newHashSet()
 	var outputs = newHashSet()
-	var clocks = newHashSet()
+	var timers = newHashSet()
 	var allNames = newHashSet()
 	
 	////////////////////////////////////////////////////
@@ -37,20 +36,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	// FAST ensures that these checks run whenever a file is modified.
 	// Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
 	@Check(FAST)
-	def resetSetsReactor(Reactor reactor) {
+	def resetSets(Component component) {
 		parameters.clear()
 		inputs.clear()
 		outputs.clear()
-		clocks.clear()
-		allNames.clear()
-	}
-	
-	@Check(FAST)
-	def resetSetsComposite(Composite reactor) {
-		parameters.clear()
-		inputs.clear()
-		outputs.clear()
-		clocks.clear()
+		timers.clear()
 		allNames.clear()
 	}
 	
@@ -62,19 +52,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
 	////////////////////////////////////////////////////
 	//// The following checks are in alphabetical order.
-	
-	@Check(FAST)
-	def checkClock(Clock clock) {
-		if (allNames.contains(clock.name)) {
-			error("Names of parameters, inputs, clocks, and actions must be unique: " 
-				+ clock.name,
-				Literals.CLOCK__NAME
-			)
-		}
-		clocks.add(clock.name);
-		allNames.add(clock.name)
-	}
-	
+		
 	@Check(FAST)
 	def checkGets(Gets gets) {
 		for (get: gets.gets) {
@@ -90,7 +68,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	@Check(FAST)
 	def checkInput(Input input) {
 		if (allNames.contains(input.name)) {
-			error("Names of parameters, inputs, clocks, and actions must be unique: " 
+			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ input.name,
 				Literals.INPUT__NAME
 			)
@@ -102,7 +80,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	@Check(FAST)
 	def checkOutput(Output output) {
 		if (allNames.contains(output.name)) {
-			error("Names of parameters, inputs, clocks, and actions must be unique: " 
+			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ output.name,
 				Literals.OUTPUT__NAME
 			)
@@ -114,15 +92,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	@Check(FAST)
 	def checkReaction(Reaction reaction) {
 		for (trigger: reaction.triggers) {
-			if (!inputs.contains(trigger) && !clocks.contains(trigger)) {
-				error("Reaction trigger is not an input or clock: "
+			if (!inputs.contains(trigger) && !timers.contains(trigger)) {
+				error("Reaction trigger is not an input, timer, or action: "
 					+ trigger,
 					Literals.REACTION__TRIGGERS
 				)
 			}
 		}
 	}
-		
+
 	@Check(FAST)
 	def checkSets(Sets sets) {
 		for (set: sets.sets) {
@@ -142,5 +120,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 					+ target.name,
 					Literals.TARGET__NAME)
 		}
+	}
+
+	@Check(FAST)
+	def checkTimer(Timer timer) {
+		if (allNames.contains(timer.name)) {
+			error("Names of parameters, inputs, timers, and actions must be unique: " 
+				+ timer.name,
+				Literals.TIMER__NAME
+			)
+		}
+		timers.add(timer.name);
+		allNames.add(timer.name)
 	}
 }

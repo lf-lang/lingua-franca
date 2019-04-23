@@ -11,7 +11,6 @@ import org.eclipse.emf.common.notify.NotificationChain;
 import org.eclipse.emf.common.util.EList;
 
 import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.InternalEObject;
 
 import org.eclipse.emf.ecore.impl.ENotificationImpl;
@@ -20,6 +19,7 @@ import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
 import org.eclipse.emf.ecore.util.EObjectContainmentEList;
 import org.eclipse.emf.ecore.util.InternalEList;
 
+import org.icyphy.linguaFranca.Component;
 import org.icyphy.linguaFranca.Import;
 import org.icyphy.linguaFranca.LinguaFrancaPackage;
 import org.icyphy.linguaFranca.Model;
@@ -35,7 +35,7 @@ import org.icyphy.linguaFranca.Target;
  * <ul>
  *   <li>{@link org.icyphy.linguaFranca.impl.ModelImpl#getTarget <em>Target</em>}</li>
  *   <li>{@link org.icyphy.linguaFranca.impl.ModelImpl#getImports <em>Imports</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.impl.ModelImpl#getBlocks <em>Blocks</em>}</li>
+ *   <li>{@link org.icyphy.linguaFranca.impl.ModelImpl#getComponents <em>Components</em>}</li>
  * </ul>
  *
  * @generated
@@ -63,14 +63,14 @@ public class ModelImpl extends MinimalEObjectImpl.Container implements Model
   protected EList<Import> imports;
 
   /**
-   * The cached value of the '{@link #getBlocks() <em>Blocks</em>}' containment reference list.
+   * The cached value of the '{@link #getComponents() <em>Components</em>}' containment reference list.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @see #getBlocks()
+   * @see #getComponents()
    * @generated
    * @ordered
    */
-  protected EList<EObject> blocks;
+  protected EList<Component> components;
 
   /**
    * <!-- begin-user-doc -->
@@ -164,13 +164,13 @@ public class ModelImpl extends MinimalEObjectImpl.Container implements Model
    * @generated
    */
   @Override
-  public EList<EObject> getBlocks()
+  public EList<Component> getComponents()
   {
-    if (blocks == null)
+    if (components == null)
     {
-      blocks = new EObjectContainmentEList<EObject>(EObject.class, this, LinguaFrancaPackage.MODEL__BLOCKS);
+      components = new EObjectContainmentEList<Component>(Component.class, this, LinguaFrancaPackage.MODEL__COMPONENTS);
     }
-    return blocks;
+    return components;
   }
 
   /**
@@ -187,8 +187,8 @@ public class ModelImpl extends MinimalEObjectImpl.Container implements Model
         return basicSetTarget(null, msgs);
       case LinguaFrancaPackage.MODEL__IMPORTS:
         return ((InternalEList<?>)getImports()).basicRemove(otherEnd, msgs);
-      case LinguaFrancaPackage.MODEL__BLOCKS:
-        return ((InternalEList<?>)getBlocks()).basicRemove(otherEnd, msgs);
+      case LinguaFrancaPackage.MODEL__COMPONENTS:
+        return ((InternalEList<?>)getComponents()).basicRemove(otherEnd, msgs);
     }
     return super.eInverseRemove(otherEnd, featureID, msgs);
   }
@@ -207,8 +207,8 @@ public class ModelImpl extends MinimalEObjectImpl.Container implements Model
         return getTarget();
       case LinguaFrancaPackage.MODEL__IMPORTS:
         return getImports();
-      case LinguaFrancaPackage.MODEL__BLOCKS:
-        return getBlocks();
+      case LinguaFrancaPackage.MODEL__COMPONENTS:
+        return getComponents();
     }
     return super.eGet(featureID, resolve, coreType);
   }
@@ -231,9 +231,9 @@ public class ModelImpl extends MinimalEObjectImpl.Container implements Model
         getImports().clear();
         getImports().addAll((Collection<? extends Import>)newValue);
         return;
-      case LinguaFrancaPackage.MODEL__BLOCKS:
-        getBlocks().clear();
-        getBlocks().addAll((Collection<? extends EObject>)newValue);
+      case LinguaFrancaPackage.MODEL__COMPONENTS:
+        getComponents().clear();
+        getComponents().addAll((Collection<? extends Component>)newValue);
         return;
     }
     super.eSet(featureID, newValue);
@@ -255,8 +255,8 @@ public class ModelImpl extends MinimalEObjectImpl.Container implements Model
       case LinguaFrancaPackage.MODEL__IMPORTS:
         getImports().clear();
         return;
-      case LinguaFrancaPackage.MODEL__BLOCKS:
-        getBlocks().clear();
+      case LinguaFrancaPackage.MODEL__COMPONENTS:
+        getComponents().clear();
         return;
     }
     super.eUnset(featureID);
@@ -276,8 +276,8 @@ public class ModelImpl extends MinimalEObjectImpl.Container implements Model
         return target != null;
       case LinguaFrancaPackage.MODEL__IMPORTS:
         return imports != null && !imports.isEmpty();
-      case LinguaFrancaPackage.MODEL__BLOCKS:
-        return blocks != null && !blocks.isEmpty();
+      case LinguaFrancaPackage.MODEL__COMPONENTS:
+        return components != null && !components.isEmpty();
     }
     return super.eIsSet(featureID);
   }

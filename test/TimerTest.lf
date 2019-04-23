@@ -1,0 +1,71 @@
+/** A test of the various versions of the timer.
+ *  NOTE: This test does not work in the Node.js host, which has not implemented
+ *  exact setTimeout() and setInterval(). To run this, use CapeCode.
+ *  Insert the generated TimerTest.js code into a JavaScript actor.
+ *  The result should be to print the following and then exit:
+ *  <pre>
+ *    FIXME
+ *  </pre>
+ * 
+ *  @author Edward A. Lee
+ */
+target Accessor;
+
+reactor Source1 {
+	output out:int;
+	timer t;
+	reaction(t) -> out {=
+		set(out, 1);
+		console.log("One time output with value 1 at time 0.")
+	=}
+}
+reactor Source2(period:int(1000)) {
+	output out:int;
+	timer t(NOW, period);
+	reaction(t) -> out {=
+		set(out, 2);
+		console.log("Output with value 2 at time FIXME.")
+	=}
+}
+reactor Adder {
+	input in1:int;
+	input in2:int;
+	output out;
+	// React to any input.
+	reaction -> out {=
+		var sum = 0;
+		if (in1 !== null) {
+			sum += in1;
+		}
+		if (in2 !== null) {
+			sum += in2;
+		}
+		set(out, sum);
+	=}
+}
+reactor Test(expected:JSON({= [] =})) {
+	input x:int;
+	preamble {=
+		var i = 0;
+	=}
+	reaction(x) {=
+		console.log('Test received: ' + x);
+        if (expected[i] != x) {
+            throw "Expected: " + expected[i] + ", but got: " + x;
+        }
+        i += 1;
+        if (i >= expected.length) {
+            this.stop();
+        }
+	=} 
+}
+composite TimerTest {
+	source1 = new Source1();
+	source2 = new Source2(period = 1000);
+	add = new Adder();
+	test = new Test(expected = {= [3, 2, 2, 2] =});
+	source1.out -> add.in1;
+	source2.out -> add.in2;
+	add.out -> test.x;
+}
+

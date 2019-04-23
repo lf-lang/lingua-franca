@@ -51,6 +51,15 @@ public interface LinguaFrancaFactory extends EFactory
   Import createImport();
 
   /**
+   * Returns a new object of class '<em>Component</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Component</em>'.
+   * @generated
+   */
+  Component createComponent();
+
+  /**
    * Returns a new object of class '<em>Reactor</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
@@ -67,6 +76,15 @@ public interface LinguaFrancaFactory extends EFactory
    * @generated
    */
   Composite createComposite();
+
+  /**
+   * Returns a new object of class '<em>Component Body</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Component Body</em>'.
+   * @generated
+   */
+  ComponentBody createComponentBody();
 
   /**
    * Returns a new object of class '<em>Input</em>'.
@@ -87,13 +105,22 @@ public interface LinguaFrancaFactory extends EFactory
   Output createOutput();
 
   /**
-   * Returns a new object of class '<em>Clock</em>'.
+   * Returns a new object of class '<em>Timer</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return a new object of class '<em>Clock</em>'.
+   * @return a new object of class '<em>Timer</em>'.
    * @generated
    */
-  Clock createClock();
+  Timer createTimer();
+
+  /**
+   * Returns a new object of class '<em>Action</em>'.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @return a new object of class '<em>Action</em>'.
+   * @generated
+   */
+  Action createAction();
 
   /**
    * Returns a new object of class '<em>Reaction</em>'.
@@ -112,15 +139,6 @@ public interface LinguaFrancaFactory extends EFactory
    * @generated
    */
   Preamble createPreamble();
-
-  /**
-   * Returns a new object of class '<em>Constructor</em>'.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @return a new object of class '<em>Constructor</em>'.
-   * @generated
-   */
-  Constructor createConstructor();
 
   /**
    * Returns a new object of class '<em>Instance</em>'.
@@ -186,13 +204,13 @@ public interface LinguaFrancaFactory extends EFactory
   Param createParam();
 
   /**
-   * Returns a new object of class '<em>Period</em>'.
+   * Returns a new object of class '<em>Timing</em>'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return a new object of class '<em>Period</em>'.
+   * @return a new object of class '<em>Timing</em>'.
    * @generated
    */
-  Period createPeriod();
+  Timing createTiming();
 
   /**
    * Returns a new object of class '<em>Sets</em>'.

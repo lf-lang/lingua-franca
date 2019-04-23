@@ -5,8 +5,6 @@ package org.icyphy.linguaFranca;
 
 import org.eclipse.emf.common.util.EList;
 
-import org.eclipse.emf.ecore.EObject;
-
 /**
  * <!-- begin-user-doc -->
  * A representation of the model object '<em><b>Composite</b></em>'.
@@ -16,14 +14,6 @@ import org.eclipse.emf.ecore.EObject;
  * The following features are supported:
  * </p>
  * <ul>
- *   <li>{@link org.icyphy.linguaFranca.Composite#getName <em>Name</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Composite#getParameters <em>Parameters</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Composite#getInputs <em>Inputs</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Composite#getOutputs <em>Outputs</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Composite#getClocks <em>Clocks</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Composite#getPreamble <em>Preamble</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Composite#getConstructor <em>Constructor</em>}</li>
- *   <li>{@link org.icyphy.linguaFranca.Composite#getReactions <em>Reactions</em>}</li>
  *   <li>{@link org.icyphy.linguaFranca.Composite#getInstances <em>Instances</em>}</li>
  *   <li>{@link org.icyphy.linguaFranca.Composite#getConnections <em>Connections</em>}</li>
  * </ul>
@@ -32,176 +22,8 @@ import org.eclipse.emf.ecore.EObject;
  * @model
  * @generated
  */
-public interface Composite extends EObject
+public interface Composite extends Component
 {
-  /**
-   * Returns the value of the '<em><b>Name</b></em>' attribute.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Name</em>' attribute isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Name</em>' attribute.
-   * @see #setName(String)
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getComposite_Name()
-   * @model
-   * @generated
-   */
-  String getName();
-
-  /**
-   * Sets the value of the '{@link org.icyphy.linguaFranca.Composite#getName <em>Name</em>}' attribute.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Name</em>' attribute.
-   * @see #getName()
-   * @generated
-   */
-  void setName(String value);
-
-  /**
-   * Returns the value of the '<em><b>Parameters</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Parameters</em>' containment reference isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Parameters</em>' containment reference.
-   * @see #setParameters(Params)
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getComposite_Parameters()
-   * @model containment="true"
-   * @generated
-   */
-  Params getParameters();
-
-  /**
-   * Sets the value of the '{@link org.icyphy.linguaFranca.Composite#getParameters <em>Parameters</em>}' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Parameters</em>' containment reference.
-   * @see #getParameters()
-   * @generated
-   */
-  void setParameters(Params value);
-
-  /**
-   * Returns the value of the '<em><b>Inputs</b></em>' containment reference list.
-   * The list contents are of type {@link org.icyphy.linguaFranca.Input}.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Inputs</em>' containment reference list isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Inputs</em>' containment reference list.
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getComposite_Inputs()
-   * @model containment="true"
-   * @generated
-   */
-  EList<Input> getInputs();
-
-  /**
-   * Returns the value of the '<em><b>Outputs</b></em>' containment reference list.
-   * The list contents are of type {@link org.icyphy.linguaFranca.Output}.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Outputs</em>' containment reference list isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Outputs</em>' containment reference list.
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getComposite_Outputs()
-   * @model containment="true"
-   * @generated
-   */
-  EList<Output> getOutputs();
-
-  /**
-   * Returns the value of the '<em><b>Clocks</b></em>' containment reference list.
-   * The list contents are of type {@link org.icyphy.linguaFranca.Clock}.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Clocks</em>' containment reference list isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Clocks</em>' containment reference list.
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getComposite_Clocks()
-   * @model containment="true"
-   * @generated
-   */
-  EList<Clock> getClocks();
-
-  /**
-   * Returns the value of the '<em><b>Preamble</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Preamble</em>' containment reference isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Preamble</em>' containment reference.
-   * @see #setPreamble(Preamble)
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getComposite_Preamble()
-   * @model containment="true"
-   * @generated
-   */
-  Preamble getPreamble();
-
-  /**
-   * Sets the value of the '{@link org.icyphy.linguaFranca.Composite#getPreamble <em>Preamble</em>}' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Preamble</em>' containment reference.
-   * @see #getPreamble()
-   * @generated
-   */
-  void setPreamble(Preamble value);
-
-  /**
-   * Returns the value of the '<em><b>Constructor</b></em>' containment reference.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Constructor</em>' containment reference isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Constructor</em>' containment reference.
-   * @see #setConstructor(Constructor)
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getComposite_Constructor()
-   * @model containment="true"
-   * @generated
-   */
-  Constructor getConstructor();
-
-  /**
-   * Sets the value of the '{@link org.icyphy.linguaFranca.Composite#getConstructor <em>Constructor</em>}' containment reference.
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @param value the new value of the '<em>Constructor</em>' containment reference.
-   * @see #getConstructor()
-   * @generated
-   */
-  void setConstructor(Constructor value);
-
-  /**
-   * Returns the value of the '<em><b>Reactions</b></em>' containment reference list.
-   * The list contents are of type {@link org.icyphy.linguaFranca.Reaction}.
-   * <!-- begin-user-doc -->
-   * <p>
-   * If the meaning of the '<em>Reactions</em>' containment reference list isn't clear,
-   * there really should be more of a description here...
-   * </p>
-   * <!-- end-user-doc -->
-   * @return the value of the '<em>Reactions</em>' containment reference list.
-   * @see org.icyphy.linguaFranca.LinguaFrancaPackage#getComposite_Reactions()
-   * @model containment="true"
-   * @generated
-   */
-  EList<Reaction> getReactions();
-
   /**
    * Returns the value of the '<em><b>Instances</b></em>' containment reference list.
    * The list contents are of type {@link org.icyphy.linguaFranca.Instance}.

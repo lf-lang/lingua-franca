@@ -10,12 +10,13 @@ import org.eclipse.emf.ecore.EReference;
 
 import org.eclipse.emf.ecore.impl.EPackageImpl;
 
+import org.icyphy.linguaFranca.Action;
 import org.icyphy.linguaFranca.Assignment;
 import org.icyphy.linguaFranca.Assignments;
-import org.icyphy.linguaFranca.Clock;
+import org.icyphy.linguaFranca.Component;
+import org.icyphy.linguaFranca.ComponentBody;
 import org.icyphy.linguaFranca.Composite;
 import org.icyphy.linguaFranca.Connection;
-import org.icyphy.linguaFranca.Constructor;
 import org.icyphy.linguaFranca.Gets;
 import org.icyphy.linguaFranca.Import;
 import org.icyphy.linguaFranca.Input;
@@ -26,12 +27,13 @@ import org.icyphy.linguaFranca.Model;
 import org.icyphy.linguaFranca.Output;
 import org.icyphy.linguaFranca.Param;
 import org.icyphy.linguaFranca.Params;
-import org.icyphy.linguaFranca.Period;
 import org.icyphy.linguaFranca.Preamble;
 import org.icyphy.linguaFranca.Reaction;
 import org.icyphy.linguaFranca.Reactor;
 import org.icyphy.linguaFranca.Sets;
 import org.icyphy.linguaFranca.Target;
+import org.icyphy.linguaFranca.Timer;
+import org.icyphy.linguaFranca.Timing;
 
 /**
  * <!-- begin-user-doc -->
@@ -67,6 +69,13 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * <!-- end-user-doc -->
    * @generated
    */
+  private EClass componentEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
   private EClass reactorEClass = null;
 
   /**
@@ -75,6 +84,13 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   private EClass compositeEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass componentBodyEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -95,7 +111,14 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * <!-- end-user-doc -->
    * @generated
    */
-  private EClass clockEClass = null;
+  private EClass timerEClass = null;
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  private EClass actionEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -110,13 +133,6 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   private EClass preambleEClass = null;
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  private EClass constructorEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -172,7 +188,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * <!-- end-user-doc -->
    * @generated
    */
-  private EClass periodEClass = null;
+  private EClass timingEClass = null;
 
   /**
    * <!-- begin-user-doc -->
@@ -283,7 +299,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EReference getModel_Blocks()
+  public EReference getModel_Components()
   {
     return (EReference)modelEClass.getEStructuralFeatures().get(2);
   }
@@ -338,97 +354,31 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
+  public EClass getComponent()
+  {
+    return componentEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getComponent_ComponentBody()
+  {
+    return (EReference)componentEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
   public EClass getReactor()
   {
     return reactorEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EAttribute getReactor_Name()
-  {
-    return (EAttribute)reactorEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getReactor_Parameters()
-  {
-    return (EReference)reactorEClass.getEStructuralFeatures().get(1);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getReactor_Inputs()
-  {
-    return (EReference)reactorEClass.getEStructuralFeatures().get(2);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getReactor_Outputs()
-  {
-    return (EReference)reactorEClass.getEStructuralFeatures().get(3);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getReactor_Clocks()
-  {
-    return (EReference)reactorEClass.getEStructuralFeatures().get(4);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getReactor_Preamble()
-  {
-    return (EReference)reactorEClass.getEStructuralFeatures().get(5);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getReactor_Constructor()
-  {
-    return (EReference)reactorEClass.getEStructuralFeatures().get(6);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getReactor_Reactions()
-  {
-    return (EReference)reactorEClass.getEStructuralFeatures().get(7);
   }
 
   /**
@@ -448,97 +398,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EAttribute getComposite_Name()
-  {
-    return (EAttribute)compositeEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getComposite_Parameters()
-  {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(1);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getComposite_Inputs()
-  {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(2);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getComposite_Outputs()
-  {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(3);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getComposite_Clocks()
-  {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(4);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getComposite_Preamble()
-  {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(5);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getComposite_Constructor()
-  {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(6);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EReference getComposite_Reactions()
-  {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(7);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
   public EReference getComposite_Instances()
   {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(8);
+    return (EReference)compositeEClass.getEStructuralFeatures().get(0);
   }
 
   /**
@@ -549,7 +411,106 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
   @Override
   public EReference getComposite_Connections()
   {
-    return (EReference)compositeEClass.getEStructuralFeatures().get(9);
+    return (EReference)compositeEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EClass getComponentBody()
+  {
+    return componentBodyEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EAttribute getComponentBody_Name()
+  {
+    return (EAttribute)componentBodyEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getComponentBody_Parameters()
+  {
+    return (EReference)componentBodyEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getComponentBody_Inputs()
+  {
+    return (EReference)componentBodyEClass.getEStructuralFeatures().get(2);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getComponentBody_Outputs()
+  {
+    return (EReference)componentBodyEClass.getEStructuralFeatures().get(3);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getComponentBody_Timers()
+  {
+    return (EReference)componentBodyEClass.getEStructuralFeatures().get(4);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getComponentBody_Actions()
+  {
+    return (EReference)componentBodyEClass.getEStructuralFeatures().get(5);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getComponentBody_Preamble()
+  {
+    return (EReference)componentBodyEClass.getEStructuralFeatures().get(6);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getComponentBody_Reactions()
+  {
+    return (EReference)componentBodyEClass.getEStructuralFeatures().get(7);
   }
 
   /**
@@ -624,9 +585,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EClass getClock()
+  public EClass getTimer()
   {
-    return clockEClass;
+    return timerEClass;
   }
 
   /**
@@ -635,9 +596,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EAttribute getClock_Name()
+  public EAttribute getTimer_Name()
   {
-    return (EAttribute)clockEClass.getEStructuralFeatures().get(0);
+    return (EAttribute)timerEClass.getEStructuralFeatures().get(0);
   }
 
   /**
@@ -646,9 +607,42 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EReference getClock_Period()
+  public EReference getTimer_Timing()
   {
-    return (EReference)clockEClass.getEStructuralFeatures().get(1);
+    return (EReference)timerEClass.getEStructuralFeatures().get(1);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EClass getAction()
+  {
+    return actionEClass;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EAttribute getAction_Name()
+  {
+    return (EAttribute)actionEClass.getEStructuralFeatures().get(0);
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  @Override
+  public EReference getAction_Timing()
+  {
+    return (EReference)actionEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -726,28 +720,6 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
   public EAttribute getPreamble_Code()
   {
     return (EAttribute)preambleEClass.getEStructuralFeatures().get(0);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EClass getConstructor()
-  {
-    return constructorEClass;
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EAttribute getConstructor_Code()
-  {
-    return (EAttribute)constructorEClass.getEStructuralFeatures().get(0);
   }
 
   /**
@@ -976,9 +948,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EClass getPeriod()
+  public EClass getTiming()
   {
-    return periodEClass;
+    return timingEClass;
   }
 
   /**
@@ -987,9 +959,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EAttribute getPeriod_Period()
+  public EAttribute getTiming_Offset()
   {
-    return (EAttribute)periodEClass.getEStructuralFeatures().get(0);
+    return (EAttribute)timingEClass.getEStructuralFeatures().get(0);
   }
 
   /**
@@ -998,20 +970,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EAttribute getPeriod_Offset()
+  public EAttribute getTiming_Period()
   {
-    return (EAttribute)periodEClass.getEStructuralFeatures().get(1);
-  }
-
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
-   * @generated
-   */
-  @Override
-  public EAttribute getPeriod_Count()
-  {
-    return (EAttribute)periodEClass.getEStructuralFeatures().get(2);
+    return (EAttribute)timingEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -1070,7 +1031,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
     modelEClass = createEClass(MODEL);
     createEReference(modelEClass, MODEL__TARGET);
     createEReference(modelEClass, MODEL__IMPORTS);
-    createEReference(modelEClass, MODEL__BLOCKS);
+    createEReference(modelEClass, MODEL__COMPONENTS);
 
     targetEClass = createEClass(TARGET);
     createEAttribute(targetEClass, TARGET__NAME);
@@ -1078,27 +1039,24 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
     importEClass = createEClass(IMPORT);
     createEAttribute(importEClass, IMPORT__NAME);
 
+    componentEClass = createEClass(COMPONENT);
+    createEReference(componentEClass, COMPONENT__COMPONENT_BODY);
+
     reactorEClass = createEClass(REACTOR);
-    createEAttribute(reactorEClass, REACTOR__NAME);
-    createEReference(reactorEClass, REACTOR__PARAMETERS);
-    createEReference(reactorEClass, REACTOR__INPUTS);
-    createEReference(reactorEClass, REACTOR__OUTPUTS);
-    createEReference(reactorEClass, REACTOR__CLOCKS);
-    createEReference(reactorEClass, REACTOR__PREAMBLE);
-    createEReference(reactorEClass, REACTOR__CONSTRUCTOR);
-    createEReference(reactorEClass, REACTOR__REACTIONS);
 
     compositeEClass = createEClass(COMPOSITE);
-    createEAttribute(compositeEClass, COMPOSITE__NAME);
-    createEReference(compositeEClass, COMPOSITE__PARAMETERS);
-    createEReference(compositeEClass, COMPOSITE__INPUTS);
-    createEReference(compositeEClass, COMPOSITE__OUTPUTS);
-    createEReference(compositeEClass, COMPOSITE__CLOCKS);
-    createEReference(compositeEClass, COMPOSITE__PREAMBLE);
-    createEReference(compositeEClass, COMPOSITE__CONSTRUCTOR);
-    createEReference(compositeEClass, COMPOSITE__REACTIONS);
     createEReference(compositeEClass, COMPOSITE__INSTANCES);
     createEReference(compositeEClass, COMPOSITE__CONNECTIONS);
+
+    componentBodyEClass = createEClass(COMPONENT_BODY);
+    createEAttribute(componentBodyEClass, COMPONENT_BODY__NAME);
+    createEReference(componentBodyEClass, COMPONENT_BODY__PARAMETERS);
+    createEReference(componentBodyEClass, COMPONENT_BODY__INPUTS);
+    createEReference(componentBodyEClass, COMPONENT_BODY__OUTPUTS);
+    createEReference(componentBodyEClass, COMPONENT_BODY__TIMERS);
+    createEReference(componentBodyEClass, COMPONENT_BODY__ACTIONS);
+    createEReference(componentBodyEClass, COMPONENT_BODY__PREAMBLE);
+    createEReference(componentBodyEClass, COMPONENT_BODY__REACTIONS);
 
     inputEClass = createEClass(INPUT);
     createEAttribute(inputEClass, INPUT__NAME);
@@ -1108,9 +1066,13 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
     createEAttribute(outputEClass, OUTPUT__NAME);
     createEAttribute(outputEClass, OUTPUT__TYPE);
 
-    clockEClass = createEClass(CLOCK);
-    createEAttribute(clockEClass, CLOCK__NAME);
-    createEReference(clockEClass, CLOCK__PERIOD);
+    timerEClass = createEClass(TIMER);
+    createEAttribute(timerEClass, TIMER__NAME);
+    createEReference(timerEClass, TIMER__TIMING);
+
+    actionEClass = createEClass(ACTION);
+    createEAttribute(actionEClass, ACTION__NAME);
+    createEReference(actionEClass, ACTION__TIMING);
 
     reactionEClass = createEClass(REACTION);
     createEAttribute(reactionEClass, REACTION__TRIGGERS);
@@ -1120,9 +1082,6 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
 
     preambleEClass = createEClass(PREAMBLE);
     createEAttribute(preambleEClass, PREAMBLE__CODE);
-
-    constructorEClass = createEClass(CONSTRUCTOR);
-    createEAttribute(constructorEClass, CONSTRUCTOR__CODE);
 
     instanceEClass = createEClass(INSTANCE);
     createEAttribute(instanceEClass, INSTANCE__NAME);
@@ -1151,10 +1110,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
     createEAttribute(paramEClass, PARAM__TYPE);
     createEAttribute(paramEClass, PARAM__VALUE);
 
-    periodEClass = createEClass(PERIOD);
-    createEAttribute(periodEClass, PERIOD__PERIOD);
-    createEAttribute(periodEClass, PERIOD__OFFSET);
-    createEAttribute(periodEClass, PERIOD__COUNT);
+    timingEClass = createEClass(TIMING);
+    createEAttribute(timingEClass, TIMING__OFFSET);
+    createEAttribute(timingEClass, TIMING__PERIOD);
 
     setsEClass = createEClass(SETS);
     createEAttribute(setsEClass, SETS__SETS);
@@ -1189,12 +1147,14 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
     // Set bounds for type parameters
 
     // Add supertypes to classes
+    reactorEClass.getESuperTypes().add(this.getComponent());
+    compositeEClass.getESuperTypes().add(this.getComponent());
 
     // Initialize classes and features; add operations and parameters
     initEClass(modelEClass, Model.class, "Model", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEReference(getModel_Target(), this.getTarget(), null, "target", null, 0, 1, Model.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getModel_Imports(), this.getImport(), null, "imports", null, 0, -1, Model.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getModel_Blocks(), ecorePackage.getEObject(), null, "blocks", null, 0, -1, Model.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getModel_Components(), this.getComponent(), null, "components", null, 0, -1, Model.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(targetEClass, Target.class, "Target", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getTarget_Name(), ecorePackage.getEString(), "name", null, 0, 1, Target.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -1202,27 +1162,24 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
     initEClass(importEClass, Import.class, "Import", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getImport_Name(), ecorePackage.getEString(), "name", null, 0, 1, Import.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
+    initEClass(componentEClass, Component.class, "Component", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEReference(getComponent_ComponentBody(), this.getComponentBody(), null, "componentBody", null, 0, 1, Component.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
     initEClass(reactorEClass, Reactor.class, "Reactor", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getReactor_Name(), ecorePackage.getEString(), "name", null, 0, 1, Reactor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getReactor_Parameters(), this.getParams(), null, "parameters", null, 0, 1, Reactor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getReactor_Inputs(), this.getInput(), null, "inputs", null, 0, -1, Reactor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getReactor_Outputs(), this.getOutput(), null, "outputs", null, 0, -1, Reactor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getReactor_Clocks(), this.getClock(), null, "clocks", null, 0, -1, Reactor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getReactor_Preamble(), this.getPreamble(), null, "preamble", null, 0, 1, Reactor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getReactor_Constructor(), this.getConstructor(), null, "constructor", null, 0, 1, Reactor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getReactor_Reactions(), this.getReaction(), null, "reactions", null, 0, -1, Reactor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(compositeEClass, Composite.class, "Composite", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getComposite_Name(), ecorePackage.getEString(), "name", null, 0, 1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getComposite_Parameters(), this.getParams(), null, "parameters", null, 0, 1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getComposite_Inputs(), this.getInput(), null, "inputs", null, 0, -1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getComposite_Outputs(), this.getOutput(), null, "outputs", null, 0, -1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getComposite_Clocks(), this.getClock(), null, "clocks", null, 0, -1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getComposite_Preamble(), this.getPreamble(), null, "preamble", null, 0, 1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getComposite_Constructor(), this.getConstructor(), null, "constructor", null, 0, 1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getComposite_Reactions(), this.getReaction(), null, "reactions", null, 0, -1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getComposite_Instances(), this.getInstance(), null, "instances", null, 0, -1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEReference(getComposite_Connections(), this.getConnection(), null, "connections", null, 0, -1, Composite.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(componentBodyEClass, ComponentBody.class, "ComponentBody", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEAttribute(getComponentBody_Name(), ecorePackage.getEString(), "name", null, 0, 1, ComponentBody.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getComponentBody_Parameters(), this.getParams(), null, "parameters", null, 0, 1, ComponentBody.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getComponentBody_Inputs(), this.getInput(), null, "inputs", null, 0, -1, ComponentBody.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getComponentBody_Outputs(), this.getOutput(), null, "outputs", null, 0, -1, ComponentBody.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getComponentBody_Timers(), this.getTimer(), null, "timers", null, 0, -1, ComponentBody.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getComponentBody_Actions(), this.getAction(), null, "actions", null, 0, -1, ComponentBody.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getComponentBody_Preamble(), this.getPreamble(), null, "preamble", null, 0, 1, ComponentBody.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getComponentBody_Reactions(), this.getReaction(), null, "reactions", null, 0, -1, ComponentBody.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(inputEClass, Input.class, "Input", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getInput_Name(), ecorePackage.getEString(), "name", null, 0, 1, Input.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -1232,9 +1189,13 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
     initEAttribute(getOutput_Name(), ecorePackage.getEString(), "name", null, 0, 1, Output.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEAttribute(getOutput_Type(), ecorePackage.getEString(), "type", null, 0, 1, Output.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
-    initEClass(clockEClass, Clock.class, "Clock", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getClock_Name(), ecorePackage.getEString(), "name", null, 0, 1, Clock.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getClock_Period(), this.getPeriod(), null, "period", null, 0, 1, Clock.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEClass(timerEClass, Timer.class, "Timer", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEAttribute(getTimer_Name(), ecorePackage.getEString(), "name", null, 0, 1, Timer.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getTimer_Timing(), this.getTiming(), null, "timing", null, 0, 1, Timer.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+    initEClass(actionEClass, Action.class, "Action", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEAttribute(getAction_Name(), ecorePackage.getEString(), "name", null, 0, 1, Action.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEReference(getAction_Timing(), this.getTiming(), null, "timing", null, 0, 1, Action.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(reactionEClass, Reaction.class, "Reaction", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getReaction_Triggers(), ecorePackage.getEString(), "triggers", null, 0, -1, Reaction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -1244,9 +1205,6 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
 
     initEClass(preambleEClass, Preamble.class, "Preamble", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getPreamble_Code(), ecorePackage.getEString(), "code", null, 0, 1, Preamble.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-
-    initEClass(constructorEClass, Constructor.class, "Constructor", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getConstructor_Code(), ecorePackage.getEString(), "code", null, 0, 1, Constructor.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(instanceEClass, Instance.class, "Instance", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getInstance_Name(), ecorePackage.getEString(), "name", null, 0, 1, Instance.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
@@ -1275,10 +1233,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
     initEAttribute(getParam_Type(), ecorePackage.getEString(), "type", null, 0, 1, Param.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
     initEAttribute(getParam_Value(), ecorePackage.getEString(), "value", null, 0, 1, Param.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
-    initEClass(periodEClass, Period.class, "Period", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-    initEAttribute(getPeriod_Period(), ecorePackage.getEString(), "period", null, 0, 1, Period.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getPeriod_Offset(), ecorePackage.getEString(), "offset", null, 0, 1, Period.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEAttribute(getPeriod_Count(), ecorePackage.getEString(), "count", null, 0, 1, Period.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEClass(timingEClass, Timing.class, "Timing", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+    initEAttribute(getTiming_Offset(), ecorePackage.getEString(), "offset", null, 0, 1, Timing.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEAttribute(getTiming_Period(), ecorePackage.getEString(), "period", null, 0, 1, Timing.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(setsEClass, Sets.class, "Sets", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getSets_Sets(), ecorePackage.getEString(), "sets", null, 0, -1, Sets.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

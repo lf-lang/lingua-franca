@@ -29,19 +29,17 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		private final RuleCall cTargetTargetParserRuleCall_0_0 = (RuleCall)cTargetAssignment_0.eContents().get(0);
 		private final Assignment cImportsAssignment_1 = (Assignment)cGroup.eContents().get(1);
 		private final RuleCall cImportsImportParserRuleCall_1_0 = (RuleCall)cImportsAssignment_1.eContents().get(0);
-		private final Assignment cBlocksAssignment_2 = (Assignment)cGroup.eContents().get(2);
-		private final Alternatives cBlocksAlternatives_2_0 = (Alternatives)cBlocksAssignment_2.eContents().get(0);
-		private final RuleCall cBlocksReactorParserRuleCall_2_0_0 = (RuleCall)cBlocksAlternatives_2_0.eContents().get(0);
-		private final RuleCall cBlocksCompositeParserRuleCall_2_0_1 = (RuleCall)cBlocksAlternatives_2_0.eContents().get(1);
+		private final Assignment cComponentsAssignment_2 = (Assignment)cGroup.eContents().get(2);
+		private final RuleCall cComponentsComponentParserRuleCall_2_0 = (RuleCall)cComponentsAssignment_2.eContents().get(0);
 		
 		///////////// Overall file
 		//Model:
 		//	target=Target
 		//	imports+=Import*
-		//	blocks+=(Reactor | Composite)+;
+		//	components+=Component+;
 		@Override public ParserRule getRule() { return rule; }
 		
-		//target=Target imports+=Import* blocks+=(Reactor | Composite)+
+		//target=Target imports+=Import* components+=Component+
 		public Group getGroup() { return cGroup; }
 		
 		//target=Target
@@ -56,17 +54,11 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		//Import
 		public RuleCall getImportsImportParserRuleCall_1_0() { return cImportsImportParserRuleCall_1_0; }
 		
-		//blocks+=(Reactor | Composite)+
-		public Assignment getBlocksAssignment_2() { return cBlocksAssignment_2; }
+		//components+=Component+
+		public Assignment getComponentsAssignment_2() { return cComponentsAssignment_2; }
 		
-		//(Reactor | Composite)
-		public Alternatives getBlocksAlternatives_2_0() { return cBlocksAlternatives_2_0; }
-		
-		//Reactor
-		public RuleCall getBlocksReactorParserRuleCall_2_0_0() { return cBlocksReactorParserRuleCall_2_0_0; }
-		
-		//Composite
-		public RuleCall getBlocksCompositeParserRuleCall_2_0_1() { return cBlocksCompositeParserRuleCall_2_0_1; }
+		//Component
+		public RuleCall getComponentsComponentParserRuleCall_2_0() { return cComponentsComponentParserRuleCall_2_0; }
 	}
 	public class TargetElements extends AbstractParserRuleElementFinder {
 		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Target");
@@ -123,215 +115,190 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		//';'
 		public Keyword getSemicolonKeyword_2() { return cSemicolonKeyword_2; }
 	}
+	public class ComponentElements extends AbstractParserRuleElementFinder {
+		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Component");
+		private final Alternatives cAlternatives = (Alternatives)rule.eContents().get(1);
+		private final RuleCall cReactorParserRuleCall_0 = (RuleCall)cAlternatives.eContents().get(0);
+		private final RuleCall cCompositeParserRuleCall_1 = (RuleCall)cAlternatives.eContents().get(1);
+		
+		//Component:
+		//	Reactor | Composite;
+		@Override public ParserRule getRule() { return rule; }
+		
+		//Reactor | Composite
+		public Alternatives getAlternatives() { return cAlternatives; }
+		
+		//Reactor
+		public RuleCall getReactorParserRuleCall_0() { return cReactorParserRuleCall_0; }
+		
+		//Composite
+		public RuleCall getCompositeParserRuleCall_1() { return cCompositeParserRuleCall_1; }
+	}
 	public class ReactorElements extends AbstractParserRuleElementFinder {
 		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Reactor");
 		private final Group cGroup = (Group)rule.eContents().get(1);
 		private final Keyword cReactorKeyword_0 = (Keyword)cGroup.eContents().get(0);
-		private final Assignment cNameAssignment_1 = (Assignment)cGroup.eContents().get(1);
-		private final RuleCall cNameIDTerminalRuleCall_1_0 = (RuleCall)cNameAssignment_1.eContents().get(0);
-		private final Assignment cParametersAssignment_2 = (Assignment)cGroup.eContents().get(2);
-		private final RuleCall cParametersParamsParserRuleCall_2_0 = (RuleCall)cParametersAssignment_2.eContents().get(0);
-		private final Keyword cLeftCurlyBracketKeyword_3 = (Keyword)cGroup.eContents().get(3);
-		private final Assignment cInputsAssignment_4 = (Assignment)cGroup.eContents().get(4);
-		private final RuleCall cInputsInputParserRuleCall_4_0 = (RuleCall)cInputsAssignment_4.eContents().get(0);
-		private final Assignment cOutputsAssignment_5 = (Assignment)cGroup.eContents().get(5);
-		private final RuleCall cOutputsOutputParserRuleCall_5_0 = (RuleCall)cOutputsAssignment_5.eContents().get(0);
-		private final Assignment cClocksAssignment_6 = (Assignment)cGroup.eContents().get(6);
-		private final RuleCall cClocksClockParserRuleCall_6_0 = (RuleCall)cClocksAssignment_6.eContents().get(0);
-		private final Assignment cPreambleAssignment_7 = (Assignment)cGroup.eContents().get(7);
-		private final RuleCall cPreamblePreambleParserRuleCall_7_0 = (RuleCall)cPreambleAssignment_7.eContents().get(0);
-		private final Assignment cConstructorAssignment_8 = (Assignment)cGroup.eContents().get(8);
-		private final RuleCall cConstructorConstructorParserRuleCall_8_0 = (RuleCall)cConstructorAssignment_8.eContents().get(0);
-		private final Assignment cReactionsAssignment_9 = (Assignment)cGroup.eContents().get(9);
-		private final RuleCall cReactionsReactionParserRuleCall_9_0 = (RuleCall)cReactionsAssignment_9.eContents().get(0);
-		private final Keyword cRightCurlyBracketKeyword_10 = (Keyword)cGroup.eContents().get(10);
+		private final Assignment cComponentBodyAssignment_1 = (Assignment)cGroup.eContents().get(1);
+		private final RuleCall cComponentBodyComponentBodyParserRuleCall_1_0 = (RuleCall)cComponentBodyAssignment_1.eContents().get(0);
+		private final Keyword cRightCurlyBracketKeyword_2 = (Keyword)cGroup.eContents().get(2);
 		
-		//// The following enforces the order of definitions:
-		//// inputs, outputs, clocks, etc.
 		//Reactor:
-		//	'reactor' name=ID parameters=Params? '{'
-		//	inputs+=Input*
-		//	outputs+=Output*
-		//	clocks+=Clock*
-		//	preamble=Preamble?
-		//	constructor=Constructor?
-		//	reactions+=Reaction*
+		//	'reactor'
+		//	componentBody=ComponentBody
 		//	'}';
 		@Override public ParserRule getRule() { return rule; }
 		
-		//'reactor' name=ID parameters=Params? '{' inputs+=Input* outputs+=Output* clocks+=Clock* preamble=Preamble?
-		//constructor=Constructor? reactions+=Reaction* '}'
+		//'reactor' componentBody=ComponentBody '}'
 		public Group getGroup() { return cGroup; }
 		
 		//'reactor'
 		public Keyword getReactorKeyword_0() { return cReactorKeyword_0; }
 		
-		//name=ID
-		public Assignment getNameAssignment_1() { return cNameAssignment_1; }
+		//componentBody=ComponentBody
+		public Assignment getComponentBodyAssignment_1() { return cComponentBodyAssignment_1; }
 		
-		//ID
-		public RuleCall getNameIDTerminalRuleCall_1_0() { return cNameIDTerminalRuleCall_1_0; }
-		
-		//parameters=Params?
-		public Assignment getParametersAssignment_2() { return cParametersAssignment_2; }
-		
-		//Params
-		public RuleCall getParametersParamsParserRuleCall_2_0() { return cParametersParamsParserRuleCall_2_0; }
-		
-		//'{'
-		public Keyword getLeftCurlyBracketKeyword_3() { return cLeftCurlyBracketKeyword_3; }
-		
-		//inputs+=Input*
-		public Assignment getInputsAssignment_4() { return cInputsAssignment_4; }
-		
-		//Input
-		public RuleCall getInputsInputParserRuleCall_4_0() { return cInputsInputParserRuleCall_4_0; }
-		
-		//outputs+=Output*
-		public Assignment getOutputsAssignment_5() { return cOutputsAssignment_5; }
-		
-		//Output
-		public RuleCall getOutputsOutputParserRuleCall_5_0() { return cOutputsOutputParserRuleCall_5_0; }
-		
-		//clocks+=Clock*
-		public Assignment getClocksAssignment_6() { return cClocksAssignment_6; }
-		
-		//Clock
-		public RuleCall getClocksClockParserRuleCall_6_0() { return cClocksClockParserRuleCall_6_0; }
-		
-		//preamble=Preamble?
-		public Assignment getPreambleAssignment_7() { return cPreambleAssignment_7; }
-		
-		//Preamble
-		public RuleCall getPreamblePreambleParserRuleCall_7_0() { return cPreamblePreambleParserRuleCall_7_0; }
-		
-		//constructor=Constructor?
-		public Assignment getConstructorAssignment_8() { return cConstructorAssignment_8; }
-		
-		//Constructor
-		public RuleCall getConstructorConstructorParserRuleCall_8_0() { return cConstructorConstructorParserRuleCall_8_0; }
-		
-		//reactions+=Reaction*
-		public Assignment getReactionsAssignment_9() { return cReactionsAssignment_9; }
-		
-		//Reaction
-		public RuleCall getReactionsReactionParserRuleCall_9_0() { return cReactionsReactionParserRuleCall_9_0; }
+		//ComponentBody
+		public RuleCall getComponentBodyComponentBodyParserRuleCall_1_0() { return cComponentBodyComponentBodyParserRuleCall_1_0; }
 		
 		//'}'
-		public Keyword getRightCurlyBracketKeyword_10() { return cRightCurlyBracketKeyword_10; }
+		public Keyword getRightCurlyBracketKeyword_2() { return cRightCurlyBracketKeyword_2; }
 	}
 	public class CompositeElements extends AbstractParserRuleElementFinder {
 		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Composite");
 		private final Group cGroup = (Group)rule.eContents().get(1);
 		private final Keyword cCompositeKeyword_0 = (Keyword)cGroup.eContents().get(0);
-		private final Assignment cNameAssignment_1 = (Assignment)cGroup.eContents().get(1);
-		private final RuleCall cNameIDTerminalRuleCall_1_0 = (RuleCall)cNameAssignment_1.eContents().get(0);
-		private final Assignment cParametersAssignment_2 = (Assignment)cGroup.eContents().get(2);
-		private final RuleCall cParametersParamsParserRuleCall_2_0 = (RuleCall)cParametersAssignment_2.eContents().get(0);
-		private final Keyword cLeftCurlyBracketKeyword_3 = (Keyword)cGroup.eContents().get(3);
-		private final Assignment cInputsAssignment_4 = (Assignment)cGroup.eContents().get(4);
-		private final RuleCall cInputsInputParserRuleCall_4_0 = (RuleCall)cInputsAssignment_4.eContents().get(0);
-		private final Assignment cOutputsAssignment_5 = (Assignment)cGroup.eContents().get(5);
-		private final RuleCall cOutputsOutputParserRuleCall_5_0 = (RuleCall)cOutputsAssignment_5.eContents().get(0);
-		private final Assignment cClocksAssignment_6 = (Assignment)cGroup.eContents().get(6);
-		private final RuleCall cClocksClockParserRuleCall_6_0 = (RuleCall)cClocksAssignment_6.eContents().get(0);
-		private final Assignment cPreambleAssignment_7 = (Assignment)cGroup.eContents().get(7);
-		private final RuleCall cPreamblePreambleParserRuleCall_7_0 = (RuleCall)cPreambleAssignment_7.eContents().get(0);
-		private final Assignment cConstructorAssignment_8 = (Assignment)cGroup.eContents().get(8);
-		private final RuleCall cConstructorConstructorParserRuleCall_8_0 = (RuleCall)cConstructorAssignment_8.eContents().get(0);
-		private final Assignment cReactionsAssignment_9 = (Assignment)cGroup.eContents().get(9);
-		private final RuleCall cReactionsReactionParserRuleCall_9_0 = (RuleCall)cReactionsAssignment_9.eContents().get(0);
-		private final Assignment cInstancesAssignment_10 = (Assignment)cGroup.eContents().get(10);
-		private final RuleCall cInstancesInstanceParserRuleCall_10_0 = (RuleCall)cInstancesAssignment_10.eContents().get(0);
-		private final Assignment cConnectionsAssignment_11 = (Assignment)cGroup.eContents().get(11);
-		private final RuleCall cConnectionsConnectionParserRuleCall_11_0 = (RuleCall)cConnectionsAssignment_11.eContents().get(0);
-		private final Keyword cRightCurlyBracketKeyword_12 = (Keyword)cGroup.eContents().get(12);
+		private final Assignment cComponentBodyAssignment_1 = (Assignment)cGroup.eContents().get(1);
+		private final RuleCall cComponentBodyComponentBodyParserRuleCall_1_0 = (RuleCall)cComponentBodyAssignment_1.eContents().get(0);
+		private final Assignment cInstancesAssignment_2 = (Assignment)cGroup.eContents().get(2);
+		private final RuleCall cInstancesInstanceParserRuleCall_2_0 = (RuleCall)cInstancesAssignment_2.eContents().get(0);
+		private final Assignment cConnectionsAssignment_3 = (Assignment)cGroup.eContents().get(3);
+		private final RuleCall cConnectionsConnectionParserRuleCall_3_0 = (RuleCall)cConnectionsAssignment_3.eContents().get(0);
+		private final Keyword cRightCurlyBracketKeyword_4 = (Keyword)cGroup.eContents().get(4);
 		
 		//Composite:
-		//	'composite' name=ID parameters=Params? '{'
-		//	inputs+=Input*
-		//	outputs+=Output*
-		//	clocks+=Clock*
-		//	preamble=Preamble?
-		//	constructor=Constructor?
-		//	reactions+=Reaction*
+		//	'composite'
+		//	componentBody=ComponentBody
 		//	instances+=Instance*
 		//	connections+=Connection*
 		//	'}';
 		@Override public ParserRule getRule() { return rule; }
 		
-		//'composite' name=ID parameters=Params? '{' inputs+=Input* outputs+=Output* clocks+=Clock* preamble=Preamble?
-		//constructor=Constructor? reactions+=Reaction* instances+=Instance* connections+=Connection* '}'
+		//'composite' componentBody=ComponentBody instances+=Instance* connections+=Connection* '}'
 		public Group getGroup() { return cGroup; }
 		
 		//'composite'
 		public Keyword getCompositeKeyword_0() { return cCompositeKeyword_0; }
 		
-		//name=ID
-		public Assignment getNameAssignment_1() { return cNameAssignment_1; }
+		//componentBody=ComponentBody
+		public Assignment getComponentBodyAssignment_1() { return cComponentBodyAssignment_1; }
 		
-		//ID
-		public RuleCall getNameIDTerminalRuleCall_1_0() { return cNameIDTerminalRuleCall_1_0; }
-		
-		//parameters=Params?
-		public Assignment getParametersAssignment_2() { return cParametersAssignment_2; }
-		
-		//Params
-		public RuleCall getParametersParamsParserRuleCall_2_0() { return cParametersParamsParserRuleCall_2_0; }
-		
-		//'{'
-		public Keyword getLeftCurlyBracketKeyword_3() { return cLeftCurlyBracketKeyword_3; }
-		
-		//inputs+=Input*
-		public Assignment getInputsAssignment_4() { return cInputsAssignment_4; }
-		
-		//Input
-		public RuleCall getInputsInputParserRuleCall_4_0() { return cInputsInputParserRuleCall_4_0; }
-		
-		//outputs+=Output*
-		public Assignment getOutputsAssignment_5() { return cOutputsAssignment_5; }
-		
-		//Output
-		public RuleCall getOutputsOutputParserRuleCall_5_0() { return cOutputsOutputParserRuleCall_5_0; }
-		
-		//clocks+=Clock*
-		public Assignment getClocksAssignment_6() { return cClocksAssignment_6; }
-		
-		//Clock
-		public RuleCall getClocksClockParserRuleCall_6_0() { return cClocksClockParserRuleCall_6_0; }
-		
-		//preamble=Preamble?
-		public Assignment getPreambleAssignment_7() { return cPreambleAssignment_7; }
-		
-		//Preamble
-		public RuleCall getPreamblePreambleParserRuleCall_7_0() { return cPreamblePreambleParserRuleCall_7_0; }
-		
-		//constructor=Constructor?
-		public Assignment getConstructorAssignment_8() { return cConstructorAssignment_8; }
-		
-		//Constructor
-		public RuleCall getConstructorConstructorParserRuleCall_8_0() { return cConstructorConstructorParserRuleCall_8_0; }
-		
-		//reactions+=Reaction*
-		public Assignment getReactionsAssignment_9() { return cReactionsAssignment_9; }
-		
-		//Reaction
-		public RuleCall getReactionsReactionParserRuleCall_9_0() { return cReactionsReactionParserRuleCall_9_0; }
+		//ComponentBody
+		public RuleCall getComponentBodyComponentBodyParserRuleCall_1_0() { return cComponentBodyComponentBodyParserRuleCall_1_0; }
 		
 		//instances+=Instance*
-		public Assignment getInstancesAssignment_10() { return cInstancesAssignment_10; }
+		public Assignment getInstancesAssignment_2() { return cInstancesAssignment_2; }
 		
 		//Instance
-		public RuleCall getInstancesInstanceParserRuleCall_10_0() { return cInstancesInstanceParserRuleCall_10_0; }
+		public RuleCall getInstancesInstanceParserRuleCall_2_0() { return cInstancesInstanceParserRuleCall_2_0; }
 		
 		//connections+=Connection*
-		public Assignment getConnectionsAssignment_11() { return cConnectionsAssignment_11; }
+		public Assignment getConnectionsAssignment_3() { return cConnectionsAssignment_3; }
 		
 		//Connection
-		public RuleCall getConnectionsConnectionParserRuleCall_11_0() { return cConnectionsConnectionParserRuleCall_11_0; }
+		public RuleCall getConnectionsConnectionParserRuleCall_3_0() { return cConnectionsConnectionParserRuleCall_3_0; }
 		
 		//'}'
-		public Keyword getRightCurlyBracketKeyword_12() { return cRightCurlyBracketKeyword_12; }
+		public Keyword getRightCurlyBracketKeyword_4() { return cRightCurlyBracketKeyword_4; }
+	}
+	public class ComponentBodyElements extends AbstractParserRuleElementFinder {
+		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.ComponentBody");
+		private final Group cGroup = (Group)rule.eContents().get(1);
+		private final Assignment cNameAssignment_0 = (Assignment)cGroup.eContents().get(0);
+		private final RuleCall cNameIDTerminalRuleCall_0_0 = (RuleCall)cNameAssignment_0.eContents().get(0);
+		private final Assignment cParametersAssignment_1 = (Assignment)cGroup.eContents().get(1);
+		private final RuleCall cParametersParamsParserRuleCall_1_0 = (RuleCall)cParametersAssignment_1.eContents().get(0);
+		private final Keyword cLeftCurlyBracketKeyword_2 = (Keyword)cGroup.eContents().get(2);
+		private final Assignment cInputsAssignment_3 = (Assignment)cGroup.eContents().get(3);
+		private final RuleCall cInputsInputParserRuleCall_3_0 = (RuleCall)cInputsAssignment_3.eContents().get(0);
+		private final Assignment cOutputsAssignment_4 = (Assignment)cGroup.eContents().get(4);
+		private final RuleCall cOutputsOutputParserRuleCall_4_0 = (RuleCall)cOutputsAssignment_4.eContents().get(0);
+		private final Alternatives cAlternatives_5 = (Alternatives)cGroup.eContents().get(5);
+		private final Assignment cTimersAssignment_5_0 = (Assignment)cAlternatives_5.eContents().get(0);
+		private final RuleCall cTimersTimerParserRuleCall_5_0_0 = (RuleCall)cTimersAssignment_5_0.eContents().get(0);
+		private final Assignment cActionsAssignment_5_1 = (Assignment)cAlternatives_5.eContents().get(1);
+		private final RuleCall cActionsActionParserRuleCall_5_1_0 = (RuleCall)cActionsAssignment_5_1.eContents().get(0);
+		private final Assignment cPreambleAssignment_6 = (Assignment)cGroup.eContents().get(6);
+		private final RuleCall cPreamblePreambleParserRuleCall_6_0 = (RuleCall)cPreambleAssignment_6.eContents().get(0);
+		private final Assignment cReactionsAssignment_7 = (Assignment)cGroup.eContents().get(7);
+		private final RuleCall cReactionsReactionParserRuleCall_7_0 = (RuleCall)cReactionsAssignment_7.eContents().get(0);
+		
+		//// The following enforces the order of definitions:
+		//// inputs, outputs, timers and actions, preamble, reactions.
+		//ComponentBody:
+		//	name=ID parameters=Params? '{'
+		//	inputs+=Input*
+		//	outputs+=Output* (timers+=Timer | actions+=Action)*
+		//	preamble=Preamble?
+		//	reactions+=Reaction*;
+		@Override public ParserRule getRule() { return rule; }
+		
+		//name=ID parameters=Params? '{' inputs+=Input* outputs+=Output* (timers+=Timer | actions+=Action)* preamble=Preamble?
+		//reactions+=Reaction*
+		public Group getGroup() { return cGroup; }
+		
+		//name=ID
+		public Assignment getNameAssignment_0() { return cNameAssignment_0; }
+		
+		//ID
+		public RuleCall getNameIDTerminalRuleCall_0_0() { return cNameIDTerminalRuleCall_0_0; }
+		
+		//parameters=Params?
+		public Assignment getParametersAssignment_1() { return cParametersAssignment_1; }
+		
+		//Params
+		public RuleCall getParametersParamsParserRuleCall_1_0() { return cParametersParamsParserRuleCall_1_0; }
+		
+		//'{'
+		public Keyword getLeftCurlyBracketKeyword_2() { return cLeftCurlyBracketKeyword_2; }
+		
+		//inputs+=Input*
+		public Assignment getInputsAssignment_3() { return cInputsAssignment_3; }
+		
+		//Input
+		public RuleCall getInputsInputParserRuleCall_3_0() { return cInputsInputParserRuleCall_3_0; }
+		
+		//outputs+=Output*
+		public Assignment getOutputsAssignment_4() { return cOutputsAssignment_4; }
+		
+		//Output
+		public RuleCall getOutputsOutputParserRuleCall_4_0() { return cOutputsOutputParserRuleCall_4_0; }
+		
+		//(timers+=Timer | actions+=Action)*
+		public Alternatives getAlternatives_5() { return cAlternatives_5; }
+		
+		//timers+=Timer
+		public Assignment getTimersAssignment_5_0() { return cTimersAssignment_5_0; }
+		
+		//Timer
+		public RuleCall getTimersTimerParserRuleCall_5_0_0() { return cTimersTimerParserRuleCall_5_0_0; }
+		
+		//actions+=Action
+		public Assignment getActionsAssignment_5_1() { return cActionsAssignment_5_1; }
+		
+		//Action
+		public RuleCall getActionsActionParserRuleCall_5_1_0() { return cActionsActionParserRuleCall_5_1_0; }
+		
+		//preamble=Preamble?
+		public Assignment getPreambleAssignment_6() { return cPreambleAssignment_6; }
+		
+		//Preamble
+		public RuleCall getPreamblePreambleParserRuleCall_6_0() { return cPreamblePreambleParserRuleCall_6_0; }
+		
+		//reactions+=Reaction*
+		public Assignment getReactionsAssignment_7() { return cReactionsAssignment_7; }
+		
+		//Reaction
+		public RuleCall getReactionsReactionParserRuleCall_7_0() { return cReactionsReactionParserRuleCall_7_0; }
 	}
 	public class InputElements extends AbstractParserRuleElementFinder {
 		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Input");
@@ -437,45 +404,88 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		//';'
 		public Keyword getSemicolonKeyword_3() { return cSemicolonKeyword_3; }
 	}
-	public class ClockElements extends AbstractParserRuleElementFinder {
-		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Clock");
+	public class TimerElements extends AbstractParserRuleElementFinder {
+		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Timer");
 		private final Group cGroup = (Group)rule.eContents().get(1);
-		private final Keyword cClockKeyword_0 = (Keyword)cGroup.eContents().get(0);
+		private final Keyword cTimerKeyword_0 = (Keyword)cGroup.eContents().get(0);
 		private final Assignment cNameAssignment_1 = (Assignment)cGroup.eContents().get(1);
 		private final Alternatives cNameAlternatives_1_0 = (Alternatives)cNameAssignment_1.eContents().get(0);
 		private final RuleCall cNameIDTerminalRuleCall_1_0_0 = (RuleCall)cNameAlternatives_1_0.eContents().get(0);
-		private final Keyword cNameClockKeyword_1_0_1 = (Keyword)cNameAlternatives_1_0.eContents().get(1);
-		private final Assignment cPeriodAssignment_2 = (Assignment)cGroup.eContents().get(2);
-		private final RuleCall cPeriodPeriodParserRuleCall_2_0 = (RuleCall)cPeriodAssignment_2.eContents().get(0);
+		private final Keyword cNameTimerKeyword_1_0_1 = (Keyword)cNameAlternatives_1_0.eContents().get(1);
+		private final Assignment cTimingAssignment_2 = (Assignment)cGroup.eContents().get(2);
+		private final RuleCall cTimingTimingParserRuleCall_2_0 = (RuleCall)cTimingAssignment_2.eContents().get(0);
 		private final Keyword cSemicolonKeyword_3 = (Keyword)cGroup.eContents().get(3);
 		
-		//Clock:
-		//	'clock' name=(ID | 'clock') period=Period? ';';
+		//Timer:
+		//	'timer' name=(ID | 'timer') timing=Timing? ';';
 		@Override public ParserRule getRule() { return rule; }
 		
-		//'clock' name=(ID | 'clock') period=Period? ';'
+		//'timer' name=(ID | 'timer') timing=Timing? ';'
 		public Group getGroup() { return cGroup; }
 		
-		//'clock'
-		public Keyword getClockKeyword_0() { return cClockKeyword_0; }
+		//'timer'
+		public Keyword getTimerKeyword_0() { return cTimerKeyword_0; }
 		
-		//name=(ID | 'clock')
+		//name=(ID | 'timer')
 		public Assignment getNameAssignment_1() { return cNameAssignment_1; }
 		
-		//(ID | 'clock')
+		//(ID | 'timer')
 		public Alternatives getNameAlternatives_1_0() { return cNameAlternatives_1_0; }
 		
 		//ID
 		public RuleCall getNameIDTerminalRuleCall_1_0_0() { return cNameIDTerminalRuleCall_1_0_0; }
 		
-		//'clock'
-		public Keyword getNameClockKeyword_1_0_1() { return cNameClockKeyword_1_0_1; }
+		//'timer'
+		public Keyword getNameTimerKeyword_1_0_1() { return cNameTimerKeyword_1_0_1; }
 		
-		//period=Period?
-		public Assignment getPeriodAssignment_2() { return cPeriodAssignment_2; }
+		//timing=Timing?
+		public Assignment getTimingAssignment_2() { return cTimingAssignment_2; }
 		
-		//Period
-		public RuleCall getPeriodPeriodParserRuleCall_2_0() { return cPeriodPeriodParserRuleCall_2_0; }
+		//Timing
+		public RuleCall getTimingTimingParserRuleCall_2_0() { return cTimingTimingParserRuleCall_2_0; }
+		
+		//';'
+		public Keyword getSemicolonKeyword_3() { return cSemicolonKeyword_3; }
+	}
+	public class ActionElements extends AbstractParserRuleElementFinder {
+		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Action");
+		private final Group cGroup = (Group)rule.eContents().get(1);
+		private final Keyword cActionKeyword_0 = (Keyword)cGroup.eContents().get(0);
+		private final Assignment cNameAssignment_1 = (Assignment)cGroup.eContents().get(1);
+		private final Alternatives cNameAlternatives_1_0 = (Alternatives)cNameAssignment_1.eContents().get(0);
+		private final RuleCall cNameIDTerminalRuleCall_1_0_0 = (RuleCall)cNameAlternatives_1_0.eContents().get(0);
+		private final Keyword cNameActionKeyword_1_0_1 = (Keyword)cNameAlternatives_1_0.eContents().get(1);
+		private final Assignment cTimingAssignment_2 = (Assignment)cGroup.eContents().get(2);
+		private final RuleCall cTimingTimingParserRuleCall_2_0 = (RuleCall)cTimingAssignment_2.eContents().get(0);
+		private final Keyword cSemicolonKeyword_3 = (Keyword)cGroup.eContents().get(3);
+		
+		//Action:
+		//	'action' name=(ID | 'action') timing=Timing? ';';
+		@Override public ParserRule getRule() { return rule; }
+		
+		//'action' name=(ID | 'action') timing=Timing? ';'
+		public Group getGroup() { return cGroup; }
+		
+		//'action'
+		public Keyword getActionKeyword_0() { return cActionKeyword_0; }
+		
+		//name=(ID | 'action')
+		public Assignment getNameAssignment_1() { return cNameAssignment_1; }
+		
+		//(ID | 'action')
+		public Alternatives getNameAlternatives_1_0() { return cNameAlternatives_1_0; }
+		
+		//ID
+		public RuleCall getNameIDTerminalRuleCall_1_0_0() { return cNameIDTerminalRuleCall_1_0_0; }
+		
+		//'action'
+		public Keyword getNameActionKeyword_1_0_1() { return cNameActionKeyword_1_0_1; }
+		
+		//timing=Timing?
+		public Assignment getTimingAssignment_2() { return cTimingAssignment_2; }
+		
+		//Timing
+		public RuleCall getTimingTimingParserRuleCall_2_0() { return cTimingTimingParserRuleCall_2_0; }
 		
 		//';'
 		public Keyword getSemicolonKeyword_3() { return cSemicolonKeyword_3; }
@@ -578,29 +588,6 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		
 		//'preamble'
 		public Keyword getPreambleKeyword_0() { return cPreambleKeyword_0; }
-		
-		//code=CODE
-		public Assignment getCodeAssignment_1() { return cCodeAssignment_1; }
-		
-		//CODE
-		public RuleCall getCodeCODETerminalRuleCall_1_0() { return cCodeCODETerminalRuleCall_1_0; }
-	}
-	public class ConstructorElements extends AbstractParserRuleElementFinder {
-		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Constructor");
-		private final Group cGroup = (Group)rule.eContents().get(1);
-		private final Keyword cConstructorKeyword_0 = (Keyword)cGroup.eContents().get(0);
-		private final Assignment cCodeAssignment_1 = (Assignment)cGroup.eContents().get(1);
-		private final RuleCall cCodeCODETerminalRuleCall_1_0 = (RuleCall)cCodeAssignment_1.eContents().get(0);
-		
-		//Constructor:
-		//	'constructor' code=CODE;
-		@Override public ParserRule getRule() { return rule; }
-		
-		//'constructor' code=CODE
-		public Group getGroup() { return cGroup; }
-		
-		//'constructor'
-		public Keyword getConstructorKeyword_0() { return cConstructorKeyword_0; }
 		
 		//code=CODE
 		public Assignment getCodeAssignment_1() { return cCodeAssignment_1; }
@@ -912,88 +899,77 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		//')'
 		public Keyword getRightParenthesisKeyword_3_2() { return cRightParenthesisKeyword_3_2; }
 	}
-	public class PeriodElements extends AbstractParserRuleElementFinder {
-		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Period");
+	public class TimingElements extends AbstractParserRuleElementFinder {
+		private final ParserRule rule = (ParserRule) GrammarUtil.findRuleForName(getGrammar(), "org.icyphy.LinguaFranca.Timing");
 		private final Group cGroup = (Group)rule.eContents().get(1);
 		private final Keyword cLeftParenthesisKeyword_0 = (Keyword)cGroup.eContents().get(0);
-		private final Assignment cPeriodAssignment_1 = (Assignment)cGroup.eContents().get(1);
-		private final Alternatives cPeriodAlternatives_1_0 = (Alternatives)cPeriodAssignment_1.eContents().get(0);
-		private final RuleCall cPeriodIDTerminalRuleCall_1_0_0 = (RuleCall)cPeriodAlternatives_1_0.eContents().get(0);
-		private final RuleCall cPeriodNUMBERTerminalRuleCall_1_0_1 = (RuleCall)cPeriodAlternatives_1_0.eContents().get(1);
+		private final Assignment cOffsetAssignment_1 = (Assignment)cGroup.eContents().get(1);
+		private final Alternatives cOffsetAlternatives_1_0 = (Alternatives)cOffsetAssignment_1.eContents().get(0);
+		private final Keyword cOffsetNOWKeyword_1_0_0 = (Keyword)cOffsetAlternatives_1_0.eContents().get(0);
+		private final RuleCall cOffsetIDTerminalRuleCall_1_0_1 = (RuleCall)cOffsetAlternatives_1_0.eContents().get(1);
+		private final RuleCall cOffsetNUMBERTerminalRuleCall_1_0_2 = (RuleCall)cOffsetAlternatives_1_0.eContents().get(2);
 		private final Group cGroup_2 = (Group)cGroup.eContents().get(2);
 		private final Keyword cCommaKeyword_2_0 = (Keyword)cGroup_2.eContents().get(0);
-		private final Assignment cOffsetAssignment_2_1 = (Assignment)cGroup_2.eContents().get(1);
-		private final Alternatives cOffsetAlternatives_2_1_0 = (Alternatives)cOffsetAssignment_2_1.eContents().get(0);
-		private final RuleCall cOffsetIDTerminalRuleCall_2_1_0_0 = (RuleCall)cOffsetAlternatives_2_1_0.eContents().get(0);
-		private final RuleCall cOffsetNUMBERTerminalRuleCall_2_1_0_1 = (RuleCall)cOffsetAlternatives_2_1_0.eContents().get(1);
-		private final Group cGroup_2_2 = (Group)cGroup_2.eContents().get(2);
-		private final Keyword cCommaKeyword_2_2_0 = (Keyword)cGroup_2_2.eContents().get(0);
-		private final Assignment cCountAssignment_2_2_1 = (Assignment)cGroup_2_2.eContents().get(1);
-		private final Alternatives cCountAlternatives_2_2_1_0 = (Alternatives)cCountAssignment_2_2_1.eContents().get(0);
-		private final RuleCall cCountIDTerminalRuleCall_2_2_1_0_0 = (RuleCall)cCountAlternatives_2_2_1_0.eContents().get(0);
-		private final RuleCall cCountNUMBERTerminalRuleCall_2_2_1_0_1 = (RuleCall)cCountAlternatives_2_2_1_0.eContents().get(1);
+		private final Assignment cPeriodAssignment_2_1 = (Assignment)cGroup_2.eContents().get(1);
+		private final Alternatives cPeriodAlternatives_2_1_0 = (Alternatives)cPeriodAssignment_2_1.eContents().get(0);
+		private final Keyword cPeriodONCEKeyword_2_1_0_0 = (Keyword)cPeriodAlternatives_2_1_0.eContents().get(0);
+		private final Keyword cPeriodSTOPKeyword_2_1_0_1 = (Keyword)cPeriodAlternatives_2_1_0.eContents().get(1);
+		private final RuleCall cPeriodIDTerminalRuleCall_2_1_0_2 = (RuleCall)cPeriodAlternatives_2_1_0.eContents().get(2);
+		private final RuleCall cPeriodNUMBERTerminalRuleCall_2_1_0_3 = (RuleCall)cPeriodAlternatives_2_1_0.eContents().get(3);
 		private final Keyword cRightParenthesisKeyword_3 = (Keyword)cGroup.eContents().get(3);
 		
-		//// Periodicity spec for a trigger.
-		//// E.g. (1000) or (1000, 100) or (1000, 100, 10)
-		//// The latter means fire with period 1000, offset 100, 10 times.
-		//Period:
-		//	'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))?)? ')';
+		//// Timing specification for a timer: (offset, period)
+		//// Can be empty, which means (0,0) = (NOW, ONCE).
+		//// E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
+		//// The latter means fire with period 1000, offset 100.
+		//Timing:
+		//	'(' offset=('NOW' | ID | NUMBER) (',' period=('ONCE' | 'STOP' | ID | NUMBER))? ')';
 		@Override public ParserRule getRule() { return rule; }
 		
-		//'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))?)? ')'
+		//'(' offset=('NOW' | ID | NUMBER) (',' period=('ONCE' | 'STOP' | ID | NUMBER))? ')'
 		public Group getGroup() { return cGroup; }
 		
 		//'('
 		public Keyword getLeftParenthesisKeyword_0() { return cLeftParenthesisKeyword_0; }
 		
-		//period=(ID | NUMBER)
-		public Assignment getPeriodAssignment_1() { return cPeriodAssignment_1; }
+		//offset=('NOW' | ID | NUMBER)
+		public Assignment getOffsetAssignment_1() { return cOffsetAssignment_1; }
 		
-		//(ID | NUMBER)
-		public Alternatives getPeriodAlternatives_1_0() { return cPeriodAlternatives_1_0; }
+		//('NOW' | ID | NUMBER)
+		public Alternatives getOffsetAlternatives_1_0() { return cOffsetAlternatives_1_0; }
+		
+		//'NOW'
+		public Keyword getOffsetNOWKeyword_1_0_0() { return cOffsetNOWKeyword_1_0_0; }
 		
 		//ID
-		public RuleCall getPeriodIDTerminalRuleCall_1_0_0() { return cPeriodIDTerminalRuleCall_1_0_0; }
+		public RuleCall getOffsetIDTerminalRuleCall_1_0_1() { return cOffsetIDTerminalRuleCall_1_0_1; }
 		
 		//NUMBER
-		public RuleCall getPeriodNUMBERTerminalRuleCall_1_0_1() { return cPeriodNUMBERTerminalRuleCall_1_0_1; }
+		public RuleCall getOffsetNUMBERTerminalRuleCall_1_0_2() { return cOffsetNUMBERTerminalRuleCall_1_0_2; }
 		
-		//(',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))?)?
+		//(',' period=('ONCE' | 'STOP' | ID | NUMBER))?
 		public Group getGroup_2() { return cGroup_2; }
 		
 		//','
 		public Keyword getCommaKeyword_2_0() { return cCommaKeyword_2_0; }
 		
-		//offset=(ID | NUMBER)
-		public Assignment getOffsetAssignment_2_1() { return cOffsetAssignment_2_1; }
+		//period=('ONCE' | 'STOP' | ID | NUMBER)
+		public Assignment getPeriodAssignment_2_1() { return cPeriodAssignment_2_1; }
 		
-		//(ID | NUMBER)
-		public Alternatives getOffsetAlternatives_2_1_0() { return cOffsetAlternatives_2_1_0; }
+		//('ONCE' | 'STOP' | ID | NUMBER)
+		public Alternatives getPeriodAlternatives_2_1_0() { return cPeriodAlternatives_2_1_0; }
 		
-		//ID
-		public RuleCall getOffsetIDTerminalRuleCall_2_1_0_0() { return cOffsetIDTerminalRuleCall_2_1_0_0; }
+		//'ONCE'
+		public Keyword getPeriodONCEKeyword_2_1_0_0() { return cPeriodONCEKeyword_2_1_0_0; }
 		
-		//NUMBER
-		public RuleCall getOffsetNUMBERTerminalRuleCall_2_1_0_1() { return cOffsetNUMBERTerminalRuleCall_2_1_0_1; }
-		
-		//(',' count=(ID | NUMBER))?
-		public Group getGroup_2_2() { return cGroup_2_2; }
-		
-		//','
-		public Keyword getCommaKeyword_2_2_0() { return cCommaKeyword_2_2_0; }
-		
-		//count=(ID | NUMBER)
-		public Assignment getCountAssignment_2_2_1() { return cCountAssignment_2_2_1; }
-		
-		//(ID | NUMBER)
-		public Alternatives getCountAlternatives_2_2_1_0() { return cCountAlternatives_2_2_1_0; }
+		//'STOP'
+		public Keyword getPeriodSTOPKeyword_2_1_0_1() { return cPeriodSTOPKeyword_2_1_0_1; }
 		
 		//ID
-		public RuleCall getCountIDTerminalRuleCall_2_2_1_0_0() { return cCountIDTerminalRuleCall_2_2_1_0_0; }
+		public RuleCall getPeriodIDTerminalRuleCall_2_1_0_2() { return cPeriodIDTerminalRuleCall_2_1_0_2; }
 		
 		//NUMBER
-		public RuleCall getCountNUMBERTerminalRuleCall_2_2_1_0_1() { return cCountNUMBERTerminalRuleCall_2_2_1_0_1; }
+		public RuleCall getPeriodNUMBERTerminalRuleCall_2_1_0_3() { return cPeriodNUMBERTerminalRuleCall_2_1_0_3; }
 		
 		//')'
 		public Keyword getRightParenthesisKeyword_3() { return cRightParenthesisKeyword_3; }
@@ -1162,14 +1138,16 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	private final ModelElements pModel;
 	private final TargetElements pTarget;
 	private final ImportElements pImport;
+	private final ComponentElements pComponent;
 	private final ReactorElements pReactor;
 	private final CompositeElements pComposite;
+	private final ComponentBodyElements pComponentBody;
 	private final InputElements pInput;
 	private final OutputElements pOutput;
-	private final ClockElements pClock;
+	private final TimerElements pTimer;
+	private final ActionElements pAction;
 	private final ReactionElements pReaction;
 	private final PreambleElements pPreamble;
-	private final ConstructorElements pConstructor;
 	private final InstanceElements pInstance;
 	private final ConnectionElements pConnection;
 	private final AssignmentsElements pAssignments;
@@ -1177,7 +1155,7 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	private final GetsElements pGets;
 	private final ParamsElements pParams;
 	private final ParamElements pParam;
-	private final PeriodElements pPeriod;
+	private final TimingElements pTiming;
 	private final PortElements pPort;
 	private final SetsElements pSets;
 	private final TypeElements pType;
@@ -1198,14 +1176,16 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		this.pModel = new ModelElements();
 		this.pTarget = new TargetElements();
 		this.pImport = new ImportElements();
+		this.pComponent = new ComponentElements();
 		this.pReactor = new ReactorElements();
 		this.pComposite = new CompositeElements();
+		this.pComponentBody = new ComponentBodyElements();
 		this.pInput = new InputElements();
 		this.pOutput = new OutputElements();
-		this.pClock = new ClockElements();
+		this.pTimer = new TimerElements();
+		this.pAction = new ActionElements();
 		this.pReaction = new ReactionElements();
 		this.pPreamble = new PreambleElements();
-		this.pConstructor = new ConstructorElements();
 		this.pInstance = new InstanceElements();
 		this.pConnection = new ConnectionElements();
 		this.pAssignments = new AssignmentsElements();
@@ -1213,7 +1193,7 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		this.pGets = new GetsElements();
 		this.pParams = new ParamsElements();
 		this.pParam = new ParamElements();
-		this.pPeriod = new PeriodElements();
+		this.pTiming = new TimingElements();
 		this.pPort = new PortElements();
 		this.pSets = new SetsElements();
 		this.pType = new TypeElements();
@@ -1254,7 +1234,7 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	//Model:
 	//	target=Target
 	//	imports+=Import*
-	//	blocks+=(Reactor | Composite)+;
+	//	components+=Component+;
 	public ModelElements getModelAccess() {
 		return pModel;
 	}
@@ -1284,16 +1264,19 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		return getImportAccess().getRule();
 	}
 	
-	//// The following enforces the order of definitions:
-	//// inputs, outputs, clocks, etc.
+	//Component:
+	//	Reactor | Composite;
+	public ComponentElements getComponentAccess() {
+		return pComponent;
+	}
+	
+	public ParserRule getComponentRule() {
+		return getComponentAccess().getRule();
+	}
+	
 	//Reactor:
-	//	'reactor' name=ID parameters=Params? '{'
-	//	inputs+=Input*
-	//	outputs+=Output*
-	//	clocks+=Clock*
-	//	preamble=Preamble?
-	//	constructor=Constructor?
-	//	reactions+=Reaction*
+	//	'reactor'
+	//	componentBody=ComponentBody
 	//	'}';
 	public ReactorElements getReactorAccess() {
 		return pReactor;
@@ -1304,13 +1287,8 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	}
 	
 	//Composite:
-	//	'composite' name=ID parameters=Params? '{'
-	//	inputs+=Input*
-	//	outputs+=Output*
-	//	clocks+=Clock*
-	//	preamble=Preamble?
-	//	constructor=Constructor?
-	//	reactions+=Reaction*
+	//	'composite'
+	//	componentBody=ComponentBody
 	//	instances+=Instance*
 	//	connections+=Connection*
 	//	'}';
@@ -1320,6 +1298,22 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	
 	public ParserRule getCompositeRule() {
 		return getCompositeAccess().getRule();
+	}
+	
+	//// The following enforces the order of definitions:
+	//// inputs, outputs, timers and actions, preamble, reactions.
+	//ComponentBody:
+	//	name=ID parameters=Params? '{'
+	//	inputs+=Input*
+	//	outputs+=Output* (timers+=Timer | actions+=Action)*
+	//	preamble=Preamble?
+	//	reactions+=Reaction*;
+	public ComponentBodyElements getComponentBodyAccess() {
+		return pComponentBody;
+	}
+	
+	public ParserRule getComponentBodyRule() {
+		return getComponentBodyAccess().getRule();
 	}
 	
 	///////////// Statements
@@ -1344,14 +1338,24 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		return getOutputAccess().getRule();
 	}
 	
-	//Clock:
-	//	'clock' name=(ID | 'clock') period=Period? ';';
-	public ClockElements getClockAccess() {
-		return pClock;
+	//Timer:
+	//	'timer' name=(ID | 'timer') timing=Timing? ';';
+	public TimerElements getTimerAccess() {
+		return pTimer;
 	}
 	
-	public ParserRule getClockRule() {
-		return getClockAccess().getRule();
+	public ParserRule getTimerRule() {
+		return getTimerAccess().getRule();
+	}
+	
+	//Action:
+	//	'action' name=(ID | 'action') timing=Timing? ';';
+	public ActionElements getActionAccess() {
+		return pAction;
+	}
+	
+	public ParserRule getActionRule() {
+		return getActionAccess().getRule();
 	}
 	
 	//Reaction:
@@ -1375,16 +1379,6 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	
 	public ParserRule getPreambleRule() {
 		return getPreambleAccess().getRule();
-	}
-	
-	//Constructor:
-	//	'constructor' code=CODE;
-	public ConstructorElements getConstructorAccess() {
-		return pConstructor;
-	}
-	
-	public ParserRule getConstructorRule() {
-		return getConstructorAccess().getRule();
 	}
 	
 	//// FIXME: reactorClass should ideally be something like [Reactor|Composite],
@@ -1464,17 +1458,18 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		return getParamAccess().getRule();
 	}
 	
-	//// Periodicity spec for a trigger.
-	//// E.g. (1000) or (1000, 100) or (1000, 100, 10)
-	//// The latter means fire with period 1000, offset 100, 10 times.
-	//Period:
-	//	'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))?)? ')';
-	public PeriodElements getPeriodAccess() {
-		return pPeriod;
+	//// Timing specification for a timer: (offset, period)
+	//// Can be empty, which means (0,0) = (NOW, ONCE).
+	//// E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
+	//// The latter means fire with period 1000, offset 100.
+	//Timing:
+	//	'(' offset=('NOW' | ID | NUMBER) (',' period=('ONCE' | 'STOP' | ID | NUMBER))? ')';
+	public TimingElements getTimingAccess() {
+		return pTiming;
 	}
 	
-	public ParserRule getPeriodRule() {
-		return getPeriodAccess().getRule();
+	public ParserRule getTimingRule() {
+		return getTimingAccess().getRule();
 	}
 	
 	//// 'input' and 'output' are allowed port names despite being keywords.
