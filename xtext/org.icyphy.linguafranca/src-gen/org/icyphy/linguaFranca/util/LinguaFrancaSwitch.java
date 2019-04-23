@@ -94,10 +94,18 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
+      case LinguaFrancaPackage.COMPONENT:
+      {
+        Component component = (Component)theEObject;
+        T result = caseComponent(component);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
       case LinguaFrancaPackage.REACTOR:
       {
         Reactor reactor = (Reactor)theEObject;
         T result = caseReactor(reactor);
+        if (result == null) result = caseComponent(reactor);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -105,6 +113,14 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
       {
         Composite composite = (Composite)theEObject;
         T result = caseComposite(composite);
+        if (result == null) result = caseComponent(composite);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case LinguaFrancaPackage.COMPONENT_BODY:
+      {
+        ComponentBody componentBody = (ComponentBody)theEObject;
+        T result = caseComponentBody(componentBody);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -122,10 +138,17 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
-      case LinguaFrancaPackage.CLOCK:
+      case LinguaFrancaPackage.TIMER:
       {
-        Clock clock = (Clock)theEObject;
-        T result = caseClock(clock);
+        Timer timer = (Timer)theEObject;
+        T result = caseTimer(timer);
+        if (result == null) result = defaultCase(theEObject);
+        return result;
+      }
+      case LinguaFrancaPackage.ACTION:
+      {
+        Action action = (Action)theEObject;
+        T result = caseAction(action);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -140,13 +163,6 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
       {
         Preamble preamble = (Preamble)theEObject;
         T result = casePreamble(preamble);
-        if (result == null) result = defaultCase(theEObject);
-        return result;
-      }
-      case LinguaFrancaPackage.CONSTRUCTOR:
-      {
-        Constructor constructor = (Constructor)theEObject;
-        T result = caseConstructor(constructor);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -199,10 +215,10 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
-      case LinguaFrancaPackage.PERIOD:
+      case LinguaFrancaPackage.TIMING:
       {
-        Period period = (Period)theEObject;
-        T result = casePeriod(period);
+        Timing timing = (Timing)theEObject;
+        T result = caseTiming(timing);
         if (result == null) result = defaultCase(theEObject);
         return result;
       }
@@ -266,6 +282,22 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
   }
 
   /**
+   * Returns the result of interpreting the object as an instance of '<em>Component</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Component</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseComponent(Component object)
+  {
+    return null;
+  }
+
+  /**
    * Returns the result of interpreting the object as an instance of '<em>Reactor</em>'.
    * <!-- begin-user-doc -->
    * This implementation returns null;
@@ -293,6 +325,22 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
    * @generated
    */
   public T caseComposite(Composite object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Component Body</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Component Body</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseComponentBody(ComponentBody object)
   {
     return null;
   }
@@ -330,17 +378,33 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
   }
 
   /**
-   * Returns the result of interpreting the object as an instance of '<em>Clock</em>'.
+   * Returns the result of interpreting the object as an instance of '<em>Timer</em>'.
    * <!-- begin-user-doc -->
    * This implementation returns null;
    * returning a non-null result will terminate the switch.
    * <!-- end-user-doc -->
    * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Clock</em>'.
+   * @return the result of interpreting the object as an instance of '<em>Timer</em>'.
    * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
    * @generated
    */
-  public T caseClock(Clock object)
+  public T caseTimer(Timer object)
+  {
+    return null;
+  }
+
+  /**
+   * Returns the result of interpreting the object as an instance of '<em>Action</em>'.
+   * <!-- begin-user-doc -->
+   * This implementation returns null;
+   * returning a non-null result will terminate the switch.
+   * <!-- end-user-doc -->
+   * @param object the target of the switch.
+   * @return the result of interpreting the object as an instance of '<em>Action</em>'.
+   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+   * @generated
+   */
+  public T caseAction(Action object)
   {
     return null;
   }
@@ -373,22 +437,6 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
    * @generated
    */
   public T casePreamble(Preamble object)
-  {
-    return null;
-  }
-
-  /**
-   * Returns the result of interpreting the object as an instance of '<em>Constructor</em>'.
-   * <!-- begin-user-doc -->
-   * This implementation returns null;
-   * returning a non-null result will terminate the switch.
-   * <!-- end-user-doc -->
-   * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Constructor</em>'.
-   * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
-   * @generated
-   */
-  public T caseConstructor(Constructor object)
   {
     return null;
   }
@@ -506,17 +554,17 @@ public class LinguaFrancaSwitch<T> extends Switch<T>
   }
 
   /**
-   * Returns the result of interpreting the object as an instance of '<em>Period</em>'.
+   * Returns the result of interpreting the object as an instance of '<em>Timing</em>'.
    * <!-- begin-user-doc -->
    * This implementation returns null;
    * returning a non-null result will terminate the switch.
    * <!-- end-user-doc -->
    * @param object the target of the switch.
-   * @return the result of interpreting the object as an instance of '<em>Period</em>'.
+   * @return the result of interpreting the object as an instance of '<em>Timing</em>'.
    * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
    * @generated
    */
-  public T casePeriod(Period object)
+  public T caseTiming(Timing object)
   {
     return null;
   }

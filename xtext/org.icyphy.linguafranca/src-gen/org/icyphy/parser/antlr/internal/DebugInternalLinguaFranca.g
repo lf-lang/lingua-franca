@@ -8,10 +8,8 @@ ruleModel:
 	ruleTarget
 	ruleImport
 	*
-	(
-		ruleReactor
-		    |ruleComposite
-	)+
+	ruleComponent
+	+
 ;
 
 // Rule Target
@@ -28,31 +26,35 @@ ruleImport:
 	';'
 ;
 
+// Rule Component
+ruleComponent:
+	(
+		ruleReactor
+		    |
+		ruleComposite
+	)
+;
+
 // Rule Reactor
 ruleReactor:
 	'reactor'
-	RULE_ID
-	ruleParams
-	?
-	'{'
-	ruleInput
-	*
-	ruleOutput
-	*
-	ruleClock
-	*
-	rulePreamble
-	?
-	ruleConstructor
-	?
-	ruleReaction
-	*
+	ruleComponentBody
 	'}'
 ;
 
 // Rule Composite
 ruleComposite:
 	'composite'
+	ruleComponentBody
+	ruleInstance
+	*
+	ruleConnection
+	*
+	'}'
+;
+
+// Rule ComponentBody
+ruleComponentBody:
 	RULE_ID
 	ruleParams
 	?
@@ -61,19 +63,15 @@ ruleComposite:
 	*
 	ruleOutput
 	*
-	ruleClock
-	*
+	(
+		ruleTimer
+		    |
+		ruleAction
+	)*
 	rulePreamble
-	?
-	ruleConstructor
 	?
 	ruleReaction
 	*
-	ruleInstance
-	*
-	ruleConnection
-	*
-	'}'
 ;
 
 // Rule Input
@@ -104,14 +102,26 @@ ruleOutput:
 	';'
 ;
 
-// Rule Clock
-ruleClock:
-	'clock'
+// Rule Timer
+ruleTimer:
+	'timer'
 	(
 		RULE_ID
-		    |'clock'
+		    |'timer'
 	)
-	rulePeriod
+	ruleTiming
+	?
+	';'
+;
+
+// Rule Action
+ruleAction:
+	'action'
+	(
+		RULE_ID
+		    |'action'
+	)
+	ruleTiming
 	?
 	';'
 ;
@@ -140,12 +150,6 @@ ruleReaction:
 // Rule Preamble
 rulePreamble:
 	'preamble'
-	RULE_CODE
-;
-
-// Rule Constructor
-ruleConstructor:
-	'constructor'
 	RULE_CODE
 ;
 
@@ -223,26 +227,25 @@ ruleParam:
 	)?
 ;
 
-// Rule Period
-rulePeriod:
+// Rule Timing
+ruleTiming:
 	'('
 	(
+		'NOW'
+		    |
 		RULE_ID
 		    |RULE_NUMBER
 	)
 	(
 		','
 		(
+			'ONCE'
+			    |
+			'STOP'
+			    |
 			RULE_ID
 			    |RULE_NUMBER
 		)
-		(
-			','
-			(
-				RULE_ID
-				    |RULE_NUMBER
-			)
-		)?
 	)?
 	')'
 ;

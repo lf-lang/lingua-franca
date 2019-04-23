@@ -91,6 +91,11 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
         return createImportAdapter();
       }
       @Override
+      public Adapter caseComponent(Component object)
+      {
+        return createComponentAdapter();
+      }
+      @Override
       public Adapter caseReactor(Reactor object)
       {
         return createReactorAdapter();
@@ -99,6 +104,11 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
       public Adapter caseComposite(Composite object)
       {
         return createCompositeAdapter();
+      }
+      @Override
+      public Adapter caseComponentBody(ComponentBody object)
+      {
+        return createComponentBodyAdapter();
       }
       @Override
       public Adapter caseInput(Input object)
@@ -111,9 +121,14 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
         return createOutputAdapter();
       }
       @Override
-      public Adapter caseClock(Clock object)
+      public Adapter caseTimer(Timer object)
       {
-        return createClockAdapter();
+        return createTimerAdapter();
+      }
+      @Override
+      public Adapter caseAction(Action object)
+      {
+        return createActionAdapter();
       }
       @Override
       public Adapter caseReaction(Reaction object)
@@ -124,11 +139,6 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
       public Adapter casePreamble(Preamble object)
       {
         return createPreambleAdapter();
-      }
-      @Override
-      public Adapter caseConstructor(Constructor object)
-      {
-        return createConstructorAdapter();
       }
       @Override
       public Adapter caseInstance(Instance object)
@@ -166,9 +176,9 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
         return createParamAdapter();
       }
       @Override
-      public Adapter casePeriod(Period object)
+      public Adapter caseTiming(Timing object)
       {
-        return createPeriodAdapter();
+        return createTimingAdapter();
       }
       @Override
       public Adapter caseSets(Sets object)
@@ -243,6 +253,21 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
+   * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.Component <em>Component</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see org.icyphy.linguaFranca.Component
+   * @generated
+   */
+  public Adapter createComponentAdapter()
+  {
+    return null;
+  }
+
+  /**
    * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.Reactor <em>Reactor</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
@@ -268,6 +293,21 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
    * @generated
    */
   public Adapter createCompositeAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.ComponentBody <em>Component Body</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see org.icyphy.linguaFranca.ComponentBody
+   * @generated
+   */
+  public Adapter createComponentBodyAdapter()
   {
     return null;
   }
@@ -303,16 +343,31 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.Clock <em>Clock</em>}'.
+   * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.Timer <em>Timer</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
    * it's useful to ignore a case when inheritance will catch all the cases anyway.
    * <!-- end-user-doc -->
    * @return the new adapter.
-   * @see org.icyphy.linguaFranca.Clock
+   * @see org.icyphy.linguaFranca.Timer
    * @generated
    */
-  public Adapter createClockAdapter()
+  public Adapter createTimerAdapter()
+  {
+    return null;
+  }
+
+  /**
+   * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.Action <em>Action</em>}'.
+   * <!-- begin-user-doc -->
+   * This default implementation returns null so that we can easily ignore cases;
+   * it's useful to ignore a case when inheritance will catch all the cases anyway.
+   * <!-- end-user-doc -->
+   * @return the new adapter.
+   * @see org.icyphy.linguaFranca.Action
+   * @generated
+   */
+  public Adapter createActionAdapter()
   {
     return null;
   }
@@ -343,21 +398,6 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
    * @generated
    */
   public Adapter createPreambleAdapter()
-  {
-    return null;
-  }
-
-  /**
-   * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.Constructor <em>Constructor</em>}'.
-   * <!-- begin-user-doc -->
-   * This default implementation returns null so that we can easily ignore cases;
-   * it's useful to ignore a case when inheritance will catch all the cases anyway.
-   * <!-- end-user-doc -->
-   * @return the new adapter.
-   * @see org.icyphy.linguaFranca.Constructor
-   * @generated
-   */
-  public Adapter createConstructorAdapter()
   {
     return null;
   }
@@ -468,16 +508,16 @@ public class LinguaFrancaAdapterFactory extends AdapterFactoryImpl
   }
 
   /**
-   * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.Period <em>Period</em>}'.
+   * Creates a new adapter for an object of class '{@link org.icyphy.linguaFranca.Timing <em>Timing</em>}'.
    * <!-- begin-user-doc -->
    * This default implementation returns null so that we can easily ignore cases;
    * it's useful to ignore a case when inheritance will catch all the cases anyway.
    * <!-- end-user-doc -->
    * @return the new adapter.
-   * @see org.icyphy.linguaFranca.Period
+   * @see org.icyphy.linguaFranca.Timing
    * @generated
    */
-  public Adapter createPeriodAdapter()
+  public Adapter createTimingAdapter()
   {
     return null;
   }

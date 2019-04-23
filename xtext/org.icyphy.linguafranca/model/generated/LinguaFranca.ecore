@@ -6,8 +6,8 @@
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="imports" upperBound="-1"
         eType="#//Import" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="blocks" upperBound="-1"
-        eType="ecore:EClass http://www.eclipse.org/emf/2002/Ecore#//EObject" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="components" upperBound="-1"
+        eType="#//Component" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Target">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
@@ -15,43 +15,33 @@
   <eClassifiers xsi:type="ecore:EClass" name="Import">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Reactor">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="#//Params"
+  <eClassifiers xsi:type="ecore:EClass" name="Component">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="componentBody" eType="#//ComponentBody"
         containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="inputs" upperBound="-1"
-        eType="#//Input" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="outputs" upperBound="-1"
-        eType="#//Output" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="clocks" upperBound="-1"
-        eType="#//Clock" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="preamble" eType="#//Preamble"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="constructor" eType="#//Constructor"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="reactions" upperBound="-1"
-        eType="#//Reaction" containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Composite">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="#//Params"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="inputs" upperBound="-1"
-        eType="#//Input" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="outputs" upperBound="-1"
-        eType="#//Output" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="clocks" upperBound="-1"
-        eType="#//Clock" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="preamble" eType="#//Preamble"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="constructor" eType="#//Constructor"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="reactions" upperBound="-1"
-        eType="#//Reaction" containment="true"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Reactor" eSuperTypes="#//Component"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Composite" eSuperTypes="#//Component">
     <eStructuralFeatures xsi:type="ecore:EReference" name="instances" upperBound="-1"
         eType="#//Instance" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="connections" upperBound="-1"
         eType="#//Connection" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="ComponentBody">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="#//Params"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="inputs" upperBound="-1"
+        eType="#//Input" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="outputs" upperBound="-1"
+        eType="#//Output" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="timers" upperBound="-1"
+        eType="#//Timer" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="actions" upperBound="-1"
+        eType="#//Action" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="preamble" eType="#//Preamble"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="reactions" upperBound="-1"
+        eType="#//Reaction" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Input">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
@@ -61,9 +51,14 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Clock">
+  <eClassifiers xsi:type="ecore:EClass" name="Timer">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="period" eType="#//Period"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="timing" eType="#//Timing"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Action">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="timing" eType="#//Timing"
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Reaction">
@@ -74,9 +69,6 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="code" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Preamble">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="code" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-  </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Constructor">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="code" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Instance">
@@ -110,10 +102,9 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Period">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="period" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Timing">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="offset" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="count" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="period" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Sets">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="sets" unique="false" upperBound="-1"

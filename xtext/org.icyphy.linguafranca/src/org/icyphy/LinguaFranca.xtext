@@ -6,7 +6,7 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 Model:
 	target=Target 
 	(imports += Import)*
-	(blocks += (Reactor | Composite))+
+	(components += Component)+
 	;
 
 /////////// Top level elements
@@ -16,29 +16,28 @@ Target:
 Import:
 	'import' name=Path ';';
 
-// The following enforces the order of definitions:
-// inputs, outputs, clocks, etc.
+Component:
+	Reactor | Composite;
+
 Reactor:
-	'reactor' name=ID parameters=Params? '{'
-	(inputs += Input)*
-	(outputs += Output)*
-	(clocks += Clock)*
-	(preamble = Preamble)?
-	(constructor = Constructor)?
-	(reactions += Reaction)*
-	'}';
-	
+   	'reactor'
+   	componentBody=ComponentBody
+   	'}';
 Composite:
-	'composite' name=ID parameters=Params? '{'
-	(inputs += Input)*
-	(outputs += Output)*
-	(clocks += Clock)*
-	(preamble = Preamble)?
-	(constructor = Constructor)?
-	(reactions += Reaction)*
-	(instances += Instance)*
-	(connections += Connection)*
-	'}';
+   	'composite'
+   	componentBody=ComponentBody
+   	(instances += Instance)*
+   	(connections += Connection)*
+   	'}';
+// The following enforces the order of definitions:
+// inputs, outputs, timers and actions, preamble, reactions.
+ComponentBody:
+	name=ID parameters=Params? '{'
+   	(inputs += Input)*
+   	(outputs += Output)*
+   	((timers += Timer) | (actions += Action))*
+   	(preamble = Preamble)?
+   	(reactions += Reaction)*;
 	
 /////////// Statements
 
@@ -49,9 +48,12 @@ Input:
 Output:
 	'output' name=(ID | 'output') (':' type=Type)? ';';
 
-Clock:
-	'clock' name=(ID | 'clock') period=Period?';';
-	
+Timer:
+	'timer' name=(ID | 'timer') timing=Timing?';';
+
+Action:
+	'action' name=(ID | 'action') timing=Timing?';';
+
 Reaction:
 	'reaction' 
 	('(' (triggers+=ID (',' triggers+=ID)*)? ')')?
@@ -61,9 +63,6 @@ Reaction:
 	
 Preamble:
 	'preamble' code=CODE;
-
-Constructor:
-	'constructor' code=CODE;
 	
 // FIXME: reactorClass should ideally be something like [Reactor|Composite],
 // to get cross references to work. But this doesn't work for importing
@@ -94,11 +93,12 @@ Params:
 Param:
     'const'? name=ID (':' type=Type)? ('(' value=Value ')')?;
 
-// Periodicity spec for a trigger.
-// E.g. (1000) or (1000, 100) or (1000, 100, 10)
-// The latter means fire with period 1000, offset 100, 10 times.
-Period:
-	'(' period=(ID | NUMBER) (',' offset=(ID | NUMBER) (',' count=(ID | NUMBER))? )?')';
+// Timing specification for a timer: (offset, period)
+// Can be empty, which means (0,0) = (NOW, ONCE).
+// E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
+// The latter means fire with period 1000, offset 100.
+Timing:
+	'(' offset=('NOW' | ID | NUMBER) (',' period=('ONCE' | 'STOP' | ID | NUMBER))?')';
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
