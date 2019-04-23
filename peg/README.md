@@ -12,12 +12,20 @@ npm install
 npm run compile
 ```
 
-You might also need to globally install typescript, `npm install -g typscript`.
+You might also need to globally install typescript, `npm install -g typescript`.
 Depending on your installation you might need to run this as root: `sudo npm install -g typescript`
+
+## Generating the Parser
+
+To generate the parser you need pegjs
+```
+npm install pegjs
+pegjs lf.pegjs
+```
 
 ## Running the example
 
-Start vscode (prom the `lsp` folder). If you don't have vscode installed you can get it from: https://code.visualstudio.com/
+Start vscode (from the `lsp` folder). If you don't have vscode installed you can get it from: https://code.visualstudio.com/
 If you're on a Mac, follow the instructions [here](https://code.visualstudio.com/docs/setup/mac) to add the `code` command to your `$PATH`.
 
 ```
