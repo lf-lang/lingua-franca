@@ -22,7 +22,7 @@ import org.icyphy.linguaFranca.Timer
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
-	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors'}
+	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C'}
 	
 	var parameters = newHashSet()
 	var inputs = newHashSet()
