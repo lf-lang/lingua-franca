@@ -79,7 +79,7 @@ class CGenerator {
 		
 		reactionCount = 1   // Start reaction count at 1.
 		
-		pr(boilerplate)
+		pr(typedefs)
 
 		// Record timers.
 		var count = 0;
@@ -104,7 +104,7 @@ class CGenerator {
 			timers.put(timer.name, timing)
 		}
 		
-		/*
+		/* FIXME
 		if (component.componentBody.preamble !== null) {
 			pr("// *********** From the preamble, verbatim:")
 			pr(removeCodeDelimiter(component.componentBody.preamble.code))
@@ -117,8 +117,7 @@ class CGenerator {
 		generateReactions(component.componentBody.reactions)
 		// Generate trigger table
 		generateTriggerTable()
-		// initialize function (initialize + triggers scheduling + input handlers)
-		// generateInitialize(component.componentBody.timers, component.componentBody.reactions)
+		pr(initialize)
 	}
 	
 	/** Generate the setup function definition for a reactor or composite.
@@ -292,6 +291,7 @@ class CGenerator {
 		// timerIDs // map from timer name to timer ID
 		// timerReactions // map from timer name to a list of function names
 		val triggerTable = new StringBuffer()
+		var count = 0
 		for (timerName: timerReactions.keySet) {
 			val numberOfReactionsTriggered = timerReactions.get(timerName).length
 			var names = new StringBuffer();
@@ -316,8 +316,10 @@ class CGenerator {
 			}
 			triggerTable.append("&")
 			triggerTable.append(timerName)
+			count++
 		}
 		pr('trigger_t* triggerTable[] = {' + triggerTable + '};')
+		pr('int triggerTableSize = ' + count + ';')
 	}
 		
 	/** Generate an instantiate statement followed by any required parameter
@@ -434,24 +436,53 @@ class CGenerator {
         }
 	}
 	
-		val static boilerplate = '''
-		// ********* Boilerplate included for all actors.
+	val static typedefs = '''
+		// ********* Type definitions included for all actors.
 		#include <stdio.h>
-		typedef int time_t;
-		time_t currentTime;
+		// NOTE: Units for time are dealt with at compile time.
+		typedef struct {
+		  int time;         // a point in time
+		  int microstep;    // superdense time index
+		} time_t;
+		
+		// Intervals of time do not involve the microstep.
+		typedef int interval_t;
+				
 		typedef struct {
 			void** reactions; // FIXME: more specific type to include argument types.
-			time_t minOffset;
-			time_t minPeriod;
+			interval_t minOffset;
+			interval_t minPeriod;
 		} trigger_t;
 		
+		// Event to put in the event queue.
+		struct {
+		  time_t time;       // time of the event
+		  int trigger_id;    // payload is a trigger ID
+		} event_t;
+		
+		// Handles for scheduled triggers.
+		typedef int handle_t;
+	'''
+		
+	val static initialize = '''
+		time_t currentTime = {0, 0}; // FIXME: This should not be modifiable by reactors.
 		void initialize() {
-			currentTime = 0;
+			currentTime.time = 0; // FIXME: Obtain system time.
+		}
+		handle_t schedule(trigger_t* trigger, interval_t offset, interval_t period) {
+			printf("Scheduling %d, %d\n", trigger->minOffset, trigger->minPeriod);
+			return 0;
+		}
+		void startTimers() {
+		    for (int i=0; i < triggerTableSize; i++) {
+		        schedule(triggerTable[i], 0, 0); 
+		    }
 		}
 		int main(int argc, char* argv[]) {
 			initialize();
-			printf("Hello World at time %d\n", currentTime);
+			printf("Hello World at time %d\n", currentTime.time);
+			startTimers();
+			return 0;
 		}
-		// ********** End boilerplate
 	'''
 }
