@@ -61,8 +61,15 @@ handle_t schedule(trigger_t* trigger, interval_t delay) {
      e->tag.time = current_time.time;
      e->tag.microstep = current_time.microstep+1;
      e->trigger = trigger;
-     pqueue_insert(pq, eventQ);
+     pqueue_insert(eventQ, e);
 }
+
+typedef struct reaction_t {
+  void* func;
+  index_t index;
+  // add uses, produces, etc.
+  size_t pos;
+} reaction_t;
 
 reaction_t* next() {
   // wait until t >= T
@@ -73,7 +80,7 @@ reaction_t* next() {
 
   // while popping reactions from the reactionQ:
   // execute them, pop events off the eventQ and insert them into reactionQ
-  
+
 }
 
 int main() {
