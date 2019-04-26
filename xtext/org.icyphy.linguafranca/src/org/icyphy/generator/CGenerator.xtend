@@ -79,7 +79,9 @@ class CGenerator {
 		
 		reactionCount = 1   // Start reaction count at 1.
 		
-		pr(typedefs)
+		pr(includes)
+		pr(defines)
+		pr(declarations)
 
 		// Record timers.
 		var count = 0;
@@ -198,7 +200,7 @@ class CGenerator {
 		for (timer: timerReactions.keySet) {
 			val timerParams = timers.get(timer)
 			for (handler: timerReactions.get(timer)) {
-				pr('''schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
+				pr('''__schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
 			}
 		}
 		unindent()
@@ -208,7 +210,7 @@ class CGenerator {
 	/** Generate reaction functions definition for a reactor or a composite.
 	 */
 	def generateReactions(EList<Reaction> reactions) {
-		val functionName = "reaction" + reactionCount++
+		val functionName = "reaction_function" + reactionCount++
 		for (reaction: reactions) {
 			pr('''void «functionName»() {''')
 			indent()
@@ -295,16 +297,23 @@ class CGenerator {
 		for (timerName: timerReactions.keySet) {
 			val numberOfReactionsTriggered = timerReactions.get(timerName).length
 			var names = new StringBuffer();
+			var reactionCount = 0;
 			for (functionName: timerReactions.get(timerName)) {
+				// FIXME: 0, 0 are index and position. Index comes from topological sort.
+				// Position is a label to be written by the priority queue as a side effect of inserting.
+				var reactionName = 'reaction' + reactionCount++
+				pr('reaction_t ' + reactionName + ' = {' + functionName + ', 0, 0};')
 				if (names.length != 0) {
 					names.append(", ")
 				}
-				names.append(functionName)
+				names.append('&' + reactionName)
 			}
-			pr('void* reactionFunctions[' + numberOfReactionsTriggered + '] = {' + names + '};')
+			pr('reaction_t* reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
 			pr('trigger_t ' + timerName + ' = {')
 			indent()
-			pr('reactionFunctions, '
+			pr('reactions, '
+				+ numberOfReactionsTriggered
+				+ ', '
 				+ timers.get(timerName).offset
 				+ ', '
 				+ timers.get(timerName).period
@@ -435,53 +444,193 @@ class CGenerator {
         	code
         }
 	}
-	
-	val static typedefs = '''
-		// ********* Type definitions included for all actors.
+	// FIXME: pqueue.h and pqueue.c need to be copied to target directory.
+	val static includes = '''
 		#include <stdio.h>
+		#include <stdlib.h>
+		#include "pqueue.h"
+	'''
+	
+	// FIXME: May want these to application dependent, hence code generated.
+	val static defines = '''
+		#define INITIAL_TAG_QUEUE_SIZE 10
+		#define INITIAL_INDEX_QUEUE_SIZE 10
+	'''
+	
+	val static declarations = '''
+		// ********* Type definitions included for all actors.
 		// NOTE: Units for time are dealt with at compile time.
 		typedef struct {
 		  int time;         // a point in time
 		  int microstep;    // superdense time index
-		} time_t;
+		} instant_t;
 		
 		// Intervals of time do not involve the microstep.
 		typedef int interval_t;
-				
-		typedef struct {
-			void** reactions; // FIXME: more specific type to include argument types.
-			interval_t minOffset;
-			interval_t minPeriod;
-		} trigger_t;
 		
-		// Event to put in the event queue.
-		struct {
-		  time_t time;       // time of the event
-		  int trigger_id;    // payload is a trigger ID
-		} event_t;
-		
+		// Topological sort index for reactions.
+		typedef pqueue_pri_t index_t;
+						
 		// Handles for scheduled triggers.
 		typedef int handle_t;
+		
+		// Reaction function type
+		typedef void(*reaction_function_t)(void);
+
+		// A reaction.
+		typedef struct reaction_t {
+		  reaction_function_t function;
+		  index_t index;
+		  // FIXME: add uses, produces, etc.?
+		  size_t pos; // Used by priority queue.
+		} reaction_t;
+		
+		typedef struct {
+			reaction_t** reactions;
+			int number_of_reactions;
+			interval_t offset; // For an action, this will be a minimum delay.
+			interval_t period;
+		} trigger_t;		
+
+		// Event to put in the event queue.
+		typedef struct event_t {
+		  instant_t tag;      // instant of the event (time, microstep)
+		  trigger_t* trigger;
+		  size_t pos;         // position in the priority queue 
+		} event_t;
+
+		instant_t current_time = {0, 0}; // FIXME: This should not be modifiable by reactors.
 	'''
 		
 	val static initialize = '''
-		time_t currentTime = {0, 0}; // FIXME: This should not be modifiable by reactors.
-		void initialize() {
-			currentTime.time = 0; // FIXME: Obtain system time.
+		
+		// Compare priorities.
+		static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
+		  return (next < curr);
 		}
-		handle_t schedule(trigger_t* trigger, interval_t offset, interval_t period) {
-			printf("Scheduling %d, %d\n", trigger->minOffset, trigger->minPeriod);
-			return 0;
+		// Get priorities based on tags (time and microstep).
+		// Used for sorting event_t structs.
+		static pqueue_pri_t get_tag_pri(void *a) {
+		  // stick the time and microstep together into an unsigned long long
+		  return ((pqueue_pri_t)(((event_t*) a)->tag.time) << 32) | (pqueue_pri_t)(((event_t*) a)->tag.microstep);
+		}
+		// Get priorities based on indices.
+		// Used for sorting reaction_t structs.
+		static pqueue_pri_t get_index_pri(void *a) {
+		  // stick the time and microstep together into an unsigned long long
+		  return ((reaction_t*) a)->index;
+		}
+		// Set priority.
+		static void set_pri(void *a, pqueue_pri_t pri) {
+		  // ignore this; priorities are fixed
+		}
+		// Get position in the queue.
+		static size_t get_pos(void *a) {
+		  return ((event_t*) a)->pos;
+		}
+		// Set position.
+		static void set_pos(void *a, size_t pos) {
+		  ((event_t*) a)->pos = pos;
+		}
+		// Priority queues.
+		pqueue_t* eventQ;     // For sorting by tag (time, microstep)
+		pqueue_t* reactionQ;  // For sorting by index (topological sort)
+		
+		handle_t __handle = 0;
+		
+		// Schedule the specified trigger at current_time plus the delay.
+		handle_t __schedule(trigger_t* trigger, interval_t delay) {
+			printf("Scheduling %d, %d\n", trigger->offset + delay, trigger->period);
+		    event_t* e = malloc(sizeof(struct event_t));
+		    e->tag.time = current_time.time + delay;
+		    if (delay == 0) {
+		    	e->tag.microstep = current_time.microstep + 1;
+		    } else {
+		    	e->tag.microstep = 0;
+		    }
+		    e->trigger = trigger;
+		    // FIXME: If there already is an event in the queue with the
+		    // same tag and trigger, then replace it rather than adding another
+		    // one (replacement is not needed until these carry arguments).
+		    // This should be fixed in the pqueue_insert() function.
+		    pqueue_insert(eventQ, e);
+		    // FIXME: make a record of handle and implement unschedule.
+		    return __handle++;
+		}
+		// Schedule the specified trigger at current_time plus the
+		// offset declared in the trigger plus the extra_delay.
+		handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
+			return __schedule(trigger, trigger->offset + extra_delay);
+		}
+		// Wait until physical time matches or exceeds the time of the least tag
+		// on the event queue. If theres is no event in the queue, return 0.
+		// After this wait, advance current_time to match
+		// this tag. Then pop the next event(s) from the
+		// event queue that all have the same tag, and extract from those events
+		// the reactions that are to be invoked at this logical time.
+		// Sort those reactions by index (determined by a topological sort)
+		// and then execute the reactions in order. Each reaction may produce
+		// outputs, which places additional reactions into the index-ordered
+		// priority queue. All of those will also be executed in order of indices.
+		// Finally, return 1.
+		int next() {
+			event_t* event = pqueue_peek(eventQ);
+			if (event == NULL) {
+				return 0;
+			}
+		  	// FIXME: Wait until physical time >= event.tag.time
+		
+			// Advance current time.
+			current_time.time = event->tag.time;
+			current_time.microstep = event->tag.microstep;
+			
+		  	// Pop all events from eventQ with timestamp equal to current_time
+		  	// stick them into reaction.
+		  	do {
+		  	 	event = pqueue_pop(eventQ);
+		  	 	for (int i = 0; i < event->trigger->number_of_reactions; i++) {
+		  	 		// FIXME: As above, don't insert duplicate reactions.
+		  	 		// Same fix in pqueue_insert should work.
+		  	 		pqueue_insert(reactionQ, event->trigger->reactions[i]);
+		  	 	}
+		  	 	if (event->trigger->period > 0) {
+		  	 		// Reschedule the trigger.
+		  	 		__schedule(event->trigger, event->trigger->period);
+		  	 	}
+		  	 	
+				// FIXME: Recycle this event instead of freeing it.
+				free(event);
+				
+				event = pqueue_peek(eventQ);
+		  	} while(event != NULL
+		  			&& event->tag.time == current_time.time
+		  			&& event->tag.microstep == current_time.microstep);
+		
+			// Handle reactions.
+			while(pqueue_size(reactionQ) > 0) {
+				reaction_t* reaction = pqueue_pop(reactionQ);
+				reaction->function();
+			}
+			
+			return 1;
+		}
+		
+		void initialize() {
+			current_time.time = 0; // FIXME: Obtain system time.
+			eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, set_pri, get_pos, set_pos);
+			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, set_pri, get_pos, set_pos);
 		}
 		void startTimers() {
 		    for (int i=0; i < triggerTableSize; i++) {
-		        schedule(triggerTable[i], 0, 0); 
+		        __schedule(triggerTable[i], 0); 
 		    }
 		}
 		int main(int argc, char* argv[]) {
 			initialize();
-			printf("Hello World at time %d\n", currentTime.time);
+			printf("Hello World at time %d\n", current_time.time);
 			startTimers();
+			// FIXME: Need stopping conditions.
+			while (next() != 0);
 			return 0;
 		}
 	'''
