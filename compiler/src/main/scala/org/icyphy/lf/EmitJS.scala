@@ -26,7 +26,7 @@ function schedule(trigger, time, isPeriodic) {
 }
 function setUnbound(port, value) {
     if (!port) {
-        throw \"Illegal reference to undeclared output.\";
+        throw 'Illegal reference to undeclared output.';
     }
     this.send(port, value);
 }
