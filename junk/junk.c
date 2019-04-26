@@ -1,6 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <time.h>
+#include <unistd.h>
 #include "pqueue.h"
+
+#define CLOCKID CLOCK_REALTIME
+#define errExit(msg) do { perror(msg); exit(EXIT_FAILURE); } while (0)
+#define SIG SIGRTMIN
+
+_Bool check = 0;
 
 typedef int interval_t;
 
@@ -11,8 +20,7 @@ typedef int handle_t;
 typedef struct instant_t {
   int time;         // a point in time
   int microstep;    // superdense time index
-  size_t pos;
-} instant_t; // FIXME: maybe call it tick?
+} instant_t;
 
 typedef struct trigger_t {
   void** reactions; // FIXME: more specific type to include argument types.
@@ -54,6 +62,18 @@ static void set_pos(void *a, size_t pos) {
   ((event_t *) a)->pos = pos;
 }
 
+static void handler(int sig, siginfo_t *si, void *uc) {
+  /* Note: calling printf() from a signal handler is not safe
+    (and should not be done in production programs), since
+    printf() is not async-signal-safe; see signal-safety(7).
+    Nevertheless, we use printf() here as a simple way of
+    showing that the handler was called. */
+
+  printf("Caught signal %d\n", sig);
+  check = 1;
+  //signal(sig, SIG_IGN); // This is to stop the timer
+}
+
 pqueue_t* eventQ;
 
 handle_t schedule(trigger_t* trigger, interval_t delay) {
@@ -83,8 +103,52 @@ reaction_t* next() {
 
 }
 
+
 int main() {
   eventQ = pqueue_init(10, cmp_pri, get_pri, set_pri, get_pos, set_pos);
   trigger_t trigger = {NULL, 0, 0};
   schedule(&trigger, 0);
+
+  timer_t timerid;
+  struct sigevent sev;
+  struct itimerspec its;
+  long long freq_nanosecs;
+  sigset_t mask;
+  struct sigaction sa;
+
+   /* Establish handler for timer signal */
+  printf("Establishing handler for signal %d\n", SIG);
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = handler;
+  sigemptyset(&sa.sa_mask);
+  if (sigaction(SIG, &sa, NULL) == -1)
+    errExit("sigaction");
+
+  /* Create the timer */
+  sev.sigev_notify = SIGEV_SIGNAL;
+  sev.sigev_signo = SIG;
+  sev.sigev_value.sival_ptr = &timerid;
+  if (timer_create(CLOCKID, &sev, &timerid) == -1)
+    errExit("timer_create");
+  
+
+  /* Start the timer */
+
+  freq_nanosecs = 1000000000;
+  its.it_value.tv_sec = freq_nanosecs / 1000000000;
+  its.it_value.tv_nsec = freq_nanosecs % 1000000000;
+  its.it_interval.tv_sec = its.it_value.tv_sec;
+  its.it_interval.tv_nsec = its.it_value.tv_nsec;
+
+  if (timer_settime(timerid, 0, &its, NULL) == -1)
+      errExit("timer_settime");
+
+  while(1) {
+    if(check == 1) {
+      printf("Woken up.\n");
+      check = 0;
+    }  
+  }
+   
+
 }
