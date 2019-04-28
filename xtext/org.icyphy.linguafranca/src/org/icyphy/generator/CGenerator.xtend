@@ -114,8 +114,8 @@ class CGenerator {
 	    count = 0;
 		for (action: component.componentBody.actions) {
 			count++
-			if (action.delay === null) {
-				action.delay = "0"
+			if (action.getDelay() === null) {
+				action.setDelay("0")
 			}
 			actions.put(action.name, action)
 		}
@@ -374,7 +374,7 @@ class CGenerator {
 				result.append('reactions, '
 					+ numberOfReactionsTriggered
 					+ ', '
-					+ actions.get(triggerName).delay
+					+ actions.get(triggerName).getDelay()
 					+ ', 0' // 0 is ignored since actions don't have a period.
 				)
 				actionToTriggerTableIndex.put(triggerName, count)
