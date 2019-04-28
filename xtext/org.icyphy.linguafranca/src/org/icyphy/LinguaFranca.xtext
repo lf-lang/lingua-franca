@@ -52,7 +52,7 @@ Timer:
 	'timer' name=(ID | 'timer') timing=Timing?';';
 
 Action:
-	'action' name=(ID | 'action') timing=Timing?';';
+	'action' name=(ID | 'action') ('(' delay=(ID | NUMBER) ')')?';';
 
 Reaction:
 	'reaction' 

@@ -483,13 +483,13 @@ public interface LinguaFrancaPackage extends EPackage
   int ACTION__NAME = 0;
 
   /**
-   * The feature id for the '<em><b>Timing</b></em>' containment reference.
+   * The feature id for the '<em><b>Delay</b></em>' attribute.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
    * @generated
    * @ordered
    */
-  int ACTION__TIMING = 1;
+  int ACTION__DELAY = 1;
 
   /**
    * The number of structural features of the '<em>Action</em>' class.
@@ -1263,15 +1263,15 @@ public interface LinguaFrancaPackage extends EPackage
   EAttribute getAction_Name();
 
   /**
-   * Returns the meta object for the containment reference '{@link org.icyphy.linguaFranca.Action#getTiming <em>Timing</em>}'.
+   * Returns the meta object for the attribute '{@link org.icyphy.linguaFranca.Action#getDelay <em>Delay</em>}'.
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @return the meta object for the containment reference '<em>Timing</em>'.
-   * @see org.icyphy.linguaFranca.Action#getTiming()
+   * @return the meta object for the attribute '<em>Delay</em>'.
+   * @see org.icyphy.linguaFranca.Action#getDelay()
    * @see #getAction()
    * @generated
    */
-  EReference getAction_Timing();
+  EAttribute getAction_Delay();
 
   /**
    * Returns the meta object for class '{@link org.icyphy.linguaFranca.Reaction <em>Reaction</em>}'.
@@ -1932,12 +1932,12 @@ public interface LinguaFrancaPackage extends EPackage
     EAttribute ACTION__NAME = eINSTANCE.getAction_Name();
 
     /**
-     * The meta object literal for the '<em><b>Timing</b></em>' containment reference feature.
+     * The meta object literal for the '<em><b>Delay</b></em>' attribute feature.
      * <!-- begin-user-doc -->
      * <!-- end-user-doc -->
      * @generated
      */
-    EReference ACTION__TIMING = eINSTANCE.getAction_Timing();
+    EAttribute ACTION__DELAY = eINSTANCE.getAction_Delay();
 
     /**
      * The meta object literal for the '{@link org.icyphy.linguaFranca.impl.ReactionImpl <em>Reaction</em>}' class.

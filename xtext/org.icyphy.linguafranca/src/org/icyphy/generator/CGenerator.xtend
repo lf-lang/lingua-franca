@@ -13,6 +13,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Input
@@ -36,9 +37,13 @@ class CGenerator {
 	
 	// Map from timer name to Timing object.
 	var timers = new HashMap<String,Timing>()
-	var timerIDs = new HashMap<String,Integer>()
-	// Map from timer name to reaction name(s) triggered by the timer.
-	var timerReactions = new LinkedHashMap<String,LinkedList<String>>()
+	// Map from timer or action name to reaction name(s) triggered by it.
+	var triggerReactions = new LinkedHashMap<String,LinkedList<String>>()
+	
+	// Map from action name to Action object.
+	var actions = new HashMap<String,Action>()
+	// Map from action name to index of the trigger in the trigger table.
+	var actionToTriggerTableIndex = new HashMap<String,Integer>()
 	
 	// Text of generated code to add input handlers.
 	var triggerTable = new StringBuffer()
@@ -73,8 +78,9 @@ class CGenerator {
 		inputs.clear()      // Reset set of inputs.
 		parameters.clear()  // Reset set of parameters.
 		timers.clear()      // Reset map of timer names to timer properties.
-		timerIDs.clear()	// Reset map of timer names to timer IDs.
-		timerReactions.clear()
+		triggerReactions.clear()
+		actions.clear()
+		actionToTriggerTableIndex.clear()
 		triggerTable = new StringBuffer()
 		
 		reactionCount = 1   // Start reaction count at 1.
@@ -86,7 +92,6 @@ class CGenerator {
 		// Record timers.
 		var count = 0;
 		for (timer: component.componentBody.timers) {
-			timerIDs.put(timer.name, count)
 			count++
 			var timing = timer.timing
 			if (timing === null) {
@@ -94,16 +99,25 @@ class CGenerator {
 				timing.setOffset("0") // Same as NOW.
 				timing.setPeriod("0") // Same as ONCE.
 			} else {
+				// FIXME: Do we really want this?
 				if (timing.getOffset.equals("NOW")) {
 					timing.setOffset("0")
 				}
 				if (timing.getPeriod.equals("ONCE")) {
 					timing.setPeriod("0")
-				} else if (timing.getPeriod.equals("STOP")) {
-					timing.setPeriod("-1")
 				}
 			}
 			timers.put(timer.name, timing)
+		}
+		
+		// Record actions.
+	    count = 0;
+		for (action: component.componentBody.actions) {
+			count++
+			if (action.delay === null) {
+				action.delay = "0"
+			}
+			actions.put(action.name, action)
 		}
 		
 		/* FIXME
@@ -115,11 +129,16 @@ class CGenerator {
 		// Reactor setup (inputs, outputs, parameters)
 		componentSetup(component, importTable)
 		*/
+		// Scan reactions
+		scanReactions(component.componentBody.reactions)
+		// Generate trigger table
+		val triggerTable = generateTriggerTable()
+		// Generate trigger table declaration
+		pr('trigger_t* trigger_table[TRIGGER_TABLE_SIZE];')
+		pr(initialize)
 		// Generate reactions
 		generateReactions(component.componentBody.reactions)
-		// Generate trigger table
-		generateTriggerTable()
-		pr(initialize)
+		pr(triggerTable)
 	}
 	
 	/** Generate the setup function definition for a reactor or composite.
@@ -192,14 +211,14 @@ class CGenerator {
 		for(parameter: parameters) {
 			pr('''var «parameter» = this.getParameter("«parameter»");''');
 		}
-		
-		// Add the input handlers.
+				
+		// Add the input and action handlers.
 		pr(triggerTable)
 
 		// Add the timer reactions.
-		for (timer: timerReactions.keySet) {
+		for (timer: triggerReactions.keySet) {
 			val timerParams = timers.get(timer)
-			for (handler: timerReactions.get(timer)) {
+			for (handler: triggerReactions.get(timer)) {
 				pr('''__schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
 			}
 		}
@@ -210,8 +229,9 @@ class CGenerator {
 	/** Generate reaction functions definition for a reactor or a composite.
 	 */
 	def generateReactions(EList<Reaction> reactions) {
-		val functionName = "reaction_function" + reactionCount++
+		reactionCount = 0
 		for (reaction: reactions) {
+			val functionName = "reaction_function" + reactionCount++
 			pr('''void «functionName»() {''')
 			indent()
 			// Add variable declarations for inputs.
@@ -225,28 +245,6 @@ class CGenerator {
 						// in JavaScript.
 						// FIXME: Convert to C.
 						pr('''var «trigger» = get("«trigger»");''')
-
-						// Generate code for the initialize() function here so that input handlers are
-						// added in the same order that they are declared.
-				   		triggerTable.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (timers.get(trigger) !== null) {
-						// The trigger is a timer.
-						// Record this so we can schedule this reaction in initialize
-						// and initialize the trigger table.
-						var list = timerReactions.get(trigger)
-						if (list === null) {
-							list = new LinkedList<String>()
-							timerReactions.put(trigger, list)
-						}
-						list.add(functionName)
-					} else {
-						// This is checked by the validator (See LinguaFrancaValidator.xtend).
-						// Nevertheless, in case we are using a command-line tool, we report the line number.
-						// Just report the exception. Do not throw an exception so compilation can continue.
-						var node = NodeModelUtils.getNode(reaction)
-						System.err.println("Line "
-							+ node.getStartLine()
-							+ ": Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
 					}
 				}
 			} else {
@@ -256,22 +254,24 @@ class CGenerator {
 				for (input: inputs) {
 					pr('''var «input» = get("«input»");''')
 				}
+				// FIXME: Convert to C.
 				triggerTable.append('''this.addInputHandler(null, «functionName».bind(this));''')
 			}
 			// Define variables for non-triggering inputs.
 			if (reaction.gets !== null && reaction.gets.gets !== null) {
 				for(get: reaction.gets.gets) {
+					// FIXME: Convert to C.
 					pr('''var «get» = get("«get»");''')
 				}
 			}
-			// Define variables for each declared output.
+			// Define variables for each declared output or action.
+			// FIXME: sets would be better named "produces".
 			if (reaction.sets !== null && reaction.sets.sets !== null) {
 				for(set: reaction.sets.sets) {
-					// Set the output name variable equal to a string.
-					// FIXME: String name is too easy to cheat!
-					// LF coder could write set('foo', value) to write to
-					// output foo without having declared the write.
-					pr('''var «set» = "«set»";''');
+					if (actions.get(set) !== null) {
+						// An action is produced.
+						pr('''trigger_t* «set» = trigger_table[«actionToTriggerTableIndex.get(set)»];''')
+					}
 				}
 			}			
 			// Define variables for each parameter.
@@ -285,50 +285,113 @@ class CGenerator {
 			pr("}")
 		}
 	}
+
+	/** Scan reaction declarations and populate data structures.
+	 */
+	def scanReactions(EList<Reaction> reactions) {
+		reactionCount = 0
+		for (reaction: reactions) {
+		 	val functionName = "reaction_function" + reactionCount++
+			// Add variable declarations for inputs.
+			// Meanwhile, record the mapping from triggers to handlers.
+			if (reaction.triggers !== null && reaction.triggers.length > 0) {
+				for (trigger: reaction.triggers) {
+					if (inputs.contains(trigger)) {
+						// Generate code for the initialize() function here so that input handlers are
+						// added in the same order that they are declared.
+				   		triggerTable.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
+					} else if (timers.get(trigger) !== null) {
+						// The trigger is a timer.
+						// Record this so we can schedule this reaction in initialize
+						// and initialize the trigger table.
+						var list = triggerReactions.get(trigger)
+						if (list === null) {
+							list = new LinkedList<String>()
+							triggerReactions.put(trigger, list)
+						}
+						list.add(functionName)
+					} else if (actions.get(trigger) !== null) {
+						// The trigger is an action.
+						// Record this so we can initialize the trigger table.
+						var list = triggerReactions.get(trigger)
+						if (list === null) {
+							list = new LinkedList<String>()
+							triggerReactions.put(trigger, list)
+						}
+						list.add(functionName)
+					} else {
+						// This is checked by the validator (See LinguaFrancaValidator.xtend).
+						// Nevertheless, in case we are using a command-line tool, we report the line number.
+						// Just report the exception. Do not throw an exception so compilation can continue.
+						var node = NodeModelUtils.getNode(reaction)
+						System.err.println("Line "
+							+ node.getStartLine()
+							+ ": Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
+					}
+				}
+			} else {
+				// FIXME: Handle the case where there are no triggers.
+				triggerTable.append('''this.addInputHandler(null, «functionName».bind(this));''')
+			}
+		}
+	}
 	
 	/** Generate the trigger table.
 	 */
 	def generateTriggerTable() {
 		// timers // map from timer name to timer properties.
-		// timerIDs // map from timer name to timer ID
-		// timerReactions // map from timer name to a list of function names
+		// triggerReactions // map from timer name to a list of function names
 		val triggerTable = new StringBuffer()
+		val result = new StringBuffer()
 		var count = 0
-		for (timerName: timerReactions.keySet) {
-			val numberOfReactionsTriggered = timerReactions.get(timerName).length
+		for (triggerName: triggerReactions.keySet) {
+			val numberOfReactionsTriggered = triggerReactions.get(triggerName).length
 			var names = new StringBuffer();
-			var reactionCount = 0;
-			for (functionName: timerReactions.get(timerName)) {
+			for (functionName: triggerReactions.get(triggerName)) {
 				// FIXME: 0, 0 are index and position. Index comes from topological sort.
 				// Position is a label to be written by the priority queue as a side effect of inserting.
-				var reactionName = 'reaction' + reactionCount++
-				pr('reaction_t ' + reactionName + ' = {' + functionName + ', 0, 0};')
+				var reactionName = 'reaction' + count
+				result.append('reaction_t ' + reactionName + ' = {' + functionName + ', 0, 0};')
+				result.append('\n')
 				if (names.length != 0) {
 					names.append(", ")
 				}
 				names.append('&' + reactionName)
 			}
-			pr('reaction_t* reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
-			pr('trigger_t ' + timerName + ' = {')
-			indent()
-			pr('reactions, '
-				+ numberOfReactionsTriggered
-				+ ', '
-				+ timers.get(timerName).offset
-				+ ', '
-				+ timers.get(timerName).period
-			)
-			unindent()
-			pr("};")
+			result.append('reaction_t* reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
+			result.append('\n')
+			result.append('trigger_t ' + triggerName + ' = {')
+			result.append('\n')
+			if (timers.get(triggerName) !== null) {
+				result.append('reactions, '
+					+ numberOfReactionsTriggered
+					+ ', '
+					+ timers.get(triggerName).offset
+					+ ', '
+					+ timers.get(triggerName).period
+				)
+			} else if (actions.get(triggerName) !== null) {
+				result.append('reactions, '
+					+ numberOfReactionsTriggered
+					+ ', '
+					+ actions.get(triggerName).delay
+					+ ', 0' // 0 is ignored since actions don't have a period.
+				)
+				actionToTriggerTableIndex.put(triggerName, count)
+			}
+			result.append('\n};\n')
 			if (triggerTable.length != 0) {
 				triggerTable.append(', ')
 			}
 			triggerTable.append("&")
-			triggerTable.append(timerName)
+			triggerTable.append(triggerName)
 			count++
 		}
-		pr('trigger_t* triggerTable[] = {' + triggerTable + '};')
-		pr('int triggerTableSize = ' + count + ';')
+		result.append('trigger_table = {' + triggerTable + '};')
+		result.append('\n')
+		// This goes directly out to the generated code.
+		pr('#define TRIGGER_TABLE_SIZE ' + count + '\n')
+		result.toString()
 	}
 		
 	/** Generate an instantiate statement followed by any required parameter
@@ -457,6 +520,7 @@ class CGenerator {
 		#define INITIAL_INDEX_QUEUE_SIZE 10
 	'''
 	
+	// FIXME: The following should probably all go into library files.
 	val static declarations = '''
 		// ********* Type definitions included for all actors.
 		// NOTE: Units for time are dealt with at compile time.
@@ -621,8 +685,8 @@ class CGenerator {
 			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, set_pri, get_pos, set_pos);
 		}
 		void startTimers() {
-		    for (int i=0; i < triggerTableSize; i++) {
-		        __schedule(triggerTable[i], 0); 
+		    for (int i=0; i < TRIGGER_TABLE_SIZE; i++) {
+		        __schedule(trigger_table[i], 0); 
 		    }
 		}
 		int main(int argc, char* argv[]) {

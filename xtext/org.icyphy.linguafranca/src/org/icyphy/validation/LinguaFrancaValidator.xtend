@@ -4,6 +4,7 @@
 package org.icyphy.validation
 
 import org.eclipse.xtext.validation.Check
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Gets
 import org.icyphy.linguaFranca.Input
@@ -28,6 +29,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	var inputs = newHashSet()
 	var outputs = newHashSet()
 	var timers = newHashSet()
+	var actions = newHashSet()
 	var allNames = newHashSet()
 	
 	////////////////////////////////////////////////////
@@ -41,6 +43,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		inputs.clear()
 		outputs.clear()
 		timers.clear()
+		actions.clear()
 		allNames.clear()
 	}
 	
@@ -53,6 +56,18 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	////////////////////////////////////////////////////
 	//// The following checks are in alphabetical order.
 		
+	@Check(FAST)
+	def checkAction(Action action) {
+		if (allNames.contains(action.name)) {
+			error("Names of parameters, inputs, timers, and actions must be unique: " 
+				+ action.name,
+				Literals.ACTION__NAME
+			)
+		}
+		actions.add(action.name);
+		allNames.add(action.name)
+	}
+
 	@Check(FAST)
 	def checkGets(Gets gets) {
 		for (get: gets.gets) {
@@ -92,7 +107,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	@Check(FAST)
 	def checkReaction(Reaction reaction) {
 		for (trigger: reaction.triggers) {
-			if (!inputs.contains(trigger) && !timers.contains(trigger)) {
+			if (!inputs.contains(trigger)
+				&& !timers.contains(trigger)
+				&& !actions.contains(trigger)
+			) {
 				error("Reaction trigger is not an input, timer, or action: "
 					+ trigger,
 					Literals.REACTION__TRIGGERS
@@ -104,8 +122,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	@Check(FAST)
 	def checkSets(Sets sets) {
 		for (set: sets.sets) {
-			if (!outputs.contains(set)) {
-					error("Reaction declares that it sets something that is not an output: "
+			if (!outputs.contains(set) && !actions.contains(set)) {
+					error("Reaction declares that it produces something that is not an output or an action: "
 					+ set,
 					Literals.SETS__SETS
 				)

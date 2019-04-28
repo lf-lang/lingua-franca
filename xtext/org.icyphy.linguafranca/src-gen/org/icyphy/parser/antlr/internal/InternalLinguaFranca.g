@@ -865,27 +865,53 @@ ruleAction returns [EObject current=null]
 			)
 		)
 		(
+			otherlv_2='('
+			{
+				newLeafNode(otherlv_2, grammarAccess.getActionAccess().getLeftParenthesisKeyword_2_0());
+			}
 			(
-				{
-					newCompositeNode(grammarAccess.getActionAccess().getTimingTimingParserRuleCall_2_0());
-				}
-				lv_timing_2_0=ruleTiming
-				{
-					if ($current==null) {
-						$current = createModelElementForParent(grammarAccess.getActionRule());
-					}
-					set(
-						$current,
-						"timing",
-						lv_timing_2_0,
-						"org.icyphy.LinguaFranca.Timing");
-					afterParserOrEnumRuleCall();
-				}
+				(
+					(
+						lv_delay_3_1=RULE_ID
+						{
+							newLeafNode(lv_delay_3_1, grammarAccess.getActionAccess().getDelayIDTerminalRuleCall_2_1_0_0());
+						}
+						{
+							if ($current==null) {
+								$current = createModelElement(grammarAccess.getActionRule());
+							}
+							setWithLastConsumed(
+								$current,
+								"delay",
+								lv_delay_3_1,
+								"org.eclipse.xtext.common.Terminals.ID");
+						}
+						    |
+						lv_delay_3_2=RULE_NUMBER
+						{
+							newLeafNode(lv_delay_3_2, grammarAccess.getActionAccess().getDelayNUMBERTerminalRuleCall_2_1_0_1());
+						}
+						{
+							if ($current==null) {
+								$current = createModelElement(grammarAccess.getActionRule());
+							}
+							setWithLastConsumed(
+								$current,
+								"delay",
+								lv_delay_3_2,
+								"org.icyphy.LinguaFranca.NUMBER");
+						}
+					)
+				)
 			)
+			otherlv_4=')'
+			{
+				newLeafNode(otherlv_4, grammarAccess.getActionAccess().getRightParenthesisKeyword_2_2());
+			}
 		)?
-		otherlv_3=';'
+		otherlv_5=';'
 		{
-			newLeafNode(otherlv_3, grammarAccess.getActionAccess().getSemicolonKeyword_3());
+			newLeafNode(otherlv_5, grammarAccess.getActionAccess().getSemicolonKeyword_3());
 		}
 	)
 ;
