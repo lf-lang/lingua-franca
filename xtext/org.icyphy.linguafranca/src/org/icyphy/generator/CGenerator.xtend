@@ -366,13 +366,15 @@ class CGenerator {
 			result.append('trigger_t ' + triggerName + ' = {')
 			result.append('\n')
 			if (timers.get(triggerName) !== null) {
-				result.append(triggerName + '_reactions,'
+				result.append(triggerName + '_reactions, '
+					+ numberOfReactionsTriggered + ', '
 					+ timers.get(triggerName).offset
 					+ ', '
 					+ timers.get(triggerName).period
 				)
 			} else if (actions.get(triggerName) !== null) {
-				result.append(triggerName + '_reactions,'
+				result.append(triggerName + '_reactions, '
+					+ numberOfReactionsTriggered + ', '
 					+ actions.get(triggerName).getDelay()
 					+ ', 0' // 0 is ignored since actions don't have a period.
 				)
