@@ -30,7 +30,7 @@ import org.icyphy.linguaFranca.Timing
  * @author Edward A. Lee, Marten Lohstroh, Chris Gill
  */
 class CGenerator {
-	// For each accessor, we collect a set of input and parameter names.
+	// For each reactor, we collect a set of input and parameter names.
 	var inputs = newHashSet()
 	var parameters = newLinkedList()
 	var reactionCount = 0
@@ -46,6 +46,7 @@ class CGenerator {
 	var actionToTriggerTableIndex = new HashMap<String,Integer>()
 	
 	// Text of generated code to add input handlers.
+	// FIXME: not convinced that we need this
 	var triggerTable = new StringBuffer()
 	
 	// All code goes into this string buffer.
@@ -83,7 +84,7 @@ class CGenerator {
 		actionToTriggerTableIndex.clear()
 		triggerTable = new StringBuffer()
 		
-		reactionCount = 1   // Start reaction count at 1.
+		//reactionCount = 1   // Start reaction count at 1
 		
 		pr(includes)
 		pr(defines)
@@ -108,7 +109,6 @@ class CGenerator {
 					timing.setPeriod("0")
 				}
 			}
-			//pr()
 			timers.put(timer.name, timing)
 		}
 		
@@ -131,16 +131,23 @@ class CGenerator {
 		// Reactor setup (inputs, outputs, parameters)
 		componentSetup(component, importTable)
 		*/
+
+
+		
 		// Scan reactions
 		scanReactions(component.componentBody.reactions)
+		
 		// Generate trigger table
 		generateTriggerTable()
-		// Generate trigger table declaration
-		//pr('trigger_t* trigger_table[TRIGGER_TABLE_SIZE];')
+
+		// Print boilerplate
 		pr(initialize)
+
+		generateStartTimers()
+
 		// Generate reactions
 		generateReactions(component.componentBody.reactions)
-		pr(triggerTable)
+		
 	}
 	
 	/** Generate the setup function definition for a reactor or composite.
@@ -339,6 +346,17 @@ class CGenerator {
 		pr("\n" + reactionDecls.toString())
 	}
 	
+	def generateStartTimers() {
+		 pr("void startTimers() {")
+		 indent()
+		 // __schedule(trigger_table[i], 0); 
+		 for (timer : timers.keySet()) {
+		 	pr("__schedule(&" + timer + ", 0);")
+		 }
+		 unindent()
+		 pr("}")
+	}
+	
 	/** Generate the trigger table.
 	 */
 	def generateTriggerTable() {
@@ -350,7 +368,7 @@ class CGenerator {
 		for (triggerName: triggerToReactions.keySet) {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
 			var names = new StringBuffer();
-			for (functionName: triggerToReactions.get(triggerName)) {
+			for (functionName : triggerToReactions.get(triggerName)) {
 				// FIXME: 0, 0 are index and position. Index comes from topological sort.
 				// Position is a label to be written by the priority queue as a side effect of inserting.
 				var reactionName = 'reaction' + count
@@ -565,13 +583,14 @@ class CGenerator {
 		} event_t;
 
 		instant_t current_time = {0, 0}; // FIXME: This should not be modifiable by reactors.
+		void startTimers();
 	'''
 		
 	val static initialize = '''
 		
 		// Compare priorities.
 		static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
-		  return (next < curr);
+		  return (next > curr);
 		}
 		// Get priorities based on tags (time and microstep).
 		// Used for sorting event_t structs.
@@ -685,11 +704,7 @@ class CGenerator {
 			eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, set_pri, get_pos, set_pos);
 			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, set_pri, get_pos, set_pos);
 		}
-		void startTimers() {
-		    for (int i=0; i < TRIGGER_TABLE_SIZE; i++) {
-		        __schedule(trigger_table[i], 0); 
-		    }
-		}
+
 		int main(int argc, char* argv[]) {
 			initialize();
 			printf("Hello World at time %d\n", current_time.time);
