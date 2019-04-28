@@ -38,7 +38,7 @@ class CGenerator {
 	// Map from timer name to Timing object.
 	var timers = new HashMap<String,Timing>()
 	// Map from timer or action name to reaction name(s) triggered by it.
-	var triggerReactions = new LinkedHashMap<String,LinkedList<String>>()
+	var triggerToReactions = new LinkedHashMap<String,LinkedList<String>>()
 	
 	// Map from action name to Action object.
 	var actions = new HashMap<String,Action>()
@@ -78,7 +78,7 @@ class CGenerator {
 		inputs.clear()      // Reset set of inputs.
 		parameters.clear()  // Reset set of parameters.
 		timers.clear()      // Reset map of timer names to timer properties.
-		triggerReactions.clear()
+		triggerToReactions.clear()
 		actions.clear()
 		actionToTriggerTableIndex.clear()
 		triggerTable = new StringBuffer()
@@ -91,6 +91,7 @@ class CGenerator {
 
 		// Record timers.
 		var count = 0;
+		
 		for (timer: component.componentBody.timers) {
 			count++
 			var timing = timer.timing
@@ -107,6 +108,7 @@ class CGenerator {
 					timing.setPeriod("0")
 				}
 			}
+			//pr()
 			timers.put(timer.name, timing)
 		}
 		
@@ -132,9 +134,9 @@ class CGenerator {
 		// Scan reactions
 		scanReactions(component.componentBody.reactions)
 		// Generate trigger table
-		val triggerTable = generateTriggerTable()
+		generateTriggerTable()
 		// Generate trigger table declaration
-		pr('trigger_t* trigger_table[TRIGGER_TABLE_SIZE];')
+		//pr('trigger_t* trigger_table[TRIGGER_TABLE_SIZE];')
 		pr(initialize)
 		// Generate reactions
 		generateReactions(component.componentBody.reactions)
@@ -216,9 +218,9 @@ class CGenerator {
 		pr(triggerTable)
 
 		// Add the timer reactions.
-		for (timer: triggerReactions.keySet) {
+		for (timer: triggerToReactions.keySet) {
 			val timerParams = timers.get(timer)
-			for (handler: triggerReactions.get(timer)) {
+			for (handler: triggerToReactions.get(timer)) {
 				pr('''__schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
 			}
 		}
@@ -286,54 +288,55 @@ class CGenerator {
 		}
 	}
 
-	/** Scan reaction declarations and populate data structures.
+	/** Scan reaction declarations and print them in the generated code.
 	 */
 	def scanReactions(EList<Reaction> reactions) {
-		reactionCount = 0
+		var id = 0
+		val reactionDecls = new StringBuffer()
+		val triggerDecls = new StringBuffer()
+		
 		for (reaction: reactions) {
-		 	val functionName = "reaction_function" + reactionCount++
-			// Add variable declarations for inputs.
-			// Meanwhile, record the mapping from triggers to handlers.
+			val reactionName = "reaction" + id;
+		 	pr("void reaction_function" + id + "();")
+			reactionDecls.append("reaction_t " + reactionName + " = {reaction_function" + id + ", 0, 0};\n");
+			id++;
+			// Iterate over the reaction's triggers
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
 					if (inputs.contains(trigger)) {
-						// Generate code for the initialize() function here so that input handlers are
-						// added in the same order that they are declared.
-				   		triggerTable.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (timers.get(trigger) !== null) {
-						// The trigger is a timer.
-						// Record this so we can schedule this reaction in initialize
-						// and initialize the trigger table.
-						var list = triggerReactions.get(trigger)
-						if (list === null) {
-							list = new LinkedList<String>()
-							triggerReactions.put(trigger, list)
-						}
-						list.add(functionName)
-					} else if (actions.get(trigger) !== null) {
-						// The trigger is an action.
-						// Record this so we can initialize the trigger table.
-						var list = triggerReactions.get(trigger)
-						if (list === null) {
-							list = new LinkedList<String>()
-							triggerReactions.put(trigger, list)
-						}
-						list.add(functionName)
-					} else {
-						// This is checked by the validator (See LinguaFrancaValidator.xtend).
-						// Nevertheless, in case we are using a command-line tool, we report the line number.
-						// Just report the exception. Do not throw an exception so compilation can continue.
-						var node = NodeModelUtils.getNode(reaction)
-						System.err.println("Line "
-							+ node.getStartLine()
-							+ ": Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
-					}
-				}
-			} else {
-				// FIXME: Handle the case where there are no triggers.
-				triggerTable.append('''this.addInputHandler(null, «functionName».bind(this));''')
+                        // FIXME
+                    } else if (timers.get(trigger) !== null) {
+                        // The trigger is a timer.
+                        // Record this so we can schedule this reaction in initialize
+                        // and initialize the trigger table.
+                        var list = triggerToReactions.get(trigger)
+                        if (list === null) {
+                            list = new LinkedList<String>()
+                            triggerToReactions.put(trigger, list)
+                        }
+                        list.add(reactionName)
+                    } else if (actions.get(trigger) !== null) {
+                        // The trigger is an action.
+                        // Record this so we can initialize the trigger table.
+                        var list = triggerToReactions.get(trigger)
+                        if (list === null) {
+                            list = new LinkedList<String>()
+                            triggerToReactions.put(trigger, list)
+                        }
+                        list.add(reactionName)
+                    } else {
+                        // This is checked by the validator (See LinguaFrancaValidator.xtend).
+                        // Nevertheless, in case we are using a command-line tool, we report the line number.
+                        // Just report the exception. Do not throw an exception so compilation can continue.
+                        var node = NodeModelUtils.getNode(reaction)
+                        System.err.println("Line "
+                            + node.getStartLine()
+                            + ": Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
+                    }		
+				}	
 			}
 		}
+		pr("\n" + reactionDecls.toString())
 	}
 	
 	/** Generate the trigger table.
@@ -344,36 +347,32 @@ class CGenerator {
 		val triggerTable = new StringBuffer()
 		val result = new StringBuffer()
 		var count = 0
-		for (triggerName: triggerReactions.keySet) {
-			val numberOfReactionsTriggered = triggerReactions.get(triggerName).length
+		for (triggerName: triggerToReactions.keySet) {
+			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
 			var names = new StringBuffer();
-			for (functionName: triggerReactions.get(triggerName)) {
+			for (functionName: triggerToReactions.get(triggerName)) {
 				// FIXME: 0, 0 are index and position. Index comes from topological sort.
 				// Position is a label to be written by the priority queue as a side effect of inserting.
 				var reactionName = 'reaction' + count
-				result.append('reaction_t ' + reactionName + ' = {' + functionName + ', 0, 0};')
+				//result.append('reaction_t ' + reactionName + ' = {' + functionName + ', 0, 0};')
 				result.append('\n')
 				if (names.length != 0) {
 					names.append(", ")
 				}
 				names.append('&' + reactionName)
 			}
-			result.append('reaction_t* reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
+			result.append('reaction_t* ' + triggerName + '_reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
 			result.append('\n')
 			result.append('trigger_t ' + triggerName + ' = {')
 			result.append('\n')
 			if (timers.get(triggerName) !== null) {
-				result.append('reactions, '
-					+ numberOfReactionsTriggered
-					+ ', '
+				result.append(triggerName + '_reactions,'
 					+ timers.get(triggerName).offset
 					+ ', '
 					+ timers.get(triggerName).period
 				)
 			} else if (actions.get(triggerName) !== null) {
-				result.append('reactions, '
-					+ numberOfReactionsTriggered
-					+ ', '
+				result.append(triggerName + '_reactions,'
 					+ actions.get(triggerName).getDelay()
 					+ ', 0' // 0 is ignored since actions don't have a period.
 				)
@@ -387,11 +386,11 @@ class CGenerator {
 			triggerTable.append(triggerName)
 			count++
 		}
-		result.append('trigger_table = {' + triggerTable + '};')
+		pr('#define TRIGGER_TABLE_SIZE ' + count + '\n')
+		result.append('trigger_t* trigger_table[TRIGGER_TABLE_SIZE] = {' + triggerTable + '};')
 		result.append('\n')
 		// This goes directly out to the generated code.
-		pr('#define TRIGGER_TABLE_SIZE ' + count + '\n')
-		result.toString()
+		pr(result.toString())
 	}
 		
 	/** Generate an instantiate statement followed by any required parameter
