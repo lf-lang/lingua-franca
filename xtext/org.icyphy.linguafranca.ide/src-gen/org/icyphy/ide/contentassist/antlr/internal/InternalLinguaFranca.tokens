@@ -1,5 +1,5 @@
-'('=29
-')'=30
+'('=28
+')'=29
 ','=31
 '->'=35
 '.'=37
@@ -17,7 +17,7 @@
 'new'=34
 'output'=14
 'preamble'=32
-'reaction'=28
+'reaction'=30
 'reactor'=23
 'target'=20
 'timer'=15

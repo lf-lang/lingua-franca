@@ -121,8 +121,14 @@ ruleAction:
 		RULE_ID
 		    |'action'
 	)
-	ruleTiming
-	?
+	(
+		'('
+		(
+			RULE_ID
+			    |RULE_NUMBER
+		)
+		')'
+	)?
 	';'
 ;
 

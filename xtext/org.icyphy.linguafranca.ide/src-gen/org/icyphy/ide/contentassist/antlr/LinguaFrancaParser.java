@@ -37,6 +37,7 @@ public class LinguaFrancaParser extends AbstractContentAssistParser {
 			builder.put(grammarAccess.getOutputAccess().getNameAlternatives_1_0(), "rule__Output__NameAlternatives_1_0");
 			builder.put(grammarAccess.getTimerAccess().getNameAlternatives_1_0(), "rule__Timer__NameAlternatives_1_0");
 			builder.put(grammarAccess.getActionAccess().getNameAlternatives_1_0(), "rule__Action__NameAlternatives_1_0");
+			builder.put(grammarAccess.getActionAccess().getDelayAlternatives_2_1_0(), "rule__Action__DelayAlternatives_2_1_0");
 			builder.put(grammarAccess.getTimingAccess().getOffsetAlternatives_1_0(), "rule__Timing__OffsetAlternatives_1_0");
 			builder.put(grammarAccess.getTimingAccess().getPeriodAlternatives_2_1_0(), "rule__Timing__PeriodAlternatives_2_1_0");
 			builder.put(grammarAccess.getPortAccess().getAlternatives(), "rule__Port__Alternatives");
@@ -55,6 +56,7 @@ public class LinguaFrancaParser extends AbstractContentAssistParser {
 			builder.put(grammarAccess.getOutputAccess().getGroup_2(), "rule__Output__Group_2__0");
 			builder.put(grammarAccess.getTimerAccess().getGroup(), "rule__Timer__Group__0");
 			builder.put(grammarAccess.getActionAccess().getGroup(), "rule__Action__Group__0");
+			builder.put(grammarAccess.getActionAccess().getGroup_2(), "rule__Action__Group_2__0");
 			builder.put(grammarAccess.getReactionAccess().getGroup(), "rule__Reaction__Group__0");
 			builder.put(grammarAccess.getReactionAccess().getGroup_1(), "rule__Reaction__Group_1__0");
 			builder.put(grammarAccess.getReactionAccess().getGroup_1_1(), "rule__Reaction__Group_1_1__0");
@@ -104,7 +106,7 @@ public class LinguaFrancaParser extends AbstractContentAssistParser {
 			builder.put(grammarAccess.getTimerAccess().getNameAssignment_1(), "rule__Timer__NameAssignment_1");
 			builder.put(grammarAccess.getTimerAccess().getTimingAssignment_2(), "rule__Timer__TimingAssignment_2");
 			builder.put(grammarAccess.getActionAccess().getNameAssignment_1(), "rule__Action__NameAssignment_1");
-			builder.put(grammarAccess.getActionAccess().getTimingAssignment_2(), "rule__Action__TimingAssignment_2");
+			builder.put(grammarAccess.getActionAccess().getDelayAssignment_2_1(), "rule__Action__DelayAssignment_2_1");
 			builder.put(grammarAccess.getReactionAccess().getTriggersAssignment_1_1_0(), "rule__Reaction__TriggersAssignment_1_1_0");
 			builder.put(grammarAccess.getReactionAccess().getTriggersAssignment_1_1_1_1(), "rule__Reaction__TriggersAssignment_1_1_1_1");
 			builder.put(grammarAccess.getReactionAccess().getGetsAssignment_2(), "rule__Reaction__GetsAssignment_2");

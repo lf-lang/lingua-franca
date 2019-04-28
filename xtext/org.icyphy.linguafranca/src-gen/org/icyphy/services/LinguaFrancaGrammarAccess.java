@@ -455,15 +455,20 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		private final Alternatives cNameAlternatives_1_0 = (Alternatives)cNameAssignment_1.eContents().get(0);
 		private final RuleCall cNameIDTerminalRuleCall_1_0_0 = (RuleCall)cNameAlternatives_1_0.eContents().get(0);
 		private final Keyword cNameActionKeyword_1_0_1 = (Keyword)cNameAlternatives_1_0.eContents().get(1);
-		private final Assignment cTimingAssignment_2 = (Assignment)cGroup.eContents().get(2);
-		private final RuleCall cTimingTimingParserRuleCall_2_0 = (RuleCall)cTimingAssignment_2.eContents().get(0);
+		private final Group cGroup_2 = (Group)cGroup.eContents().get(2);
+		private final Keyword cLeftParenthesisKeyword_2_0 = (Keyword)cGroup_2.eContents().get(0);
+		private final Assignment cDelayAssignment_2_1 = (Assignment)cGroup_2.eContents().get(1);
+		private final Alternatives cDelayAlternatives_2_1_0 = (Alternatives)cDelayAssignment_2_1.eContents().get(0);
+		private final RuleCall cDelayIDTerminalRuleCall_2_1_0_0 = (RuleCall)cDelayAlternatives_2_1_0.eContents().get(0);
+		private final RuleCall cDelayNUMBERTerminalRuleCall_2_1_0_1 = (RuleCall)cDelayAlternatives_2_1_0.eContents().get(1);
+		private final Keyword cRightParenthesisKeyword_2_2 = (Keyword)cGroup_2.eContents().get(2);
 		private final Keyword cSemicolonKeyword_3 = (Keyword)cGroup.eContents().get(3);
 		
 		//Action:
-		//	'action' name=(ID | 'action') timing=Timing? ';';
+		//	'action' name=(ID | 'action') ('(' delay=(ID | NUMBER) ')')? ';';
 		@Override public ParserRule getRule() { return rule; }
 		
-		//'action' name=(ID | 'action') timing=Timing? ';'
+		//'action' name=(ID | 'action') ('(' delay=(ID | NUMBER) ')')? ';'
 		public Group getGroup() { return cGroup; }
 		
 		//'action'
@@ -481,11 +486,26 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 		//'action'
 		public Keyword getNameActionKeyword_1_0_1() { return cNameActionKeyword_1_0_1; }
 		
-		//timing=Timing?
-		public Assignment getTimingAssignment_2() { return cTimingAssignment_2; }
+		//('(' delay=(ID | NUMBER) ')')?
+		public Group getGroup_2() { return cGroup_2; }
 		
-		//Timing
-		public RuleCall getTimingTimingParserRuleCall_2_0() { return cTimingTimingParserRuleCall_2_0; }
+		//'('
+		public Keyword getLeftParenthesisKeyword_2_0() { return cLeftParenthesisKeyword_2_0; }
+		
+		//delay=(ID | NUMBER)
+		public Assignment getDelayAssignment_2_1() { return cDelayAssignment_2_1; }
+		
+		//(ID | NUMBER)
+		public Alternatives getDelayAlternatives_2_1_0() { return cDelayAlternatives_2_1_0; }
+		
+		//ID
+		public RuleCall getDelayIDTerminalRuleCall_2_1_0_0() { return cDelayIDTerminalRuleCall_2_1_0_0; }
+		
+		//NUMBER
+		public RuleCall getDelayNUMBERTerminalRuleCall_2_1_0_1() { return cDelayNUMBERTerminalRuleCall_2_1_0_1; }
+		
+		//')'
+		public Keyword getRightParenthesisKeyword_2_2() { return cRightParenthesisKeyword_2_2; }
 		
 		//';'
 		public Keyword getSemicolonKeyword_3() { return cSemicolonKeyword_3; }
@@ -1349,7 +1369,7 @@ public class LinguaFrancaGrammarAccess extends AbstractGrammarElementFinder {
 	}
 	
 	//Action:
-	//	'action' name=(ID | 'action') timing=Timing? ';';
+	//	'action' name=(ID | 'action') ('(' delay=(ID | NUMBER) ')')? ';';
 	public ActionElements getActionAccess() {
 		return pAction;
 	}

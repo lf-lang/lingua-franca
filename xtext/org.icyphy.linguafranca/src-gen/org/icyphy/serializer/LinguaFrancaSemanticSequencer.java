@@ -124,7 +124,7 @@ public class LinguaFrancaSemanticSequencer extends AbstractDelegatingSemanticSeq
 	 *     Action returns Action
 	 *
 	 * Constraint:
-	 *     ((name=ID | name='action') timing=Timing?)
+	 *     ((name=ID | name='action') (delay=ID | delay=NUMBER)?)
 	 */
 	protected void sequence_Action(ISerializationContext context, org.icyphy.linguaFranca.Action semanticObject) {
 		genericSequencer.createSequence(context, semanticObject);

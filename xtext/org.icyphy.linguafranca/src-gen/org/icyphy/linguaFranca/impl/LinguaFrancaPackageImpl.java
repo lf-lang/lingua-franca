@@ -640,9 +640,9 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
    * @generated
    */
   @Override
-  public EReference getAction_Timing()
+  public EAttribute getAction_Delay()
   {
-    return (EReference)actionEClass.getEStructuralFeatures().get(1);
+    return (EAttribute)actionEClass.getEStructuralFeatures().get(1);
   }
 
   /**
@@ -1072,7 +1072,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
 
     actionEClass = createEClass(ACTION);
     createEAttribute(actionEClass, ACTION__NAME);
-    createEReference(actionEClass, ACTION__TIMING);
+    createEAttribute(actionEClass, ACTION__DELAY);
 
     reactionEClass = createEClass(REACTION);
     createEAttribute(reactionEClass, REACTION__TRIGGERS);
@@ -1195,7 +1195,7 @@ public class LinguaFrancaPackageImpl extends EPackageImpl implements LinguaFranc
 
     initEClass(actionEClass, Action.class, "Action", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getAction_Name(), ecorePackage.getEString(), "name", null, 0, 1, Action.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-    initEReference(getAction_Timing(), this.getTiming(), null, "timing", null, 0, 1, Action.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+    initEAttribute(getAction_Delay(), ecorePackage.getEString(), "delay", null, 0, 1, Action.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
     initEClass(reactionEClass, Reaction.class, "Reaction", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
     initEAttribute(getReaction_Triggers(), ecorePackage.getEString(), "triggers", null, 0, -1, Reaction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, !IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
