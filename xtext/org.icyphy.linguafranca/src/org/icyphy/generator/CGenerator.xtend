@@ -45,9 +45,9 @@ class CGenerator {
 	// Map from action name to index of the trigger in the trigger table.
 	var actionToTriggerTableIndex = new HashMap<String,Integer>()
 	
-	// Text of generated code to add input handlers.
-	// FIXME: not convinced that we need this
-	var triggerTable = new StringBuffer()
+	// All header code goes into this string buffer.
+	var header = new StringBuilder 
+	// FIXME: put all prototypes and constants in a header file
 	
 	// All code goes into this string buffer.
 	var code = new StringBuilder
@@ -82,7 +82,7 @@ class CGenerator {
 		triggerToReactions.clear()
 		actions.clear()
 		actionToTriggerTableIndex.clear()
-		triggerTable = new StringBuffer()
+		//triggerTable = new StringBuffer()
 		
 		//reactionCount = 1   // Start reaction count at 1
 		
@@ -214,31 +214,31 @@ class CGenerator {
 		EList<Timer> triggers, 
 		EList<Reaction> reactions
 	) {
-		pr("exports.initialize = function () {\n")
-		indent()
-		// Define variables for each parameter.
-		for(parameter: parameters) {
-			pr('''var «parameter» = this.getParameter("«parameter»");''');
-		}
-				
-		// Add the input and action handlers.
-		pr(triggerTable)
-
-		// Add the timer reactions.
-		for (timer: triggerToReactions.keySet) {
-			val timerParams = timers.get(timer)
-			for (handler: triggerToReactions.get(timer)) {
-				pr('''__schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
-			}
-		}
-		unindent()
-		pr("};")
+//		pr("exports.initialize = function () {\n")
+//		indent()
+//		// Define variables for each parameter.
+//		for(parameter: parameters) {
+//			pr('''var «parameter» = this.getParameter("«parameter»");''');
+//		}
+//				
+//		// Add the input and action handlers.
+//		pr(triggerTable)
+//
+//		// Add the timer reactions.
+//		for (timer: triggerToReactions.keySet) {
+//			val timerParams = timers.get(timer)
+//			for (handler: triggerToReactions.get(timer)) {
+//				pr('''__schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
+//			}
+//		}
+//		unindent()
+//		pr("};")
 	}			
 
 	/** Generate reaction functions definition for a reactor or a composite.
 	 */
 	def generateReactions(EList<Reaction> reactions) {
-		reactionCount = 0
+		var triggerTable = new StringBuffer()
 		for (reaction: reactions) {
 			val functionName = "reaction_function" + reactionCount++
 			pr('''void «functionName»() {''')

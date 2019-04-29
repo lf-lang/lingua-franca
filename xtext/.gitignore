@@ -1,4 +1,6 @@
+**/src-gen/**
+**/generated/**
 *.java
 *.class
-
+*.xtendbin
 
