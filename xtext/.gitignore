@@ -1,6 +1,7 @@
-**/src-gen/**
-**/xtend-gen/**
-**/generated/**
+/*/bin/
+/*/test-bin/
+xtend-gen/
+generated/
 *.java
 *.class
 *.xtendbin
