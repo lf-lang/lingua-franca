@@ -1,8 +1,10 @@
 /*/bin/
 /*/test-bin/
+src-gen/
 xtend-gen/
 generated/
 *.java
 *.class
+*.xml_gen
 *.xtendbin
 *._trace
