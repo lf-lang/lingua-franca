@@ -27,7 +27,7 @@ import org.icyphy.linguaFranca.Timing
 
 /**
  * Generator for C target.
- * @author Edward A. Lee, Marten Lohstroh, Chris Gill
+ * @author Edward A. Lee, Marten Lohstroh, Chris Gill, Mehrdad Niknami
  */
 class CGenerator {
 	// For each reactor, we collect a set of input and parameter names.
@@ -88,6 +88,7 @@ class CGenerator {
 		
 		pr(includes)
 		pr(defines)
+		pr(windows)		// Windows support.
 		pr(declarations)
 
 		// Record timers.
@@ -530,6 +531,7 @@ class CGenerator {
 		#include <stdio.h>
 		#include <stdlib.h>
 		#include <time.h>
+		#include <errno.h>
 		#include "pqueue.h"
 	'''
 	
@@ -537,8 +539,63 @@ class CGenerator {
 	val static defines = '''
 		#define INITIAL_TAG_QUEUE_SIZE 10
 		#define INITIAL_INDEX_QUEUE_SIZE 10
-		#define MILLION 1000000L
-		#define BILLION 1000000000L
+		#define MILLION 1000000LL
+		#define BILLION 1000000000LL
+	'''
+	
+	// FIXME: The following should probably all go into library files.
+	// Windows is not POSIX, so we include here compatibility definitions.
+	val static windows = '''
+#if _WIN32 || WIN32
+#pragma warning(disable: 4204 4255 4459 4710)
+#ifdef  _M_X64
+typedef long long intptr_t;
+#else
+typedef int intptr_t;
+#endif
+intptr_t __cdecl _loaddll(char *);
+int __cdecl _unloaddll(intptr_t);
+int (__cdecl * __cdecl _getdllprocaddr(intptr_t, char *, intptr_t))(void);
+typedef long NTSTATUS;
+typedef union _LARGE_INTEGER *PLARGE_INTEGER;
+typedef NTSTATUS __stdcall NtDelayExecution_t(unsigned char Alertable, PLARGE_INTEGER Interval); NtDelayExecution_t *NtDelayExecution = NULL;
+typedef NTSTATUS __stdcall NtQueryPerformanceCounter_t(PLARGE_INTEGER PerformanceCounter, PLARGE_INTEGER PerformanceFrequency); NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
+typedef NTSTATUS __stdcall NtQuerySystemTime_t(PLARGE_INTEGER SystemTime); NtQuerySystemTime_t *NtQuerySystemTime = NULL;
+typedef enum { CLOCK_REALTIME = 0 } clockid_t;
+static int clock_gettime(clockid_t clk_id, struct timespec *tp)
+{
+    int result = -1;
+    long long timestamp, counts, counts_per_sec;
+    switch (clk_id) {
+    case CLOCK_REALTIME:
+        NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
+        tp->tv_sec = (time_t)(timestamp / (BILLION / 100));
+        tp->tv_nsec = (long)((timestamp % (BILLION / 100)) * 100);
+        result = 0;
+        break;
+    default:
+        errno = EINVAL;
+        result = -1;
+        break;
+    }
+    return result;
+}
+static int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+    unsigned char alertable = rem ? 1 : 0;
+    long long duration = -(req->tv_sec * (BILLION / 100) + req->tv_nsec / 100);
+    NTSTATUS status = (*NtDelayExecution)(alertable, (PLARGE_INTEGER)&duration);
+    int result = status == 0 ? 0 : -1;
+    if (alertable)
+    {
+        if (status < 0)
+        { errno = EINVAL; }
+        else if (status > 0 && clock_gettime(CLOCK_MONOTONIC, rem) == 0)
+        { errno = EINTR; }
+    }
+    return result;
+}
+#endif
 	'''
 	
 	// FIXME: The following should probably all go into library files.
@@ -651,11 +708,11 @@ class CGenerator {
 		
 		// Return the time elapsed in nanoseconds from the first to the seconds
 		// time or zero if the first is greater than or equal to the second.
-		long time_elapsed(struct timespec* first, struct timespec* second) {
-		    long result = (second->tv_sec - first->tv_sec) * BILLION
+		long long time_elapsed(struct timespec* first, struct timespec* second) {
+		    long long result = (second->tv_sec - first->tv_sec) * BILLION
 		            + (second->tv_nsec - first->tv_nsec);
-		    if (result < 0L) {
-		        result = 0L;
+		    if (result < 0LL) {
+		        result = 0LL;
 		    }
 		    return result;
 		}
@@ -669,14 +726,14 @@ class CGenerator {
 		    printf("-------- Waiting for logical time %d.\n", event->tag.time);
 		    // FIXME: Assuming logical time is in milliseconds.
 		    // FIXME: Check this carefully for overflow and efficiency.
-		    long logical_time_ns = event->tag.time * MILLION;
+		    long long logical_time_ns = event->tag.time * MILLION;
 		    
 		    // Get the current physical time.
 		    struct timespec current_physical_time;
 		    clock_gettime(CLOCK_REALTIME, &current_physical_time);
 		    
-		    long elapsed_physical_time_ns = time_elapsed(&__physicalStartTime, &current_physical_time);
-		    long ns_to_wait = logical_time_ns - elapsed_physical_time_ns;
+		    long long elapsed_physical_time_ns = time_elapsed(&__physicalStartTime, &current_physical_time);
+		    long long ns_to_wait = logical_time_ns - elapsed_physical_time_ns;
 		    
 		    if (ns_to_wait <= 0) {
 		        // Advance current time.
@@ -687,7 +744,7 @@ class CGenerator {
 		    
 		    // FIXME: Use timespec for logical time too!
 		    struct timespec wait_time = {ns_to_wait / BILLION, ns_to_wait % BILLION};
-		    printf("-------- Waiting %ld seconds, %ld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
+		    printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
 		    struct timespec remaining_time;
 		    // FIXME: If the wait time is less than the time resolution, don't sleep.
 		    if (nanosleep(&wait_time, &remaining_time) != 0) {
@@ -753,6 +810,16 @@ class CGenerator {
 		}
 		
 		void initialize() {
+			#if _WIN32 || WIN32
+			    intptr_t ntdll = _loaddll("ntdll.dll");
+			    if (ntdll != 0 && ntdll != -1)
+			    {
+			        NtDelayExecution = (NtDelayExecution_t *)_getdllprocaddr(ntdll, "NtDelayExecution", -1);
+			        NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)_getdllprocaddr(ntdll, "NtQueryPerformanceCounter", -1);
+			        NtQuerySystemTime = (NtQuerySystemTime_t *)_getdllprocaddr(ntdll, "NtQuerySystemTime", -1);
+			    }
+			#endif
+			
 			current_time.time = 0; // FIXME: Obtain system time.
 			eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, set_pri, get_pos, set_pos);
 			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, set_pri, get_pos, set_pos);
