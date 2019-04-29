@@ -24,6 +24,7 @@ Reactor:
    	componentBody=ComponentBody
    	'}';
 Composite:
+	(modifiers += COMPOSITE_MODIFIER)*
    	'composite'
    	componentBody=ComponentBody
    	(instances += Instance)*
@@ -57,8 +58,8 @@ Action:
 Reaction:
 	'reaction' 
 	('(' (triggers+=ID (',' triggers+=ID)*)? ')')?
-	gets=Gets?
-	sets=Sets?
+	gets=Gets? // FIXME: rename to 'uses'
+	sets=Sets? // FIXME: rename to 'produces'
 	code=CODE;
 	
 Preamble:
@@ -117,6 +118,9 @@ Value:
 
 /////////// Elementary components
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
+
+terminal COMPOSITE_MODIFIER:
+	'main' | 'threaded';
 
 // FIXME: Can we replace this with something more general? E.g., scientific notation, hex, etc.?
 terminal NUMBER:
