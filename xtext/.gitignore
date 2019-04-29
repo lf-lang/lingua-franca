@@ -1,10 +1,10 @@
-/*/bin/
-/*/test-bin/
-src-gen/
-xtend-gen/
-generated/
-*.java
 *.class
+*.java
 *.xml_gen
 *.xtendbin
 *._trace
+/*/bin/
+/*/test-bin/
+generated/
+src-gen/
+xtend-gen/
