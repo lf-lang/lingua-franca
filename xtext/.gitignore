@@ -1,4 +1,5 @@
 **/src-gen/**
+**/xtend-gen/**
 **/generated/**
 *.java
 *.class
