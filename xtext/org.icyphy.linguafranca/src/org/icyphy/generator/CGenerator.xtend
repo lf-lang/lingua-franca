@@ -300,7 +300,6 @@ class CGenerator {
 	def scanReactions(EList<Reaction> reactions) {
 		var id = 0
 		val reactionDecls = new StringBuffer()
-		val triggerDecls = new StringBuffer()
 		
 		for (reaction: reactions) {
 			val reactionName = "reaction" + id;
@@ -530,6 +529,7 @@ class CGenerator {
 	val static includes = '''
 		#include <stdio.h>
 		#include <stdlib.h>
+		#include <time.h>
 		#include "pqueue.h"
 	'''
 	
@@ -537,6 +537,8 @@ class CGenerator {
 	val static defines = '''
 		#define INITIAL_TAG_QUEUE_SIZE 10
 		#define INITIAL_INDEX_QUEUE_SIZE 10
+		#define MILLION 1000000L
+		#define BILLION 1000000000L
 	'''
 	
 	// FIXME: The following should probably all go into library files.
@@ -624,7 +626,6 @@ class CGenerator {
 		
 		// Schedule the specified trigger at current_time plus the delay.
 		handle_t __schedule(trigger_t* trigger, interval_t delay) {
-			printf("Scheduling %d, %d\n", trigger->offset + delay, trigger->period);
 		    event_t* e = malloc(sizeof(struct event_t));
 		    e->tag.time = current_time.time + delay;
 		    if (delay == 0) {
@@ -646,6 +647,61 @@ class CGenerator {
 		handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
 			return __schedule(trigger, trigger->offset + extra_delay);
 		}
+		struct timespec __physicalStartTime;
+		
+		// Return the time elapsed in nanoseconds from the first to the seconds
+		// time or zero if the first is greater than or equal to the second.
+		long time_elapsed(struct timespec* first, struct timespec* second) {
+		    long result = (second->tv_sec - first->tv_sec) * BILLION
+		            + (second->tv_nsec - first->tv_nsec);
+		    if (result < 0L) {
+		        result = 0L;
+		    }
+		    return result;
+		}
+		
+		// Wait until physical time matches or exceeds the start time of execution
+		// plus the current_time plus the specified logical time.  If this is not
+		// interrupted, then advance current_time by the specified logical_delay. 
+		// Return 0 if time advanced to the time of the event and -1 if the wait
+		// was interrupted.
+		int wait_until(event_t* event) {
+		    printf("-------- Waiting for logical time %d.\n", event->tag.time);
+		    // FIXME: Assuming logical time is in milliseconds.
+		    // FIXME: Check this carefully for overflow and efficiency.
+		    long logical_time_ns = event->tag.time * MILLION;
+		    
+		    // Get the current physical time.
+		    struct timespec current_physical_time;
+		    clock_gettime(CLOCK_REALTIME, &current_physical_time);
+		    
+		    long elapsed_physical_time_ns = time_elapsed(&__physicalStartTime, &current_physical_time);
+		    long ns_to_wait = logical_time_ns - elapsed_physical_time_ns;
+		    
+		    if (ns_to_wait <= 0) {
+		        // Advance current time.
+		        current_time.time = event->tag.time;
+		        current_time.microstep = event->tag.microstep;
+		        return 0;
+		    }
+		    
+		    // FIXME: Use timespec for logical time too!
+		    struct timespec wait_time = {ns_to_wait / BILLION, ns_to_wait % BILLION};
+		    printf("-------- Waiting %ld seconds, %ld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
+		    struct timespec remaining_time;
+		    // FIXME: If the wait time is less than the time resolution, don't sleep.
+		    if (nanosleep(&wait_time, &remaining_time) != 0) {
+		        // Sleep was interrupted.
+		        // Remaining time is in remaining_time.
+		        // FIXME: Set current_time.
+		        
+		        return -1;
+		    }
+		    // Advance current time.
+		    current_time.time = event->tag.time;
+		    current_time.microstep = event->tag.microstep;
+		    return 0;
+		}
 		// Wait until physical time matches or exceeds the time of the least tag
 		// on the event queue. If theres is no event in the queue, return 0.
 		// After this wait, advance current_time to match
@@ -662,11 +718,8 @@ class CGenerator {
 			if (event == NULL) {
 				return 0;
 			}
-		  	// FIXME: Wait until physical time >= event.tag.time
-		
-			// Advance current time.
-			current_time.time = event->tag.time;
-			current_time.microstep = event->tag.microstep;
+			// Wait until physical time >= event.tag.time
+			wait_until(event);
 			
 		  	// Pop all events from eventQ with timestamp equal to current_time
 		  	// stick them into reaction.
@@ -703,11 +756,13 @@ class CGenerator {
 			current_time.time = 0; // FIXME: Obtain system time.
 			eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, set_pri, get_pos, set_pos);
 			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, set_pri, get_pos, set_pos);
+			clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
+			printf("Start execution at time %splus %ld nanoseconds.\n",
+					ctime(&__physicalStartTime.tv_sec), __physicalStartTime.tv_nsec);
 		}
 
 		int main(int argc, char* argv[]) {
 			initialize();
-			printf("Hello World at time %d\n", current_time.time);
 			startTimers();
 			// FIXME: Need stopping conditions.
 			while (next() != 0);
