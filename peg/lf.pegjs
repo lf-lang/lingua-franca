@@ -20,7 +20,7 @@ Stament
 	 / Spacing stmt:Declaration Spacing {return stmt;}
 	 / Spacing stmt:EmbeddedStatement Spacing {return stmt;}
 EmbeddedStatement
-	 = "{=" stmt:( !"=" . / "=" !"}" .)* "=}" { return { type : "embedded", value : stmt.map( function(arr){ return arr[1]}).join("")};}
+	 = "{=" stmt:( !"=" . / "=" !"}" .)* "=}" { return { type : "embedded", value : stmt.map( function(arr){if(arr.length == 2){return arr[1]}else{return (arr[0] + arr[2])}}).join("")};} 
 Declaration
 	 = decl:EntityDeclaration { return decl;}
 	 / decl:PropertyDeclaration _ ";" {return decl;}
