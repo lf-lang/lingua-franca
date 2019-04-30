@@ -36,6 +36,10 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 				val generator = new AccessorGenerator()
 				targetFound = true
 				generator.doGenerate(resource, fsa, context, importTable)
+			} else if (target.name.equalsIgnoreCase("C")) {
+				targetFound = true
+				val generator = new CGenerator()
+				generator.doGenerate(resource, fsa, context, importTable)
 			}
 		}
 		if (!targetFound) {

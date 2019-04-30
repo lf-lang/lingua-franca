@@ -13,15 +13,16 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Clock
+import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Composite
-import org.icyphy.linguaFranca.Constructor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
+import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Timing
 
 /**
  * Generator for Accessors.
@@ -33,13 +34,13 @@ class AccessorGenerator {
 	var parameters = newLinkedList()
 	var reactionCount = 0
 	
-	// Map from clock name to Clock object.
-	var clocks = new HashMap<String,Clock>()
-	// Map from clock name to reaction name(s) triggered by the clock.
-	var clockReactions = new LinkedHashMap<String,LinkedList<String>>()
+	// Map from timer name to Timing object.
+	var timers = new HashMap<String,Timing>()
+	// Map from timer name to reaction name(s) triggered by the timer.
+	var timerReactions = new LinkedHashMap<String,LinkedList<String>>()
 	
-	// Map from input name to list of input handlers.
-	var handlers = new LinkedHashMap<String,LinkedList<String>>()
+	// Text of generated code to add input handlers.
+	var addInputHandlers = new StringBuffer()
 	
 	// All code goes into this string buffer.
 	var code = new StringBuilder
@@ -50,225 +51,96 @@ class AccessorGenerator {
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
 		
-		// Handle actors.
-		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+		// Handle reactors and composites.
+		for (component : resource.allContents.toIterable.filter(Component)) {
 			code = new StringBuilder
-			generateReactor(reactor, importTable, false);
-			fsa.generateFile(reactor.name + ".js", code);		
-		}
-		
-		// Handle composites.
-		for (composite : resource.allContents.toIterable.filter(Composite)) {
-			code = new StringBuilder
-			generateComposite(composite, importTable)
-			fsa.generateFile(composite.name + ".js", code);		
+			generateComponent(component, importTable, false)
+			val componentBody = component.componentBody
+			fsa.generateFile(componentBody.name + ".js", code)		
 		}
 	}
 	
 	////////////////////////////////////////////
 	//// Code generators.
 	
-	/** Generate a reactor definition.
-	 *  @param reactor The parsed reactor data structure.
+	/** Generate a reactor or composite definition.
+	 *  @param component The parsed component data structure.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 *  @param isComposite True if this is a composite reactor.
 	 */	
-	def generateReactor(Reactor reactor, Hashtable<String,String> importTable, boolean isComposite) {
+	def generateComponent(Component component, Hashtable<String,String> importTable, boolean isComposite) {
 		inputs.clear()      // Reset set of inputs.
 		parameters.clear()  // Reset set of parameters.
-		clocks.clear()      // Reset map of clock names to clock properties.
-		clockReactions.clear()
-		handlers.clear()
+		timers.clear()      // Reset map of timer names to timer properties.
+		timerReactions.clear()
+		addInputHandlers = new StringBuffer()
 		
 		reactionCount = 1   // Start reaction count at 1.
 		
-		// Record clocks.
-		for (clock: reactor.clocks) {
-			clocks.put(clock.name, clock)
+		// Record timers.
+		for (timer: component.componentBody.timers) {
+			var timing = timer.timing
+			if (timing === null) {
+				timing = LinguaFrancaFactory.eINSTANCE.createTiming()
+				timing.setOffset("0") // Same as NOW.
+				timing.setPeriod("0") // Same as ONCE.
+			} else {
+				if (timing.getOffset.equals("NOW")) {
+					timing.setOffset("0")
+				}
+				if (timing.getPeriod.equals("ONCE")) {
+					timing.setPeriod("0")
+				} else if (timing.getPeriod.equals("STOP")) {
+					timing.setPeriod("-1")
+				}
+			}
+			timers.put(timer.name, timing)
 		}
-		pr(boilerplate())
-		if (reactor.preamble !== null) {
+		pr(boilerplate)
+		if (component.componentBody.preamble !== null) {
 			pr("// *********** From the preamble, verbatim:")
-			pr(removeCodeDelimiter(reactor.preamble.code))
+			pr(removeCodeDelimiter(component.componentBody.preamble.code))
 			pr("\n// *********** End of preamble.")
 		}
 		// Reactor setup (inputs, outputs, parameters)
-		/* FIXME: Solve code duplication problem: Have to make composite a subtype of reactor in xtext file.
-		if(isComposite) {
-			result.append(compositeSetup(reactor, importTable))
-		} else {
-		*/
-			reactorSetup(reactor, importTable)
-		//}
+		componentSetup(component, importTable)
 		// Generate reactions
-		generateReactions(reactor.reactions)
-		// Reactor initialize (initialize + triggers scheduling + input handlers)
-		generateInitialize(reactor.constructor, reactor.clocks, reactor.reactions)
+		generateReactions(component.componentBody.reactions)
+		// initialize function (initialize + triggers scheduling + input handlers)
+		generateInitialize(component.componentBody.timers, component.componentBody.reactions)
 	}
 	
-	/** Generate a composite definition.
-	 *  @param composite The parsed composite data structure.
-	 *  @param importTable Substitution table for class names (from import statements).
+	/** Generate the setup function definition for a reactor or composite.
 	 */
-	def generateComposite(Composite composite, Hashtable<String,String> importTable) {
-		// FIXME: Duplicated code with above.
-		inputs.clear()      // Reset set of inputs.
-		parameters.clear()  // Reset set of parameters.
-		clocks.clear()      // Reset map of clock names to clock properties.
-		clockReactions.clear()
-		handlers.clear()
-		
-		reactionCount = 1   // Start reaction count at 1.
-		
-		// Record clocks.
-		for (clock: composite.clocks) {
-			clocks.put(clock.name, clock)
-		}
-		pr(boilerplate())
-		if (composite.preamble !== null) {
-			pr("// *********** From the preamble, verbatim:")
-			pr(removeCodeDelimiter(composite.preamble.code))
-			pr("// *********** End of preamble.")
-		}
-		compositeSetup(composite, importTable)
-		// Generate reactions
-		generateReactions(composite.reactions)
-		// Reactor initialize (initialize + triggers scheduling + input handlers)
-		generateInitialize(composite.constructor, composite.clocks, composite.reactions)
-	}
-	
-	def boilerplate() '''
-		// ********* Boilerplate included for all actors.
-		// Unbound version of set() function (will be bound below).
-		function __setUnbound(port, value) {
-		    if (!port) {
-		        throw "Illegal reference to undeclared output.";
-		    }
-		    this.send(port, value);
-		}
-		// NOTE: bind() returns a new function.
-		// It does not alter the original function.
-		var set = __setUnbound.bind(this);
-		
-		// Unbound version of get() function (will be bound below).
-		function __getUnbound(port, value) {
-			if (!port) {
-		    	throw "Illegal reference to undeclared input.";
-		    }
-			return this.get(port);
-		}
-		// NOTE: bind() returns a new function.
-		// It does not alter the original function.
-		var get = __getUnbound.bind(this);
-		
-		// Variables for schedule function.
-		var TRIGGERED = -1;
-		var ONCE = -1;
-		// Map from schedule names to reaction functions.
-		var __SCHEDULE_TABLE = {}
-		
-		// Function to schedule an action. The arguments are:
-		// * action: The name of the action.
-		// * offset: The time after the current time for the first action.
-		// * period: The period at which to repeat the action, or 0 to not repeat it.
-		// FIXME: Make all but the first argument optional.
-		function schedule(action, offset, period) {
-			if (offset > 0) {
-				setTimeout(schedule, offset, action, 0, period);
-			} else {
-				if (period > 0) {
-					// FIXME
-				} else {
-					// FIXME 
-				}
-			}
-		}
-		// Dispatch the specified action.
-		function __dispatch(action) {
-			var reactions = actionTable[action];
-			if (!reactions) {
-				throw("No actions named: " + action);
-			}
-			// for (var reaction in reactions) {
-				
-			// }
-		}
-		// A table of actions indexed by the action name.
-		// Each property value is an object with function and arguments properties.
-		// The arguments property is an array of arguments or an empty array to
-		// apply no arguments.
-		var actionTable = {};
-		// ********** End boilerplate
-	'''
-	
-	/** Generate the setup function definition for a reactor.
-	 */
-	def reactorSetup(Reactor reactor, Hashtable<String,String> importTable) {
+	def componentSetup(Component component, Hashtable<String,String> importTable) {
 		pr("exports.setup = function () {")
 		indent()
-		generateIO(reactor)
-		unindent()
-		pr("}")
-	}
-		
-	/** Generate the setup function definition for a composite.
-	 */
-	def compositeSetup(Composite composite, Hashtable<String,String> importTable) {
-		pr("exports.setup = function () {")
-		indent()
-		generateCompositeIO(composite)
-		// Generated instances
-		for (instance: composite.instances) {
-			instantiate(instance, importTable)
-		}
-		// Generated connections
-		for (connection: composite.connections) {
-			pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
-		}
-		unindent()
-		pr("}")
-	}
-		
-	/** Generate the inputs, outputs, and parameters for a reactor.
-	 */
-	def generateIO(Reactor reactor) {
 		// Generate Inputs, if any.
-		for (input: reactor.inputs) {
+		for (input: component.componentBody.inputs) {
 			generateInput(input)
 		}
 		// Generate outputs, if any
-		for (output: reactor.outputs) {
+		for (output: component.componentBody.outputs) {
 			generateOutput(output)
 		}
 		// Generate parameters, if any
-		if (reactor.parameters !== null) {
-			for (param : reactor.parameters.params) {
+		if (component.componentBody.parameters !== null) {
+			for (param : component.componentBody.parameters.params) {
 				generateParameter(param)
 			}
 		}
-	}
-	
-	/** Generate the inputs, outputs, and parameters for a composite.
-	 */
-	def generateCompositeIO(Composite reactor) {
-		// FIXME: Completely redundant with previous method.
-		// But Composite and Reactor are completely different classes,
-		// so I don't see how to merge these.
-		
-		// Generate Inputs, if any.
-		for (input: reactor.inputs) {
-			generateInput(input)
-		}
-		// Generate outputs, if any
-		for (output: reactor.outputs) {
-			generateOutput(output)
-		}
-		// Generate parameters, if any
-		if (reactor.parameters !== null) {
-			for (param : reactor.parameters.params) {
-				generateParameter(param)
+		if (component instanceof Composite) {
+			// Generated instances
+			for (instance: component.instances) {
+				instantiate(instance, importTable)
+			}
+			// Generated connections
+			for (connection: component.connections) {
+				pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
 			}
 		}
+		unindent()
+		pr("}")
 	}
 		
 	def generateInput(Input input) {
@@ -296,11 +168,10 @@ class AccessorGenerator {
 	}
 	
 	/** Generate the initialize function definition for an accessor.
-	 *  This adds input handlers and clock reactions.
+	 *  This adds input handlers and timer reactions.
 	 */
 	def generateInitialize(
-		Constructor constructor, 
-		EList<Clock> triggers, 
+		EList<Timer> triggers, 
 		EList<Reaction> reactions
 	) {
 		pr("exports.initialize = function () {\n")
@@ -311,18 +182,13 @@ class AccessorGenerator {
 		}
 		
 		// Add the input handlers.
-		for (input: handlers.keySet) {
-			for (handler: handlers.get(input)) {
-				pr('''this.addInputHandler("«input»", «handler».bind(this));''')
-			}
-		}
-		// Add the clock reactions.
-		for (clock: clockReactions.keySet) {
-			// FIXME: Handle the variants of clock arguments.
-			val clockParams = clocks.get(clock).period
-			// FIXME: Above could be null (one-time invocation).
-			for (handler: clockReactions.get(clock)) {
-				pr('''setInterval(«handler».bind(this), «clockParams.period»);''')
+		pr(addInputHandlers)
+
+		// Add the timer reactions.
+		for (timer: timerReactions.keySet) {
+			val timerParams = timers.get(timer)
+			for (handler: timerReactions.get(timer)) {
+				pr('''schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
 			}
 		}
 		unindent()
@@ -338,30 +204,25 @@ class AccessorGenerator {
 			indent()
 			// Add variable declarations for inputs.
 			// Meanwhile, record the mapping from triggers to handlers.
-			if (reaction.triggers !== null) {
+			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
 					if (inputs.contains(trigger)) {
 						// The trigger is an input.
-
 						// Declare a variable in the generated code.
 						// NOTE: Here we are not using get() because null works
 						// in JavaScript.
 						pr('''var «trigger» = get("«trigger»");''')
 
-						// Record this input so that we can add an input handler.
-						var list = handlers.get(trigger)
-						if (list === null) {
-							list = new LinkedList<String>()
-							handlers.put(trigger, list)
-						}
-						list.add(functionName)
-					} else if (clocks.get(trigger) !== null) {
-						// The trigger is a clock.
+						// Generate code for the initialize() function here so that input handlers are
+						// added in the same order that they are declared.
+				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
+					} else if (timers.get(trigger) !== null) {
+						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
-						var list = clockReactions.get(trigger)
+						var list = timerReactions.get(trigger)
 						if (list === null) {
 							list = new LinkedList<String>()
-							clockReactions.put(trigger, list)
+							timerReactions.put(trigger, list)
 						}
 						list.add(functionName)
 					} else {
@@ -371,9 +232,17 @@ class AccessorGenerator {
 						var node = NodeModelUtils.getNode(reaction)
 						System.err.println("Line "
 							+ node.getStartLine()
-							+ ": Trigger '" + trigger + "' is neither an input nor a clock.")
+							+ ": Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
 					}
 				}
+			} else {
+				// No triggers are given, which means react to any input.
+				// Declare a variable for every input.
+				// NOTE: Here we are not using get() because null works in JavaScript.
+				for (input: inputs) {
+					pr('''var «input» = get("«input»");''')
+				}
+				addInputHandlers.append('''this.addInputHandler(null, «functionName».bind(this));''')
 			}
 			// Define variables for non-triggering inputs.
 			if (reaction.gets !== null && reaction.gets.gets !== null) {
@@ -516,4 +385,85 @@ class AccessorGenerator {
         	code
         }
 	}
+	
+		val static boilerplate = '''
+		// ********* Boilerplate included for all actors.
+		// Unbound version of set() function (will be bound below).
+		function __setUnbound(port, value) {
+		    if (!port) {
+		        throw "Illegal reference to undeclared output.";
+		    }
+		    this.send(port, value);
+		}
+		// NOTE: bind() returns a new function.
+		// It does not alter the original function.
+		var set = __setUnbound.bind(this);
+		
+		// Unbound version of get() function (will be bound below).
+		function __getUnbound(port, value) {
+			if (!port) {
+		    	throw "Illegal reference to undeclared input.";
+		    }
+			return this.get(port);
+		}
+		// NOTE: bind() returns a new function.
+		// It does not alter the original function.
+		var get = __getUnbound.bind(this);
+		
+		// Variables for schedule function.
+		var TRIGGERED = -1;
+		var ONCE = -1;
+		// Map from trigger names to handles for periodic invocations.
+		var __SCHEDULE_TABLE = {}
+		
+		// Function to schedule an action. The arguments are:
+		// * trigger: The name of the timer or action.
+		// * handler: Function to invoke.
+		// * offset: The time after the current time for the first action.
+		// * period: The period at which to repeat the action, 0 for one time, and -1 to cancel
+		//   a previously initiated periodic action.
+		// FIXME: Make all but the first argument optional.
+		function schedule(trigger, handler, offset, period) {
+			if (offset >= 0 && period == 0) {
+				var handle = setTimeout(handler, offset);
+				__SCHEDULE_TABLE[trigger] = handle;
+				setTimeout(function() { __SCHEDULE_TABLE[trigger] = null; }, offset);
+			} else if (offset == 0 && period > 0) {
+				setTimeout(handler, 0); // First invocation.
+				var handle = setInterval(handler, period);
+				__SCHEDULE_TABLE[trigger] = handle;
+			} else if (offset > 0 && period > 0) {
+				var handle = setTimeout(function() {
+					setTimeout(handler, 0); // First invocation.
+					var handle = setInterval(handler, period);
+					__SCHEDULE_TABLE[trigger] = handle;
+				}, offset);
+				__SCHEDULE_TABLE[trigger] = handle;
+			} else if (period < 0) {
+				if (__SCHEDULE_TABLE[trigger]) {
+					clearTimeout(__SCHEDULE_TABLE[trigger]);
+					clearInterval(__SCHEDULE_TABLE[trigger]);
+					__SCHEDULE_TABLE[trigger] = null;
+				}
+			} else {
+				throw("Illegal schedule arguments: " + offset +", " + period);
+			}
+		}
+		// Dispatch the specified action.
+		function __dispatch(action) {
+			var reactions = actionTable[action];
+			if (!reactions) {
+				throw("No actions named: " + action);
+			}
+			// for (var reaction in reactions) {
+				
+			// }
+		}
+		// A table of actions indexed by the action name.
+		// Each property value is an object with function and arguments properties.
+		// The arguments property is an array of arguments or an empty array to
+		// apply no arguments.
+		var actionTable = {};
+		// ********** End boilerplate
+	'''
 }
