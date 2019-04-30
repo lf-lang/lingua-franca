@@ -9,6 +9,7 @@ import java.util.LinkedHashMap
 import java.util.LinkedList
 import java.util.StringJoiner
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
@@ -52,12 +53,15 @@ class CGenerator {
 	// All code goes into this string buffer.
 	var code = new StringBuilder
 	
+	var Resource _resource;
+	
 	def void doGenerate(
 			Resource resource, 
 			IFileSystemAccess2 fsa, 
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
 		
+		_resource = resource
 		// Handle reactors and composites.
 		for (component : resource.allContents.toIterable.filter(Component)) {
 			code = new StringBuilder
@@ -290,6 +294,7 @@ class CGenerator {
 			}
 
 			// Code verbatim from 'reaction'
+			pr_source_line_number(reaction)
 			pr(removeCodeDelimiter(reaction.code))
 			unindent()
 			pr("}")
@@ -496,6 +501,14 @@ class CGenerator {
 			code.append(text)
 			code.append("\n")
 		}
+	}
+	
+	// Print the #line compiler directive with the line number of
+	// the most recently used node.
+	private def pr_source_line_number(EObject reaction) {
+		var node = NodeModelUtils.getNode(reaction)
+		pr("#line " + node.getStartLine() + ' "' + _resource.getURI() + '"')
+		
 	}
 	
 	private def indent() {
