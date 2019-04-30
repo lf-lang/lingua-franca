@@ -1,0 +1,18 @@
+// Periodically produce an output consisting of a ping followed by a count.
+// FIXME: update to new LF syntaxt
+target JavaScript;
+actor Source(period:int(1000)) {
+    trigger t(period, PERIODIC);
+    output y:int;
+    preamble {=
+        var n = 0;
+    =}
+    initialize {=
+        n = 0;
+    =}
+    reaction(t) -> y {=
+        n = n + 1;
+        console.log("Ping " + n);
+        set(y, n);
+    =}
+}

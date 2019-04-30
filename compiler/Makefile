@@ -3,8 +3,8 @@
 
 ANTLR := lib/antlr-4.7.2-complete.jar
 ACCESSOR_PATH ?= accessors/web/hosts/node/
-ARG ?= Composition
-SOURCE := ../src/$(ARG).lf
+APP ?= Ping
+SOURCE := ../src/$(APP).lf
 
 all: lib comp lf
 
@@ -13,7 +13,7 @@ comp:
 	sbt compile
 
 lf:
-	sbt "runMain org.icyphy.lf.Compiler $(SOURCE) $(ARG).js"
+	sbt "runMain org.icyphy.lf.Compiler $(SOURCE) $(APP).js"
 
 gui:
 	java -classpath .:$(ANTLR):target/lingua-franca-1.0-SNAPSHOT.jar org.antlr.v4.gui.TestRig org.icyphy.lf.LinguaFranca sys $(SOURCE) -gui
@@ -33,9 +33,9 @@ setup:
 	svn co https://repo.eecs.berkeley.edu/svn-anon/projects/terraswarm/accessors/trunk/accessors
 
 test:
-#	$(ACCESSOR_PATH)nodeHostInvoke.js $(ARG)
+	node $(ACCESSOR_PATH)nodeHostInvoke.js $(APP)
 # test the testing
-	cd ../src/SimpleTest &&  node ../../compiler/$(ACCESSOR_PATH)nodeHostInvoke.js SimpleTest
+#	cd ../src/SimpleTest &&  node ../../compiler/$(ACCESSOR_PATH)nodeHostInvoke.js SimpleTest
 
 
 # setup in your shell
