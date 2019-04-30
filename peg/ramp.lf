@@ -21,8 +21,9 @@ reactor Print {
   =}
 }
 
+
 composite App {
   a = new Ramp(p=100);
   b = new Print();
-  a.out  --> b.in;
+  a.out  -> b.in;
 }

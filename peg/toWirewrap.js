@@ -44,6 +44,26 @@ function _printChildren(options = {}){
 				var printChildren = _printChildren({args: args});
 				var b = elem['body'];
 				b.forEach(printChildren);
+				//var hasConstr = false;
+				//for(child in b){
+				//	 if(child['type'] == 'constructor'){
+				//		  var hasConstr = true;
+				//	 }
+				//}
+				//if(!hasConstr){
+				//	 console.log("constructor(){");
+				//	 console.log("super();");
+				//	 for(var i = 0; i < variables.length; i++ ){
+				//		  string = "this.";
+				//		  if(variables[i]['vartype'] != undefined){
+				//				string += variables[i]['id'] + " = " + variables[i]['id'];
+				//				console.log(string);
+				//		  }
+				//	 }
+				//}
+
+
+
 
 				console.log("_reactions = [["); 
 				var object_strs = []
@@ -124,6 +144,16 @@ function _printChildren(options = {}){
 				}
 				strg += "){";
 				console.log(strg);
+		      console.log("super();");
+				if(args != undefined){
+					 for(var i = 0; i < args.length; i++){
+						  var string = "this.";
+						  if(args[i]['vartype'] != undefined){
+								string += args[i]["id"] + " = " + args[i]["id"] + ";";
+								console.log(string);
+						  }
+					 }
+				}
 				console.log(elem['value']['value']);
 				console.log("}");
 				break;
@@ -136,30 +166,33 @@ function _printChildren(options = {}){
 				printChildren(elem['header']['args']);
 				console.log("){");
 
-				printChildren(elem['body']);
-				console.log("}");
+				elem['body'].forEach(printChildren);
 				console.log("}");
 				break;
 		  case 'call':
-				process.stdout.write(elem['value']['id'] + "(")
+				process.stdout.write(elem['id'] + "(")
 				var printChildren = _printChildren();
-				elem['value']['args'].forEach(printChildren);
+				printChildren(elem['args']); //not sure if this is right, check
 				console.log(");");
 				break;
 		  case 'assignment':
-				process.stdout.write("var " + elem['id'] + " = new "); //this new here should probably not be always there?
+				process.stdout.write("var " + elem['id'] + " = "); //this new here should probably not be always there?
 				var printChildren = _printChildren();
-				printChildren(elem['expression']);
-				console.log(";");
+				printChildren(elem['expr']);
+				break;
+		  case 'new':
+				var printChildren = _printChildren();
+				process.stdout.write("new ");
+				printChildren(elem['value']);
 				break;
 		  case 'port':
-				console.log(elem['dst']['value'] + ".output.connect(" + elem['src']['value'] + ".input);"); 
+				console.log(elem['dst'] + ".output.connect(" + elem['src'] + ".input);"); 
 				break;
 		  case 'input':
-				console.log("input: InPort<" + elem['params']['id'] + ">;");
+				console.log(elem['params']['id'] + ": InPort<" + elem['params']['vartype'] + ">;");
 				break;
 		  case 'output':
-				console.log("output: OutPort<" + elem['params']['id'] + ">;");
+				console.log(elem['params']['id'] + ": OutPort<" + elem['params']['vartype'] + ">;");
 				break;
 		  case 'clock':
 				console.log("clock: Clock  = new Clock(this." + elem['header']['id'] + ");");
