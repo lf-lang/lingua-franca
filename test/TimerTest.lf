@@ -21,7 +21,7 @@ reactor Source1 {
 }
 reactor Source2(period:int(1000)) {
 	output out:int;
-	timer t(NOW, period);
+	timer t(0, period ms);
 	reaction(t) -> out {=
 		set(out, 2);
 		console.log("Output with value 2 at time FIXME.")

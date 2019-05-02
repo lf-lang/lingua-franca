@@ -19,25 +19,25 @@ import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
-import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Timing
 
 /**
  * Generator for C target.
  * @author Edward A. Lee, Marten Lohstroh, Chris Gill, Mehrdad Niknami
  */
-class CGenerator {
+class CGenerator extends GeneratorBase {
+	
+	// Additional, finer time units supported by this code generator.
+	static var CTimeUnits = #{'ns', 'nsec', 'us', 'usec'}
+	
 	// For each reactor, we collect a set of input and parameter names.
 	var inputs = newHashSet()
 	var parameters = newLinkedList()
 	var reactionCount = 0
 	
-	// Map from timer name to Timing object.
-	var timers = new HashMap<String,Timing>()
 	// Map from timer or action name to reaction name(s) triggered by it.
 	var triggerToReactions = new LinkedHashMap<String,LinkedList<String>>()
 	
@@ -45,14 +45,7 @@ class CGenerator {
 	var actions = new HashMap<String,Action>()
 	// Map from action name to index of the trigger in the trigger table.
 	var actionToTriggerTableIndex = new HashMap<String,Integer>()
-	
-	// All header code goes into this string buffer.
-	var header = new StringBuilder 
-	// FIXME: put all prototypes and constants in a header file
-	
-	// All code goes into this string buffer.
-	var code = new StringBuilder
-	
+			
 	var Resource _resource;
 	
 	def void doGenerate(
@@ -61,13 +54,15 @@ class CGenerator {
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
 		
+		addTimeUnits(CTimeUnits)
+		
 		_resource = resource
 		// Handle reactors and composites.
 		for (component : resource.allContents.toIterable.filter(Component)) {
-			code = new StringBuilder
-			generateComponent(component, importTable, false)
+			clearCode()
+			generateComponent(component, importTable)
 			val componentBody = component.componentBody
-			fsa.generateFile(componentBody.name + ".c", code)		
+			fsa.generateFile(componentBody.name + ".c", getCode())		
 		}
 	}
 	
@@ -77,12 +72,12 @@ class CGenerator {
 	/** Generate a reactor or composite definition.
 	 *  @param component The parsed component data structure.
 	 *  @param importTable Substitution table for class names (from import statements).
-	 *  @param isComposite True if this is a composite reactor.
-	 */	
-	def generateComponent(Component component, Hashtable<String,String> importTable, boolean isComposite) {
+	 */
+	override generateComponent(Component component, Hashtable<String,String> importTable) {
+		super.generateComponent(component, importTable)
+		
 		inputs.clear()      // Reset set of inputs.
 		parameters.clear()  // Reset set of parameters.
-		timers.clear()      // Reset map of timer names to timer properties.
 		triggerToReactions.clear()
 		actions.clear()
 		actionToTriggerTableIndex.clear()
@@ -95,31 +90,9 @@ class CGenerator {
 		pr(windows)		// Windows support.
 		pr(declarations)
 		pr(initialize_time)
-		
-		// Record timers.
-		var count = 0;
-		
-		for (timer: component.componentBody.timers) {
-			count++
-			var timing = timer.timing
-			if (timing === null) {
-				timing = LinguaFrancaFactory.eINSTANCE.createTiming()
-				timing.setOffset("0") // Same as NOW.
-				timing.setPeriod("0") // Same as ONCE.
-			} else {
-				// FIXME: Do we really want this?
-				if (timing.getOffset.equals("NOW")) {
-					timing.setOffset("0")
-				}
-				if (timing.getPeriod.equals("ONCE")) {
-					timing.setPeriod("0")
-				}
-			}
-			timers.put(timer.name, timing)
-		}
-		
+				
 		// Record actions.
-	    count = 0;
+	    var count = 0;
 		for (action: component.componentBody.actions) {
 			count++
 			if (action.getDelay() === null) {
@@ -318,7 +291,7 @@ class CGenerator {
 				for (trigger: reaction.triggers) {
 					if (inputs.contains(trigger)) {
                         // FIXME
-                    } else if (timers.get(trigger) !== null) {
+                    } else if (getTiming(trigger) !== null) {
                         // The trigger is a timer.
                         // Record this so we can schedule this reaction in initialize
                         // and initialize the trigger table.
@@ -356,7 +329,7 @@ class CGenerator {
 		 pr("void start_timers() {")
 		 indent()
 		 // __schedule(trigger_table[i], 0); 
-		 for (timer : timers.keySet()) {
+		 for (timer : getTimerNames()) {
 		 	pr("__schedule(&" + timer + ", 0LL);")
 		 }
 		 unindent()
@@ -389,12 +362,13 @@ class CGenerator {
 			result.append('\n')
 			result.append('trigger_t ' + triggerName + ' = {')
 			result.append('\n')
-			if (timers.get(triggerName) !== null) {
+			var timing = getTiming(triggerName)
+			if (timing !== null) {
 				result.append(triggerName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
-					+ timers.get(triggerName).offset
+					+ timing.offset
 					+ ', '
-					+ timers.get(triggerName).period
+					+ timing.period
 				)
 			} else if (actions.get(triggerName) !== null) {
 				result.append(triggerName + '_reactions, '
@@ -456,54 +430,7 @@ class CGenerator {
 	//// Utility functions for generating code.
 	
 	var indentation = ""
-	
-	/** Append the specified text plus a final newline to the current
-	 *  code buffer.
-	 *  @param text The text to append.
-	 */
-	private def pr(Object text) {
-		// Handle multi-line text.
-		var string = text.toString
-		if (string.contains("\n")) {
-			// Replace all tabs with four spaces.
-			string = string.replaceAll("\t", "    ")
-			// Use two passes, first to find the minimum leading white space
-			// in each line of the source text.
-			var split = string.split("\n")
-			var offset = Integer.MAX_VALUE
-			var firstLine = true
-			for (line : split) {
-				// Skip the first line, which has white space stripped.
-				if (firstLine) {
-					firstLine = false
-				} else {
-					var numLeadingSpaces = line.indexOf(line.trim());
-					if (numLeadingSpaces < offset) {
-						offset = numLeadingSpaces
-					}
-				}
-			}
-			// Now make a pass for each line, replacing the offset leading
-			// spaces with the current indentation.
-			firstLine = true
-			for (line : split) {
-				code.append(indentation)
-				// Do not trim the first line
-				if (firstLine) {
-					code.append(line)
-					firstLine = false
-				} else {
-					code.append(line.substring(offset))
-				}
-				code.append("\n")
-			}
-		} else {
-			code.append(indentation)
-			code.append(text)
-			code.append("\n")
-		}
-	}
-	
+		
 	// Print the #line compiler directive with the line number of
 	// the most recently used node.
 	private def pr_source_line_number(EObject reaction) {
@@ -512,34 +439,6 @@ class CGenerator {
 		
 	}
 	
-	private def indent() {
-		val buffer = new StringBuffer(indentation)
-		for (var i = 0; i < 4; i++) {
-			buffer.append(' ');
-		}
-		indentation = buffer.toString
-	}
-	
-	private def unindent() {
-		val end = indentation.length - 4;
-		if (end < 0) {
-			indentation = ""
-		} else {
-			indentation = indentation.substring(0, end)
-		}
-	}
-
-	/** If the argument starts with '{=', then remove it and the last two characters.
-	 *  @return The body without the code delimiter or the unmodified argument if it
-	 *   is not delimited.
-	 */
-	private def String removeCodeDelimiter(String code) {
-		if (code.startsWith("{=")) {
-            code.substring(2, code.length - 2).trim();
-        } else {
-        	code
-        }
-	}
 	// FIXME: pqueue.h and pqueue.c need to be copied to target directory.
 	val static includes = '''
 		#include <stdio.h>
@@ -634,7 +533,6 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		typedef struct reaction_t {
 		  reaction_function_t function;
 		  index_t index;
-		  // FIXME: add uses, produces, etc.?
 		  size_t pos; // Used by priority queue.
 		} reaction_t;
 		
