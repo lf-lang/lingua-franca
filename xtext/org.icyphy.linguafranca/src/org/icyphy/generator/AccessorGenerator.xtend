@@ -3,7 +3,6 @@
  */
 package org.icyphy.generator
 
-import java.util.HashMap
 import java.util.Hashtable
 import java.util.LinkedHashMap
 import java.util.LinkedList
@@ -17,34 +16,28 @@ import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
-import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Timing
 
 /**
  * Generator for Accessors.
  * @author Edward A. Lee, Chadlia Jerad
  */
-class AccessorGenerator {
+class AccessorGenerator extends GeneratorBase {
+	
 	// For each accessor, we collect a set of input and parameter names.
 	var inputs = newHashSet()
 	var parameters = newLinkedList()
 	var reactionCount = 0
 	
-	// Map from timer name to Timing object.
-	var timers = new HashMap<String,Timing>()
 	// Map from timer name to reaction name(s) triggered by the timer.
 	var timerReactions = new LinkedHashMap<String,LinkedList<String>>()
 	
 	// Text of generated code to add input handlers.
 	var addInputHandlers = new StringBuffer()
-	
-	// All code goes into this string buffer.
-	var code = new StringBuilder
-	
+		
 	def void doGenerate(
 			Resource resource, 
 			IFileSystemAccess2 fsa, 
@@ -53,8 +46,8 @@ class AccessorGenerator {
 		
 		// Handle reactors and composites.
 		for (component : resource.allContents.toIterable.filter(Component)) {
-			code = new StringBuilder
-			generateComponent(component, importTable, false)
+			clearCode()
+			generateComponent(component, importTable)
 			val componentBody = component.componentBody
 			fsa.generateFile(componentBody.name + ".js", code)		
 		}
@@ -66,36 +59,17 @@ class AccessorGenerator {
 	/** Generate a reactor or composite definition.
 	 *  @param component The parsed component data structure.
 	 *  @param importTable Substitution table for class names (from import statements).
-	 *  @param isComposite True if this is a composite reactor.
 	 */	
-	def generateComponent(Component component, Hashtable<String,String> importTable, boolean isComposite) {
+	override generateComponent(Component component, Hashtable<String,String> importTable) {
+		super.generateComponent(component, importTable)
+
 		inputs.clear()      // Reset set of inputs.
 		parameters.clear()  // Reset set of parameters.
-		timers.clear()      // Reset map of timer names to timer properties.
 		timerReactions.clear()
 		addInputHandlers = new StringBuffer()
 		
 		reactionCount = 1   // Start reaction count at 1.
 		
-		// Record timers.
-		for (timer: component.componentBody.timers) {
-			var timing = timer.timing
-			if (timing === null) {
-				timing = LinguaFrancaFactory.eINSTANCE.createTiming()
-				timing.setOffset("0") // Same as NOW.
-				timing.setPeriod("0") // Same as ONCE.
-			} else {
-				if (timing.getOffset.equals("NOW")) {
-					timing.setOffset("0")
-				}
-				if (timing.getPeriod.equals("ONCE")) {
-					timing.setPeriod("0")
-				} else if (timing.getPeriod.equals("STOP")) {
-					timing.setPeriod("-1")
-				}
-			}
-			timers.put(timer.name, timing)
-		}
 		pr(boilerplate)
 		if (component.componentBody.preamble !== null) {
 			pr("// *********** From the preamble, verbatim:")
@@ -186,7 +160,7 @@ class AccessorGenerator {
 
 		// Add the timer reactions.
 		for (timer: timerReactions.keySet) {
-			val timerParams = timers.get(timer)
+			val timerParams = getTiming(timer)
 			for (handler: timerReactions.get(timer)) {
 				pr('''schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
 			}
@@ -216,7 +190,7 @@ class AccessorGenerator {
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
 				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (timers.get(trigger) !== null) {
+					} else if (getTiming(trigger) !== null) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
 						var list = timerReactions.get(trigger)
@@ -305,88 +279,7 @@ class AccessorGenerator {
         }
     }
 	
-	////////////////////////////////////////////
-	//// Utility functions for generating code.
-	
-	var indentation = ""
-	
-	/** Append the specified text plus a final newline to the current
-	 *  code buffer.
-	 *  @param text The text to append.
-	 */
-	private def pr(Object text) {
-		// Handle multi-line text.
-		var string = text.toString
-		if (string.contains("\n")) {
-			// Replace all tabs with four spaces.
-			string = string.replaceAll("\t", "    ")
-			// Use two passes, first to find the minimum leading white space
-			// in each line of the source text.
-			var split = string.split("\n")
-			var offset = Integer.MAX_VALUE
-			var firstLine = true
-			for (line : split) {
-				// Skip the first line, which has white space stripped.
-				if (firstLine) {
-					firstLine = false
-				} else {
-					var numLeadingSpaces = line.indexOf(line.trim());
-					if (numLeadingSpaces < offset) {
-						offset = numLeadingSpaces
-					}
-				}
-			}
-			// Now make a pass for each line, replacing the offset leading
-			// spaces with the current indentation.
-			firstLine = true
-			for (line : split) {
-				code.append(indentation)
-				// Do not trim the first line
-				if (firstLine) {
-					code.append(line)
-					firstLine = false
-				} else {
-					code.append(line.substring(offset))
-				}
-				code.append("\n")
-			}
-		} else {
-			code.append(indentation)
-			code.append(text)
-			code.append("\n")
-		}
-	}
-	
-	private def indent() {
-		val buffer = new StringBuffer(indentation)
-		for (var i = 0; i < 4; i++) {
-			buffer.append(' ');
-		}
-		indentation = buffer.toString
-	}
-	
-	private def unindent() {
-		val end = indentation.length - 4;
-		if (end < 0) {
-			indentation = ""
-		} else {
-			indentation = indentation.substring(0, end)
-		}
-	}
-
-	/** If the argument starts with '{=', then remove it and the last two characters.
-	 *  @return The body without the code delimiter or the unmodified argument if it
-	 *   is not delimited.
-	 */
-	private def String removeCodeDelimiter(String code) {
-		if (code.startsWith("{=")) {
-            code.substring(2, code.length - 2).trim();
-        } else {
-        	code
-        }
-	}
-	
-		val static boilerplate = '''
+	val static boilerplate = '''
 		// ********* Boilerplate included for all actors.
 		// Unbound version of set() function (will be bound below).
 		function __setUnbound(port, value) {

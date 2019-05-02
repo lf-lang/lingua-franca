@@ -99,7 +99,11 @@ Param:
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timing:
-	'(' offset=('NOW' | ID | NUMBER) (',' period=('ONCE' | 'STOP' | ID | NUMBER))?')';
+	'(' offset=(ID | NUMBER) (offsetUnit=TimeUnit)? (',' period=(ID | NUMBER) (periodUnit=TimeUnit)?)?')';
+
+// Time unit here is any ID. The validator should check for valid units.
+TimeUnit:
+	ID;
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
