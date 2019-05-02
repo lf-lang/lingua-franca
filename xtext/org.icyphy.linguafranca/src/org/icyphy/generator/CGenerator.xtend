@@ -357,7 +357,7 @@ class CGenerator {
 		 indent()
 		 // __schedule(trigger_table[i], 0); 
 		 for (timer : timers.keySet()) {
-		 	pr("__schedule(&" + timer + ", 0);")
+		 	pr("__schedule(&" + timer + ", 0LL);")
 		 }
 		 unindent()
 		 pr("}")
@@ -616,10 +616,10 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 	val static declarations = '''
 		// ********* Type definitions included for all actors.
 		// NOTE: Units for time are dealt with at compile time.
-		typedef int instant_t;
+		typedef long long instant_t;
 		
 		// Intervals of time.
-		typedef int interval_t;
+		typedef long long interval_t;
 		
 		// Topological sort index for reactions.
 		typedef pqueue_pri_t index_t;
@@ -656,7 +656,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 	val static initialize_time = '''
 		// NOTE: This is modifiable by reactors.
 		// Should we somehow prevent this?
-		instant_t current_time = 0;
+		instant_t current_time = 0LL;
 		void start_timers();
 	'''
 		
@@ -737,7 +737,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		// Return 0 if time advanced to the time of the event and -1 if the wait
 		// was interrupted.
 		int wait_until(event_t* event) {
-		    printf("-------- Waiting for logical time %d.\n", event->time);
+		    printf("-------- Waiting for logical time %lld.\n", event->time);
 		    // FIXME: Assuming logical time is in milliseconds.
 		    // FIXME: Check this carefully for overflow and efficiency.
 		    long long logical_time_ns = event->time * MILLION;
@@ -755,8 +755,8 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		        return 0;
 		    }
 		    
-		    // FIXME: Use timespec for logical time too!
-		    struct timespec wait_time = {ns_to_wait / BILLION, ns_to_wait % BILLION};
+		    // timespec is seconds and nanoseconds.
+		    struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
 		    printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
 		    struct timespec remaining_time;
 		    // FIXME: If the wait time is less than the time resolution, don't sleep.
