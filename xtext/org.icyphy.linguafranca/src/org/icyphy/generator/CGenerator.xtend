@@ -94,7 +94,8 @@ class CGenerator {
 		pr(defines)
 		pr(windows)		// Windows support.
 		pr(declarations)
-
+		pr(initialize_time)
+		
 		// Record timers.
 		var count = 0;
 		
@@ -352,7 +353,7 @@ class CGenerator {
 	}
 	
 	def generateStartTimers() {
-		 pr("void startTimers() {")
+		 pr("void start_timers() {")
 		 indent()
 		 // __schedule(trigger_table[i], 0); 
 		 for (timer : timers.keySet()) {
@@ -615,12 +616,9 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 	val static declarations = '''
 		// ********* Type definitions included for all actors.
 		// NOTE: Units for time are dealt with at compile time.
-		typedef struct {
-		  int time;         // a point in time
-		  int microstep;    // superdense time index
-		} instant_t;
+		typedef int instant_t;
 		
-		// Intervals of time do not involve the microstep.
+		// Intervals of time.
 		typedef int interval_t;
 		
 		// Topological sort index for reactions.
@@ -649,13 +647,17 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 
 		// Event to put in the event queue.
 		typedef struct event_t {
-		  instant_t tag;      // instant of the event (time, microstep)
+		  instant_t time;
 		  trigger_t* trigger;
 		  size_t pos;         // position in the priority queue 
 		} event_t;
-
-		instant_t current_time = {0, 0}; // FIXME: This should not be modifiable by reactors.
-		void startTimers();
+	'''
+	
+	val static initialize_time = '''
+		// NOTE: This is modifiable by reactors.
+		// Should we somehow prevent this?
+		instant_t current_time = 0;
+		void start_timers();
 	'''
 		
 	val static initialize = '''
@@ -664,32 +666,30 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
 		  return (next > curr);
 		}
-		// Get priorities based on tags (time and microstep).
+		// Get priorities based on time.
 		// Used for sorting event_t structs.
 		static pqueue_pri_t get_tag_pri(void *a) {
-		  // stick the time and microstep together into an unsigned long long
-		  return ((pqueue_pri_t)(((event_t*) a)->tag.time) << 32) | (pqueue_pri_t)(((event_t*) a)->tag.microstep);
+		  return (pqueue_pri_t)(((event_t*) a)->time);
 		}
-		// Get priorities based on indices.
+		// Get priorities based on indices, which reflect topological sort.
 		// Used for sorting reaction_t structs.
 		static pqueue_pri_t get_index_pri(void *a) {
-		  // stick the time and microstep together into an unsigned long long
 		  return ((reaction_t*) a)->index;
 		}
 		// Set priority.
 		static void set_pri(void *a, pqueue_pri_t pri) {
 		  // ignore this; priorities are fixed
 		}
-		// Get position in the queue.
+		// Get position in the queue of the specified event.
 		static size_t get_pos(void *a) {
 		  return ((event_t*) a)->pos;
 		}
-		// Set position.
+		// Set position of the specified event.
 		static void set_pos(void *a, size_t pos) {
 		  ((event_t*) a)->pos = pos;
 		}
 		// Priority queues.
-		pqueue_t* eventQ;     // For sorting by tag (time, microstep)
+		pqueue_t* eventQ;     // For sorting by time.
 		pqueue_t* reactionQ;  // For sorting by index (topological sort)
 		
 		handle_t __handle = 0;
@@ -697,13 +697,14 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		// Schedule the specified trigger at current_time plus the delay.
 		handle_t __schedule(trigger_t* trigger, interval_t delay) {
 		    event_t* e = malloc(sizeof(struct event_t));
-		    e->tag.time = current_time.time + delay;
-		    if (delay == 0) {
-		    	e->tag.microstep = current_time.microstep + 1;
-		    } else {
-		    	e->tag.microstep = 0;
-		    }
+		    e->time = current_time + delay;
 		    e->trigger = trigger;
+		    // NOTE: There is no need for an explicit microstep because
+		    // when this is called, all events at the current tag
+		    // (time and microstep) have been pulled from the queue,
+		    // and any new events added at this tag will go into the reactionQ
+		    // rather than the eventQ, so anything put in the eventQ with this
+		    // same time will automatically be executed at the next microstep.
 		    // FIXME: If there already is an event in the queue with the
 		    // same tag and trigger, then replace it rather than adding another
 		    // one (replacement is not needed until these carry arguments).
@@ -736,10 +737,10 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		// Return 0 if time advanced to the time of the event and -1 if the wait
 		// was interrupted.
 		int wait_until(event_t* event) {
-		    printf("-------- Waiting for logical time %d.\n", event->tag.time);
+		    printf("-------- Waiting for logical time %d.\n", event->time);
 		    // FIXME: Assuming logical time is in milliseconds.
 		    // FIXME: Check this carefully for overflow and efficiency.
-		    long long logical_time_ns = event->tag.time * MILLION;
+		    long long logical_time_ns = event->time * MILLION;
 		    
 		    // Get the current physical time.
 		    struct timespec current_physical_time;
@@ -750,8 +751,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		    
 		    if (ns_to_wait <= 0) {
 		        // Advance current time.
-		        current_time.time = event->tag.time;
-		        current_time.microstep = event->tag.microstep;
+		        current_time = event->time;
 		        return 0;
 		    }
 		    
@@ -768,8 +768,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		        return -1;
 		    }
 		    // Advance current time.
-		    current_time.time = event->tag.time;
-		    current_time.microstep = event->tag.microstep;
+		    current_time = event->time;
 		    return 0;
 		}
 		// Wait until physical time matches or exceeds the time of the least tag
@@ -788,7 +787,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 			if (event == NULL) {
 				return 0;
 			}
-			// Wait until physical time >= event.tag.time
+			// Wait until physical time >= event.time
 			wait_until(event);
 			
 		  	// Pop all events from eventQ with timestamp equal to current_time
@@ -810,8 +809,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 				
 				event = pqueue_peek(eventQ);
 		  	} while(event != NULL
-		  			&& event->tag.time == current_time.time
-		  			&& event->tag.microstep == current_time.microstep);
+		  			&& event->time == current_time);
 		
 			// Handle reactions.
 			while(pqueue_size(reactionQ) > 0) {
@@ -833,7 +831,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 			    }
 			#endif
 			
-			current_time.time = 0; // FIXME: Obtain system time.
+			current_time = 0; // FIXME: Obtain system time.
 			eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, set_pri, get_pos, set_pos);
 			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, set_pri, get_pos, set_pos);
 			clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
@@ -843,7 +841,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 
 		int main(int argc, char* argv[]) {
 			initialize();
-			startTimers();
+			start_timers();
 			// FIXME: Need stopping conditions.
 			while (next() != 0);
 			return 0;
