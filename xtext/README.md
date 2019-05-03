@@ -32,7 +32,7 @@
 * Give the new a name like "test.lf" (with .lf extension).
 * IMPORTANT: A dialog appears: Do you want to convert 'test' to an Xtext Project? Say YES.
 * Start typing in Lingua-Franca!
-* When you save, generated code goes into ~/runtime-EclipseXtext/test (if "test" is your project name).
+* When you save, generated code goes into `../runtime-EclipseXtext/<project_name>` relative to your Eclipse workspace directory
 
 ## Working on the Lingua-Franca compiler (package org.icyphy.linguafranca)
 * The grammar is in src->org.icyphy->LinguaFranca.xtext
