@@ -42,7 +42,7 @@ typedef unsigned long long pqueue_pri_t;
 typedef pqueue_pri_t (*pqueue_get_pri_f)(void *a);
 typedef void (*pqueue_set_pri_f)(void *a, pqueue_pri_t pri);
 typedef int (*pqueue_cmp_pri_f)(pqueue_pri_t next, pqueue_pri_t curr);
-
+typedef int (*pqueue_eq_elem_f)(void* next, void* curr);
 
 /** callback functions to get/set the position of an element */
 typedef size_t (*pqueue_get_pos_f)(void *a);
@@ -59,11 +59,11 @@ typedef struct pqueue_t
     size_t size;                /**< number of elements in this queue */
     size_t avail;               /**< slots available in this queue */
     size_t step;                /**< growth stepping setting */
-    pqueue_cmp_pri_f cmppri;    /**< callback to compare nodes */
+    pqueue_cmp_pri_f cmppri;    /**< callback to compare priorities */
     pqueue_get_pri_f getpri;    /**< callback to get priority of a node */
-    pqueue_set_pri_f setpri;    /**< callback to set priority of a node */
     pqueue_get_pos_f getpos;    /**< callback to get position of a node */
     pqueue_set_pos_f setpos;    /**< callback to set position of a node */
+    pqueue_eq_elem_f eqelem;    /**< callback to compare elements */
     void **d;                   /**< The actualy queue in binary heap form */
 } pqueue_t;
 
@@ -76,7 +76,6 @@ typedef struct pqueue_t
  * @param cmppri The callback function to run to compare two elements
  *     This callback should return 0 for 'lower' and non-zero
  *     for 'higher', or vice versa if reverse priority is desired
- * @param setpri the callback function to run to assign a score to an element
  * @param getpri the callback function to run to set a score to an element
  * @param getpos the callback function to get the current element's position
  * @param setpos the callback function to set the current element's position
@@ -87,9 +86,9 @@ pqueue_t *
 pqueue_init(size_t n,
             pqueue_cmp_pri_f cmppri,
             pqueue_get_pri_f getpri,
-            pqueue_set_pri_f setpri,
             pqueue_get_pos_f getpos,
-            pqueue_set_pos_f setpos);
+            pqueue_set_pos_f setpos,
+            pqueue_eq_elem_f eqelem);
 
 
 /**
