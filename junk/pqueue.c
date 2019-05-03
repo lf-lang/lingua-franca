@@ -21,8 +21,15 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * Modified by Marten Lohstroh (May, 2019).
+ * Changes: 
+ * - require implementation of a pqueue_eq_elem_f function to determine
+ *    whether two elements are equal or not
+ * - the pqueue_insert function removes possible duplicate entries after
+ *   insertion. Among duplicates, only the most recently added entry is kept.
+ * - removed capability to reassign priorities
  */
-
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,9 +47,9 @@ pqueue_t *
 pqueue_init(size_t n,
             pqueue_cmp_pri_f cmppri,
             pqueue_get_pri_f getpri,
-            pqueue_set_pri_f setpri,
             pqueue_get_pos_f getpos,
-            pqueue_set_pos_f setpos)
+            pqueue_set_pos_f setpos,
+            pqueue_eq_elem_f eqelem)
 {
     pqueue_t *q;
 
@@ -58,11 +65,10 @@ pqueue_init(size_t n,
     q->size = 1;
     q->avail = q->step = (n+1);  /* see comment above about n+1 */
     q->cmppri = cmppri;
-    q->setpri = setpri;
     q->getpri = getpri;
     q->getpos = getpos;
     q->setpos = setpos;
-
+    q->eqelem = eqelem;
     return q;
 }
 
@@ -82,8 +88,24 @@ pqueue_size(pqueue_t *q)
     return (q->size - 1);
 }
 
-
 static void
+dedup(pqueue_t *q, size_t i)
+{
+    size_t parent_node;
+    void *inserted_node = q->d[i];
+    pqueue_pri_t inserted_pri = q->getpri(inserted_node);
+
+    for (parent_node = parent(i);
+         ((i > 1) && q->eqelem(q->d[parent_node], inserted_node));
+         i = parent_node, parent_node = parent(i))
+    {
+        //printf("REMOVED DUPLICATE ENTRY FROM QUEUE>>>>>>\n");
+        pqueue_remove(q, q->d[i]);
+    }
+
+}
+
+static size_t
 bubble_up(pqueue_t *q, size_t i)
 {
     size_t parent_node;
@@ -100,8 +122,8 @@ bubble_up(pqueue_t *q, size_t i)
 
     q->d[i] = moving_node;
     q->setpos(moving_node, i);
+    return i;
 }
-
 
 static size_t
 maxchild(pqueue_t *q, size_t i)
@@ -157,31 +179,13 @@ pqueue_insert(pqueue_t *q, void *d)
         q->avail = newsize;
     }
 
-    /* insert item */
+    /* insert item and remove duplicates */
     i = q->size++;
     q->d[i] = d;
-    bubble_up(q, i);
+    dedup(q, bubble_up(q, i));
 
     return 0;
 }
-
-
-void
-pqueue_change_priority(pqueue_t *q,
-                       pqueue_pri_t new_pri,
-                       void *d)
-{
-    size_t posn;
-    pqueue_pri_t old_pri = q->getpri(d);
-
-    q->setpri(d, new_pri);
-    posn = q->getpos(d);
-    if (q->cmppri(old_pri, new_pri))
-        bubble_up(q, posn);
-    else
-        percolate_down(q, posn);
-}
-
 
 int
 pqueue_remove(pqueue_t *q, void *d)
@@ -242,21 +246,6 @@ pqueue_dump(pqueue_t *q,
     }
 }
 
-
-static void
-set_pos(void *d, size_t val)
-{
-    /* do nothing */
-}
-
-
-static void
-set_pri(void *d, pqueue_pri_t pri)
-{
-    /* do nothing */
-}
-
-
 void
 pqueue_print(pqueue_t *q,
              FILE *out,
@@ -266,8 +255,8 @@ pqueue_print(pqueue_t *q,
 	void *e;
 
     dup = pqueue_init(q->size,
-                      q->cmppri, q->getpri, set_pri,
-                      q->getpos, set_pos);
+                      q->cmppri, q->getpri,
+                      q->getpos, q->setpos, q->eqelem);
     dup->size = q->size;
     dup->avail = q->avail;
     dup->step = q->step;
