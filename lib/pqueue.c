@@ -93,14 +93,17 @@ dedup(pqueue_t *q, size_t i)
 {
     size_t parent_node;
     void *inserted_node = q->d[i];
+    pqueue_pri_t prio = q->getpri(inserted_node);
     pqueue_pri_t inserted_pri = q->getpri(inserted_node);
 
     for (parent_node = parent(i);
-         ((i > 1) && q->eqelem(q->d[parent_node], inserted_node));
+         ((i > 1) && q->getpri(q->d[parent_node]) == prio);
          i = parent_node, parent_node = parent(i))
     {
         //printf("REMOVED DUPLICATE ENTRY FROM QUEUE>>>>>>\n");
-        pqueue_remove(q, q->d[i]);
+        if (q->eqelem(q->d[parent_node], inserted_node)) {
+            pqueue_remove(q, q->d[i]);    
+        }
     }
 
 }
