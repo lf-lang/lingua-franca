@@ -556,6 +556,17 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
 		  return (next > curr);
 		}
+		// Compare events.
+		static int cmp_evt(void* next, void* curr) {
+		  return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
+		}
+		// Compare reactions.
+		static int cmp_rct(void* next, void* curr) {
+		  // each reaction has a unique priority
+		  // no need to compare pointers
+		  return 1;
+		  // (next == curr);
+		}
 		// Get priorities based on time.
 		// Used for sorting event_t structs.
 		static pqueue_pri_t get_tag_pri(void *a) {
@@ -720,8 +731,8 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 			#endif
 			
 			current_time = 0; // FIXME: Obtain system time.
-			eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, set_pri, get_pos, set_pos);
-			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, set_pri, get_pos, set_pos);
+			eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, get_pos, set_pos, cmp_evt);
+			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, get_pos, set_pos, cmp_rct);
 			clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
 			printf("Start execution at time %splus %ld nanoseconds.\n",
 					ctime(&__physicalStartTime.tv_sec), __physicalStartTime.tv_nsec);
