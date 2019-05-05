@@ -29,10 +29,7 @@ import org.icyphy.linguaFranca.Timer
  * @author Edward A. Lee, Marten Lohstroh, Chris Gill, Mehrdad Niknami
  */
 class CGenerator extends GeneratorBase {
-	
-	// Additional, finer time units supported by this code generator.
-	static var CTimeUnits = #{'ns', 'nsec', 'us', 'usec'}
-	
+		
 	// For each reactor, we collect a set of input and parameter names.
 	var inputs = newHashSet()
 	var parameters = newLinkedList()
@@ -53,9 +50,7 @@ class CGenerator extends GeneratorBase {
 			IFileSystemAccess2 fsa, 
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
-		
-		addTimeUnits(CTimeUnits)
-		
+				
 		_resource = resource
 		// Handle reactors and composites.
 		for (component : resource.allContents.toIterable.filter(Component)) {
@@ -311,13 +306,8 @@ class CGenerator extends GeneratorBase {
                         }
                         list.add(reactionName)
                     } else {
-                        // This is checked by the validator (See LinguaFrancaValidator.xtend).
-                        // Nevertheless, in case we are using a command-line tool, we report the line number.
-                        // Just report the exception. Do not throw an exception so compilation can continue.
-                        var node = NodeModelUtils.getNode(reaction)
-                        System.err.println("Line "
-                            + node.getStartLine()
-                            + ": Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
+                        reportError(reaction,
+                        		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
                     }		
 				}	
 			}
@@ -328,9 +318,11 @@ class CGenerator extends GeneratorBase {
 	def generateStartTimers() {
 		 pr("void start_timers() {")
 		 indent()
-		 // __schedule(trigger_table[i], 0); 
 		 for (timer : getTimerNames()) {
-		 	pr("__schedule(&" + timer + ", 0LL);")
+		 	var timing = getTiming(timer)
+		 	pr("__schedule(&" + timer + ", "
+		 			+ unitAdjustment(timing.offset, timing.offsetUnit, "ns", timing) + "LL);"
+		 	)
 		 }
 		 unindent()
 		 pr("}")
@@ -366,9 +358,10 @@ class CGenerator extends GeneratorBase {
 			if (timing !== null) {
 				result.append(triggerName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
-					+ timing.offset
-					+ ', '
-					+ timing.period
+					+ unitAdjustment(timing.offset, timing.offsetUnit, "ns", timing)
+					+ 'LL, '
+					+ unitAdjustment(timing.period, timing.periodUnit, "ns", timing)
+					+ 'LL'
 				)
 			} else if (actions.get(triggerName) !== null) {
 				result.append(triggerName + '_reactions, '
@@ -452,7 +445,6 @@ class CGenerator extends GeneratorBase {
 	val static defines = '''
 		#define INITIAL_TAG_QUEUE_SIZE 10
 		#define INITIAL_INDEX_QUEUE_SIZE 10
-		#define MILLION 1000000LL
 		#define BILLION 1000000000LL
 	'''
 	
@@ -636,9 +628,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		// was interrupted.
 		int wait_until(event_t* event) {
 		    printf("-------- Waiting for logical time %lld.\n", event->time);
-		    // FIXME: Assuming logical time is in milliseconds.
-		    // FIXME: Check this carefully for overflow and efficiency.
-		    long long logical_time_ns = event->time * MILLION;
+		    long long logical_time_ns = event->time;
 		    
 		    // Get the current physical time.
 		    struct timespec current_physical_time;
