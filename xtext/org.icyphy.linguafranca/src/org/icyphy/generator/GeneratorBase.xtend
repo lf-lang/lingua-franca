@@ -11,6 +11,7 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timing
 
 /**
@@ -38,6 +39,7 @@ class GeneratorBase {
 			'msec'->1000000L,
 			's'->1000000000L,
 			'sec'->1000000000L,
+			'secs'->1000000000L,
 			'minute'->60000000000L,
 			'minutes'->60000000000L,
 			'hour'->3600000000000L,
@@ -70,12 +72,14 @@ class GeneratorBase {
 			var timing = timer.timing
 			// Make sure every timing object has both an offset
 			// and a period by inserting default of 0.
+			var zeroTime = LinguaFrancaFactory.eINSTANCE.createTime()
+			zeroTime.setTime("0")
 			if (timing === null) {
 				timing = LinguaFrancaFactory.eINSTANCE.createTiming()
-				timing.setOffset("0")
-				timing.setPeriod("0")
+				timing.setOffset(zeroTime)
+				timing.setPeriod(zeroTime)
 			} else if (timing.getPeriod === null) {
-				timing.setPeriod("0")
+				timing.setPeriod(zeroTime)
 			}
 			
 			timers.put(timer.name, timing)
@@ -208,26 +212,29 @@ class GeneratorBase {
 		}
 	}
 	
-	/** Given a string representation of a number and a string specifying
-	 *  the time units of the number, return a string for the same number
+	/** Given a representation of time that may possibly include units,
+	 *  return a string for the same amount of time
 	 *  in terms of the specified baseUnit. If the two units are the
-	 *  same, or if the unit is null, return the number unmodified.
+	 *  same, or if no time unit is given, return the number unmodified.
 	 *  @param unit The source unit.
 	 *  @param baseUnit The target unit. Currently only "ns" and "ms" are supported.
 	 *  @param object The object on which to any report errors.
 	 */
-	protected def unitAdjustment(String number, String unit, String baseUnit, EObject object) {
-		if (unit === null || unit.equals(baseUnit)) {
-			return number
+	protected def unitAdjustment(Time time, String baseUnit) {
+		if (time === null) {
+			return '0'
+		}
+		if (time.time === null || time.unit === null || baseUnit.equals(time.unit)) {
+			return time.time
 		}
 		try {
 			var nf = NumberFormat.getInstance();
 			// The following will try to return a Long, and if that fails, will return a Double.
-			var parsed = nf.parse(number)
-			var unitScale = timeUnitsToNs.get(unit)
+			var parsed = nf.parse(time.time)
+			var unitScale = timeUnitsToNs.get(time.unit)
 			if (unitScale === null) {
 				// Invalid unit specification.
-				return reportError(object, "Invalid unit '" + unit + "'. Should be one of: " + timeUnitsToNs.keySet)
+				return reportError(time, "Invalid unit '" + time.unit + "'. Should be one of: " + timeUnitsToNs.keySet)
 			}
 			var baseScale = timeUnitsToNs.get(baseUnit)
 			if (baseScale === null) {
@@ -250,7 +257,7 @@ class GeneratorBase {
 				return result.toString()
 			}
 		} catch (ParseException ex) {
-			return reportError(object, "Failed to parse number '" + number + "'. " + ex)
+			return reportError(time, "Failed to parse number '" + time.time + "'. " + ex)
 		}
 	}
 }

@@ -321,7 +321,7 @@ class CGenerator extends GeneratorBase {
 		 for (timer : getTimerNames()) {
 		 	var timing = getTiming(timer)
 		 	pr("__schedule(&" + timer + ", "
-		 			+ unitAdjustment(timing.offset, timing.offsetUnit, "ns", timing) + "LL);"
+		 			+ unitAdjustment(timing.offset, "ns") + "LL);"
 		 	)
 		 }
 		 unindent()
@@ -358,9 +358,9 @@ class CGenerator extends GeneratorBase {
 			if (timing !== null) {
 				result.append(triggerName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
-					+ unitAdjustment(timing.offset, timing.offsetUnit, "ns", timing)
+					+ unitAdjustment(timing.offset, "ns")
 					+ 'LL, '
-					+ unitAdjustment(timing.period, timing.periodUnit, "ns", timing)
+					+ unitAdjustment(timing.period, "ns")
 					+ 'LL'
 				)
 			} else if (actions.get(triggerName) !== null) {
