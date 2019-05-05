@@ -3,10 +3,12 @@
  */
 package org.icyphy.generator
 
-import java.util.Collection
+import java.text.NumberFormat
+import java.text.ParseException
 import java.util.HashMap
-import java.util.HashSet
 import java.util.Hashtable
+import org.eclipse.emf.ecore.EObject
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Timing
@@ -23,30 +25,34 @@ class GeneratorBase {
 	// Current indentation.
 	var indentation = ""
 	
-	// Time units supported by all code generators, which includes
-	// milliseconds and coarser.
-	static var baseTimeUnits = #{'ms', 'msec', 's', 'sec', 'minute', 'minutes', 'hour', 'hours', 'day', 'days', 'week', 'weeks'}
-	
-	// Time units supported by an instance of the code generator.
-	// This includes at least the base time units above, but it can
-	// be augmented by subclasses using addTimeUnits().
-	var timeUnits = new HashSet<String>(baseTimeUnits)
-	
+	// Map from time units to an expression that can convert a number in
+	// the specified time unit into nanoseconds. This expression may need
+	// to have a suffix like 'LL' or 'L' appended to it, depending on the
+	// target language, to ensure that the result is a 64-bit long.
+	static public var timeUnitsToNs = #{
+			'ns' -> 1L,
+			'nsec' -> 1L,
+			'us' -> 1000L,
+		 	'usec' -> 1000L,
+			'ms'-> 1000000L,
+			'msec'->1000000L,
+			's'->1000000000L,
+			'sec'->1000000000L,
+			'minute'->60000000000L,
+			'minutes'->60000000000L,
+			'hour'->3600000000000L,
+			'hours'->3600000000000L,
+			'day'->86400000000000L,
+			'days'->86400000000000L,
+			'week'->604800000000000L, 
+			'weeks'->604800000000000L}
+			
 	// Map from timer name to Timing object.
 	var timers = new HashMap<String,Timing>()
 	
 	////////////////////////////////////////////
 	//// Code generation functions to override for a concrete code generator.
-
-	/** Add the specified collection of time units to the time
-	 *  units supported by this code generator.
-	 *  @param units A collection of time units.
-	 */
-	def addTimeUnits(Collection<String> units) {
-		for (unit: units) {
-			timeUnits.add(unit)
-		}
-	}
+	
 	/** Collect data in a reactor or composite definition.
 	 *  Subclasses should override this and be sure to call
 	 *  super.generateComponent(component, importTable).
@@ -173,6 +179,23 @@ class GeneratorBase {
         	code
         }
 	}
+	
+	/** Report an error on the specified parse tree object.
+	 *  @param object The parse tree object.
+	 *  @param message The error message.
+	 */
+	protected def reportError(EObject object, String message) {
+		// FIXME: All calls to this should also be checked by the validator (See LinguaFrancaValidator.xtend).
+        // In case we are using a command-line tool, we report the line number.
+        // The caller should not throw an exception so compilation can continue.
+        var node = NodeModelUtils.getNode(object)
+        System.err.println("Line "
+            		+ node.getStartLine()
+               		+ ": "
+            		+ message)
+        // Return a string that can be inserted into the generated code.
+        "[[ERROR: " + message + "]]"
+	}
 
 	/** Reduce the indentation by one level for generated code.
 	 */
@@ -182,6 +205,52 @@ class GeneratorBase {
 			indentation = ""
 		} else {
 			indentation = indentation.substring(0, end)
+		}
+	}
+	
+	/** Given a string representation of a number and a string specifying
+	 *  the time units of the number, return a string for the same number
+	 *  in terms of the specified baseUnit. If the two units are the
+	 *  same, or if the unit is null, return the number unmodified.
+	 *  @param unit The source unit.
+	 *  @param baseUnit The target unit. Currently only "ns" and "ms" are supported.
+	 *  @param object The object on which to any report errors.
+	 */
+	protected def unitAdjustment(String number, String unit, String baseUnit, EObject object) {
+		if (unit === null || unit.equals(baseUnit)) {
+			return number
+		}
+		try {
+			var nf = NumberFormat.getInstance();
+			// The following will try to return a Long, and if that fails, will return a Double.
+			var parsed = nf.parse(number)
+			var unitScale = timeUnitsToNs.get(unit)
+			if (unitScale === null) {
+				// Invalid unit specification.
+				return reportError(object, "Invalid unit '" + unit + "'. Should be one of: " + timeUnitsToNs.keySet)
+			}
+			var baseScale = timeUnitsToNs.get(baseUnit)
+			if (baseScale === null) {
+				// This is an error in the target code generator, not in the source code.
+				throw new Exception("Invalid target base unit: " + baseUnit + ". Should be one of: " + timeUnitsToNs.keySet)				
+			}
+			// Handle Double and Long separately.
+			if (parsed instanceof Long) {
+				// First convert the number to units of nanoseconds.
+				var numberInNs = parsed.longValue() * unitScale
+				// Then convert to baseUnits.
+				var result = numberInNs / baseScale
+				return result.toString()
+			} else {
+				// Assume its is a Double.
+				// First convert the number to units of nanoseconds.
+				var numberInNs = parsed.doubleValue() * unitScale
+				// Then convert to baseUnits.
+				var result = numberInNs / baseScale
+				return result.toString()
+			}
+		} catch (ParseException ex) {
+			return reportError(object, "Failed to parse number '" + number + "'. " + ex)
 		}
 	}
 }
