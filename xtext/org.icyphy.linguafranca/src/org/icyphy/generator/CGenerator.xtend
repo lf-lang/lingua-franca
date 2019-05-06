@@ -421,8 +421,6 @@ class CGenerator extends GeneratorBase {
 	
 	////////////////////////////////////////////
 	//// Utility functions for generating code.
-	
-	var indentation = ""
 		
 	// Print the #line compiler directive with the line number of
 	// the most recently used node.
@@ -506,7 +504,8 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 	// FIXME: The following should probably all go into library files.
 	val static declarations = '''
 		// ********* Type definitions included for all actors.
-		// NOTE: Units for time are dealt with at compile time.
+		// WARNING: If this code is used after about the year 2262,
+		// then representing time as a long long will be insufficient.
 		typedef long long instant_t;
 		
 		// Intervals of time.
@@ -544,9 +543,12 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 	'''
 	
 	val static initialize_time = '''
-		// NOTE: This is modifiable by reactors.
-		// Should we somehow prevent this?
+		// FIXME: This should not be in scope for reactors.
 		instant_t current_time = 0LL;
+		// The following should be in scope for reactors:
+		long long get_logical_time() {
+			return current_time;
+		}
 		void start_timers();
 	'''
 		
@@ -606,10 +608,6 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		    // and any new events added at this tag will go into the reactionQ
 		    // rather than the eventQ, so anything put in the eventQ with this
 		    // same time will automatically be executed at the next microstep.
-		    // FIXME: If there already is an event in the queue with the
-		    // same tag and trigger, then replace it rather than adding another
-		    // one (replacement is not needed until these carry arguments).
-		    // This should be fixed in the pqueue_insert() function.
 		    pqueue_insert(eventQ, e);
 		    // FIXME: make a record of handle and implement unschedule.
 		    return __handle++;
@@ -620,33 +618,23 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 			return __schedule(trigger, trigger->offset + extra_delay);
 		}
 		struct timespec __physicalStartTime;
-		
-		// Return the time elapsed in nanoseconds from the first to the seconds
-		// time or zero if the first is greater than or equal to the second.
-		long long time_elapsed(struct timespec* first, struct timespec* second) {
-		    long long result = (second->tv_sec - first->tv_sec) * BILLION
-		            + (second->tv_nsec - first->tv_nsec);
-		    if (result < 0LL) {
-		        result = 0LL;
-		    }
-		    return result;
-		}
-		
+				
 		// Wait until physical time matches or exceeds the start time of execution
 		// plus the current_time plus the specified logical time.  If this is not
 		// interrupted, then advance current_time by the specified logical_delay. 
 		// Return 0 if time advanced to the time of the event and -1 if the wait
 		// was interrupted.
 		int wait_until(event_t* event) {
-		    printf("-------- Waiting for logical time %lld.\n", event->time);
+		    // printf("-------- Waiting for logical time %lld.\n", event->time);
 		    long long logical_time_ns = event->time;
 		    
 		    // Get the current physical time.
 		    struct timespec current_physical_time;
 		    clock_gettime(CLOCK_REALTIME, &current_physical_time);
 		    
-		    long long elapsed_physical_time_ns = time_elapsed(&__physicalStartTime, &current_physical_time);
-		    long long ns_to_wait = logical_time_ns - elapsed_physical_time_ns;
+		    long long ns_to_wait = logical_time_ns
+		    		- (current_physical_time.tv_sec * BILLION
+		    		+ current_physical_time.tv_nsec);
 		    
 		    if (ns_to_wait <= 0) {
 		        // Advance current time.
@@ -656,15 +644,30 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		    
 		    // timespec is seconds and nanoseconds.
 		    struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
-		    printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
+		    // printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
 		    struct timespec remaining_time;
 		    // FIXME: If the wait time is less than the time resolution, don't sleep.
 		    if (nanosleep(&wait_time, &remaining_time) != 0) {
 		        // Sleep was interrupted.
-		        // Remaining time is in remaining_time.
-		        // FIXME: Set current_time.
-		        
-		        return -1;
+		        // May have been an asynchronous call to schedule(), or
+		        // it may have been a control-C to stop the process.
+		        // Set current time to match physical time, but not less than
+		        // current logical time nor more than next time in the event queue.
+		    	clock_gettime(CLOCK_REALTIME, &current_physical_time);
+		    	long long current_physical_time_ns 
+		    			= current_physical_time.tv_sec * BILLION
+		    			+ current_physical_time.tv_nsec;
+		    	if (current_physical_time_ns > current_time) {
+		    		if (current_physical_time_ns < event->time) {
+		    			current_time = current_physical_time_ns;
+		    			return -1;
+		    		}
+		    	} else {
+		    		// Advance current time.
+		    		current_time = event->time;
+		    		// FIXME: Make sure that the microstep is dealt with correctly.
+		            return -1;
+		        }
 		    }
 		    // Advance current time.
 		    current_time = event->time;
@@ -687,15 +690,15 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 				return 0;
 			}
 			// Wait until physical time >= event.time
-			wait_until(event);
+			if (wait_until(event) < 0) {
+				// FIXME: sleep was interrupted. Handle that somehow here!
+			}
 			
 		  	// Pop all events from eventQ with timestamp equal to current_time
 		  	// stick them into reaction.
 		  	do {
 		  	 	event = pqueue_pop(eventQ);
 		  	 	for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-		  	 		// FIXME: As above, don't insert duplicate reactions.
-		  	 		// Same fix in pqueue_insert should work.
 		  	 		pqueue_insert(reactionQ, event->trigger->reactions[i]);
 		  	 	}
 		  	 	if (event->trigger->period > 0) {
@@ -733,9 +736,13 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 			current_time = 0; // FIXME: Obtain system time.
 			eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, get_pos, set_pos, cmp_evt);
 			reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, get_pos, set_pos, cmp_rct);
+
+			// Initialize logical time to match physical time.
 			clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
 			printf("Start execution at time %splus %ld nanoseconds.\n",
 					ctime(&__physicalStartTime.tv_sec), __physicalStartTime.tv_nsec);
+			current_time = __physicalStartTime.tv_sec * BILLION
+					+ __physicalStartTime.tv_nsec;
 		}
 
 		int main(int argc, char* argv[]) {
