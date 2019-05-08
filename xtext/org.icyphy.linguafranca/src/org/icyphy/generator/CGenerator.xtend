@@ -14,7 +14,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Input
@@ -37,8 +36,6 @@ class CGenerator extends GeneratorBase {
 	// Map from timer or action name to reaction name(s) triggered by it.
 	var triggerToReactions = new LinkedHashMap<String,LinkedList<String>>()
 	
-	// Map from action name to Action object.
-	var actions = new HashMap<String,Action>()
 	// Map from action name to index of the trigger in the trigger table.
 	var actionToTriggerTableIndex = new HashMap<String,Integer>()
 			
@@ -72,7 +69,6 @@ class CGenerator extends GeneratorBase {
 		
 		inputs.clear()      // Reset set of inputs.
 		triggerToReactions.clear()
-		actions.clear()
 		actionToTriggerTableIndex.clear()
 		//triggerTable = new StringBuffer()
 		
@@ -83,28 +79,6 @@ class CGenerator extends GeneratorBase {
 		pr(windows)		// Windows support.
 		pr(declarations)
 		pr(initialize_time)
-				
-		// Record actions.
-	    var count = 0;
-		for (action: component.componentBody.actions) {
-			count++
-			if (action.getDelay() === null) {
-				action.setDelay("0")
-			}
-			actions.put(action.name, action)
-		}
-		
-		/* FIXME
-		if (component.componentBody.preamble !== null) {
-			pr("// *********** From the preamble, verbatim:")
-			pr(removeCodeDelimiter(component.componentBody.preamble.code))
-			pr("\n// *********** End of preamble.")
-		}
-		// Reactor setup (inputs, outputs, parameters)
-		componentSetup(component, importTable)
-		*/
-
-
 		
 		// Scan reactions
 		scanReactions(component.componentBody.reactions)
@@ -133,9 +107,15 @@ class CGenerator extends GeneratorBase {
 
 		generateStartTimers()
 
+		// Preamble code contains state declarations with static initializers.
+		if (component.componentBody.preamble !== null) {
+			pr("// *********** From the preamble, verbatim:")
+			pr(removeCodeDelimiter(component.componentBody.preamble.code))
+			pr("\n// *********** End of preamble.")
+		}
+
 		// Generate reactions
-		generateReactions(component.componentBody.reactions)
-		
+		generateReactions(component.componentBody.reactions)	
 	}
 	
 	/** Generate the setup function definition for a reactor or composite.
