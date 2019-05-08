@@ -10,6 +10,7 @@ import java.util.Hashtable
 import java.util.LinkedList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Param
@@ -47,6 +48,9 @@ class GeneratorBase {
 			'week'->604800000000000L, 
 			'weeks'->604800000000000L}
 	
+	// Map from action name to Action object.
+	var actions = new HashMap<String,Action>()
+	
 	// List of parameters.		
 	var parameters = new LinkedList<Param>()
 
@@ -63,6 +67,7 @@ class GeneratorBase {
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
 	def void generateComponent(Component component, Hashtable<String,String> importTable) {
+		actions.clear()		// Reset map from action name to action object.
 		parameters.clear()  // Reset set of parameters.
 		timers.clear()      // Reset map of timer names to timer properties.
 
@@ -73,11 +78,16 @@ class GeneratorBase {
 			}
 		}
 		
-		// Record timers.
-		var count = 0;
+		// Record actions.
+		for (action: component.componentBody.actions) {
+			if (action.getDelay() === null) {
+				action.setDelay("0")
+			}
+			actions.put(action.name, action)
+		}
 		
+		// Record timers.
 		for (timer: component.componentBody.timers) {
-			count++
 			var timing = timer.timing
 			// Make sure every timing object has both an offset
 			// and a period by inserting default of 0.
@@ -103,6 +113,14 @@ class GeneratorBase {
 	protected def clearCode() {
 		code = new StringBuilder
 	}
+	
+	/** Return the map of action names to Actions.
+	 *  @return The actions.
+	 */
+	protected def getActions() {
+		actions;
+	}
+	
 	
 	/** Get the code produced so far.
 	 *  @return The code produced so far as a String.
