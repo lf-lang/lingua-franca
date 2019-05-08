@@ -4,6 +4,7 @@
 package org.icyphy.validation
 
 import org.eclipse.xtext.validation.Check
+import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Gets
@@ -14,6 +15,7 @@ import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Sets
 import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 
 /**
@@ -140,6 +142,24 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		}
 	}
 
+	@Check(FAST)
+	def checkTime(Time time) {
+		if (time.time !== null) {
+			if (time.unit === null) {
+				if (!time.time.equals('0')) {
+					error("Missing time units. Should be one of "
+						+ GeneratorBase.timeUnitsToNs.keySet,
+						Literals.TIME__TIME)
+				}
+			} else if (GeneratorBase.timeUnitsToNs.get(time.unit) === null) {
+				error("Invalid time units: " + time.unit
+					+ ". Should be one of "
+					+ GeneratorBase.timeUnitsToNs.keySet,
+					Literals.TIME__UNIT)
+			}
+		}
+	}
+	
 	@Check(FAST)
 	def checkTimer(Timer timer) {
 		if (allNames.contains(timer.name)) {
