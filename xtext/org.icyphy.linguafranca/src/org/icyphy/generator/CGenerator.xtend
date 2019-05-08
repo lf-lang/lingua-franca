@@ -22,6 +22,7 @@ import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 
 /**
@@ -321,7 +322,7 @@ class CGenerator extends GeneratorBase {
 		 for (timer : getTimerNames()) {
 		 	var timing = getTiming(timer)
 		 	pr("__schedule(&" + timer + ", "
-		 			+ unitAdjustment(timing.offset, "ns") + "LL);"
+		 			+ timeMacro(timing.offset) + ");"
 		 	)
 		 }
 		 unindent()
@@ -358,10 +359,9 @@ class CGenerator extends GeneratorBase {
 			if (timing !== null) {
 				result.append(triggerName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
-					+ unitAdjustment(timing.offset, "ns")
-					+ 'LL, '
-					+ unitAdjustment(timing.period, "ns")
-					+ 'LL'
+					+ timeMacro(timing.offset)
+					+ ', '
+					+ timeMacro(timing.period)
 				)
 			} else if (actions.get(triggerName) !== null) {
 				result.append(triggerName + '_reactions, '
@@ -428,6 +428,22 @@ class CGenerator extends GeneratorBase {
 		var node = NodeModelUtils.getNode(reaction)
 		pr("#line " + node.getStartLine() + ' "' + _resource.getURI() + '"')
 		
+	}
+	
+	/** Given a representation of time that may possibly include units,
+	 *  return a string that invokes a macro to convert to nanoseconds.
+	 *  @param time The time to convert.
+	 *  @return A string, such as "MSEC(100)" for 100 milliseconds.
+	 */
+	protected def timeMacro(Time time) {
+		if (time === null || time.time === null) {
+		  	'0LL'
+		} else if (time.unit === null) {
+			// Assume the literal is correct.
+			time.time
+		} else {
+			time.unit.toUpperCase + '(' + time.time + ')'
+		}	
 	}
 	
 	// FIXME: pqueue.h and pqueue.c need to be copied to target directory.
@@ -540,6 +556,21 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 		  trigger_t* trigger;
 		  size_t pos;         // position in the priority queue 
 		} event_t;
+		
+		// Macros for conversion of time to nanoseconds.
+		#define NSEC(t) t ## LL
+		#define USEC(t) (t * 1000LL)
+		#define MSEC(t) (t * 1000000LL)
+		#define SEC(t)  (t * 1000000000LL)
+		#define SECS(t) (t * 1000000000LL)
+		#define MINUTE(t)   (t * 60000000000LL)
+		#define MINUTES(t)  (t * 60000000000LL)
+		#define HOUR(t)  (t * 3600000000000LL)
+		#define HOURS(t) (t * 3600000000000LL)
+		#define DAY(t)   (t * 86400000000000LL)
+		#define DAYS(t)  (t * 86400000000000LL)
+		#define WEEK(t)  (t * 604800000000000LL)
+		#define WEEKS(t) (t * 604800000000000LL)
 	'''
 	
 	val static initialize_time = '''

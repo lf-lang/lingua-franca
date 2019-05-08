@@ -31,13 +31,9 @@ class GeneratorBase {
 	// to have a suffix like 'LL' or 'L' appended to it, depending on the
 	// target language, to ensure that the result is a 64-bit long.
 	static public var timeUnitsToNs = #{
-			'ns' -> 1L,
 			'nsec' -> 1L,
-			'us' -> 1000L,
 		 	'usec' -> 1000L,
-			'ms'-> 1000000L,
 			'msec'->1000000L,
-			's'->1000000000L,
 			'sec'->1000000000L,
 			'secs'->1000000000L,
 			'minute'->60000000000L,
@@ -216,15 +212,14 @@ class GeneratorBase {
 	 *  return a string for the same amount of time
 	 *  in terms of the specified baseUnit. If the two units are the
 	 *  same, or if no time unit is given, return the number unmodified.
-	 *  @param unit The source unit.
-	 *  @param baseUnit The target unit. Currently only "ns" and "ms" are supported.
-	 *  @param object The object on which to any report errors.
+	 *  @param time The source time.
+	 *  @param baseUnit The target unit.
 	 */
 	protected def unitAdjustment(Time time, String baseUnit) {
-		if (time === null) {
+		if (time === null || time.time === null) {
 			return '0'
 		}
-		if (time.time === null || time.unit === null || baseUnit.equals(time.unit)) {
+		if (time.unit === null || baseUnit.equals(time.unit)) {
 			return time.time
 		}
 		try {
