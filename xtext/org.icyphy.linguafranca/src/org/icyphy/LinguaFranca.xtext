@@ -58,8 +58,8 @@ Action:
 Reaction:
 	'reaction' 
 	('(' (triggers+=ID (',' triggers+=ID)*)? ')')?
-	gets=Gets? // FIXME: rename to 'uses'
-	sets=Sets? // FIXME: rename to 'produces'
+	uses=Uses?
+	produces=Produces?
 	code=CODE;
 	
 Preamble:
@@ -83,8 +83,8 @@ Assignment:
 	name=ID '=' value=Value;
 
 // Specification of what inputs a reaction reads.
-Gets:
-	gets+=ID (',' gets+=ID)?;
+Uses:
+	uses+=ID (',' uses+=ID)?;
 
 // Parameters for actors and composites.
 Params:
@@ -92,7 +92,9 @@ Params:
 
 // Single parameter.
 Param:
-    'const'? name=ID (':' type=Type)? ('(' value=Value ')')?;
+    'const'? name=ID ((':' type='time' '(' time=Time ')')
+    		| (':' type=Type)? ('(' value=Value ')')
+    		)?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -112,8 +114,8 @@ Port:
     ID | (ID '.' (ID | 'input' | 'output'));
 
 // Specification of what outputs a reaction writes.
-Sets:
-	'->' sets+=ID (',' sets+=ID)?;
+Produces:
+	'->' produces+=ID (',' produces+=ID)?;
 
 // A type is in the target language, hence either an ID or target code.
 Type:

@@ -7,16 +7,16 @@ import org.eclipse.xtext.validation.Check
 import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Component
-import org.icyphy.linguaFranca.Gets
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Produces
 import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Sets
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Uses
 
 /**
  * This class contains custom validation rules. 
@@ -71,12 +71,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	}
 
 	@Check(FAST)
-	def checkGets(Gets gets) {
-		for (get: gets.gets) {
+	def checkGets(Uses uses) {
+		for (get: uses.uses) {
 			if (!inputs.contains(get)) {
 					error("Reaction declares that it reads something that is not an input: "
 					+ get,
-					Literals.GETS__GETS
+					Literals.USES__USES
 				)
 			}
 		}
@@ -122,12 +122,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	}
 
 	@Check(FAST)
-	def checkSets(Sets sets) {
-		for (set: sets.sets) {
+	def checkSets(Produces produces) {
+		for (set: produces.produces) {
 			if (!outputs.contains(set) && !actions.contains(set)) {
 					error("Reaction declares that it produces something that is not an output or an action: "
 					+ set,
-					Literals.SETS__SETS
+					Literals.PRODUCES__PRODUCES
 				)
 			}
 		}
@@ -146,16 +146,22 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	def checkTime(Time time) {
 		if (time.time !== null) {
 			if (time.unit === null) {
-				if (!time.time.equals('0')) {
-					error("Missing time units. Should be one of "
-						+ GeneratorBase.timeUnitsToNs.keySet,
-						Literals.TIME__TIME)
+				// No time unit is given.
+				if (time.time.startsWith('-')) {
+					error("Time cannot be negative", Literals.TIME__TIME)
+				} else if (time.time.matches('[0123456789]')) {
+					// Time is a literal number (only checked the first character)
+					if (!time.time.equals('0')) {
+						error("Missing time units. Should be one of "
+								+ GeneratorBase.timeUnitsToNs.keySet,
+								Literals.TIME__TIME)
+					}
 				}
 			} else if (GeneratorBase.timeUnitsToNs.get(time.unit) === null) {
 				error("Invalid time units: " + time.unit
-					+ ". Should be one of "
-					+ GeneratorBase.timeUnitsToNs.keySet,
-					Literals.TIME__UNIT)
+						+ ". Should be one of "
+						+ GeneratorBase.timeUnitsToNs.keySet,
+						Literals.TIME__UNIT)
 			}
 		}
 	}

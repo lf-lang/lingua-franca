@@ -29,7 +29,6 @@ class AccessorGenerator extends GeneratorBase {
 	
 	// For each accessor, we collect a set of input and parameter names.
 	var inputs = newHashSet()
-	var parameters = newLinkedList()
 	var reactionCount = 0
 	
 	// Map from timer name to reaction name(s) triggered by the timer.
@@ -64,7 +63,6 @@ class AccessorGenerator extends GeneratorBase {
 		super.generateComponent(component, importTable)
 
 		inputs.clear()      // Reset set of inputs.
-		parameters.clear()  // Reset set of parameters.
 		timerReactions.clear()
 		addInputHandlers = new StringBuffer()
 		
@@ -98,10 +96,8 @@ class AccessorGenerator extends GeneratorBase {
 			generateOutput(output)
 		}
 		// Generate parameters, if any
-		if (component.componentBody.parameters !== null) {
-			for (param : component.componentBody.parameters.params) {
-				generateParameter(param)
-			}
+		for (param : parameters) {
+			generateParameter(param)
 		}
 		if (component instanceof Composite) {
 			// Generated instances
@@ -127,7 +123,6 @@ class AccessorGenerator extends GeneratorBase {
 	}
 	
 	def generateParameter(Param param) {
-		parameters.add(param.name)
 		var options = new StringJoiner(", ", "{", "}")
 		var foundOptions = false
 		if (param.type !== null) {
@@ -152,7 +147,7 @@ class AccessorGenerator extends GeneratorBase {
 		indent()
 		// Define variables for each parameter.
 		for(parameter: parameters) {
-			pr('''var «parameter» = this.getParameter("«parameter»");''');
+			pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
 		}
 		
 		// Add the input handlers.
@@ -221,24 +216,24 @@ class AccessorGenerator extends GeneratorBase {
 				addInputHandlers.append('''this.addInputHandler(null, «functionName».bind(this));''')
 			}
 			// Define variables for non-triggering inputs.
-			if (reaction.gets !== null && reaction.gets.gets !== null) {
-				for(get: reaction.gets.gets) {
+			if (reaction.uses !== null && reaction.uses.uses !== null) {
+				for(get: reaction.uses.uses) {
 					pr('''var «get» = get("«get»");''')
 				}
 			}
 			// Define variables for each declared output.
-			if (reaction.sets !== null && reaction.sets.sets !== null) {
-				for(set: reaction.sets.sets) {
+			if (reaction.produces !== null && reaction.produces.produces !== null) {
+				for(output: reaction.produces.produces) {
 					// Set the output name variable equal to a string.
 					// FIXME: String name is too easy to cheat!
 					// LF coder could write set('foo', value) to write to
 					// output foo without having declared the write.
-					pr('''var «set» = "«set»";''');
+					pr('''var «output» = "«output»";''');
 				}
 			}			
 			// Define variables for each parameter.
 			for(parameter: parameters) {
-				pr('''var «parameter» = this.getParameter("«parameter»");''');
+				pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
 			}
 
 			// Code verbatim from 'reaction'

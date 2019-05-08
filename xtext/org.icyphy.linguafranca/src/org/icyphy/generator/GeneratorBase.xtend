@@ -7,10 +7,12 @@ import java.text.NumberFormat
 import java.text.ParseException
 import java.util.HashMap
 import java.util.Hashtable
+import java.util.LinkedList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timing
 
@@ -44,7 +46,10 @@ class GeneratorBase {
 			'days'->86400000000000L,
 			'week'->604800000000000L, 
 			'weeks'->604800000000000L}
-			
+	
+	// List of parameters.		
+	var parameters = new LinkedList<Param>()
+
 	// Map from timer name to Timing object.
 	var timers = new HashMap<String,Timing>()
 	
@@ -58,8 +63,16 @@ class GeneratorBase {
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
 	def void generateComponent(Component component, Hashtable<String,String> importTable) {
+		parameters.clear()  // Reset set of parameters.
 		timers.clear()      // Reset map of timer names to timer properties.
 
+		// Record parameters.
+		if (component.componentBody.parameters !== null) {
+			for (param : component.componentBody.parameters.params) {
+				parameters.add(param)
+			}
+		}
+		
 		// Record timers.
 		var count = 0;
 		
@@ -98,6 +111,13 @@ class GeneratorBase {
 		code.toString()
 	}
 	
+	/** Return the list of parameters.
+	 *  @return The list of parameters.
+	 */
+	protected def getParameters() {
+		parameters;
+	}
+
 	/** Return a set of timer names.
 	 */
 	protected def getTimerNames() {
@@ -173,7 +193,9 @@ class GeneratorBase {
 	 *   is not delimited.
 	 */
 	protected def String removeCodeDelimiter(String code) {
-		if (code.startsWith("{=")) {
+		if (code === null) {
+			""
+		} else if (code.startsWith("{=")) {
             code.substring(2, code.length - 2).trim();
         } else {
         	code
