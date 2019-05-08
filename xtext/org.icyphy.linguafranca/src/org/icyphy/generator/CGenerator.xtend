@@ -23,7 +23,6 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Time
-import org.icyphy.linguaFranca.Timer
 
 /**
  * Generator for C target.
@@ -33,7 +32,6 @@ class CGenerator extends GeneratorBase {
 		
 	// For each reactor, we collect a set of input and parameter names.
 	var inputs = newHashSet()
-	var parameters = newLinkedList()
 	var reactionCount = 0
 	
 	// Map from timer or action name to reaction name(s) triggered by it.
@@ -73,7 +71,6 @@ class CGenerator extends GeneratorBase {
 		super.generateComponent(component, importTable)
 		
 		inputs.clear()      // Reset set of inputs.
-		parameters.clear()  // Reset set of parameters.
 		triggerToReactions.clear()
 		actions.clear()
 		actionToTriggerTableIndex.clear()
@@ -111,6 +108,22 @@ class CGenerator extends GeneratorBase {
 		
 		// Scan reactions
 		scanReactions(component.componentBody.reactions)
+		
+		// Define variables for each parameter.
+		for(parameter: parameters) {
+			prSourceLineNumber(parameter)
+			if (parameter.type === null) {
+				reportError(parameter, "Parameter must have a type.")
+			} else {
+				var type = removeCodeDelimiter(parameter.type)
+				var value = removeCodeDelimiter(parameter.value)
+				if (parameter.type.equals('time')) {
+					type = 'interval_t'
+					value = timeMacro(parameter.time)
+				}
+				pr(type + ' ' + parameter.name + ' = ' + value + ';');
+			}
+		}
 		
 		// Generate trigger table
 		generateTriggerTable()
@@ -168,7 +181,6 @@ class CGenerator extends GeneratorBase {
 	}
 	
 	def generateParameter(Param param) {
-		parameters.add(param.name)
 		var options = new StringJoiner(", ", "{", "}")
 		var foundOptions = false
 		if (param.type !== null) {
@@ -181,34 +193,6 @@ class CGenerator extends GeneratorBase {
 		}
 		pr('''this.parameter("«param.name»"«IF foundOptions», «options»«ENDIF»);''')
 	}
-	
-	/** Generate the initialize function definition for an accessor.
-	 *  This adds input handlers and timer reactions.
-	 */
-	def generateInitialize(
-		EList<Timer> triggers, 
-		EList<Reaction> reactions
-	) {
-//		pr("exports.initialize = function () {\n")
-//		indent()
-//		// Define variables for each parameter.
-//		for(parameter: parameters) {
-//			pr('''var «parameter» = this.getParameter("«parameter»");''');
-//		}
-//				
-//		// Add the input and action handlers.
-//		pr(triggerTable)
-//
-//		// Add the timer reactions.
-//		for (timer: triggerToReactions.keySet) {
-//			val timerParams = timers.get(timer)
-//			for (handler: triggerToReactions.get(timer)) {
-//				pr('''__schedule("«timer»", «handler».bind(this), «timerParams.offset», «timerParams.period»);''')
-//			}
-//		}
-//		unindent()
-//		pr("};")
-	}			
 
 	/** Generate reaction functions definition for a reactor or a composite.
 	 */
@@ -242,29 +226,24 @@ class CGenerator extends GeneratorBase {
 				triggerTable.append('''this.addInputHandler(null, «functionName».bind(this));''')
 			}
 			// Define variables for non-triggering inputs.
-			if (reaction.gets !== null && reaction.gets.gets !== null) {
-				for(get: reaction.gets.gets) {
+			if (reaction.uses !== null && reaction.uses.uses !== null) {
+				for(get: reaction.uses.uses) {
 					// FIXME: Convert to C.
 					pr('''var «get» = get("«get»");''')
 				}
 			}
 			// Define variables for each declared output or action.
-			// FIXME: sets would be better named "produces".
-			if (reaction.sets !== null && reaction.sets.sets !== null) {
-				for(set: reaction.sets.sets) {
-					if (actions.get(set) !== null) {
+			if (reaction.produces !== null && reaction.produces.produces !== null) {
+				for(output: reaction.produces.produces) {
+					if (actions.get(output) !== null) {
 						// An action is produced.
-						pr('''trigger_t* «set» = trigger_table[«actionToTriggerTableIndex.get(set)»];''')
+						pr('''trigger_t* «output» = trigger_table[«actionToTriggerTableIndex.get(output)»];''')
 					}
 				}
 			}			
-			// Define variables for each parameter.
-			for(parameter: parameters) {
-				pr('''var «parameter» = this.getParameter("«parameter»");''');
-			}
 
 			// Code verbatim from 'reaction'
-			pr_source_line_number(reaction)
+			prSourceLineNumber(reaction)
 			pr(removeCodeDelimiter(reaction.code))
 			unindent()
 			pr("}")
@@ -336,6 +315,7 @@ class CGenerator extends GeneratorBase {
 		// triggerReactions // map from timer name to a list of function names
 		val triggerTable = new StringBuffer()
 		val result = new StringBuffer()
+		val intializeTriggerTable = new StringBuffer()
 		var count = 0
 		for (triggerName: triggerToReactions.keySet) {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
@@ -353,15 +333,15 @@ class CGenerator extends GeneratorBase {
 			}
 			result.append('reaction_t* ' + triggerName + '_reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
 			result.append('\n')
+			// Declare a variable with the name of the trigger whose
+			// value is a struct.
 			result.append('trigger_t ' + triggerName + ' = {')
 			result.append('\n')
 			var timing = getTiming(triggerName)
 			if (timing !== null) {
 				result.append(triggerName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
-					+ timeMacro(timing.offset)
-					+ ', '
-					+ timeMacro(timing.period)
+					+ '0LL, 0LL'
 				)
 			} else if (actions.get(triggerName) !== null) {
 				result.append(triggerName + '_reactions, '
@@ -372,6 +352,12 @@ class CGenerator extends GeneratorBase {
 				actionToTriggerTableIndex.put(triggerName, count)
 			}
 			result.append('\n};\n')
+			// Assignment of the offset and period have to occur after creating
+			// the struct because the value assigned may not be a compile-time constant.
+			if (timing !== null) {
+				intializeTriggerTable.append(triggerName + '.offset = ' + timeMacro(timing.offset) + ';\n')
+				intializeTriggerTable.append(triggerName + '.period = ' + timeMacro(timing.period) + ';\n')
+			}
 			if (triggerTable.length != 0) {
 				triggerTable.append(', ')
 			}
@@ -382,6 +368,9 @@ class CGenerator extends GeneratorBase {
 		pr('#define TRIGGER_TABLE_SIZE ' + count + '\n')
 		result.append('trigger_t* trigger_table[TRIGGER_TABLE_SIZE] = {' + triggerTable + '};')
 		result.append('\n')
+		result.append('void __initialize_trigger_table() {\n')
+		result.append(intializeTriggerTable)
+		result.append('}\n')
 		// This goes directly out to the generated code.
 		pr(result.toString())
 	}
@@ -424,7 +413,7 @@ class CGenerator extends GeneratorBase {
 		
 	// Print the #line compiler directive with the line number of
 	// the most recently used node.
-	private def pr_source_line_number(EObject reaction) {
+	private def prSourceLineNumber(EObject reaction) {
 		var node = NodeModelUtils.getNode(reaction)
 		pr("#line " + node.getStartLine() + ' "' + _resource.getURI() + '"')
 		
@@ -774,6 +763,7 @@ static int nanosleep(const struct timespec *req, struct timespec *rem)
 					ctime(&__physicalStartTime.tv_sec), __physicalStartTime.tv_nsec);
 			current_time = __physicalStartTime.tv_sec * BILLION
 					+ __physicalStartTime.tv_nsec;
+			__initialize_trigger_table();
 		}
 
 		int main(int argc, char* argv[]) {
