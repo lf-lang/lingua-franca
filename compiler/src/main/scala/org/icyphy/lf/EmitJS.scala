@@ -40,7 +40,7 @@ var set = setUnbound.bind(this);
     pr("// Trigger data structure:")
     for (t <- actor.triggers) {
       val key = t._1
-      val s = "var " + key + " = {'actor':this, 'triggerName':'" + key + "', 'reaction':reaction_" + key + ".bind(this)};"
+      val s = s"var $key = {'actor':this, 'triggerName':'$key', 'reaction':reaction_$key.bind(this)};"
       pr(s)
     }
 
@@ -54,14 +54,14 @@ var set = setUnbound.bind(this);
     actor.parameter.foreach {
       case (k, v) => {
         // TODO: why do we need getter functions? visibility?
-        val s = "    this.parameter('" + v.id + "', {'type':'" + v.typ + "', 'value':" + v.default + "});"
+        val s = s"    this.parameter('${v.id}', {'type':'${v.typ}', 'value':${v.default}});"
         pr(s)
       }
 
     }
     actor.outPorts.foreach {
       case (k, v) => {
-        val s: String = "    this.output('" + v.id + "', {'type':'" + v.typ + "'});"
+        val s: String = s"    this.output('${v.id}', {'type':'${v.typ}'});"
         pr(s)
       }
     }
@@ -74,11 +74,11 @@ var set = setUnbound.bind(this);
           if (actorPath != null) {
             actorClass = actorPath;
           }
-          val s: String = "    var " + k + " = this.instantiate('" + v.instanceName + "', '" + actorClass + "');"
+          val s: String = s"    var $k = this.instantiate('${v.instanceName}', '$actorClass');"
           pr(s)
           v.instanceParameters.foreach {
             case (name, value) => {
-              val s: String = "    " + k + ".setParameter('" + name + "', " + value + ");"
+              val s: String = s"    $k.setParameter('$name', $value);"
               pr(s)
             }
           }
@@ -86,7 +86,7 @@ var set = setUnbound.bind(this);
       }
       composite.connections.foreach {
         case (connection) => {
-          val s: String = "    this.connect(" + connection.getLPort() + ", " + connection.getRPort() + ");"
+          val s: String = s"    this.connect(${connection.getLPort()}, ${connection.getRPort()});"
           pr(s)
         }
       }
@@ -98,7 +98,7 @@ var set = setUnbound.bind(this);
     def printParam(): Unit = {
       actor.parameter.foreach {
         case (k, v) => {
-          val s: String = "    var " + v.id + " = this.getParameter('" + v.id + "');"
+          val s: String = s"    var ${v.id} = this.getParameter('${v.id}');"
           pr(s)
         }
       }
@@ -108,7 +108,7 @@ var set = setUnbound.bind(this);
     printParam()
     actor.triggers.foreach {
       case (k, v) => {
-        val s: String = "    schedule(" + v.id + ", " + v.param + ", " + v.typ + ");"
+        val s: String = s"    schedule(${v.id}, ${v.param}, ${v.typ});"
         pr(s)
 
       }
@@ -120,11 +120,11 @@ var set = setUnbound.bind(this);
     pr("// Reaction ")
     actor.reactions.foreach {
       case (r) => {
-        var s: String = "function reaction_" + r.t.id + "() {"
+        var s: String = s"function reaction_${r.t.id}() {"
         pr(s)
         printParam()
         s = r.output
-        s = "    var " + s + " = '" + s + "'; // FIXME in original .js code"
+        s = s"    var $s = '$s'; // FIXME in original .js code"
         pr(s)
         pr(r.code)
       }
