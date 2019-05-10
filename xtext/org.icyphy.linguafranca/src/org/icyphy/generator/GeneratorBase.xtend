@@ -7,6 +7,7 @@ import java.text.NumberFormat
 import java.text.ParseException
 import java.util.HashMap
 import java.util.Hashtable
+import java.util.LinkedHashMap
 import java.util.LinkedList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
@@ -55,7 +56,7 @@ class GeneratorBase {
 	var parameters = new LinkedList<Param>()
 
 	// Map from timer name to Timing object.
-	var timers = new HashMap<String,Timing>()
+	var timers = new LinkedHashMap<String,Timing>()
 	
 	////////////////////////////////////////////
 	//// Code generation functions to override for a concrete code generator.
