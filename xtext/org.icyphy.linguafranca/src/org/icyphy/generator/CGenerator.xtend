@@ -35,7 +35,7 @@ class CGenerator extends GeneratorBase {
 	var triggerCount = 0
 	var reactorCount = 0
 	
-	// Map from timer or action name to reaction name(s) triggered by it.
+	// Map from timer or action name to reaction function name(s) triggered by it.
 	var triggerToReactions = new LinkedHashMap<String,LinkedList<String>>()
 	
 	// Map from action name to index of the trigger in the trigger table.
@@ -255,9 +255,9 @@ class CGenerator extends GeneratorBase {
 		val reactionDecls = new StringBuffer()
 		
 		for (reaction: reactions) {
-			val reactionName = "reaction" + reactionCount;
+			val reactionFunctionName = "reaction" + reactionCount;
 		 	pr("void reaction_function" + reactionCount + "();")
-			reactionDecls.append("reaction_t " + reactionName + " = {reaction_function" + reactionCount + ", 0, 0};\n");
+			reactionDecls.append("reaction_t " + reactionFunctionName + " = {reaction_function" + reactionCount + ", 0, 0};\n");
 			reactionCount++;
 			// Iterate over the reaction's triggers
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
@@ -273,7 +273,7 @@ class CGenerator extends GeneratorBase {
                             list = new LinkedList<String>()
                             triggerToReactions.put(trigger, list)
                         }
-                        list.add(reactionName)
+                        list.add(reactionFunctionName)
                     } else if (actions.get(trigger) !== null) {
                         // The trigger is an action.
                         // Record this so we can initialize the trigger table.
@@ -282,7 +282,7 @@ class CGenerator extends GeneratorBase {
                             list = new LinkedList<String>()
                             triggerToReactions.put(trigger, list)
                         }
-                        list.add(reactionName)
+                        list.add(reactionFunctionName)
                     } else {
                         reportError(reaction,
                         		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
@@ -314,12 +314,11 @@ class CGenerator extends GeneratorBase {
 			for (functionName : triggerToReactions.get(triggerName)) {
 				// FIXME: 0, 0 are index and position. Index comes from topological sort.
 				// Position is a label to be written by the priority queue as a side effect of inserting.
-				var reactionName = 'reaction' + count
 				result.append('\n')
 				if (names.length != 0) {
 					names.append(", ")
 				}
-				names.append('&' + reactionName)
+				names.append('&' + functionName)
 			}
 			result.append('reaction_t* ' + triggerName + triggerCount 
 					+ '_reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
