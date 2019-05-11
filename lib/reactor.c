@@ -18,10 +18,7 @@ static int cmp_evt(void* next, void* curr) {
 }
 // Compare reactions.
 static int cmp_rct(void* next, void* curr) {
-  // each reaction has a unique priority
-  // no need to compare pointers
-  return 1;
-  // (next == curr);
+  return (next == curr);
 }
 // Get priorities based on time.
 // Used for sorting event_t structs.
