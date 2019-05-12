@@ -32,11 +32,15 @@ class CGenerator extends GeneratorBase {
 	// For each reactor, we collect a set of input and parameter names.
 	var inputs = newHashSet()
 	var reactionCount = 0
+	var reactionInstanceCount = 0
 	var triggerCount = 0
 	var reactorCount = 0
-	
-	// Map from timer or action name to reaction function name(s) triggered by it.
-	var triggerToReactions = new LinkedHashMap<String,LinkedList<String>>()
+	var instanceCount = 0
+		
+	// Map from reactor or composite class name to the
+	// map from timer or action name to reaction function name(s) triggered by it.
+	var classToTriggerToReactions
+			= new LinkedHashMap<String,LinkedHashMap<String,LinkedList<String>>>()
 	
 	// Map from action name to index of the trigger in the trigger table.
 	var actionToTriggerTableIndex = new HashMap<String,Integer>()
@@ -86,7 +90,8 @@ class CGenerator extends GeneratorBase {
 	////////////////////////////////////////////
 	//// Code generators.
 	
-	/** Generate a reactor or composite definition.
+	/** Generate a reactor or composite class definition.
+	 *  This 
 	 *  @param component The parsed component data structure.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
@@ -94,14 +99,17 @@ class CGenerator extends GeneratorBase {
 		super.generateComponent(component, importTable)
 		
 		inputs.clear()      // Reset set of inputs.
-		triggerToReactions.clear()
+		
+		var triggerToReactions = new LinkedHashMap<String,LinkedList<String>>()
+		classToTriggerToReactions.put(component.componentBody.name, triggerToReactions)
+		
 		actionToTriggerTableIndex.clear()
 		
-		pr("// =============== START " + component.componentBody.name)
+		pr("// =============== START reactor class" + component.componentBody.name)
 				
 		// Scan reactions
 		var savedReactionCount = reactionCount;
-		scanReactions(component.componentBody.reactions)
+		scanReactions(component, triggerToReactions)
 		
 		// Define variables for each parameter.
 		for(parameter: parameters) {
@@ -119,38 +127,22 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		
-		// Generate trigger table
-		generateTriggerTable()
-
 		// Preamble code contains state declarations with static initializers.
 		if (component.componentBody.preamble !== null) {
 			pr("// *********** From the preamble, verbatim:")
 			pr(removeCodeDelimiter(component.componentBody.preamble.code))
 			pr("\n// *********** End of preamble.")
 		}
-
-		// Generate reactions
-		// For this second pass, restart the reaction count where the first pass started.
-		reactionCount = savedReactionCount;
-		generateReactions(component.componentBody.reactions)	
-		reactorCount++
-		pr("// =============== END " + component.componentBody.name)
-	}
-	
-	/** Generate the setup function definition for a reactor or composite.
-	 */
-	def componentSetup(Component component, Hashtable<String,String> importTable) {
-		pr("exports.setup = function () {")
-		indent()
-		// Generate Inputs, if any.
+		
+		// Handle Inputs, if any.
 		for (input: component.componentBody.inputs) {
 			generateInput(input)
 		}
-		// Generate outputs, if any
+		// Handle outputs, if any
 		for (output: component.componentBody.outputs) {
 			generateOutput(output)
 		}
-		// Generate parameters, if any
+		// Handle parameters, if any (FIXME: reconcile with above)
 		if (component.componentBody.parameters !== null) {
 			for (param : component.componentBody.parameters.params) {
 				generateParameter(param)
@@ -159,17 +151,23 @@ class CGenerator extends GeneratorBase {
 		if (component instanceof Composite) {
 			// Generated instances
 			for (instance: component.instances) {
+				// FIXME: instantiate (recursively) only from the component Main.
 				instantiate(instance, importTable)
 			}
-			// Generated connections
+			// Handle connections
 			for (connection: component.connections) {
-				pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
+				// FIXME
 			}
 		}
-		unindent()
-		pr("}")
+
+		// Generate reactions
+		// For this second pass, restart the reaction count where the first pass started.
+		reactionCount = savedReactionCount;
+		generateReactions(component.componentBody.reactions)	
+		reactorCount++
+		pr("// =============== END reactor class " + component.componentBody.name)
 	}
-		
+			
 	def generateInput(Input input) {
 		inputs.add(input.name);
 		pr('''this.input("«input.name»"«IF input.type !== null», { 'type': '«removeCodeDelimiter(input.type)»'}«ENDIF»);''')
@@ -190,7 +188,8 @@ class CGenerator extends GeneratorBase {
 			options.add('''"value": «removeCodeDelimiter(param.value)»''')
 			foundOptions = true
 		}
-		pr('''this.parameter("«param.name»"«IF foundOptions», «options»«ENDIF»);''')
+		// FIXME
+		// pr('''this.parameter("«param.name»"«IF foundOptions», «options»«ENDIF»);''')
 	}
 
 	/** Generate reaction functions definition for a reactor or a composite.
@@ -249,22 +248,24 @@ class CGenerator extends GeneratorBase {
 		}
 	}
 
-	/** Scan reaction declarations and print them in the generated code.
+	/** Scan reaction declarations and print the reaction function
+	 *  definitions to the generated code. As a side effect, populate
+	 *  the specified triggerToReactions map that maps trigger names
+	 *  that trigger each reaction to the reactions triggered.
+	 *  @param component The component whose reactions are being defined.
+	 *  @param triggerToReactions The map from trigger names to reactions triggered
+	 *   for this component.
 	 */
-	def scanReactions(EList<Reaction> reactions) {
-		val reactionDecls = new StringBuffer()
-		
+	def scanReactions(Component component, LinkedHashMap<String,LinkedList<String>> triggerToReactions) {
+		val reactions = component.componentBody.reactions		
 		for (reaction: reactions) {
-			val reactionFunctionName = "reaction" + reactionCount;
-		 	pr("void reaction_function" + reactionCount + "();")
-			reactionDecls.append("reaction_t " + reactionFunctionName + " = {reaction_function" + reactionCount + ", 0, 0};\n");
-			reactionCount++;
+			val reactionFunctionName = "reaction_function" + reactionCount++;
 			// Iterate over the reaction's triggers
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
 					if (inputs.contains(trigger)) {
                         // FIXME: handle inputs.
-                    } else if (getTiming(trigger) !== null) {
+                    } else if (getTiming(component, trigger) !== null) {
                         // The trigger is a timer.
                         // Record this so we can schedule this reaction in initialize
                         // and initialize the trigger table.
@@ -290,35 +291,56 @@ class CGenerator extends GeneratorBase {
 				}	
 			}
 		}
-		pr("\n" + reactionDecls.toString())
 	}
 	
-	/** Generate the trigger table for a reactor.
+	/** Generate the trigger table for a reactor instance.
 	 *  A trigger table is an array of trigger_t objects, one for
 	 *  each input, clock, and action of the reactor.
 	 *  Each trigger_t object is a struct that contains an
-	 *  array of function pointers to reactions triggered by
-	 *  this trigger, the length of the array, the offset,
-	 *  and the period (the latter two are zero if it is not
-	 *  a timer).
+	 *  array of pointers to reaction_t objects representing
+	 *  reactions triggered by this trigger. The trigger_t object
+	 *  also provides the length of the array, and if the trigger
+	 *  is a timer or an action, the offset,
+	 *  and the period. (The offset and period are zero if the trigger
+	 *  is not an action or a timer. The period is zero for an action).
 	 */
-	def generateTriggerTable() {
+	def generateTriggerTable(Instance instance) {
+		var component = getComponent(instance.reactorClass)
+		if (component === null) {
+			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
+			return
+		}
+		var triggerToReactions = classToTriggerToReactions.get(instance.reactorClass)
+		if (triggerToReactions === null) {
+			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
+			return
+		}
+		val result = new StringBuffer()
+		// For each trigger, create a reaction_t struct for each reaction it
+		// triggers.
+		for (String triggerName: triggerToReactions.keySet()) {
+			val reactions = triggerToReactions.get(triggerName)
+			for (reaction: reactions) {
+			}
+		}
 		// timers // map from timer name to timer properties.
 		// triggerReactions // map from timer name to a list of function names
 		val triggerTable = new StringBuffer()
-		val result = new StringBuffer()
 		var count = 0
 		for (triggerName: triggerToReactions.keySet) {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
 			var names = new StringBuffer();
 			for (functionName : triggerToReactions.get(triggerName)) {
+				// Generate a reaction_t object for an instance of a reaction.
+				val reactionInstanceName = "__reaction" + reactionInstanceCount++
 				// FIXME: 0, 0 are index and position. Index comes from topological sort.
+				result.append("reaction_t " + reactionInstanceName + " = {" + functionName + ", 0, 0};\n")
+				
 				// Position is a label to be written by the priority queue as a side effect of inserting.
-				result.append('\n')
 				if (names.length != 0) {
 					names.append(", ")
 				}
-				names.append('&' + functionName)
+				names.append('&' + reactionInstanceName)
 			}
 			result.append('reaction_t* ' + triggerName + triggerCount 
 					+ '_reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
@@ -327,7 +349,7 @@ class CGenerator extends GeneratorBase {
 			// value is a struct.
 			result.append('trigger_t ' + triggerName + triggerCount + ' = {')
 			result.append('\n')
-			var timing = getTiming(triggerName)
+			var timing = getTiming(component, triggerName)
 			if (timing !== null) {
 				result.append(triggerName + triggerCount + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
@@ -360,29 +382,32 @@ class CGenerator extends GeneratorBase {
 			count++
 			triggerCount++
 		}
-		result.append('trigger_t* trigger_table' + reactorCount + '[' + count + '] = {' + triggerTable + '};')
+		result.append('trigger_t* trigger_table' + instanceCount + '[' + count + '] = {' + triggerTable + '};')
 		result.append('\n')
 		// This goes directly out to the generated code.
 		pr(result.toString())
 	}
 		
-	/** Generate an instantiate statement followed by any required parameter
-	 *  assignments. This retrieves the fully-qualified class name from the imports
-	 *  table if appropriate.
+	/** Instantiate a reactor.
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
 	def instantiate(Instance instance, Hashtable<String,String> importTable) {
-		var className = importTable.get(instance.actorClass);
+		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
-			className = instance.actorClass
+			className = instance.reactorClass
 		}
-		pr('''var «instance.name» = this.instantiate('«instance.name»', '«className»');''')
+		pr('// *** Instance ' + instance.name + ' of class ' + className)
+		// Generate trigger table for the instance.
+		generateTriggerTable(instance)
+		
+		// FIXME: Handle parameters.
 		if (instance.parameters !== null) {
 			for (param: instance.parameters.assignments) {
-				pr('''«instance.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
+				// pr('''«instance.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
 			}
 		}
+		instanceCount++
 	}
 	
 	/** Given a string of form either "xx" or "xx.yy", return either
