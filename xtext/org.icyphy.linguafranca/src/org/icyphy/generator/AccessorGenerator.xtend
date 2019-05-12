@@ -7,7 +7,6 @@ import java.util.Hashtable
 import java.util.LinkedHashMap
 import java.util.LinkedList
 import java.util.StringJoiner
-import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
@@ -18,8 +17,6 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
-import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Timer
 
 /**
  * Generator for Accessors.
@@ -77,9 +74,9 @@ class AccessorGenerator extends GeneratorBase {
 		// Reactor setup (inputs, outputs, parameters)
 		componentSetup(component, importTable)
 		// Generate reactions
-		generateReactions(component.componentBody.reactions)
+		generateReactions(component)
 		// initialize function (initialize + triggers scheduling + input handlers)
-		generateInitialize(component.componentBody.timers, component.componentBody.reactions)
+		generateInitialize(component)
 	}
 	
 	/** Generate the setup function definition for a reactor or composite.
@@ -139,10 +136,9 @@ class AccessorGenerator extends GeneratorBase {
 	/** Generate the initialize function definition for an accessor.
 	 *  This adds input handlers and timer reactions.
 	 */
-	def generateInitialize(
-		EList<Timer> triggers, 
-		EList<Reaction> reactions
-	) {
+	def generateInitialize(Component component) {
+		var triggers = component.componentBody.timers
+		var reactions =  component.componentBody.reactions
 		pr("exports.initialize = function () {\n")
 		indent()
 		// Define variables for each parameter.
@@ -155,7 +151,7 @@ class AccessorGenerator extends GeneratorBase {
 
 		// Add the timer reactions.
 		for (timer: timerReactions.keySet) {
-			val timerParams = getTiming(timer)
+			val timerParams = getTiming(component, timer)
 			for (handler: timerReactions.get(timer)) {
 				var offset = unitAdjustment(timerParams.offset, "ms")
 				var period = unitAdjustment(timerParams.period, "ms")
@@ -168,7 +164,8 @@ class AccessorGenerator extends GeneratorBase {
 
 	/** Generate reaction functions definition for a reactor or a composite.
 	 */
-	def generateReactions(EList<Reaction> reactions) {
+	def generateReactions(Component component) {
+		val reactions = component.componentBody.reactions
 		val functionName = "reaction" + reactionCount++
 		for (reaction: reactions) {
 			pr('''function «functionName»() {''')
@@ -187,7 +184,7 @@ class AccessorGenerator extends GeneratorBase {
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
 				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (getTiming(trigger) !== null) {
+					} else if (getTiming(component, trigger) !== null) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
 						var list = timerReactions.get(trigger)
@@ -250,9 +247,9 @@ class AccessorGenerator extends GeneratorBase {
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
 	def instantiate(Instance instance, Hashtable<String,String> importTable) {
-		var className = importTable.get(instance.actorClass);
+		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
-			className = instance.actorClass
+			className = instance.reactorClass
 		}
 		pr('''var «instance.name» = this.instantiate('«instance.name»', '«className»');''')
 		if (instance.parameters !== null) {

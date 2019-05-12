@@ -24,6 +24,10 @@ import org.icyphy.linguaFranca.Timing
  * @author Edward A. Lee, Marten Lohstroh, Chris Gill
  */
 class GeneratorBase {	
+	// Map from reactor or composite class name to the
+	// component defining that class.
+	var classToComponent = new LinkedHashMap<String,Component>()
+
 	// All code goes into this string buffer.
 	var code = new StringBuilder
 	
@@ -55,8 +59,8 @@ class GeneratorBase {
 	// List of parameters.		
 	var parameters = new LinkedList<Param>()
 
-	// Map from timer name to Timing object.
-	var timers = new LinkedHashMap<String,Timing>()
+	// Map from reactor class name to map from timer name to Timing object.
+	var classToTimers = new LinkedHashMap<Component,LinkedHashMap<String,Timing>>()
 	
 	////////////////////////////////////////////
 	//// Code generation functions to override for a concrete code generator.
@@ -68,9 +72,14 @@ class GeneratorBase {
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
 	def void generateComponent(Component component, Hashtable<String,String> importTable) {
+		
+		classToComponent.put(component.componentBody.name, component)
+		
 		actions.clear()		// Reset map from action name to action object.
 		parameters.clear()  // Reset set of parameters.
-		timers.clear()      // Reset map of timer names to timer properties.
+		
+		var timers = new LinkedHashMap<String,Timing>()
+		classToTimers.put(component, timers)
 
 		// Record parameters.
 		if (component.componentBody.parameters !== null) {
@@ -130,6 +139,13 @@ class GeneratorBase {
 		code.toString()
 	}
 	
+	/** Get the component defining a reactor or composite that has
+	 *  the specified class name, or null if there is none.
+	 */
+	protected def getComponent(String className) {
+		classToComponent.get(className)
+	}
+	
 	/** Return the list of parameters.
 	 *  @return The list of parameters.
 	 */
@@ -137,16 +153,18 @@ class GeneratorBase {
 		parameters;
 	}
 
-	/** Return a set of timer names.
+	/** Return a set of timer names for a reactor class.
 	 */
-	protected def getTimerNames() {
+	protected def getTimerNames(Component component) {
+		var timers = classToTimers.get(component)
 		timers.keySet()
 	}
 	
-	/** Get the timing of the timer with the specified name.
+	/** Get the timing of the timer with the specified name in the specified component.
 	 *  Return a Timing object or null if there is no timer with the specified name.
 	 */
-	protected def getTiming(String name) {
+	protected def getTiming(Component component, String name) {
+		var timers = classToTimers.get(component)
 		timers.get(name)
 	}
 	

@@ -69,7 +69,7 @@ Preamble:
 // to get cross references to work. But this doesn't work for importing
 // foreign reactors that are not defined in Lingua Franca.
 Instance:
-	name=ID '=' 'new' actorClass=ID ('(' parameters=Assignments? ')')? ';' ;
+	name=ID '=' 'new' reactorClass=ID ('(' parameters=Assignments? ')')? ';' ;
 
 Connection:
     leftPort=Port '->' rightPort=Port ';';
