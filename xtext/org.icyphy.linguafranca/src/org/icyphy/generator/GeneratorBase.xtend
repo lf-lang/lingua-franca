@@ -13,6 +13,7 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Component
+import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Time
@@ -52,12 +53,15 @@ class GeneratorBase {
 			'days'->86400000000000L,
 			'week'->604800000000000L, 
 			'weeks'->604800000000000L}
-	
-	// Map from action name to Action object.
-	var actions = new HashMap<String,Action>()
+		
+	// Map from input name to Input object.
+	var inputs = new HashMap<String,Input>()
 	
 	// List of parameters.		
 	var parameters = new LinkedList<Param>()
+
+	// Map from reactor class name to map from action name to Action object.
+	var classToActions = new LinkedHashMap<Component,LinkedHashMap<String,Action>>()
 
 	// Map from reactor class name to map from timer name to Timing object.
 	var classToTimers = new LinkedHashMap<Component,LinkedHashMap<String,Timing>>()
@@ -75,7 +79,11 @@ class GeneratorBase {
 		
 		classToComponent.put(component.componentBody.name, component)
 		
-		actions.clear()		// Reset map from action name to action object.
+		var actions = new LinkedHashMap<String,Action>();
+		classToActions.put(component, actions)
+		
+		// FIXME, The following need the same treatments as above.
+		inputs.clear()		// Reset map from inputs name to Input object.
 		parameters.clear()  // Reset set of parameters.
 		
 		var timers = new LinkedHashMap<String,Timing>()
@@ -86,6 +94,11 @@ class GeneratorBase {
 			for (param : component.componentBody.parameters.params) {
 				parameters.add(param)
 			}
+		}
+		
+		// Record inputs.
+		for (input: component.componentBody.inputs) {
+			inputs.put(input.name, input)
 		}
 		
 		// Record actions.
@@ -124,13 +137,14 @@ class GeneratorBase {
 		code = new StringBuilder
 	}
 	
-	/** Return the map of action names to Actions.
-	 *  @return The actions.
+	/** Return the Action with the given name, or null if there
+	 *  isn't one.
+	 *  @return The action.
 	 */
-	protected def getActions() {
-		actions;
+	protected def getAction(Component component, String name) {
+		var actions = classToActions.get(component)
+		actions.get(name);
 	}
-	
 	
 	/** Get the code produced so far.
 	 *  @return The code produced so far as a String.
@@ -144,6 +158,14 @@ class GeneratorBase {
 	 */
 	protected def getComponent(String className) {
 		classToComponent.get(className)
+	}
+	
+	/** Return the Input with the given name, or null if there
+	 *  isn't one.
+	 *  @return The input.
+	 */
+	protected def getInput(String name) {
+		inputs.get(name);
 	}
 	
 	/** Return the list of parameters.
