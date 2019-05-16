@@ -6,6 +6,7 @@ package org.icyphy.validation
 import org.eclipse.xtext.validation.Check
 import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
@@ -68,6 +69,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		}
 		actions.add(action.name);
 		allNames.add(action.name)
+	}
+
+	@Check(FAST)
+	def checkAssignment(Assignment assignment) {
+		if (assignment.unit !== null
+				&& GeneratorBase.timeUnitsToNs.get(assignment.unit) === null) {
+			error("Invalid time units: " + assignment.unit
+					+ ". Should be one of "
+					+ GeneratorBase.timeUnitsToNs.keySet,
+					Literals.ASSIGNMENT__UNIT)
+		}
 	}
 
 	@Check(FAST)
