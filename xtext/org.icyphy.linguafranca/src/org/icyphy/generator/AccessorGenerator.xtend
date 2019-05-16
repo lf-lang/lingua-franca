@@ -93,7 +93,7 @@ class AccessorGenerator extends GeneratorBase {
 			generateOutput(output)
 		}
 		// Generate parameters, if any
-		for (param : parameters) {
+		for (param : getParameters(component)) {
 			generateParameter(param)
 		}
 		if (component instanceof Composite) {
@@ -137,12 +137,10 @@ class AccessorGenerator extends GeneratorBase {
 	 *  This adds input handlers and timer reactions.
 	 */
 	def generateInitialize(Component component) {
-		var triggers = component.componentBody.timers
-		var reactions =  component.componentBody.reactions
 		pr("exports.initialize = function () {\n")
 		indent()
 		// Define variables for each parameter.
-		for(parameter: parameters) {
+		for(parameter: getParameters(component)) {
 			pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
 		}
 		
@@ -229,7 +227,7 @@ class AccessorGenerator extends GeneratorBase {
 				}
 			}			
 			// Define variables for each parameter.
-			for(parameter: parameters) {
+			for(parameter: getParameters(component)) {
 				pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
 			}
 

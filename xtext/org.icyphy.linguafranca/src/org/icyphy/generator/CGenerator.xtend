@@ -4,12 +4,8 @@
 package org.icyphy.generator
 
 import java.util.HashMap
-import java.util.HashSet
 import java.util.Hashtable
-import java.util.LinkedHashMap
-import java.util.LinkedList
 import java.util.StringJoiner
-import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -17,11 +13,9 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Composite
-import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
-import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Param
-import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Time
 
 /**
@@ -31,26 +25,23 @@ import org.icyphy.linguaFranca.Time
 class CGenerator extends GeneratorBase {
 		
 	// For each reactor, we collect a set of input and parameter names.
-	var inputs = new HashSet<String>()
+	var reactorClassCount = 0
 	var reactionCount = 0
 	var reactionInstanceCount = 0
 	var triggerCount = 0
-	var reactorCount = 0
 	var instanceCount = 0
-		
-	// Map from reactor or composite class name to the
-	// map from timer or action name to reaction function name(s) triggered by it.
-	var classToTriggerToReactions
-			= new LinkedHashMap<String,LinkedHashMap<String,LinkedList<String>>>()
 	
 	// Map from action name to index of the trigger in the trigger table.
 	var actionToTriggerTableIndex = new HashMap<String,Integer>()
 	
+	// Map from Instance to the name of the "this" struct for that instance.
+	var instanceToNameOfThisStruct = new HashMap<Instance,String>()
+			
 	// Place to collect code to initialize the trigger table for all reactors.
-	var initializeTriggerTable = new StringBuffer()
+	var initializeTriggerTable = new StringBuilder()
 	
 	// Place to collect code to initialize timers for all reactors.
-	var startTimers = new StringBuffer()
+	var startTimers = new StringBuilder()
 			
 	var Resource _resource;
 	
@@ -92,17 +83,11 @@ class CGenerator extends GeneratorBase {
 	//// Code generators.
 	
 	/** Generate a reactor or composite class definition.
-	 *  This 
 	 *  @param component The parsed component data structure.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
 	override generateComponent(Component component, Hashtable<String,String> importTable) {
 		super.generateComponent(component, importTable)
-		
-		inputs.clear()      // Reset set of inputs.
-		
-		var triggerToReactions = new LinkedHashMap<String,LinkedList<String>>()
-		classToTriggerToReactions.put(component.componentBody.name, triggerToReactions)
 		
 		actionToTriggerTableIndex.clear()
 		
@@ -110,24 +95,7 @@ class CGenerator extends GeneratorBase {
 				
 		// Scan reactions
 		var savedReactionCount = reactionCount;
-		scanReactions(component, triggerToReactions)
-		
-		// Define variables for each parameter.
-		for(parameter: parameters) {
-			prSourceLineNumber(parameter)
-			if (parameter.type === null) {
-				reportError(parameter, "Parameter must have a type.")
-			} else {
-				var type = removeCodeDelimiter(parameter.type)
-				var value = removeCodeDelimiter(parameter.value)
-				if (parameter.type.equals('time')) {
-					type = 'interval_t'
-					value = timeMacro(parameter.time)
-				}
-				pr(type + ' ' + parameter.name + ' = ' + value + ';');
-			}
-		}
-		
+				
 		// Preamble code contains state declarations with static initializers.
 		if (component.componentBody.preamble !== null) {
 			pr("// *********** From the preamble, verbatim:")
@@ -135,20 +103,33 @@ class CGenerator extends GeneratorBase {
 			pr("\n// *********** End of preamble.")
 		}
 		
-		// Handle Inputs, if any.
-		for (input: component.componentBody.inputs) {
-			generateInput(input)
-		}
-		// Handle outputs, if any
-		for (output: component.componentBody.outputs) {
-			generateOutput(output)
-		}
-		// Handle parameters, if any (FIXME: reconcile with above)
-		if (component.componentBody.parameters !== null) {
-			for (param : component.componentBody.parameters.params) {
-				generateParameter(param)
+		var properties = componentToProperties.get(component)
+		
+		// Put parameters into a struct and construct the code to go
+		// into the preamble of any reaction function to extract the
+		// parameters from the struct.
+		val argType = "reactor_instance_" + (reactorClassCount++) + "_this_t"
+		properties.structType = argType
+			
+		// Construct the typedef for the "this" struct.
+		pr("typedef struct {")
+		indent()
+		// Start with parameters.
+		for(parameter: getParameters(component)) {
+			prSourceLineNumber(parameter)
+			if (parameter.type === null) {
+				reportError(parameter, "Parameter must have a type.")
+			} else {
+				var type = removeCodeDelimiter(parameter.type)
+				if (parameter.type.equals('time')) {
+					type = 'interval_t'
+				}
+				pr(type + ' ' + parameter.name + ';');
 			}
 		}
+		unindent()
+		pr("} " + argType + ";")
+		
 		if (component instanceof Composite) {
 			// Generated instances
 			for (instance: component.instances) {
@@ -165,19 +146,9 @@ class CGenerator extends GeneratorBase {
 		// For this second pass, restart the reaction count where the first pass started.
 		reactionCount = savedReactionCount;
 		generateReactions(component)	
-		reactorCount++
 		pr("// =============== END reactor class " + component.componentBody.name)
 	}
-			
-	def generateInput(Input input) {
-		inputs.add(input.name);
-		pr('''this.input("«input.name»"«IF input.type !== null», { 'type': '«removeCodeDelimiter(input.type)»'}«ENDIF»);''')
-	}
-		
-	def generateOutput(Output output) {
-		pr('''this.output("«output.name»"«IF output.type !== null», { 'type': '«removeCodeDelimiter(output.type)»'}«ENDIF»);''')
-	}
-	
+				
 	def generateParameter(Param param) {
 		var options = new StringJoiner(", ", "{", "}")
 		var foundOptions = false
@@ -194,32 +165,60 @@ class CGenerator extends GeneratorBase {
 	}
 
 	/** Generate reaction functions definition for a reactor or a composite.
+	 *  These functions have a single argument that is a void* pointing to
+	 *  a struct that contains parameters, inputs (triggering or not),
+	 *  actions (triggering or produced), and references to outputs.
+	 *  @param component The component (reactor or composite).
 	 */
 	def generateReactions(Component component) {
 		var reactions = component.componentBody.reactions
+		var properties = componentToProperties.get(component)
 		for (reaction: reactions) {
-			var argumentList = new StringBuffer()
-			// Add arguments for inputs.
+			// Create a unique function name for each reaction.
+			val functionName = "reaction_function" + reactionCount++
+			val argType = functionName + "_args_t"
+			
+			properties.reactionToFunctionName.put(reaction, functionName)
+			
+			// Construct the typedef for the argument struct.
+			// At the same time, construct the reactionInitialization code to go into
+			// the body of the function before the verbatim code.
+			var StringBuilder reactionInitialization = new StringBuilder()
+			pr(reactionInitialization, componentToProperties.get(component).structType
+					+ "* this = (" + componentToProperties.get(component).structType + "*)instance_args;")
+			pr(reactionInitialization, argType + "* __cast_args = (" + argType + "*)reaction_args;")
+			
+			pr("typedef struct {")
+			indent()
+			// Next, add the triggers.
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
-					if (inputs.contains(trigger)) {
-						val input = getInput(trigger)
-						argListAppend(argumentList, input.type + ' ' + input.name)
+					val input = getInput(component, trigger)
+					if (input !== null) {
+						pr(input.type + " " + input.name + ";")
+						pr(reactionInitialization, input.type + ' ' + input.name + ' = __cast_args->' + input.name + ';');
+					}
+					val action = getAction(component, trigger)
+					if (action !== null) {
+						// FIXME: Actions may have payloads.
+						pr("trigger_t* " + action.name + ";")
+						pr(reactionInitialization, "trigger_t* " + action.name + ' = __cast_args->' + action.name + ';');
 					}
 				}
 			} else {
 				// No triggers are given, which means react to any input.
 				// Declare an argument for every input.
-				for (inputName: inputs) {
-					val input = getInput(inputName)
-					argListAppend(argumentList, input.type + ' ' + input.name)
+				for (input: component.componentBody.inputs) {
+					pr(input.type + " " + input.name + ";")
+					pr(reactionInitialization, input.type + ' ' + input.name + ' = __cast_args->' + input.name + ';');
 				}
 			}
 			// Define argument for non-triggering inputs.
 			if (reaction.uses !== null && reaction.uses.uses !== null) {
 				for(get: reaction.uses.uses) {
-					val input = getInput(get)
-					argListAppend(argumentList, input.type + ' ' + input.name)
+					val input = getInput(component, get)
+					pr(input.type + " " + input.name + ";")
+					pr(reactionInitialization, input.type + ' ' + input.name + ' = __cast_args->' + input.name + ';');
 				}
 			}
 			// Define variables for each declared output or action.
@@ -228,66 +227,24 @@ class CGenerator extends GeneratorBase {
 					val action = getAction(component, output)
 					if (action !== null) {
 						// It is an action, not an output.
-						// FIXME: Action should be able to carry an argument.
-						argListAppend(argumentList, 'trigger_t* ' + action.name)
+						// FIXME: Actions may have payloads.
+						pr("trigger_t* " + action.name + ";")
+						pr(reactionInitialization, "trigger_t* " + action.name + ' = __cast_args->' + action.name + ';');
 					} else {
 						// FIXME: Handle output.
 					}
 				}
-			}			
-			val functionName = "reaction_function" + reactionCount++
-			pr('void ' + functionName + '(' + argumentList + ') {')
+			}
+			unindent()
+			pr('} ' + argType + ';')	
+			pr('void ' + functionName + '(void* instance_args, void* reaction_args) {')
 			indent()
+			pr(reactionInitialization)
 			// Code verbatim from 'reaction'
 			prSourceLineNumber(reaction)
 			pr(removeCodeDelimiter(reaction.code))
 			unindent()
 			pr("}")
-		}
-	}
-
-	/** Scan reaction declarations and print the reaction function
-	 *  definitions to the generated code. As a side effect, populate
-	 *  the specified triggerToReactions map that maps trigger names
-	 *  that trigger each reaction to the reactions triggered.
-	 *  @param component The component whose reactions are being defined.
-	 *  @param triggerToReactions The map from trigger names to reactions triggered
-	 *   for this component.
-	 */
-	def scanReactions(Component component, LinkedHashMap<String,LinkedList<String>> triggerToReactions) {
-		val reactions = component.componentBody.reactions		
-		for (reaction: reactions) {
-			val reactionFunctionName = "reaction_function" + reactionCount++;
-			// Iterate over the reaction's triggers
-			if (reaction.triggers !== null && reaction.triggers.length > 0) {
-				for (trigger: reaction.triggers) {
-					if (inputs.contains(trigger)) {
-                        // FIXME: handle inputs.
-                    } else if (getTiming(component, trigger) !== null) {
-                        // The trigger is a timer.
-                        // Record this so we can schedule this reaction in initialize
-                        // and initialize the trigger table.
-                        var list = triggerToReactions.get(trigger)
-                        if (list === null) {
-                            list = new LinkedList<String>()
-                            triggerToReactions.put(trigger, list)
-                        }
-                        list.add(reactionFunctionName)
-                    } else if (getAction(component, trigger) !== null) {
-                        // The trigger is an action.
-                        // Record this so we can initialize the trigger table.
-                        var list = triggerToReactions.get(trigger)
-                        if (list === null) {
-                            list = new LinkedList<String>()
-                            triggerToReactions.put(trigger, list)
-                        }
-                        list.add(reactionFunctionName)
-                    } else {
-                        reportError(reaction,
-                        		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
-                    }		
-				}	
-			}
 		}
 	}
 	
@@ -304,49 +261,36 @@ class CGenerator extends GeneratorBase {
 	 * 
 	 *  This also creates the reaction_t object for each reaction.
 	 *  This object has a pointer to the function to invoke for that
-	 *  reaction, which is a wrapper function that is also generated
-	 *  here. The wrapper function constructs the appropriate argument
-	 *  list for the reaction function.
+	 *  reaction.
 	 */
 	def generateTriggerTable(Instance instance) {
 		var component = getComponent(instance.reactorClass)
+		var properties = componentToProperties.get(component)
 		if (component === null) {
 			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
 			return
 		}
-		var triggerToReactions = classToTriggerToReactions.get(instance.reactorClass)
+		var triggerToReactions = getTriggerToReactions(component)
 		if (triggerToReactions === null) {
 			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
 			return
 		}
-		val result = new StringBuffer()
-		val wrappers = new StringBuffer()
-		// For each trigger, create a reaction_t struct for each reaction it
-		// triggers.
-		for (String triggerName: triggerToReactions.keySet()) {
-			val reactions = triggerToReactions.get(triggerName)
-			for (reaction: reactions) {
-			}
-		}
-		// timers // map from timer name to timer properties.
-		// triggerReactions // map from timer name to a list of function names
+		val result = new StringBuilder()
+
 		val triggerTable = new StringBuffer()
 		var count = 0
 		for (triggerName: triggerToReactions.keySet) {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
 			var names = new StringBuffer();
-			for (functionName : triggerToReactions.get(triggerName)) {
+			for (reaction : triggerToReactions.get(triggerName)) {
+				var functionName = properties.reactionToFunctionName.get(reaction)
 				// Generate a reaction_t object for an instance of a reaction.
 				val reactionInstanceName = "__reaction" + reactionInstanceCount++
+				
 				// FIXME: 0, 0 are index and position. Index comes from topological sort.
-				result.append("reaction_t " + reactionInstanceName + " = {NULL, 0, 0};\n")
-				
-				wrappers.append("void " + functionName + "_wrapper() {\n")
-				// FIXME: Create parameters and parameter list.
-				wrappers.append("    " + functionName + "(FIXME);\n")
-				wrappers.append("}\n")
-				
-				initializeTriggerTable.append(reactionInstanceName + ".function = " + functionName + "_wrapper;\n")
+				pr(result, "reaction_t " + reactionInstanceName + " = {NULL, NULL, NULL, 0, 0};")
+				pr(initializeTriggerTable, reactionInstanceName + ".function = &" + functionName + ";")
+				pr(initializeTriggerTable, reactionInstanceName + ".this = &" + instanceToNameOfThisStruct.get(instance) + ";")
 				
 				// Position is a label to be written by the priority queue as a side effect of inserting.
 				if (names.length != 0) {
@@ -354,52 +298,54 @@ class CGenerator extends GeneratorBase {
 				}
 				names.append('&' + reactionInstanceName)
 			}
-			result.append('reaction_t* ' + triggerName + triggerCount 
+			var triggerStructName = triggerName + triggerCount
+			pr(result, 'reaction_t* ' + triggerStructName 
 					+ '_reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
-			result.append('\n')
 			// Declare a variable with the name of the trigger whose
 			// value is a struct.
-			result.append('trigger_t ' + triggerName + triggerCount + ' = {\n')
+			pr(result, 'trigger_t ' + triggerStructName + ' = {')
+			indent(result)
 			var timing = getTiming(component, triggerName)
 			if (timing !== null) {
-				result.append(triggerName + triggerCount + '_reactions, '
+				pr(result, triggerStructName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
 					+ '0LL, 0LL'
 				)
 			} else if (getAction(component, triggerName) !== null) {
-				result.append(triggerName + triggerCount + '_reactions, '
+				pr(result, triggerStructName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
 					+ getAction(component, triggerName).getDelay()
-					+ ', 0' // 0 is ignored since actions don't have a period.
+					+ ', 0LL' // 0 is ignored since actions don't have a period.
 				)
 				actionToTriggerTableIndex.put(triggerName, count)
 			}
-			result.append('\n};\n')
+			unindent(result)
+			pr(result,'};')
 			// Assignment of the offset and period have to occur after creating
 			// the struct because the value assigned may not be a compile-time constant.
 			if (timing !== null) {
-				initializeTriggerTable.append(triggerName + triggerCount + '.offset = ' + timeMacro(timing.offset) + ';\n')
-				initializeTriggerTable.append(triggerName + triggerCount + '.period = ' + timeMacro(timing.period) + ';\n')
+				pr(initializeTriggerTable, triggerStructName + '.offset = ' + timeMacro(timing.offset) + ';')
+				pr(initializeTriggerTable, triggerStructName + '.period = ' + timeMacro(timing.period) + ';')
 				
 				// Generate a line to go into the __start_timers() function.
-				startTimers.append("__schedule(&" + triggerName + triggerCount + ", "
-		 			+ timeMacro(timing.offset) + ");\n")
+				pr(startTimers,"__schedule(&" + triggerStructName + ", "
+		 			+ timeMacro(timing.offset) + ");")
 			}
 			if (triggerTable.length != 0) {
 				triggerTable.append(', ')
 			}
 			triggerTable.append("&")
-			triggerTable.append(triggerName + triggerCount)
+			triggerTable.append(triggerStructName)
 			count++
 			triggerCount++
 		}
-		result.append('trigger_t* trigger_table' + instanceCount + '[' + count + '] = {' + triggerTable + '};\n')
-		result.append(wrappers)
+		pr(result, 'trigger_t* trigger_table' + instanceCount + '[' + count + '] = {' + triggerTable + '};')
 		// This goes directly out to the generated code.
 		pr(result.toString())
 	}
 		
 	/** Instantiate a reactor.
+	 *  @param component The reactor or composite that this is instantiating.
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
@@ -409,15 +355,48 @@ class CGenerator extends GeneratorBase {
 			className = instance.reactorClass
 		}
 		pr('// *** Instance ' + instance.name + ' of class ' + className)
-		// Generate trigger table for the instance.
-		generateTriggerTable(instance)
+		var component = getComponent(instance.reactorClass)
+				
+		// Generate the instance struct containing parameters and state variables.
+		// (the "this" struct).
+		var properties = componentToProperties.get(component)
+		var nameOfThisStruct = "__this_" + instanceCount + "_" + instance.name
+		instanceToNameOfThisStruct.put(instance, nameOfThisStruct)
+		pr(properties.structType + " " + nameOfThisStruct + ";")
 		
-		// FIXME: Handle parameters.
-		if (instance.parameters !== null) {
-			for (param: instance.parameters.assignments) {
-				// pr('''«instance.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
+		// Generate code to initialize the instance struct in the
+		// __initialize_trigger_table function.
+		// FIXME: Parameter of the enclosing Component need to be in scope!!  Generate code here for that.
+		// Start with parameters.
+		// First, collect the overrides.
+		var overrides = new HashMap<String,String>()
+		var parameters = instance.parameters
+		if (parameters !== null) {
+			for (assignment: parameters.assignments) {
+				var value = assignment.value;
+				if (assignment.unit !== null) {
+					var time = LinguaFrancaFactory.eINSTANCE.createTime()
+					time.setTime(value)
+					time.setUnit(assignment.unit)
+					value = timeMacro(time)
+				}
+				overrides.put(assignment.name, removeCodeDelimiter(value))
 			}
 		}
+		// Next, initialize parameter with either the override or the defaults.
+		for(parameter: getParameters(component)) {
+			var value = overrides.get(parameter.name)
+			if (value === null) {
+				value = removeCodeDelimiter(parameter.value)
+				if (parameter.time !== null) {
+					value = timeMacro(parameter.time)
+				}
+			}
+			pr(initializeTriggerTable, nameOfThisStruct + "." + parameter.name + " = " + value + ";")
+		}
+		
+		// Generate trigger table for the instance.
+		generateTriggerTable(instance)
 		instanceCount++
 	}
 	

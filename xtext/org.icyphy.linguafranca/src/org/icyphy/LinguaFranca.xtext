@@ -80,7 +80,7 @@ Assignments:
 	assignments+=Assignment (',' assignments+=Assignment)*;
 	
 Assignment:
-	name=ID '=' value=Value;
+	name=ID '=' value=Value (unit=ID)?;
 
 // Specification of what inputs a reaction reads.
 Uses:
