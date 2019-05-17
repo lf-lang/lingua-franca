@@ -1,0 +1,23 @@
+target C; 
+reactor HelloC(period:time(2 sec), message:{=char*=}("Hello C")) {
+	// FIXME: The period parameter should go in below.
+	timer t(3 secs, 2 secs);
+	action a;
+	reaction(t) -> a {=
+		long long time = get_logical_time();
+		time_t secs = time/BILLION;
+		printf("%s\n", this->message);
+		printf("Current time is %lld\n", time);
+		printf("Which is %sPlus %lld nanoseconds.\n", ctime(&secs), time & (BILLION - 1));
+		schedule(a, MSEC(200));
+	=}
+	reaction(a) {=
+		static int count = 0; // Class variable.
+		count++;
+		printf("***** action %d at time %lld\n", count, get_logical_time());
+	=}
+}
+composite Main {
+	firstInstance = new HelloC(period = 3 msec);
+	secondInstance = new HelloC();
+}
