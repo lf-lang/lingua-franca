@@ -54,6 +54,7 @@ handle_t __schedule(trigger_t* trigger, interval_t delay) {
     event_t* e = malloc(sizeof(struct event_t));
     e->time = current_time + delay;
     e->trigger = trigger;
+
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
     // (time and microstep) have been pulled from the queue,
@@ -152,13 +153,15 @@ int next() {
   	do {
   	 	event = pqueue_pop(eventQ);
   	 	for (int i = 0; i < event->trigger->number_of_reactions; i++) {
+  	 	    printf("Pushed on reactionQ: %p\n", event->trigger->reactions[i]);
+  	 	    printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
   	        pqueue_insert(reactionQ, event->trigger->reactions[i]);
   	 	}
   	 	if (event->trigger->period > 0) {
   	        // Reschedule the trigger.
   	        __schedule(event->trigger, event->trigger->period);
   	 	}
-  	 	
+ 	 	
         // FIXME: Recycle this event instead of freeing it.
         free(event);
 
@@ -168,6 +171,8 @@ int next() {
 	// Handle reactions.
 	while(pqueue_size(reactionQ) > 0) {
         reaction_t* reaction = pqueue_pop(reactionQ);
+  	 	printf("Popped from reactionQ: %p\n", reaction);
+  	 	printf("Popped reaction args: %p\n", reaction->args);
         reaction->function(reaction->this, reaction->args);
 	}
 	
