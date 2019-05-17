@@ -139,11 +139,12 @@ int wait_until(event_t* event) {
 int next() {
 	event_t* event = pqueue_peek(eventQ);
 	if (event == NULL) {
-return 0;
+	    // No event in the queue.
+        return 0;
 	}
 	// Wait until physical time >= event.time
 	if (wait_until(event) < 0) {
-// FIXME: sleep was interrupted. Handle that somehow here!
+        // FIXME: sleep was interrupted. Handle that somehow here!
 	}
 	
   	// Pop all events from eventQ with timestamp equal to current_time
@@ -167,7 +168,7 @@ return 0;
 	// Handle reactions.
 	while(pqueue_size(reactionQ) > 0) {
         reaction_t* reaction = pqueue_pop(reactionQ);
-        reaction->function();
+        reaction->function(reaction->this, reaction->args);
 	}
 	
 	return 1;
