@@ -25,11 +25,13 @@ typedef pqueue_pri_t index_t;
 typedef int handle_t;
 
 // Reaction function type
-typedef void(*reaction_function_t)(void);
+typedef void(*reaction_function_t)(void*, void*);
 
 // A reaction.
 typedef struct reaction_t {
   reaction_function_t function;
+  void* this;
+  void* args;
   index_t index;
   size_t pos; // Used by priority queue.
 } reaction_t;
