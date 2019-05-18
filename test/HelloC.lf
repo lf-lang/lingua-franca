@@ -1,23 +1,27 @@
-target C; 
+target C;
 reactor HelloC(period:time(2 sec), message:{=char*=}("Hello C")) {
-	// FIXME: The period parameter should go in below.
-	timer t(3 secs, 2 secs);
+	state count:int(0);
+	timer t(1 secs, period);
 	action a;
 	reaction(t) -> a {=
-		long long time = get_logical_time();
-		time_t secs = time/BILLION;
 		printf("%s\n", this->message);
-		printf("Current time is %lld\n", time);
-		printf("Which is %sPlus %lld nanoseconds.\n", ctime(&secs), time & (BILLION - 1));
 		schedule(a, MSEC(200));
+		// If you want to print the current time, uncomment the following.
+		// long long time = get_logical_time();
+		// time_t secs = time/BILLION;
+		// printf("Current time is %lld\n", time);
+		// printf("Which is %sPlus %lld nanoseconds.\n", ctime(&secs), time & (BILLION - 1));
 	=}
 	reaction(a) {=
-		static int count = 0; // Class variable.
-		count++;
-		printf("***** action %d at time %lld\n", count, get_logical_time());
+		(this->count)++;
+		printf("***** action %d at time %lld\n", this->count, get_logical_time());
 	=}
 }
-composite Main {
-	firstInstance = new HelloC(period = 3 msec);
-	secondInstance = new HelloC();
+composite Inside(period:time(1 sec), message:{=char*=}("Composite default message.")) {
+	third_instance = new HelloC(period = period, message = message);
 }
+composite Main {
+	first_instance = new HelloC(period = 4 sec, message = "Hello from first_instance.");
+	second_instance = new HelloC(message = "Hello from second_instance.");
+	composite_instance = new Inside(message = "Hello from composite_instance.");
+} 

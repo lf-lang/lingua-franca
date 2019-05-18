@@ -34,6 +34,7 @@ Composite:
 // inputs, outputs, timers and actions, preamble, reactions.
 ComponentBody:
 	name=ID parameters=Params? '{'
+	(states += State)*
    	(inputs += Input)*
    	(outputs += Output)*
    	((timers += Timer) | (actions += Action))*
@@ -42,7 +43,11 @@ ComponentBody:
 	
 /////////// Statements
 
-// Note explicit allowance of keywords for names of inputs, outputs, clocks.
+// Note explicit allowance of keywords for names of inputs, outputs, timers.
+// Types are optional for use in untyped languages.
+State:
+	'state' name=(ID | 'state') (':' type=Type)? ('(' value=Value ')') ';';
+
 Input:
 	'input' name=(ID | 'input') (':' type=Type)? ';';
 
@@ -107,7 +112,7 @@ Timing:
 // a constant, a number followed by a unit specification.
 // Time unit here is any ID. The validator should check for valid units.
 Time:
-	(time=ID | time='0' | time=NUMBER unit=ID);
+	time=ID | time=NUMBER (unit=ID)?;
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
@@ -132,7 +137,7 @@ terminal COMPOSITE_MODIFIER:
 
 // FIXME: Can we replace this with something more general? E.g., scientific notation, hex, etc.?
 terminal NUMBER:
-    '-'? INT ('.' INT)? ;
+    ('-'? INT ('.' INT)?) ;
 
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
