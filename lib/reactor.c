@@ -98,7 +98,7 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
 // Return 0 if time advanced to the time of the event and -1 if the wait
 // was interrupted.
 int wait_until(event_t* event) {
-    // printf("-------- Waiting for logical time %lld.\n", event->time);
+    printf("-------- Waiting for logical time %lld.\n", event->time);
     long long logical_time_ns = event->time;
     
     // Get the current physical time.
@@ -117,7 +117,7 @@ int wait_until(event_t* event) {
     
     // timespec is seconds and nanoseconds.
     struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
-    // printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
+    printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
     struct timespec remaining_time;
     // FIXME: If the wait time is less than the time resolution, don't sleep.
     if (nanosleep(&wait_time, &remaining_time) != 0) {
@@ -173,9 +173,9 @@ int next() {
   	do {
   	 	event = pqueue_pop(event_q);
   	 	for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-  	 	    printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
-  	 	    printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
-  	      pqueue_insert(reaction_q, event->trigger->reactions[i]);
+  	 	    // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
+  	 	    // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
+  	        pqueue_insert(reaction_q, event->trigger->reactions[i]);
   	 	}
   	 	if (event->trigger->period > 0) {
   	        // Reschedule the trigger.
@@ -190,9 +190,9 @@ int next() {
 
   	// Handle reactions.
   	while(pqueue_size(reaction_q) > 0) {
-      reaction_t* reaction = pqueue_peek(reaction_q);
-    	printf("Popped from reaction_q: %p\n", reaction);
-    	printf("Popped reaction args: %p\n", reaction->args);
+      reaction_t* reaction = pqueue_pop(reaction_q);
+    	// printf("Popped from reaction_q: %p\n", reaction);
+    	// printf("Popped reaction args: %p\n", reaction->args);
       reaction->function(reaction->this, reaction->args);
   	}
 	
