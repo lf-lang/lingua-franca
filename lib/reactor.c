@@ -1,58 +1,71 @@
+/*
+ FIXME: License, copyright, authors.
+ */
+
 #include "reactor.h"
 
 // This is not in scope for reactors.
 instant_t current_time = 0LL;
+
 // The following should be in scope for reactors:
 // FIXME: This probably should not be a global, at least not for parallel execution.
 long long get_logical_time() {
 	return current_time;
 }
 
-// Compare priorities.
+// Priority queues.
+pqueue_t* event_q;     // For sorting by time.
+pqueue_t* reaction_q;  // For sorting by index (topological sort)
+
+handle_t __handle = 0;
+struct timespec __physicalStartTime;
+
+// ********** Priority Queue Support Start
+
+// Compare two priorities.
 static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
   return (next > curr);
 }
-// Compare events.
-static int cmp_evt(void* next, void* curr) {
+// Compare two events.
+static int eql_evt(void* next, void* curr) {
   return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
 }
-// Compare reactions.
-static int cmp_rct(void* next, void* curr) {
+// Compare two reactions.
+static int eql_rct(void* next, void* curr) {
   return (next == curr);
 }
 // Get priorities based on time.
 // Used for sorting event_t structs.
-static pqueue_pri_t get_tag_pri(void *a) {
+static pqueue_pri_t get_evt_pri(void *a) {
   return (pqueue_pri_t)(((event_t*) a)->time);
 }
 // Get priorities based on indices, which reflect topological sort.
 // Used for sorting reaction_t structs.
-static pqueue_pri_t get_index_pri(void *a) {
+static pqueue_pri_t get_rct_pri(void *a) {
   return ((reaction_t*) a)->index;
 }
-// Set priority.
-static void set_pri(void *a, pqueue_pri_t pri) {
-  // ignore this; priorities are fixed
-}
+
 // Get position in the queue of the specified event.
-static size_t get_pos(void *a) {
+static size_t get_evt_pos(void *a) {
   return ((event_t*) a)->pos;
 }
+
+// Get position in the queue of the specified event.
+static size_t get_rct_pos(void *a) {
+  return ((reaction_t*) a)->pos;
+}
+
 // Set position of the specified event.
-static void set_pos(void *a, size_t pos) {
+static void set_evt_pos(void *a, size_t pos) {
   ((event_t*) a)->pos = pos;
 }
 
 // Set position of the specified event.
-static void set_pos2(void *a, size_t pos) {
+static void set_rct_pos(void *a, size_t pos) {
   ((reaction_t*) a)->pos = pos;
 }
 
-// Priority queues.
-pqueue_t* eventQ;     // For sorting by time.
-pqueue_t* reactionQ;  // For sorting by index (topological sort)
-
-handle_t __handle = 0;
+// ********** Priority Queue Support End
 
 // Schedule the specified trigger at current_time plus the delay.
 handle_t __schedule(trigger_t* trigger, interval_t delay) {
@@ -64,19 +77,20 @@ handle_t __schedule(trigger_t* trigger, interval_t delay) {
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
     // (time and microstep) have been pulled from the queue,
-    // and any new events added at this tag will go into the reactionQ
-    // rather than the eventQ, so anything put in the eventQ with this
+    // and any new events added at this tag will go into the reaction_q
+    // rather than the event_q, so anything put in the event_q with this
     // same time will automatically be executed at the next microstep.
-    pqueue_insert(eventQ, e);
+    pqueue_insert(event_q, e);
     // FIXME: make a record of handle and implement unschedule.
     return __handle++;
 }
+
 // Schedule the specified trigger at current_time plus the
 // offset declared in the trigger plus the extra_delay.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
 	return __schedule(trigger, trigger->offset + extra_delay);
 }
-struct timespec __physicalStartTime;
+
 
 // Wait until physical time matches or exceeds the start time of execution
 // plus the current_time plus the specified logical time.  If this is not
@@ -144,7 +158,7 @@ int wait_until(event_t* event) {
 // priority queue. All of those will also be executed in order of indices.
 // Finally, return 1.
 int next() {
-	event_t* event = pqueue_peek(eventQ);
+	event_t* event = pqueue_peek(event_q);
 	if (event == NULL) {
 	    // No event in the queue.
         return 0;
@@ -154,14 +168,14 @@ int next() {
         // FIXME: sleep was interrupted. Handle that somehow here!
 	}
 	
-  	// Pop all events from eventQ with timestamp equal to current_time
+  	// Pop all events from event_q with timestamp equal to current_time
   	// stick them into reaction.
   	do {
-  	 	event = pqueue_pop(eventQ);
+  	 	event = pqueue_pop(event_q);
   	 	for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-  	 	    printf("Pushed on reactionQ: %p\n", event->trigger->reactions[i]);
+  	 	    printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
   	 	    printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
-  	      pqueue_insert(reactionQ, event->trigger->reactions[i]);
+  	      pqueue_insert(reaction_q, event->trigger->reactions[i]);
   	 	}
   	 	if (event->trigger->period > 0) {
   	        // Reschedule the trigger.
@@ -171,13 +185,13 @@ int next() {
       // FIXME: Recycle this event instead of freeing it.
       free(event);
 
-      event = pqueue_peek(eventQ);
+      event = pqueue_peek(event_q);
   	} while(event != NULL && event->time == current_time);
 
   	// Handle reactions.
-  	while(pqueue_size(reactionQ) > 0) {
-      reaction_t* reaction = pqueue_peek(reactionQ);
-    	printf("Popped from reactionQ: %p\n", reaction);
+  	while(pqueue_size(reaction_q) > 0) {
+      reaction_t* reaction = pqueue_peek(reaction_q);
+    	printf("Popped from reaction_q: %p\n", reaction);
     	printf("Popped reaction args: %p\n", reaction->args);
       reaction->function(reaction->this, reaction->args);
   	}
@@ -195,16 +209,20 @@ void initialize() {
 	    }
 	#endif
 	
-	current_time = 0; // FIXME: Obtain system time.
-	eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, get_pos, set_pos, cmp_evt);
-	reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, get_pos, set_pos2, cmp_rct);
+  // Initialize our priority queues.
+	event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
+                       get_evt_pos, set_evt_pos, eql_evt);
+	reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, cmp_pri, get_rct_pri,
+                       get_rct_pos, set_rct_pos, eql_rct);
 
 	// Initialize logical time to match physical time.
 	clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
 	printf("Start execution at time %splus %ld nanoseconds.\n",
 	ctime(&__physicalStartTime.tv_sec), __physicalStartTime.tv_nsec);
 	current_time = __physicalStartTime.tv_sec * BILLION	+ __physicalStartTime.tv_nsec;
-	__initialize_trigger_table();
+	
+  // Initialize the trigger table.
+  __initialize_trigger_table();
 }
 
 // ********** Start Windows Support

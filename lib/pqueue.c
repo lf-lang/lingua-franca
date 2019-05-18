@@ -230,7 +230,6 @@ pqueue_peek(pqueue_t *q)
     return d;
 }
 
-
 void
 pqueue_dump(pqueue_t *q,
             FILE *out,
