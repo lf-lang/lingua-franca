@@ -121,9 +121,18 @@ class CGenerator extends GeneratorBase {
 		for(parameter: getParameters(component)) {
 			prSourceLineNumber(parameter)
 			if (parameter.type === null) {
-				reportError(parameter, "Parameter must have a type.")
+				reportError(parameter, "Parameter is required to have a type: " + parameter.name)
 			} else {
 				pr(getParameterType(parameter) + ' ' + parameter.name + ';');
+			}
+		}
+		// Next handle states.
+		for(state: component.componentBody.states) {
+			prSourceLineNumber(state)
+			if (state.type === null) {
+				reportError(state, "State is required to have a type: " + state.name)
+			} else {
+				pr(removeCodeDelimiter(state.type) + ' ' + state.name + ';');
 			}
 		}
 		unindent()
@@ -147,7 +156,7 @@ class CGenerator extends GeneratorBase {
 	 *  @param component The composite.
 	 *  @param importTable The table of imports.
 	 */
-	def generateContainedInstances(Composite component, Hashtable<String,String> importTable) {
+	def void generateContainedInstances(Composite component, Hashtable<String,String> importTable) {
 		// Generated instances
 		for (instance: component.instances) {
 			instantiate(instance, importTable)
@@ -417,7 +426,6 @@ class CGenerator extends GeneratorBase {
 		
 		// Generate code to initialize the instance struct in the
 		// __initialize_trigger_table function.
-		// FIXME: Parameter of the enclosing Component need to be in scope!!  Generate code here for that.
 		// Create a scope for the parameters in case the names collide with other instances.
 		pr(initializeTriggerTable, "{ // Scope for " + instance.name)
 		indent(initializeTriggerTable)
@@ -454,6 +462,16 @@ class CGenerator extends GeneratorBase {
 			pr(initializeTriggerTable, getParameterType(parameter) + ' ' + tmpVariableName + ' = ' + value + ';')
 			pr(initializeTriggerTable, getParameterType(parameter) + ' ' + parameter.name + ' = ' + tmpVariableName + ';')
 			pr(initializeTriggerTable, nameOfThisStruct + "." + parameter.name + " = " + value + ";")
+		}
+		// Next, initialize the struct with state variables.
+		for(state: component.componentBody.states) {
+			var value = removeCodeDelimiter(state.value)
+			var type = state.type
+			if (type === null) {
+				// Types are optional in Lingua Franca, but required here.
+				reportError(state, "No type given for state " + state.name)
+			}
+			pr(initializeTriggerTable, nameOfThisStruct + "." + state.name + " = " + value + ";")
 		}
 		// Generate the reaction structs for each reaction of this instance.
 		generateReactionStructs(component, instance)
