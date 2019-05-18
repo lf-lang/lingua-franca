@@ -42,6 +42,12 @@ static size_t get_pos(void *a) {
 static void set_pos(void *a, size_t pos) {
   ((event_t*) a)->pos = pos;
 }
+
+// Set position of the specified event.
+static void set_pos2(void *a, size_t pos) {
+  ((reaction_t*) a)->pos = pos;
+}
+
 // Priority queues.
 pqueue_t* eventQ;     // For sorting by time.
 pqueue_t* reactionQ;  // For sorting by index (topological sort)
@@ -155,26 +161,26 @@ int next() {
   	 	for (int i = 0; i < event->trigger->number_of_reactions; i++) {
   	 	    printf("Pushed on reactionQ: %p\n", event->trigger->reactions[i]);
   	 	    printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
-  	        pqueue_insert(reactionQ, event->trigger->reactions[i]);
+  	      pqueue_insert(reactionQ, event->trigger->reactions[i]);
   	 	}
   	 	if (event->trigger->period > 0) {
   	        // Reschedule the trigger.
   	        __schedule(event->trigger, event->trigger->period);
   	 	}
  	 	
-        // FIXME: Recycle this event instead of freeing it.
-        free(event);
+      // FIXME: Recycle this event instead of freeing it.
+      free(event);
 
-        event = pqueue_peek(eventQ);
+      event = pqueue_peek(eventQ);
   	} while(event != NULL && event->time == current_time);
 
-	// Handle reactions.
-	while(pqueue_size(reactionQ) > 0) {
-        reaction_t* reaction = pqueue_pop(reactionQ);
-  	 	printf("Popped from reactionQ: %p\n", reaction);
-  	 	printf("Popped reaction args: %p\n", reaction->args);
-        reaction->function(reaction->this, reaction->args);
-	}
+  	// Handle reactions.
+  	while(pqueue_size(reactionQ) > 0) {
+      reaction_t* reaction = pqueue_peek(reactionQ);
+    	printf("Popped from reactionQ: %p\n", reaction);
+    	printf("Popped reaction args: %p\n", reaction->args);
+      reaction->function(reaction->this, reaction->args);
+  	}
 	
 	return 1;
 }
@@ -191,7 +197,7 @@ void initialize() {
 	
 	current_time = 0; // FIXME: Obtain system time.
 	eventQ = pqueue_init(INITIAL_TAG_QUEUE_SIZE, cmp_pri, get_tag_pri, get_pos, set_pos, cmp_evt);
-	reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, get_pos, set_pos, cmp_rct);
+	reactionQ = pqueue_init(INITIAL_INDEX_QUEUE_SIZE, cmp_pri, get_index_pri, get_pos, set_pos2, cmp_rct);
 
 	// Initialize logical time to match physical time.
 	clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
