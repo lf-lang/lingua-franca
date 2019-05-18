@@ -98,7 +98,7 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
 // Return 0 if time advanced to the time of the event and -1 if the wait
 // was interrupted.
 int wait_until(event_t* event) {
-    printf("-------- Waiting for logical time %lld.\n", event->time);
+    // printf("-------- Waiting for logical time %lld.\n", event->time);
     long long logical_time_ns = event->time;
     
     // Get the current physical time.
@@ -117,7 +117,7 @@ int wait_until(event_t* event) {
     
     // timespec is seconds and nanoseconds.
     struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
-    printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
+    // printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
     struct timespec remaining_time;
     // FIXME: If the wait time is less than the time resolution, don't sleep.
     if (nanosleep(&wait_time, &remaining_time) != 0) {

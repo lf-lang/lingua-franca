@@ -5,7 +5,6 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.Hashtable
-import java.util.StringJoiner
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -32,6 +31,7 @@ class CGenerator extends GeneratorBase {
 	var triggerCount = 0
 	var instanceCount = 0
 	var reactionArgsCount = 0
+	var tmpVariableCount = 0
 	
 	// Map from Instance to the name of the "this" struct for that instance.
 	var instanceToNameOfThisStruct = new HashMap<Instance,String>()
@@ -123,25 +123,15 @@ class CGenerator extends GeneratorBase {
 			if (parameter.type === null) {
 				reportError(parameter, "Parameter must have a type.")
 			} else {
-				var type = removeCodeDelimiter(parameter.type)
-				if (parameter.type.equals('time')) {
-					type = 'interval_t'
-				}
-				pr(type + ' ' + parameter.name + ';');
+				pr(getParameterType(parameter) + ' ' + parameter.name + ';');
 			}
 		}
 		unindent()
 		pr("} " + argType + ";")
 		
 		if (component instanceof Composite) {
-			// Generated instances
-			for (instance: component.instances) {
-				// FIXME: instantiate (recursively) only from the component Main.
-				instantiate(instance, importTable)
-			}
-			// Handle connections
-			for (connection: component.connections) {
-				// FIXME
+			if (component.componentBody.name.equalsIgnoreCase("main")) {
+				generateContainedInstances(component, importTable)
 			}
 		}
 
@@ -151,20 +141,21 @@ class CGenerator extends GeneratorBase {
 		generateReactions(component)	
 		pr("// =============== END reactor class " + component.componentBody.name)
 	}
-				
-	def generateParameter(Param param) {
-		var options = new StringJoiner(", ", "{", "}")
-		var foundOptions = false
-		if (param.type !== null) {
-			options.add('''"type": "«removeCodeDelimiter(param.type)»"''')
-			foundOptions = true
+	
+	/** For the given composite, create instances of each component (reactor or composite)
+	 *  that it contains.
+	 *  @param component The composite.
+	 *  @param importTable The table of imports.
+	 */
+	def generateContainedInstances(Composite component, Hashtable<String,String> importTable) {
+		// Generated instances
+		for (instance: component.instances) {
+			instantiate(instance, importTable)
 		}
-		if (param.value !== null) {
-			options.add('''"value": «removeCodeDelimiter(param.value)»''')
-			foundOptions = true
+		// Handle connections
+		for (connection: component.connections) {
+			// FIXME
 		}
-		// FIXME
-		// pr('''this.parameter("«param.name»"«IF foundOptions», «options»«ENDIF»);''')
 	}
 
 	/** Generate reaction functions definition for a reactor or a composite.
@@ -420,13 +411,16 @@ class CGenerator extends GeneratorBase {
 		// (the "this" struct).
 		pr('// --- "this" struct for instance ' + instance.name)
 		var properties = componentToProperties.get(component)
-		var nameOfThisStruct = "__this_" + instanceCount + "_" + instance.name
+		var nameOfThisStruct = "__this_" + (instanceCount++) + "_" + instance.name
 		instanceToNameOfThisStruct.put(instance, nameOfThisStruct)
 		pr(properties.structType + " " + nameOfThisStruct + ";")
 		
 		// Generate code to initialize the instance struct in the
 		// __initialize_trigger_table function.
 		// FIXME: Parameter of the enclosing Component need to be in scope!!  Generate code here for that.
+		// Create a scope for the parameters in case the names collide with other instances.
+		pr(initializeTriggerTable, "{ // Scope for " + instance.name)
+		indent(initializeTriggerTable)
 		// Start with parameters.
 		// First, collect the overrides.
 		var overrides = new HashMap<String,String>()
@@ -444,6 +438,7 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		// Next, initialize parameter with either the override or the defaults.
+		// This also creates a local variable for each parameter.
 		for(parameter: getParameters(component)) {
 			var value = overrides.get(parameter.name)
 			if (value === null) {
@@ -452,6 +447,12 @@ class CGenerator extends GeneratorBase {
 					value = timeMacro(parameter.time)
 				}
 			}
+			// In case the parameter value refers to a container parameter with the same name,
+			// we have to first store the value in a temporary variable, then in the
+			// parameter variable.
+			var tmpVariableName = '__tmp' + tmpVariableCount++
+			pr(initializeTriggerTable, getParameterType(parameter) + ' ' + tmpVariableName + ' = ' + value + ';')
+			pr(initializeTriggerTable, getParameterType(parameter) + ' ' + parameter.name + ' = ' + tmpVariableName + ';')
 			pr(initializeTriggerTable, nameOfThisStruct + "." + parameter.name + " = " + value + ";")
 		}
 		// Generate the reaction structs for each reaction of this instance.
@@ -463,7 +464,14 @@ class CGenerator extends GeneratorBase {
 		// Populate the reaction structs for each reaction of this instance.
 		populateReactionStructs(component, instance)
 		
-		instanceCount++
+		// If the component is a composite, then create instances of
+		// whatever it instantiates.
+		if (component instanceof Composite) {
+			generateContainedInstances(component, importTable)
+		}
+		
+		unindent(initializeTriggerTable)
+		pr(initializeTriggerTable, "} // End of scope for " + instance.name)
 	}
 
 	/** Populate reaction struct for each reaction of the specified instance
@@ -563,14 +571,6 @@ class CGenerator extends GeneratorBase {
 	////////////////////////////////////////////
 	//// Utility functions for generating code.
 	
-	// Append to a string with preceding comma if needed.
-	private def argListAppend(StringBuffer buffer, String item) {
-		if (buffer.length > 0) {
-			buffer.append(', ')
-		}
-		buffer.append(item)
-	}
-
 	// Extract a filename from a path.
 	private def extractFilename(String path) {
 		var result = path
@@ -585,6 +585,20 @@ class CGenerator extends GeneratorBase {
 			result = result.substring(0, result.length - 3)
 		}
 		return result
+	}
+	
+	/** Return a C type for the type of the specified parameter.
+	 *  If there are code delimiters around it, those are removed.
+	 *  If the type is "time", then it is converted to "interval_t".
+	 *  @param parameter The parameter.
+	 *  @return The C type.
+	 */
+	private def getParameterType(Param parameter) {
+		var type = removeCodeDelimiter(parameter.type)
+		if (parameter.type.equals('time')) {
+			type = 'interval_t'
+		}
+		type
 	}
 	
 	// Print the #line compiler directive with the line number of
