@@ -46,23 +46,23 @@ ComponentBody:
 // Note explicit allowance of keywords for names of inputs, outputs, timers.
 // Types are optional for use in untyped languages.
 State:
-	'state' name=(ID | 'state') (':' type=Type)? ('(' value=Value ')') ';';
+	'state' name=ValidID (':' type=Type)? ('(' value=Value ')') ';';
 
 Input:
-	'input' name=(ID | 'input') (':' type=Type)? ';';
+	'input' name=ValidID (':' type=Type)? ';';
 
 Output:
-	'output' name=(ID | 'output') (':' type=Type)? ';';
+	'output' name=ValidID (':' type=Type)? ';';
 
 Timer:
-	'timer' name=(ID | 'timer') timing=Timing?';';
+	'timer' name=ValidID timing=Timing?';';
 
 Action:
-	'action' name=(ID | 'action') ('(' delay=(ID | NUMBER) ')')?';';
+	'action' name=ValidID ('(' delay=(ID | NUMBER) ')')?';';
 
 Reaction:
 	'reaction' 
-	('(' (triggers+=ID (',' triggers+=ID)*)? ')')?
+	('(' (triggers+=ValidID (',' triggers+=ValidID)*)? ')')?
 	uses=Uses?
 	produces=Produces?
 	code=CODE;
@@ -78,6 +78,12 @@ Instance:
 
 Connection:
     leftPort=Port '->' rightPort=Port ';';
+    
+ValidID:
+	ID | KEYWORD;
+
+KEYWORD:
+	'input' | 'state' | 'output' | 'timer' | 'action';
 
 /////////// Pieces
 
@@ -120,7 +126,7 @@ Port:
 
 // Specification of what outputs a reaction writes.
 Produces:
-	'->' produces+=ID (',' produces+=ID)?;
+	'->' produces+=ValidID (',' produces+=ValidID)?;
 
 // A type is in the target language, hence either an ID or target code.
 Type:
