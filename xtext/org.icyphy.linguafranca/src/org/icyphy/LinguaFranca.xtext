@@ -34,10 +34,11 @@ Composite:
 // inputs, outputs, timers and actions, preamble, reactions.
 ComponentBody:
 	name=ID parameters=Params? '{'
-	(states += State)*
-   	(inputs += Input)*
-   	(outputs += Output)*
-   	((timers += Timer) | (actions += Action))*
+	((states += State)
+   	| (inputs += Input)
+   	| (outputs += Output)
+   	| (timers += Timer)
+   	| (actions += Action))*
    	(preamble = Preamble)?
    	(reactions += Reaction)*;
 	
