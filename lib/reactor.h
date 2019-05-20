@@ -137,9 +137,12 @@ typedef long long intptr_t;
 #else
 typedef int intptr_t;
 #endif
-intptr_t __cdecl _loaddll(char *);
-int __cdecl _unloaddll(intptr_t);
-int (__cdecl * __cdecl _getdllprocaddr(intptr_t, char *, intptr_t))(void);
+typedef intptr_t INTPTR_T;
+typedef struct HINSTANCE__ *HINSTANCE;
+typedef HINSTANCE HMODULE;
+typedef INTPTR_T (__stdcall *FARPROC)();
+HMODULE __stdcall GetModuleHandleA(char const *lpModuleName);
+FARPROC __stdcall GetProcAddress(HMODULE hModule, char const *lpProcName);
 typedef long NTSTATUS;
 typedef union _LARGE_INTEGER *PLARGE_INTEGER;
 typedef NTSTATUS __stdcall NtDelayExecution_t(unsigned char Alertable,
@@ -151,7 +154,7 @@ NtQueryPerformanceCounter_t *NtQueryPerformanceCounter;
 typedef NTSTATUS __stdcall NtQuerySystemTime_t(PLARGE_INTEGER SystemTime); 
 NtQuerySystemTime_t *NtQuerySystemTime;
 #ifndef CLOCK_REALTIME
-enum { CLOCK_REALTIME = 0 };
+#define CLOCK_REALTIME 0
 #endif
 #ifndef CLOCK_MONOTONIC
 #define CLOCK_MONOTONIC 1
