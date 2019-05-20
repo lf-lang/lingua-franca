@@ -204,15 +204,15 @@ int next() {
 }
 
 void initialize() {
-	#if _WIN32 || WIN32
-	    intptr_t ntdll = _loaddll("ntdll.dll");
-	    if (ntdll != 0 && ntdll != -1) {
-	        NtDelayExecution = (NtDelayExecution_t *)_getdllprocaddr(ntdll, "NtDelayExecution", -1);
-	        NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)_getdllprocaddr(ntdll, "NtQueryPerformanceCounter", -1);
-	        NtQuerySystemTime = (NtQuerySystemTime_t *)_getdllprocaddr(ntdll, "NtQuerySystemTime", -1);
-	    }
-	#endif
-	
+#if _WIN32 || WIN32
+	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+	if (ntdll) {
+	    NtDelayExecution = (NtDelayExecution_t *)GetProcAddress(ntdll, "NtDelayExecution");
+	    NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)GetProcAddress(ntdll, "NtQueryPerformanceCounter");
+	    NtQuerySystemTime = (NtQuerySystemTime_t *)GetProcAddress(ntdll, "NtQuerySystemTime");
+	}
+#endif
+
   // Initialize our priority queues.
 	event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
                        get_evt_pos, set_evt_pos, eql_evt);
