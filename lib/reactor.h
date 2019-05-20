@@ -142,13 +142,16 @@ typedef long NTSTATUS;
 typedef union _LARGE_INTEGER *PLARGE_INTEGER;
 typedef NTSTATUS __stdcall NtDelayExecution_t(unsigned char Alertable,
   PLARGE_INTEGER Interval);
-NtDelayExecution_t *NtDelayExecution = NULL;
+NtDelayExecution_t *NtDelayExecution;
 typedef NTSTATUS __stdcall NtQueryPerformanceCounter_t(
   PLARGE_INTEGER PerformanceCounter, PLARGE_INTEGER PerformanceFrequency);
-NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
+NtQueryPerformanceCounter_t *NtQueryPerformanceCounter;
 typedef NTSTATUS __stdcall NtQuerySystemTime_t(PLARGE_INTEGER SystemTime); 
-NtQuerySystemTime_t *NtQuerySystemTime = NULL;
-typedef enum { CLOCK_REALTIME = 0 } clockid_t;
+NtQuerySystemTime_t *NtQuerySystemTime;
+#ifndef CLOCK_REALTIME
+enum { CLOCK_REALTIME = 0 };
+#endif
+typedef int clockid_t;
 int clock_gettime(clockid_t clk_id, struct timespec *tp);
 int nanosleep(const struct timespec *req, struct timespec *rem);
 #endif
