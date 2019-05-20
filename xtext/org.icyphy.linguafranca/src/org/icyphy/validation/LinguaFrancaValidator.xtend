@@ -9,6 +9,7 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
@@ -34,6 +35,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	var timers = newHashSet()
 	var actions = newHashSet()
 	var allNames = newHashSet()
+	var containedNames = newHashSet() // Names of contained reactors.
 	
 	////////////////////////////////////////////////////
 	//// Functions to set up data structures for performing checks.
@@ -48,6 +50,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		timers.clear()
 		actions.clear()
 		allNames.clear()
+		containedNames.clear()
 	}
 	
 	@Check(FAST)
@@ -104,6 +107,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		}
 		inputs.add(input.name);
 		allNames.add(input.name)
+	}
+	
+	@Check(FAST)
+	def checkInstance(Instance instance) {
+		if (containedNames.contains(instance.name)) {
+			error("Names of instances must be unique: " 
+				+ instance.name,
+				Literals.INSTANCE__NAME
+			)
+		}
+		containedNames.add(instance.name)
 	}
 	
 	@Check(FAST)
