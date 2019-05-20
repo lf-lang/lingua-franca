@@ -11,11 +11,9 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Component
-import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Param
-import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Time
 
 /**
@@ -30,20 +28,13 @@ class CGenerator extends GeneratorBase {
 	var reactionInstanceCount = 0
 	var triggerCount = 0
 	var instanceCount = 0
-	var reactionArgsCount = 0
 	var tmpVariableCount = 0
-	
-	// Map from Instance to the name of the "this" struct for that instance.
-	var instanceToNameOfThisStruct = new HashMap<Instance,String>()
-	
-	// Map from Instance to map from trigger name to trigger struct name.
-	var instanceToTriggerNameToTriggerStruct = new HashMap<Instance,HashMap<String,String>>()
-	
-	// Map from Instance to map from Reaction to reaction struct name.
-	var instanceToReactionToStruct = new HashMap<Instance,HashMap<Reaction,String>>()
 			
-	// Place to collect code to initialize the trigger table for all reactors.
-	var initializeTriggerTable = new StringBuilder()
+	// Place to collect code to initialize the trigger objects for all reactors.
+	var initializeTriggerObjects = new StringBuilder()
+	
+	// Place to collect code to execute at the start of a time step.
+	var startTimeStep = new StringBuilder()
 	
 	// Place to collect code to initialize timers for all reactors.
 	var startTimers = new StringBuilder()
@@ -67,10 +58,10 @@ class CGenerator extends GeneratorBase {
 			generateComponent(component, importTable)
 		}
 		
-		// Generate function to initialize the trigger table for all reactors.
-		pr('void __initialize_trigger_table() {\n')
+		// Generate function to initialize the trigger objects for all reactors.
+		pr('void __initialize_trigger_objects() {\n')
 		indent()
-		pr(initializeTriggerTable)
+		pr(initializeTriggerObjects)
 		unindent()
 		pr('}\n')
 		
@@ -80,6 +71,13 @@ class CGenerator extends GeneratorBase {
 		pr(startTimers)
 		unindent()
 		pr("}")
+		
+		// Generate function to execute at the start of a time step.
+		pr('void __start_time_step() {\n')
+		indent()
+		pr(startTimeStep)
+		unindent()
+		pr('}\n')
 		
 		fsa.generateFile(filename + ".c", getCode())		
 	}
@@ -94,7 +92,7 @@ class CGenerator extends GeneratorBase {
 	override generateComponent(Component component, Hashtable<String,String> importTable) {
 		super.generateComponent(component, importTable)
 		
-		pr("// =============== START reactor class" + component.componentBody.name)
+		pr("// =============== START reactor class " + component.componentBody.name)
 				
 		// Scan reactions
 		var savedReactionCount = reactionCount;
@@ -112,7 +110,7 @@ class CGenerator extends GeneratorBase {
 		// into the preamble of any reaction function to extract the
 		// parameters from the struct.
 		val argType = "reactor_instance_" + (reactorClassCount++) + "_this_t"
-		properties.structType = argType
+		properties.targetProperties.put("structType", argType)
 			
 		// Construct the typedef for the "this" struct.
 		pr("typedef struct {")
@@ -135,36 +133,43 @@ class CGenerator extends GeneratorBase {
 				pr(removeCodeDelimiter(state.type) + ' ' + state.name + ';');
 			}
 		}
+		// Next handle actions.
+		for(action: component.componentBody.actions) {
+			prSourceLineNumber(action)
+			// NOTE: Slightly obfuscate output name to help prevent accidental use.
+			pr("trigger_t* __" + action.name + ";")
+		}
+		// Next handle inputs.
+		for(input: component.componentBody.inputs) {
+			prSourceLineNumber(input)
+			if (input.type === null) {
+				reportError(input, "Input is required to have a type: " + input.name)
+			} else {
+				// NOTE: Slightly obfuscate input name to help prevent accidental use.
+				pr(removeCodeDelimiter(input.type) + '* __' + input.name + ';');
+				pr('bool* __' + input.name + '_is_present;');
+			}
+		}
+		// Next handle outputs.
+		for(output: component.componentBody.outputs) {
+			prSourceLineNumber(output)
+			if (output.type === null) {
+				reportError(output, "Output is required to have a type: " + output.name)
+			} else {
+				// NOTE: Slightly obfuscate output name to help prevent accidental use.
+				pr(removeCodeDelimiter(output.type) + ' __' + output.name + ';');
+				pr('bool __' + output.name + '_is_present;');
+			}
+		}
+		
 		unindent()
 		pr("} " + argType + ";")
 		
-		if (component instanceof Composite) {
-			if (component.componentBody.name.equalsIgnoreCase("main")) {
-				generateContainedInstances(component, importTable)
-			}
-		}
-
 		// Generate reactions
 		// For this second pass, restart the reaction count where the first pass started.
 		reactionCount = savedReactionCount;
 		generateReactions(component)	
 		pr("// =============== END reactor class " + component.componentBody.name)
-	}
-	
-	/** For the given composite, create instances of each component (reactor or composite)
-	 *  that it contains.
-	 *  @param component The composite.
-	 *  @param importTable The table of imports.
-	 */
-	def void generateContainedInstances(Composite component, Hashtable<String,String> importTable) {
-		// Generated instances
-		for (instance: component.instances) {
-			instantiate(instance, importTable)
-		}
-		// Handle connections
-		for (connection: component.connections) {
-			// FIXME
-		}
 	}
 
 	/** Generate reaction functions definition for a reactor or a composite.
@@ -179,49 +184,54 @@ class CGenerator extends GeneratorBase {
 		for (reaction: reactions) {
 			// Create a unique function name for each reaction.
 			val functionName = "reaction_function" + reactionCount++
-			val argType = functionName + "_args_t"
 			
-			properties.reactionToFunctionName.put(reaction, functionName)
+			properties.targetProperties.put(reaction, functionName)
 			
-			// Construct the typedef for the argument struct.
-			// At the same time, construct the reactionInitialization code to go into
+			// Construct the reactionInitialization code to go into
 			// the body of the function before the verbatim code.
 			var StringBuilder reactionInitialization = new StringBuilder()
-			pr(reactionInitialization, componentToProperties.get(component).structType
-					+ "* this = (" + componentToProperties.get(component).structType + "*)instance_args;")
-			pr(reactionInitialization, argType + "* __cast_args = (" + argType + "*)reaction_args;")
+			var structType = properties.targetProperties.get("structType")
+			pr(reactionInitialization, structType
+					+ "* this = (" + structType + "*)instance_args;")
 			
-			pr("typedef struct {")
-			indent()
 			// Next, add the triggers.
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
 					val input = getInput(component, trigger)
 					if (input !== null) {
-						pr(input.type + " " + input.name + ";")
-						pr(reactionInitialization, input.type + ' ' + input.name + ' = __cast_args->' + input.name + ';');
+						pr(reactionInitialization, removeCodeDelimiter(input.type)
+							+ ' ' + input.name + ' = *(this->__' + input.name + ');'
+						);
+						pr(reactionInitialization, removeCodeDelimiter(input.type)
+							+ ' ' + input.name + '_is_present = *(this->__' + input.name + '_is_present);'
+						);
 					}
 					val action = getAction(component, trigger)
 					if (action !== null) {
 						// FIXME: Actions may have payloads.
-						pr("trigger_t* " + action.name + ";")
-						pr(reactionInitialization, "trigger_t* " + action.name + ' = __cast_args->' + action.name + ';');
+						pr(reactionInitialization, "trigger_t* " 
+							+ action.name + ' = this->__' + action.name + ';'
+						);
 					}
 				}
 			} else {
 				// No triggers are given, which means react to any input.
 				// Declare an argument for every input.
 				for (input: component.componentBody.inputs) {
-					pr(input.type + " " + input.name + ";")
-					pr(reactionInitialization, input.type + ' ' + input.name + ' = __cast_args->' + input.name + ';');
+					// FIXME: This should point to the output from which the input comes.
+					pr(reactionInitialization, input.type + ' ' + input.name + ' = this->__' + input.name + ';');
 				}
 			}
 			// Define argument for non-triggering inputs.
 			if (reaction.uses !== null && reaction.uses.uses !== null) {
 				for(get: reaction.uses.uses) {
 					val input = getInput(component, get)
-					pr(input.type + " " + input.name + ";")
-					pr(reactionInitialization, input.type + ' ' + input.name + ' = __cast_args->' + input.name + ';');
+					pr(reactionInitialization, removeCodeDelimiter(input.type)
+						+ ' ' + input.name + ' = *(this->__' + input.name + ');'
+					);
+					pr(reactionInitialization, removeCodeDelimiter(input.type)
+						+ ' ' + input.name + '_is_present = *(this->__' + input.name + '_is_present);'
+					);
 				}
 			}
 			// Define variables for each declared output or action.
@@ -231,16 +241,26 @@ class CGenerator extends GeneratorBase {
 					if (action !== null) {
 						// It is an action, not an output.
 						// FIXME: Actions may have payloads.
-						pr("trigger_t* " + action.name + ";")
-						pr(reactionInitialization, "trigger_t* " + action.name + ' = __cast_args->' + action.name + ';');
+						pr(reactionInitialization, "trigger_t* " + action.name + ' = this->__' + action.name + ';');
 					} else {
-						// FIXME: Handle output.
+						// It is an output.
+						var out = getOutput(component, output)
+						if (out.type === null) {
+							reportError(out, "Output is required to have a type: " + output)
+						}
+						// NOTE: Slightly obfuscated the field name in the struct
+						// to prevent the user from bypassing the declared outputs and
+						// writing directly to the output using this->outputName.
+						pr(reactionInitialization, removeCodeDelimiter(out.type)
+							+ '* ' + output + ' = &(this->__' + output + ');'
+						)
+						pr(reactionInitialization, 'bool* ' + output 
+							+ '_is_present = &(this->__' + output + '_is_present);'
+						)
 					}
 				}
 			}
-			unindent()
-			pr('} ' + argType + ';')	
-			pr('void ' + functionName + '(void* instance_args, void* reaction_args) {')
+			pr('void ' + functionName + '(void* instance_args) {')
 			indent()
 			pr(reactionInitialization)
 			// Code verbatim from 'reaction'
@@ -251,36 +271,7 @@ class CGenerator extends GeneratorBase {
 		}
 	}
 	
-	/** Generate reaction struct for each reaction of the specified instance
-	 *  of the specified component.
-	 *  @param component The component (reactor or composite).
-	 *  @param instance The instance
-	 */
-	def generateReactionStructs(Component component, Instance instance) {
-		var reactions = component.componentBody.reactions
-		var properties = componentToProperties.get(component)
-		for (reaction: reactions) {
-			// Get the function name and struct type for the reaction.
-			val functionName = properties.reactionToFunctionName.get(reaction)
-			val argType = functionName + "_args_t"
-			
-			// Create an instance of the struct for each reaction.
-			pr('// --- Reaction struct for reaction to ' + reaction.triggers + ' of instance ' + instance.name)
-			val structName = '__reaction_args' + reactionArgsCount++
-			pr(argType + ' ' + structName + ';')
-			
-			// Record the struct name.
-			var reactionToStruct = instanceToReactionToStruct.get(instance)
-			if (reactionToStruct === null) {
-				reactionToStruct = new HashMap<Reaction,String>()
-				instanceToReactionToStruct.put(instance, reactionToStruct)
-			}
-			reactionToStruct.put(reaction, structName)
-		}
-	}
-	
-	/** Generate the trigger table for a reactor instance.
-	 *  A trigger table is an array of trigger_t objects, one for
+	/** Generate trigger_t objects, one for
 	 *  each input, clock, and action of the reactor.
 	 *  Each trigger_t object is a struct that contains an
 	 *  array of pointers to reaction_t objects representing
@@ -293,18 +284,23 @@ class CGenerator extends GeneratorBase {
 	 *  This also creates the reaction_t object for each reaction.
 	 *  This object has a pointer to the function to invoke for that
 	 *  reaction.
+	 *  @param reactorInstance The instance for which we are generating trigger objects.
+	 *  @param nameOfThisStruct The name of the instance of "this" for this instance.
+	 *  @return A map of trigger names to the name of the trigger struct.
 	 */
-	def generateTriggerTable(Instance instance) {
+	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfThisStruct) {
+		var triggerNameToTriggerStruct = new HashMap<String,String>()
+		var instance = reactorInstance.instanceStatement
 		var component = getComponent(instance.reactorClass)
 		var properties = componentToProperties.get(component)
 		if (component === null) {
 			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
-			return
+			return triggerNameToTriggerStruct
 		}
 		var triggerToReactions = getTriggerToReactions(component)
 		if (triggerToReactions === null) {
 			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
-			return
+			return triggerNameToTriggerStruct
 		}
 		val result = new StringBuilder()
 
@@ -314,33 +310,19 @@ class CGenerator extends GeneratorBase {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
 			var names = new StringBuffer();
 			for (reaction : triggerToReactions.get(triggerName)) {
-				var functionName = properties.reactionToFunctionName.get(reaction)
-				// FIXME: Trigger table seems to not be used! Entries are used directly.
-				pr(result, '// --- Trigger table entry for reaction to trigger '+ triggerName
+				var functionName = properties.targetProperties.get(reaction)
+				pr(result, '// --- Reaction and trigger objects for reaction to trigger '+ triggerName
 					+ ' of instance ' + instance.name
 				)
 				// Generate a reaction_t object for an instance of a reaction.
 				val reactionInstanceName = "__reaction" + reactionInstanceCount++
-				
-				// Get the struct name for the reaction.
-				val reactionToStruct = instanceToReactionToStruct.get(instance)
-				if (reactionToStruct === null) {
-					reportError(instance, "Internal error: No reaction struct.")
-				}
-				val structName = reactionToStruct.get(reaction)
-				if (structName === null) {
-					reportError(instance, "Internal error: No reaction struct.")
-				}
-				
+								
 				// FIXME: 0, 0 are index and position. Index comes from topological sort.
 				pr(result, "reaction_t " + reactionInstanceName 
 					+ " = {&" + functionName 
-					+ ", &" + instanceToNameOfThisStruct.get(instance)
-					+ ", &" + structName + ", 0, 0};"
+					+ ", &" + nameOfThisStruct
+					+ ", 0, 0};"
 				)
-				// These are compile-time constants, so no need to defer them.
-				// pr(initializeTriggerTable, reactionInstanceName + ".function = &" + functionName + ";")
-				// pr(initializeTriggerTable, reactionInstanceName + ".this = &" + instanceToNameOfThisStruct.get(instance) + ";")
 				
 				// Position is a label to be written by the priority queue as a side effect of inserting.
 				if (names.length != 0) {
@@ -351,11 +333,6 @@ class CGenerator extends GeneratorBase {
 			var triggerStructName = triggerName + triggerCount
 			
 			// Record the triggerStructName.
-			var triggerNameToTriggerStruct = instanceToTriggerNameToTriggerStruct.get(instance)
-			if (triggerNameToTriggerStruct === null) {
-				triggerNameToTriggerStruct = new HashMap<String,String>()
-				instanceToTriggerNameToTriggerStruct.put(instance, triggerNameToTriggerStruct)
-			}
 			triggerNameToTriggerStruct.put(triggerName, triggerStructName)
 			
 			pr(result, 'reaction_t* ' + triggerStructName 
@@ -382,8 +359,8 @@ class CGenerator extends GeneratorBase {
 			// Assignment of the offset and period have to occur after creating
 			// the struct because the value assigned may not be a compile-time constant.
 			if (timing !== null) {
-				pr(initializeTriggerTable, triggerStructName + '.offset = ' + timeMacro(timing.offset) + ';')
-				pr(initializeTriggerTable, triggerStructName + '.period = ' + timeMacro(timing.period) + ';')
+				pr(initializeTriggerObjects, triggerStructName + '.offset = ' + timeMacro(timing.offset) + ';')
+				pr(initializeTriggerObjects, triggerStructName + '.period = ' + timeMacro(timing.period) + ';')
 				
 				// Generate a line to go into the __start_timers() function.
 				pr(startTimers,"__schedule(&" + triggerStructName + ", "
@@ -397,18 +374,25 @@ class CGenerator extends GeneratorBase {
 			count++
 			triggerCount++
 		}
-		pr(result, '// --- Trigger table for instance '+ instance.name)
-		pr(result, 'trigger_t* trigger_table' + instanceCount + '[' + count + '] = {' + triggerTable + '};')
+		// No longer used:
+		// pr(result, '// --- Trigger table for instance '+ instance.name)
+		// pr(result, 'trigger_t* trigger_table' + instanceCount + '[' + count + '] = {' + triggerTable + '};')
 		// This goes directly out to the generated code.
 		pr(result.toString())
+		return triggerNameToTriggerStruct
 	}
 		
 	/** Instantiate a reactor.
-	 *  @param component The reactor or composite that this is instantiating.
-	 *  @param instance The instance declaration.
+	 *  @param instance The instance declaration in the AST.
+	 *  @param container The instance that is the container.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	def instantiate(Instance instance, Hashtable<String,String> importTable) {
+	override instantiate(
+		Instance instance,
+		ReactorInstance container,
+		Hashtable<String,String> importTable
+	) {
+		
 		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
 			className = instance.reactorClass
@@ -420,15 +404,15 @@ class CGenerator extends GeneratorBase {
 		// (the "this" struct).
 		pr('// --- "this" struct for instance ' + instance.name)
 		var properties = componentToProperties.get(component)
-		var nameOfThisStruct = "__this_" + (instanceCount++) + "_" + instance.name
-		instanceToNameOfThisStruct.put(instance, nameOfThisStruct)
-		pr(properties.structType + " " + nameOfThisStruct + ";")
+		var nameOfThisStruct = "__this_" + instanceCount + "_" + instance.name
+		var structType = properties.targetProperties.get("structType")
+		pr(structType + " " + nameOfThisStruct + ";")
 		
 		// Generate code to initialize the instance struct in the
-		// __initialize_trigger_table function.
+		// __initialize_trigger_objects function.
 		// Create a scope for the parameters in case the names collide with other instances.
-		pr(initializeTriggerTable, "{ // Scope for " + instance.name)
-		indent(initializeTriggerTable)
+		pr(initializeTriggerObjects, "{ // Scope for " + instance.name)
+		indent(initializeTriggerObjects)
 		// Start with parameters.
 		// First, collect the overrides.
 		var overrides = new HashMap<String,String>()
@@ -459,9 +443,9 @@ class CGenerator extends GeneratorBase {
 			// we have to first store the value in a temporary variable, then in the
 			// parameter variable.
 			var tmpVariableName = '__tmp' + tmpVariableCount++
-			pr(initializeTriggerTable, getParameterType(parameter) + ' ' + tmpVariableName + ' = ' + value + ';')
-			pr(initializeTriggerTable, getParameterType(parameter) + ' ' + parameter.name + ' = ' + tmpVariableName + ';')
-			pr(initializeTriggerTable, nameOfThisStruct + "." + parameter.name + " = " + value + ";")
+			pr(initializeTriggerObjects, getParameterType(parameter) + ' ' + tmpVariableName + ' = ' + value + ';')
+			pr(initializeTriggerObjects, getParameterType(parameter) + ' ' + parameter.name + ' = ' + tmpVariableName + ';')
+			pr(initializeTriggerObjects, nameOfThisStruct + "." + parameter.name + " = " + value + ";")
 		}
 		// Next, initialize the struct with state variables.
 		for(state: component.componentBody.states) {
@@ -471,105 +455,46 @@ class CGenerator extends GeneratorBase {
 				// Types are optional in Lingua Franca, but required here.
 				reportError(state, "No type given for state " + state.name)
 			}
-			pr(initializeTriggerTable, nameOfThisStruct + "." + state.name + " = " + value + ";")
-		}
-		// Generate the reaction structs for each reaction of this instance.
-		generateReactionStructs(component, instance)
-
-		// Generate trigger table for the instance.
-		generateTriggerTable(instance)
-		
-		// Populate the reaction structs for each reaction of this instance.
-		populateReactionStructs(component, instance)
-		
-		// If the component is a composite, then create instances of
-		// whatever it instantiates.
-		if (component instanceof Composite) {
-			generateContainedInstances(component, importTable)
+			pr(initializeTriggerObjects, nameOfThisStruct + "." + state.name + " = " + value + ";")
 		}
 		
-		unindent(initializeTriggerTable)
-		pr(initializeTriggerTable, "} // End of scope for " + instance.name)
-	}
-
-	/** Populate reaction struct for each reaction of the specified instance
-	 *  of the specified component.
-	 *  @param component The component (reactor or composite).
-	 *  @param instance The instance
-	 */
-	def populateReactionStructs(Component component, Instance instance) {
-		var reactions = component.componentBody.reactions
-		for (reaction: reactions) {
-			// Get the struct name for the reaction.
-			val reactionToStruct = instanceToReactionToStruct.get(instance)
-			if (reactionToStruct === null) {
-				reportError(instance, "Internal error: No reaction struct.")
+		// Call superclass here so that parameters of this composite
+		// are in scope for contained instances.
+		var reactorInstance = super.instantiate(instance, container, importTable)
+		// Store the name of the "this" struct as a property of the instance
+		// so that it can be used when establishing connections.
+		reactorInstance.properties.put("thisStructName", nameOfThisStruct)
+		
+		// Generate trigger objects for the instance.
+		var triggerNameToTriggerStruct = generateTriggerObjects(reactorInstance, nameOfThisStruct)
+				
+		// Next, initialize the struct with actions.
+		for(action: component.componentBody.actions) {
+			var triggerStruct = triggerNameToTriggerStruct.get(action.name)
+			if (triggerNameToTriggerStruct === null) {
+				reportError(component, 
+					"Internal error: No trigger struct found for action "
+					+ action.name)
 			}
-			val structName = reactionToStruct.get(reaction)
-			if (structName === null) {
-				reportError(instance, "Internal error: No reaction struct.")
-			}
-			
-			// Initialize the struct with triggers (inputs and actions).
-			if (reaction.triggers !== null && reaction.triggers.length > 0) {
-				for (trigger: reaction.triggers) {
-					val input = getInput(component, trigger)
-					if (input !== null) {
-						pr(initializeTriggerTable, structName + '.' + input.name + ' = &' + 'FIXME(input location);')
-					}
-					val action = getAction(component, trigger)
-					if (action !== null) {
-						var triggerNameToTriggerStruct = instanceToTriggerNameToTriggerStruct.get(instance)
-						if (triggerNameToTriggerStruct === null) {
-							reportError(component, "Internal error: No trigger struct found for instance " + instance.name)
-							return
-						}
-						var triggerStruct = triggerNameToTriggerStruct.get(trigger)
-						if (triggerNameToTriggerStruct === null) {
-							reportError(component, "Internal error: No trigger struct found for instance " + instance.name)
-							return
-						}
-						// FIXME: Actions may have payloads.
-						pr(initializeTriggerTable, structName + '.' + action.name + ' = &' + triggerStruct + ';')
-					}
-				}
-			} else {
-				// No triggers are given, which means react to any input.
-				// Declare an argument for every input.
-				for (input: component.componentBody.inputs) {
-					pr(initializeTriggerTable, structName + '.' + input.name + ' = &' + 'FIXME(input location);')
-				}
-			}
-			// Define argument for non-triggering inputs.
-			if (reaction.uses !== null && reaction.uses.uses !== null) {
-				for(get: reaction.uses.uses) {
-					val input = getInput(component, get)
-					pr(initializeTriggerTable, structName + '.' + input.name + ' = &' + 'FIXME(input location);')
-				}
-			}
-			// Define variables for each declared output or action.
-			if (reaction.produces !== null && reaction.produces.produces !== null) {
-				for(output: reaction.produces.produces) {
-					val action = getAction(component, output)
-					if (action !== null) {
-						var triggerNameToTriggerStruct = instanceToTriggerNameToTriggerStruct.get(instance)
-						if (triggerNameToTriggerStruct === null) {
-							reportError(component, "Internal error: No trigger struct found for instance " + instance.name)
-							return
-						}
-						var triggerStruct = triggerNameToTriggerStruct.get(action.name)
-						if (triggerNameToTriggerStruct === null) {
-							reportError(component, "Internal error: No trigger struct found for instance " + instance.name)
-							return
-						}
-						// FIXME: Actions may have payloads.
-						pr(initializeTriggerTable, structName + '.' + action.name + ' = &' + triggerStruct + ';')
-					} else {
-						pr(initializeTriggerTable, structName + '.' + output + ' = &' + 'FIXME(output location);')
-					}
-				}
-			}
+			// FIXME: Actions may have payloads.
+			pr(initializeTriggerObjects, nameOfThisStruct + '.__' 
+				+ action.name + ' = &' + triggerStruct + ';'
+			)
 		}
+		// Next, generate the code to initialize outputs at the start
+		// of a time step to be absent.
+		for(output: component.componentBody.outputs) {
+			pr(startTimeStep, nameOfThisStruct
+				+ '.__' + output.name + '_is_present = false;'
+			)
+		}
+		
+		unindent(initializeTriggerObjects)
+		pr(initializeTriggerObjects, "} // End of scope for " + instance.name)
+		
+		instanceCount++
+		
+		reactorInstance
 	}
 
 	/** Given a string of form either "xx" or "xx.yy", return either

@@ -12,6 +12,9 @@ import java.util.LinkedList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Component
+import org.icyphy.linguaFranca.Composite
+import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Time
@@ -87,6 +90,11 @@ class GeneratorBase {
 			properties.nameToInput.put(input.name, input)
 		}
 		
+		// Record outputs.
+		for (output: component.componentBody.outputs) {
+			properties.nameToOutput.put(output.name, output)
+		}
+		
 		// Record actions.
 		for (action: component.componentBody.actions) {
 			if (action.getDelay() === null) {
@@ -135,6 +143,63 @@ class GeneratorBase {
 				}	
 			}
 		}
+		if (component instanceof Composite) {
+			if (component.componentBody.name.equalsIgnoreCase("main")) {
+				var main = new ReactorInstance()
+				generateContainedInstances(component, main, importTable)
+			}
+		}
+	}
+	
+	/** For the given composite, create instances of each component (reactor or composite)
+	 *  that it contains.
+	 *  @param component The composite.
+	 *  @param container The instance that is the container.
+	 *  @param importTable The table of imports.
+	 */
+	def void generateContainedInstances(
+		Composite component,
+		ReactorInstance container,
+		Hashtable<String,String> importTable
+	) {
+		// Generated instances
+		for (instance: component.instances) {
+			var contained = instantiate(instance, container, importTable)
+			container.addContainedInstance(contained)
+		}
+		// Handle connections
+		for (connection: component.connections) {
+			connect(connection)
+		}
+	}
+	
+	/** Handle a connection
+	 *  @param connection The connection.
+	 */
+	def connect(Connection connection) {
+		// FIXME Generate code to initialize the input's "this" struct's
+		// input field to point to the output's "this" struct's output
+		// field. Do the same for _is_present fields.
+	}
+	
+	/** Instantiate a reactor.
+	 *  @param instance The instance declaration.
+	 *  @param container The instance that is the container.
+	 *  @param importTable Substitution table for class names (from import statements).
+	 */
+	def instantiate(
+		Instance instance,
+		ReactorInstance container,
+		Hashtable<String,String> importTable
+	) {
+		var reactorInstance = new ReactorInstance(instance, container)
+		var component = getComponent(instance.reactorClass)
+		// If the component is a composite, then create instances of
+		// whatever it instantiates.
+		if (component instanceof Composite) {
+			generateContainedInstances(component, reactorInstance, importTable)
+		}
+		reactorInstance
 	}
 	
 	////////////////////////////////////////////
@@ -180,6 +245,16 @@ class GeneratorBase {
 	protected def getInput(Component component, String name) {
 		var properties = componentToProperties.get(component)
 		properties.nameToInput.get(name)
+	}
+	
+	/** Return the Output with the given name.
+	 *  @param component The Component.
+	 *  @param name The name of the desired output.
+	 *  @return The output, or null if there isn't one.
+	 */
+	protected def getOutput(Component component, String name) {
+		var properties = componentToProperties.get(component)
+		properties.nameToOutput.get(name)
 	}
 	
 	/** Return the parameter with the given name.
