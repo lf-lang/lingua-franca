@@ -115,6 +115,7 @@ class CGenerator extends GeneratorBase {
 		properties.structType = argType
 			
 		// Construct the typedef for the "this" struct.
+		// TODO: The struct cannot be empty in C; should we make a dummy field or suppress the struct?
 		pr("typedef struct {")
 		indent()
 		// Start with parameters.
@@ -398,7 +399,9 @@ class CGenerator extends GeneratorBase {
 			triggerCount++
 		}
 		pr(result, '// --- Trigger table for instance '+ instance.name)
-		pr(result, 'trigger_t* trigger_table' + instanceCount + '[' + count + '] = {' + triggerTable + '};')
+		if (count > 0) /* empty arrays are illegal in C */ {
+			pr(result, 'trigger_t* trigger_table' + instanceCount + '[' + count + '] = {' + triggerTable + '};')
+		}
 		// This goes directly out to the generated code.
 		pr(result.toString())
 	}
