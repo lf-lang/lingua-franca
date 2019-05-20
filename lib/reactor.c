@@ -168,6 +168,10 @@ int next() {
         // FIXME: sleep was interrupted. Handle that somehow here!
 	}
 	
+	// Invoke code that must execute before starting a new logical time round,
+	// such as initializing outputs to be absent.
+	__start_time_step();
+	
   	// Pop all events from event_q with timestamp equal to current_time
   	// stick them into reaction.
   	do {
@@ -193,7 +197,7 @@ int next() {
       reaction_t* reaction = pqueue_pop(reaction_q);
     	// printf("Popped from reaction_q: %p\n", reaction);
     	// printf("Popped reaction args: %p\n", reaction->args);
-      reaction->function(reaction->this, reaction->args);
+      reaction->function(reaction->this);
   	}
 	
 	return 1;
@@ -222,7 +226,7 @@ void initialize() {
 	current_time = __physicalStartTime.tv_sec * BILLION	+ __physicalStartTime.tv_nsec;
 	
   // Initialize the trigger table.
-  __initialize_trigger_table();
+  __initialize_trigger_objects();
 }
 
 // ********** Start Windows Support

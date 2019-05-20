@@ -41,7 +41,12 @@
 #define WEEK(t)  (t * 604800000000000LL)
 #define WEEKS(t) (t * 604800000000000LL)
 
+#define set(out, value) (*out) = value; (*out ## _is_present) = true;
+
 //  ======== Type definitions ========  //
+
+/** Booleans. */
+typedef enum { false, true } bool;
 
 /** Handles for scheduled triggers. */
 typedef int handle_t;
@@ -58,13 +63,12 @@ typedef long long interval_t;
 typedef pqueue_pri_t index_t;
 
 /** Reaction function type. */
-typedef void(*reaction_function_t)(void*, void*);
+typedef void(*reaction_function_t)(void*);
 
 /** Reaction activation record to push onto the reaction queue. */
 typedef struct reaction_t {
   reaction_function_t function;
   void* this;    // Pointer to a struct with the reactor's state.
-  void* args;    // Pointer to a struct with accessible ports and actions.
   index_t index; // Index determined by topological sort.
   size_t pos;    // Current position in the priority queue.
 } reaction_t;
@@ -93,10 +97,16 @@ typedef struct event_t {
 instant_t get_logical_time(); // FIXME: this should not be global
 
 /** 
+ * Generated function that resets outputs to be absent at the
+ * start of a new time step.
+ */
+void __start_time_step();
+
+/** 
  * Generated function that produces a table containing all triggers
  * (i.e., inputs, timers, and actions).
  */
-void __initialize_trigger_table();
+void __initialize_trigger_objects();
 
 /** 
  * Internal version of the schedule() function, used by generated 
@@ -117,14 +127,6 @@ void __start_timers();
  * @param delay extra offset of the event release
  */
 handle_t schedule(trigger_t* trigger, interval_t extra_delay);
-
-/**
- * Function to set the value of an output. This is called from within
- * a reaction.
- * @param output_index index of output port into the connection_table
- * @param value pointer to the value to be sent
- */
-void set(int output_index, void* value);
 
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.

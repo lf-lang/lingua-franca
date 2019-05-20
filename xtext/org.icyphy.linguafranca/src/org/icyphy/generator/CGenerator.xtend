@@ -113,6 +113,7 @@ class CGenerator extends GeneratorBase {
 		properties.targetProperties.put("structType", argType)
 			
 		// Construct the typedef for the "this" struct.
+		// TODO: The struct cannot be empty in C; should we make a dummy field or suppress the struct?
 		pr("typedef struct {")
 		indent()
 		// Start with parameters.
@@ -374,9 +375,6 @@ class CGenerator extends GeneratorBase {
 			count++
 			triggerCount++
 		}
-		// No longer used:
-		// pr(result, '// --- Trigger table for instance '+ instance.name)
-		// pr(result, 'trigger_t* trigger_table' + instanceCount + '[' + count + '] = {' + triggerTable + '};')
 		// This goes directly out to the generated code.
 		pr(result.toString())
 		return triggerNameToTriggerStruct
