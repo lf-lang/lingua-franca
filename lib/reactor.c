@@ -237,10 +237,12 @@ NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
 NtQuerySystemTime_t *NtQuerySystemTime = NULL;
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
     int result = -1;
+    int days_from_1601_to_1970 = 134774 /* there were no leap seconds during this time, so life is easy */;
     long long timestamp, counts, counts_per_sec;
     switch (clk_id) {
     case CLOCK_REALTIME:
         NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
+        timestamp -= days_from_1601_to_1970 * 24LL * 60 * 60 * 1000 * 1000 * 10;
         tp->tv_sec = (time_t)(timestamp / (BILLION / 100));
         tp->tv_nsec = (long)((timestamp % (BILLION / 100)) * 100);
         result = 0;
