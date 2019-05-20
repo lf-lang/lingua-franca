@@ -228,6 +228,9 @@ void initialize() {
 // ********** Start Windows Support
 // Windows is not POSIX, so we include here compatibility definitions.
 #if _WIN32 || WIN32
+NtDelayExecution_t *NtDelayExecution = NULL;
+NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
+NtQuerySystemTime_t *NtQuerySystemTime = NULL;
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
     int result = -1;
     long long timestamp, counts, counts_per_sec;
