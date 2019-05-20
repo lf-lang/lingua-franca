@@ -245,6 +245,16 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
         tp->tv_nsec = (long)((timestamp % (BILLION / 100)) * 100);
         result = 0;
         break;
+    case CLOCK_MONOTONIC:
+        if ((*NtQueryPerformanceCounter)((PLARGE_INTEGER)&counts, (PLARGE_INTEGER)&counts_per_sec) == 0) {
+            tp->tv_sec = counts / counts_per_sec;
+            tp->tv_nsec = (long)((counts % counts_per_sec) * BILLION / counts_per_sec);
+            result = 0;
+        } else {
+            errno = EINVAL;
+            result = -1;
+        }
+        break;
     default:
         errno = EINVAL;
         result = -1;
