@@ -154,6 +154,9 @@ NtQuerySystemTime_t *NtQuerySystemTime;
 #ifndef CLOCK_REALTIME
 #define CLOCK_REALTIME 0
 #endif
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC 1
+#endif
 typedef int clockid_t;
 int clock_gettime(clockid_t clk_id, struct timespec *tp);
 int nanosleep(const struct timespec *req, struct timespec *rem);
