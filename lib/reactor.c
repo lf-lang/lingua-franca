@@ -250,6 +250,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
             errno = EINVAL;
             result = -1;
         }
+        break;
     default:
         errno = EINVAL;
         result = -1;
