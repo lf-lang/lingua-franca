@@ -66,12 +66,17 @@ typedef pqueue_pri_t index_t;
 typedef void(*reaction_function_t)(void*);
 
 /** Reaction activation record to push onto the reaction queue. */
-typedef struct reaction_t {
+typedef struct reaction_t reaction_t;
+struct reaction_t {
   reaction_function_t function;
   void* this;    // Pointer to a struct with the reactor's state.
   index_t index; // Index determined by topological sort.
   size_t pos;    // Current position in the priority queue.
-} reaction_t;
+  int num_triggered_reactions;  // Number of other reactions that may possibly be triggered by this function.
+  bool** reactions_enabled;     // Pointers to booleans indicating whether reactions are triggered.
+  int* triggered_reactions_sizes;          // Number of destination reaction for each output.
+  reaction_t*** triggered_reactions;       // Pointers to arrays of reactions that may be triggered.
+};
 
 /** Reaction activation record to push onto the reaction queue. */
 typedef struct {

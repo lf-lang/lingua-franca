@@ -195,9 +195,19 @@ int next() {
   	// Handle reactions.
   	while(pqueue_size(reaction_q) > 0) {
       reaction_t* reaction = pqueue_pop(reaction_q);
-    	// printf("Popped from reaction_q: %p\n", reaction);
-    	// printf("Popped reaction args: %p\n", reaction->args);
+        // printf("Popped from reaction_q: %p\n", reaction);
+    	// printf("Popped reaction function: %p\n", reaction->function);
       reaction->function(reaction->this);
+      
+      // If the reaction produced outputs, put the resulting triggered
+      // reactions into the queue.
+      for(int i=0; i < reaction->num_triggered_reactions; i++) {
+        if (*(reaction->reactions_enabled[i])) {
+            for (int j=0; j < reaction->triggered_reactions_sizes[i]; j++) {
+                pqueue_insert(reaction_q, reaction->triggered_reactions[i][j]);
+            }
+        }
+      }
   	}
 	
 	return 1;

@@ -113,16 +113,15 @@ class CGenerator extends GeneratorBase {
 		properties.targetProperties.put("structType", argType)
 			
 		// Construct the typedef for the "this" struct.
-		// TODO: The struct cannot be empty in C; should we make a dummy field or suppress the struct?
-		pr("typedef struct {")
-		indent()
+		// NOTE: The struct cannot be empty in C; should we make a dummy field or suppress the struct?
+		var body = new StringBuilder()
 		// Start with parameters.
 		for(parameter: getParameters(component)) {
 			prSourceLineNumber(parameter)
 			if (parameter.type === null) {
 				reportError(parameter, "Parameter is required to have a type: " + parameter.name)
 			} else {
-				pr(getParameterType(parameter) + ' ' + parameter.name + ';');
+				pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
 			}
 		}
 		// Next handle states.
@@ -131,14 +130,14 @@ class CGenerator extends GeneratorBase {
 			if (state.type === null) {
 				reportError(state, "State is required to have a type: " + state.name)
 			} else {
-				pr(removeCodeDelimiter(state.type) + ' ' + state.name + ';');
+				pr(body, removeCodeDelimiter(state.type) + ' ' + state.name + ';');
 			}
 		}
 		// Next handle actions.
 		for(action: component.componentBody.actions) {
 			prSourceLineNumber(action)
 			// NOTE: Slightly obfuscate output name to help prevent accidental use.
-			pr("trigger_t* __" + action.name + ";")
+			pr(body, "trigger_t* __" + action.name + ";")
 		}
 		// Next handle inputs.
 		for(input: component.componentBody.inputs) {
@@ -147,8 +146,8 @@ class CGenerator extends GeneratorBase {
 				reportError(input, "Input is required to have a type: " + input.name)
 			} else {
 				// NOTE: Slightly obfuscate input name to help prevent accidental use.
-				pr(removeCodeDelimiter(input.type) + '* __' + input.name + ';');
-				pr('bool* __' + input.name + '_is_present;');
+				pr(body, removeCodeDelimiter(input.type) + '* __' + input.name + ';');
+				pr(body, 'bool* __' + input.name + '_is_present;');
 			}
 		}
 		// Next handle outputs.
@@ -158,13 +157,17 @@ class CGenerator extends GeneratorBase {
 				reportError(output, "Output is required to have a type: " + output.name)
 			} else {
 				// NOTE: Slightly obfuscate output name to help prevent accidental use.
-				pr(removeCodeDelimiter(output.type) + ' __' + output.name + ';');
-				pr('bool __' + output.name + '_is_present;');
+				pr(body, removeCodeDelimiter(output.type) + ' __' + output.name + ';');
+				pr(body, 'bool __' + output.name + '_is_present;');
 			}
 		}
-		
-		unindent()
-		pr("} " + argType + ";")
+		if (body.length > 0) {
+			pr("typedef struct {")
+			indent()
+			pr(body)
+			unindent()
+			pr("} " + argType + ";")
+		}
 		
 		// Generate reactions
 		// For this second pass, restart the reaction count where the first pass started.
@@ -305,7 +308,6 @@ class CGenerator extends GeneratorBase {
 		}
 		val result = new StringBuilder()
 
-		val triggerTable = new StringBuffer()
 		var count = 0
 		for (triggerName: triggerToReactions.keySet) {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
@@ -317,8 +319,55 @@ class CGenerator extends GeneratorBase {
 				)
 				// Generate a reaction_t object for an instance of a reaction.
 				val reactionInstanceName = "__reaction" + reactionInstanceCount++
+				
+				// Generate entries for the reaction_t struct that specify how
+				// to handle outputs.
+				var presentPredicates = new StringBuilder()
+				var predicateCount = 0
+				if (reaction.produces !== null) {
+					for(output: reaction.produces.produces) {
+						if (getOutput(component, output) !== null) {
+							// It is an output, not an action.
+							if (presentPredicates.length > 0) {
+								presentPredicates.append(", ")
+							}
+							presentPredicates.append("&")
+							presentPredicates.append(nameOfThisStruct)
+							presentPredicates.append(".__")
+							presentPredicates.append(output)
+							presentPredicates.append("_is_present")
+							predicateCount++
+							
+							// FIXME: For each output, need to figure out how many
+							// inputs are connected to it. If none, then omit.
+							// Create a array with ints indicating these
+							// numbers and assign it to triggered_reactions_sizes
+							// field of the reaction_t object.
+							// Then, for each output, create an empty array of
+							// the right size (number of destination reactions)
+							// and collect each of these arrays into the array
+							// that gets assigned to the triggered_reactions
+							// field of the reaction_t object.
+							// Then, generate code to run in the __initialize_trigger_objects
+							// function that initializes each of these blank
+							// arrays with pointers to the reaction_t objects
+							// for each of the destination inputs.
+						}
+					}
+				}
+				if (presentPredicates.length > 0) {
+					pr(result, 'bool* ' + reactionInstanceName 
+						+ '_outputs_are_present = {' 
+						+ presentPredicates.toString
+						+ '};'
+					)
+					pr(result, 'reaction_t** ' + reactionInstanceName
+						+ '_inputs_triggered['
+						+ predicateCount
+						+ '];')
+				}
 								
-				// FIXME: 0, 0 are index and position. Index comes from topological sort.
+				// FIXME: first 0 is an index that should come from the topological sort.
 				pr(result, "reaction_t " + reactionInstanceName 
 					+ " = {&" + functionName 
 					+ ", &" + nameOfThisStruct
@@ -343,7 +392,7 @@ class CGenerator extends GeneratorBase {
 			pr(result, 'trigger_t ' + triggerStructName + ' = {')
 			indent(result)
 			var timing = getTiming(component, triggerName)
-			if (timing !== null) {
+			if (timing !== null || getInput(component, triggerName) !== null) {
 				pr(result, triggerStructName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
 					+ '0LL, 0LL'
@@ -354,6 +403,10 @@ class CGenerator extends GeneratorBase {
 					+ getAction(component, triggerName).getDelay()
 					+ ', 0LL' // 0 is ignored since actions don't have a period.
 				)
+			} else {
+				reportError(component,
+					"Internal error: Seems to not be an input, timer, or action: "
+					+ triggerName)
 			}
 			unindent(result)
 			pr(result,'};')
@@ -367,11 +420,6 @@ class CGenerator extends GeneratorBase {
 				pr(startTimers,"__schedule(&" + triggerStructName + ", "
 		 			+ timeMacro(timing.offset) + ");")
 			}
-			if (triggerTable.length != 0) {
-				triggerTable.append(', ')
-			}
-			triggerTable.append("&")
-			triggerTable.append(triggerStructName)
 			count++
 			triggerCount++
 		}
