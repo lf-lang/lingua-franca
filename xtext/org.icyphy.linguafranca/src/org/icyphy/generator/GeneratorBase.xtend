@@ -6,6 +6,7 @@ package org.icyphy.generator
 import java.text.NumberFormat
 import java.text.ParseException
 import java.util.HashMap
+import java.util.HashSet
 import java.util.Hashtable
 import java.util.LinkedHashMap
 import java.util.LinkedList
@@ -144,7 +145,80 @@ class GeneratorBase {
 			}
 		}
 		if (component instanceof Composite) {
+			// Record contained instances.
+			for (instance: component.instances) {
+				properties.nameToInstance.put(instance.name, instance)
+			}
+			// Record (and check) connections.
+			for (connection: component.connections) {
+				var split = connection.leftPort.split('\\.')
+				if (split.length === 1) {
+					// It is a local input port.
+					if (getInput(component, connection.leftPort) === null) {
+						reportError(connection,
+								"Left side is not an input port of this composite: " + connection.leftPort)
+					}
+				} else if (split.length === 2) {
+					// Form is reactorName.portName.
+					var instance = properties.nameToInstance.get(split.get(0))
+					if(instance === null) {
+						reportError(connection,
+								"No such instance: " + split.get(0))
+					} else {
+						var contained = getComponent(instance.reactorClass)
+						// Contained object may be imported, i.e. not a Lingua Franca object.
+						// Cannot check here.
+						if (contained !== null) {
+							var props = componentToProperties.get(contained)
+							if(props.nameToOutput.get(split.get(1)) === null) {
+								reportError(connection,
+										"No such output port: " + connection.leftPort)
+							}
+						}
+					}
+				} else {
+					reportError(connection, "Invalid port specification: " + connection.leftPort)
+				}
+				// Check the right port.
+				split = connection.rightPort.split('\\.')
+				if (split.length === 1) {
+					// It is a local input port.
+					if (getOutput(component, connection.rightPort) === null) {
+						reportError(connection,
+								"Right side is not an output port of this composite: " + connection.rightPort)
+					}
+				} else if (split.length === 2) {
+					// Form is reactorName.portName.
+					var instance = properties.nameToInstance.get(split.get(0))
+					if(instance === null) {
+						reportError(connection,
+								"No such instance: " + split.get(0))
+					} else {
+						var contained = getComponent(instance.reactorClass)
+						// Contained object may be imported, i.e. not a Lingua Franca object.
+						// Cannot check here.
+						if (contained !== null) {
+							var props = componentToProperties.get(contained)
+							if(props.nameToInput.get(split.get(1)) === null) {
+								reportError(connection,
+										"No such input port: " + connection.rightPort)
+							}
+						}
+					}
+				} else {
+					reportError(connection, "Invalid port specification: " + connection.rightPort)
+				}
+				// Record the source-destination pair.
+				var destinations = properties.outputNameToInputNames.get(connection.leftPort)
+				if (destinations === null) {
+					destinations = new HashSet<String>()
+					properties.outputNameToInputNames.put(connection.leftPort, destinations)
+				}
+				destinations.add(connection.rightPort)
+			}
+			
 			if (component.componentBody.name.equalsIgnoreCase("main")) {
+				// Build the instance-specific structures.
 				var main = new ReactorInstance()
 				generateContainedInstances(component, main, importTable)
 			}
@@ -194,6 +268,8 @@ class GeneratorBase {
 	) {
 		var reactorInstance = new ReactorInstance(instance, container)
 		var component = getComponent(instance.reactorClass)
+		// Component may be imported, i.e. not a Lingua Franca component,
+		// in which case, component === null.
 		// If the component is a composite, then create instances of
 		// whatever it instantiates.
 		if (component instanceof Composite) {

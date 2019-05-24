@@ -99,7 +99,7 @@ class AccessorGenerator extends GeneratorBase {
 		if (component instanceof Composite) {
 			// Generated instances
 			for (instance: component.instances) {
-				instantiate(instance, importTable)
+				generateInstantiate(instance, importTable)
 			}
 			// Generated connections
 			for (connection: component.connections) {
@@ -244,7 +244,7 @@ class AccessorGenerator extends GeneratorBase {
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	def instantiate(Instance instance, Hashtable<String,String> importTable) {
+	def generateInstantiate(Instance instance, Hashtable<String,String> importTable) {
 		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
 			className = instance.reactorClass
