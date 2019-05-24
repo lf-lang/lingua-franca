@@ -123,7 +123,7 @@ Time:
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
-    ID | (ID '.' (ID | 'input' | 'output'));
+    ValidID | (ValidID '.' ValidID);
 
 // Specification of what outputs a reaction writes.
 Produces:

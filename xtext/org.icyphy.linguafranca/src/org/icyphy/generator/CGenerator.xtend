@@ -11,8 +11,10 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Component
+import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Time
 
@@ -179,7 +181,7 @@ class CGenerator extends GeneratorBase {
 	/** Generate reaction functions definition for a reactor or a composite.
 	 *  These functions have a single argument that is a void* pointing to
 	 *  a struct that contains parameters, inputs (triggering or not),
-	 *  actions (triggering or produced), and references to outputs.
+	 *  actions (triggering or produced), and outputs.
 	 *  @param component The component (reactor or composite).
 	 */
 	def generateReactions(Component component) {
@@ -193,22 +195,23 @@ class CGenerator extends GeneratorBase {
 			
 			// Construct the reactionInitialization code to go into
 			// the body of the function before the verbatim code.
+			// This defines the "this" struct.
 			var StringBuilder reactionInitialization = new StringBuilder()
 			var structType = properties.targetProperties.get("structType")
 			pr(reactionInitialization, structType
 					+ "* this = (" + structType + "*)instance_args;")
 			
-			// Next, add the triggers.
+			// Next, add the triggers (input and actions; timers are not needed).
+			// This defines a local variable in the reaction function whose
+			// name matches that of the trigger. If the trigger is an input
+			// (not an action), then it also defines a local variable whose
+			// name is the input name with suffix "_is_present", a boolean
+			// that indicates whether the input is present.
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
 					val input = getInput(component, trigger)
 					if (input !== null) {
-						pr(reactionInitialization, removeCodeDelimiter(input.type)
-							+ ' ' + input.name + ' = *(this->__' + input.name + ');'
-						);
-						pr(reactionInitialization, removeCodeDelimiter(input.type)
-							+ ' ' + input.name + '_is_present = *(this->__' + input.name + '_is_present);'
-						);
+						generateInputVariablesInReaction(reactionInitialization, input)
 					}
 					val action = getAction(component, trigger)
 					if (action !== null) {
@@ -222,20 +225,14 @@ class CGenerator extends GeneratorBase {
 				// No triggers are given, which means react to any input.
 				// Declare an argument for every input.
 				for (input: component.componentBody.inputs) {
-					// FIXME: This should point to the output from which the input comes.
-					pr(reactionInitialization, input.type + ' ' + input.name + ' = this->__' + input.name + ';');
+					generateInputVariablesInReaction(reactionInitialization, input)
 				}
 			}
 			// Define argument for non-triggering inputs.
 			if (reaction.uses !== null && reaction.uses.uses !== null) {
 				for(get: reaction.uses.uses) {
 					val input = getInput(component, get)
-					pr(reactionInitialization, removeCodeDelimiter(input.type)
-						+ ' ' + input.name + ' = *(this->__' + input.name + ');'
-					);
-					pr(reactionInitialization, removeCodeDelimiter(input.type)
-						+ ' ' + input.name + '_is_present = *(this->__' + input.name + '_is_present);'
-					);
+					generateInputVariablesInReaction(reactionInitialization, input)
 				}
 			}
 			// Define variables for each declared output or action.
@@ -249,18 +246,7 @@ class CGenerator extends GeneratorBase {
 					} else {
 						// It is an output.
 						var out = getOutput(component, output)
-						if (out.type === null) {
-							reportError(out, "Output is required to have a type: " + output)
-						}
-						// NOTE: Slightly obfuscated the field name in the struct
-						// to prevent the user from bypassing the declared outputs and
-						// writing directly to the output using this->outputName.
-						pr(reactionInitialization, removeCodeDelimiter(out.type)
-							+ '* ' + output + ' = &(this->__' + output + ');'
-						)
-						pr(reactionInitialization, 'bool* ' + output 
-							+ '_is_present = &(this->__' + output + '_is_present);'
-						)
+						generateOutputVariablesInReaction(reactionInitialization, out)
 					}
 				}
 			}
@@ -331,11 +317,7 @@ class CGenerator extends GeneratorBase {
 							if (presentPredicates.length > 0) {
 								presentPredicates.append(", ")
 							}
-							presentPredicates.append("&")
-							presentPredicates.append(nameOfThisStruct)
-							presentPredicates.append(".__")
-							presentPredicates.append(output)
-							presentPredicates.append("_is_present")
+							presentPredicates.append('&' + nameOfThisStruct + '.__' + output + '_is_present')
 							predicateCount++
 							
 							// FIXME: For each output, need to figure out how many
@@ -454,7 +436,7 @@ class CGenerator extends GeneratorBase {
 		var structType = properties.targetProperties.get("structType")
 		pr(structType + " " + nameOfThisStruct + ";")
 		
-		// Generate code to initialize the instance struct in the
+		// Generate code to initialize the "this" struct in the
 		// __initialize_trigger_objects function.
 		// Create a scope for the parameters in case the names collide with other instances.
 		pr(initializeTriggerObjects, "{ // Scope for " + instance.name)
@@ -476,7 +458,6 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		// Next, initialize parameter with either the override or the defaults.
-		// This also creates a local variable for each parameter.
 		for(parameter: getParameters(component)) {
 			var value = overrides.get(parameter.name)
 			if (value === null) {
@@ -496,11 +477,6 @@ class CGenerator extends GeneratorBase {
 		// Next, initialize the struct with state variables.
 		for(state: component.componentBody.states) {
 			var value = removeCodeDelimiter(state.value)
-			var type = state.type
-			if (type === null) {
-				// Types are optional in Lingua Franca, but required here.
-				reportError(state, "No type given for state " + state.name)
-			}
 			pr(initializeTriggerObjects, nameOfThisStruct + "." + state.name + " = " + value + ";")
 		}
 		
@@ -542,20 +518,6 @@ class CGenerator extends GeneratorBase {
 		
 		reactorInstance
 	}
-
-	/** Given a string of form either "xx" or "xx.yy", return either
-	 *  "'xx'" or "xx, 'yy'".
-	 */
-	def portSpec(String port) {
-        val a = port.split('\\.');
-        if (a.length == 1) {
-            "'" + a.get(0) + "'"
-        } else if (a.length > 1) {
-            a.get(0) + ", '" + a.get(1) + "'"
-        } else {
-            "INVALID_PORT_SPEC:" + port
-        }
-    }
 	
 	////////////////////////////////////////////
 	//// Utility functions for generating code.
@@ -576,6 +538,45 @@ class CGenerator extends GeneratorBase {
 		return result
 	}
 	
+	/** Generate into the specified string builder the code to
+	 *  initialize local variables for inputs in a reaction function
+	 *  from the "this" struct.
+	 *  @param builder The string builder.
+	 *  @param input The input statement from the AST.
+	 */
+	private def generateInputVariablesInReaction(
+		StringBuilder builder, Input input
+	) {
+		// Slightly obfuscate the name to help prevent accidental use.
+		pr(builder, removeCodeDelimiter(input.type)
+			+ ' ' + input.name + ' = *(this->__' + input.name + ');'
+		)
+		pr(builder, removeCodeDelimiter(input.type)
+			+ ' ' + input.name + '_is_present = *(this->__' + input.name + '_is_present);'
+		)
+	}
+	
+	/** Generate into the specified string builder the code to
+	 *  initialize local variables for outputs in a reaction function
+	 *  from the "this" struct.
+	 *  @param builder The string builder.
+	 *  @param output The output statement from the AST.
+	 */
+	private def generateOutputVariablesInReaction(
+		StringBuilder builder, Output output
+	) {
+		if (output.type === null) {
+			reportError(output, "Output is required to have a type: " + output.name)
+		}		
+		// Slightly obfuscate the name to help prevent accidental use.
+		pr(builder, removeCodeDelimiter(output.type)
+			+ '* ' + output.name + ' = &(this->__' + output.name + ');'
+		)
+		pr(builder, 'bool* ' + output.name
+			+ '_is_present = &(this->__' + output.name + '_is_present);'
+		)
+	}
+	
 	/** Return a C type for the type of the specified parameter.
 	 *  If there are code delimiters around it, those are removed.
 	 *  If the type is "time", then it is converted to "interval_t".
@@ -590,6 +591,21 @@ class CGenerator extends GeneratorBase {
 		type
 	}
 	
+	/** Given a string of form either "xx" or "xx.yy", return either
+	 *  "'xx'" or "xx, 'yy'".
+	 */
+	// FIXME: Not used.
+	def portSpec(String port) {
+        val a = port.split('\\.');
+        if (a.length == 1) {
+            "'" + a.get(0) + "'"
+        } else if (a.length > 1) {
+            a.get(0) + ", '" + a.get(1) + "'"
+        } else {
+            "INVALID_PORT_SPEC:" + port
+        }
+    }
+
 	// Print the #line compiler directive with the line number of
 	// the most recently used node.
 	private def prSourceLineNumber(EObject reaction) {
