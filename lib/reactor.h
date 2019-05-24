@@ -66,25 +66,28 @@ typedef pqueue_pri_t index_t;
 typedef void(*reaction_function_t)(void*);
 
 /** Reaction activation record to push onto the reaction queue. */
+typedef struct trigger_t trigger_t;
+
+/** Reaction activation record to push onto the reaction queue. */
 typedef struct reaction_t reaction_t;
 struct reaction_t {
   reaction_function_t function;
   void* this;    // Pointer to a struct with the reactor's state.
   index_t index; // Index determined by topological sort.
   size_t pos;    // Current position in the priority queue.
-  int num_triggered_reactions;  // Number of other reactions that may possibly be triggered by this function.
-  bool** reactions_enabled;     // Pointers to booleans indicating whether reactions are triggered.
-  int* triggered_reactions_sizes;          // Number of destination reaction for each output.
-  reaction_t*** triggered_reactions;       // Pointers to arrays of reactions that may be triggered.
+  int num_outputs;  // Number of outputs that may possibly be produced by this function.
+  bool** output_produced;       // Array of pointers to booleans indicating whether outputs were produced.
+  int* triggered_sizes;         // Pointer to array of ints with number of triggers per output.
+  trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output.
 };
 
 /** Reaction activation record to push onto the reaction queue. */
-typedef struct {
+struct trigger_t {
 	reaction_t** reactions;  // Reactions sensitive to this trigger.
 	int number_of_reactions; // Number of reactions sensitive to this trigger.
 	interval_t offset;       // For an action, this will be a minimum delay.
 	interval_t period;       // For periodic timers (not for actions).
-} trigger_t;
+};
 
 /** Event activation record to push onto the event queue. */
 typedef struct event_t {
