@@ -2,6 +2,7 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.LinkedHashMap
+import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Instance
 
 /** An instance of a reactor or composite.
@@ -9,7 +10,8 @@ import org.icyphy.linguaFranca.Instance
 class ReactorInstance {
 	
 	/** Create new top-level instance. */
-	new() {
+	new(Component component) {
+		this.component = component
 		this.instanceStatement = null
 		this.container = null
 	}
@@ -19,17 +21,23 @@ class ReactorInstance {
 	 *  @param instance The Instance statement in the AST.
 	 *  @param container The container.
 	 */
-	new(Instance instanceStatement, ReactorInstance container) {
+	new(Component component, Instance instanceStatement, ReactorInstance container) {
+		this.component = component
 		this.instanceStatement = instanceStatement
 		this.container = container
 	}
 	
 	/** The contained instances, indexed by name. */
-	var LinkedHashMap<String,ReactorInstance> containedInstances
+	public var LinkedHashMap<String,ReactorInstance> containedInstances
 			= new LinkedHashMap<String,ReactorInstance>()
-			
+	
+	/** The AST Component object defining this instance.
+	 *  This can be null if the component is defined outside Lingua Franca.
+	 */
+	public var Component component
+	
 	/** The container instance, or null if Main. */
-	var ReactorInstance container
+	public var ReactorInstance container
 	
 	/** The Instance AST object from which this was created. */
 	public var Instance instanceStatement
@@ -37,7 +45,7 @@ class ReactorInstance {
 	/** Properties associated with this instance.
 	 *  This is used by particular code generators.
 	 */
-	public var HashMap<String,String> properties = new HashMap<String,String>()
+	public var HashMap<String,Object> properties = new HashMap<String,Object>()
 	
 	/////////////////////////////////////////////
 	
@@ -47,6 +55,14 @@ class ReactorInstance {
 	def addContainedInstance(ReactorInstance reactorInstance) {
 		// This assumes that the name is unique, something checked by the validator.
 		containedInstances.put(reactorInstance.instanceStatement.name, reactorInstance)
+	}
+	
+	/** Get a contained instance.
+	 *  @param instanceName The contained instance name.
+	 *  @return The contained instance, or null if there isn't one.
+	 */
+	def getContainedInstance(String name) {
+		return containedInstances.get(name)
 	}
 	
 	/** Return the full name of this instance, which has the form
@@ -61,5 +77,10 @@ class ReactorInstance {
 	 	} else {
 	 		instanceStatement.name
 	 	}
+	 }
+	 
+	 /** Return the name of this instance within its container. */
+	 def String getName() {
+	 	instanceStatement.name
 	 }
 }

@@ -1,0 +1,21 @@
+target C; 
+reactor Source(period:time(2 sec)) {
+	output y:int;
+	timer t(1 sec, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		(this->count)++;
+		set(y, this->count);
+	=}
+}
+reactor Destination {
+	input x:int;
+	reaction(x) {=
+		printf("%d\n", x);
+	=}
+}
+composite Main {
+	s = new Source();
+	d = new Destination();
+	s.y -> d.x;
+}

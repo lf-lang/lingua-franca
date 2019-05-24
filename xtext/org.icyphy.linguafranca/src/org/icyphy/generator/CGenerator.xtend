@@ -4,7 +4,9 @@
 package org.icyphy.generator
 
 import java.util.HashMap
+import java.util.HashSet
 import java.util.Hashtable
+import java.util.LinkedList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -35,6 +37,9 @@ class CGenerator extends GeneratorBase {
 	// Place to collect code to initialize the trigger objects for all reactors.
 	var initializeTriggerObjects = new StringBuilder()
 	
+	// List of deferred assignments to perform in initialize_trigger_objects.
+	var deferredInitialize = new LinkedList<InitiatlizeRemoteTriggersTable>();
+	
 	// Place to collect code to execute at the start of a time step.
 	var startTimeStep = new StringBuilder()
 	
@@ -64,6 +69,7 @@ class CGenerator extends GeneratorBase {
 		pr('void __initialize_trigger_objects() {\n')
 		indent()
 		pr(initializeTriggerObjects)
+		doDeferredInitialize()
 		unindent()
 		pr('}\n')
 		
@@ -309,27 +315,77 @@ class CGenerator extends GeneratorBase {
 				// Generate entries for the reaction_t struct that specify how
 				// to handle outputs.
 				var presentPredicates = new StringBuilder()
-				var predicateCount = 0
+				var triggeredSizesContents = new StringBuilder()
+				var triggersContents = new StringBuilder()
+				var outputCount = 0
 				if (reaction.produces !== null) {
 					for(output: reaction.produces.produces) {
 						if (getOutput(component, output) !== null) {
 							// It is an output, not an action.
+							// First create the array of pointers to booleans indicating whether
+							// an output is produced.
+							// Insert a comma if needed.
 							if (presentPredicates.length > 0) {
 								presentPredicates.append(", ")
 							}
 							presentPredicates.append('&' + nameOfThisStruct + '.__' + output + '_is_present')
-							predicateCount++
+							outputCount++
 							
-							// FIXME: For each output, need to figure out how many
-							// inputs are connected to it. If none, then omit.
-							// Create a array with ints indicating these
-							// numbers and assign it to triggered_reactions_sizes
-							// field of the reaction_t object.
-							// Then, for each output, create an empty array of
-							// the right size (number of destination reactions)
-							// and collect each of these arrays into the array
-							// that gets assigned to the triggered_reactions
-							// field of the reaction_t object.
+							// For each output, figure out how many
+							// inputs are connected to it. This is obtained via the container.
+							var container = reactorInstance.container
+							// If there is no container, then the output cannot be connected
+							// to anything, so default to empty set.
+							var inputNames = new HashSet<String>()
+							if (container !== null) {
+								var parentComponent = container.component
+								var parentProperties = componentToProperties.get(parentComponent)
+								var outputName = instance.getName() + "." + output
+								inputNames = parentProperties.outputNameToInputNames.get(outputName)
+							}
+							// Insert a comma if needed.
+							if (triggeredSizesContents.length > 0) {
+								triggeredSizesContents.append(", ")
+							}
+							if (inputNames === null) {
+								triggeredSizesContents.append("0")
+							} else {
+								triggeredSizesContents.append(inputNames.size)
+							}
+							// Then, for each input connected to this output,
+							// find its trigger_t struct. Create an array of pointers
+							// to these trigger_t structs, and collect pointers to
+							// each of these arrays.
+							// Insert a comma if needed.
+							if (triggersContents.length > 0) {
+								triggersContents.append(", ")
+							}
+							if (inputNames === null || inputNames.size === 0) {
+								triggersContents.append("NULL")
+							} else {
+								var inputTriggerStructPointers = new StringBuilder()
+								var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount + '_remote_triggers'
+								var inputCount = 0;
+								for (inputName: inputNames) {
+									// Insert a comma if needed.
+									if (inputTriggerStructPointers.length > 0) {
+										inputTriggerStructPointers.append(', ')
+									}
+									deferredInitialize.add(
+										new InitiatlizeRemoteTriggersTable(
+											container, remoteTriggersArrayName, (inputCount++), inputName
+										)
+									)
+								}
+								pr(result, 'trigger_t* '
+									+ remoteTriggersArrayName
+									+ '['
+									+ inputCount
+									+ '];'
+								)
+								triggersContents.append('&' + remoteTriggersArrayName)
+							}
+							
 							// Then, generate code to run in the __initialize_trigger_objects
 							// function that initializes each of these blank
 							// arrays with pointers to the reaction_t objects
@@ -337,23 +393,49 @@ class CGenerator extends GeneratorBase {
 						}
 					}
 				}
-				if (presentPredicates.length > 0) {
-					pr(result, 'bool* ' + reactionInstanceName 
-						+ '_outputs_are_present = {' 
+				var outputProducedArray = "NULL"
+				var triggeredSizesArray = "NULL"
+				var triggersArray = "NULL"
+				if (outputCount > 0) {
+					outputProducedArray = '&' + reactionInstanceName + '_outputs_are_present'
+					// Create a array with booleans indicating whether an output has been produced.
+					pr(result, 'bool* ' + reactionInstanceName
+						+ '_outputs_are_present' 
+						+ ' = {' 
 						+ presentPredicates.toString
 						+ '};'
 					)
-					pr(result, 'reaction_t** ' + reactionInstanceName
-						+ '_inputs_triggered['
-						+ predicateCount
-						+ '];')
+					// Create a array with ints indicating these
+					// numbers and assign it to triggered_reactions_sizes
+					// field of the reaction_t object.
+					triggeredSizesArray = '&(' + reactionInstanceName + '_triggered_sizes[0])'
+					pr(result, 'int ' + reactionInstanceName
+						+ '_triggered_sizes' 
+						+ '[] = {'
+						+ triggeredSizesContents
+						+ '};'
+					)
+					// Create an array with pointers to arrays of pointers to trigger_t
+					// structs for each input triggered by an output.
+					triggersArray = '&' + reactionInstanceName + '_triggers[0]'
+					pr(result, 'trigger_t** ' + reactionInstanceName + '_triggers'
+						+ '[] = {'
+						+ triggersContents
+						+ '[0]};'
+					)
 				}
 								
 				// FIXME: first 0 is an index that should come from the topological sort.
 				pr(result, "reaction_t " + reactionInstanceName 
 					+ " = {&" + functionName 
 					+ ", &" + nameOfThisStruct
-					+ ", 0, 0};"
+					+ ", 0"  // index: index from the topological sort.
+					+ ", 0"  // pos: position used by the pqueue implementation for sorting.
+					+ ", " + outputCount // num_outputs: number of outputs produced by this reaction.
+					+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
+					+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
+					+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
+					+ "};"
 				)
 				
 				// Position is a label to be written by the priority queue as a side effect of inserting.
@@ -489,11 +571,12 @@ class CGenerator extends GeneratorBase {
 		
 		// Generate trigger objects for the instance.
 		var triggerNameToTriggerStruct = generateTriggerObjects(reactorInstance, nameOfThisStruct)
+		reactorInstance.properties.put("triggerNameToTriggerStruct", triggerNameToTriggerStruct)
 				
 		// Next, initialize the struct with actions.
 		for(action: component.componentBody.actions) {
 			var triggerStruct = triggerNameToTriggerStruct.get(action.name)
-			if (triggerNameToTriggerStruct === null) {
+			if (triggerStruct === null) {
 				reportError(component, 
 					"Internal error: No trigger struct found for action "
 					+ action.name)
@@ -522,6 +605,83 @@ class CGenerator extends GeneratorBase {
 	////////////////////////////////////////////
 	//// Utility functions for generating code.
 	
+	/** Perform deferred initializations in initialize_trigger_objects. */
+	private def doDeferredInitialize() {
+		// First, populate the trigger tables for each output.
+		// The entries point to the trigger_t structs for the destination inputs.
+		for (init: deferredInitialize) {
+			// The reactor containing the specified input may be the
+			// composite or a reactor contained by the composite.
+			var reactor = init.composite
+			var port = init.inputName
+			var split = init.inputName.split('\\.')
+			if (split.length === 2) {
+				reactor = init.composite.getContainedInstance(split.get(0))
+				if (reactor === null) {
+					reportError(init.composite.component, "No reactor named: "
+						+ split.get(0)
+						+ " in container "
+						+ init.composite.getFullName()
+					)
+				}
+				port = split.get(1)
+			} else if (split.length !== 1) {
+				reportError(init.composite.component, "Invalid input specification: " + init.inputName)
+			}
+				
+			var triggerMap = reactor.properties.get("triggerNameToTriggerStruct")
+			if (triggerMap === null) {
+				reportError(init.composite.component,
+					"Internal error: failed to map from name to trigger struct for "
+					+ init.composite.getFullName()
+				)
+			} else {
+				var triggerStructName = (triggerMap as HashMap<String,String>).get(port)
+				if (triggerStructName === null) {
+					reportError(init.composite.component,
+						"Internal error: failed to find trigger struct for input "
+						+ port
+						+ " in reactor "
+						+ reactor.getFullName()
+					)
+				}
+				pr(init.remoteTriggersArrayName + '['
+					+ init.arrayIndex
+					+ '] = &'
+					+ triggerStructName
+					+ ';'
+				)
+			}
+		}
+		// Next, for every input port, populate its "this" struct
+		// fields with pointers to the output port that send it data.
+		// FIXME: This needs to be a recursive call starting with main.
+		// FIXME: What to do with dangling input ports that are not connected to anything?
+		for (outputReactor: main.containedInstances.values()) {
+			var outputProperties = componentToProperties.get(outputReactor.component)
+			var containerProperties = componentToProperties.get(outputReactor.container.component)
+			for (output: outputReactor.component.componentBody.outputs) {
+				var outputThisStructName = outputReactor.properties.get("thisStructName")
+				var inputNames = containerProperties.outputNameToInputNames.get(outputReactor.name + '.' + output.name)
+				print("FIXME: " + inputNames)
+				if (inputNames !== null) {
+					for(input: inputNames) {
+						var split = input.split('\\.')
+						// FIXME: Handle case where size is not 2.
+						var inputReactor = outputReactor.container.getContainedInstance(split.get(0))
+						var inputThisStructName = inputReactor.properties.get("thisStructName")
+						pr(inputThisStructName + '.__' + split.get(1) + ' = &'
+							+ outputThisStructName + '.__' + output.name + ';'
+						)
+						pr(inputThisStructName + '.__' + split.get(1) + '_is_present = &'
+							+ outputThisStructName + '.__' + output.name + '_is_present;'
+						)
+					}
+				}
+			}
+		}
+	}
+
 	// Extract a filename from a path.
 	private def extractFilename(String path) {
 		var result = path

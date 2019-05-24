@@ -38,7 +38,10 @@ class GeneratorBase {
 	var code = new StringBuilder
 	
 	// Map from builder to its current indentation.
-	var indentation = new HashMap<StringBuilder,String>();
+	var indentation = new HashMap<StringBuilder,String>()
+	
+	// The main (top-level) reactor instance.
+	protected ReactorInstance main 
 	
 	// Map from time units to an expression that can convert a number in
 	// the specified time unit into nanoseconds. This expression may need
@@ -215,11 +218,12 @@ class GeneratorBase {
 					properties.outputNameToInputNames.put(connection.leftPort, destinations)
 				}
 				destinations.add(connection.rightPort)
+				System.out.println("FIXME: Connection from " + connection.leftPort + " to " + connection.rightPort)
 			}
 			
 			if (component.componentBody.name.equalsIgnoreCase("main")) {
 				// Build the instance-specific structures.
-				var main = new ReactorInstance()
+				main = new ReactorInstance(component)
 				generateContainedInstances(component, main, importTable)
 			}
 		}
@@ -266,8 +270,8 @@ class GeneratorBase {
 		ReactorInstance container,
 		Hashtable<String,String> importTable
 	) {
-		var reactorInstance = new ReactorInstance(instance, container)
 		var component = getComponent(instance.reactorClass)
+		var reactorInstance = new ReactorInstance(component, instance, container)
 		// Component may be imported, i.e. not a Lingua Franca component,
 		// in which case, component === null.
 		// If the component is a composite, then create instances of
