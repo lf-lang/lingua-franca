@@ -218,7 +218,6 @@ class GeneratorBase {
 					properties.outputNameToInputNames.put(connection.leftPort, destinations)
 				}
 				destinations.add(connection.rightPort)
-				System.out.println("FIXME: Connection from " + connection.leftPort + " to " + connection.rightPort)
 			}
 			
 			if (component.componentBody.name.equalsIgnoreCase("main")) {

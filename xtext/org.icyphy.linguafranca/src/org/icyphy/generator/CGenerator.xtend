@@ -655,20 +655,27 @@ class CGenerator extends GeneratorBase {
 		}
 		// Next, for every input port, populate its "this" struct
 		// fields with pointers to the output port that send it data.
-		// FIXME: This needs to be a recursive call starting with main.
+		connectInputsToOutputs(main)
+	}
+	
+	// Generate assignments of pointers in the "this" struct of a destination
+	// port's reactor to the appropriate entries in the "this" struct of the
+	// source reactor.
+	private def void connectInputsToOutputs(ReactorInstance container) {
 		// FIXME: What to do with dangling input ports that are not connected to anything?
-		for (outputReactor: main.containedInstances.values()) {
-			var outputProperties = componentToProperties.get(outputReactor.component)
-			var containerProperties = componentToProperties.get(outputReactor.container.component)
-			for (output: outputReactor.component.componentBody.outputs) {
-				var outputThisStructName = outputReactor.properties.get("thisStructName")
-				var inputNames = containerProperties.outputNameToInputNames.get(outputReactor.name + '.' + output.name)
-				print("FIXME: " + inputNames)
+		for (containedReactor: container.containedInstances.values()) {
+			// In case this is a composite, handle its assignments.
+			connectInputsToOutputs(containedReactor)
+			var outputProperties = componentToProperties.get(containedReactor.component)
+			var containerProperties = componentToProperties.get(containedReactor.container.component)
+			for (output: containedReactor.component.componentBody.outputs) {
+				var outputThisStructName = containedReactor.properties.get("thisStructName")
+				var inputNames = containerProperties.outputNameToInputNames.get(containedReactor.name + '.' + output.name)
 				if (inputNames !== null) {
 					for(input: inputNames) {
 						var split = input.split('\\.')
-						// FIXME: Handle case where size is not 2.
-						var inputReactor = outputReactor.container.getContainedInstance(split.get(0))
+						// FIXME: Handle case where size is not 2 (communication across hierarchy).
+						var inputReactor = containedReactor.container.getContainedInstance(split.get(0))
 						var inputThisStructName = inputReactor.properties.get("thisStructName")
 						pr(inputThisStructName + '.__' + split.get(1) + ' = &'
 							+ outputThisStructName + '.__' + output.name + ';'
