@@ -1,4 +1,6 @@
 /* Class encoding properties of a reactor */
+// The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License.
+// See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
 import java.util.HashSet

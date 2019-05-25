@@ -1,6 +1,8 @@
 /*
  * Generator for Accessors, JavaScript code runnable in Node, CapeCode, and Ptolemy II.
  */
+// The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License.
+// See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
 import java.util.Hashtable
