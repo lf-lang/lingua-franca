@@ -10,7 +10,7 @@ instant_t current_time = 0LL;
 // The following should be in scope for reactors:
 // FIXME: This probably should not be a global, at least not for parallel execution.
 long long get_logical_time() {
-	return current_time;
+    return current_time;
 }
 
 // Priority queues.
@@ -24,45 +24,45 @@ struct timespec __physicalStartTime;
 
 // Compare two priorities.
 static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
-  return (next > curr);
+    return (next > curr);
 }
 // Compare two events.
 static int eql_evt(void* next, void* curr) {
-  return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
+    return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
 }
 // Compare two reactions.
 static int eql_rct(void* next, void* curr) {
-  return (next == curr);
+    return (next == curr);
 }
 // Get priorities based on time.
 // Used for sorting event_t structs.
 static pqueue_pri_t get_evt_pri(void *a) {
-  return (pqueue_pri_t)(((event_t*) a)->time);
+    return (pqueue_pri_t)(((event_t*) a)->time);
 }
 // Get priorities based on indices, which reflect topological sort.
 // Used for sorting reaction_t structs.
 static pqueue_pri_t get_rct_pri(void *a) {
-  return ((reaction_t*) a)->index;
+    return ((reaction_t*) a)->index;
 }
 
 // Get position in the queue of the specified event.
 static size_t get_evt_pos(void *a) {
-  return ((event_t*) a)->pos;
+    return ((event_t*) a)->pos;
 }
 
 // Get position in the queue of the specified event.
 static size_t get_rct_pos(void *a) {
-  return ((reaction_t*) a)->pos;
+    return ((reaction_t*) a)->pos;
 }
 
 // Set position of the specified event.
 static void set_evt_pos(void *a, size_t pos) {
-  ((event_t*) a)->pos = pos;
+    ((event_t*) a)->pos = pos;
 }
 
 // Set position of the specified event.
 static void set_rct_pos(void *a, size_t pos) {
-  ((reaction_t*) a)->pos = pos;
+    ((reaction_t*) a)->pos = pos;
 }
 
 // ********** Priority Queue Support End
@@ -88,7 +88,7 @@ handle_t __schedule(trigger_t* trigger, interval_t delay) {
 // Schedule the specified trigger at current_time plus the
 // offset declared in the trigger plus the extra_delay.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
-	return __schedule(trigger, trigger->offset + extra_delay);
+    return __schedule(trigger, trigger->offset + extra_delay);
 }
 
 
@@ -106,8 +106,8 @@ int wait_until(event_t* event) {
     clock_gettime(CLOCK_REALTIME, &current_physical_time);
     
     long long ns_to_wait = logical_time_ns
-    - (current_physical_time.tv_sec * BILLION
-    + current_physical_time.tv_nsec);
+            - (current_physical_time.tv_sec * BILLION
+            + current_physical_time.tv_nsec);
     
     if (ns_to_wait <= 0) {
         // Advance current time.
@@ -126,19 +126,19 @@ int wait_until(event_t* event) {
         // it may have been a control-C to stop the process.
         // Set current time to match physical time, but not less than
         // current logical time nor more than next time in the event queue.
-    	clock_gettime(CLOCK_REALTIME, &current_physical_time);
-    	long long current_physical_time_ns 
-    	= current_physical_time.tv_sec * BILLION
-    	+ current_physical_time.tv_nsec;
-    	if (current_physical_time_ns > current_time) {
-    if (current_physical_time_ns < event->time) {
-    	current_time = current_physical_time_ns;
-    	return -1;
-    }
-    	} else {
-    // Advance current time.
-    current_time = event->time;
-    // FIXME: Make sure that the microstep is dealt with correctly.
+        clock_gettime(CLOCK_REALTIME, &current_physical_time);
+        long long current_physical_time_ns 
+                = current_physical_time.tv_sec * BILLION
+                + current_physical_time.tv_nsec;
+        if (current_physical_time_ns > current_time) {
+            if (current_physical_time_ns < event->time) {
+                current_time = current_physical_time_ns;
+                return -1;
+            }
+        } else {
+            // Advance current time.
+            current_time = event->time;
+            // FIXME: Make sure that the microstep is dealt with correctly.
             return -1;
         }
     }
@@ -146,6 +146,7 @@ int wait_until(event_t* event) {
     current_time = event->time;
     return 0;
 }
+
 // Wait until physical time matches or exceeds the time of the least tag
 // on the event queue. If theres is no event in the queue, return 0.
 // After this wait, advance current_time to match
@@ -158,45 +159,45 @@ int wait_until(event_t* event) {
 // priority queue. All of those will also be executed in order of indices.
 // Finally, return 1.
 int next() {
-	event_t* event = pqueue_peek(event_q);
-	if (event == NULL) {
-	    // No event in the queue.
+    event_t* event = pqueue_peek(event_q);
+    if (event == NULL) {
+        // No event in the queue.
         return 0;
-	}
-	// Wait until physical time >= event.time
-	if (wait_until(event) < 0) {
+    }
+    // Wait until physical time >= event.time
+    if (wait_until(event) < 0) {
         // FIXME: sleep was interrupted. Handle that somehow here!
-	}
-	
-	// Invoke code that must execute before starting a new logical time round,
-	// such as initializing outputs to be absent.
-	__start_time_step();
-	
-  	// Pop all events from event_q with timestamp equal to current_time
-  	// stick them into reaction.
-  	do {
-  	 	event = pqueue_pop(event_q);
-  	 	for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-  	 	    // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
-  	 	    // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
-  	        pqueue_insert(reaction_q, event->trigger->reactions[i]);
-  	 	}
-  	 	if (event->trigger->period > 0) {
-  	        // Reschedule the trigger.
-  	        __schedule(event->trigger, event->trigger->period);
-  	 	}
- 	 	
-      // FIXME: Recycle this event instead of freeing it.
-      free(event);
+    }
+    
+    // Invoke code that must execute before starting a new logical time round,
+    // such as initializing outputs to be absent.
+    __start_time_step();
+    
+    // Pop all events from event_q with timestamp equal to current_time
+    // stick them into reaction.
+    do {
+        event = pqueue_pop(event_q);
+        for (int i = 0; i < event->trigger->number_of_reactions; i++) {
+            // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
+            // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
+            pqueue_insert(reaction_q, event->trigger->reactions[i]);
+        }
+        if (event->trigger->period > 0) {
+            // Reschedule the trigger.
+            __schedule(event->trigger, event->trigger->period);
+        }
+          
+        // FIXME: Recycle this event instead of freeing it.
+        free(event);
 
-      event = pqueue_peek(event_q);
-  	} while(event != NULL && event->time == current_time);
+         event = pqueue_peek(event_q);
+    } while(event != NULL && event->time == current_time);
 
-  	// Handle reactions.
-  	while(pqueue_size(reaction_q) > 0) {
+    // Handle reactions.
+    while(pqueue_size(reaction_q) > 0) {
         reaction_t* reaction = pqueue_pop(reaction_q);
         // printf("Popped from reaction_q: %p\n", reaction);
-    	// printf("Popped reaction function: %p\n", reaction->function);
+        // printf("Popped reaction function: %p\n", reaction->function);
         reaction->function(reaction->this);
 
         // If the reaction produced outputs, put the resulting triggered
@@ -213,34 +214,34 @@ int next() {
                 }
             }
         }
-  	}
-	return 1;
+    }
+    return 1;
 }
 
 void initialize() {
 #if _WIN32 || WIN32
-	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	if (ntdll) {
-	    NtDelayExecution = (NtDelayExecution_t *)GetProcAddress(ntdll, "NtDelayExecution");
-	    NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)GetProcAddress(ntdll, "NtQueryPerformanceCounter");
-	    NtQuerySystemTime = (NtQuerySystemTime_t *)GetProcAddress(ntdll, "NtQuerySystemTime");
-	}
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    if (ntdll) {
+        NtDelayExecution = (NtDelayExecution_t *)GetProcAddress(ntdll, "NtDelayExecution");
+        NtQueryPerformanceCounter = (NtQueryPerformanceCounter_t *)GetProcAddress(ntdll, "NtQueryPerformanceCounter");
+        NtQuerySystemTime = (NtQuerySystemTime_t *)GetProcAddress(ntdll, "NtQuerySystemTime");
+    }
 #endif
 
-  // Initialize our priority queues.
-	event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
-                       get_evt_pos, set_evt_pos, eql_evt);
-	reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, cmp_pri, get_rct_pri,
-                       get_rct_pos, set_rct_pos, eql_rct);
+    // Initialize our priority queues.
+    event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
+            get_evt_pos, set_evt_pos, eql_evt);
+    reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, cmp_pri, get_rct_pri,
+            get_rct_pos, set_rct_pos, eql_rct);
 
-	// Initialize logical time to match physical time.
-	clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
-	printf("Start execution at time %splus %ld nanoseconds.\n",
-	ctime(&__physicalStartTime.tv_sec), __physicalStartTime.tv_nsec);
-	current_time = __physicalStartTime.tv_sec * BILLION	+ __physicalStartTime.tv_nsec;
-	
-  // Initialize the trigger table.
-  __initialize_trigger_objects();
+    // Initialize logical time to match physical time.
+    clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
+    printf("Start execution at time %splus %ld nanoseconds.\n",
+    ctime(&__physicalStartTime.tv_sec), __physicalStartTime.tv_nsec);
+    current_time = __physicalStartTime.tv_sec * BILLION    + __physicalStartTime.tv_nsec;
+    
+    // Initialize the trigger table.
+    __initialize_trigger_objects();
 }
 
 // ********** Start Windows Support
@@ -296,9 +297,9 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
 // ********** End Windows Support
 
 int main(int argc, char* argv[]) {
-	initialize();
-	__start_timers();
-	// FIXME: Need stopping conditions.
-	while (next() != 0);
-	return 0;
+    initialize();
+    __start_timers();
+    // FIXME: Need stopping conditions.
+    while (next() != 0);
+    return 0;
 }
