@@ -36,13 +36,15 @@ class AccessorGenerator extends GeneratorBase {
 	// Text of generated code to add input handlers.
 	var addInputHandlers = new StringBuffer()
 		
-	def void doGenerate(
+	override void doGenerate(
 			Resource resource, 
 			IFileSystemAccess2 fsa, 
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
 		
 		// Handle reactors and composites.
+		// FIXME: This is not following the convention of a single top-level named Main.
+		// FIXME: Call super.doGenerate()
 		for (component : resource.allContents.toIterable.filter(Component)) {
 			clearCode()
 			generateComponent(component, importTable)

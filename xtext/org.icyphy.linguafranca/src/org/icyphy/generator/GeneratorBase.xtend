@@ -13,6 +13,9 @@ import java.util.Hashtable
 import java.util.LinkedHashMap
 import java.util.LinkedList
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.generator.IFileSystemAccess2
+import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Composite
@@ -66,6 +69,40 @@ class GeneratorBase {
 	
 	////////////////////////////////////////////
 	//// Code generation functions to override for a concrete code generator.
+	
+	/** Generate code from the Lingua Franca model contained by the
+	 *  specified resource. This is the main entry point for code
+	 *  generation. This base class invokes generateComponent()
+	 *  for each contained component.
+	 *  @param resource The resource containing the source code.
+	 *  @param fsa The file system access (used to write the result).
+	 *  @param context FIXME
+	 *  @param importTable The mapping given by import statements.
+	 */
+	def void doGenerate(
+			Resource resource, 
+			IFileSystemAccess2 fsa, 
+			IGeneratorContext context,
+			Hashtable<String,String> importTable) {
+		// Generate reactors and composites.
+		main = null
+		for (component : resource.allContents.toIterable.filter(Component)) {
+			generateComponent(component, importTable)
+			if (component.componentBody.name.equalsIgnoreCase("main")) {
+				main = new ReactorInstance(component)
+			}
+		}
+		if (main !== null) {
+			// Instantiate the "main" component.
+			var mainInstance = LinguaFrancaFactory.eINSTANCE.createInstance()
+			mainInstance.setName(main.component.componentBody.name)
+			mainInstance.setReactorClass(main.component.componentBody.name)
+			main.instanceStatement = mainInstance
+			// FIXME: Should use mainInstance.setParameters() to set parameter
+			// values from the command line.
+			instantiate(mainInstance, null, importTable)
+		}
+	}
 	
 	/** Collect data in a reactor or composite definition.
 	 *  Subclasses should override this and be sure to call
@@ -221,12 +258,6 @@ class GeneratorBase {
 				}
 				destinations.add(connection.rightPort)
 			}
-			
-			if (component.componentBody.name.equalsIgnoreCase("main")) {
-				// Build the instance-specific structures.
-				main = new ReactorInstance(component)
-				generateContainedInstances(component, main, importTable)
-			}
 		}
 	}
 	
@@ -272,7 +303,12 @@ class GeneratorBase {
 		Hashtable<String,String> importTable
 	) {
 		var component = getComponent(instance.reactorClass)
-		var reactorInstance = new ReactorInstance(component, instance, container)
+		// If there is no container, then the reactorInstance is main.
+		// Otherwise, create a new one.
+		var reactorInstance = main
+		if (container !== null) {
+			reactorInstance = new ReactorInstance(component, instance, container)
+		}
 		// Component may be imported, i.e. not a Lingua Franca component,
 		// in which case, component === null.
 		// If the component is a composite, then create instances of

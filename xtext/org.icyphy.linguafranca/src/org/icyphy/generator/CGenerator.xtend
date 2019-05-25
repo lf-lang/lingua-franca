@@ -50,7 +50,15 @@ class CGenerator extends GeneratorBase {
 			
 	var Resource _resource;
 	
-	def void doGenerate(
+	/** Generate C code from the Lingua Franca model contained by the
+	 *  specified resource. This is the main entry point for code
+	 *  generation.
+	 *  @param resource The resource containing the source code.
+	 *  @param fsa The file system access (used to write the result).
+	 *  @param context FIXME
+	 *  @param importTable The mapping given by import statements.
+	 */
+	override void doGenerate(
 			Resource resource, 
 			IFileSystemAccess2 fsa, 
 			IGeneratorContext context,
@@ -61,11 +69,8 @@ class CGenerator extends GeneratorBase {
 		var filename = extractFilename(_resource.getURI.toString)
 		
 		pr(includes)
-			
-		// Handle reactors and composites.
-		for (component : resource.allContents.toIterable.filter(Component)) {
-			generateComponent(component, importTable)
-		}
+		
+		super.doGenerate(resource, fsa, context, importTable)
 		
 		// Generate function to initialize the trigger objects for all reactors.
 		pr('void __initialize_trigger_objects() {\n')
@@ -120,7 +125,6 @@ class CGenerator extends GeneratorBase {
 		// into the preamble of any reaction function to extract the
 		// parameters from the struct.
 		val argType = "reactor_instance_" + (reactorClassCount++) + "_this_t"
-		properties.targetProperties.put("structType", argType)
 			
 		// Construct the typedef for the "this" struct.
 		// NOTE: The struct cannot be empty in C; should we make a dummy field or suppress the struct?
@@ -172,6 +176,7 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		if (body.length > 0) {
+			properties.targetProperties.put("structType", argType)
 			pr("typedef struct {")
 			indent()
 			pr(body)
@@ -184,6 +189,7 @@ class CGenerator extends GeneratorBase {
 		reactionCount = savedReactionCount;
 		generateReactions(component)	
 		pr("// =============== END reactor class " + component.componentBody.name)
+		pr("")
 	}
 
 	/** Generate reaction functions definition for a reactor or a composite.
@@ -289,6 +295,7 @@ class CGenerator extends GeneratorBase {
 	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfThisStruct) {
 		var triggerNameToTriggerStruct = new HashMap<String,String>()
 		var instance = reactorInstance.instanceStatement
+		// If there is no instance statement, then this is main.
 		var component = getComponent(instance.reactorClass)
 		var properties = componentToProperties.get(component)
 		if (component === null) {
@@ -514,11 +521,13 @@ class CGenerator extends GeneratorBase {
 				
 		// Generate the instance struct containing parameters and state variables.
 		// (the "this" struct).
-		pr('// --- "this" struct for instance ' + instance.name)
 		var properties = componentToProperties.get(component)
 		var nameOfThisStruct = "__this_" + instanceCount + "_" + instance.name
 		var structType = properties.targetProperties.get("structType")
-		pr(structType + " " + nameOfThisStruct + ";")
+		if (structType !== null) {
+			pr('// --- "this" struct for instance ' + instance.name)
+			pr(structType + " " + nameOfThisStruct + ";")
+		}
 		
 		// Generate code to initialize the "this" struct in the
 		// __initialize_trigger_objects function.
@@ -676,15 +685,21 @@ class CGenerator extends GeneratorBase {
 				if (inputNames !== null) {
 					for(input: inputNames) {
 						var split = input.split('\\.')
-						// FIXME: Handle case where size is not 2 (communication across hierarchy).
-						var inputReactor = containedReactor.container.getContainedInstance(split.get(0))
-						var inputThisStructName = inputReactor.properties.get("thisStructName")
-						pr(inputThisStructName + '.__' + split.get(1) + ' = &'
-							+ outputThisStructName + '.__' + output.name + ';'
-						)
-						pr(inputThisStructName + '.__' + split.get(1) + '_is_present = &'
-							+ outputThisStructName + '.__' + output.name + '_is_present;'
-						)
+						if (split.length === 2) {
+							var inputReactor = containedReactor.container.getContainedInstance(split.get(0))
+							var inputThisStructName = inputReactor.properties.get("thisStructName")
+							pr(inputThisStructName + '.__' + split.get(1) + ' = &'
+								+ outputThisStructName + '.__' + output.name + ';'
+							)
+							pr(inputThisStructName + '.__' + split.get(1) + '_is_present = &'
+								+ outputThisStructName + '.__' + output.name + '_is_present;'
+							)
+						} else {
+							// FIXME: Handle case where size is not 2 (communication across hierarchy).
+							reportError(container.component,
+								"FIXME: Communication across hierarchy is not yet supported"
+							)
+						}
 					}
 				}
 			}

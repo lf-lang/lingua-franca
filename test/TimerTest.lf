@@ -21,7 +21,7 @@ reactor Source1 {
 }
 reactor Source2(period:int(1000)) {
 	output out:int;
-	timer t(0, period ms);
+	timer t(0, period);
 	reaction(t) -> out {=
 		set(out, 2);
 		console.log("Output with value 2 at time FIXME.")
@@ -68,4 +68,3 @@ composite TimerTest {
 	source2.out -> add.in2;
 	add.out -> test.x;
 }
-
