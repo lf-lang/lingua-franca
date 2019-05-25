@@ -31,8 +31,9 @@ Composite:
 	(modifiers += COMPOSITE_MODIFIER)*
    	'composite'
    	componentBody=ComponentBody
-   	(instances += Instance)*
-   	(connections += Connection)*
+   	((instances += Instance)
+   	| (connections += Connection)
+   	| (deadlines += Deadline))*
    	'}';
 // The following enforces the order of definitions:
 // inputs, outputs, timers and actions, preamble, reactions.
@@ -83,6 +84,9 @@ Instance:
 
 Connection:
     leftPort=Port '->' rightPort=Port ';';
+    
+Deadline:
+	'deadline' '(' port=Port ',' delay=Time ',' action=ValidID ')' ';';
     
 ValidID:
 	ID | KEYWORD;
