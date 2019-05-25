@@ -1,6 +1,6 @@
-The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License:
+The Lingua-Franca toolkit is licensed under the BSD 2-Clause License:
 
-Copyright (c) 2019, Industrial Cyberphysical Systems (iCyPhy) All rights reserved.
+Copyright (c) 2019, Industrial Cyberphysical Systems (iCyPhy). All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, 
 are permitted provided that the following conditions are met:
