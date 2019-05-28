@@ -23,22 +23,23 @@
  *  @author Edward A. Lee
  */
 target Accessor;
+
 reactor Source(period:int(1000)) {
-	output y:int;
-	timer t(0, period);
 	preamble {=
 		var n = 0;
 	=}
+	output y:int;
+	timer t(0, period);
 	reaction(t) -> y {=
 		n = n + 1;
 		set(y, n);
 	=}
 }
 reactor Test(expected:JSON({= [] =})) {
-	input x:int;
 	preamble {=
 		var i = 0;
 	=}
+	input x:int;
 	reaction(x) {=
 		console.log('Test received: ' + x);
         if (expected[i] != x) {
@@ -50,7 +51,7 @@ reactor Test(expected:JSON({= [] =})) {
         }
 	=} 
 }
-composite SimpleTest {
+reactor SimpleTest {
 	a = new Source(period = 1000);
 	b = new Test(expected = {= [1, 2, 3, 4] =});
 	a.y -> b.x;

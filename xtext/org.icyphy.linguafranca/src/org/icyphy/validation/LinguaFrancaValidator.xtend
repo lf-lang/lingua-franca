@@ -7,7 +7,6 @@ import org.eclipse.xtext.validation.Check
 import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Assignment
-import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
@@ -15,6 +14,7 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Produces
 import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
@@ -43,7 +43,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	// FAST ensures that these checks run whenever a file is modified.
 	// Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
 	@Check(FAST)
-	def resetSets(Component component) {
+	def resetSets(Reactor reactor) {
 		parameters.clear()
 		inputs.clear()
 		outputs.clear()

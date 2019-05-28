@@ -1,4 +1,4 @@
-target C; 
+target C;
 reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	state count:int(0);
 	timer t(1 secs, period);
@@ -17,10 +17,10 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 		printf("***** action %d at time %lld\n", self->count, get_logical_time());
 	=}
 }
-composite Inside(period:time(1 sec), message:{=char*=}("Composite default message.")) {
+reactor Inside(period:time(1 sec), message:{=char*=}("Composite default message.")) {
 	third_instance = new HelloC(period = period, message = message);
 }
-composite Main {
+reactor Main {
 	first_instance = new HelloC(period = 4 sec, message = "Hello from first_instance.");
 	second_instance = new HelloC(message = "Hello from second_instance.");
 	composite_instance = new Inside(message = "Hello from composite_instance.");

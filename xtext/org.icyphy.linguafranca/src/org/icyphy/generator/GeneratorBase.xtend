@@ -17,12 +17,11 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Component
-import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
 
 /**
@@ -32,12 +31,11 @@ import org.icyphy.linguaFranca.Time
  */
 class GeneratorBase {
 	
-	// Map from component (reactor or composite) to properties of the component.
-	protected var componentToProperties = new HashMap<Component,ComponentProperties>()
+	// Map from a reactor to properties of the reactor.
+	protected var reactorToProperties = new HashMap<Reactor,ReactorProperties>()
 	
-	// Map from reactor or composite class name to the
-	// component defining that class.
-	var classToComponent = new LinkedHashMap<String,Component>()
+	// Map from reactor name to the AST reactor defining that class.
+	var classToReactor = new LinkedHashMap<String,Reactor>()
 
 	// All code goes into this string buffer.
 	var code = new StringBuilder
@@ -72,8 +70,8 @@ class GeneratorBase {
 	
 	/** Generate code from the Lingua Franca model contained by the
 	 *  specified resource. This is the main entry point for code
-	 *  generation. This base class invokes generateComponent()
-	 *  for each contained component.
+	 *  generation. This base class invokes generateReactor()
+	 *  for each contained reactor.
 	 *  @param resource The resource containing the source code.
 	 *  @param fsa The file system access (used to write the result).
 	 *  @param context FIXME
@@ -86,17 +84,17 @@ class GeneratorBase {
 			Hashtable<String,String> importTable) {
 		// Generate reactors and composites.
 		main = null
-		for (component : resource.allContents.toIterable.filter(Component)) {
-			generateComponent(component, importTable)
-			if (component.componentBody.name.equalsIgnoreCase("main")) {
-				main = new ReactorInstance(component)
+		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+			generateReactor(reactor, importTable)
+			if (reactor.name.equalsIgnoreCase("main")) {
+				main = new ReactorInstance(reactor)
 			}
 		}
 		if (main !== null) {
-			// Instantiate the "main" component.
+			// Instantiate the "main" reactor.
 			var mainInstance = LinguaFrancaFactory.eINSTANCE.createInstance()
-			mainInstance.setName(main.component.componentBody.name)
-			mainInstance.setReactorClass(main.component.componentBody.name)
+			mainInstance.setName(main.reactor.name)
+			mainInstance.setReactorClass(main.reactor.name)
 			main.instanceStatement = mainInstance
 			// FIXME: Should use mainInstance.setParameters() to set parameter
 			// values from the command line.
@@ -106,40 +104,40 @@ class GeneratorBase {
 	
 	/** Collect data in a reactor or composite definition.
 	 *  Subclasses should override this and be sure to call
-	 *  super.generateComponent(component, importTable).
-	 *  @param component The parsed component data structure.
+	 *  super.generateReactor(reactor, importTable).
+	 *  @param reactor The parsed reactor AST data structure.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
-	def void generateComponent(Component component, Hashtable<String,String> importTable) {
+	def void generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
 				
 		// Reset indentation, in case it has gotten messed up.
 		indentation.put(code, "")
 		
-		classToComponent.put(component.componentBody.name, component)
+		classToReactor.put(reactor.name, reactor)
 		
-		// Create the object for storing component properties.
-		var properties = new ComponentProperties()
-		componentToProperties.put(component, properties)
+		// Create the object for storing reactor properties.
+		var properties = new ReactorProperties()
+		reactorToProperties.put(reactor, properties)
 
 		// Record parameters.
-		if (component.componentBody.parameters !== null) {
-			for (param : component.componentBody.parameters.params) {
+		if (reactor.parameters !== null) {
+			for (param : reactor.parameters.params) {
 				properties.nameToParam.put(param.name, param)
 			}
 		}
 		
 		// Record inputs.
-		for (input: component.componentBody.inputs) {
+		for (input: reactor.inputs) {
 			properties.nameToInput.put(input.name, input)
 		}
 		
 		// Record outputs.
-		for (output: component.componentBody.outputs) {
+		for (output: reactor.outputs) {
 			properties.nameToOutput.put(output.name, output)
 		}
 		
 		// Record actions.
-		for (action: component.componentBody.actions) {
+		for (action: reactor.actions) {
 			if (action.getDelay() === null) {
 				action.setDelay("0")
 			}
@@ -147,7 +145,7 @@ class GeneratorBase {
 		}
 		
 		// Record timers.
-		for (timer: component.componentBody.timers) {
+		for (timer: reactor.timers) {
 			properties.nameToTimer.put(timer.name, timer)
 			var timing = timer.timing
 			// Make sure every timing object has both an offset
@@ -166,14 +164,14 @@ class GeneratorBase {
 		}
 		
 		// Record the reactions triggered by each trigger.
-		for (reaction: component.componentBody.reactions) {
+		for (reaction: reactor.reactions) {
 			// Iterate over the reaction's triggers
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
 					// Check validity of the trigger.
 					if (properties.nameToInput.get(trigger) === null
-							&& getTiming(component, trigger) === null
-							&& getAction(component, trigger) === null) {
+							&& getTiming(reactor, trigger) === null
+							&& getAction(reactor, trigger) === null) {
                         reportError(reaction,
                         		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
                     }
@@ -186,99 +184,97 @@ class GeneratorBase {
 				}	
 			}
 		}
-		if (component instanceof Composite) {
-			// Record contained instances.
-			for (instance: component.instances) {
-				properties.nameToInstance.put(instance.name, instance)
-			}
-			// Record (and check) connections.
-			for (connection: component.connections) {
-				var split = connection.leftPort.split('\\.')
-				if (split.length === 1) {
-					// It is a local input port.
-					if (getInput(component, connection.leftPort) === null) {
-						reportError(connection,
-								"Left side is not an input port of this composite: " + connection.leftPort)
-					}
-				} else if (split.length === 2) {
-					// Form is reactorName.portName.
-					var instance = properties.nameToInstance.get(split.get(0))
-					if(instance === null) {
-						reportError(connection,
-								"No such instance: " + split.get(0))
-					} else {
-						var contained = getComponent(instance.reactorClass)
-						// Contained object may be imported, i.e. not a Lingua Franca object.
-						// Cannot check here.
-						if (contained !== null) {
-							var props = componentToProperties.get(contained)
-							if(props.nameToOutput.get(split.get(1)) === null) {
-								reportError(connection,
-										"No such output port: " + connection.leftPort)
-							}
+		// Record contained instances.
+		for (instance: reactor.instances) {
+			properties.nameToInstance.put(instance.name, instance)
+		}
+		// Record (and check) connections.
+		for (connection: reactor.connections) {
+			var split = connection.leftPort.split('\\.')
+			if (split.length === 1) {
+				// It is a local input port.
+				if (getInput(reactor, connection.leftPort) === null) {
+					reportError(connection,
+							"Left side is not an input port of this composite: " + connection.leftPort)
+				}
+			} else if (split.length === 2) {
+				// Form is reactorName.portName.
+				var instance = properties.nameToInstance.get(split.get(0))
+				if(instance === null) {
+					reportError(connection,
+							"No such instance: " + split.get(0))
+				} else {
+					var contained = getReactor(instance.reactorClass)
+					// Contained object may be imported, i.e. not a Lingua Franca object.
+					// Cannot check here.
+					if (contained !== null) {
+						var props = reactorToProperties.get(contained)
+						if(props.nameToOutput.get(split.get(1)) === null) {
+							reportError(connection,
+									"No such output port: " + connection.leftPort)
 						}
 					}
-				} else {
-					reportError(connection, "Invalid port specification: " + connection.leftPort)
 				}
-				// Check the right port.
-				split = connection.rightPort.split('\\.')
-				if (split.length === 1) {
-					// It is a local input port.
-					if (getOutput(component, connection.rightPort) === null) {
-						reportError(connection,
-								"Right side is not an output port of this composite: " + connection.rightPort)
-					}
-				} else if (split.length === 2) {
-					// Form is reactorName.portName.
-					var instance = properties.nameToInstance.get(split.get(0))
-					if(instance === null) {
-						reportError(connection,
-								"No such instance: " + split.get(0))
-					} else {
-						var contained = getComponent(instance.reactorClass)
-						// Contained object may be imported, i.e. not a Lingua Franca object.
-						// Cannot check here.
-						if (contained !== null) {
-							var props = componentToProperties.get(contained)
-							if(props.nameToInput.get(split.get(1)) === null) {
-								reportError(connection,
-										"No such input port: " + connection.rightPort)
-							}
+			} else {
+				reportError(connection, "Invalid port specification: " + connection.leftPort)
+			}
+			// Check the right port.
+			split = connection.rightPort.split('\\.')
+			if (split.length === 1) {
+				// It is a local input port.
+				if (getOutput(reactor, connection.rightPort) === null) {
+					reportError(connection,
+							"Right side is not an output port of this reactor: " + connection.rightPort)
+				}
+			} else if (split.length === 2) {
+				// Form is reactorName.portName.
+				var instance = properties.nameToInstance.get(split.get(0))
+				if(instance === null) {
+					reportError(connection,
+							"No such instance: " + split.get(0))
+				} else {
+					var contained = getReactor(instance.reactorClass)
+					// Contained object may be imported, i.e. not a Lingua Franca object.
+					// Cannot check here.
+					if (contained !== null) {
+						var props = reactorToProperties.get(contained)
+						if(props.nameToInput.get(split.get(1)) === null) {
+							reportError(connection,
+									"No such input port: " + connection.rightPort)
 						}
 					}
-				} else {
-					reportError(connection, "Invalid port specification: " + connection.rightPort)
 				}
-				// Record the source-destination pair.
-				var destinations = properties.outputNameToInputNames.get(connection.leftPort)
-				if (destinations === null) {
-					destinations = new HashSet<String>()
-					properties.outputNameToInputNames.put(connection.leftPort, destinations)
-				}
-				destinations.add(connection.rightPort)
+			} else {
+				reportError(connection, "Invalid port specification: " + connection.rightPort)
 			}
+			// Record the source-destination pair.
+			var destinations = properties.outputNameToInputNames.get(connection.leftPort)
+			if (destinations === null) {
+				destinations = new HashSet<String>()
+				properties.outputNameToInputNames.put(connection.leftPort, destinations)
+			}
+			destinations.add(connection.rightPort)
 		}
 	}
 	
-	/** For the given composite, create instances of each component (reactor or composite)
+	/** For the given reactor, create instances of each reactor
 	 *  that it contains.
-	 *  @param component The composite.
+	 *  @param reactor The reactor.
 	 *  @param container The instance that is the container.
 	 *  @param importTable The table of imports.
 	 */
 	def void generateContainedInstances(
-		Composite component,
+		Reactor reactor,
 		ReactorInstance container,
 		Hashtable<String,String> importTable
 	) {
 		// Generated instances
-		for (instance: component.instances) {
+		for (instance: reactor.instances) {
 			var contained = instantiate(instance, container, importTable)
 			container.addContainedInstance(contained)
 		}
 		// Handle connections
-		for (connection: component.connections) {
+		for (connection: reactor.connections) {
 			connect(connection)
 		}
 	}
@@ -302,20 +298,18 @@ class GeneratorBase {
 		ReactorInstance container,
 		Hashtable<String,String> importTable
 	) {
-		var component = getComponent(instance.reactorClass)
+		var reactor = getReactor(instance.reactorClass)
 		// If there is no container, then the reactorInstance is main.
 		// Otherwise, create a new one.
 		var reactorInstance = main
 		if (container !== null) {
-			reactorInstance = new ReactorInstance(component, instance, container)
+			reactorInstance = new ReactorInstance(reactor, instance, container)
 		}
-		// Component may be imported, i.e. not a Lingua Franca component,
-		// in which case, component === null.
-		// If the component is a composite, then create instances of
+		// Reactor may be imported, i.e. not a Lingua Franca reactor,
+		// in which case, reactor === null.
+		// In case the reactor is a composite, create instances of
 		// whatever it instantiates.
-		if (component instanceof Composite) {
-			generateContainedInstances(component, reactorInstance, importTable)
-		}
+		generateContainedInstances(reactor, reactorInstance, importTable)
 		reactorInstance
 	}
 	
@@ -329,12 +323,12 @@ class GeneratorBase {
 	}
 	
 	/** Return the Action with the given name.
-	 *  @param component The Component.
+	 *  @param reactor The Reactor.
 	 *  @param name The name of the desired action.
 	 *  @return The action, or null if there isn't one.
 	 */
-	protected def getAction(Component component, String name) {
-		var properties = componentToProperties.get(component)
+	protected def getAction(Reactor reactor, String name) {
+		var properties = reactorToProperties.get(reactor)
 		properties.nameToAction.get(name)
 	}
 	
@@ -345,99 +339,99 @@ class GeneratorBase {
 		code.toString()
 	}
 	
-	/** Get the component defining a reactor or composite that has
+	/** Get the AST element defining a reactor that has
 	 *  the specified class name, or null if there is none.
-	 *  @param className The component class name.
-	 *  @return The component, or null if there isn't one matching the name.
+	 *  @param className The reactor class name.
+	 *  @return The reactor, or null if there isn't one matching the name.
 	 */
-	protected def getComponent(String className) {
-		classToComponent.get(className)
+	protected def getReactor(String className) {
+		classToReactor.get(className)
 	}
 	
 	/** Return the Input with the given name.
-	 *  @param component The Component.
+	 *  @param reactor The Reactor.
 	 *  @param name The name of the desired input.
 	 *  @return The input, or null if there isn't one.
 	 */
-	protected def getInput(Component component, String name) {
-		var properties = componentToProperties.get(component)
+	protected def getInput(Reactor reactor, String name) {
+		var properties = reactorToProperties.get(reactor)
 		properties.nameToInput.get(name)
 	}
 	
 	/** Return the Output with the given name.
-	 *  @param component The Component.
+	 *  @param reactor The Reactor.
 	 *  @param name The name of the desired output.
 	 *  @return The output, or null if there isn't one.
 	 */
-	protected def getOutput(Component component, String name) {
-		var properties = componentToProperties.get(component)
+	protected def getOutput(Reactor reactor, String name) {
+		var properties = reactorToProperties.get(reactor)
 		properties.nameToOutput.get(name)
 	}
 	
 	/** Return the parameter with the given name.
-	 *  @param component The Component.
+	 *  @param reactor The Reactor.
 	 *  @param name The name of the desired parameter.
 	 *  @return The parameter, or null if there isn't one.
 	 */
-	protected def getParameter(Component component, String name) {
-		var properties = componentToProperties.get(component)
+	protected def getParameter(Reactor reactor, String name) {
+		var properties = reactorToProperties.get(reactor)
 		properties.nameToParam.get(name)
 	}
 	
-	/** Return the parameters defined for the specified component.
-	 *  @param component The component.
-	 *  @return The parameters for the component.
+	/** Return the parameters defined for the specified reactor.
+	 *  @param reactor The reactor.
+	 *  @return The parameters for the reactor.
 	 */
-	protected def getParameters(Component component) {
-		var properties = componentToProperties.get(component)
+	protected def getParameters(Reactor reactor) {
+		var properties = reactorToProperties.get(reactor)
 		properties.nameToParam.values()
 	}
 
 	/** Get the list of reactions triggered by the specified trigger
-	 *  for the specified component.
-	 *  @param component The component.
+	 *  for the specified reactor.
+	 *  @param reactor The reactor.
 	 *  @param name The name of the trigger (input, action, or timer).
 	 *  @return A list of Reaction objects or null if there are none.
 	 */
-	protected def getReactions(Component component, String name) {
-		var properties = componentToProperties.get(component)
+	protected def getReactions(Reactor reactor, String name) {
+		var properties = reactorToProperties.get(reactor)
 		properties.triggerNameToReactions.get(name)
 	}
 
 	/** Return a set of timer names for a reactor class.
 	 */
-	protected def getTimerNames(Component component) {
-		var properties = componentToProperties.get(component)
+	protected def getTimerNames(Reactor reactor) {
+		var properties = reactorToProperties.get(reactor)
 		properties.nameToTimer.keySet()
 	}
 	
-	/** Get the timer with the specified name in the specified component.
-	 *  @param component The component.
+	/** Get the timer with the specified name in the specified reactor.
+	 *  @param reactor The reactor.
 	 *  @param name The name of the timer.
 	 *  @return A Timer object or null if there is no timer with the specified name.
 	 */
-	protected def getTimer(Component component, String name) {
-		var properties = componentToProperties.get(component)
+	protected def getTimer(Reactor reactor, String name) {
+		var properties = reactorToProperties.get(reactor)
 		properties.nameToTimer.get(name)
 	}
 	
-	/** Get the timing of the timer with the specified name in the specified component.
-	 *  @param component The component.
+	/** Get the timing of the timer with the specified name in the specified reactor.
+	 *  @param reactor The reactor.
 	 *  @param name The name of the timer.
 	 *  @return A Timing object or null if there is no timer with the specified name.
 	 */
-	protected def getTiming(Component component, String name) {
-		var properties = componentToProperties.get(component)
+	protected def getTiming(Reactor reactor, String name) {
+		var properties = reactorToProperties.get(reactor)
 		properties.nameToTiming.get(name)
 	}
 	
 	/** Get the map from triggers to the list of reactions
-	 *  triggered by the trigger for the specified component.
-	 *  @param component The component.
+	 *  triggered by the trigger for the specified reactor.
+	 *  @param reactor The reactor.
 	 *  @return A map from triggers to the list of reactions triggered.
 	 */
-	protected def getTriggerToReactions(Component component) {
-		var properties = componentToProperties.get(component)
+	protected def getTriggerToReactions(Reactor reactor) {
+		var properties = reactorToProperties.get(reactor)
 		properties.triggerNameToReactions
 	}
 	

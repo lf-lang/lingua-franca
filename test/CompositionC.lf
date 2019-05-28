@@ -14,7 +14,7 @@ reactor Destination {
 		printf("%d\n", x);
 	=}
 }
-composite Main {
+reactor Main {
 	s = new Source();
 	d = new Destination();
 	s.y -> d.x;
