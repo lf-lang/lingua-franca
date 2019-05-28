@@ -96,7 +96,7 @@ typedef struct trigger_t trigger_t;
 typedef struct reaction_t reaction_t;
 struct reaction_t {
   reaction_function_t function;
-  void* this;    // Pointer to a struct with the reactor's state.
+  void* self;    // Pointer to a struct with the reactor's state.
   index_t index; // Index determined by topological sort.
   size_t pos;    // Current position in the priority queue.
   int num_outputs;  // Number of outputs that may possibly be produced by this function.
@@ -126,7 +126,7 @@ typedef struct event_t {
  * Function to get the current logical time.
  * @return a time instant
  */
-instant_t get_logical_time(); // FIXME: this should not be global
+instant_t get_logical_time();
 
 /** 
  * Generated function that resets outputs to be absent at the
@@ -152,6 +152,10 @@ handle_t __schedule(trigger_t* trigger, interval_t delay);
  * Function (to be code generated) to start timers.
  */
 void __start_timers();
+
+/** Global constants. */
+bool False;
+bool True;
 
 /**
  * External version of schedule, callable from within reactors.

@@ -4,6 +4,10 @@
 
 #include "reactor.h"
 
+/** Global constants. */
+bool False = false;
+bool True = true;
+
 // This is not in scope for reactors.
 instant_t current_time = 0LL;
 
@@ -198,7 +202,7 @@ int next() {
         reaction_t* reaction = pqueue_pop(reaction_q);
         // printf("Popped from reaction_q: %p\n", reaction);
         // printf("Popped reaction function: %p\n", reaction->function);
-        reaction->function(reaction->this);
+        reaction->function(reaction->self);
 
         // If the reaction produced outputs, put the resulting triggered
         // reactions into the queue.

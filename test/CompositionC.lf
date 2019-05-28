@@ -1,11 +1,11 @@
-target C; 
+target C;
 reactor Source(period:time(2 sec)) {
 	output y:int;
 	timer t(1 sec, period);
 	state count:int(0);
 	reaction(t) -> y {=
-		(this->count)++;
-		set(y, this->count);
+		(self->count)++;
+		set(y, self->count);
 	=}
 }
 reactor Destination {
