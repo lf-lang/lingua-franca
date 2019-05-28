@@ -14,7 +14,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Component
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -100,26 +100,26 @@ class CGenerator extends GeneratorBase {
 	////////////////////////////////////////////
 	//// Code generators.
 	
-	/** Generate a reactor or composite class definition.
-	 *  @param component The parsed component data structure.
+	/** Generate a reactor class definition.
+	 *  @param reactor The parsed reactor data structure.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	override generateComponent(Component component, Hashtable<String,String> importTable) {
-		super.generateComponent(component, importTable)
+	override generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
+		super.generateReactor(reactor, importTable)
 		
-		pr("// =============== START reactor class " + component.componentBody.name)
+		pr("// =============== START reactor class " + reactor.name)
 				
 		// Scan reactions
 		var savedReactionCount = reactionCount;
 				
 		// Preamble code contains state declarations with static initializers.
-		if (component.componentBody.preamble !== null) {
+		if (reactor.preamble !== null) {
 			pr("// *********** From the preamble, verbatim:")
-			pr(removeCodeDelimiter(component.componentBody.preamble.code))
+			pr(removeCodeDelimiter(reactor.preamble.code))
 			pr("\n// *********** End of preamble.")
 		}
 		
-		var properties = componentToProperties.get(component)
+		var properties = reactorToProperties.get(reactor)
 		
 		// Put parameters into a struct and construct the code to go
 		// into the preamble of any reaction function to extract the
@@ -130,7 +130,7 @@ class CGenerator extends GeneratorBase {
 		// NOTE: The struct cannot be empty in C; should we make a dummy field or suppress the struct?
 		var body = new StringBuilder()
 		// Start with parameters.
-		for(parameter: getParameters(component)) {
+		for(parameter: getParameters(reactor)) {
 			prSourceLineNumber(parameter)
 			if (parameter.type === null) {
 				reportError(parameter, "Parameter is required to have a type: " + parameter.name)
@@ -139,7 +139,7 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		// Next handle states.
-		for(state: component.componentBody.states) {
+		for(state: reactor.states) {
 			prSourceLineNumber(state)
 			if (state.type === null) {
 				reportError(state, "State is required to have a type: " + state.name)
@@ -148,13 +148,13 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		// Next handle actions.
-		for(action: component.componentBody.actions) {
+		for(action: reactor.actions) {
 			prSourceLineNumber(action)
 			// NOTE: Slightly obfuscate output name to help prevent accidental use.
 			pr(body, "trigger_t* __" + action.name + ";")
 		}
 		// Next handle inputs.
-		for(input: component.componentBody.inputs) {
+		for(input: reactor.inputs) {
 			prSourceLineNumber(input)
 			if (input.type === null) {
 				reportError(input, "Input is required to have a type: " + input.name)
@@ -165,7 +165,7 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		// Next handle outputs.
-		for(output: component.componentBody.outputs) {
+		for(output: reactor.outputs) {
 			prSourceLineNumber(output)
 			if (output.type === null) {
 				reportError(output, "Output is required to have a type: " + output.name)
@@ -187,20 +187,20 @@ class CGenerator extends GeneratorBase {
 		// Generate reactions
 		// For this second pass, restart the reaction count where the first pass started.
 		reactionCount = savedReactionCount;
-		generateReactions(component)	
-		pr("// =============== END reactor class " + component.componentBody.name)
+		generateReactions(reactor)	
+		pr("// =============== END reactor class " + reactor.name)
 		pr("")
 	}
 
-	/** Generate reaction functions definition for a reactor or a composite.
+	/** Generate reaction functions definition for a reactor.
 	 *  These functions have a single argument that is a void* pointing to
 	 *  a struct that contains parameters, inputs (triggering or not),
 	 *  actions (triggering or produced), and outputs.
-	 *  @param component The component (reactor or composite).
+	 *  @param reactor The reactor.
 	 */
-	def generateReactions(Component component) {
-		var reactions = component.componentBody.reactions
-		var properties = componentToProperties.get(component)
+	def generateReactions(Reactor reactor) {
+		var reactions = reactor.reactions
+		var properties = reactorToProperties.get(reactor)
 		for (reaction: reactions) {
 			// Create a unique function name for each reaction.
 			val functionName = "reaction_function" + reactionCount++
@@ -223,11 +223,11 @@ class CGenerator extends GeneratorBase {
 			// that indicates whether the input is present.
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
-					val input = getInput(component, trigger)
+					val input = getInput(reactor, trigger)
 					if (input !== null) {
 						generateInputVariablesInReaction(reactionInitialization, input)
 					}
-					val action = getAction(component, trigger)
+					val action = getAction(reactor, trigger)
 					if (action !== null) {
 						// FIXME: Actions may have payloads.
 						pr(reactionInitialization, "trigger_t* " 
@@ -238,28 +238,28 @@ class CGenerator extends GeneratorBase {
 			} else {
 				// No triggers are given, which means react to any input.
 				// Declare an argument for every input.
-				for (input: component.componentBody.inputs) {
+				for (input: reactor.inputs) {
 					generateInputVariablesInReaction(reactionInitialization, input)
 				}
 			}
 			// Define argument for non-triggering inputs.
 			if (reaction.uses !== null && reaction.uses.uses !== null) {
 				for(get: reaction.uses.uses) {
-					val input = getInput(component, get)
+					val input = getInput(reactor, get)
 					generateInputVariablesInReaction(reactionInitialization, input)
 				}
 			}
 			// Define variables for each declared output or action.
 			if (reaction.produces !== null && reaction.produces.produces !== null) {
 				for(output: reaction.produces.produces) {
-					val action = getAction(component, output)
+					val action = getAction(reactor, output)
 					if (action !== null) {
 						// It is an action, not an output.
 						// FIXME: Actions may have payloads.
 						pr(reactionInitialization, "trigger_t* " + action.name + ' = self->__' + action.name + ';');
 					} else {
 						// It is an output.
-						var out = getOutput(component, output)
+						var out = getOutput(reactor, output)
 						generateOutputVariablesInReaction(reactionInitialization, out)
 					}
 				}
@@ -296,13 +296,13 @@ class CGenerator extends GeneratorBase {
 		var triggerNameToTriggerStruct = new HashMap<String,String>()
 		var instance = reactorInstance.instanceStatement
 		// If there is no instance statement, then this is main.
-		var component = getComponent(instance.reactorClass)
-		var properties = componentToProperties.get(component)
-		if (component === null) {
+		var reactor = getReactor(instance.reactorClass)
+		var properties = reactorToProperties.get(reactor)
+		if (reactor === null) {
 			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
 			return triggerNameToTriggerStruct
 		}
-		var triggerToReactions = getTriggerToReactions(component)
+		var triggerToReactions = getTriggerToReactions(reactor)
 		if (triggerToReactions === null) {
 			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
 			return triggerNameToTriggerStruct
@@ -329,7 +329,7 @@ class CGenerator extends GeneratorBase {
 				var outputCount = 0
 				if (reaction.produces !== null) {
 					for(output: reaction.produces.produces) {
-						if (getOutput(component, output) !== null) {
+						if (getOutput(reactor, output) !== null) {
 							// It is an output, not an action.
 							// First create the array of pointers to booleans indicating whether
 							// an output is produced.
@@ -347,8 +347,8 @@ class CGenerator extends GeneratorBase {
 							// to anything, so default to empty set.
 							var inputNames = new HashSet<String>()
 							if (container !== null) {
-								var parentComponent = container.component
-								var parentProperties = componentToProperties.get(parentComponent)
+								var parentReactor = container.reactor
+								var parentProperties = reactorToProperties.get(parentReactor)
 								var outputName = instance.getName() + "." + output
 								inputNames = parentProperties.outputNameToInputNames.get(outputName)
 							}
@@ -464,20 +464,20 @@ class CGenerator extends GeneratorBase {
 			// value is a struct.
 			pr(result, 'trigger_t ' + triggerStructName + ' = {')
 			indent(result)
-			var timing = getTiming(component, triggerName)
-			if (timing !== null || getInput(component, triggerName) !== null) {
+			var timing = getTiming(reactor, triggerName)
+			if (timing !== null || getInput(reactor, triggerName) !== null) {
 				pr(result, triggerStructName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
 					+ '0LL, 0LL'
 				)
-			} else if (getAction(component, triggerName) !== null) {
+			} else if (getAction(reactor, triggerName) !== null) {
 				pr(result, triggerStructName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
-					+ getAction(component, triggerName).getDelay()
+					+ getAction(reactor, triggerName).getDelay()
 					+ ', 0LL' // 0 is ignored since actions don't have a period.
 				)
 			} else {
-				reportError(component,
+				reportError(reactor,
 					"Internal error: Seems to not be an input, timer, or action: "
 					+ triggerName)
 			}
@@ -517,11 +517,11 @@ class CGenerator extends GeneratorBase {
 			className = instance.reactorClass
 		}
 		pr('// ************* Instance ' + instance.name + ' of class ' + className)
-		var component = getComponent(instance.reactorClass)
+		var reactor = getReactor(instance.reactorClass)
 				
 		// Generate the instance struct containing parameters and state variables.
 		// (the "self" struct).
-		var properties = componentToProperties.get(component)
+		var properties = reactorToProperties.get(reactor)
 		var nameOfSelfStruct = "__self_" + instanceCount + "_" + instance.name
 		var structType = properties.targetProperties.get("structType")
 		if (structType !== null) {
@@ -551,7 +551,7 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		// Next, initialize parameter with either the override or the defaults.
-		for(parameter: getParameters(component)) {
+		for(parameter: getParameters(reactor)) {
 			var value = overrides.get(parameter.name)
 			if (value === null) {
 				value = removeCodeDelimiter(parameter.value)
@@ -568,12 +568,12 @@ class CGenerator extends GeneratorBase {
 			pr(initializeTriggerObjects, nameOfSelfStruct + "." + parameter.name + " = " + value + ";")
 		}
 		// Next, initialize the struct with state variables.
-		for(state: component.componentBody.states) {
+		for(state: reactor.states) {
 			var value = removeCodeDelimiter(state.value)
 			pr(initializeTriggerObjects, nameOfSelfStruct + "." + state.name + " = " + value + ";")
 		}
 		
-		// Call superclass here so that parameters of this composite
+		// Call superclass here so that parameters of this reactor
 		// are in scope for contained instances.
 		var reactorInstance = super.instantiate(instance, container, importTable)
 		// Store the name of the "self" struct as a property of the instance
@@ -585,10 +585,10 @@ class CGenerator extends GeneratorBase {
 		reactorInstance.properties.put("triggerNameToTriggerStruct", triggerNameToTriggerStruct)
 				
 		// Next, initialize the struct with actions.
-		for(action: component.componentBody.actions) {
+		for(action: reactor.actions) {
 			var triggerStruct = triggerNameToTriggerStruct.get(action.name)
 			if (triggerStruct === null) {
-				reportError(component, 
+				reportError(reactor, 
 					"Internal error: No trigger struct found for action "
 					+ action.name)
 			}
@@ -599,7 +599,7 @@ class CGenerator extends GeneratorBase {
 		}
 		// Next, generate the code to initialize outputs at the start
 		// of a time step to be absent.
-		for(output: component.componentBody.outputs) {
+		for(output: reactor.outputs) {
 			pr(startTimeStep, nameOfSelfStruct
 				+ '.__' + output.name + '_is_present = false;'
 			)
@@ -621,35 +621,34 @@ class CGenerator extends GeneratorBase {
 		// First, populate the trigger tables for each output.
 		// The entries point to the trigger_t structs for the destination inputs.
 		for (init: deferredInitialize) {
-			// The reactor containing the specified input may be the
-			// composite or a reactor contained by the composite.
-			var reactor = init.composite
+			// The reactor containing the specified input may be a contained reactor.
+			var reactor = init.reactor
 			var port = init.inputName
 			var split = init.inputName.split('\\.')
 			if (split.length === 2) {
-				reactor = init.composite.getContainedInstance(split.get(0))
+				reactor = init.reactor.getContainedInstance(split.get(0))
 				if (reactor === null) {
-					reportError(init.composite.component, "No reactor named: "
+					reportError(init.reactor.reactor, "No reactor named: "
 						+ split.get(0)
 						+ " in container "
-						+ init.composite.getFullName()
+						+ init.reactor.getFullName()
 					)
 				}
 				port = split.get(1)
 			} else if (split.length !== 1) {
-				reportError(init.composite.component, "Invalid input specification: " + init.inputName)
+				reportError(init.reactor.reactor, "Invalid input specification: " + init.inputName)
 			}
 				
 			var triggerMap = reactor.properties.get("triggerNameToTriggerStruct")
 			if (triggerMap === null) {
-				reportError(init.composite.component,
+				reportError(init.reactor.reactor,
 					"Internal error: failed to map from name to trigger struct for "
-					+ init.composite.getFullName()
+					+ init.reactor.getFullName()
 				)
 			} else {
 				var triggerStructName = (triggerMap as HashMap<String,String>).get(port)
 				if (triggerStructName === null) {
-					reportError(init.composite.component,
+					reportError(init.reactor.reactor,
 						"Internal error: failed to find trigger struct for input "
 						+ port
 						+ " in reactor "
@@ -677,9 +676,9 @@ class CGenerator extends GeneratorBase {
 		for (containedReactor: container.containedInstances.values()) {
 			// In case this is a composite, handle its assignments.
 			connectInputsToOutputs(containedReactor)
-			var outputProperties = componentToProperties.get(containedReactor.component)
-			var containerProperties = componentToProperties.get(containedReactor.container.component)
-			for (output: containedReactor.component.componentBody.outputs) {
+			var outputProperties = reactorToProperties.get(containedReactor.reactor)
+			var containerProperties = reactorToProperties.get(containedReactor.container.reactor)
+			for (output: containedReactor.reactor.outputs) {
 				var outputSelfStructName = containedReactor.properties.get("selfStructName")
 				var inputNames = containerProperties.outputNameToInputNames.get(containedReactor.name + '.' + output.name)
 				if (inputNames !== null) {
@@ -698,7 +697,7 @@ class CGenerator extends GeneratorBase {
 							)
 						} else {
 							// FIXME: Handle case where size is not 2 (communication across hierarchy).
-							reportError(container.component,
+							reportError(container.reactor,
 								"FIXME: Communication across hierarchy is not yet supported"
 							)
 						}
@@ -706,7 +705,7 @@ class CGenerator extends GeneratorBase {
 				}
 			}
 			// Handle dangling input ports that are not connected to anything.
-			for (input: containedReactor.component.componentBody.inputs) {
+			for (input: containedReactor.reactor.inputs) {
 				var inputName = containedReactor.name + '.' + input.name
 						print("**** Checking input: " + inputName)
 				if (!connectedInputs.contains(inputName)) {

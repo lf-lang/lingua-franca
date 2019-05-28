@@ -13,12 +13,11 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Component
-import org.icyphy.linguaFranca.Composite
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Reactor
 
 /**
  * Generator for Accessors.
@@ -45,11 +44,11 @@ class AccessorGenerator extends GeneratorBase {
 		// Handle reactors and composites.
 		// FIXME: This is not following the convention of a single top-level named Main.
 		// FIXME: Call super.doGenerate()
-		for (component : resource.allContents.toIterable.filter(Component)) {
+		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			clearCode()
-			generateComponent(component, importTable)
-			val componentBody = component.componentBody
-			fsa.generateFile(componentBody.name + ".js", code)		
+			generateReactor(reactor, importTable)
+			val reactorBody = reactor
+			fsa.generateFile(reactorBody.name + ".js", code)		
 		}
 	}
 	
@@ -57,11 +56,11 @@ class AccessorGenerator extends GeneratorBase {
 	//// Code generators.
 	
 	/** Generate a reactor or composite definition.
-	 *  @param component The parsed component data structure.
+	 *  @param reactor The parsed reactor data structure.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
-	override generateComponent(Component component, Hashtable<String,String> importTable) {
-		super.generateComponent(component, importTable)
+	override generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
+		super.generateReactor(reactor, importTable)
 
 		inputs.clear()      // Reset set of inputs.
 		timerReactions.clear()
@@ -70,45 +69,43 @@ class AccessorGenerator extends GeneratorBase {
 		reactionCount = 1   // Start reaction count at 1.
 		
 		pr(boilerplate)
-		if (component.componentBody.preamble !== null) {
+		if (reactor.preamble !== null) {
 			pr("// *********** From the preamble, verbatim:")
-			pr(removeCodeDelimiter(component.componentBody.preamble.code))
+			pr(removeCodeDelimiter(reactor.preamble.code))
 			pr("\n// *********** End of preamble.")
 		}
 		// Reactor setup (inputs, outputs, parameters)
-		componentSetup(component, importTable)
+		reactorSetup(reactor, importTable)
 		// Generate reactions
-		generateReactions(component)
+		generateReactions(reactor)
 		// initialize function (initialize + triggers scheduling + input handlers)
-		generateInitialize(component)
+		generateInitialize(reactor)
 	}
 	
 	/** Generate the setup function definition for a reactor or composite.
 	 */
-	def componentSetup(Component component, Hashtable<String,String> importTable) {
+	def reactorSetup(Reactor reactor, Hashtable<String,String> importTable) {
 		pr("exports.setup = function () {")
 		indent()
 		// Generate Inputs, if any.
-		for (input: component.componentBody.inputs) {
+		for (input: reactor.inputs) {
 			generateInput(input)
 		}
 		// Generate outputs, if any
-		for (output: component.componentBody.outputs) {
+		for (output: reactor.outputs) {
 			generateOutput(output)
 		}
 		// Generate parameters, if any
-		for (param : getParameters(component)) {
+		for (param : getParameters(reactor)) {
 			generateParameter(param)
 		}
-		if (component instanceof Composite) {
-			// Generated instances
-			for (instance: component.instances) {
-				generateInstantiate(instance, importTable)
-			}
-			// Generated connections
-			for (connection: component.connections) {
-				pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
-			}
+		// Generated instances
+		for (instance: reactor.instances) {
+			generateInstantiate(instance, importTable)
+		}
+		// Generated connections
+		for (connection: reactor.connections) {
+			pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
 		}
 		unindent()
 		pr("}")
@@ -140,11 +137,11 @@ class AccessorGenerator extends GeneratorBase {
 	/** Generate the initialize function definition for an accessor.
 	 *  This adds input handlers and timer reactions.
 	 */
-	def generateInitialize(Component component) {
+	def generateInitialize(Reactor reactor) {
 		pr("exports.initialize = function () {\n")
 		indent()
 		// Define variables for each parameter.
-		for(parameter: getParameters(component)) {
+		for(parameter: getParameters(reactor)) {
 			pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
 		}
 		
@@ -153,7 +150,7 @@ class AccessorGenerator extends GeneratorBase {
 
 		// Add the timer reactions.
 		for (timer: timerReactions.keySet) {
-			val timerParams = getTiming(component, timer)
+			val timerParams = getTiming(reactor, timer)
 			for (handler: timerReactions.get(timer)) {
 				var offset = unitAdjustment(timerParams.offset, "ms")
 				var period = unitAdjustment(timerParams.period, "ms")
@@ -166,8 +163,8 @@ class AccessorGenerator extends GeneratorBase {
 
 	/** Generate reaction functions definition for a reactor or a composite.
 	 */
-	def generateReactions(Component component) {
-		val reactions = component.componentBody.reactions
+	def generateReactions(Reactor reactor) {
+		val reactions = reactor.reactions
 		val functionName = "reaction" + reactionCount++
 		for (reaction: reactions) {
 			pr('''function «functionName»() {''')
@@ -186,7 +183,7 @@ class AccessorGenerator extends GeneratorBase {
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
 				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (getTiming(component, trigger) !== null) {
+					} else if (getTiming(reactor, trigger) !== null) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
 						var list = timerReactions.get(trigger)
@@ -231,7 +228,7 @@ class AccessorGenerator extends GeneratorBase {
 				}
 			}			
 			// Define variables for each parameter.
-			for(parameter: getParameters(component)) {
+			for(parameter: getParameters(reactor)) {
 				pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
 			}
 

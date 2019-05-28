@@ -44,10 +44,10 @@ reactor Adder {
 	=}
 }
 reactor Test(expected:JSON({= [] =})) {
-	input x:int;
 	preamble {=
 		var i = 0;
 	=}
+	input x:int;
 	reaction(x) {=
 		console.log('Test received: ' + x);
         if (expected[i] != x) {
@@ -59,7 +59,7 @@ reactor Test(expected:JSON({= [] =})) {
         }
 	=} 
 }
-composite TimerTest {
+reactor TimerTest {
 	source1 = new Source1();
 	source2 = new Source2(period = 1000);
 	add = new Adder();

@@ -17,7 +17,7 @@ import org.icyphy.linguaFranca.Timing
 
 /** The properties of a reactor class.  
  */
- class ComponentProperties {
+ class ReactorProperties {
  	
  	/** Map from input name to Input object. */
 	public var nameToInput = new LinkedHashMap<String,Input>()

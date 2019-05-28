@@ -5,16 +5,16 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.LinkedHashMap
-import org.icyphy.linguaFranca.Component
 import org.icyphy.linguaFranca.Instance
+import org.icyphy.linguaFranca.Reactor
 
 /** An instance of a reactor or composite.
  */
 class ReactorInstance {
 	
 	/** Create new top-level instance. */
-	new(Component component) {
-		this.component = component
+	new(Reactor reactor) {
+		this.reactor = reactor
 		this.instanceStatement = null
 		this.container = null
 	}
@@ -24,8 +24,8 @@ class ReactorInstance {
 	 *  @param instance The Instance statement in the AST.
 	 *  @param container The container.
 	 */
-	new(Component component, Instance instanceStatement, ReactorInstance container) {
-		this.component = component
+	new(Reactor reactor, Instance instanceStatement, ReactorInstance container) {
+		this.reactor = reactor
 		this.instanceStatement = instanceStatement
 		this.container = container
 	}
@@ -37,7 +37,7 @@ class ReactorInstance {
 	/** The AST Component object defining this instance.
 	 *  This can be null if the component is defined outside Lingua Franca.
 	 */
-	public var Component component
+	public var Reactor reactor
 	
 	/** The container instance, or null if Main. */
 	public var ReactorInstance container
