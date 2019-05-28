@@ -81,7 +81,7 @@ class GeneratorBase {
 	 */
 	def void doGenerate(
 			Resource resource, 
-			IFileSystemAccess2 fsa, 
+			IFileSystemAccess2 fsa,
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
 		// Generate reactors and composites.

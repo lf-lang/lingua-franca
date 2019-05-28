@@ -124,9 +124,9 @@ class CGenerator extends GeneratorBase {
 		// Put parameters into a struct and construct the code to go
 		// into the preamble of any reaction function to extract the
 		// parameters from the struct.
-		val argType = "reactor_instance_" + (reactorClassCount++) + "_this_t"
+		val argType = "reactor_instance_" + (reactorClassCount++) + "_self_t"
 			
-		// Construct the typedef for the "this" struct.
+		// Construct the typedef for the "self" struct.
 		// NOTE: The struct cannot be empty in C; should we make a dummy field or suppress the struct?
 		var body = new StringBuilder()
 		// Start with parameters.
@@ -209,11 +209,11 @@ class CGenerator extends GeneratorBase {
 			
 			// Construct the reactionInitialization code to go into
 			// the body of the function before the verbatim code.
-			// This defines the "this" struct.
+			// This defines the "self" struct.
 			var StringBuilder reactionInitialization = new StringBuilder()
 			var structType = properties.targetProperties.get("structType")
 			pr(reactionInitialization, structType
-					+ "* this = (" + structType + "*)instance_args;")
+					+ "* self = (" + structType + "*)instance_args;")
 			
 			// Next, add the triggers (input and actions; timers are not needed).
 			// This defines a local variable in the reaction function whose
@@ -231,7 +231,7 @@ class CGenerator extends GeneratorBase {
 					if (action !== null) {
 						// FIXME: Actions may have payloads.
 						pr(reactionInitialization, "trigger_t* " 
-							+ action.name + ' = this->__' + action.name + ';'
+							+ action.name + ' = self->__' + action.name + ';'
 						);
 					}
 				}
@@ -256,7 +256,7 @@ class CGenerator extends GeneratorBase {
 					if (action !== null) {
 						// It is an action, not an output.
 						// FIXME: Actions may have payloads.
-						pr(reactionInitialization, "trigger_t* " + action.name + ' = this->__' + action.name + ';');
+						pr(reactionInitialization, "trigger_t* " + action.name + ' = self->__' + action.name + ';');
 					} else {
 						// It is an output.
 						var out = getOutput(component, output)
@@ -289,10 +289,10 @@ class CGenerator extends GeneratorBase {
 	 *  This object has a pointer to the function to invoke for that
 	 *  reaction.
 	 *  @param reactorInstance The instance for which we are generating trigger objects.
-	 *  @param nameOfThisStruct The name of the instance of "this" for this instance.
+	 *  @param nameOfSelfStruct The name of the instance of "self" for this instance.
 	 *  @return A map of trigger names to the name of the trigger struct.
 	 */
-	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfThisStruct) {
+	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfSelfStruct) {
 		var triggerNameToTriggerStruct = new HashMap<String,String>()
 		var instance = reactorInstance.instanceStatement
 		// If there is no instance statement, then this is main.
@@ -337,7 +337,7 @@ class CGenerator extends GeneratorBase {
 							if (presentPredicates.length > 0) {
 								presentPredicates.append(", ")
 							}
-							presentPredicates.append('&' + nameOfThisStruct + '.__' + output + '_is_present')
+							presentPredicates.append('&' + nameOfSelfStruct + '.__' + output + '_is_present')
 							outputCount++
 							
 							// For each output, figure out how many
@@ -417,7 +417,7 @@ class CGenerator extends GeneratorBase {
 					// Create a array with ints indicating these
 					// numbers and assign it to triggered_reactions_sizes
 					// field of the reaction_t object.
-					triggeredSizesArray = '&(' + reactionInstanceName + '_triggered_sizes[0])'
+					triggeredSizesArray = '&' + reactionInstanceName + '_triggered_sizes[0]'
 					pr(result, 'int ' + reactionInstanceName
 						+ '_triggered_sizes' 
 						+ '[] = {'
@@ -437,7 +437,7 @@ class CGenerator extends GeneratorBase {
 				// FIXME: first 0 is an index that should come from the topological sort.
 				pr(result, "reaction_t " + reactionInstanceName 
 					+ " = {&" + functionName 
-					+ ", &" + nameOfThisStruct
+					+ ", &" + nameOfSelfStruct
 					+ ", 0"  // index: index from the topological sort.
 					+ ", 0"  // pos: position used by the pqueue implementation for sorting.
 					+ ", " + outputCount // num_outputs: number of outputs produced by this reaction.
@@ -520,16 +520,16 @@ class CGenerator extends GeneratorBase {
 		var component = getComponent(instance.reactorClass)
 				
 		// Generate the instance struct containing parameters and state variables.
-		// (the "this" struct).
+		// (the "self" struct).
 		var properties = componentToProperties.get(component)
-		var nameOfThisStruct = "__this_" + instanceCount + "_" + instance.name
+		var nameOfSelfStruct = "__self_" + instanceCount + "_" + instance.name
 		var structType = properties.targetProperties.get("structType")
 		if (structType !== null) {
-			pr('// --- "this" struct for instance ' + instance.name)
-			pr(structType + " " + nameOfThisStruct + ";")
+			pr('// --- "self" struct for instance ' + instance.name)
+			pr(structType + " " + nameOfSelfStruct + ";")
 		}
 		
-		// Generate code to initialize the "this" struct in the
+		// Generate code to initialize the "self" struct in the
 		// __initialize_trigger_objects function.
 		// Create a scope for the parameters in case the names collide with other instances.
 		pr(initializeTriggerObjects, "{ // Scope for " + instance.name)
@@ -565,23 +565,23 @@ class CGenerator extends GeneratorBase {
 			var tmpVariableName = '__tmp' + tmpVariableCount++
 			pr(initializeTriggerObjects, getParameterType(parameter) + ' ' + tmpVariableName + ' = ' + value + ';')
 			pr(initializeTriggerObjects, getParameterType(parameter) + ' ' + parameter.name + ' = ' + tmpVariableName + ';')
-			pr(initializeTriggerObjects, nameOfThisStruct + "." + parameter.name + " = " + value + ";")
+			pr(initializeTriggerObjects, nameOfSelfStruct + "." + parameter.name + " = " + value + ";")
 		}
 		// Next, initialize the struct with state variables.
 		for(state: component.componentBody.states) {
 			var value = removeCodeDelimiter(state.value)
-			pr(initializeTriggerObjects, nameOfThisStruct + "." + state.name + " = " + value + ";")
+			pr(initializeTriggerObjects, nameOfSelfStruct + "." + state.name + " = " + value + ";")
 		}
 		
 		// Call superclass here so that parameters of this composite
 		// are in scope for contained instances.
 		var reactorInstance = super.instantiate(instance, container, importTable)
-		// Store the name of the "this" struct as a property of the instance
+		// Store the name of the "self" struct as a property of the instance
 		// so that it can be used when establishing connections.
-		reactorInstance.properties.put("thisStructName", nameOfThisStruct)
+		reactorInstance.properties.put("selfStructName", nameOfSelfStruct)
 		
 		// Generate trigger objects for the instance.
-		var triggerNameToTriggerStruct = generateTriggerObjects(reactorInstance, nameOfThisStruct)
+		var triggerNameToTriggerStruct = generateTriggerObjects(reactorInstance, nameOfSelfStruct)
 		reactorInstance.properties.put("triggerNameToTriggerStruct", triggerNameToTriggerStruct)
 				
 		// Next, initialize the struct with actions.
@@ -593,14 +593,14 @@ class CGenerator extends GeneratorBase {
 					+ action.name)
 			}
 			// FIXME: Actions may have payloads.
-			pr(initializeTriggerObjects, nameOfThisStruct + '.__' 
+			pr(initializeTriggerObjects, nameOfSelfStruct + '.__' 
 				+ action.name + ' = &' + triggerStruct + ';'
 			)
 		}
 		// Next, generate the code to initialize outputs at the start
 		// of a time step to be absent.
 		for(output: component.componentBody.outputs) {
-			pr(startTimeStep, nameOfThisStruct
+			pr(startTimeStep, nameOfSelfStruct
 				+ '.__' + output.name + '_is_present = false;'
 			)
 		}
@@ -664,35 +664,37 @@ class CGenerator extends GeneratorBase {
 				)
 			}
 		}
-		// Next, for every input port, populate its "this" struct
+		// Next, for every input port, populate its "self" struct
 		// fields with pointers to the output port that send it data.
 		connectInputsToOutputs(main)
 	}
 	
-	// Generate assignments of pointers in the "this" struct of a destination
-	// port's reactor to the appropriate entries in the "this" struct of the
+	// Generate assignments of pointers in the "self" struct of a destination
+	// port's reactor to the appropriate entries in the "self" struct of the
 	// source reactor.
 	private def void connectInputsToOutputs(ReactorInstance container) {
-		// FIXME: What to do with dangling input ports that are not connected to anything?
+		var connectedInputs = new HashSet<String>()
 		for (containedReactor: container.containedInstances.values()) {
 			// In case this is a composite, handle its assignments.
 			connectInputsToOutputs(containedReactor)
 			var outputProperties = componentToProperties.get(containedReactor.component)
 			var containerProperties = componentToProperties.get(containedReactor.container.component)
 			for (output: containedReactor.component.componentBody.outputs) {
-				var outputThisStructName = containedReactor.properties.get("thisStructName")
+				var outputSelfStructName = containedReactor.properties.get("selfStructName")
 				var inputNames = containerProperties.outputNameToInputNames.get(containedReactor.name + '.' + output.name)
 				if (inputNames !== null) {
 					for(input: inputNames) {
+						print("**** Adding input: " + input)
+						connectedInputs.add(input)
 						var split = input.split('\\.')
 						if (split.length === 2) {
 							var inputReactor = containedReactor.container.getContainedInstance(split.get(0))
-							var inputThisStructName = inputReactor.properties.get("thisStructName")
-							pr(inputThisStructName + '.__' + split.get(1) + ' = &'
-								+ outputThisStructName + '.__' + output.name + ';'
+							var inputSelfStructName = inputReactor.properties.get("selfStructName")
+							pr(inputSelfStructName + '.__' + split.get(1) + ' = &'
+								+ outputSelfStructName + '.__' + output.name + ';'
 							)
-							pr(inputThisStructName + '.__' + split.get(1) + '_is_present = &'
-								+ outputThisStructName + '.__' + output.name + '_is_present;'
+							pr(inputSelfStructName + '.__' + split.get(1) + '_is_present = &'
+								+ outputSelfStructName + '.__' + output.name + '_is_present;'
 							)
 						} else {
 							// FIXME: Handle case where size is not 2 (communication across hierarchy).
@@ -701,6 +703,17 @@ class CGenerator extends GeneratorBase {
 							)
 						}
 					}
+				}
+			}
+			// Handle dangling input ports that are not connected to anything.
+			for (input: containedReactor.component.componentBody.inputs) {
+				var inputName = containedReactor.name + '.' + input.name
+						print("**** Checking input: " + inputName)
+				if (!connectedInputs.contains(inputName)) {
+					// Input is dangling.
+					var inputReactor = containedReactor.container.getContainedInstance(containedReactor.name)
+					var inputSelfStructName = inputReactor.properties.get("selfStructName")
+					pr(inputSelfStructName + '.__' + input.name + '_is_present = &False;')
 				}
 			}
 		}
@@ -724,25 +737,26 @@ class CGenerator extends GeneratorBase {
 	
 	/** Generate into the specified string builder the code to
 	 *  initialize local variables for inputs in a reaction function
-	 *  from the "this" struct.
+	 *  from the "self" struct.
 	 *  @param builder The string builder.
 	 *  @param input The input statement from the AST.
 	 */
 	private def generateInputVariablesInReaction(
 		StringBuilder builder, Input input
 	) {
-		// Slightly obfuscate the name to help prevent accidental use.
-		pr(builder, removeCodeDelimiter(input.type)
-			+ ' ' + input.name + ' = *(this->__' + input.name + ');'
-		)
-		pr(builder, removeCodeDelimiter(input.type)
-			+ ' ' + input.name + '_is_present = *(this->__' + input.name + '_is_present);'
-		)
+		var present = input.name + '_is_present'
+		pr(builder, 'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
+		pr(builder, removeCodeDelimiter(input.type)	+ ' ' + input.name + ';')
+		pr(builder, 'if(' + present + ') {')
+		indent(builder)
+		pr(builder, input.name + ' = *(self->__' + input.name + ');')
+		unindent(builder)
+		pr(builder, '}')
 	}
 	
 	/** Generate into the specified string builder the code to
 	 *  initialize local variables for outputs in a reaction function
-	 *  from the "this" struct.
+	 *  from the "self" struct.
 	 *  @param builder The string builder.
 	 *  @param output The output statement from the AST.
 	 */
@@ -754,10 +768,10 @@ class CGenerator extends GeneratorBase {
 		}		
 		// Slightly obfuscate the name to help prevent accidental use.
 		pr(builder, removeCodeDelimiter(output.type)
-			+ '* ' + output.name + ' = &(this->__' + output.name + ');'
+			+ '* ' + output.name + ' = &(self->__' + output.name + ');'
 		)
 		pr(builder, 'bool* ' + output.name
-			+ '_is_present = &(this->__' + output.name + '_is_present);'
+			+ '_is_present = &(self->__' + output.name + '_is_present);'
 		)
 	}
 	
