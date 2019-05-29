@@ -1,0 +1,29 @@
+target C; 
+reactor Source(period:time(2 sec)) {
+	output y:int;
+	timer t(1 sec, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		(self->count)++;
+		struct timespec sleep_time = {(time_t) 0, (long)500000000};
+		struct timespec remaining_time;
+		nanosleep(&sleep_time, &remaining_time);
+		set(y, self->count);
+	=}
+}
+reactor Destination {
+	input x:int;
+	reaction(x) {=
+		printf("%d\n", x);
+	=}
+}
+reactor Main {
+	action panic;
+	reaction(panic) {=
+		printf("**** PANIC! Deadline missed.\n");
+	=}
+	s = new Source();
+	d = new Destination();
+	s.y -> d.x;
+	deadline(d.x, 200 msec, panic);
+}

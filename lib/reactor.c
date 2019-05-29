@@ -103,7 +103,7 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
 // was interrupted.
 int wait_until(event_t* event) {
     // printf("-------- Waiting for logical time %lld.\n", event->time);
-    long long logical_time_ns = event->time;
+    instant_t logical_time_ns = event->time;
     
     // Get the current physical time.
     struct timespec current_physical_time;
@@ -194,7 +194,7 @@ int next() {
         // FIXME: Recycle this event instead of freeing it.
         free(event);
 
-         event = pqueue_peek(event_q);
+        event = pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
     // Handle reactions.
@@ -202,6 +202,32 @@ int next() {
         reaction_t* reaction = pqueue_pop(reaction_q);
         // printf("Popped from reaction_q: %p\n", reaction);
         // printf("Popped reaction function: %p\n", reaction->function);
+        
+        // If the reaction has a deadline, compare to current physical time
+        // and invoke the deadline violation reaction before the reaction function
+        // if a violation has occurred.
+        if (reaction->deadline > 0LL) {
+            // Get the current physical time.
+            struct timespec current_physical_time;
+            clock_gettime(CLOCK_REALTIME, &current_physical_time);
+            // Convert to instant_t.
+            instant_t physical_time = 
+                    current_physical_time.tv_sec * BILLION
+                    + current_physical_time.tv_nsec;
+            // Check for deadline violation.
+            if (physical_time > current_time + reaction->deadline) {
+                // Deadline violation has occurred.
+                // Invoke the violation reactions, if there are any.
+                trigger_t* trigger = reaction->deadline_violation;
+                if (trigger != NULL) {
+                    for (int i = 0; i < trigger->number_of_reactions; i++) {
+                        trigger->reactions[i]->function(trigger->reactions[i]->self);
+                    }
+                }
+            }
+        }
+        
+        // Invoke the reaction function.
         reaction->function(reaction->self);
 
         // If the reaction produced outputs, put the resulting triggered

@@ -100,9 +100,11 @@ struct reaction_t {
   index_t index; // Index determined by topological sort.
   size_t pos;    // Current position in the priority queue.
   int num_outputs;  // Number of outputs that may possibly be produced by this function.
-  bool** output_produced;       // Array of pointers to booleans indicating whether outputs were produced.
-  int* triggered_sizes;         // Pointer to array of ints with number of triggers per output.
+  bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced.
+  int* triggered_sizes;     // Pointer to array of ints with number of triggers per output.
   trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output.
+  interval_t deadline;      // Deadline relative to the time stamp for invocation of the reaction.
+  trigger_t* deadline_violation; // Trigger to fire in the event of a deadline violation.
 };
 
 /** Reaction activation record to push onto the reaction queue. */

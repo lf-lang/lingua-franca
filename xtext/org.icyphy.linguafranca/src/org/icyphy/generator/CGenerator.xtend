@@ -14,12 +14,13 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
 
 /**
@@ -313,6 +314,13 @@ class CGenerator extends GeneratorBase {
 		for (triggerName: triggerToReactions.keySet) {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
 			var names = new StringBuffer();
+			
+			// Create a place to store reaction_t object names, indexed by Reaction.
+			val reactionToReactionFunctionName = new HashMap<Reaction,String>()
+			reactorInstance.properties.put(
+					"reactionToReactionFunctionName", reactionToReactionFunctionName)
+			
+			// Generate reaction_t object
 			for (reaction : triggerToReactions.get(triggerName)) {
 				var functionName = properties.targetProperties.get(reaction)
 				pr(result, '// --- Reaction and trigger objects for reaction to trigger '+ triggerName
@@ -321,6 +329,9 @@ class CGenerator extends GeneratorBase {
 				// Generate a reaction_t object for an instance of a reaction.
 				val reactionInstanceName = "__reaction" + reactionInstanceCount++
 				
+				// Store the reaction_t object name for future use, indexed by the Reaction.
+				reactionToReactionFunctionName.put(reaction, reactionInstanceName)
+								
 				// Generate entries for the reaction_t struct that specify how
 				// to handle outputs.
 				var presentPredicates = new StringBuilder()
@@ -444,6 +455,8 @@ class CGenerator extends GeneratorBase {
 					+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
 					+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
 					+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
+					+ ", 0LL" // Deadline.
+					+ ", NULL" // Pointer to deadline violation trigger.
 					+ "};"
 				)
 				
@@ -567,7 +580,7 @@ class CGenerator extends GeneratorBase {
 			pr(initializeTriggerObjects, getParameterType(parameter) + ' ' + parameter.name + ' = ' + tmpVariableName + ';')
 			pr(initializeTriggerObjects, nameOfSelfStruct + "." + parameter.name + " = " + value + ";")
 		}
-		// Next, initialize the struct with state variables.
+		// Next, initialize the "self" struct with state variables.
 		for(state: reactor.states) {
 			var value = removeCodeDelimiter(state.value)
 			pr(initializeTriggerObjects, nameOfSelfStruct + "." + state.name + " = " + value + ";")
@@ -605,6 +618,59 @@ class CGenerator extends GeneratorBase {
 			)
 		}
 		
+		// Finally, handle deadline commands.
+		for(deadline: reactor.deadlines) {
+			var split = deadline.port.split('\\.')
+			if (split.length !== 2) {
+				reportError(deadline, 'Malformed input port specification: ' + deadline.port)
+			} else {
+				var deadlineReactor = reactorInstance.getContainedInstance(split.get(0))
+				if (deadlineReactor === null) {
+					reportError(deadline, "No such reactor: " + split.get(0))
+				} else {
+					var triggerToReactions = getTriggerToReactions(deadlineReactor.reactor)
+					var reactions = triggerToReactions.get(split.get(1))
+					if (reactions === null) {
+						reportError(deadline, "No such port: " + deadline.port)
+					} else {
+						for (reaction: reactions) {
+							var reactionToReactionFunctionName =
+									deadlineReactor.properties.get("reactionToReactionFunctionName")
+							var reactionTName = (reactionToReactionFunctionName as HashMap<Reaction,String>).get(reaction)
+							if (reactionTName === null) {
+								reportError(deadline, "Internal error: No reaction_t object found for reaction.")
+							} else {
+								pr(initializeTriggerObjects,
+										reactionTName + '.deadline = ' + timeMacro(deadline.delay) + ';')
+								
+								// Next, set the deadline_violation field to point to the trigger_t struct.
+								var triggerMap = reactorInstance.properties.get("triggerNameToTriggerStruct")
+								if (triggerMap === null) {
+									reportError(deadline,
+											"Internal error: failed to map from name to trigger struct for "
+											+ reactorInstance.getFullName()
+									)
+								} else {
+									var triggerStructName = (triggerMap as HashMap<String,String>).get(deadline.action)
+									if (triggerStructName === null) {
+										reportError(reactorInstance.reactor,
+											"Internal error: failed to find trigger struct for action "
+											+ deadline.action
+											+ " in reactor "
+											+ reactorInstance.getFullName()
+										)
+									} else {
+										pr(initializeTriggerObjects,
+											reactionTName + '.deadline_violation = &' + triggerStructName + ';')
+									}
+								}
+							}
+						}	
+					}					
+				}
+			}
+		}
+		
 		unindent(initializeTriggerObjects)
 		pr(initializeTriggerObjects, "} // End of scope for " + instance.name)
 		
@@ -620,6 +686,7 @@ class CGenerator extends GeneratorBase {
 	private def doDeferredInitialize() {
 		// First, populate the trigger tables for each output.
 		// The entries point to the trigger_t structs for the destination inputs.
+		pr('// doDeferredInitialize')
 		for (init: deferredInitialize) {
 			// The reactor containing the specified input may be a contained reactor.
 			var reactor = init.reactor
@@ -683,7 +750,6 @@ class CGenerator extends GeneratorBase {
 				var inputNames = containerProperties.outputNameToInputNames.get(containedReactor.name + '.' + output.name)
 				if (inputNames !== null) {
 					for(input: inputNames) {
-						print("**** Adding input: " + input)
 						connectedInputs.add(input)
 						var split = input.split('\\.')
 						if (split.length === 2) {
@@ -707,7 +773,6 @@ class CGenerator extends GeneratorBase {
 			// Handle dangling input ports that are not connected to anything.
 			for (input: containedReactor.reactor.inputs) {
 				var inputName = containedReactor.name + '.' + input.name
-						print("**** Checking input: " + inputName)
 				if (!connectedInputs.contains(inputName)) {
 					// Input is dangling.
 					var inputReactor = containedReactor.container.getContainedInstance(containedReactor.name)
