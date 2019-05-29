@@ -310,15 +310,15 @@ class CGenerator extends GeneratorBase {
 		}
 		val result = new StringBuilder()
 
+		// Create a place to store reaction_t object names, indexed by Reaction.
+		val reactionToReactionFunctionName = new HashMap<Reaction,String>()
+		reactorInstance.properties.put(
+				"reactionToReactionFunctionName", reactionToReactionFunctionName)
+
 		var count = 0
 		for (triggerName: triggerToReactions.keySet) {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
 			var names = new StringBuffer();
-			
-			// Create a place to store reaction_t object names, indexed by Reaction.
-			val reactionToReactionFunctionName = new HashMap<Reaction,String>()
-			reactorInstance.properties.put(
-					"reactionToReactionFunctionName", reactionToReactionFunctionName)
 			
 			// Generate reaction_t object
 			for (reaction : triggerToReactions.get(triggerName)) {
@@ -326,141 +326,142 @@ class CGenerator extends GeneratorBase {
 				pr(result, '// --- Reaction and trigger objects for reaction to trigger '+ triggerName
 					+ ' of instance ' + instance.name
 				)
-				// Generate a reaction_t object for an instance of a reaction.
-				val reactionInstanceName = "__reaction" + reactionInstanceCount++
+				// First check to see whether the reaction_t object has already been
+				// created for this reaction.
+				var reactionInstanceName = reactionToReactionFunctionName.get(reaction)
+				if (reactionInstanceName === null) {
+					// There isn't already a reaction_t object for this reaction.
+					// Generate a reaction_t object for an instance of a reaction.
+					reactionInstanceName = "__reaction" + reactionInstanceCount++
 				
-				// Store the reaction_t object name for future use, indexed by the Reaction.
-				reactionToReactionFunctionName.put(reaction, reactionInstanceName)
+					// Store the reaction_t object name for future use, indexed by the Reaction.
+					reactionToReactionFunctionName.put(reaction, reactionInstanceName)
 								
-				// Generate entries for the reaction_t struct that specify how
-				// to handle outputs.
-				var presentPredicates = new StringBuilder()
-				var triggeredSizesContents = new StringBuilder()
-				var triggersContents = new StringBuilder()
-				var outputCount = 0
-				if (reaction.produces !== null) {
-					for(output: reaction.produces.produces) {
-						if (getOutput(reactor, output) !== null) {
-							// It is an output, not an action.
-							// First create the array of pointers to booleans indicating whether
-							// an output is produced.
-							// Insert a comma if needed.
-							if (presentPredicates.length > 0) {
-								presentPredicates.append(", ")
-							}
-							presentPredicates.append('&' + nameOfSelfStruct + '.__' + output + '_is_present')
-							outputCount++
-							
-							// For each output, figure out how many
-							// inputs are connected to it. This is obtained via the container.
-							var container = reactorInstance.container
-							// If there is no container, then the output cannot be connected
-							// to anything, so default to empty set.
-							var inputNames = new HashSet<String>()
-							if (container !== null) {
-								var parentReactor = container.reactor
-								var parentProperties = reactorToProperties.get(parentReactor)
-								var outputName = instance.getName() + "." + output
-								inputNames = parentProperties.outputNameToInputNames.get(outputName)
-							}
-							// Insert a comma if needed.
-							if (triggeredSizesContents.length > 0) {
-								triggeredSizesContents.append(", ")
-							}
-							if (inputNames === null) {
-								triggeredSizesContents.append("0")
-							} else {
-								triggeredSizesContents.append(inputNames.size)
-							}
-							// Then, for each input connected to this output,
-							// find its trigger_t struct. Create an array of pointers
-							// to these trigger_t structs, and collect pointers to
-							// each of these arrays.
-							// Insert a comma if needed.
-							if (triggersContents.length > 0) {
-								triggersContents.append(", ")
-							}
-							if (inputNames === null || inputNames.size === 0) {
-								triggersContents.append("NULL")
-							} else {
-								var inputTriggerStructPointers = new StringBuilder()
-								var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount + '_remote_triggers'
-								var inputCount = 0;
-								for (inputName: inputNames) {
-									// Insert a comma if needed.
-									if (inputTriggerStructPointers.length > 0) {
-										inputTriggerStructPointers.append(', ')
-									}
-									deferredInitialize.add(
-										new InitiatlizeRemoteTriggersTable(
-											container, remoteTriggersArrayName, (inputCount++), inputName
-										)
-									)
+					// Generate entries for the reaction_t struct that specify how
+					// to handle outputs.
+					var presentPredicates = new StringBuilder()
+					var triggeredSizesContents = new StringBuilder()
+					var triggersContents = new StringBuilder()
+					var outputCount = 0
+					if (reaction.produces !== null) {
+						for(output: reaction.produces.produces) {
+							if (getOutput(reactor, output) !== null) {
+								// It is an output, not an action.
+								// First create the array of pointers to booleans indicating whether
+								// an output is produced.
+								// Insert a comma if needed.
+								if (presentPredicates.length > 0) {
+									presentPredicates.append(", ")
 								}
-								pr(result, 'trigger_t* '
-									+ remoteTriggersArrayName
-									+ '['
-									+ inputCount
-									+ '];'
-								)
-								triggersContents.append('&' + remoteTriggersArrayName)
-							}
+								presentPredicates.append('&' + nameOfSelfStruct + '.__' + output + '_is_present')
+								outputCount++
 							
-							// Then, generate code to run in the __initialize_trigger_objects
-							// function that initializes each of these blank
-							// arrays with pointers to the reaction_t objects
-							// for each of the destination inputs.
+								// For each output, figure out how many
+								// inputs are connected to it. This is obtained via the container.
+								var container = reactorInstance.container
+								// If there is no container, then the output cannot be connected
+								// to anything, so default to empty set.
+								var inputNames = new HashSet<String>()
+								if (container !== null) {
+									var parentReactor = container.reactor
+									var parentProperties = reactorToProperties.get(parentReactor)
+									var outputName = instance.getName() + "." + output
+									inputNames = parentProperties.outputNameToInputNames.get(outputName)
+								}
+								// Insert a comma if needed.
+								if (triggeredSizesContents.length > 0) {
+									triggeredSizesContents.append(", ")
+								}
+								if (inputNames === null) {
+									triggeredSizesContents.append("0")
+								} else {
+									triggeredSizesContents.append(inputNames.size)
+								}
+								// Then, for each input connected to this output,
+								// find its trigger_t struct. Create an array of pointers
+								// to these trigger_t structs, and collect pointers to
+								// each of these arrays.
+								// Insert a comma if needed.
+								if (triggersContents.length > 0) {
+									triggersContents.append(", ")
+								}
+								if (inputNames === null || inputNames.size === 0) {
+									triggersContents.append("NULL")
+								} else {
+									var inputTriggerStructPointers = new StringBuilder()
+									var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount + '_remote_triggers'
+									var inputCount = 0;
+									for (inputName: inputNames) {
+										// Insert a comma if needed.
+										if (inputTriggerStructPointers.length > 0) {
+											inputTriggerStructPointers.append(', ')
+										}
+										deferredInitialize.add(
+											new InitiatlizeRemoteTriggersTable(
+												container, remoteTriggersArrayName, (inputCount++), inputName
+											)
+										)
+									}
+									pr(result, 'trigger_t* '
+										+ remoteTriggersArrayName
+										+ '['
+										+ inputCount
+										+ '];'
+									)
+									triggersContents.append('&' + remoteTriggersArrayName)
+								}
+							}
 						}
 					}
+					var outputProducedArray = "NULL"
+					var triggeredSizesArray = "NULL"
+					var triggersArray = "NULL"
+					if (outputCount > 0) {
+						outputProducedArray = '&' + reactionInstanceName + '_outputs_are_present'
+						// Create a array with booleans indicating whether an output has been produced.
+						pr(result, 'bool* ' + reactionInstanceName
+							+ '_outputs_are_present' 
+							+ ' = {' 
+							+ presentPredicates.toString
+							+ '};'
+						)
+						// Create a array with ints indicating these
+						// numbers and assign it to triggered_reactions_sizes
+						// field of the reaction_t object.
+						triggeredSizesArray = '&' + reactionInstanceName + '_triggered_sizes[0]'
+						pr(result, 'int ' + reactionInstanceName
+							+ '_triggered_sizes' 
+							+ '[] = {'
+							+ triggeredSizesContents
+							+ '};'
+						)
+						// Create an array with pointers to arrays of pointers to trigger_t
+						// structs for each input triggered by an output.
+						triggersArray = '&' + reactionInstanceName + '_triggers[0]'
+						pr(result, 'trigger_t** ' + reactionInstanceName + '_triggers'
+							+ '[] = {'
+							+ triggersContents
+							+ '[0]};'
+						)
+					}
+					// Finally, produce the reaction_t struct.			
+					// FIXME: first 0 is an index that should come from the topological sort.
+					pr(result, "reaction_t " + reactionInstanceName 
+						+ " = {&" + functionName 
+						+ ", &" + nameOfSelfStruct
+						+ ", 0"  // index: index from the topological sort.
+						+ ", 0"  // pos: position used by the pqueue implementation for sorting.
+						+ ", " + outputCount // num_outputs: number of outputs produced by this reaction.
+						+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
+						+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
+						+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
+						+ ", 0LL" // Deadline.
+						+ ", NULL" // Pointer to deadline violation trigger.
+						+ "};"
+					)
 				}
-				var outputProducedArray = "NULL"
-				var triggeredSizesArray = "NULL"
-				var triggersArray = "NULL"
-				if (outputCount > 0) {
-					outputProducedArray = '&' + reactionInstanceName + '_outputs_are_present'
-					// Create a array with booleans indicating whether an output has been produced.
-					pr(result, 'bool* ' + reactionInstanceName
-						+ '_outputs_are_present' 
-						+ ' = {' 
-						+ presentPredicates.toString
-						+ '};'
-					)
-					// Create a array with ints indicating these
-					// numbers and assign it to triggered_reactions_sizes
-					// field of the reaction_t object.
-					triggeredSizesArray = '&' + reactionInstanceName + '_triggered_sizes[0]'
-					pr(result, 'int ' + reactionInstanceName
-						+ '_triggered_sizes' 
-						+ '[] = {'
-						+ triggeredSizesContents
-						+ '};'
-					)
-					// Create an array with pointers to arrays of pointers to trigger_t
-					// structs for each input triggered by an output.
-					triggersArray = '&' + reactionInstanceName + '_triggers[0]'
-					pr(result, 'trigger_t** ' + reactionInstanceName + '_triggers'
-						+ '[] = {'
-						+ triggersContents
-						+ '[0]};'
-					)
-				}
-								
-				// FIXME: first 0 is an index that should come from the topological sort.
-				pr(result, "reaction_t " + reactionInstanceName 
-					+ " = {&" + functionName 
-					+ ", &" + nameOfSelfStruct
-					+ ", 0"  // index: index from the topological sort.
-					+ ", 0"  // pos: position used by the pqueue implementation for sorting.
-					+ ", " + outputCount // num_outputs: number of outputs produced by this reaction.
-					+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
-					+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
-					+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-					+ ", 0LL" // Deadline.
-					+ ", NULL" // Pointer to deadline violation trigger.
-					+ "};"
-				)
-				
-				// Position is a label to be written by the priority queue as a side effect of inserting.
+				// Collect the reaction instance names to initialize the
+				// reaction pointer array for the trigger.
 				if (names.length != 0) {
 					names.append(", ")
 				}
@@ -503,8 +504,9 @@ class CGenerator extends GeneratorBase {
 				pr(initializeTriggerObjects, triggerStructName + '.period = ' + timeMacro(timing.period) + ';')
 				
 				// Generate a line to go into the __start_timers() function.
-				pr(startTimers,"__schedule(&" + triggerStructName + ", "
-		 			+ timeMacro(timing.offset) + ");")
+				// Note that the delay, the second argument, is zero because the
+				// offset is already in the trigger struct.
+				pr(startTimers,"__schedule(&" + triggerStructName + ", 0LL);")
 			}
 			count++
 			triggerCount++
