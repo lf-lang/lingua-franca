@@ -1,0 +1,34 @@
+// Test that two simultaneous inputs that trigger a reaction
+// trigger it only once.
+// Correct output for this 2, 4, 6, 8, etc.
+target C;
+reactor Clock(offset:time(0), period:time(1 sec)) {
+	output y:int;
+	timer t(offset, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		(self->count)++;
+		set(y, self->count);
+	=}
+}
+reactor Destination {
+	input x:int;
+	input w:int;
+	reaction(x, w) {=
+		int sum = 0;
+		if (x_is_present) {
+			sum += x;
+		}
+		if (w_is_present) {
+			sum += w;
+		}
+		printf("%d\n", sum);
+	=}
+}
+reactor Main {
+	c1 = new Clock();
+	c2 = new Clock();
+	d = new Destination();
+	c1.y -> d.x;
+	c2.y -> d.w;
+}

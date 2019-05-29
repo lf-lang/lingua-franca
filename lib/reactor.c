@@ -71,11 +71,12 @@ static void set_rct_pos(void *a, size_t pos) {
 
 // ********** Priority Queue Support End
 
-// Schedule the specified trigger at current_time plus the delay.
+// Schedule the specified trigger at current_time plus the
+// offset of the specified trigger plus the delay.
 handle_t __schedule(trigger_t* trigger, interval_t delay) {
     // FIXME: Recycle event_t structs.
     event_t* e = malloc(sizeof(struct event_t));
-    e->time = current_time + delay;
+    e->time = current_time + trigger->offset + delay;
     e->trigger = trigger;
 
     // NOTE: There is no need for an explicit microstep because
@@ -188,7 +189,9 @@ int next() {
         }
         if (event->trigger->period > 0) {
             // Reschedule the trigger.
-            __schedule(event->trigger, event->trigger->period);
+            // Note that the delay here may be negative because the __schedule
+            // function will add the trigger->offset, which we don't want at this point.
+            __schedule(event->trigger, event->trigger->period - event->trigger->offset);
         }
           
         // FIXME: Recycle this event instead of freeing it.
