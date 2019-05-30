@@ -28,6 +28,9 @@ instant_t duration = -1LL;
 // Stop time, or 0 if no stop time has been given.
 instant_t stop_time = 0LL;
 
+// Indicator of whether the wait command-line option was given.
+bool wait_specified = false;
+
 /////////////////////////////
 // The following functions are in scope for all reactors:
 
@@ -123,15 +126,15 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
     return __schedule(trigger, trigger->offset + extra_delay);
 }
 
-// Advance logical time to the lesser of the specified event time or the
-// stop time, if a stop time has been given. If the -fast command-line option
+// Advance logical time to the lesser of the specified time, the
+// stop time, if a stop time has been given, or the time of a call to schedule()
+// in an asynchronous callback. If the -fast command-line option
 // was not given, then wait until physical time matches or exceeds the start time of
 // execution plus the current_time plus the specified logical time.  If this is not
 // interrupted, then advance current_time by the specified logical_delay. 
 // Return 0 if time advanced to the time of the event and -1 if the wait
 // was interrupted or if the stop time was reached.
-int wait_until(event_t* event) {
-    instant_t logical_time_ns = event->time;
+int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (stop_time > 0LL && logical_time_ns > stop_time) {
         logical_time_ns = stop_time;
@@ -201,25 +204,31 @@ int wait_until(event_t* event) {
 // If the -stop option has been given on the command line, then return
 // 0 when the logical time duration matches the specified duration.
 // Also return 0 if there are no more events in the queue and
-// the command-line option has been given to halt on empty.
+// the wait command-line option has not been given.
 // Otherwise, return 1.
 int next() {
     event_t* event = pqueue_peek(event_q);
+    // If there is no next event and -wait has been specified
+    // on the command line, then we will wait the maximum time possible.
+    instant_t next_time = LLONG_MAX;
     if (event == NULL) {
         // No event in the queue.
-        // FIXME: We want to wait for an asynchronous event.
-        return 0;
+        if (!wait_specified) {
+            return 0;
+        }
+    } else {
+        next_time = event->time;
     }
     // Wait until physical time >= event.time.
-    if (wait_until(event) < 0) {
+    if (wait_until(next_time) < 0) {
         // Sleep was interrupted or the stop time has been reached.
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
         event_t* new_event = pqueue_peek(event_q);
         if (new_event == event) {
             // There is no new event. If the stop time has been reached,
-            // then return.
-            if (current_time == stop_time) {
+            // or if the maximum time has been reached (unlikely), then return.
+            if (current_time == stop_time || new_event == NULL) {
                 return 0;
             }
         }
@@ -313,6 +322,8 @@ void usage(char* command) {
     printf("  -stop <duration> <units>\n");
     printf("   Stop after the specified amount of logical time, where units are one of\n");
     printf("   nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.\n\n");
+    printf("  -wait\n");
+    printf("   Do not stop execution even if there are no events to process. Just wait.\n\n");
 }
 
 // Process the command-line arguments.
@@ -361,6 +372,8 @@ int process_args(int argc, char* argv[]) {
                 usage(argv[0]);
                 return 0;
             }
+        } else if (strcmp(argv[i], "-wait") == 0) {
+            wait_specified = true;
         } else {
             usage(argv[0]);
             return 0;
@@ -473,7 +486,7 @@ int main(int argc, char* argv[]) {
         initialize();
         __start_timers();
         while (next() != 0 && !stop_requested);
+        wrapup();
     }
-    wrapup();
     return 0;
 }
