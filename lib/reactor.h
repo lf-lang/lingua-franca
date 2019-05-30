@@ -38,6 +38,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <errno.h>
 #include "pqueue.h"
@@ -51,7 +52,7 @@
 #define INITIAL_REACT_QUEUE_SIZE 10
 
 /** Conversion of time to nanoseconds. */
-#define NSEC(t) t ## LL
+#define NSEC(t) (t * 1LL)
 #define USEC(t) (t * 1000LL)
 #define MSEC(t) (t * 1000000LL)
 #define SEC(t)  (t * 1000000000LL)
@@ -129,6 +130,11 @@ typedef struct event_t {
  * @return a time instant
  */
 instant_t get_logical_time();
+
+/**
+ * Function to request stopping execution at the end of the current logical time.
+ */
+void stop();
 
 /** 
  * Generated function that resets outputs to be absent at the
