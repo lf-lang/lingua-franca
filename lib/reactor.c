@@ -8,21 +8,48 @@
 bool False = false;
 bool True = true;
 
+// Indicator of whether to wait for physical time to match logical time.
+// By default, execution will wait. The command-line argument -fast will
+// eliminate the wait and allow logical time to exceed physical time.
+bool fast = false;
+
+// Current time.
 // This is not in scope for reactors.
 instant_t current_time = 0LL;
 
-// The following should be in scope for reactors:
-// FIXME: This probably should not be a global, at least not for parallel execution.
+// Indicator that the execution should stop after the completion of the
+// current logical time. This can be set to true by calling the stop()
+// function in a reaction.
+bool stop_requested = false;
+
+// Duration, or -1 if no stop time has been given.
+instant_t duration = -1LL;
+
+// Stop time, or 0 if no stop time has been given.
+instant_t stop_time = 0LL;
+
+/////////////////////////////
+// The following functions are in scope for all reactors:
+
+// Return the current logical time.
 long long get_logical_time() {
     return current_time;
 }
+
+// Stop execution at the conclusion of the current logical time.
+void stop() {
+    stop_requested = true;
+}
+
+/////////////////////////////
+// The following is not in scope for reactors:
 
 // Priority queues.
 pqueue_t* event_q;     // For sorting by time.
 pqueue_t* reaction_q;  // For sorting by index (topological sort)
 
 handle_t __handle = 0;
-struct timespec __physicalStartTime;
+struct timespec physicalStartTime;
 
 // ********** Priority Queue Support Start
 
@@ -96,60 +123,69 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
     return __schedule(trigger, trigger->offset + extra_delay);
 }
 
-
-// Wait until physical time matches or exceeds the start time of execution
-// plus the current_time plus the specified logical time.  If this is not
+// Advance logical time to the lesser of the specified event time or the
+// stop time, if a stop time has been given. If the -fast command-line option
+// was not given, then wait until physical time matches or exceeds the start time of
+// execution plus the current_time plus the specified logical time.  If this is not
 // interrupted, then advance current_time by the specified logical_delay. 
 // Return 0 if time advanced to the time of the event and -1 if the wait
-// was interrupted.
+// was interrupted or if the stop time was reached.
 int wait_until(event_t* event) {
-    // printf("-------- Waiting for logical time %lld.\n", event->time);
     instant_t logical_time_ns = event->time;
-    
-    // Get the current physical time.
-    struct timespec current_physical_time;
-    clock_gettime(CLOCK_REALTIME, &current_physical_time);
-    
-    long long ns_to_wait = logical_time_ns
-            - (current_physical_time.tv_sec * BILLION
-            + current_physical_time.tv_nsec);
-    
-    if (ns_to_wait <= 0) {
-        // Advance current time.
-        current_time = event->time;
-        return 0;
+    int return_value = 0;
+    if (stop_time > 0LL && logical_time_ns > stop_time) {
+        logical_time_ns = stop_time;
+        // Indicate on return that the time of the event was not reached.
+        // We still wait for time to elapse in case asynchronous events come in.
+        return_value = -1;
     }
+    if (!fast) {
+        // printf("-------- Waiting for logical time %lld.\n", logical_time_ns);
     
-    // timespec is seconds and nanoseconds.
-    struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
-    // printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
-    struct timespec remaining_time;
-    // FIXME: If the wait time is less than the time resolution, don't sleep.
-    if (nanosleep(&wait_time, &remaining_time) != 0) {
-        // Sleep was interrupted.
-        // May have been an asynchronous call to schedule(), or
-        // it may have been a control-C to stop the process.
-        // Set current time to match physical time, but not less than
-        // current logical time nor more than next time in the event queue.
+        // Get the current physical time.
+        struct timespec current_physical_time;
         clock_gettime(CLOCK_REALTIME, &current_physical_time);
-        long long current_physical_time_ns 
-                = current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec;
-        if (current_physical_time_ns > current_time) {
-            if (current_physical_time_ns < event->time) {
-                current_time = current_physical_time_ns;
+    
+        long long ns_to_wait = logical_time_ns
+                - (current_physical_time.tv_sec * BILLION
+                + current_physical_time.tv_nsec);
+    
+        if (ns_to_wait <= 0) {
+            // Advance current time.
+            current_time = logical_time_ns;
+            return return_value;
+        }
+    
+        // timespec is seconds and nanoseconds.
+        struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
+        // printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
+        struct timespec remaining_time;
+        // FIXME: If the wait time is less than the time resolution, don't sleep.
+        if (nanosleep(&wait_time, &remaining_time) != 0) {
+            // Sleep was interrupted.
+            // May have been an asynchronous call to schedule(), or
+            // it may have been a control-C to stop the process.
+            // Set current time to match physical time, but not less than
+            // current logical time nor more than next time in the event queue.
+            clock_gettime(CLOCK_REALTIME, &current_physical_time);
+            long long current_physical_time_ns 
+                    = current_physical_time.tv_sec * BILLION
+                    + current_physical_time.tv_nsec;
+            if (current_physical_time_ns > current_time) {
+                if (current_physical_time_ns < logical_time_ns) {
+                    current_time = current_physical_time_ns;
+                    return -1;
+                }
+            } else {
+                // Current physical time does not exceed current logical
+                // time, so do not advance current time.
                 return -1;
             }
-        } else {
-            // Advance current time.
-            current_time = event->time;
-            // FIXME: Make sure that the microstep is dealt with correctly.
-            return -1;
         }
     }
     // Advance current time.
-    current_time = event->time;
-    return 0;
+    current_time = logical_time_ns;
+    return return_value;
 }
 
 // Wait until physical time matches or exceeds the time of the least tag
@@ -162,16 +198,31 @@ int wait_until(event_t* event) {
 // and then execute the reactions in order. Each reaction may produce
 // outputs, which places additional reactions into the index-ordered
 // priority queue. All of those will also be executed in order of indices.
-// Finally, return 1.
+// If the -stop option has been given on the command line, then return
+// 0 when the logical time duration matches the specified duration.
+// Also return 0 if there are no more events in the queue and
+// the command-line option has been given to halt on empty.
+// Otherwise, return 1.
 int next() {
     event_t* event = pqueue_peek(event_q);
     if (event == NULL) {
         // No event in the queue.
+        // FIXME: We want to wait for an asynchronous event.
         return 0;
     }
-    // Wait until physical time >= event.time
+    // Wait until physical time >= event.time.
     if (wait_until(event) < 0) {
-        // FIXME: sleep was interrupted. Handle that somehow here!
+        // Sleep was interrupted or the stop time has been reached.
+        // Time has not advanced to the time of the event.
+        // There may be a new earlier event on the queue.
+        event_t* new_event = pqueue_peek(event_q);
+        if (new_event == event) {
+            // There is no new event. If the stop time has been reached,
+            // then return.
+            if (current_time == stop_time) {
+                return 0;
+            }
+        }
     }
     
     // Invoke code that must execute before starting a new logical time round,
@@ -248,9 +299,78 @@ int next() {
             }
         }
     }
+    if (current_time == stop_time) {
+        return 0;
+    }
     return 1;
 }
 
+// Print a usage message.
+void usage(char* command) {
+    printf("\nCommand-line arguments: \n\n");
+    printf("  -fast\n");
+    printf("   Do not wait for physical time to match logical time.\n\n");
+    printf("  -stop <duration> <units>\n");
+    printf("   Stop after the specified amount of logical time, where units are one of\n");
+    printf("   nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.\n\n");
+}
+
+// Process the command-line arguments.
+// If the command line arguments are not understood, then
+// print a usage message and return 0.
+// Otherwise, return 1.
+int process_args(int argc, char* argv[]) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-fast") == 0) {
+            fast = true;
+        } else if (strcmp(argv[i], "-stop") == 0) {
+            if (argc < i + 3) {
+                usage(argv[0]);
+                return 0;
+            }
+            i++;
+            char* time_spec = argv[i++];
+            char* units = argv[i];
+            duration = atoll(time_spec);
+            // A parse error returns 0LL, so check to see whether that is what is meant.
+            if (duration == 0LL && strncmp(time_spec, "0", 1) != 0) {
+                // Parse error.
+                printf("Error: invalid time value: %s", time_spec);
+                usage(argv[0]);
+                return 0;
+            }
+            if (strncmp(units, "sec", 3) == 0) {
+                duration = SEC(duration);
+            } else if (strncmp(units, "msec", 4) == 0) {
+                duration = MSEC(duration);
+            } else if (strncmp(units, "usec", 4) == 0) {
+                duration = USEC(duration);
+            } else if (strncmp(units, "nsec", 4) == 0) {
+                duration = NSEC(duration);
+            } else if (strncmp(units, "minute", 6) == 0) {
+                duration = MINUTE(duration);
+            } else if (strncmp(units, "hour", 4) == 0) {
+                duration = HOUR(duration);
+            } else if (strncmp(units, "day", 3) == 0) {
+                duration = DAY(duration);
+            } else if (strncmp(units, "week", 4) == 0) {
+                duration = WEEK(duration);
+            } else {
+                // Invalid units.
+                printf("Error: invalid time units: %s", units);
+                usage(argv[0]);
+                return 0;
+            }
+        } else {
+            usage(argv[0]);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+// Initialize the priority queues and set logical time to match
+// physical time. This also prints a message reporting the start time.
 void initialize() {
 #if _WIN32 || WIN32
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
@@ -267,14 +387,33 @@ void initialize() {
     reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, cmp_pri, get_rct_pri,
             get_rct_pos, set_rct_pos, eql_rct);
 
-    // Initialize logical time to match physical time.
-    clock_gettime(CLOCK_REALTIME, &__physicalStartTime);
-    printf("Start execution at time %splus %ld nanoseconds.\n",
-    ctime(&__physicalStartTime.tv_sec), __physicalStartTime.tv_nsec);
-    current_time = __physicalStartTime.tv_sec * BILLION    + __physicalStartTime.tv_nsec;
-    
     // Initialize the trigger table.
     __initialize_trigger_objects();
+
+    // Initialize logical time to match physical time.
+    clock_gettime(CLOCK_REALTIME, &physicalStartTime);
+    printf("Start execution at time %splus %ld nanoseconds.\n",
+    ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
+    current_time = physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec;
+    
+    if (duration >= 0LL) {
+        // A duration has been specified. Calculate the stop time.
+        stop_time = current_time + duration;
+    }
+}
+
+// Print elapsed logical and physical times.
+void wrapup() {
+    interval_t elapsed_logical_time
+        = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    printf("Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
+    
+    struct timespec physicalEndTime;
+    clock_gettime(CLOCK_REALTIME, &physicalEndTime);
+    interval_t elapsed_physical_time
+        = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
+        - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    printf("Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
 }
 
 // ********** Start Windows Support
@@ -330,9 +469,11 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
 // ********** End Windows Support
 
 int main(int argc, char* argv[]) {
-    initialize();
-    __start_timers();
-    // FIXME: Need stopping conditions.
-    while (next() != 0);
+    if (process_args(argc, argv)) {
+        initialize();
+        __start_timers();
+        while (next() != 0 && !stop_requested);
+    }
+    wrapup();
     return 0;
 }
