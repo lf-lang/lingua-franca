@@ -121,8 +121,9 @@ Port:
     ValidID | (ValidID '.' ValidID);
 
 // Specification of what outputs a reaction writes.
+// Note that Port is either a ValidID or ValidID.ValidID
 Produces:
-	'->' produces+=ValidID (',' produces+=ValidID)?;
+	'->' produces+=Port (',' produces+=Port)?;
 
 // A type is in the target language, hence either an ID or target code.
 Type:

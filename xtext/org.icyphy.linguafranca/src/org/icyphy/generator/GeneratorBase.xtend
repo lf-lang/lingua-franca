@@ -339,15 +339,6 @@ class GeneratorBase {
 		code.toString()
 	}
 	
-	/** Get the AST element defining a reactor that has
-	 *  the specified class name, or null if there is none.
-	 *  @param className The reactor class name.
-	 *  @return The reactor, or null if there isn't one matching the name.
-	 */
-	protected def getReactor(String className) {
-		classToReactor.get(className)
-	}
-	
 	/** Return the Input with the given name.
 	 *  @param reactor The Reactor.
 	 *  @param name The name of the desired input.
@@ -356,6 +347,16 @@ class GeneratorBase {
 	protected def getInput(Reactor reactor, String name) {
 		var properties = reactorToProperties.get(reactor)
 		properties.nameToInput.get(name)
+	}
+	
+	/** Return the Instance with the given name.
+	 *  @param reactor The container Reactor.
+	 *  @param name The name of the desired instance.
+	 *  @return The instance, or null if there isn't one.
+	 */
+	protected def getInstance(Reactor reactor, String name) {
+		var properties = reactorToProperties.get(reactor)
+		properties.nameToInstance.get(name)
 	}
 	
 	/** Return the Output with the given name.
@@ -396,6 +397,15 @@ class GeneratorBase {
 	protected def getReactions(Reactor reactor, String name) {
 		var properties = reactorToProperties.get(reactor)
 		properties.triggerNameToReactions.get(name)
+	}
+
+	/** Get the AST element defining a reactor that has
+	 *  the specified class name, or null if there is none.
+	 *  @param className The reactor class name.
+	 *  @return The reactor, or null if there isn't one matching the name.
+	 */
+	protected def getReactor(String className) {
+		classToReactor.get(className)
 	}
 
 	/** Return a set of timer names for a reactor class.

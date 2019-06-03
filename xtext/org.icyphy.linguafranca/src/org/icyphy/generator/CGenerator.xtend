@@ -19,6 +19,7 @@ import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Produces
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
@@ -41,7 +42,7 @@ class CGenerator extends GeneratorBase {
 	var initializeTriggerObjects = new StringBuilder()
 	
 	// List of deferred assignments to perform in initialize_trigger_objects.
-	var deferredInitialize = new LinkedList<InitiatlizeRemoteTriggersTable>();
+	var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>();
 	
 	// Place to collect code to execute at the start of a time step.
 	var startTimeStep = new StringBuilder()
@@ -172,8 +173,31 @@ class CGenerator extends GeneratorBase {
 				reportError(output, "Output is required to have a type: " + output.name)
 			} else {
 				// NOTE: Slightly obfuscate output name to help prevent accidental use.
-				pr(body, removeCodeDelimiter(output.type) + ' __' + output.name + ';');
-				pr(body, 'bool __' + output.name + '_is_present;');
+				pr(body, removeCodeDelimiter(output.type) + ' __' + output.name + ';')
+				pr(body, 'bool __' + output.name + '_is_present;')
+			}
+		}
+		// Finally, handle reactions that produce outputs sent to inputs
+		// of contained reactions.
+		for(reaction: reactor.reactions) {
+			if (reaction.produces !== null && reaction.produces.produces !== null) {
+				for(output: reaction.produces.produces) {
+					var split = output.split('\\.')
+					if (split.length === 2) {
+						// Get a port matching the portName.
+						var destinationPort = getInputPortOfContainedReactor(
+							reactor, split.get(0), split.get(1), reaction
+						)
+						if (destinationPort !== null) {
+							pr(body, removeCodeDelimiter(destinationPort.type) + ' __'
+								+ split.get(0) + '_' + split.get(1) + ';'
+							)
+							pr(body, 'bool __'
+								+ split.get(0) + '_' + split.get(1) + '_is_present;'
+							)
+						}
+					}
+				}				
 			}
 		}
 		if (body.length > 0) {
@@ -259,9 +283,17 @@ class CGenerator extends GeneratorBase {
 						// FIXME: Actions may have payloads.
 						pr(reactionInitialization, "trigger_t* " + action.name + ' = self->__' + action.name + ';');
 					} else {
-						// It is an output.
-						var out = getOutput(reactor, output)
-						generateOutputVariablesInReaction(reactionInitialization, out)
+						var split = output.split('\\.')
+						if (split.length === 1) {
+							// It is an output.
+							var out = getOutput(reactor, output)
+							generateOutputVariablesInReaction(reactionInitialization, out)
+						} else {
+							// It is the input of a contained reactor.
+							generateVariablesForSendingToContainedReactors(
+								reactionInitialization, reaction.produces, reactor, split
+							)
+						}
 					}
 				}
 			}
@@ -388,6 +420,7 @@ class CGenerator extends GeneratorBase {
 								if (inputNames === null || inputNames.size === 0) {
 									triggersContents.append("NULL")
 								} else {
+									// FIXME: The following does not seem to be used!
 									var inputTriggerStructPointers = new StringBuilder()
 									var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount + '_remote_triggers'
 									var inputCount = 0;
@@ -397,7 +430,7 @@ class CGenerator extends GeneratorBase {
 											inputTriggerStructPointers.append(', ')
 										}
 										deferredInitialize.add(
-											new InitiatlizeRemoteTriggersTable(
+											new InitializeRemoteTriggersTable(
 												container, remoteTriggersArrayName, (inputCount++), inputName
 											)
 										)
@@ -409,6 +442,49 @@ class CGenerator extends GeneratorBase {
 										+ '];'
 									)
 									triggersContents.append('&' + remoteTriggersArrayName)
+								}
+							} else {
+								// It is not an output, but the reaction may be sending data
+								// to the input of a contained reactor. Check first to see whether
+								// it has the right form.
+								var portSpec = output.split('\\.')
+								if (portSpec.length === 2) {
+									// The form is right.
+									// First create the array of pointers to booleans indicating whether
+									// an output is produced.
+									// Insert a comma if needed.
+									if (presentPredicates.length > 0) {
+										presentPredicates.append(", ")
+									}
+									presentPredicates.append('&' + nameOfSelfStruct + '.__' 
+										+ portSpec.get(0) + '_' + portSpec.get(1) + '_is_present'
+									)
+									outputCount++
+									
+									var destinationPort = getInputPortOfContainedReactor(
+										reactor, portSpec.get(0), portSpec.get(1), reaction.produces
+									)
+									// Insert a comma if needed.
+									if (triggeredSizesContents.length > 0) {
+										triggeredSizesContents.append(", ")
+									}
+									triggeredSizesContents.append("1")
+									if (destinationPort === null) {
+										triggersContents.append("NULL")										
+									} else {
+										var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount + '_remote_triggers'
+										var destinationInstance = reactorInstance.getContainedInstance(portSpec.get(0))
+										deferredInitialize.add(
+											new InitializeRemoteTriggersTable(
+												destinationInstance, remoteTriggersArrayName, 0, destinationPort.name
+											)
+										)
+										pr(result, 'trigger_t* '
+											+ remoteTriggersArrayName
+											+ '[1];'
+										)
+										triggersContents.append('&' + remoteTriggersArrayName)
+									}
 								}
 							}
 						}
@@ -526,7 +602,6 @@ class CGenerator extends GeneratorBase {
 		ReactorInstance container,
 		Hashtable<String,String> importTable
 	) {
-		
 		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
 			className = instance.reactorClass
@@ -741,17 +816,22 @@ class CGenerator extends GeneratorBase {
 	// port's reactor to the appropriate entries in the "self" struct of the
 	// source reactor.
 	private def void connectInputsToOutputs(ReactorInstance container) {
+		// Collect the set of inputs that have connections so that we can
+		// later handle dangling inputs, ensuring that they are always "absent".
 		var connectedInputs = new HashSet<String>()
+		
 		for (containedReactor: container.containedInstances.values()) {
 			// In case this is a composite, handle its assignments.
 			connectInputsToOutputs(containedReactor)
-			var outputProperties = reactorToProperties.get(containedReactor.reactor)
 			var containerProperties = reactorToProperties.get(containedReactor.container.reactor)
 			for (output: containedReactor.reactor.outputs) {
 				var outputSelfStructName = containedReactor.properties.get("selfStructName")
 				var inputNames = containerProperties.outputNameToInputNames.get(containedReactor.name + '.' + output.name)
 				if (inputNames !== null) {
 					for(input: inputNames) {
+						if (connectedInputs.contains(input)) {
+							reportError(output, "Connecting to an input that already has a connection: " + input)
+						}
 						connectedInputs.add(input)
 						var split = input.split('\\.')
 						if (split.length === 2) {
@@ -768,11 +848,47 @@ class CGenerator extends GeneratorBase {
 							reportError(container.reactor,
 								"FIXME: Communication across hierarchy is not yet supported"
 							)
+							// var outputProperties = reactorToProperties.get(containedReactor.reactor)
 						}
 					}
 				}
 			}
-			// Handle dangling input ports that are not connected to anything.
+		}
+		// Handle inputs that get sent data from a reaction rather than from
+		// another contained reactor.
+		for (reaction: container.reactor.reactions) {
+			if (reaction.produces !== null && reaction.produces.produces !== null) {
+				for (produces: reaction.produces.produces) {
+					var split = produces.split('\\.')
+					if (split.length === 2) {
+						// Found an input that is sent data from a reaction.
+						if (connectedInputs.contains(produces)) {
+							reportError(reaction, "Sending to an input that already has a connection: " + produces)
+						}
+						connectedInputs.add(produces)
+						var inputReactor = container.getContainedInstance(split.get(0))
+						if (inputReactor === null) {
+							reportError(reaction, "No such destination reactor: " + split.get(0))
+						} else {
+							var inputSelfStructName = inputReactor.properties.get("selfStructName")
+							var containerSelfStructName = container.properties.get("selfStructName")
+							pr(inputSelfStructName + '.__' + split.get(1) + ' = &'
+								+ containerSelfStructName + '.__' + split.get(0) + '_' + split.get(1) + ';'
+							)
+							pr(inputSelfStructName + '.__' + split.get(1) + '_is_present = &'
+								+ containerSelfStructName + '.__' + split.get(0) + '_' + split.get(1) + '_is_present;'
+							)
+							pr(startTimeStep, containerSelfStructName + '.__' + split.get(0) + '_' + split.get(1) 
+								+ '_is_present = false;'
+							)
+						}						
+					}
+				}
+			}
+		}
+		
+		// Handle dangling input ports that are not connected to anything.
+		for (containedReactor: container.containedInstances.values()) {		
 			for (input: containedReactor.reactor.inputs) {
 				var inputName = containedReactor.name + '.' + input.name
 				if (!connectedInputs.contains(inputName)) {
@@ -841,6 +957,77 @@ class CGenerator extends GeneratorBase {
 		)
 	}
 	
+	/** Generate into the specified string builder the code to
+	 *  initialize local variables for sending data to an input
+	 *  of a contained reaction (e.g. for a deadline violation).
+	 *  @param builder The string builder.
+	 *  @param output The output statement from the AST.
+	 *  @param reactor The reactor within which this occurs.
+	 *  @param portSpec The output statement split into reactorName and portName.
+	 */
+	private def generateVariablesForSendingToContainedReactors(
+		StringBuilder builder, Produces produces, Reactor reactor, String[] portSpec
+	) {
+		// Get a port matching the portName.
+		var destinationPort = getInputPortOfContainedReactor(
+			reactor, portSpec.get(0), portSpec.get(1), produces
+		)
+				
+		// Need to create a struct so that the port can be referenced in C code
+		// as reactorName.portName.
+		// FIXME: This means that the destination instance name cannot match
+		// any input port, output port, or action, because we will get a name collision.
+		pr(builder, 'struct ' + portSpec.get(0) + ' {'
+			+ removeCodeDelimiter(destinationPort.type)
+			+ '* ' + portSpec.get(1) + '; '
+			+ 'bool* ' + portSpec.get(1) + '_is_present;} '
+			+ portSpec.get(0)
+			+ ';'
+		)
+		pr(builder, portSpec.get(0) + '.' + portSpec.get(1)
+					+ ' = &(self->__' + portSpec.get(0) + '_' + portSpec.get(1) + ');')
+		pr(builder, portSpec.get(0) + '.' + portSpec.get(1)	+ '_is_present'				
+					+ ' = &(self->__' + portSpec.get(0) + '_' + portSpec.get(1) + '_is_present);')
+	}
+	
+	/** Given a container reactor, a reactor name, and a port name, return
+	 *  the Input statement that it corresponds to, or report an error and
+	 *  return null if there is no such input.
+	 *  @param container A composite reactor.
+	 *  @param reactorName The name of a contained reactor.
+	 *  @param portName The name of an input port of the contained reactor.
+	 *  @param report The AST object on which to report an error.
+	 */
+	private def getInputPortOfContainedReactor(
+		Reactor container, String reactorName, String portName, EObject report
+	) {
+		// First, find an instance whose name matches the reactorName.
+		var instance = container.getInstance(reactorName)
+		if (instance === null) {
+			reportError(report, "No instance named: " + reactorName)
+			return null as Input
+		}
+		
+		// Next, need to find the reactor definition referenced.
+		var containedReactor = getReactor(instance.reactorClass)
+		if (containedReactor === null) {
+			reportError(report, "Cannot find reactor definition for: "
+				+ instance.reactorClass
+			)
+			return null as Input
+		}
+		
+		// Next, get a port matching the portName.
+		var destinationPort = containedReactor.getInput(portName)
+		if (destinationPort === null) {
+			reportError(report, "Destination port does not have an input named: " 
+				+ portName
+			)
+			return null as Input
+		}
+		destinationPort
+	}
+	
 	/** Return a C type for the type of the specified parameter.
 	 *  If there are code delimiters around it, those are removed.
 	 *  If the type is "time", then it is converted to "interval_t".
@@ -854,21 +1041,6 @@ class CGenerator extends GeneratorBase {
 		}
 		type
 	}
-	
-	/** Given a string of form either "xx" or "xx.yy", return either
-	 *  "'xx'" or "xx, 'yy'".
-	 */
-	// FIXME: Not used.
-	def portSpec(String port) {
-        val a = port.split('\\.');
-        if (a.length == 1) {
-            "'" + a.get(0) + "'"
-        } else if (a.length > 1) {
-            a.get(0) + ", '" + a.get(1) + "'"
-        } else {
-            "INVALID_PORT_SPEC:" + port
-        }
-    }
 
 	// Print the #line compiler directive with the line number of
 	// the most recently used node.

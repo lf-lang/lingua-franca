@@ -13,14 +13,21 @@ reactor Source(period:time(2 sec)) {
 }
 reactor Destination {
 	input x:int;
-	reaction(x) {=
-		printf("%d\n", x);
+	input e:int;
+	reaction(x, e) {=
+		if (e_is_present) {
+			printf("**** Handle PANIC.\n");
+		}
+		if (x_is_present) {
+			printf("%d\n", x);
+		}
 	=}
 }
 reactor Main {
 	action panic;
-	reaction(panic) {=
+	reaction(panic) -> d.e {=
 		printf("**** PANIC! Deadline missed.\n");
+		set(d.e, 1);
 	=}
 	s = new Source();
 	d = new Destination();
