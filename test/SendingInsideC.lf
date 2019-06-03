@@ -1,0 +1,16 @@
+target C; 
+reactor Printer {
+	input x:int;
+	reaction(x) {=
+		printf("%d\n", x);
+	=}
+}
+reactor Main {
+	state count:int(0);
+	timer t(0, 1 sec);
+	p = new Printer();
+	reaction(t) -> p.x {=
+		(self->count)++;
+		set(p.x, self->count);
+	=}
+}

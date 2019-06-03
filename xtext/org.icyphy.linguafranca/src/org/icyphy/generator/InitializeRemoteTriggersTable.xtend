@@ -4,7 +4,7 @@
 package org.icyphy.generator
 
 /** A data class used by CGenerator. */
-class InitiatlizeRemoteTriggersTable {
+class InitializeRemoteTriggersTable {
 	new (
 		ReactorInstance reactor,
 		String remoteTriggersArrayName,

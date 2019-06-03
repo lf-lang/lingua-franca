@@ -149,10 +149,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
 	@Check(FAST)
 	def checkSets(Produces produces) {
-		for (set: produces.produces) {
-			if (!outputs.contains(set) && !actions.contains(set)) {
-					error("Reaction declares that it produces something that is not an output or an action: "
-					+ set,
+		for (port: produces.produces) {
+			// If the port has the form of name.name, then skip the check.
+			// We don't have enough information here to check it.
+			if (port.split('\\.').length != 2 && !outputs.contains(port) && !actions.contains(port)) {
+					error("Reaction declares that it produces something that is not an output,"
+						+ " an action, nor an input port: "
+					+ port,
 					Literals.PRODUCES__PRODUCES
 				)
 			}
