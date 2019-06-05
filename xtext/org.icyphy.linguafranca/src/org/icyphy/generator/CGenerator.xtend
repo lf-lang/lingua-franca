@@ -74,28 +74,29 @@ class CGenerator extends GeneratorBase {
 		
 		super.doGenerate(resource, fsa, context, importTable)
 		
-		// Generate function to initialize the trigger objects for all reactors.
-		pr('void __initialize_trigger_objects() {\n')
-		indent()
-		pr(initializeTriggerObjects)
-		doDeferredInitialize()
-		unindent()
-		pr('}\n')
+		if (main !== null) {
+			// Generate function to initialize the trigger objects for all reactors.
+			pr('void __initialize_trigger_objects() {\n')
+			indent()
+			pr(initializeTriggerObjects)
+			doDeferredInitialize()
+			unindent()
+			pr('}\n')
 		
-		// Generate function to start timers for all reactors.
-		pr("void __start_timers() {")
-		indent()
-		pr(startTimers)
-		unindent()
-		pr("}")
+			// Generate function to start timers for all reactors.
+			pr("void __start_timers() {")
+			indent()
+			pr(startTimers)
+			unindent()
+			pr("}")
 		
-		// Generate function to execute at the start of a time step.
-		pr('void __start_time_step() {\n')
-		indent()
-		pr(startTimeStep)
-		unindent()
-		pr('}\n')
-		
+			// Generate function to execute at the start of a time step.
+			pr('void __start_time_step() {\n')
+			indent()
+			pr(startTimeStep)
+			unindent()
+			pr('}\n')
+		}
 		fsa.generateFile(filename + ".c", getCode())		
 	}
 	
