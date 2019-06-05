@@ -99,6 +99,8 @@ class GeneratorBase {
 			// FIXME: Should use mainInstance.setParameters() to set parameter
 			// values from the command line.
 			instantiate(mainInstance, null, importTable)
+		} else {
+			reportWarning(resource.allContents.next, "No Main reactor.")
 		}
 	}
 	
@@ -550,12 +552,29 @@ class GeneratorBase {
         // In case we are using a command-line tool, we report the line number.
         // The caller should not throw an exception so compilation can continue.
         var node = NodeModelUtils.getNode(object)
-        System.err.println("Line "
+        System.err.println("ERROR: Line "
             		+ node.getStartLine()
                		+ ": "
             		+ message)
         // Return a string that can be inserted into the generated code.
         "[[ERROR: " + message + "]]"
+	}
+
+	/** Report a warning on the specified parse tree object.
+	 *  @param object The parse tree object.
+	 *  @param message The error message.
+	 */
+	protected def reportWarning(EObject object, String message) {
+		// FIXME: All calls to this should also be checked by the validator (See LinguaFrancaValidator.xtend).
+        // In case we are using a command-line tool, we report the line number.
+        // The caller should not throw an exception so compilation can continue.
+        var node = NodeModelUtils.getNode(object)
+        System.err.println("WARNING: Line "
+            		+ node.getStartLine()
+               		+ ": "
+            		+ message)
+        // Return an empty string that can be inserted into the generated code.
+        ""
 	}
 
 	/** Reduce the indentation by one level for generated code
