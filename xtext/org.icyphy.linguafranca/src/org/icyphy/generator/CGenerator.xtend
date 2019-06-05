@@ -65,7 +65,7 @@ class CGenerator extends GeneratorBase {
 			IFileSystemAccess2 fsa, 
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
-				
+		
 		_resource = resource
 		// Figure out the file name for the target code from the source file name.
 		var filename = extractFilename(_resource.getURI.toString)
