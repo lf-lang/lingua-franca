@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 class LinguaFrancaParsingTest {
 	@Inject
 	ParseHelper<Model> parseHelper
-		
+
 	@Test
 	def void checkForTarget() {
 		val result = parseHelper.parse('''
