@@ -210,5 +210,12 @@ int nanosleep(const struct timespec *req, struct timespec *rem);
 #endif
 //  ******** End Windows Support ********  //
 
+// Patmos is missing posix time as well
+#ifdef __PATMOS__
+#define TIMER_US_LOW *((volatile _IODEV int *) (PATMOS_IO_TIMER + 0xc))
+int clock_gettime(clockid_t clk_id, struct timespec *tp);
+int nanosleep(const struct timespec *req, struct timespec *rem);
+#endif
+
 #endif /* REACTOR_H */
 /** @} */
