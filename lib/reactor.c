@@ -500,7 +500,7 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
     int timestamp = TIMER_US_LOW;
 // printf("nanosleep: %lld %ld\n", req->tv_sec, req->tv_nsec);
     
-    timestamp = req->tv_sec * 1000000 + req->tv_nsec / 1000;
+    timestamp += req->tv_sec * 1000000 + req->tv_nsec / 1000;
 // printf("sleep to %d\n", timestamp);
     while (timestamp - TIMER_US_LOW > 0) {
         ;
