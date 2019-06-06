@@ -15,6 +15,7 @@
 * Browse to lingua-franca/xtext and select the file LinguaFrancaProjectSet.psf
 * Close the Eclipse welcome page (which obscures the projects)
 * You should have five projects. Open org.icyphy.linguafranca
+* Note that Eclipse puts the source files in into $(HOME)/git/lingua-franka
 
 ## Build and Run the Lingua-Franca editor
 
