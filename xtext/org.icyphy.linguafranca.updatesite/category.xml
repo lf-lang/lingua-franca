@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/org.icyphy.linguafranca.sdk_0.0.0.jar" id="org.icyphy.linguafranca.sdk" version="0.0.0">
+      <category name="org.icyphy.linguafranca"/>
+   </feature>
+   <category-def name="org.icyphy.linguafranca" label="Lingua-Franca Modeling Langauge"/>
+</site>
