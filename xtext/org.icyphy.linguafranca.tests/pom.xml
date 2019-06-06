@@ -121,18 +121,25 @@
 	</dependencies>
       </plugin>
 
+      <!-- Disable the tycho-surefire-plugin
+           https://stackoverflow.com/questions/7821152/disable-a-maven-plugin-defined-in-a-parent-pom -->
+      <!--
       <plugin>
 	<groupId>org.eclipse.tycho</groupId>
 	<artifactId>tycho-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>none</phase>
+          </execution>
+        </executions>
       </plugin>
-
+      -->
+      
       <plugin>
 	<groupId>org.eclipse.xtend</groupId>
 	<artifactId>xtend-maven-plugin</artifactId>
       </plugin>
       
-      <!-- Don't use tycho-surefire-plugin, it does not work with JUnit5.
-           See https://github.com/eclipse/Xpect/issues/165
       <plugin>
 	<groupId>org.eclipse.tycho</groupId>
 	<artifactId>tycho-surefire-plugin</artifactId>
@@ -142,7 +149,7 @@
 	  <useUIThread>false</useUIThread>
 	</configuration>
       </plugin>
-      -->
+
     </plugins>
   </build>
 </project>
