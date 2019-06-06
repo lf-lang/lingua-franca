@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.icyphy.linguafranca</groupId>
+  <artifactId>parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>org.icyphy.linguafranca</module>
+    <module>org.icyphy.linguafranca.ide</module>
+    <module>org.icyphy.linguafranca.ui</module>
+    <module>org.icyphy.linguafranca.tests</module>
+    <module>org.icyphy.linguafranca.ui.tests</module>
+    <module>org.icyphy.linguafranca.sdk</module>
+    <module>org.icyphy.linguafranca.updatesite</module>
+  </modules>
+  
+  <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <tycho-version>1.4.0</tycho-version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <xtext.version>2.18.0</xtext.version>
+    <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>eclipse</id>
+      <layout>p2</layout>
+      <url>https://download.eclipse.org/releases/2019-06/</url>
+    </repository>
+    <repository>
+      <id>Xtext Update Site</id>
+      <layout>p2</layout>
+      <url>https://download.eclipse.org/modeling/tmf/xtext/updates/releases/${xtext.version}/</url>
+    </repository>
+  </repositories>
+  
+  <build>
+    
+    <pluginManagement>
+      
+      <plugins>
+	
+	<!-- xtend-maven-plugin is in pluginManagement instead of in plugins 
+	     so that it doesn't run before the exec-maven-plugin's *.mwe2 gen; this way 
+	     we can list it after. -->
+	<plugin>
+	  <groupId>org.eclipse.xtend</groupId>
+	  <artifactId>xtend-maven-plugin</artifactId>
+	  <version>${xtext.version}</version>
+	  <executions>
+	    <execution>
+	      <goals>
+		<goal>compile</goal>
+		<goal>xtend-install-debug-info</goal>
+		<goal>testCompile</goal>
+		<goal>xtend-test-install-debug-info</goal>
+	      </goals>
+	    </execution>
+	  </executions>
+	  <configuration>
+	    <outputDirectory>xtend-gen</outputDirectory>
+	  </configuration>
+	</plugin>
+	
+	<plugin>
+	  <groupId>org.apache.maven.plugins</groupId>
+	  <artifactId>maven-clean-plugin</artifactId>
+	  <version>2.5</version>
+	  <executions>
+	    <execution>
+	      <id>gen-clean</id>
+	      <goals>
+		<goal>clean</goal>
+	      </goals>
+	      <configuration>
+		<filesets>
+		  <fileset>
+		    <directory>${basedir}/xtend-gen</directory>
+		  </fileset>
+		</filesets>
+	      </configuration>
+	    </execution>
+	  </executions>
+	</plugin>
+	
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.7.1</version>
+        </plugin>
+
+      </plugins>
+      
+    </pluginManagement>
+
+    <plugins>
+      
+      <plugin>
+	<groupId>org.eclipse.tycho</groupId>
+	<artifactId>tycho-maven-plugin</artifactId>
+	<version>${tycho-version}</version>
+	<extensions>true</extensions>
+      </plugin>
+      
+    </plugins>
+    
+  </build>
+  
+</project>
