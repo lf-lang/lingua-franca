@@ -92,20 +92,6 @@
 
       -->
 
-      <!-- Disable the tycho-surefire-plugin
-           https://stackoverflow.com/questions/7821152/disable-a-maven-plugin-defined-in-a-parent-pom -->
-      <!--
-      <plugin>
-	<groupId>org.eclipse.tycho</groupId>
-	<artifactId>tycho-surefire-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>none</phase>
-          </execution>
-        </executions>
-      </plugin>
-      -->
-      
       <plugin>
 	<groupId>org.eclipse.xtend</groupId>
 	<artifactId>xtend-maven-plugin</artifactId>
@@ -116,19 +102,13 @@
 	<artifactId>tycho-surefire-plugin</artifactId>
 	<version>${tycho-version}</version>
 	<configuration>
+
+          <!-- No ui tests right now, so don't fail! -->
+          <failIfNoTests>false</failIfNoTests>
+
 	  <useUIHarness>false</useUIHarness>
 	  <useUIThread>false</useUIThread>
 	</configuration>
-	<executions>
-          <!-- https://stackoverflow.com/questions/11935181/what-does-the-default-test-stand-for-in-the-maven-surefire-plugin-->
-        <execution>
-                <id>default-test</id>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-        </execution>
-	</executions>
-
       </plugin>
 
       <!-- Use maven surefire (not tycho surefire!) to run tests as plain JUnit 
