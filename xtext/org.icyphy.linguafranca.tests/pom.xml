@@ -91,35 +91,6 @@
 	   </plugin>
 
       -->
-      <!-- Use maven surefire (not tycho surefire!) to run tests as plain JUnit 
-	   tests (not Plug-In JUnit tests!) -->
-      <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-surefire-plugin</artifactId>
-	<version>2.16</version>
-	<configuration>
-	  <systemProperties>
-	    <xpectTestTitlePostfix>.${target-platform}</xpectTestTitlePostfix>
-	    <xpectTestTitleShowEnvironment>true</xpectTestTitleShowEnvironment>
-	  </systemProperties>
-	  <reportsDirectory>${project.build.directory}/surefire-reports-standalone</reportsDirectory>
-	</configuration>
-	<executions>
-	  <execution>
-	    <phase>test</phase>
-	    <goals>
-	      <goal>test</goal>
-	    </goals>
-	  </execution>
-	</executions>
-	<dependencies>
-	  <dependency>
-	    <groupId>org.apache.maven.surefire</groupId>
-	    <artifactId>surefire-junit47</artifactId>
-	    <version>2.16</version>
-	  </dependency>
-	</dependencies>
-      </plugin>
 
       <!-- Disable the tycho-surefire-plugin
            https://stackoverflow.com/questions/7821152/disable-a-maven-plugin-defined-in-a-parent-pom -->
@@ -148,6 +119,46 @@
 	  <useUIHarness>false</useUIHarness>
 	  <useUIThread>false</useUIThread>
 	</configuration>
+	<executions>
+          <!-- https://stackoverflow.com/questions/11935181/what-does-the-default-test-stand-for-in-the-maven-surefire-plugin-->
+        <execution>
+                <id>default-test</id>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+        </execution>
+	</executions>
+
+      </plugin>
+
+      <!-- Use maven surefire (not tycho surefire!) to run tests as plain JUnit 
+	   tests (not Plug-In JUnit tests!) -->
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-surefire-plugin</artifactId>
+	<version>2.16</version>
+	<configuration>
+	  <systemProperties>
+	    <xpectTestTitlePostfix>.${target-platform}</xpectTestTitlePostfix>
+	    <xpectTestTitleShowEnvironment>true</xpectTestTitleShowEnvironment>
+	  </systemProperties>
+	  <reportsDirectory>${project.build.directory}/surefire-reports-standalone</reportsDirectory>
+	</configuration>
+	<executions>
+	  <execution>
+	    <phase>test</phase>
+	    <goals>
+	      <goal>test</goal>
+	    </goals>
+	  </execution>
+	</executions>
+	<dependencies>
+	  <dependency>
+	    <groupId>org.apache.maven.surefire</groupId>
+	    <artifactId>surefire-junit47</artifactId>
+	    <version>2.16</version>
+	  </dependency>
+	</dependencies>
       </plugin>
 
     </plugins>
