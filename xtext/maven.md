@@ -1,7 +1,7 @@
-=Lingua-Franca Maven=
+# Lingua-Franca Maven
 Maven is a build system that is build Lingua-Franca from the command line
 
-== Resources ==
+# Resources
 * [Building Xtext Languages with Maven and Gradle (2014)](https://www.eclipse.org/community/eclipse_newsletter/2014/august/article3.php) is a good overview.
 
 * [Implementing Domain-Specific Languages with Xtext and Xtend (2nd Ed. 2016)](https://github.com/varmaprr/books/blob/master/Implementing%20Domain%20Specific%20Languages%20with%20Xtext%20and%20Xtend%20-%20Second%20Edition.pdf) - Chapter 11 "Continuous Integration" describes how to select to use the Xtext advanced project wizard to create a Maven pom.xml file.
@@ -11,7 +11,8 @@ Maven is a build system that is build Lingua-Franca from the command line
 
 * [Eclipse Maven Tycho XText Archetype](https://github.com/fuinorg/emt-xtext-archetype) Use Maven to generate a Xtext project that includes support for Maven and an Eclipse p2 directory.  This could be used to generate the stub files for the preexisting Lingua-Franca structure.  However, the generated files could be out of date because the archetype was started 6 years ago and last modified 10 on Aug 9, 2018.
 
-== TLDR ==
+# TLDR
+
 
 The pom.xml files were created from  https://github.com/xtext/maven-xtext-example
 
@@ -20,10 +21,10 @@ Under macOS, install Maven with:
 
 Below are various Maven commands.
 
-===Cleaning===
+## Cleaning
    mvn clean
 
-===Running the tests===
+## Running the tests
 To run the tests, run
 
     mvn verify
@@ -40,14 +41,27 @@ To run one test:
 
     mvn -Dtest=TestCircle test
 
-See [Running a Single Test](https://maven.apache.org/surefire/maven-surefire-plugin/examples/single-test.html)
+See [Running a Single Test](https://maven.apache.org/surefire/maven-surefire-plugin/examples/single-test.html) for how to use wild cards
 
-===Site===
+Oddly, this does not work:
+
+       mvn -Dtest=LinguaFrancaGeneratorTest surefire:test
+
+
+## p2 Site
+Eclipse uses a p2 site to provide features.  For example, there are Eclipse OSGI bundles created as part of Triquetrum at https://ptolemy.berkeley.edu/projects/chess/triq/p2/
+
 To create the p2 site:
-    mvn site
+    mvn install
+
+See org.icyphy.linguafranca.updatesite/target/repository/ for what would be uploaded to a website.
 
 
-==How to run maven-xtext-example code ===
+## How to run maven-xtext-example code
+
+The maven-xtext-example code is what was used to create the pom.xml
+files that are checked in to the lingua-franca repo.  Below are
+instructions about how to run the maven-xtext-example code.
 
 Under macOS, install Maven with:
     https://github.com/xtext/maven-xtext-example
@@ -63,11 +77,11 @@ Sit back and wait while the world is downloaded.  The command will end with an e
 
 Below are various problems and their solutions.
 
-==mvn site==
+### mvn site
 Try
     mvn site
 
-=== java.lang.ClassNotFoundException: org.apache.maven.doxia.siterenderer.DocumentContent ==
+#### java.lang.ClassNotFoundException: org.apache.maven.doxia.siterenderer.DocumentContent
 
 ``mvn site`` fails with:
 
@@ -86,7 +100,7 @@ Solution: [maven-site plugins 3.3 java.lang.ClassNotFoundException: org.apache.m
 
 in build part of pom"
 
-=== Caused by: org.eclipse.aether.transfer.ArtifactNotFoundException: Could not find artifact org.eclipse.m2e:lifecycle-mapping ===
+#### Caused by: org.eclipse.aether.transfer.ArtifactNotFoundException: Could not find artifact org.eclipse.m2e:lifecycle-mapping
 
 ``mvn site`` fails with:
     Caused by: org.eclipse.aether.transfer.ArtifactNotFoundException: Could not find artifact org.eclipse.m2e:lifecycle-mapping
@@ -102,7 +116,7 @@ The [workaround](https://stackoverflow.com/questions/7905501/get-rid-of-pom-not-
     cd ../maven-xtext-example
     mvn site
 
-=== [ERROR] Failed to execute goal on project my.mavenized.herolanguage.ide: Could not resolve dependencies for project my.mavenized.herolanguage:my.mavenized.herolanguage.ide:eclipse-plugin:1.0.0-SNAPSHOT: Could not find artifact my.mavenized.herolanguage:my.mavenized.herolanguage:jar:1.0.0-SNAPSHOT===
+#### [ERROR] Failed to execute goal on project my.mavenized.herolanguage.ide: Could not resolve dependencies for project my.mavenized.herolanguage:my.mavenized.herolanguage.ide:eclipse-plugin:1.0.0-SNAPSHOT: Could not find artifact my.mavenized.herolanguage:my.mavenized.herolanguage:jar:1.0.0-SNAPSHOT
 
 While running ```mvn site```:
 
@@ -131,7 +145,7 @@ Copied pom.xml files to lingua-franca/xtext and made substitutions
 * "my.mavenized.herolanguage" -> "org.icyphy.linguafranca"
 * "My Hero Language" -> "Lingua-Franca"
 
-=== java.io.FileNotFoundException: /Users/cxh/src/lf/lingua-franca/xtext/org.icyphy.linguafranca/src/my/mavenized/GenerateHeroLanguage.mwe2 (No such file or directory)===
+#### java.io.FileNotFoundException: /Users/cxh/src/lf/lingua-franca/xtext/org.icyphy.linguafranca/src/my/mavenized/GenerateHeroLanguage.mwe2 (No such file or directory)
 After ``mvn install``:
 
    Caused by: java.io.FileNotFoundException: /Users/cxh/src/lf/lingua-franca/xtext/org.icyphy.linguafranca/src/my/mavenized/GenerateHeroLanguage.mwe2 (No such file or directory)
@@ -144,7 +158,7 @@ The solution is to update the path to the mwe2 file:
 	    <argument>/${project.basedir}/src/org/icyphy/GenerateLinguaFranca.mwe2</argument>
 
 
-=== Access restriction: The type 'Test' is not API===
+#### Access restriction: The type 'Test' is not API
 
 ``mvn install`` fails with:
     [ERROR] Failed to execute goal org.eclipse.tycho:tycho-compiler-plugin:1.4.0:compile (default-compile) on project org.icyphy.linguafranca.tests: Compilation failure: Compilation failure:
@@ -190,7 +204,7 @@ However, that still fails.  Instead add
       </plugin>
 to both files and then ``mvn verify`` will get further.
 
-=== No tests found ===
+#### No tests found 
 ``mvn verify`` fails with:
 
 
@@ -322,3 +336,19 @@ class HeroLanguageParsingTest {
 ```
 
 Or do they?
+
+##### Solution?
+It looks like [What does the “default-test” stand for in the maven-surefire plugin](https://stackoverflow.com/questions/11935181/what-does-the-default-test-stand-for-in-the-maven-surefire-plugin) has the solution, which is to add
+
+	<executions>
+          <!-- https://stackoverflow.com/questions/11935181/what-does-the-default-test-stand-for-in-the-maven-surefire-plugin-->
+        <execution>
+                <id>default-test</id>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+        </execution>
+	</executions>
+
+to the tycho-surefire-plugin section of org.icyphy.linguafranca.tests/pom.xml
+
