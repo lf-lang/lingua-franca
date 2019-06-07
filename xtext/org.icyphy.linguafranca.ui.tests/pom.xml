@@ -51,6 +51,18 @@
 	  <useUIHarness>false</useUIHarness>
 	  <useUIThread>false</useUIThread>
 	</configuration>
+
+	<executions>
+          <!-- Disable the tycho-surefire-plugin during the default-test goal or phase.
+               https://stackoverflow.com/questions/11935181/what-does-the-default-test-stand-for-in-the-maven-surefire-plugin -->
+          <execution>
+            <id>default-test</id>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </execution>
+	</executions>
+
       </plugin>
     </plugins>
   </build>
