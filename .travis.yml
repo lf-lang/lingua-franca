@@ -1,0 +1,18 @@
+# Build lingua-franca on the Travis Continuous Integration system
+#
+# Based on http://muelder.blogspot.com/2015/08/building-eclipse-plugins-with-maven.html
+#
+
+sudo: false  
+language: java    
+cache:  
+ directories:  
+  - $HOME/.m2  
+env:  
+ global:  
+  - DISPLAY=:99.0  
+before_install:  
+ - sh -e /etc/init.d/xvfb start - sleep 10  
+script:    
+ - cd xtext
+ - mvn clean verify  
