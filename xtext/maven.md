@@ -48,6 +48,34 @@ Oddly, this does not work:
        mvn -Dtest=LinguaFrancaGeneratorTest surefire:test
 
 
+### Running the tests quickly
+
+Yes, the tests are slow.  The mvn -o option will work offline.  -rf will resume from the specified project.
+
+This took 23.055 seconds:
+    mvn -o test -rf :org.icyphy.linguafranca.tests
+
+Working online (without -o) took 28.735 seconds:
+    mvn test -rf :org.icyphy.linguafranca.tests
+
+Working online and running everything took 50.603 seconds:
+    mvn test
+
+https://jrebel.com/rebellabs/your-maven-build-is-slow-speed-it-up/  says:
+
+* -pl – makes Maven build only specified modules and not the whole project.
+* -am – makes Maven figure out what modules out target depends on  and build them too.
+
+So, this ran in 16.203 seconds:
+    mvn -o test -pl :org.icyphy.linguafranca.tests -am
+https://jrebel.com/rebellabs/your-maven-build-is-slow-speed-it-up/  says:
+
+    mvn -T 4 install -- will use 4 threads
+    mvn -T 1C install -- will use 1 thread per available CPU core
+
+This ran in 15.923 seconds
+    mvn -T 1C -o test -pl :org.icyphy.linguafranca.tests -am
+
 ## p2 Site
 Eclipse uses a p2 site to provide features.  For example, there are Eclipse OSGI bundles created as part of Triquetrum at https://ptolemy.berkeley.edu/projects/chess/triq/p2/
 
