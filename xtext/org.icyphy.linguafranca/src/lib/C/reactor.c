@@ -50,6 +50,7 @@ void stop() {
 // Priority queues.
 pqueue_t* event_q;     // For sorting by time.
 pqueue_t* reaction_q;  // For sorting by index (topological sort)
+pqueue_t* recycle_q;   // For recycling malloc'd events.
 
 handle_t __handle = 0;
 struct timespec physicalStartTime;
@@ -104,8 +105,11 @@ static void set_rct_pos(void *a, size_t pos) {
 // Schedule the specified trigger at current_time plus the
 // offset of the specified trigger plus the delay.
 handle_t __schedule(trigger_t* trigger, interval_t delay) {
-    // FIXME: Recycle event_t structs.
-    event_t* e = malloc(sizeof(struct event_t));
+    // Recycle event_t structs, if possible.
+    event_t* e = pqueue_pop(recycle_q);
+    if (e == NULL) {
+        e = malloc(sizeof(struct event_t));
+    }
     e->time = current_time + trigger->offset + delay;
     e->trigger = trigger;
 
@@ -254,8 +258,11 @@ int next() {
             __schedule(event->trigger, event->trigger->period - event->trigger->offset);
         }
           
-        // FIXME: Recycle this event instead of freeing it.
-        free(event);
+        // Recycle this event instead of freeing it.
+        // So that sorting doesn't cost anything, give all recycled events the
+        // same zero time stamp.
+        event->time = 0LL;
+        pqueue_insert(recycle_q, event);
 
         event = pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
@@ -399,6 +406,9 @@ void initialize() {
             get_evt_pos, set_evt_pos, eql_evt);
     reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, cmp_pri, get_rct_pri,
             get_rct_pos, set_rct_pos, eql_rct);
+	// NOTE: The recycle queue does not need to be sorted. But here it is.
+    recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
+            get_evt_pos, set_evt_pos, eql_evt);
 
     // Initialize the trigger table.
     __initialize_trigger_objects();
@@ -521,6 +531,8 @@ int main(int argc, char* argv[]) {
         __start_timers();
         while (next() != 0 && !stop_requested);
         wrapup();
+    	return 0;
+    } else {
+    	return -1;
     }
-    return 0;
 }
