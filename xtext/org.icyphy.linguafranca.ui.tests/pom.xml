@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <relativePath>../pom.xml</relativePath>
+    <groupId>org.icyphy.linguafranca</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>org.icyphy.linguafranca.ui.tests</artifactId>
+  <packaging>eclipse-test-plugin</packaging>
+
+  <name>Lingua-Franca UI Tests</name>
+
+  <build>
+    <plugins>
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-clean-plugin</artifactId>
+	<executions>
+	  <execution>
+	    <id>gen-clean</id>
+	    <phase>clean</phase>
+	  </execution>
+	</executions>
+      </plugin>
+
+      <plugin>
+        <!-- See https://github.com/eclipse/xtext-eclipse/issues/272 -->
+	<groupId>org.eclipse.tycho</groupId>
+	<artifactId>tycho-compiler-plugin</artifactId>
+	<version>${tycho-version}</version>
+	<configuration>
+	  <compilerArgument>-err:-forbidden</compilerArgument>
+	  <useProjectSettings>false</useProjectSettings>
+	</configuration>
+      </plugin>
+
+
+      <plugin>
+	<groupId>org.eclipse.xtend</groupId>
+	<artifactId>xtend-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+	<groupId>org.eclipse.tycho</groupId>
+	<artifactId>tycho-surefire-plugin</artifactId>
+	<version>${tycho-version}</version>
+	<configuration>
+	  <useUIHarness>false</useUIHarness>
+	  <useUIThread>false</useUIThread>
+	</configuration>
+
+	<executions>
+          <!-- Disable the tycho-surefire-plugin during the default-test goal or phase.
+               https://stackoverflow.com/questions/11935181/what-does-the-default-test-stand-for-in-the-maven-surefire-plugin -->
+          <execution>
+            <id>default-test</id>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </execution>
+	</executions>
+
+      </plugin>
+    </plugins>
+  </build>
+</project>

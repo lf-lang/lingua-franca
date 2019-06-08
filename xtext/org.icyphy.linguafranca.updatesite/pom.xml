@@ -1,0 +1,41 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <relativePath>../pom.xml</relativePath>
+    <groupId>org.icyphy.linguafranca</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>org.icyphy.linguafranca.updatesite</artifactId>
+  <packaging>eclipse-repository</packaging>
+
+  <name>Lingua-Franca Update Site</name>
+
+  <build>
+    <plugins>
+      <plugin>
+	<groupId>org.eclipse.tycho</groupId>
+	<artifactId>tycho-p2-director-plugin</artifactId>
+	<version>${tycho-version}</version>
+	<executions>
+	  <execution>
+	    <id>materialize-products</id>
+	    <goals>
+	      <goal>materialize-products</goal>
+	    </goals>
+	  </execution>
+	  <execution>
+	    <id>archive-products</id>
+	    <goals>
+	      <goal>archive-products</goal>
+	    </goals>
+	  </execution>
+	</executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

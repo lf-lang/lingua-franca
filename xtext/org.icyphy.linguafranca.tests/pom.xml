@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <relativePath>../pom.xml</relativePath>
+    <groupId>org.icyphy.linguafranca</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>org.icyphy.linguafranca.tests</artifactId>
+  <packaging>eclipse-test-plugin</packaging>
+
+  <name>Lingua-Franca Tests</name>
+
+  <build>
+
+    <!-- From https://github.com/eclipse/Xpect/blob/master/org.eclipse.xtext.example.domainmodel.xpect.tests/pom.xml -->
+    <!-- make sure surefire finds our test classes even though they are in 
+         the "src" folder -->
+    <testOutputDirectory>target/classes</testOutputDirectory>
+    <!-- end of https://github.com/eclipse/Xpect/blob/master/org.eclipse.xtext.example.domainmodel.xpect.tests/pom.xml -->
+
+
+    <plugins>
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-clean-plugin</artifactId>
+	<executions>
+	  <execution>
+	    <id>gen-clean</id>
+	    <phase>clean</phase>
+	  </execution>
+	</executions>
+      </plugin>
+
+      <plugin>
+        <!-- See https://github.com/eclipse/xtext-eclipse/issues/272 -->
+	<groupId>org.eclipse.tycho</groupId>
+	<artifactId>tycho-compiler-plugin</artifactId>
+	<version>${tycho-version}</version>
+	<configuration>
+	  <compilerArgument>-err:-forbidden</compilerArgument>
+	  <useProjectSettings>false</useProjectSettings>
+	</configuration>
+      </plugin>
+
+
+      <!-- configure a target platform to make sure all dependencies are available -->
+      <!--
+	  <plugin>
+	  <groupId>org.eclipse.tycho</groupId>
+	  <artifactId>target-platform-configuration</artifactId>
+	  </plugin>
+      -->
+
+      <!-- Compile Xtend-Classes -->
+      <!-- 
+	   <plugin>
+	   <groupId>org.eclipse.xtend</groupId>
+	   <artifactId>xtend-maven-plugin</artifactId>
+	   <version>2.8.3</version>
+	   <executions>
+	   <execution>
+	   <goals>
+	   <goal>compile</goal>
+	   </goals>
+	   <configuration>
+	   <outputDirectory>xtend-gen</outputDirectory>
+	   </configuration>
+	   </execution>
+	   </executions>
+	   <dependencies>
+	   <dependency>
+	   <groupId>org.eclipse.jdt</groupId>
+	   <artifactId>org.eclipse.jdt.core</artifactId>
+	   <version>3.10.0</version>
+	   </dependency>
+	   <dependency>
+	   <groupId>org.eclipse.jdt</groupId>
+	   <artifactId>org.eclipse.jdt.launching</artifactId>
+	   <version>3.10.0</version>
+	   </dependency>
+	   <dependency>
+	   <groupId>org.eclipse.jdt</groupId>
+	   <artifactId>org.eclipse.jdt.debug</artifactId>
+	   <version>3.10.1</version>
+	   </dependency>
+	   </dependencies>
+	   </plugin>
+
+      -->
+
+      <plugin>
+	<groupId>org.eclipse.xtend</groupId>
+	<artifactId>xtend-maven-plugin</artifactId>
+      </plugin>
+      
+      <plugin>
+	<groupId>org.eclipse.tycho</groupId>
+	<artifactId>tycho-surefire-plugin</artifactId>
+	<version>${tycho-version}</version>
+	<configuration>
+
+          <!-- No ui tests right now, so don't fail! -->
+          <failIfNoTests>false</failIfNoTests>
+
+	  <useUIHarness>false</useUIHarness>
+	  <useUIThread>false</useUIThread>
+	</configuration>
+      </plugin>
+
+      <!-- Use maven surefire (not tycho surefire!) to run tests as plain JUnit 
+	   tests (not Plug-In JUnit tests!) -->
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-surefire-plugin</artifactId>
+	<version>2.16</version>
+	<configuration>
+	  <systemProperties>
+	    <xpectTestTitlePostfix>.${target-platform}</xpectTestTitlePostfix>
+	    <xpectTestTitleShowEnvironment>true</xpectTestTitleShowEnvironment>
+	  </systemProperties>
+	  <reportsDirectory>${project.build.directory}/surefire-reports-standalone</reportsDirectory>
+	</configuration>
+	<executions>
+	  <execution>
+	    <phase>test</phase>
+	    <goals>
+	      <goal>test</goal>
+	    </goals>
+	  </execution>
+	</executions>
+	<dependencies>
+	  <dependency>
+	    <groupId>org.apache.maven.surefire</groupId>
+	    <artifactId>surefire-junit47</artifactId>
+	    <version>2.16</version>
+	  </dependency>
+	</dependencies>
+      </plugin>
+
+    </plugins>
+  </build>
+</project>
