@@ -42,3 +42,6 @@
 
 ## Trouble Shooting
 * Importing the Team Project Set from `LinguaFrancaProjectSet.psf` will result in Eclipse cloning a fresh copy of the lingua-franca repository; the clone will be located in `~/git/lingua-franca` (it will not use the clone that you obtained the `LinguaFrancaProjectSet.psf` from!) Note that, if you already have a clone in `~/git/lingua-franca`, that will simply be reused (not overwritten).
+
+## Maven
+* [maven.md](Lingua-Franca Maven)
