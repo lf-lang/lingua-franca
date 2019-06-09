@@ -1,4 +1,7 @@
-target C; 
+target C(
+	compile = "cc DeadlineC.c pqueue.c reactor.c -o DeadlineC",
+	run = "./DeadlineC -stop 10 sec"
+);
 reactor Source(period:time(2 sec)) {
 	output y:int;
 	timer t(1 sec, period);

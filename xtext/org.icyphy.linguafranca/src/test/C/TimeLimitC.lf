@@ -1,7 +1,10 @@
 // Test that the stop function can be used to internally impose a
 // a time limit.
 // Correct output for this 1, 2, 3, 4.
-target C;
+target C(
+	compile = "cc TimeLimitC.c pqueue.c reactor.c -o TimeLimitC",
+	run = "./TimeLimitC -fast"
+);
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
 	timer t(offset, period);

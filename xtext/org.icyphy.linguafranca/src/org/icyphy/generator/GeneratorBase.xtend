@@ -273,7 +273,9 @@ class GeneratorBase {
 		// Generated instances
 		for (instance: reactor.instances) {
 			var contained = instantiate(instance, container, importTable)
-			container.addContainedInstance(contained)
+			if (contained !== null) {
+				container.addContainedInstance(contained)
+			}
 		}
 		// Handle connections
 		for (connection: reactor.connections) {
