@@ -1,4 +1,7 @@
-target C;
+target C(
+	compile = "cc CompositionC.c pqueue.c reactor.c -o CompositionC",
+	run = "./CompositionC -fast -stop 10 sec"
+);
 reactor Source(period:time(2 sec)) {
 	output y:int;
 	timer t(1 sec, period);
@@ -8,7 +11,7 @@ reactor Source(period:time(2 sec)) {
 		set(y, self->count);
 	=}
 }
-reactor Destination {
+reactor Test {
 	input x:int;
 	reaction(x) {=
 		printf("%d\n", x);
@@ -16,6 +19,6 @@ reactor Destination {
 }
 reactor Main {
 	s = new Source();
-	d = new Destination();
+	d = new Test();
 	s.y -> d.x;
 }

@@ -1,4 +1,7 @@
-target C; 
+target C(
+	compile = "cc SendingInsideC.c pqueue.c reactor.c -o SendingInsideC",
+	run = "./SendingInsideC -fast -stop 10 sec"
+);
 reactor Printer {
 	input x:int;
 	reaction(x) {=

@@ -1,4 +1,7 @@
-target C;
+target C(
+	compile = "cc HelloC.c pqueue.c reactor.c -o HelloC",
+	run = "./HelloC -fast -stop 10 sec"
+);
 reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	state count:int(0);
 	timer t(1 secs, period);

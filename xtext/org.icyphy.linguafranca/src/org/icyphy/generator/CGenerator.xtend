@@ -488,11 +488,15 @@ class CGenerator extends GeneratorBase {
 									} else {
 										var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount + '_remote_triggers'
 										var destinationInstance = reactorInstance.getContainedInstance(portSpec.get(0))
-										deferredInitialize.add(
-											new InitializeRemoteTriggersTable(
-												destinationInstance, remoteTriggersArrayName, 0, destinationPort.name
+										if (destinationInstance !== null) {
+											// Null destinationInstance is an error, but it should have been caught
+											// before this, so no need to report it now.
+											deferredInitialize.add(
+												new InitializeRemoteTriggersTable(
+													destinationInstance, remoteTriggersArrayName, 0, destinationPort.name
+												)
 											)
-										)
+										}
 										pr(result, 'trigger_t* '
 											+ remoteTriggersArrayName
 											+ '[1];'
@@ -610,6 +614,7 @@ class CGenerator extends GeneratorBase {
 	 *  @param instance The instance declaration in the AST.
 	 *  @param container The instance that is the container.
 	 *  @param importTable Substitution table for class names (from import statements).
+	 *  @return The reactor instance, or null if an error occurs.
 	 */
 	override instantiate(
 		Instance instance,
@@ -622,7 +627,11 @@ class CGenerator extends GeneratorBase {
 		}
 		pr('// ************* Instance ' + instance.name + ' of class ' + className)
 		var reactor = getReactor(instance.reactorClass)
-				
+		if (reactor === null) {
+			reportError(instance, "No such reactor: " + instance.reactorClass)
+			return null
+		}
+
 		// Generate the instance struct containing parameters and state variables.
 		// (the "self" struct).
 		var properties = reactorToProperties.get(reactor)
@@ -680,6 +689,10 @@ class CGenerator extends GeneratorBase {
 		// Call superclass here so that parameters of this reactor
 		// are in scope for contained instances.
 		var reactorInstance = super.instantiate(instance, container, importTable)
+		if (reactorInstance === null) {
+			// An error occurred.
+			return null
+		}
 		// Store the name of the "self" struct as a property of the instance
 		// so that it can be used when establishing connections.
 		reactorInstance.properties.put("selfStructName", nameOfSelfStruct)
@@ -796,29 +809,30 @@ class CGenerator extends GeneratorBase {
 			} else if (split.length !== 1) {
 				reportError(init.reactor.reactor, "Invalid input specification: " + init.inputName)
 			}
-				
-			var triggerMap = reactor.properties.get("triggerNameToTriggerStruct")
-			if (triggerMap === null) {
-				reportError(init.reactor.reactor,
-					"Internal error: failed to map from name to trigger struct for "
-					+ init.reactor.getFullName()
-				)
-			} else {
-				var triggerStructName = (triggerMap as HashMap<String,String>).get(port)
-				if (triggerStructName === null) {
+			if (reactor !== null) {
+				var triggerMap = reactor.properties.get("triggerNameToTriggerStruct")
+				if (triggerMap === null) {
 					reportError(init.reactor.reactor,
-						"Internal error: failed to find trigger struct for input "
-						+ port
-						+ " in reactor "
-						+ reactor.getFullName()
+						"Internal error: failed to map from name to trigger struct for "
+						+ init.reactor.getFullName()
+					)
+				} else {
+					var triggerStructName = (triggerMap as HashMap<String,String>).get(port)
+					if (triggerStructName === null) {
+						reportError(init.reactor.reactor,
+							"Internal error: failed to find trigger struct for input "
+							+ port
+							+ " in reactor "
+							+ reactor.getFullName()
+						)
+					}
+					pr(init.remoteTriggersArrayName + '['
+						+ init.arrayIndex
+						+ '] = &'
+						+ triggerStructName
+						+ ';'
 					)
 				}
-				pr(init.remoteTriggersArrayName + '['
-					+ init.arrayIndex
-					+ '] = &'
-					+ triggerStructName
-					+ ';'
-				)
 			}
 		}
 		// Next, for every input port, populate its "self" struct
@@ -850,13 +864,16 @@ class CGenerator extends GeneratorBase {
 						var split = input.split('\\.')
 						if (split.length === 2) {
 							var inputReactor = containedReactor.container.getContainedInstance(split.get(0))
-							var inputSelfStructName = inputReactor.properties.get("selfStructName")
-							pr(inputSelfStructName + '.__' + split.get(1) + ' = &'
-								+ outputSelfStructName + '.__' + output.name + ';'
-							)
-							pr(inputSelfStructName + '.__' + split.get(1) + '_is_present = &'
-								+ outputSelfStructName + '.__' + output.name + '_is_present;'
-							)
+							if (inputReactor !== null) {
+								// It is an error to be null, but it should have been caught earlier.
+								var inputSelfStructName = inputReactor.properties.get("selfStructName")
+								pr(inputSelfStructName + '.__' + split.get(1) + ' = &'
+									+ outputSelfStructName + '.__' + output.name + ';'
+								)
+								pr(inputSelfStructName + '.__' + split.get(1) + '_is_present = &'
+									+ outputSelfStructName + '.__' + output.name + '_is_present;'
+								)
+							}
 						} else {
 							// FIXME: Handle case where size is not 2 (communication across hierarchy).
 							reportError(container.reactor,
