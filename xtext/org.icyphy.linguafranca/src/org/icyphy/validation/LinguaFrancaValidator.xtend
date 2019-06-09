@@ -29,6 +29,7 @@ import org.icyphy.linguaFranca.Uses
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
 	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C'}
+	public static val TARGET_PARAMETERS = #{'compile', 'run'}
 	
 	var parameters = newHashSet()
 	var inputs = newHashSet()
@@ -179,6 +180,22 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 			warning("Unrecognized target: "
 					+ target.name,
 					Literals.TARGET__NAME)
+		}
+		if (target.parameters !== null) {
+			for (parameter: target.parameters.assignments) {
+   				if (!TARGET_PARAMETERS.contains(parameter.name)) {
+					warning("Unrecognized target parameter: "
+						+ parameter.name,
+						Literals.TARGET__PARAMETERS
+					)
+				}
+				// Make sure the value of the parameter is a string.
+				if (!parameter.value.startsWith('"') || !parameter.value.endsWith('"')) {
+					error("Target parameter value is required to be a string surrounded by quotation marks.",
+						Literals.TARGET__PARAMETERS
+					)
+				}
+			}
 		}
 	}
 
