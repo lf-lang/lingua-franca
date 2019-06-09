@@ -146,7 +146,7 @@ class LinguaFrancaGeneratorTest {
        	// parameter to the Target directive, then use those commands.
        	var compileCommand = newArrayList("cc", "pqueue.c", "reactor.c", cFile)
        	// By default, limit tests to 10 seconds.
-       	var runCommand = newArrayList("./a.out", "-stop 10 secs")
+       	var runCommand = newArrayList("./a.out", "-stop", "10", "secs")
    		if (parsed.target.parameters !== null) {
    			for (parameter: parsed.target.parameters.assignments) {
    				if (parameter.name.equals("compile")) {
