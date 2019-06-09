@@ -35,12 +35,23 @@
 * Start typing in Lingua-Franca!
 * When you save, generated code goes into `../runtime-EclipseXtext/<project_name>` relative to your Eclipse workspace directory
 
+## Running and Editing the Tests in Eclipse
+
+* In the new Eclipse, select File->New->Project  (a General Project is adequate)
+* Unselect "Use default location"
+* Navigate to the test directory, e.g. lingua-franca/xtext/org.icyphy.linguafranca/src/test/C
+
+This will create a directory called src-gen in the same directory, open all the test .lf files,
+and generate code from them into the src-gen directory.
+
+
 ## Working on the Lingua-Franca compiler (package org.icyphy.linguafranca)
 * The grammar is in src->org.icyphy->LinguaFranca.xtext
+* The code generator for the C target is in src->org.icyphy.generator->CGenerator.xtend
 * The code generator for the Accessor target is in src->org.icyphy.generator->AccessorGenerator.xtend
 * To add a code generator for a new target, edit src->org.icyphy.generator->LinguaFrancaGenerator.xtend
 
-## Trouble Shooting
+## Troubleshooting
 * Importing the Team Project Set from `LinguaFrancaProjectSet.psf` will result in Eclipse cloning a fresh copy of the lingua-franca repository; the clone will be located in `~/git/lingua-franca` (it will not use the clone that you obtained the `LinguaFrancaProjectSet.psf` from!) Note that, if you already have a clone in `~/git/lingua-franca`, that will simply be reused (not overwritten).
 
 ## Maven
