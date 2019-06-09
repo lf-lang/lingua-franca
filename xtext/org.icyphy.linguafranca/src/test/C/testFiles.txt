@@ -1,6 +1,7 @@
 CompositionC.lf
-DoubleReactionC.lf
-SendingInsideC.lf
 DeadlineC.lf
+DoubleReactionC.lf
 HelloC.lf
+Minimal.lf
+SendingInsideC.lf
 TimeLimitC.lf
