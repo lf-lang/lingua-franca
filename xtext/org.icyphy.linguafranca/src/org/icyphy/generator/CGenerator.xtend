@@ -251,8 +251,12 @@ class CGenerator extends GeneratorBase {
 			// This defines the "self" struct.
 			var StringBuilder reactionInitialization = new StringBuilder()
 			var structType = properties.targetProperties.get("structType")
-			pr(reactionInitialization, structType
-					+ "* self = (" + structType + "*)instance_args;")
+			if (structType !== null) {
+				// A null structType means there are no inputs, state,
+				// or anything else. No need to declare it.
+				pr(reactionInitialization, structType
+						+ "* self = (" + structType + "*)instance_args;")
+			}
 			
 			// Next, add the triggers (input and actions; timers are not needed).
 			// This defines a local variable in the reaction function whose
@@ -336,7 +340,8 @@ class CGenerator extends GeneratorBase {
 	 *  This object has a pointer to the function to invoke for that
 	 *  reaction.
 	 *  @param reactorInstance The instance for which we are generating trigger objects.
-	 *  @param nameOfSelfStruct The name of the instance of "self" for this instance.
+	 *  @param nameOfSelfStruct The name of the instance of "self" for this instance or
+	 *   null if there isn't one.
 	 *  @return A map of trigger names to the name of the trigger struct.
 	 */
 	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfSelfStruct) {
@@ -539,10 +544,16 @@ class CGenerator extends GeneratorBase {
 						)
 					}
 					// Finally, produce the reaction_t struct.			
+					// The argument specifying the self struct may be NULL if there
+					// is no self struct.
+					var selfStructArgument = ", &" + nameOfSelfStruct
+					if (nameOfSelfStruct === null) {
+						selfStructArgument = ", NULL"
+					}
 					// FIXME: first 0 is an index that should come from the topological sort.
 					pr(result, "reaction_t " + reactionInstanceName 
 						+ " = {&" + functionName 
-						+ ", &" + nameOfSelfStruct
+						+ selfStructArgument
 						+ ", 0"  // index: index from the topological sort.
 						+ ", 0"  // pos: position used by the pqueue implementation for sorting.
 						+ ", " + outputCount // num_outputs: number of outputs produced by this reaction.
@@ -640,6 +651,9 @@ class CGenerator extends GeneratorBase {
 		if (structType !== null) {
 			pr('// --- "self" struct for instance ' + instance.name)
 			pr(structType + " " + nameOfSelfStruct + ";")
+		} else {
+			// Nullify the name, indicating that there is no self struct.
+			nameOfSelfStruct = null;
 		}
 		
 		// Generate code to initialize the "self" struct in the
@@ -695,7 +709,10 @@ class CGenerator extends GeneratorBase {
 		}
 		// Store the name of the "self" struct as a property of the instance
 		// so that it can be used when establishing connections.
-		reactorInstance.properties.put("selfStructName", nameOfSelfStruct)
+		// Only store it if the structType was actually created, however.
+		if (nameOfSelfStruct !== null) {
+			reactorInstance.properties.put("selfStructName", nameOfSelfStruct)
+		}
 		
 		// Generate trigger objects for the instance.
 		var triggerNameToTriggerStruct = generateTriggerObjects(reactorInstance, nameOfSelfStruct)
