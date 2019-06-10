@@ -46,9 +46,9 @@ class LinguaFrancaGeneratorTest {
 		var testCount = 0
      	// Write the generated code to a temporary directory.
     	var directory = Files.createTempDirectory("linguafranca")
-    	// FIXME: The following causes the files to be deleted as soon as the test is done.
+    	// The following causes the files to be deleted as soon as the test is done.
     	// Probably don't want that while debugging.
-    	// directory.toFile.deleteOnExit
+        directory.toFile.deleteOnExit
     	println("Writing code to temporary directory: " + directory)
 		for (file: testFiles) {
 			testCount++
@@ -129,8 +129,8 @@ class LinguaFrancaGeneratorTest {
     		var destinationCodeFile = Files.createFile(Paths.get(directory.toString, cleanFilename))
 
     		// Delete the files as soon as the test is done.
-    		// FIXME: Probably don't want that while debugging.
-    		// destinationCodeFile.toFile.deleteOnExit
+    		// Probably don't want that while debugging.
+    		destinationCodeFile.toFile.deleteOnExit
     		
     		// Read the generated code and write it to the temporary directory.
    			// Second argument is not documented anywhere in xtext.
@@ -195,15 +195,10 @@ class LinguaFrancaGeneratorTest {
 				println("--- End standard output.")
 			}
 			if (process.exitValue !== 0 || stderr.length() > 0) {
-				errors.add("ERROR running: " + runCommand.join(" "))
-				errors.add("Execution returned with error code: " + process.exitValue)
-				errors.add(stderr.toString)
-				/*
-				println("ERROR running: " + runCommand.join(" "))
-				println("--- Standard error:")
-				println(stderr)
-				println("--- End standard error.")
-				*/
+				errors.add("ERROR running: " + runCommand.join(" ")
+					+ "\nExecution returned with error code: " + process.exitValue
+					+ "\n"
+					+ stderr.toString)
 			} else if (process.exitValue === 0) {
 				println("SUCCESS")
 			}
