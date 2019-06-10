@@ -1,3 +1,4 @@
+// This is a smoke test of a minimal reactor.
 target C; 
 reactor Main {
 	timer t;

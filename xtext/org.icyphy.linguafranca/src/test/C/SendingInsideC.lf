@@ -1,11 +1,19 @@
+// This tests a reactor that contains another reactor and also
+// has its own reaction that routes inputs to the contained reactor.
 target C(
 	compile = "cc SendingInsideC.c pqueue.c reactor.c -o SendingInsideC",
 	run = "./SendingInsideC -fast -stop 10 sec"
 );
 reactor Printer {
 	input x:int;
+	state count:int(1);
 	reaction(x) {=
-		printf("%d\n", x);
+		printf("Inside reactor received: %d\n", x);
+		if (x != self->count) {
+			printf("FAILURE: Expected %d.\n", self->count);
+			exit(1);
+		}
+		self->count++;
 	=}
 }
 reactor Main {

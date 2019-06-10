@@ -17,6 +17,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 reactor Destination {
 	input x:int;
 	input w:int;
+	state s:int(2);
 	reaction(x, w) {=
 		int sum = 0;
 		if (x_is_present) {
@@ -25,7 +26,12 @@ reactor Destination {
 		if (w_is_present) {
 			sum += w;
 		}
-		printf("%d\n", sum);
+		printf("Sum of inputs is: %d\n", sum);
+		if (sum != self->s) {
+			printf("FAILURE: Expected sum to be %d, but it was %d.\n", self->s, sum);
+			exit(1);
+		}
+		self->s += 2;
 	=}
 }
 reactor Main {

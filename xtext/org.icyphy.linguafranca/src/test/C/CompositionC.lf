@@ -1,3 +1,5 @@
+// This test connects a simple counting source to tester
+// that checks against its own count.
 target C(
 	compile = "cc CompositionC.c pqueue.c reactor.c -o CompositionC",
 	run = "./CompositionC -fast -stop 10 sec"
@@ -13,8 +15,14 @@ reactor Source(period:time(2 sec)) {
 }
 reactor Test {
 	input x:int;
+	state count:int(0);
 	reaction(x) {=
-		printf("%d\n", x);
+		(self->count)++;
+		printf("Received %d\n", x);
+		if (x != self->count) {
+			printf("FAILURE: Expected %d\n", self->count);
+			exit(1);
+		}
 	=}
 }
 reactor Main {
