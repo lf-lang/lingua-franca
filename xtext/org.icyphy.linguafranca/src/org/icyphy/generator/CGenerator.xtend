@@ -17,6 +17,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.generator.ReactionGraph.ReactionInstance
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -83,6 +84,7 @@ class CGenerator extends GeneratorBase {
 			indent()
 			pr(initializeTriggerObjects)
 			doDeferredInitialize()
+			setReactionPriorities()
 			unindent()
 			pr('}\n')
 		
@@ -327,7 +329,7 @@ class CGenerator extends GeneratorBase {
 	}
 	
 	/** Generate trigger_t objects, one for
-	 *  each input, clock, and action of the reactor.
+	 *  each input, clock, and action of the reactor instance.
 	 *  Each trigger_t object is a struct that contains an
 	 *  array of pointers to reaction_t objects representing
 	 *  reactions triggered by this trigger. The trigger_t object
@@ -362,9 +364,9 @@ class CGenerator extends GeneratorBase {
 		val result = new StringBuilder()
 
 		// Create a place to store reaction_t object names, indexed by Reaction.
-		val reactionToReactionFunctionName = new HashMap<Reaction,String>()
+		val reactionToReactionTName = new HashMap<Reaction,String>()
 		reactorInstance.properties.put(
-				"reactionToReactionFunctionName", reactionToReactionFunctionName)
+				"reactionToReactionTName", reactionToReactionTName)
 
 		var count = 0
 		for (triggerName: triggerToReactions.keySet) {
@@ -379,14 +381,14 @@ class CGenerator extends GeneratorBase {
 				)
 				// First check to see whether the reaction_t object has already been
 				// created for this reaction.
-				var reactionInstanceName = reactionToReactionFunctionName.get(reaction)
+				var reactionInstanceName = reactionToReactionTName.get(reaction)
 				if (reactionInstanceName === null) {
 					// There isn't already a reaction_t object for this reaction.
 					// Generate a reaction_t object for an instance of a reaction.
 					reactionInstanceName = "__reaction" + reactionInstanceCount++
 				
 					// Store the reaction_t object name for future use, indexed by the Reaction.
-					reactionToReactionFunctionName.put(reaction, reactionInstanceName)
+					reactionToReactionTName.put(reaction, reactionInstanceName)
 								
 					// Generate entries for the reaction_t struct that specify how
 					// to handle outputs.
@@ -755,9 +757,9 @@ class CGenerator extends GeneratorBase {
 						reportError(deadline, "No such port: " + deadline.port)
 					} else {
 						for (reaction: reactions) {
-							var reactionToReactionFunctionName =
-									deadlineReactor.properties.get("reactionToReactionFunctionName")
-							var reactionTName = (reactionToReactionFunctionName as HashMap<Reaction,String>).get(reaction)
+							var reactionToReactionTName =
+									deadlineReactor.properties.get("reactionToReactionTName")
+							var reactionTName = (reactionToReactionTName as HashMap<Reaction,String>).get(reaction)
 							if (reactionTName === null) {
 								reportError(deadline, "Internal error: No reaction_t object found for reaction.")
 							} else {
@@ -798,6 +800,22 @@ class CGenerator extends GeneratorBase {
 		instanceCount++
 		
 		reactorInstance
+	}
+	
+	/** Set the reaction priorities based on dependency analysis. */
+	def setReactionPriorities() {
+		var graph = new ReactionGraph(this)
+		// Calculate levels for the graph.		
+		graph.calculateLevels(main)
+		
+		// Use "reactionToReactionTName" property of reactionInstance
+		// to set the levels.
+		for (ReactionInstance instance: graph.nodes) {
+			val reactorInstance = instance.reactorInstance;
+			val map = reactorInstance.properties.get("reactionToReactionTName") as HashMap<Reaction,String>;
+			val reactionTName = map.get(instance.reactionSpec);
+			pr(reactionTName + ".index = " + instance.level + ";")			
+		}
 	}
 	
 	////////////////////////////////////////////
