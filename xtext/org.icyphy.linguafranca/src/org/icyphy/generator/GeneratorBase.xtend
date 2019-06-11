@@ -17,7 +17,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reaction
@@ -31,10 +30,13 @@ import org.icyphy.linguaFranca.Time
  */
 class GeneratorBase {
 	
-	// Map from a reactor to properties of the reactor.
+	/** Precedence graph of reaction instances. */
+	var precedenceGraph = new ReactionGraph(this)
+	
+	// Map from a reactor AST spec to properties of the reactor.
 	protected var reactorToProperties = new HashMap<Reactor,ReactorProperties>()
 	
-	// Map from reactor name to the AST reactor defining that class.
+	// Map from reactor class name to the AST reactor spec defining that class.
 	var classToReactor = new LinkedHashMap<String,Reactor>()
 
 	// All code goes into this string buffer.
@@ -84,6 +86,8 @@ class GeneratorBase {
 			Hashtable<String,String> importTable) {
 		// Generate reactors and composites.
 		main = null
+		precedenceGraph.nodes.clear()
+		
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			generateReactor(reactor, importTable)
 			if (reactor.name.equalsIgnoreCase("main")) {
@@ -277,21 +281,8 @@ class GeneratorBase {
 				container.addContainedInstance(contained)
 			}
 		}
-		// Handle connections
-		for (connection: reactor.connections) {
-			connect(connection)
-		}
 	}
-	
-	/** Handle a connection
-	 *  @param connection The connection.
-	 */
-	def connect(Connection connection) {
-		// FIXME Generate code to initialize the input's "this" struct's
-		// input field to point to the output's "this" struct's output
-		// field. Do the same for _is_present fields.
-	}
-	
+		
 	/** Instantiate a reactor.
 	 *  @param instance The instance declaration.
 	 *  @param container The instance that is the container.

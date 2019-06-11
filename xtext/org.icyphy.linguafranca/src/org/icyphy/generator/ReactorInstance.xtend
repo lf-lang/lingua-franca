@@ -33,22 +33,25 @@ class ReactorInstance {
 	/** The contained instances, indexed by name. */
 	public var LinkedHashMap<String,ReactorInstance> containedInstances
 			= new LinkedHashMap<String,ReactorInstance>()
-	
-	/** The AST Component object defining this instance.
-	 *  This can be null if the component is defined outside Lingua Franca.
-	 */
-	public var Reactor reactor
-	
+		
 	/** The container instance, or null if Main. */
 	public var ReactorInstance container
-	
+			
 	/** The Instance AST object from which this was created. */
 	public var Instance instanceStatement
+		
+	/** Port instances indexed by name. */
+	public var portInstances = new HashMap<String,ReactionGraph.PortInstance>()
 	
 	/** Properties associated with this instance.
 	 *  This is used by particular code generators.
 	 */
 	public var HashMap<String,Object> properties = new HashMap<String,Object>()
+	
+	/** The AST Component object defining this instance.
+	 *  This can be null if the component is defined outside Lingua Franca.
+	 */
+	public var Reactor reactor
 	
 	/////////////////////////////////////////////
 	

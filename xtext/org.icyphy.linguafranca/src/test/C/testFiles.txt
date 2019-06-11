@@ -1,5 +1,6 @@
 CompositionC.lf
 DeadlineC.lf
+Determinism.lf
 DoubleReactionC.lf
 HelloC.lf
 Minimal.lf
