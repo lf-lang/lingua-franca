@@ -230,7 +230,7 @@ class LinguaFrancaGeneratorTest {
 	 *  @return A list of test files, or null if the testFiles.txt file was not found.
 	 */
 	private def readTestFiles(String target) {
-		var inputStream = this.class.getResourceAsStream("/test/src/" + target + "/testFiles.txt")
+		var inputStream = this.class.getResourceAsStream("/test/" + target + "/testFiles.txt")
 		if (inputStream === null) {
 			return null
 		}
@@ -255,7 +255,7 @@ class LinguaFrancaGeneratorTest {
 	 *  @return The contents of the file as a String or null if the file cannot be opened.
 	 */
 	private def readTestFile(String target, String filename) throws IOException {
-		var inputStream = this.class.getResourceAsStream("/test/src/" + target + "/" + filename)
+		var inputStream = this.class.getResourceAsStream("/test/" + target + "/" + filename)
 		if (inputStream === null) {
 			return null
 		}
