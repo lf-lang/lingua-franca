@@ -24,7 +24,7 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		// First collect all the imports.
 		for (import : resource.allContents.toIterable.filter(Import)) {
-			val pieces = import.name.split("\\.")
+			val pieces = import.importedNamespace.split("\\.")
     		val root = pieces.last
     		val filename = pieces.join("/") + ".js"
 			importTable.put(root, filename)

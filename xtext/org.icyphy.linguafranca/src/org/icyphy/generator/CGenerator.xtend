@@ -350,7 +350,7 @@ class CGenerator extends GeneratorBase {
 		var triggerNameToTriggerStruct = new HashMap<String,String>()
 		var instance = reactorInstance.instanceStatement
 		// If there is no instance statement, then this is main.
-		var reactor = getReactor(instance.reactorClass)
+		var reactor = instance.reactorClass
 		var properties = reactorToProperties.get(reactor)
 		if (reactor === null) {
 			reportError(instance, "Undefined reactor class: " + instance.reactorClass)
@@ -634,14 +634,15 @@ class CGenerator extends GeneratorBase {
 		ReactorInstance container,
 		Hashtable<String,String> importTable
 	) {
+		// FIXME: xtext probably can handle this for us.
 		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
-			className = instance.reactorClass
+			className = instance.reactorClass.name
 		}
 		pr('// ************* Instance ' + instance.name + ' of class ' + className)
-		var reactor = getReactor(instance.reactorClass)
+		var reactor = instance.reactorClass
 		if (reactor === null) {
-			reportError(instance, "No such reactor: " + instance.reactorClass)
+			reportError(instance, "No such reactor: " + instance.reactorClass.name)
 			return null
 		}
 
@@ -1075,7 +1076,7 @@ class CGenerator extends GeneratorBase {
 		}
 		
 		// Next, need to find the reactor definition referenced.
-		var containedReactor = getReactor(instance.reactorClass)
+		var containedReactor = instance.reactorClass
 		if (containedReactor === null) {
 			reportError(report, "Cannot find reactor definition for: "
 				+ instance.reactorClass

@@ -1,8 +1,0 @@
-// This is a smoke test of a minimal reactor.
-target C; 
-reactor Main {
-	timer t;
-	reaction(t) {=
-		printf("Hello World.\n");
-	=}
-}
