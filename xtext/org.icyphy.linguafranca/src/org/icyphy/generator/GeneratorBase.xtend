@@ -215,7 +215,7 @@ class GeneratorBase {
 					// Cannot check here.
 					if (contained !== null) {
 						var props = reactorToProperties.get(contained)
-						if(props.nameToOutput.get(split.get(1)) === null) {
+						if(props !== null && props.nameToOutput.get(split.get(1)) === null) {
 							reportError(connection,
 									"No such output port: " + connection.leftPort)
 						}
@@ -244,7 +244,7 @@ class GeneratorBase {
 					// Cannot check here.
 					if (contained !== null) {
 						var props = reactorToProperties.get(contained)
-						if(props.nameToInput.get(split.get(1)) === null) {
+						if(props !== null && props.nameToInput.get(split.get(1)) === null) {
 							reportError(connection,
 									"No such input port: " + connection.rightPort)
 						}

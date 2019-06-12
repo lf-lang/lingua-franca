@@ -1,0 +1,59 @@
+/** A test where a Source reactor sends a counting sequence to a Test
+ *  reactor that checks the sequence against an expected value.
+ *  When compiled by a Lingua Franca compiler, this file produces three files,
+ *  two of which define the component reactors, and one of which defines a composite.
+ *  The composite may be executed as follows:
+ *  <pre>
+ *     node ACCESSORS/web/hosts/node/nodeHostInvoke.js SimpleTest
+ *  </pre>
+ *  Here, ACCESSORS is the location on your filesystem of the accessors repo
+ *  (see http://accessors.org).  For example, if you have installed Ptolemy II and
+ *  set the PTII variable to the root of Ptolemy II, then the following will work:
+ *  <pre>
+ *     node $PTII/org/terraswarm/accessor/accessors/web/hosts/node/nodeHostInvoke.js SimpleTest
+ *  </pre>
+ *  The result should be to print the following and then exit:
+ *  <pre>
+ *    Test received: 1
+ *    Test received: 2
+ *    Test received: 3
+ *    Test received: 4
+ *  </pre>
+ * 
+ *  @author Edward A. Lee
+ */
+target Accessor;
+
+reactor Source(period:int(1000)) {
+	preamble {=
+		var n = 0;
+	=}
+	output y:int;
+	timer t(0, period);
+	reaction(t) -> y {=
+		n = n + 1;
+		set(y, n);
+	=}
+}
+reactor Test(expected:JSON({= [] =})) {
+	preamble {=
+		var i = 0;
+	=}
+	input x:int;
+	reaction(x) {=
+		console.log('Test received: ' + x);
+        if (expected[i] != x) {
+            throw "Expected: " + expected[i] + ", but got: " + x;
+        }
+        i += 1;
+        if (i >= expected.length) {
+            this.stop();
+        }
+	=} 
+}
+reactor SimpleTest {
+	a = new Source(period = 1000);
+	b = new Test(expected = {= [1, 2, 3, 4] =});
+	a.y -> b.x;
+}
+
