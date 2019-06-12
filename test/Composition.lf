@@ -1,0 +1,33 @@
+/** Composite with three actors from the Accessors library.
+ *  When compiled by a Lingua Franca compiler, this file produces one, a test
+ *  that may be executed as follows:
+ *  <pre>
+ *     node ACCESSORS/web/hosts/node/nodeHostInvoke.js Composition
+ *  </pre>
+ *  Here, ACCESSORS is the location on your filesystem of the accessors repo
+ *  (see http://accessors.org).  For example, if you have installed Ptolemy II and
+ *  set the PTII variable to the root of Ptolemy II, then the following will work:
+ *  <pre>
+ *     node $PTII/org/terraswarm/accessor/accessors/web/hosts/node/nodeHostInvoke.js Composition
+ *  </pre>
+ *  The test passes if no exception is thrown. It should print something like
+ *  "All initialized accessors have wrapped up. Terminating."
+ * 
+ *  @author Edward A. Lee
+ */
+// 
+target Accessor;
+
+// Assume that the Accessors library is what is referenced here.
+import test.TrainableTest;
+import utilities.Clock;
+import utilities.Stop;
+
+reactor Main {
+    a = new Clock(interval = 100.0);
+    b = new TrainableTest(correctValues = {= [0,1,2,3,4,5,6,7,8,9,10] =});
+    c = new Stop();
+    
+    a.output -> b.input;
+    b.output -> c.stop;
+} 

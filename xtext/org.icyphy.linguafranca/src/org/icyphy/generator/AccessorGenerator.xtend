@@ -248,7 +248,7 @@ class AccessorGenerator extends GeneratorBase {
 	def generateInstantiate(Instance instance, Hashtable<String,String> importTable) {
 		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
-			className = instance.reactorClass.name
+			className = instance.reactorClass
 		}
 		pr('''var «instance.name» = this.instantiate('«instance.name»', '«className»');''')
 		if (instance.parameters !== null) {
