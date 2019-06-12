@@ -1,0 +1,44 @@
+// This test checks that a deadline violation is detected.
+// It will exit with error code 2 if the deadline violation is not detected.
+target C(
+	compile = "cc DeadlineC.c pqueue.c reactor.c -o DeadlineC",
+	run = "./DeadlineC -stop 2 sec"
+);
+reactor Source(period:time(1 sec)) {
+	output y:int;
+	timer t(0, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		(self->count)++;
+		struct timespec sleep_time = {(time_t) 0, (long)200000000};
+		struct timespec remaining_time;
+		nanosleep(&sleep_time, &remaining_time);
+		set(y, self->count);
+	=}
+}
+reactor Destination {
+	input x:int;
+	input e:int;
+	reaction(x, e) {=
+		if (e_is_present) {
+			printf("**** Handle deadline miss.\n");
+		} else {
+			printf("FAILURE: Deadline miss was not detected.\n");
+			exit(2);
+		}
+		if (x_is_present) {
+			printf("%d\n", x);
+		}
+	=}
+}
+reactor Main {
+	action panic;
+	reaction(panic) -> d.e {=
+		printf("**** Deadline miss detected.\n");
+		set(d.e, 1);
+	=}
+	s = new Source();
+	d = new Destination();
+	s.y -> d.x;
+	deadline(d.x, 100 msec, panic);
+}
