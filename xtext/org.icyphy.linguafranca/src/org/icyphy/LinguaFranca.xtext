@@ -8,17 +8,21 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 
 /////////// Overall file
 Model:
+	(package=PackageDeclaration)?
 	target=Target 
 	(imports += Import)*
 	(reactors += Reactor)+
 	;
 
 /////////// Top level elements
+PackageDeclaration:
+    'package' name=Path;
+
 Target:
 	'target' name=ID ( '(' parameters=Assignments? ')' )? ';';
 	
 Import:
-	'import' name=Path ';';
+	'import' importedNamespace=PathWithWildcard ';';
 
 Reactor:
    	'reactor' name=ID parameters=Params? '{'
@@ -67,7 +71,7 @@ Preamble:
 // to get cross references to work. But this doesn't work for importing
 // foreign reactors that are not defined in Lingua Franca.
 Instance:
-	name=ID '=' 'new' reactorClass=ID ('(' parameters=Assignments? ')')? ';' ;
+	name=ID '=' 'new' reactorClass=[Reactor|Path] ('(' parameters=Assignments? ')')? ';' ;
 
 Connection:
     leftPort=Port '->' rightPort=Port ';';
@@ -148,3 +152,6 @@ terminal CODE:
 // The following cannot be terminal because it overlaps ID.
 Path:
 	ID ('.' ID)* ;
+
+PathWithWildcard:
+	Path '.*'?;
