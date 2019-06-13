@@ -53,8 +53,6 @@ class CGenerator extends GeneratorBase {
 	
 	// Place to collect code to initialize timers for all reactors.
 	var startTimers = new StringBuilder()
-			
-	var Resource _resource;
 	
 	/** Generate C code from the Lingua Franca model contained by the
 	 *  specified resource. This is the main entry point for code
@@ -70,14 +68,10 @@ class CGenerator extends GeneratorBase {
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
 		
-		_resource = resource
-		// Figure out the file name for the target code from the source file name.
-		var filename = extractFilename(_resource.getURI.toString)
-		
 		pr(includes)
-		
+
 		super.doGenerate(resource, fsa, context, importTable)
-		
+						
 		if (main !== null) {
 			// Generate function to initialize the trigger objects for all reactors.
 			pr('void __initialize_trigger_objects() {\n')
@@ -102,7 +96,7 @@ class CGenerator extends GeneratorBase {
 			unindent()
 			pr('}\n')
 		}
-		fsa.generateFile(filename + ".c", getCode())
+		fsa.generateFile(_filename + ".c", getCode())
 		
 		// Copy the required library files into the target filesystem.
 		var reactorC = readFileInClasspath("/lib/C/reactor.c")
@@ -965,22 +959,6 @@ class CGenerator extends GeneratorBase {
 				}
 			}
 		}
-	}
-
-	// Extract a filename from a path.
-	private def extractFilename(String path) {
-		var result = path
-		if (path.startsWith('platform:')) {
-			result = result.substring(9)
-		}
-		var lastSlash = result.lastIndexOf('/')
-		if (lastSlash >= 0) {
-			result = result.substring(lastSlash + 1)
-		}
-		if (result.endsWith('.lf')) {
-			result = result.substring(0, result.length - 3)
-		}
-		return result
 	}
 	
 	/** Generate into the specified string builder the code to

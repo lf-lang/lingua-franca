@@ -48,6 +48,12 @@ class GeneratorBase {
 	// The main (top-level) reactor instance.
 	protected ReactorInstance main 
 	
+	// The root filename for the main file containing the source code.
+	protected var String _filename
+	
+	// The file containing the main source code.
+	protected var Resource _resource
+	
 	// Map from time units to an expression that can convert a number in
 	// the specified time unit into nanoseconds. This expression may need
 	// to have a suffix like 'LL' or 'L' appended to it, depending on the
@@ -84,6 +90,12 @@ class GeneratorBase {
 			IFileSystemAccess2 fsa,
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
+
+		_resource = resource
+
+		// Figure out the file name for the target code from the source file name.
+		_filename = extractFilename(_resource.getURI.toString)
+
 		// Generate reactors and composites.
 		main = null
 		precedenceGraph.nodes.clear()
@@ -302,9 +314,11 @@ class GeneratorBase {
 		}
 		// Reactor may be imported, i.e. not a Lingua Franca reactor,
 		// in which case, reactor === null.
-		// In case the reactor is a composite, create instances of
-		// whatever it instantiates.
-		generateContainedInstances(reactor, reactorInstance, importTable)
+		if (reactor !== null) {
+			// In case the reactor is a composite, create instances of
+			// whatever it instantiates.
+			generateContainedInstances(reactor, reactorInstance, importTable)
+		}
 		reactorInstance
 	}
 	
@@ -639,5 +653,24 @@ class GeneratorBase {
 		} catch (ParseException ex) {
 			return reportError(time, "Failed to parse number '" + time.time + "'. " + ex)
 		}
+	}
+	
+	////////////////////////////////////////////////////
+	//// Private functions
+	
+	/** Extract a filename from a path. */
+	private def extractFilename(String path) {
+		var result = path
+		if (path.startsWith('platform:')) {
+			result = result.substring(9)
+		}
+		var lastSlash = result.lastIndexOf('/')
+		if (lastSlash >= 0) {
+			result = result.substring(lastSlash + 1)
+		}
+		if (result.endsWith('.lf')) {
+			result = result.substring(0, result.length - 3)
+		}
+		return result
 	}
 }

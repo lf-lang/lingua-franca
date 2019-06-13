@@ -40,15 +40,18 @@ class AccessorGenerator extends GeneratorBase {
 			IFileSystemAccess2 fsa, 
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
+				
+		super.doGenerate(resource, fsa, context, importTable)
 		
 		// Handle reactors and composites.
-		// FIXME: This is not following the convention of a single top-level named Main.
-		// FIXME: Call super.doGenerate()
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			clearCode()
 			generateReactor(reactor, importTable)
-			val reactorBody = reactor
-			fsa.generateFile(reactorBody.name + ".js", code)		
+			var filename = reactor.name
+			if (filename.equalsIgnoreCase('main')) {
+				filename = _filename
+			}
+			fsa.generateFile(filename + ".js", code)		
 		}
 	}
 	

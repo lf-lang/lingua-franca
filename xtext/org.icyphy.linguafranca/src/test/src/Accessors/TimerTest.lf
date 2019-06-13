@@ -24,7 +24,7 @@ reactor Source2(period:int(1000)) {
 	timer t(0, period);
 	reaction(t) -> out {=
 		set(out, 2);
-		console.log("Output with value 2 at time FIXME.")
+		console.log("Output with value 2.")
 	=}
 }
 reactor Adder {
@@ -59,7 +59,7 @@ reactor Test(expected:JSON({= [] =})) {
         }
 	=} 
 }
-reactor TimerTest {
+reactor Main {
 	source1 = new Source1();
 	source2 = new Source2(period = 1000);
 	add = new Adder();
