@@ -10,7 +10,6 @@ import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
-import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Produces
@@ -121,17 +120,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		}
 		containedNames.add(instance.name)
 	}
-	
-	@Check(FAST)
-	def checkModel(Model model) {
-		for (reactor: model.reactors) {
-			if (reactor.name.equalsIgnoreCase("main")) {
-				return
-			}
-		}
-		warning("No Main reactor.", Literals.MODEL__REACTORS)
-	}
-	
+		
 	@Check(FAST)
 	def checkOutput(Output output) {
 		if (allNames.contains(output.name)) {

@@ -51,7 +51,7 @@ reactor Test(expected:JSON({= [] =})) {
         }
 	=} 
 }
-reactor SimpleTest {
+reactor Main {
 	a = new Source(period = 1000);
 	b = new Test(expected = {= [1, 2, 3, 4] =});
 	a.y -> b.x;
