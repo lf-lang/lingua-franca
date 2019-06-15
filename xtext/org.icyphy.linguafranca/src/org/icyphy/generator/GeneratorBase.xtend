@@ -12,11 +12,14 @@ import java.util.HashSet
 import java.util.Hashtable
 import java.util.LinkedHashMap
 import java.util.LinkedList
+import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reaction
@@ -115,8 +118,6 @@ class GeneratorBase {
 			// FIXME: Should use mainInstance.setParameters() to set parameter
 			// values from the command line.
 			instantiate(mainInstance, null, importTable)
-		} else {
-			reportWarning(resource.allContents.next, "No Main reactor.")
 		}
 	}
 	
@@ -476,6 +477,34 @@ class GeneratorBase {
 		indentation.put(builder, buffer.toString)
 	}
 	
+	/** Open and parse an import given a URI relative currentResource.
+	 *  @param currentResource The current resource.
+	 *  @param importedURIAsString The URI to import as a string.
+	 *  @return The resource specified by the URI or null if either
+	 *   the resource cannot be found or it is the same as the currentResource.
+	 */
+	protected def openImport(Resource currentResource, Import importSpec) {
+		val importedURIAsString = importSpec.name;
+		val URI currentURI = currentResource?.getURI;
+		val URI importedURI = URI?.createFileURI(importedURIAsString);
+		val URI resolvedURI = importedURI?.resolve(currentURI);
+		if (resolvedURI.equals(currentURI)) {
+			reportError(importSpec, "Recursive imports are not permitted: " + importSpec.name)
+			return currentResource
+		} else {
+			val ResourceSet currentResourceSet = currentResource?.resourceSet;
+			try {
+				return currentResourceSet?.getResource(resolvedURI, true);
+			} catch (Exception ex) {
+				reportError(importSpec, "Import not found: " + importSpec.name 
+					+ ". Exception message: " + ex.message
+				)
+				return null
+			}
+		}
+		
+	}
+
 	/** Append the specified text plus a final newline to the current
 	 *  code buffer.
 	 *  @param text The text to append.

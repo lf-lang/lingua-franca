@@ -1,0 +1,11 @@
+// This tests the ability to import a reactor definition
+// that itself imports a reactor definition.
+target C; 
+import ImportedC.lf;
+reactor Main {
+	timer t;
+	a = new ImportedC();
+	reaction(t) -> a.x {=
+		set(a.x, 42); 
+	=}
+}

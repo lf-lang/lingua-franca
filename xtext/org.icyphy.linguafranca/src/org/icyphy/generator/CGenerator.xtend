@@ -18,6 +18,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.generator.ReactionGraph.ReactionInstance
+import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -26,6 +27,7 @@ import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Produces
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 
 /**
@@ -69,9 +71,17 @@ class CGenerator extends GeneratorBase {
 			Hashtable<String,String> importTable) {
 		
 		pr(includes)
+		
+		var uriAsString = resource.getURI().toString()
+		println("Generating code for: " + uriAsString)
+		
+		// First process all the imports.
+		_resource = resource
+		processImports(importTable)
 
 		super.doGenerate(resource, fsa, context, importTable)
-						
+		
+		// Any main reactors in imported files are ignored.		
 		if (main !== null) {
 			// Generate function to initialize the trigger objects for all reactors.
 			pr('void __initialize_trigger_objects() {\n')
@@ -642,7 +652,7 @@ class CGenerator extends GeneratorBase {
 		// Generate the instance struct containing parameters and state variables.
 		// (the "self" struct).
 		var properties = reactorToProperties.get(reactor)
-		var nameOfSelfStruct = "__self_" + instanceCount + "_" + instance.name
+		var nameOfSelfStruct = "__self_" + instanceCount++ + "_" + instance.name
 		var structType = properties.targetProperties.get("structType")
 		if (structType !== null) {
 			pr('// --- "self" struct for instance ' + instance.name)
@@ -790,9 +800,7 @@ class CGenerator extends GeneratorBase {
 		
 		unindent(initializeTriggerObjects)
 		pr(initializeTriggerObjects, "} // End of scope for " + instance.name)
-		
-		instanceCount++
-		
+				
 		reactorInstance
 	}
 	
@@ -1005,7 +1013,7 @@ class CGenerator extends GeneratorBase {
 	 *  initialize local variables for sending data to an input
 	 *  of a contained reaction (e.g. for a deadline violation).
 	 *  @param builder The string builder.
-	 *  @param output The output statement from the AST.
+	 *  @param produces The output statement from the AST.
 	 *  @param reactor The reactor within which this occurs.
 	 *  @param portSpec The output statement split into reactorName and portName.
 	 */
@@ -1016,6 +1024,11 @@ class CGenerator extends GeneratorBase {
 		var destinationPort = getInputPortOfContainedReactor(
 			reactor, portSpec.get(0), portSpec.get(1), produces
 		)
+		
+		if (destinationPort === null) {
+			reportError(produces, "Destination port not found: " + portSpec.get(0) + "." + portSpec.get(1))
+			return
+		}
 				
 		// Need to create a struct so that the port can be referenced in C code
 		// as reactorName.portName.
@@ -1084,6 +1097,39 @@ class CGenerator extends GeneratorBase {
 			type = 'interval_t'
 		}
 		type
+	}
+	
+	/** Process any imports included in the resource defined by _resource.
+	 *  @param importTable The import table.
+	 */
+	private def void processImports(Hashtable<String,String> importTable) {
+		for (import : _resource.allContents.toIterable.filter(Import)) {
+		    val importResource = openImport(_resource, import)
+		    if (importResource !== null) {
+		    	// Make sure the target of the import is C.
+		    	var targetOK = false
+		    	for (target : importResource.allContents.toIterable.filter(Target)) {
+		    		if ("C".equalsIgnoreCase(target.name)) {
+		    			targetOK = true
+		    		}
+		    	}
+		    	if (!targetOK) {
+		    		reportError(import, "Import does not have a C target.")
+		    	} else {
+		   			val oldResource = _resource
+		    		_resource = importResource
+				    // Process any imports that the import has.
+				    processImports(importTable)
+					for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
+						if (!reactor.name.equalsIgnoreCase("main")) {
+							println("Including imported reactor: " + reactor.name)
+							generateReactor(reactor, importTable)
+						}
+					}
+					_resource = oldResource
+				}
+			}
+		}
 	}
 
 	// Print the #line compiler directive with the line number of

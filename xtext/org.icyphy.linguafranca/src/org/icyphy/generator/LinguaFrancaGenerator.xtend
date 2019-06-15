@@ -5,6 +5,7 @@
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
+import java.io.File
 import java.util.Hashtable
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
@@ -26,7 +27,7 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 		for (import : resource.allContents.toIterable.filter(Import)) {
 			val pieces = import.name.split("\\.")
     		val root = pieces.last
-    		val filename = pieces.join("/") + ".js"
+    		val filename = pieces.join(File.separator)
 			importTable.put(root, filename)
 		}
 		// Determine which target is desired.
