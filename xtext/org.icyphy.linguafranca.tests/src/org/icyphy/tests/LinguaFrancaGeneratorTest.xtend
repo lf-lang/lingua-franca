@@ -5,6 +5,7 @@ package org.icyphy.tests
 
 import com.google.inject.Inject
 import java.io.BufferedReader
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -93,9 +94,13 @@ class LinguaFrancaGeneratorTest {
         }
         
         // Check that code is generated.
-        // Give the resource a file name.
+        // First, give the resource a file name (for resolving imports, etc.)
         println("Generating code for test file: " + file)
-        parsed.eResource.setURI(URI.createURI("platform:/" + file))
+		// Need an absolute path.
+		var url = this.class.getResource("/test/src/" + target + "/" + file)
+		println("SHIT: " + url.toString)
+        parsed.eResource.setURI(URI.createFileURI(url.toString))
+        
         // Create an in-memory filesystem for the result.
         var fsa = new InMemoryFileSystemAccess()
         

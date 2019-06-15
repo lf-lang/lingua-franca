@@ -36,7 +36,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	var timers = newHashSet()
 	var actions = newHashSet()
 	var allNames = newHashSet()
-	var containedNames = newHashSet() // Names of contained reactors.
+	var containedNames = newHashSet()    // Names of contained reactor instances.
+	var reactorClassNames = newHashSet() // Includes imports.
 	
 	////////////////////////////////////////////////////
 	//// Functions to set up data structures for performing checks.
@@ -132,7 +133,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		outputs.add(output.name);
 		allNames.add(output.name)
 	}
-		
+
 	@Check(FAST)
 	def checkReaction(Reaction reaction) {
 		for (trigger: reaction.triggers) {
