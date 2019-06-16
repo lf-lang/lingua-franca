@@ -97,9 +97,13 @@ class LinguaFrancaGeneratorTest {
         // First, give the resource a file name (for resolving imports, etc.)
         println("Generating code for test file: " + file)
 		// Need an absolute path.
+		// NOTE: Although Eclipse has no trouble reading from the file specified this way
+		// see readTestFile(), it has trouble figuring out what the URI is. I have
+		// tried many permutations, and it appears that the following is the only way to make
+		// this URI "hierarchical" (whatever that means) and absolute.
+		// For imports to work, it has to be both.
 		var url = this.class.getResource("/test/src/" + target + "/" + file)
-		println("SHIT: " + url.toString)
-        parsed.eResource.setURI(URI.createFileURI(url.toString))
+        parsed.eResource.setURI(URI.createFileURI(url.getPath()))
         
         // Create an in-memory filesystem for the result.
         var fsa = new InMemoryFileSystemAccess()

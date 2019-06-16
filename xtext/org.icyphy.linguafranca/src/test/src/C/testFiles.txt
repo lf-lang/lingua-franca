@@ -3,6 +3,7 @@ DeadlineC.lf
 Determinism.lf
 DoubleReactionC.lf
 HelloC.lf
+ImportC.lf
 Minimal.lf
 SendingInsideC.lf
 TimeLimitC.lf
