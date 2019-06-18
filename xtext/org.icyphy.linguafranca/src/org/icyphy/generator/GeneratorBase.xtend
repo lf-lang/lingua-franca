@@ -85,7 +85,7 @@ class GeneratorBase {
 	 *  for each contained reactor.
 	 *  @param resource The resource containing the source code.
 	 *  @param fsa The file system access (used to write the result).
-	 *  @param context FIXME
+	 *  @param context FIXME: What is this?
 	 *  @param importTable The mapping given by import statements.
 	 */
 	def void doGenerate(
@@ -115,7 +115,7 @@ class GeneratorBase {
 			mainInstance.setName(main.reactor.name)
 			mainInstance.setReactorClass(main.reactor.name)
 			main.instanceStatement = mainInstance
-			// FIXME: Should use mainInstance.setParameters() to set parameter
+			// FIXME: Maybe should use mainInstance.setParameters() to set parameter
 			// values from the command line.
 			instantiate(mainInstance, null, importTable)
 		}

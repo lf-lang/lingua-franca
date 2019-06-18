@@ -193,7 +193,6 @@ class LinguaFrancaGeneratorTest {
 			
 			// Run the generated code.
    			println("Running with command: " + runCommand.join(" "))
-   			// FIXME: Augment the Target keyword to allow compile and run commands to be specified.
 			builder.command(runCommand)
 			process = builder.start()
 			stdout = readStream(process.getInputStream())
