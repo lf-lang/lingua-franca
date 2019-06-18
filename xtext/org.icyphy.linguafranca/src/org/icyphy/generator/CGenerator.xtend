@@ -556,7 +556,8 @@ class CGenerator extends GeneratorBase {
 					if (nameOfSelfStruct === null) {
 						selfStructArgument = ", NULL"
 					}
-					// FIXME: first 0 is an index that should come from the topological sort.
+					// First 0 is an index that specifies priorities based on precedences.
+					// It will be set later.
 					pr(result, "reaction_t " + reactionInstanceName 
 						+ " = {&" + functionName 
 						+ selfStructArgument
@@ -1180,7 +1181,6 @@ class CGenerator extends GeneratorBase {
 		}	
 	}
 	
-	// FIXME: pqueue.h and pqueue.c need to be copied to target directory.
 	val static includes = '''
 		#include "reactor.h"
 	'''
