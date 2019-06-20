@@ -618,7 +618,7 @@ class CGenerator extends GeneratorBase {
 				// Generate a line to go into the __start_timers() function.
 				// Note that the delay, the second argument, is zero because the
 				// offset is already in the trigger struct.
-				pr(startTimers,"__schedule(&" + triggerStructName + ", 0LL);")
+				pr(startTimers,"__schedule(&" + triggerStructName + ", 0LL, NULL);")
 			}
 			count++
 			triggerCount++

@@ -51,7 +51,7 @@ Timer:
 	'timer' name=ValidID timing=Timing?';';
 
 Action:
-	'action' name=ValidID ('(' delay=(ID | NUMBER) ')')?';';
+	'action' name=ValidID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
 
 Reaction:
 	'reaction' 
