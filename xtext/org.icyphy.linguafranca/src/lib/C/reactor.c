@@ -51,6 +51,7 @@ void stop() {
 pqueue_t* event_q;     // For sorting by time.
 pqueue_t* reaction_q;  // For sorting by index (topological sort)
 pqueue_t* recycle_q;   // For recycling malloc'd events.
+pqueue_t* free_q;      // For free malloc'd payloads carried by events.
 
 handle_t __handle = 0;
 struct timespec physicalStartTime;
@@ -104,7 +105,11 @@ static void set_rct_pos(void *a, size_t pos) {
 
 // Schedule the specified trigger at current_time plus the
 // offset of the specified trigger plus the delay.
-handle_t __schedule(trigger_t* trigger, interval_t delay) {
+// The payload is required to be a pointer returned by malloc
+// because it will be freed after having been delivered to
+// all relevant destinations unless it is NULL, in which case
+// it will be ignored.
+handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload) {
     // Recycle event_t structs, if possible.
     event_t* e = pqueue_pop(recycle_q);
     if (e == NULL) {
@@ -112,6 +117,7 @@ handle_t __schedule(trigger_t* trigger, interval_t delay) {
     }
     e->time = current_time + trigger->offset + delay;
     e->trigger = trigger;
+    e->payload = payload;
 
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
@@ -126,8 +132,12 @@ handle_t __schedule(trigger_t* trigger, interval_t delay) {
 
 // Schedule the specified trigger at current_time plus the
 // offset declared in the trigger plus the extra_delay.
-handle_t schedule(trigger_t* trigger, interval_t extra_delay) {
-    return __schedule(trigger, trigger->offset + extra_delay);
+// The payload is required to be a pointer returned by malloc
+// because it will be freed after having been delivered to
+// all relevant destinations unless it is NULL, in which case
+// it will be ignored.
+handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
+    return __schedule(trigger, trigger->offset + extra_delay, payload);
 }
 
 // Advance logical time to the lesser of the specified time, the
@@ -235,6 +245,8 @@ int next() {
             if (current_time == stop_time || new_event == NULL) {
                 return 0;
             }
+        } else {
+        	// FIXME: Handle the new event.
         }
     }
     
@@ -242,8 +254,9 @@ int next() {
     // such as initializing outputs to be absent.
     __start_time_step();
     
-    // Pop all events from event_q with timestamp equal to current_time
-    // stick them into reaction.
+    // Pop all events from event_q with timestamp equal to current_time,
+    // extract all the reactions triggered by these events, and
+    // stick them into the reaction queue.
     do {
         event = pqueue_pop(event_q);
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
@@ -255,19 +268,28 @@ int next() {
             // Reschedule the trigger.
             // Note that the delay here may be negative because the __schedule
             // function will add the trigger->offset, which we don't want at this point.
-            __schedule(event->trigger, event->trigger->period - event->trigger->offset);
+            // NULL argument indicates that there is no payload.
+            __schedule(event->trigger, event->trigger->period - event->trigger->offset, NULL);
         }
-          
-        // Recycle this event instead of freeing it.
-        // So that sorting doesn't cost anything, give all recycled events the
-        // same zero time stamp.
+        // Copy the payload pointer into the trigger struct so that the
+        // reactions can access it.
+        event->trigger->payload = event->payload;
+        
+        // If the payload is non-null, record the event to free the payload
+        // at the end of the current logical time. Otherwise, recycle the event.
+        // In either case, so that sorting doesn't cost anything,
+        // give all recycled events the same zero time stamp.
         event->time = 0LL;
-        pqueue_insert(recycle_q, event);
-
+        if (event->payload == NULL) {
+       		pqueue_insert(recycle_q, event);
+       	} else {
+       		pqueue_insert(free_q, event);
+       	}
+		// Peek at the next event in the event queue.
         event = pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
-    // Handle reactions.
+    // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         reaction_t* reaction = pqueue_pop(reaction_q);
         // printf("Popped from reaction_q: %p\n", reaction);
@@ -315,6 +337,15 @@ int next() {
             }
         }
     }
+    // Free any payloads that need to be freed and recycle the event
+    // carrying them.
+    event_t* free_event = pqueue_pop(free_q);
+    while (free_event != NULL) {
+    	free(free_event->payload);
+    	pqueue_insert(recycle_q, free_event);
+    	free_event = pqueue_pop(free_q);
+    }
+    
     if (current_time == stop_time) {
         return 0;
     }
@@ -408,6 +439,9 @@ void initialize() {
             get_rct_pos, set_rct_pos, eql_rct);
 	// NOTE: The recycle queue does not need to be sorted. But here it is.
     recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
+            get_evt_pos, set_evt_pos, eql_evt);
+	// NOTE: The free queue does not need to be sorted. But here it is.
+    free_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
             get_evt_pos, set_evt_pos, eql_evt);
 
     // Initialize the trigger table.

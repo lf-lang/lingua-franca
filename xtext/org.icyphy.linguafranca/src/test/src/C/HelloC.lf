@@ -14,7 +14,7 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	action a;
 	reaction(t) -> a {=
 		printf("%s\n", self->message);
-		schedule(a, MSEC(200));
+		schedule(a, MSEC(200), NULL); // No payload.
 		// Print the current time.
 		self->previous_time = get_logical_time();
 		time_t secs = self->previous_time/BILLION;

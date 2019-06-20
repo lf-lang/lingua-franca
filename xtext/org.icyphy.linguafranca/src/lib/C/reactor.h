@@ -99,7 +99,7 @@ typedef struct reaction_t reaction_t;
 struct reaction_t {
   reaction_function_t function;
   void* self;    // Pointer to a struct with the reactor's state.
-  index_t index; // Index determined by topological sort.
+  index_t index; // Inverse priority determined by dependency analysis.
   size_t pos;    // Current position in the priority queue.
   int num_outputs;  // Number of outputs that may possibly be produced by this function.
   bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced.
@@ -115,6 +115,7 @@ struct trigger_t {
 	int number_of_reactions; // Number of reactions sensitive to this trigger.
 	interval_t offset;       // For an action, this will be a minimum delay.
 	interval_t period;       // For periodic timers (not for actions).
+  	void* payload;           // Pointer to malloc'd payload (or NULL).
 };
 
 /** Event activation record to push onto the event queue. */
@@ -122,6 +123,7 @@ typedef struct event_t {
   instant_t time;     // Time of release.
   trigger_t* trigger; // Associated trigger.
   size_t pos;         // Position in the priority queue.
+  void* payload;      // Pointer to malloc'd payload (or NULL).
 } event_t;
 
 //  ======== Function Declarations ========  //
@@ -152,10 +154,11 @@ void __initialize_trigger_objects();
 /** 
  * Internal version of the schedule() function, used by generated 
  * __start_timers() function. 
- * @param trigger the action or timer to be triggered
- * @param delay offset of the event release
+ * @param trigger The action or timer to be triggered.
+ * @param delay Offset of the event release.
+ * @param payload The malloc'd payload.
  */
-handle_t __schedule(trigger_t* trigger, interval_t delay);
+handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload);
 
 /**
  * Function (to be code generated) to start timers.
@@ -168,10 +171,11 @@ bool True;
 
 /**
  * External version of schedule, callable from within reactors.
- * @param trigger the action or timer to be triggered
- * @param delay extra offset of the event release
- */
-handle_t schedule(trigger_t* trigger, interval_t extra_delay);
+ * @param trigger The action or timer to be triggered.
+ * @param delay Extra offset of the event release.
+ * @param payload The malloc'd payload.
+*/
+handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload);
 
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.
