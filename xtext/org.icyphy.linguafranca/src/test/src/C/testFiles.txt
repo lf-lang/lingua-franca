@@ -16,5 +16,7 @@ Minimal.lf
 MinimalThreaded.lf
 SendingInsideC.lf
 SendingInsideCThreaded.lf
+ThreadedC.lf
+ThreadedCThreaded.lf
 TimeLimitC.lf
 TimeLimitCThreaded.lf

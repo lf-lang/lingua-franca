@@ -79,8 +79,7 @@ int next() {
     do {
         event = pqueue_pop(event_q);
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
-            // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
+            // printf("Pushed on reaction_q reaction with level: %lld\n", event->trigger->reactions[i]->index);
             pqueue_insert(reaction_q, event->trigger->reactions[i]);
         }
         if (event->trigger->period > 0) {
@@ -111,8 +110,7 @@ int next() {
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         reaction_t* reaction = pqueue_pop(reaction_q);
-        // printf("Popped from reaction_q: %p\n", reaction);
-        // printf("Popped reaction function: %p\n", reaction->function);
+        // printf("Popped from reaction_q reaction with level: %lld\n", reaction->index);
         
         // If the reaction has a deadline, compare to current physical time
         // and invoke the deadline violation reaction before the reaction function

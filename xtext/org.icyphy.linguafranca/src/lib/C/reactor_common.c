@@ -69,7 +69,7 @@ static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
 static int eql_evt(void* next, void* curr) {
     return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
 }
-// Compare two reactions. FIXME!!!
+// Compare two reactions.
 static int eql_rct(void* next, void* curr) {
     return (next == curr);
 }
@@ -146,7 +146,9 @@ void trigger_output_reactions(reaction_t* reaction) {
                 for (int k=0; k < trigger->number_of_reactions; k++) {
                     reaction_t* reaction = trigger->reactions[k];
                     pqueue_insert(reaction_q, trigger->reactions[k]);
-                }
+             		// printf("Pushed on reaction_q reaction with level: %lld\n", trigger->reactions[k]->index);
+             		// printf("Reaction pointer: %p\n", trigger->reactions[k]);
+               }
             }
         }
 	}
