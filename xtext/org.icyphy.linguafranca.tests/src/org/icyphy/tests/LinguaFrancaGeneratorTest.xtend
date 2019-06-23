@@ -5,7 +5,6 @@ package org.icyphy.tests
 
 import com.google.inject.Inject
 import java.io.BufferedReader
-import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -153,9 +152,13 @@ class LinguaFrancaGeneratorTest {
        	// Determine the compile and run commands.
        	// Start with a default, but if there is a "compile" or "run"
        	// parameter to the Target directive, then use those commands.
-       	var compileCommand = newArrayList("cc", "pqueue.c", "reactor.c", cFile)
+   		// Construct the output filename.
+   		var outputFile = file.substring(0, file.length - 3)
+       	var compileCommand = newArrayList("cc", "pqueue.c", "reactor.c", cFile, "-o", outputFile)
        	// By default, limit tests to 10 seconds.
-       	var runCommand = newArrayList("./a.out", "-stop", "10", "secs")
+       	var runCommand = newArrayList("./" + outputFile, "-stop", "10", "secs")
+       	var runCommandOverridden = false;
+       	var threads = ""
    		if (parsed.target.parameters !== null) {
    			for (parameter: parsed.target.parameters.assignments) {
    				if (parameter.name.equals("compile")) {
@@ -168,8 +171,15 @@ class LinguaFrancaGeneratorTest {
    					val command = parameter.value.substring(1, parameter.value.length - 1).split(' ')
    					runCommand.clear
    					runCommand.addAll(command)
+   					runCommandOverridden = true
+   				} else if (parameter.name.equals("threads")) {
+   					threads = parameter.value
 				}
    			}
+   		}
+   		if (!runCommandOverridden && !threads.equals("")) {
+   			runCommand.add("-threads")
+   			runCommand.add(threads)
    		}
        	
    		// Invoke the compiler on the generated code.

@@ -28,7 +28,7 @@ import org.icyphy.linguaFranca.Uses
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
 	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C'}
-	public static val TARGET_PARAMETERS = #{'compile', 'run'}
+	public static val TARGET_PARAMETERS = #{'compile', 'run', 'threads'}
 	
 	var parameters = newHashSet()
 	var inputs = newHashSet()
@@ -37,7 +37,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	var actions = newHashSet()
 	var allNames = newHashSet()
 	var containedNames = newHashSet()    // Names of contained reactor instances.
-	var reactorClassNames = newHashSet() // Includes imports.
 	
 	////////////////////////////////////////////////////
 	//// Functions to set up data structures for performing checks.
@@ -179,11 +178,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 						Literals.TARGET__PARAMETERS
 					)
 				}
-				// Make sure the value of the parameter is a string.
+				// Make sure the value of the parameter is a string or a parsable integer.
 				if (!parameter.value.startsWith('"') || !parameter.value.endsWith('"')) {
-					error("Target parameter value is required to be a string surrounded by quotation marks.",
-						Literals.TARGET__PARAMETERS
-					)
+					try {
+						Integer.decode(parameter.value)
+					} catch (NumberFormatException ex) {
+						error("Target parameter value is required to be an integer or a string surrounded by quotation marks.",
+							Literals.TARGET__PARAMETERS
+						)
+					}
 				}
 			}
 		}

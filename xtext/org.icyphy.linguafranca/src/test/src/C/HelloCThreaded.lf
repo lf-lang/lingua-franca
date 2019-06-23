@@ -1,0 +1,44 @@
+// This test checks that logical time is incremented an appropriate
+// amount as a result of an invocation of the schedule() function at
+// runtime. It also performs various smoke tests of timing aligned
+// reactions. The first instance has a period of 4 seconds, the second
+// of 2 seconds, and the third (composite) or 1 second.
+target C( 
+	threads = 1,
+	compile = "cc HelloC.c pqueue.c reactor.c -o HelloC",
+	run = "./HelloC -fast -stop 10 sec"
+);
+reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
+	state count:int(0);
+	state previous_time:{=long long=}(0);
+	timer t(1 secs, period);
+	action a;
+	reaction(t) -> a {=
+		printf("%s\n", self->message);
+		schedule(a, MSEC(200), NULL); // No payload.
+		// Print the current time.
+		self->previous_time = get_logical_time();
+		time_t secs = self->previous_time/BILLION;
+		printf("Current time is %lld\n", self->previous_time);
+		printf("Which is %sPlus %lld nanoseconds.\n", ctime(&secs), self->previous_time % BILLION);
+	=}
+	reaction(a) {=
+		(self->count)++;
+		printf("***** action %d at time %lld\n", self->count, get_logical_time());
+		long long time = get_logical_time();
+		if (time - self->previous_time != 200000000ll) {
+			printf("FAILURE: Expected 200ms of logical time to elapse but got %lld nanoseconds.\n",
+				time - self->previous_time
+			);
+			exit(1);
+		}
+	=}
+}
+reactor Inside(period:time(1 sec), message:{=char*=}("Composite default message.")) {
+	third_instance = new HelloC(period = period, message = message);
+}
+reactor Main {
+	first_instance = new HelloC(period = 4 sec, message = "Hello from first_instance.");
+	second_instance = new HelloC(message = "Hello from second_instance.");
+	composite_instance = new Inside(message = "Hello from composite_instance.");
+} 

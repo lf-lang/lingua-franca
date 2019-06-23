@@ -43,6 +43,9 @@ class CGenerator extends GeneratorBase {
 	var triggerCount = 0
 	var instanceCount = 0
 	var tmpVariableCount = 0
+	
+	// Indicator of whether to generate multithreaded code and how many by default.
+	var numberOfThreads = 0
 			
 	// Place to collect code to initialize the trigger objects for all reactors.
 	var initializeTriggerObjects = new StringBuilder()
@@ -81,6 +84,24 @@ class CGenerator extends GeneratorBase {
 
 		super.doGenerate(resource, fsa, context, importTable)
 		
+		for (target: resource.allContents.toIterable.filter(Target)) {
+			if (target.parameters !== null) {
+   				for (parameter: target.parameters.assignments) {
+   					if (parameter.name.equals("threads")) {
+   						// This has been checked by the validator.
+   						numberOfThreads = Integer.decode(parameter.value)
+	   					// Set this as the default in the generated code,
+	   					// but only if it has not been overridden on the command line.
+   						pr(startTimers, "if (number_of_threads == 0) {")
+   						indent(startTimers)
+   						pr(startTimers, "number_of_threads = " + numberOfThreads + ";")
+   						unindent(startTimers)
+   						pr(startTimers, "}")
+   					}
+   				}
+   			}
+		}
+		
 		// Any main reactors in imported files are ignored.		
 		if (main !== null) {
 			// Generate function to initialize the trigger objects for all reactors.
@@ -109,8 +130,15 @@ class CGenerator extends GeneratorBase {
 		fsa.generateFile(_filename + ".c", getCode())
 		
 		// Copy the required library files into the target filesystem.
-		var reactorC = readFileInClasspath("/lib/C/reactor.c")
-		fsa.generateFile("reactor.c", reactorC)
+		var reactorCCommon = readFileInClasspath("/lib/C/reactor_common.c")
+		fsa.generateFile("reactor_common.c", reactorCCommon)
+		if (numberOfThreads === 0) {
+			var reactorC = readFileInClasspath("/lib/C/reactor.c")
+			fsa.generateFile("reactor.c", reactorC)
+		} else {
+			var reactorC = readFileInClasspath("/lib/C/reactor_threaded.c")
+			fsa.generateFile("reactor_threaded.c", reactorC)			
+		}
 		var reactorH = readFileInClasspath("/lib/C/reactor.h")
 		fsa.generateFile("reactor.h", reactorH)
 		var pqueueC = readFileInClasspath("/lib/C/pqueue.c")

@@ -1,0 +1,45 @@
+target C(
+	threads = 1	
+);
+reactor Source {
+	output y:int;
+	timer t;
+	reaction(t) -> y {=
+		set(y, 1);
+	=}
+} 
+reactor Destination {
+	input x:int;
+	input y:int;
+	reaction(x, y) {=
+		int sum = 0;
+		if (x_is_present) {
+			sum += x;
+		}
+		if (y_is_present) {
+			sum += y;
+		}
+		printf("Received %d.\n", sum);
+		if (sum != 2) {
+			printf("FAILURE: Expected 2.\n");
+			exit(4);
+		}
+	=}
+}
+reactor Pass {
+	input x:int;
+	output y:int;
+	reaction(x) -> y {=
+		set(y, x);
+	=}
+}
+reactor Main {
+	s = new Source();
+	d = new Destination();
+	p1 = new Pass();
+	p2 = new Pass();
+	s.y -> d.y;
+	s.y -> p1.x;
+	p1.y -> p2.x;
+	p2.y -> d.x;
+}

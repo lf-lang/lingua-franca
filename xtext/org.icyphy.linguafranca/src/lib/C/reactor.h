@@ -169,6 +169,9 @@ void __start_timers();
 bool False;
 bool True;
 
+/** By default, execution is not threaded and this variable will have value 0. */
+int number_of_threads;
+
 /**
  * External version of schedule, callable from within reactors.
  * @param trigger The action or timer to be triggered.

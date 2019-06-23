@@ -1,0 +1,14 @@
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target C(
+	threads = 1
+);
+reactor ImportedAgainC {
+	input x:int;
+	reaction(x) {=
+		if (x != 42) {
+			printf("ERROR: Expected input to be 42. Got: %d.\n", x);
+			exit(1);
+		}
+	=}
+}
