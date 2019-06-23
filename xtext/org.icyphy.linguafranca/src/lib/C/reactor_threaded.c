@@ -70,9 +70,10 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
 // Otherwise, return 1.
 int next() {
  	pthread_mutex_lock(&mutex);
- 	// Wait for all worker threads to be idle, indicating that
+ 	// Wait for the reaction queue to be empty and
+ 	// all worker threads to be idle, indicating that
  	// the previous logical time is complete.
- 	while (number_of_idle_threads != number_of_threads) {
+ 	while (pqueue_size(reaction_q) > 0 || number_of_idle_threads != number_of_threads) {
  		if (stop_requested) {
      		pthread_mutex_unlock(&mutex);
             return 0;
@@ -218,6 +219,14 @@ void* worker(void* arg) {
 		// with levels less than the level of the reaction.
         // FIXME: This is conservative, since the index just denotes the level in the precedence
         // graph. This can be improved using a binary encoding of dependencies.
+        /*
+        if (reaction != NULL) {
+        	printf("Considering running reaction with index: %lld\n", reaction->index);
+        }
+        if (executing != NULL) {
+        	printf("Some other thread is running reaction with index: %lld\n", executing->index);
+        }
+        */
 		if (reaction == NULL || (executing != NULL && executing->index < reaction->index)) {
 			// There are no reactions ready to run.
 			// If we were previously busy, count this thread as idle now.
@@ -239,8 +248,7 @@ void* worker(void* arg) {
 	    	}
 	    	
         	reaction_t* reaction = pqueue_pop(reaction_q);
-        	// printf("Popped from reaction_q: %p\n", reaction);
-        	// printf("Popped reaction function: %p\n", reaction->function);
+        	// printf("Popped from reaction_q reaction with index: %lld\n", reaction->index);
         	
         	// Push the reaction on the executing queue in order to prevent any
         	// reactions that may depend on it from executing before this reaction is finished.
@@ -282,10 +290,13 @@ void* worker(void* arg) {
  			pthread_mutex_unlock(&mutex);
         	// Invoke the reaction function.
         	reaction->function(reaction->self);
+        	// Reacquire the mutex lock.
+ 			pthread_mutex_lock(&mutex);
         	// If the reaction produced outputs, put the resulting triggered
         	// reactions into the queue while holding the mutex lock.
- 			pthread_mutex_lock(&mutex);
         	trigger_output_reactions(reaction);
+        	// There may be new reactions on the reaction queue, so notify other threads.
+			pthread_cond_broadcast(&wake);
         	// Remove the reaction from the executing queue.
         	pqueue_remove(executing_q, reaction);
     	}

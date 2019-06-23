@@ -6,6 +6,7 @@
 // On a quad-core machine, however, it does pretty well, completing 800 msec of work
 // in about 225 msec.
 target C(
+	threads = 4,
 	run = "./ThreadedC -stop 2 sec"
 );
 reactor Source {

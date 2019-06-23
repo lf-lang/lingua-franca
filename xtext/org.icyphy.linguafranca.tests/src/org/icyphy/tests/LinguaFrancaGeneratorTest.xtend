@@ -154,7 +154,7 @@ class LinguaFrancaGeneratorTest {
        	// parameter to the Target directive, then use those commands.
    		// Construct the output filename.
    		var outputFile = file.substring(0, file.length - 3)
-       	var compileCommand = newArrayList("cc", "pqueue.c", "reactor.c", cFile, "-o", outputFile)
+       	var compileCommand = newArrayList()
        	// By default, limit tests to 10 seconds.
        	var runCommand = newArrayList("./" + outputFile, "-stop", "10", "secs")
        	var runCommandOverridden = false;
@@ -181,6 +181,15 @@ class LinguaFrancaGeneratorTest {
    			runCommand.add("-threads")
    			runCommand.add(threads)
    		}
+   		if (compileCommand.isEmpty()) {
+   			if (threads.equals("")) {
+   				// Non-threaded version.
+   				compileCommand.addAll("cc", "pqueue.c", "reactor.c", cFile, "-o", outputFile)
+   			} else {
+   				// Threaded version.
+   				compileCommand.addAll("cc", "pqueue.c", "reactor_threaded.c", cFile, "-o", outputFile)
+   			}
+		}
        	
    		// Invoke the compiler on the generated code.
    		println("Compiling with command: " + compileCommand.join(" "))
