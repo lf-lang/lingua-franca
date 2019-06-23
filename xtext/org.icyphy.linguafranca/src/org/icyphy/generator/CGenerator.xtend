@@ -597,6 +597,7 @@ class CGenerator extends GeneratorBase {
 						+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
 						+ ", 0LL" // Deadline.
 						+ ", NULL" // Pointer to deadline violation trigger.
+						+ ", false" // Indicator that the reaction is not running.
 						+ "};"
 					)
 				}

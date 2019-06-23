@@ -52,7 +52,7 @@ void stop() {
 
 // Priority queues.
 pqueue_t* event_q;     // For sorting by time.
-pqueue_t* reaction_q;  // For sorting by index (topological sort)
+pqueue_t* reaction_q;  // For sorting by index (precedence sort)
 pqueue_t* recycle_q;   // For recycling malloc'd events.
 pqueue_t* free_q;      // For free malloc'd payloads carried by events.
 
@@ -65,11 +65,11 @@ struct timespec physicalStartTime;
 static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
     return (next > curr);
 }
-// Compare two events.
+// Compare two events. They are "equal" if they refer to the same trigger.
 static int eql_evt(void* next, void* curr) {
     return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
 }
-// Compare two reactions.
+// Compare two reactions. FIXME!!!
 static int eql_rct(void* next, void* curr) {
     return (next == curr);
 }
@@ -142,7 +142,7 @@ void trigger_output_reactions(reaction_t* reaction) {
         if (*(reaction->output_produced[i])) {
             trigger_t** triggerArray = (reaction->triggers)[i];
             for (int j=0; j < reaction->triggered_sizes[i]; j++) {
-            trigger_t* trigger = triggerArray[j];
+            	trigger_t* trigger = triggerArray[j];
                 for (int k=0; k < trigger->number_of_reactions; k++) {
                     reaction_t* reaction = trigger->reactions[k];
                     pqueue_insert(reaction_q, trigger->reactions[k]);

@@ -11,6 +11,10 @@ int number_of_idle_threads = 0;
 // Indicator that we are between logical times.
 bool between_logical_times = false;
 
+// Queue of currently executing reactions.
+pqueue_t* executing_q;  // Sorted by index (precedence sort)
+
+
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t wake = PTHREAD_COND_INITIALIZER;
 pthread_cond_t number_of_idle_threads_increased = PTHREAD_COND_INITIALIZER;
@@ -206,7 +210,15 @@ void* worker(void* arg) {
 	pthread_mutex_lock(&mutex);
 	while (!stop_requested) {
 		// Obtain a reaction from the reaction_q.
-		if (pqueue_size(reaction_q) == 0) {
+		reaction_t* reaction = pqueue_peek(reaction_q);
+		reaction_t* executing = pqueue_peek(executing_q);
+		// Check whether there is a reaction ready to execute.
+		// A reaction that is the earliest one on the rection queue
+		// is ready to execute if there are no currently executing reactions
+		// with levels less than the level of the reaction.
+        // FIXME: This is conservative, since the index just denotes the level in the precedence
+        // graph. This can be improved using a binary encoding of dependencies.
+		if (reaction == NULL || (executing != NULL && executing->index < reaction->index)) {
 			// There are no reactions ready to run.
 			// If we were previously busy, count this thread as idle now.
 			if (have_been_busy) {
@@ -229,6 +241,10 @@ void* worker(void* arg) {
         	reaction_t* reaction = pqueue_pop(reaction_q);
         	// printf("Popped from reaction_q: %p\n", reaction);
         	// printf("Popped reaction function: %p\n", reaction->function);
+        	
+        	// Push the reaction on the executing queue in order to prevent any
+        	// reactions that may depend on it from executing before this reaction is finished.
+        	pqueue_insert(executing_q, reaction);
         
         	// If the reaction has a deadline, compare to current physical time
         	// and invoke the deadline violation reaction before the reaction function
@@ -270,6 +286,8 @@ void* worker(void* arg) {
         	// reactions into the queue while holding the mutex lock.
  			pthread_mutex_lock(&mutex);
         	trigger_output_reactions(reaction);
+        	// Remove the reaction from the executing queue.
+        	pqueue_remove(executing_q, reaction);
     	}
 	}
  	pthread_mutex_unlock(&mutex);
@@ -321,6 +339,11 @@ int main(int argc, char* argv[]) {
     if (process_args(argc, argv)) {
  		pthread_mutex_lock(&mutex);
         initialize();
+        
+        // Create a queue on which to put reactions that are currently executing.
+        executing_q = pqueue_init(number_of_threads, cmp_pri, get_rct_pri,
+            	get_rct_pos, set_rct_pos, eql_rct);
+
         __start_timers();
         start_threads();
  		pthread_mutex_unlock(&mutex);
