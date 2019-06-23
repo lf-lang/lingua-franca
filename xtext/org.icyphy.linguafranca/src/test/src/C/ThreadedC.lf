@@ -38,7 +38,7 @@ reactor Destination {
 		printf("Sum of received: %d.\n", sum);
 		if (sum != self->s) {
 			printf("ERROR: Expected %d.\n", self->s);
-			// exit(1);
+			exit(1);
 		}
 		self->s += 4;
 	=}
