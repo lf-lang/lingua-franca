@@ -27,7 +27,7 @@ import org.icyphy.linguaFranca.Uses
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
-	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C'}
+	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C', 'SCL'}
 	public static val TARGET_PARAMETERS = #{'compile', 'run', 'threads'}
 	
 	var parameters = newHashSet()

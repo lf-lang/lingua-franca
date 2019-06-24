@@ -1,0 +1,19 @@
+target SCL;
+reactor Clock(period:int(1000)) {
+	output signal: BOOL;
+	timer t(0, period);
+	reaction (t) -> signal {=
+		signal := 1;
+	=}
+}
+reactor LED(name) {
+	input signal;
+	reaction (signal) {=
+		// write to memory
+	=}
+}
+reactor main {
+	clock = new Clock();
+	led = new LED();
+	clock.signal -> led.signal;
+}
