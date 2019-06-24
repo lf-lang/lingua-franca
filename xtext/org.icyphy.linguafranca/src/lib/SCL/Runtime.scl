@@ -1,0 +1,186 @@
+// Static:  Maintain topologically sorted array of reactors (size = #reactors) specifying topology (input/output connections)
+// Dynamic: Maintain binary heap for priority queue of next firing times (max size = #triggers over all instances).
+//          Priority = timestamp
+// Dynamic: Maintain array of reactors (size = #reactors) with their states
+
+// In OB1, repeatedly:
+// 1. Pop the next event from the heap
+// 2. Execute said event
+// 3. Push new events onto the heap
+
+TYPE Edge
+STRUCT
+    targets: ARRAY of DINT;
+    count: DINT;
+END_STRUCT
+END_UDT
+
+TYPE Graph
+STRUCT
+    edges: ARRAY OF Edge;
+    num_vertices: DINT;
+END_STRUCT
+END_UDT
+
+TYPE HeapSlot
+STRUCT
+    timestamp: DINT;  // DINT is 32-bit... need 64-bit?
+    // microstep: DINT;
+    id: INT;
+END_STRUCT
+END_UDT
+
+FUNCTION heap_sift
+    VAR_IN_OUT
+        heap: ARRAY OF HeapSlot;
+    END_IN_OUT;
+    VAR_INPUT
+        r: INT;
+        begin: INT;
+        end: INT;
+        min_heap: BOOL;
+        down: BOOL;
+    END_INPUT;
+    VAR_OUTPUT
+        result: INT;
+    END_OUTPUT;
+    VAR_TEMP
+        i: INT;
+        temp: HeapSlot;
+    END_TEMP;
+    #i := #r;
+    WHILE 1 DO
+        IF #down THEN
+            #b := (#i - #begin) * 2 + 1 + #begin;
+            IF #b > #end THEN
+                #b := #end;
+            END_IF;
+            #e := 2 + #b;
+            IF #e > #end THEN
+                #e := #end;
+            END_IF;
+            #j := #b;
+            IF #min_heap THEN
+                #k2 := #j;
+            ELSE
+                #k1 := #j;
+            END_IF;
+            #b := #b + 1;
+            WHILE #b < #e DO
+                IF #min_heap THEN
+                    #k1 := #b;
+                ELSE
+                    #k2 := #b;
+                END_IF;
+                IF #heap[#k1] < #heap[#k2] THEN
+                    #j := #b;
+                END_IF;
+                #b := #b + 1;
+            END_WHILE;
+        ELSE
+            #j := #begin;
+            IF #i <> #begin THEN
+                #j := #j + (#i - #begin - 1) / 2;
+            END_IF;
+        END_IF;
+        IF #j = #end THEN
+            EXIT;
+        END_IF;
+        IF #down XOR #min_heap THEN
+            #k1 := #i;
+            #k2 := #j;
+        ELSE
+            #k1 := #j;
+            #k2 := #i;
+        END_IF;
+        IF NOT (#heap[#k1] < #heap[#k2]) THEN
+            EXIT;
+        END_IF;
+        #temp := #heap[#j];
+        #heap[#j] := #heap[#i];
+        #heap[#i] := #temp;
+        IF #r = #i THEN
+            #r := #j;
+        END_IF;
+        #i := #j;
+    END_WHILE;
+    #r := #i;
+    #result := #r;
+END_FUNCTION;
+
+FUNCTION heap_push
+    VAR_IN_OUT
+        heap: ARRAY OF HeapSlot;
+    END_IN_OUT;
+    VAR_INPUT
+        begin: INT;
+        end: INT;
+        min_heap: BOOL;
+    END_INPUT;
+    VAR_OUTPUT
+        result: INT;
+    END_OUTPUT;
+    VAR_TEMP
+        i: INT := end - 1;
+        a: INT;
+        b: INT;
+    END_TEMP;
+    #j := #begin;
+    IF #i <> #begin THEN
+        #j := #j + ((#i - #begin - 1) / 2);
+    END_IF;
+    IF #min_heap THEN
+        #a := #j;
+        #b := #i;
+    ELSE
+        #a := #i;
+        #b := #j;
+    END_IF;
+    #result := #heap_sift(heap := #heap, i := #i, begin := #begin, end := #end, min_heap := #min_heap, down := #heap[#a] < #heap[#b]);
+END_FUNCTION;
+FUNCTION heap_pop
+    VAR_IN_OUT
+        heap: ARRAY OF HeapSlot;
+    END_IN_OUT;
+    VAR_INPUT
+        begin: INT;
+        end: INT;
+        min_heap: BOOL;
+    END_INPUT;
+    VAR_OUTPUT
+        result: INT;
+    END_OUTPUT;
+    VAR_TEMP
+        i := 0;
+        temp: HeapSlot;
+        a: INT;
+        b: INT;
+    END_TEMP;
+    #end := #end - 1;
+    #temp := #heap[#i];
+    #heap[#i] := #heap[#end];
+    #heap[#end] := #temp;
+    IF #min_heap THEN
+        #a := #end;
+        #b := #i;
+    ELSE
+        #a := #i;
+        #b := #end;
+    END_IF;
+    #heap_sift(heap := #heap, i := #i, begin := #begin, end := #end, min_heap := #min_heap, down := #heap[#a] < #heap[#b]);
+    #result := #end;
+END_FUNCTION;
+
+DB:
+    graph: Graph;
+    queue: ARRAY[0..#Actors - 1] OF INT;
+    nqueue: INT;
+
+FUNCTION main
+    // TODO: Topological sort...
+    #ordering = topological_sort(graph := #graph);
+    // TODO: Initialize queue...
+    #nqueue := 0;
+    #i := heap_pop(heap := #queue, begin := 0, end := #nqueue, min_heap := 1);
+    // execute #heap[#i]
+END_FUNCTION;

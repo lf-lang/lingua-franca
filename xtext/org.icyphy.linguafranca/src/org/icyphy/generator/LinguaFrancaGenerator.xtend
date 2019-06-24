@@ -43,6 +43,10 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 				targetFound = true
 				val generator = new CGenerator()
 				generator.doGenerate(resource, fsa, context, importTable)
+			} else if (target.name.equalsIgnoreCase("SCL")) {
+				targetFound = true
+				val generator = new SCLGenerator()
+				generator.doGenerate(resource, fsa, context, importTable)
 			}
 		}
 		if (!targetFound) {
