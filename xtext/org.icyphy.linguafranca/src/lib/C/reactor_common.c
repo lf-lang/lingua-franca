@@ -104,6 +104,18 @@ static void set_rct_pos(void *a, size_t pos) {
     ((reaction_t*) a)->pos = pos;
 }
 
+static void prt_rct(FILE *out, void *a) {
+	reaction_t *n = a;
+    fprintf(out, "index: %d, reaction: %p\n",
+			n->index, n);
+}
+
+static void prt_evt(FILE *out, void *a) {
+	event_t *n = a;
+    fprintf(out, "time: %d, trigger: %p, payload: %p\n",
+			n->time, n->trigger, n->payload);
+}
+
 // ********** Priority Queue Support End
 
 // Schedule the specified trigger at current_time plus the
@@ -121,7 +133,7 @@ handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload) {
     e->time = current_time + trigger->offset + delay;
     e->trigger = trigger;
     e->payload = payload;
-
+    
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
     // (time and microstep) have been pulled from the queue,
@@ -310,15 +322,15 @@ void initialize() {
 
     // Initialize our priority queues.
     event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
-            get_evt_pos, set_evt_pos, eql_evt);
+            get_evt_pos, set_evt_pos, eql_evt, prt_evt);
     reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, cmp_pri, get_rct_pri,
-            get_rct_pos, set_rct_pos, eql_rct);
+            get_rct_pos, set_rct_pos, eql_rct, prt_rct);
 	// NOTE: The recycle queue does not need to be sorted. But here it is.
     recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
-            get_evt_pos, set_evt_pos, eql_evt);
+            get_evt_pos, set_evt_pos, eql_evt, prt_evt);
 	// NOTE: The free queue does not need to be sorted. But here it is.
     free_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
-            get_evt_pos, set_evt_pos, eql_evt);
+            get_evt_pos, set_evt_pos, eql_evt, prt_evt);
 
     // Initialize the trigger table.
     __initialize_trigger_objects();

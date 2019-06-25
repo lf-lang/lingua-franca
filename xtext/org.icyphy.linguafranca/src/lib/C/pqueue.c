@@ -49,7 +49,8 @@ pqueue_init(size_t n,
             pqueue_get_pri_f getpri,
             pqueue_get_pos_f getpos,
             pqueue_set_pos_f setpos,
-            pqueue_eq_elem_f eqelem)
+            pqueue_eq_elem_f eqelem,
+            pqueue_print_entry_f prt)
 {
     pqueue_t *q;
 
@@ -69,9 +70,9 @@ pqueue_init(size_t n,
     q->getpos = getpos;
     q->setpos = setpos;
     q->eqelem = eqelem;
+    q->prt = prt;
     return q;
 }
-
 
 void
 pqueue_free(pqueue_t *q)
@@ -88,24 +89,63 @@ pqueue_size(pqueue_t *q)
     return (q->size - 1);
 }
 
+static size_t
+maxchild(pqueue_t *q, size_t i)
+{
+    size_t child_node = left(i);
+
+    if (child_node >= q->size)
+        return 0;
+
+    if ((child_node+1) < q->size &&
+        (q->cmppri(q->getpri(q->d[child_node]), q->getpri(q->d[child_node+1])))) 
+        child_node++; /* use right child instead of left */
+
+    return child_node;
+}
+
+// NOTE: must be run after each insertion (only removes one duplicate).
 static void
 dedup(pqueue_t *q, size_t i)
 {
     size_t parent_node;
+    size_t sibling_node;
     void *inserted_node = q->d[i];
     pqueue_pri_t prio = q->getpri(inserted_node);
-    pqueue_pri_t inserted_pri = q->getpri(inserted_node);
 
-    for (parent_node = parent(i);
-         ((i > 1) && q->getpri(q->d[parent_node]) == prio);
-         i = parent_node, parent_node = parent(i))
-    {
-        //printf("REMOVED DUPLICATE ENTRY FROM QUEUE>>>>>>\n");
-        if (q->eqelem(q->d[parent_node], inserted_node)) {
-            pqueue_remove(q, q->d[i]);    
+    // printf("==Before dedup==\n");
+    // pqueue_dump(q, stdout, q->prt);
+    
+    if (i > 1) { // nothing to do if there's only one node
+        // look up
+        parent_node = parent(i);
+        if (q->getpri(q->d[parent_node]) == prio) {
+            if (q->eqelem(q->d[parent_node], inserted_node)) {
+                pqueue_remove(q, q->d[parent_node]);
+            }
+        }
+    
+        // look left
+        sibling_node = left(parent_node);
+        if (sibling_node != i && sibling_node < q->size 
+                && q->getpri(q->d[sibling_node]) == prio) {
+            if (q->eqelem(q->d[sibling_node], inserted_node)) {
+                pqueue_remove(q, q->d[sibling_node]);
+            }
+        }
+
+        // look right
+        sibling_node = right(parent_node);
+        if (sibling_node != i && sibling_node < q->size 
+                && q->getpri(q->d[sibling_node]) == prio) {
+            if (q->eqelem(q->d[sibling_node], inserted_node)) {
+                pqueue_remove(q, q->d[sibling_node]);
+            }
         }
     }
-
+  
+    // printf("==After dedup==\n");
+    // pqueue_dump(q, stdout, q->prt);
 }
 
 static size_t
@@ -127,22 +167,6 @@ bubble_up(pqueue_t *q, size_t i)
     q->setpos(moving_node, i);
     return i;
 }
-
-static size_t
-maxchild(pqueue_t *q, size_t i)
-{
-    size_t child_node = left(i);
-
-    if (child_node >= q->size)
-        return 0;
-
-    if ((child_node+1) < q->size &&
-        q->cmppri(q->getpri(q->d[child_node]), q->getpri(q->d[child_node+1])))
-        child_node++; /* use right child instead of left */
-
-    return child_node;
-}
-
 
 static void
 percolate_down(pqueue_t *q, size_t i)
@@ -181,12 +205,10 @@ pqueue_insert(pqueue_t *q, void *d)
         q->d = tmp;
         q->avail = newsize;
     }
-
-    /* insert item and remove duplicates */
+    /* insert item and remove potential duplicate */
     i = q->size++;
     q->d[i] = d;
     dedup(q, bubble_up(q, i));
-
     return 0;
 }
 
@@ -208,14 +230,14 @@ void *
 pqueue_pop(pqueue_t *q)
 {
     void *head;
-
+    
     if (!q || q->size == 1)
         return NULL;
-
+        
     head = q->d[1];
     q->d[1] = q->d[--q->size];
     percolate_down(q, 1);
-
+    
     return head;
 }
 
@@ -258,7 +280,7 @@ pqueue_print(pqueue_t *q,
 
     dup = pqueue_init(q->size,
                       q->cmppri, q->getpri,
-                      q->getpos, q->setpos, q->eqelem);
+                      q->getpos, q->setpos, q->eqelem, q->prt);
     dup->size = q->size;
     dup->avail = q->avail;
     dup->step = q->step;
