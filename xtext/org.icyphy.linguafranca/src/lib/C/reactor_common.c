@@ -106,13 +106,13 @@ static void set_rct_pos(void *a, size_t pos) {
 
 static void prt_rct(FILE *out, void *a) {
 	reaction_t *n = a;
-    fprintf(out, "index: %d, reaction: %p\n",
+    fprintf(out, "index: %lld, reaction: %p\n",
 			n->index, n);
 }
 
 static void prt_evt(FILE *out, void *a) {
 	event_t *n = a;
-    fprintf(out, "time: %d, trigger: %p, payload: %p\n",
+    fprintf(out, "time: %lld, trigger: %p, payload: %p\n",
 			n->time, n->trigger, n->payload);
 }
 
