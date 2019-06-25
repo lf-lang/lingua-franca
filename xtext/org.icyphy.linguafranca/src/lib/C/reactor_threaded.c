@@ -352,7 +352,7 @@ int main(int argc, char* argv[]) {
         
         // Create a queue on which to put reactions that are currently executing.
         executing_q = pqueue_init(number_of_threads, cmp_pri, get_rct_pri,
-            	get_rct_pos, set_rct_pos, eql_rct);
+            	get_rct_pos, set_rct_pos, eql_rct, prt_rct);
 
         __start_timers();
         start_threads();
