@@ -48,10 +48,8 @@ typedef int (*pqueue_eq_elem_f)(void* next, void* curr);
 typedef size_t (*pqueue_get_pos_f)(void *a);
 typedef void (*pqueue_set_pos_f)(void *a, size_t pos);
 
-
 /** debug callback function to print a entry */
 typedef void (*pqueue_print_entry_f)(FILE *out, void *a);
-
 
 /** the priority queue handle */
 typedef struct pqueue_t
@@ -64,7 +62,8 @@ typedef struct pqueue_t
     pqueue_get_pos_f getpos;    /**< callback to get position of a node */
     pqueue_set_pos_f setpos;    /**< callback to set position of a node */
     pqueue_eq_elem_f eqelem;    /**< callback to compare elements */
-    void **d;                   /**< The actualy queue in binary heap form */
+    pqueue_print_entry_f prt;    /**< callback to print elements */
+    void **d;                   /**< The actual queue in binary heap form */
 } pqueue_t;
 
 
@@ -88,7 +87,8 @@ pqueue_init(size_t n,
             pqueue_get_pri_f getpri,
             pqueue_get_pos_f getpos,
             pqueue_set_pos_f setpos,
-            pqueue_eq_elem_f eqelem);
+            pqueue_eq_elem_f eqelem,
+            pqueue_print_entry_f prt);
 
 
 /**

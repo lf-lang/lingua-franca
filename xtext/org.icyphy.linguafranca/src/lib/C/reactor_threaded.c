@@ -14,7 +14,6 @@ bool between_logical_times = false;
 // Queue of currently executing reactions.
 pqueue_t* executing_q;  // Sorted by index (precedence sort)
 
-
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t wake = PTHREAD_COND_INITIALIZER;
 pthread_cond_t number_of_idle_threads_increased = PTHREAD_COND_INITIALIZER;
@@ -32,7 +31,7 @@ pthread_cond_t end_logical_time = PTHREAD_COND_INITIALIZER;
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
- 	pthread_mutex_lock(&mutex);
+ 	pthread_mutex_lock(&mutex); // FIXME: is only necessary for _async_ calls, see MEMOCODE paper
 	// If we are between logical times, this is an asynchronous callback
 	// and we need to use physical time to adjust the delay.
  	if (between_logical_times) {
