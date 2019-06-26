@@ -16,9 +16,12 @@ bool fast = false;
 // By default, execution is not threaded and this variable will have value 0.
 int number_of_threads = 0;
 
-// Current time.
+// Current time in nanoseconds since January 1, 1970.
 // This is not in scope for reactors.
 instant_t current_time = 0LL;
+
+// Logical time at the start of execution.
+interval_t start_time = 0LL;
 
 // Indicator that the execution should stop after the completion of the
 // current logical time. This can be set to true by calling the stop()
@@ -37,8 +40,13 @@ bool wait_specified = false;
 /////////////////////////////
 // The following functions are in scope for all reactors:
 
-// Return the current logical time.
-long long get_logical_time() {
+// Return the elpased logical time in nanoseconds since the start of execution.
+interval_t get_elapsed_logical_time() {
+    return current_time - start_time;
+}
+
+// Return the current logical time in nanoseconds since January 1, 1970.
+instant_t get_logical_time() {
     return current_time;
 }
 
@@ -340,6 +348,7 @@ void initialize() {
     printf("Start execution at time %splus %ld nanoseconds.\n",
     ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
     current_time = physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec;
+    start_time = current_time;
     
     if (duration >= 0LL) {
         // A duration has been specified. Calculate the stop time.

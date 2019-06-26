@@ -130,7 +130,15 @@ typedef struct event_t {
 //  ======== Function Declarations ========  //
 
 /**
- * Function to get the current logical time.
+ * Return the elpased logical time in nanoseconds
+ * since the start of execution.
+ * @return a time interval
+ */
+interval_t get_elapsed_logical_time();
+
+/**
+ * Return the current logical time in nanoseconds
+ * since January 1, 1970.
  * @return a time instant
  */
 instant_t get_logical_time();
