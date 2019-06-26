@@ -1,0 +1,35 @@
+// 
+target C(
+	run = "./AsyncCallback -stop 2 sec"
+);
+
+reactor Source {
+	preamble {=
+		#include <pthread.h>
+				
+		void callback(void* a) {
+			schedule(a, 0, NULL);
+		}
+		
+		void* take_time(void* a) {
+			struct timespec sleep_time = {(time_t) 0, (long)200000000};
+			struct timespec remaining_time;
+			nanosleep(&sleep_time, &remaining_time);
+			callback(a);
+		}
+		
+	=}
+
+	timer t(0, 200 msec);
+	action a(int);
+	state i:int(0);
+	reaction(t) -> a {=
+		pthread_t threadId;
+		// start new thread, provide callback
+		pthread_create(&threadId, NULL, &take_time, a);
+	=}
+	
+	reaction(a) {=
+		printf("%d\n", self->i++);	
+	=}
+}
