@@ -1,9 +1,10 @@
 // 
 target C(
+	threads = 1,
 	run = "./AsyncCallback -stop 2 sec"
 );
 
-reactor Source {
+reactor Main {
 	preamble {=
 		#include <pthread.h>
 				
@@ -16,12 +17,13 @@ reactor Source {
 			struct timespec remaining_time;
 			nanosleep(&sleep_time, &remaining_time);
 			callback(a);
+			return NULL;
 		}
 		
 	=}
 
 	timer t(0, 200 msec);
-	action a(int);
+	action a:int;
 	state i:int(0);
 	reaction(t) -> a {=
 		pthread_t threadId;
@@ -30,6 +32,7 @@ reactor Source {
 	=}
 	
 	reaction(a) {=
-		printf("%d\n", self->i++);	
+		instant_t elapsed_time = get_elapsed_logical_time();
+		printf("%d: Elapsed logical time is %lld\n", self->i++, elapsed_time);	
 	=}
 }
