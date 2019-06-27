@@ -5,6 +5,7 @@ target C(
 );
 
 reactor Main {
+	
 	preamble {=
 		#include <pthread.h>
 				
@@ -21,9 +22,9 @@ reactor Main {
 		}
 		
 	=}
-
+	
 	timer t(0, 200 msec);
-	action a:int;
+	physical action a:int;
 	state i:int(0);
 	reaction(t) -> a {=
 		pthread_t threadId;

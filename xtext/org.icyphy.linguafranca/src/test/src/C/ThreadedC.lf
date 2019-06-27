@@ -8,6 +8,7 @@
 target C(
 	run = "./ThreadedC -stop 2 sec"
 );
+
 reactor Source {
 	timer t(0, 200 msec);
 	output out:int;

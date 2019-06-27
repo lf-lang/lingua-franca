@@ -31,11 +31,12 @@ pthread_cond_t end_logical_time = PTHREAD_COND_INITIALIZER;
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
- 	pthread_mutex_lock(&mutex); // FIXME: is only necessary for _async_ calls, see MEMOCODE paper
+ 	
 	// If we are between logical times, this is an asynchronous callback
 	// and we need to use physical time to adjust the delay.
- 	if (between_logical_times) {
- 		// Get the current physical time.
+ 	//if (between_logical_times) {
+	if (trigger->is_physical) {
+	 	// Get the current physical time.
         struct timespec current_physical_time;
         clock_gettime(CLOCK_REALTIME, &current_physical_time);
     
@@ -47,7 +48,8 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
         	extra_delay += time_adjustment;
         }
  	}
-    int return_value = __schedule(trigger, trigger->offset + extra_delay, payload);
+    pthread_mutex_lock(&mutex);
+	int return_value = __schedule(trigger, trigger->offset + extra_delay, payload);
  	pthread_mutex_unlock(&mutex);
  	return return_value;
 }

@@ -626,10 +626,16 @@ class CGenerator extends GeneratorBase {
 					+ '0LL, 0LL'
 				)
 			} else if (getAction(reactor, triggerName) !== null) {
+				var modifier = getAction(reactor, triggerName).getModifier();
+				var isPhysical = "false";
+				if (modifier == "physical") {
+					isPhysical = "true";
+				}
 				pr(result, triggerStructName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
 					+ getAction(reactor, triggerName).getDelay()
-					+ ', 0LL' // 0 is ignored since actions don't have a period.
+					+ ', 0LL, NULL, ' 
+					+ isPhysical // 0 is ignored since actions don't have a period.
 				)
 			} else {
 				reportError(reactor,
