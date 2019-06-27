@@ -1,26 +1,25 @@
-target C; 
+target C;
+
 reactor LeftPedal { 
 	preamble {=
 		#include <stdbool.h>
 	  	#define ZERO_MAX 3;
 	  	#define ZERO_MIN 0;
-	    //volatile unsigned char* mm_reg = (char*) 0x1ffff670;
-	    int poll_brake_pedal() {
-	    	
-	    }
-	    int poll_accellerator_pedal() {
-	    	
-	    }
-	    
-	=} 
+	    volatile unsigned char* mm_reg = (char*) 0x1ffff670;    
+	=}
+	
 	output angle:int;
 	output on_off:bool;
+	timer init(0);
+	timer check(0, 2 msec);
 	state pressed:int(0);
-	timer pulse(0, 10); // FIXME: units missing!
 	
-    reaction (pulse) -> angle, on_off {=
-        //int a = (int) *mm_reg;
-        int a = poll_brake_pedal(); // blocking, also see comment in RightPedal below
+    reaction(init) {=
+    	// Configure sensor.
+    =}
+	
+    reaction(check) -> angle, on_off {=
+        int a = (int) *mm_reg;
         if(!self->pressed && a > ZERO_MAX) {
           set(on-off, true);
           self->pressed = true;
@@ -34,39 +33,72 @@ reactor LeftPedal {
 }
 
 reactor RightPedal {
-      
-    input check:void;
-    output angle:int;
-    action response(30);//:int; FIXME: the delay should be a time *unit missing)
-                       // also the response has to carry a value
-    
-    // The desired behavior here is that > 30 ms after a 'check' event triggers
-    // this reaction, another reaction occurs that reports the angle retrieved
-    // from a sensor. The polling with take up physical time.
-    // If we request a new angle using
-    // a blocking call, the result will be reported approximately 30 ms
-    // (physical time) later as long as the blocking call (and the processing
-    // of whatever else is sitting in the event queue for the current logical time)
-    // does not exceed 30 ms.
-    // If we do this asynchronously, with a callback, we don't hold up the
-    // processing of events from the event queue, which is good, but even if all
-    // events can be processed well in time, the response will emerge approximately
-    // 30 ms + the polling delay later because the asynchronous call to schedule
-    // will be based off the physical time at which the callback is invoked.
-    // It seems more appropriate to schedule the event relative to the time at
-    // which the reaction that initiated the request was triggered (like in the
-    // blocking case). Moreover, if the response comes too late, this can be detected
-    // if we keep track of the time at which the request was issued. 
-    // How do we do this?
-    reaction(check) -> response {=
-    	// poll sensor & schedule response
-        schedule(response, poll_accellerator_pedal());
+    preamble {=
+    	volatile unsigned char* mm_reg = (char*) 0x1ffff670;
+        void callback() {
+            int value = (int) *mm_reg;
+            self->pedal = value;
+        }
+        void init_poll() {
+            setup_poll(&callback);
+        }
     =}
-
-    reaction(response) -> angle {=
-        set(angle, get(response));
+   
+    // Assume all valid pedal values are non-negative.
+    state pedal:int(-1);
+    action response(30); //msec
+    input request:int;
+    output out:int;
+    reaction(request) -> response {=
+        self->pedal = -1;
+        init_poll();
+        schedule(response);
+    =}
+    
+    reaction(response) -> out {=
+        if (self->pedal < 0) {
+            // handle error
+        } else {
+            set(out, self->pedal);
+        }
     =}
 }
+
+//
+//reactor RightPedal {
+//      
+//    input check:void;
+//    output angle:int;
+//    action response(30);//:int; FIXME: the delay should be a time *unit missing)
+//                       // also the response has to carry a value
+//    
+//    // The desired behavior here is that > 30 ms after a 'check' event triggers
+//    // this reaction, another reaction occurs that reports the angle retrieved
+//    // from a sensor. The polling with take up physical time.
+//    // If we request a new angle using
+//    // a blocking call, the result will be reported approximately 30 ms
+//    // (physical time) later as long as the blocking call (and the processing
+//    // of whatever else is sitting in the event queue for the current logical time)
+//    // does not exceed 30 ms.
+//    // If we do this asynchronously, with a callback, we don't hold up the
+//    // processing of events from the event queue, which is good, but even if all
+//    // events can be processed well in time, the response will emerge approximately
+//    // 30 ms + the polling delay later because the asynchronous call to schedule
+//    // will be based off the physical time at which the callback is invoked.
+//    // It seems more appropriate to schedule the event relative to the time at
+//    // which the reaction that initiated the request was triggered (like in the
+//    // blocking case). Moreover, if the response comes too late, this can be detected
+//    // if we keep track of the time at which the request was issued. 
+//    // How do we do this?
+//    reaction(check) -> response {=
+//    	// poll sensor & schedule response
+//        schedule(response, poll_accellerator_pedal());
+//    =}
+//
+//    reaction(response) -> angle {=
+//        set(angle, get(response));
+//    =}
+//}
 
 // Simply apply the requested force
 reactor Brakes {

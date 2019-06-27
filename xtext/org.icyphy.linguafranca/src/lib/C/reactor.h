@@ -112,11 +112,13 @@ struct reaction_t {
 
 /** Reaction activation record to push onto the reaction queue. */
 struct trigger_t {
-	reaction_t** reactions;  // Reactions sensitive to this trigger.
-	int number_of_reactions; // Number of reactions sensitive to this trigger.
-	interval_t offset;       // For an action, this will be a minimum delay.
-	interval_t period;       // For periodic timers (not for actions).
-  	void* payload;           // Pointer to malloc'd payload (or NULL).
+	reaction_t** reactions;   // Reactions sensitive to this trigger.
+	int number_of_reactions;  // Number of reactions sensitive to this trigger.
+	interval_t offset;        // For an action, this will be a minimum delay.
+	interval_t period;        // For periodic timers (not for actions).
+  void* payload;            // Pointer to malloc'd payload (or NULL).
+  bool is_physical;         // Indicator that this denotes a physical action 
+                            // (i.e., to be scheduled relative to physical time)
 };
 
 /** Event activation record to push onto the event queue. */
