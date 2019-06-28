@@ -174,70 +174,6 @@ void trigger_output_reactions(reaction_t* reaction) {
 	}
 }
 
-// Advance logical time to the lesser of the specified time or the
-// stop time, if a stop time has been given. If the -fast command-line option
-// was not given, then wait until physical time matches or exceeds the start time of
-// execution plus the current_time plus the specified logical time.  If this is not
-// interrupted, then advance current_time by the specified logical_delay. 
-// Return 0 if time advanced to the time of the event and -1 if the wait
-// was interrupted or if the stop time was reached.
-int wait_until(instant_t logical_time_ns) {
-    int return_value = 0;
-    if (stop_time > 0LL && logical_time_ns > stop_time) {
-        logical_time_ns = stop_time;
-        // Indicate on return that the time of the event was not reached.
-        // We still wait for time to elapse in case asynchronous events come in.
-        return_value = -1;
-    }
-    if (!fast) {
-        // printf("-------- Waiting for logical time %lld.\n", logical_time_ns);
-    
-        // Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
-    
-        long long ns_to_wait = logical_time_ns
-                - (current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec);
-    
-        if (ns_to_wait <= 0) {
-            // Advance current time.
-            current_time = logical_time_ns;
-            return return_value;
-        }
-    
-        // timespec is seconds and nanoseconds.
-        struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
-        // printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
-        struct timespec remaining_time;
-        // FIXME: If the wait time is less than the time resolution, don't sleep.
-        if (nanosleep(&wait_time, &remaining_time) != 0) {
-            // Sleep was interrupted.
-            // May have been an asynchronous call to schedule(), or
-            // it may have been a control-C to stop the process.
-            // Set current time to match physical time, but not less than
-            // current logical time nor more than next time in the event queue.
-            clock_gettime(CLOCK_REALTIME, &current_physical_time);
-            long long current_physical_time_ns 
-                    = current_physical_time.tv_sec * BILLION
-                    + current_physical_time.tv_nsec;
-            if (current_physical_time_ns > current_time) {
-                if (current_physical_time_ns < logical_time_ns) {
-                    current_time = current_physical_time_ns;
-                    return -1;
-                }
-            } else {
-                // Current physical time does not exceed current logical
-                // time, so do not advance current time.
-                return -1;
-            }
-        }
-    }
-    // Advance current time.
-    current_time = logical_time_ns;
-    return return_value;
-}
-
 // Print a usage message.
 void usage(char* command) {
     printf("\nCommand-line arguments: \n\n");
@@ -346,7 +282,7 @@ void initialize() {
     // Initialize logical time to match physical time.
     clock_gettime(CLOCK_REALTIME, &physicalStartTime);
     printf("Start execution at time %splus %ld nanoseconds.\n",
-    ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
+    		ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
     current_time = physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec;
     start_time = current_time;
     
