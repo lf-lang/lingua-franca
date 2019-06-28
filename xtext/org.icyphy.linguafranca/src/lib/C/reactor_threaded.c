@@ -14,8 +14,12 @@ bool between_logical_times = false;
 // Queue of currently executing reactions.
 pqueue_t* executing_q;  // Sorted by index (precedence sort)
 
+// The one and only mutex lock.
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t wake = PTHREAD_COND_INITIALIZER;
+
+// Condition variables used for notification between threads.
+pthread_cond_t event_q_changed = PTHREAD_COND_INITIALIZER;
+pthread_cond_t reaction_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t number_of_idle_threads_increased = PTHREAD_COND_INITIALIZER;
 pthread_cond_t end_logical_time = PTHREAD_COND_INITIALIZER;
 
@@ -51,7 +55,64 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
     pthread_mutex_lock(&mutex);
 	int return_value = __schedule(trigger, trigger->offset + extra_delay, payload);
  	pthread_mutex_unlock(&mutex);
+	// Notify the main thread in case it is waiting for physical time to elapse.
+	pthread_cond_signal(&event_q_changed);
  	return return_value;
+}
+
+// Advance logical time to the lesser of the specified time or the
+// stop time, if a stop time has been given. If the -fast command-line option
+// was not given, then wait until physical time matches or exceeds the start time of
+// execution plus the current_time plus the specified logical time.  If this is not
+// interrupted, then advance current_time by the specified logical_delay. 
+// Return 0 if time advanced to the time of the event and -1 if the wait
+// was interrupted or if the stop time was reached.
+// The mutex lock is assumed to be held by the calling thread.
+int wait_until(instant_t logical_time_ns) {
+    int return_value = 0;
+    if (stop_time > 0LL && logical_time_ns > stop_time) {
+        logical_time_ns = stop_time;
+        // Indicate on return that the time of the event was not reached.
+        // We still wait for time to elapse in case asynchronous events come in.
+        return_value = -1;
+    }
+    if (!fast) {
+        // Convert the logical time to a timespec.
+        // timespec is seconds and nanoseconds.
+        struct timespec wait_until_time = {(time_t)logical_time_ns / BILLION, (long)logical_time_ns % BILLION};
+
+        // printf("-------- Waiting for physical time to match logical time %lld.\n", logical_time_ns);
+    	// printf("-------- which is %splus %ld nanoseconds.\n", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
+
+        if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
+        	// printf("-------- Wait interrupted.\n");
+        	
+            // Wait did not time out, which means that there
+            // may have been an asynchronous call to schedule(), or
+            // it may have been a control-C to stop the process.
+            // Set current time to match physical time, but not less than
+            // current logical time nor more than next time in the event queue.
+            struct timespec current_physical_time;
+            clock_gettime(CLOCK_REALTIME, &current_physical_time);
+            long long current_physical_time_ns 
+                    = current_physical_time.tv_sec * BILLION
+                    + current_physical_time.tv_nsec;
+            if (current_physical_time_ns > current_time) {
+                if (current_physical_time_ns < logical_time_ns) {
+                    current_time = current_physical_time_ns;
+                    return -1;
+                }
+            } else {
+                // Current physical time does not exceed current logical
+                // time, so do not advance current time.
+                return -1;
+            }
+        }
+        // printf("-------- Returned from wait.\n");
+    }
+    // Advance current time.
+    current_time = logical_time_ns;
+    return return_value;
 }
 
 // Wait until physical time matches or exceeds the time of the least tag
@@ -98,7 +159,7 @@ int next() {
 		stop_requested = true;
      	pthread_mutex_unlock(&mutex);
  		// Signal the worker threads.
-		pthread_cond_broadcast(&wake);
+		pthread_cond_broadcast(&reaction_q_changed);
        	return 0;
     }
 
@@ -120,17 +181,16 @@ int next() {
     }
     // Wait until physical time >= event.time.
     // Do not hold the lock during that time.
-    // NOTE: We should release the lock even if there will no physical time wait
+    // NOTE: We should release the lock even if there will be no physical time wait
     // to allow other threads to sneak in. Perhaps also do a yield?
-    // The wait_until function will advance current_time.
+    // The wait_until function will release the lock while waiting and then advance current_time.
     between_logical_times = true;
-    pthread_mutex_unlock(&mutex);
     pthread_cond_broadcast(&end_logical_time);
     if (wait_until(next_time) < 0) {
         // Sleep was interrupted or the stop time has been reached.
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
- 		pthread_mutex_lock(&mutex);
+        // Mutex lock was reacquired by wait_until.
         event_t* new_event = pqueue_peek(event_q);
         if (new_event == event) {
             // There is no new event. If the stop time has been reached,
@@ -140,7 +200,7 @@ int next() {
      			between_logical_times = false;
     			pthread_mutex_unlock(&mutex);
 				// Signal the worker threads.
-				pthread_cond_broadcast(&wake);
+				pthread_cond_broadcast(&reaction_q_changed);
                 return 0;
             }
         } else {
@@ -149,14 +209,12 @@ int next() {
         	next_time = event->time;
         }
     }
-    // Reacquire the lock.
- 	pthread_mutex_lock(&mutex);
     between_logical_times = false;
         
     // Invoke code that must execute before starting a new logical time round,
     // such as initializing outputs to be absent.
     __start_time_step();
-    
+        
     // Pop all events from event_q with timestamp equal to current_time,
     // extract all the reactions triggered by these events, and
     // stick them into the reaction queue.
@@ -199,7 +257,7 @@ int next() {
     pthread_mutex_unlock(&mutex);
     
     // Signal the worker threads.
-	pthread_cond_broadcast(&wake);
+	pthread_cond_broadcast(&reaction_q_changed);
 
     return 1;
 }
@@ -240,7 +298,7 @@ void* worker(void* arg) {
 			// Wait for something to change (either a stop request or
 			// something went on the reaction queue.
 			// printf("Waiting for items on the reaction queue.\n");
-			pthread_cond_wait(&wake, &mutex);
+			pthread_cond_wait(&reaction_q_changed, &mutex);
 		} else {
 	    	// This thread will no longer be idle.
 	    	if (!have_been_busy) {
@@ -297,7 +355,7 @@ void* worker(void* arg) {
         	// reactions into the queue while holding the mutex lock.
         	trigger_output_reactions(reaction);
         	// There may be new reactions on the reaction queue, so notify other threads.
-			pthread_cond_broadcast(&wake);
+			pthread_cond_broadcast(&reaction_q_changed);
         	// Remove the reaction from the executing queue.
         	pqueue_remove(executing_q, reaction);
     	}
@@ -325,7 +383,7 @@ void wrapup() {
 	// Assume the following write is atomic and therefore need not be guarded.
 	stop_requested = true;
 	// Signal the worker threads.
-	pthread_cond_broadcast(&wake);
+	pthread_cond_broadcast(&reaction_q_changed);
 	
 	// Wait for the worker threads to exit.
 	void* worker_thread_exit_status;
