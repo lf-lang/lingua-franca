@@ -5,6 +5,8 @@
 // since in every 200 msec cycle it has 800 msec of work to do.
 // On a quad-core machine, however, it does pretty well, completing 800 msec of work
 // in about 225 msec.
+// NOTE: This is the non-threaded version, showing that without threads, this takes more
+// than 800 msec to complete 200 msec of logical time.
 target C(
 	run = "./ThreadedC -stop 2 sec"
 );
