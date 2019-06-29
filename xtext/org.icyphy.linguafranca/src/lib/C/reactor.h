@@ -54,8 +54,11 @@
 
 /** Conversion of time to nanoseconds. */
 #define NSEC(t) (t * 1LL)
+#define NSECS(t) (t * 1LL)
 #define USEC(t) (t * 1000LL)
+#define USECS(t) (t * 1000LL)
 #define MSEC(t) (t * 1000000LL)
+#define MSECS(t) (t * 1000000LL)
 #define SEC(t)  (t * 1000000000LL)
 #define SECS(t) (t * 1000000000LL)
 #define MINUTE(t)   (t * 60000000000LL)
