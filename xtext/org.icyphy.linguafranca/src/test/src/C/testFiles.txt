@@ -15,6 +15,7 @@ ImportC.lf
 ImportCThreaded.lf
 Minimal.lf
 MinimalThreaded.lf
+Schedule.lf
 SendingInsideC.lf
 SendingInsideCThreaded.lf
 ThreadedC.lf
