@@ -1,0 +1,6 @@
+target C;
+import HelloWorld.lf;
+reactor Main {
+    a = new HelloWorld();
+    b = new HelloWorld();
+}
