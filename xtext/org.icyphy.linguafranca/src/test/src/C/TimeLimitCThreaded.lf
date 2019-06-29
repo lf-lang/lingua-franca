@@ -4,7 +4,6 @@
 // Failure for this test is failing to halt.
 target C(
 	threads = 1,
-	compile = "cc TimeLimitC.c pqueue.c reactor.c -o TimeLimitC",
 	run = "./TimeLimitC -fast"
 );
 reactor Clock(offset:time(0), period:time(1 sec)) {

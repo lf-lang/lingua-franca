@@ -1,7 +1,6 @@
 // This tests a reactor that contains another reactor and also
 // has its own reaction that routes inputs to the contained reactor.
 target C(
-	compile = "cc SendingInsideC.c pqueue.c reactor.c -o SendingInsideC",
 	run = "./SendingInsideC -fast -stop 10 sec"
 );
 reactor Printer {

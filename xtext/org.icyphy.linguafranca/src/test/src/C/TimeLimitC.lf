@@ -3,7 +3,6 @@
 // Correct output for this 1, 2, 3, 4.
 // Failure for this test is failing to halt.
 target C(
-	compile = "cc TimeLimitC.c pqueue.c reactor.c -o TimeLimitC",
 	run = "./TimeLimitC -fast"
 );
 reactor Clock(offset:time(0), period:time(1 sec)) {
