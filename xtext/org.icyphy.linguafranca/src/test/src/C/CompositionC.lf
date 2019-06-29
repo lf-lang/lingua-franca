@@ -1,7 +1,6 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
 target C(
-	compile = "cc CompositionC.c pqueue.c reactor.c -o CompositionC",
 	run = "./CompositionC -fast -stop 10 sec"
 );
 reactor Source(period:time(2 sec)) {

@@ -5,7 +5,6 @@
 // of 2 seconds, and the third (composite) or 1 second.
 target C( 
 	threads = 1,
-	compile = "cc HelloC.c pqueue.c reactor.c -o HelloC",
 	run = "./HelloC -fast -stop 10 sec"
 );
 reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {

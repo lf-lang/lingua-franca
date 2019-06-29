@@ -74,16 +74,11 @@ class CGenerator extends GeneratorBase {
 			Hashtable<String,String> importTable) {
 		
 		pr(includes)
+		_resource = resource
 		
 		var uriAsString = resource.getURI().toString()
 		println("Generating code for: " + uriAsString)
-		
-		// First process all the imports.
-		_resource = resource
-		processImports(importTable)
-
-		super.doGenerate(resource, fsa, context, importTable)
-		
+				
 		for (target: resource.allContents.toIterable.filter(Target)) {
 			if (target.parameters !== null) {
    				for (parameter: target.parameters.assignments) {
@@ -101,6 +96,16 @@ class CGenerator extends GeneratorBase {
    				}
    			}
 		}
+		if (numberOfThreads === 0) {
+			pr("#include \"reactor.c\"")
+		} else {
+			pr("#include \"reactor_threaded.c\"")			
+		}
+
+		// First process all the imports.
+		processImports(importTable)
+
+		super.doGenerate(resource, fsa, context, importTable)
 		
 		// Any main reactors in imported files are ignored.		
 		if (main !== null) {
@@ -1217,6 +1222,6 @@ class CGenerator extends GeneratorBase {
 	}
 	
 	val static includes = '''
-		#include "reactor.h"
+		#include "pqueue.c"
 	'''
 }

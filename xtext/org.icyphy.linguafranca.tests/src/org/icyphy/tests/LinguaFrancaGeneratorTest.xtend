@@ -184,10 +184,10 @@ class LinguaFrancaGeneratorTest {
    		if (compileCommand.isEmpty()) {
    			if (threads.equals("")) {
    				// Non-threaded version.
-   				compileCommand.addAll("cc", "pqueue.c", "reactor.c", cFile, "-o", outputFile)
+   				compileCommand.addAll("cc", cFile, "-o", outputFile)
    			} else {
    				// Threaded version.
-   				compileCommand.addAll("cc", "-pthreads", "pqueue.c", "reactor_threaded.c", cFile, "-o", outputFile)
+   				compileCommand.addAll("cc", "-pthreads", cFile, "-o", outputFile)
    			}
 		}
        	

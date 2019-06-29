@@ -2,7 +2,6 @@
 // that checks against its own count.
 target C(
 	threads = 1,
-	compile = "cc CompositionC.c pqueue.c reactor.c -o CompositionC",
 	run = "./CompositionC -fast -stop 10 sec"
 );
 reactor Source(period:time(2 sec)) {

@@ -2,7 +2,6 @@
 // has its own reaction that routes inputs to the contained reactor.
 target C(
 	threads = 3,
-	compile = "cc SendingInsideC.c pqueue.c reactor.c -o SendingInsideC",
 	run = "./SendingInsideC -fast -stop 10 sec"
 );
 reactor Printer {
