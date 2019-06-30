@@ -1,0 +1,28 @@
+// Example in the Wiki.
+    target C;
+    reactor Gain(scale:int(2)) {
+        input x:int;
+        output y:int;
+        reaction(x) -> y {=
+            set(y, x * self->scale);
+        =}
+    }
+    reactor Test {
+        input x:int;
+        reaction(x) {=
+            printf("Received %d.\n", x);
+            if (x != 2) {
+                printf("Expected 2!");
+                exit(1);
+            }
+        =}
+    }
+    reactor Main {
+        g = new Gain();
+        t = new Test();
+        g.y -> t.x;
+        timer t;
+        reaction(t) -> g.x {=
+            set(g.x, 1);
+        =}
+    }
