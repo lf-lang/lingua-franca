@@ -194,6 +194,14 @@ int number_of_threads;
 */
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload);
 
+/**
+ * Specialized version of malloc used by Lingua Franca for action payloads
+ * and messages contained in dynamically allocated memory.
+ * @param size The size of the memory block to allocate.
+ * @return A pointer to the allocated memory block.
+ */
+void* lf_malloc(size_t size);
+
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.
 #if _WIN32 || WIN32

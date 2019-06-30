@@ -50,6 +50,19 @@ instant_t get_logical_time() {
     return current_time;
 }
 
+/**
+ * Specialized version of malloc used by Lingua Franca for action payloads
+ * and messages contained in dynamically allocated memory.
+ * @param size The size of the memory block to allocate.
+ * @return A pointer to the allocated memory block.
+ */
+void* lf_malloc(size_t size) {
+	// NOTE: For now, this just delegates to malloc.
+	// But in the future, we expect to use it to attach a reference count to the
+	// allocated object.
+	return malloc(size);
+}
+
 // Stop execution at the conclusion of the current logical time.
 void stop() {
     stop_requested = true;

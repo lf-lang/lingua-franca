@@ -1,51 +1,52 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
 target C(
-	threads = 1	
+    threads = 1 
 );
 reactor DelayInt(delay:time(100 msec)) {
-	input in:int;
-	output out:int;
-	action d:{=int*=};
-	reaction(in) -> d {=
-		// Copy the input.
-		int* payload = malloc(sizeof(int));
-		*payload = in;
-		schedule(d, self->delay, payload);
-	=}
-	reaction(d) -> out {=
-		// This will pass the value, so the malloc can be freed.
-		// The action d will be a trigger pointer (because it may be
-		// used like an input or an output), so the payload has to be
-		// referred to indirectly.
-		set(out, *((int*)d->payload));
-	=}
+    input in:int;
+    output out:int;
+    action d:{=int*=};
+    reaction(in) -> d {=
+        // Allocate memory for a copy of the input. Use lf_malloc(),
+        // the Lingua Franca specialized version of malloc().
+        int* payload = lf_malloc(sizeof(int));
+        *payload = in;
+        schedule(d, self->delay, payload);
+    =}
+    reaction(d) -> out {=
+        // This will pass the value, so the malloc can be freed.
+        // The action d will be a trigger pointer (because it may be
+        // used like an input or an output), so the payload has to be
+        // referred to indirectly.
+        set(out, *((int*)d->payload));
+    =}
 }
 reactor Test {
-	input in:int;
-	state start_time:instant_t(0);
-	timer start;
-	reaction(start) {=
-		// Record the logical time at the start.
-		self->start_time = get_logical_time();
-	=}
-	reaction(in) {=
-		printf("Received: %d.\n", in);
-		// Check the time of the input.
-		instant_t current_time = get_logical_time();
-		interval_t elapsed = current_time - self->start_time;
-		printf("After %lld nsec of logical time.\n", elapsed);
-		if (elapsed != 100000000LL) {
-			printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
-			exit(1);
-		}
-	=}
+    input in:int;
+    state start_time:instant_t(0);
+    timer start;
+    reaction(start) {=
+        // Record the logical time at the start.
+        self->start_time = get_logical_time();
+    =}
+    reaction(in) {=
+        printf("Received: %d.\n", in);
+        // Check the time of the input.
+        instant_t current_time = get_logical_time();
+        interval_t elapsed = current_time - self->start_time;
+        printf("After %lld nsec of logical time.\n", elapsed);
+        if (elapsed != 100000000LL) {
+            printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
+            exit(1);
+        }
+    =}
 }
 reactor Main {
-	timer t;
-	d = new DelayInt();
-	t = new Test();
-	d.out -> t.in;
-	reaction(t) -> d.in{=
-		set(d.in, 42);
-	=}
+    timer t;
+    d = new DelayInt();
+    t = new Test();
+    d.out -> t.in;
+    reaction(t) -> d.in{=
+        set(d.in, 42);
+    =}
 }
