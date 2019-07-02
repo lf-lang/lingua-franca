@@ -9,3 +9,4 @@ generated/
 src-gen/
 xtend-gen/
 /*/target/
+/.gradle
