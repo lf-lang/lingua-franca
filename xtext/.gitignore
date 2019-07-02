@@ -4,6 +4,7 @@
 *.xtendbin
 *._trace
 /*/bin/
+/*/build/
 /*/test-bin/
 generated/
 src-gen/
