@@ -1,0 +1,4 @@
+include 'org.icyphy.linguafranca'
+include 'org.icyphy.linguafranca.ide'
+include 'org.icyphy.linguafranca.web'
+include 'org.icyphy.linguafranca.tests'
