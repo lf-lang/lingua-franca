@@ -1,0 +1,10 @@
+dependencies {
+	compile project(':org.icyphy.linguafranca')
+	testCompile 'org.junit.jupiter:junit-jupiter-api'
+	testRuntime 'org.junit.jupiter:junit-jupiter-engine'
+	testCompile "org.eclipse.xtext:org.eclipse.xtext.testing:${xtextVersion}"
+	testCompile "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
+}
+test {
+	useJUnitPlatform()
+}
