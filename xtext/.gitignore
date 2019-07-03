@@ -4,8 +4,10 @@
 *.xtendbin
 *._trace
 /*/bin/
+/*/build/
 /*/test-bin/
 generated/
 src-gen/
 xtend-gen/
 /*/target/
+/.gradle
