@@ -36,7 +36,7 @@ task generateStandaloneCompiler() {
 	apply plugin: 'com.github.johnrengelman.shadow'
 	mainClassName = 'org.icyphy.generator.Main'
 	shadowJar {
-		minimize() 
+		//minimize() 
  		transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
  			resource = 'plugin.properties'
  		}
