@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#==========================================================
+# Description:  Run all tests for a given LF target.
+# Author:       Marten Lohstroh
+# Usage:        run-lf-tests [TARGET]
+#==========================================================
+
+if [ "$(dirname "$0")" == '.' ]; then
+        base="../xtext/"
+else
+        suffix=${0#$(dirname "$(dirname "$0")")/};
+        base="${0%$suffix}""xtext/"
+fi
+
+if [ "$1" == '' ]; then
+	echo "Usage: run-lf-tests [target]";
+else
+	test_dir="$base""org.icyphy.linguafranca/src/test/src/""$1"
+	manifest="$test_dir""/testFiles.txt";
+	
+	if [ ! -f "$manifest" ]; then
+		echo "Unable to locate manifest.";
+		echo "File not found: ""$manifest";
+	else
+		pushd $test_dir;
+		while read p; do
+			echo $p;
+			eval "../../../../../../bin/lfc ""$p"
+		done <testFiles.txt
+		popd;
+	fi
+fi

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#==========================================================
+# Description: 	Run the lfc compiler.
+# Author:	Marten Lohstroh
+# Usage:	lfc [FILE]
+#==========================================================
+
+if [ $1 == '' ]; then
+	echo "Usage: lfc [FILE]";
+	exit 1;
+fi
+
+if [ "$(dirname "$0")" == '.' ]; then
+	base="../xtext/"
+	jarpath="../xtext/org.icyphy.linguafranca/build/libs/"
+else
+	suffix=${0#$(dirname "$(dirname "$0")")/};
+	base="${0%$suffix}""xtext/"
+	jarpath="$base""org.icyphy.linguafranca/build/libs/"
+fi
+
+if [ ! -f $jarpath/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar ]; then
+	echo "Unable to find jar; running Gradle.";
+	pushd $base;
+	eval "./gradlew generateStandaloneCompiler";
+	popd;
+fi
+
+java -jar $jarpath/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar $1
