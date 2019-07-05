@@ -187,7 +187,7 @@ class LinguaFrancaGeneratorTest {
    				compileCommand.addAll("cc", cFile, "-o", outputFile)
    			} else {
    				// Threaded version.
-   				compileCommand.addAll("cc", "-pthreads", cFile, "-o", outputFile)
+   				compileCommand.addAll("cc", "-pthread", cFile, "-o", outputFile)
    			}
 		}
        	
