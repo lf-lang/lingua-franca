@@ -5,9 +5,6 @@
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStreamReader
 import java.util.HashMap
 import java.util.HashSet
 import java.util.Hashtable
@@ -1179,30 +1176,6 @@ class CGenerator extends GeneratorBase {
 		var node = NodeModelUtils.getNode(reaction)
 		pr("#line " + node.getStartLine() + ' "' + _resource.getURI() + '"')
 		
-	}
-	
-	/** Read a text file in the classpath and return its contents as a string.
-	 *  @param filename The file name as a path relative to the classpath.
-	 *  @return The contents of the file as a String or null if the file cannot be opened.
-	 */
-	private def readFileInClasspath(String filename) throws IOException {
-		var inputStream = this.class.getResourceAsStream(filename)
-		if (inputStream === null) {
-			return null
-		}
-		try {
-    		var resultStringBuilder = new StringBuilder()
-			// The following reads a file relative to the classpath.
-			// The file needs to be in the src directory.
-    		var reader = new BufferedReader(new InputStreamReader(inputStream))
-        	var line = ""
-        	while ((line = reader.readLine()) !== null) {
-            	resultStringBuilder.append(line).append("\n");
-        	}
-			return resultStringBuilder.toString();
-        } finally {
-        	inputStream.close
-        }
 	}
 	
 	/** Given a representation of time that may possibly include units,

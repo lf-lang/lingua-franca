@@ -1,46 +1,17 @@
 package org.icyphy.generator
 
+import java.util.HashMap
 import java.util.Hashtable
 import java.util.LinkedHashMap
-import java.util.LinkedList
-import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
-import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reactor
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.IOException
-import java.util.HashMap
 
 class SCLGenerator extends GeneratorBase {
 	var reactorsToInputs = new HashMap<Reactor, HashMap<String, String>>();
 	var reactorsToOutputs = new HashMap<Reactor, HashMap<String, String>>();
-
-	private def readFileInClasspath(String filename) throws IOException {
-		var inputStream = this.class.getResourceAsStream(filename)
-		if (inputStream === null) {
-			return null
-		}
-		try {
-    		var resultStringBuilder = new StringBuilder()
-			// The following reads a file relative to the classpath.
-			// The file needs to be in the src directory.
-			var reader = new BufferedReader(new InputStreamReader(inputStream))
-			var line = ""
-			while ((line = reader.readLine()) !== null) {
-				resultStringBuilder.append(line).append("\n");
-			}
-			return resultStringBuilder.toString();
-		} finally {
-			inputStream.close
-		}
-	}
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context, Hashtable<String,String> importTable) {
 		super.doGenerate(resource, fsa, context, importTable)
