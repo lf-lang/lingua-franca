@@ -1,0 +1,13 @@
+// This short JavaScript program requires the Node Accessor host and then
+// uses it to instantiate and run accessors specified on the command line.
+
+// The Node host will need to be installed by the user using npm.
+// In the directory containing the src directory which has the .lf files:
+//      npm install @terraswarm/accessors
+// This will create a node_modules directory. Do not do this within
+// the lingua-franca source tree because the contents confuses the build system.
+var nodeHost = require('@terraswarm/accessors');
+
+// Read the command-line arguments after the first two ("node run")
+// and instantiate and run any specified accessors.
+nodeHost.processCommandLineArguments(process.argv.slice(2));

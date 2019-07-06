@@ -53,6 +53,9 @@ class AccessorGenerator extends GeneratorBase {
 			}
 			fsa.generateFile(filename + ".js", code)		
 		}
+		// Copy the required library files into the target filesystem.
+        var runFile = readFileInClasspath("/lib/Accessors/run")
+        fsa.generateFile("run", runFile)		
 	}
 	
 	////////////////////////////////////////////
