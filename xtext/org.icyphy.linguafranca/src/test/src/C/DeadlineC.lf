@@ -1,7 +1,7 @@
 // This test checks that a deadline violation is detected.
 // It will exit with error code 2 if the deadline violation is not detected.
 target C(
-	run = "./DeadlineC -stop 2 sec"
+	run = "./DeadlineC -timeout 2 sec"
 );
 reactor Source(period:time(1 sec)) {
 	output y:int;

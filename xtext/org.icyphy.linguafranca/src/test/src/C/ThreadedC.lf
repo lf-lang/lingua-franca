@@ -8,7 +8,7 @@
 // NOTE: This is the non-threaded version, showing that without threads, this takes more
 // than 800 msec to complete 200 msec of logical time.
 target C(
-	run = "./ThreadedC -stop 2 sec"
+	run = "./ThreadedC -timeout 2 sec"
 );
 
 reactor Source {
