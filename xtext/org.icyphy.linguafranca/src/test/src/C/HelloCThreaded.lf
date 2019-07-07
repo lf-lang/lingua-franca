@@ -5,7 +5,7 @@
 // of 2 seconds, and the third (composite) or 1 second.
 target C( 
 	threads = 1,
-	run = "./HelloC -fast -stop 10 sec"
+	run = "./HelloC -fast -timeout 10 sec"
 );
 reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	state count:int(0);

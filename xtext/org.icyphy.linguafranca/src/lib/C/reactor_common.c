@@ -28,14 +28,14 @@ interval_t start_time = 0LL;
 // function in a reaction.
 bool stop_requested = false;
 
-// Duration, or -1 if no stop time has been given.
+// Duration, or -1 if no timeout time has been given.
 instant_t duration = -1LL;
 
-// Stop time, or 0 if no stop time has been given.
+// Stop time, or 0 if no timeout time has been given.
 instant_t stop_time = 0LL;
 
-// Indicator of whether the wait command-line option was given.
-bool wait_specified = false;
+// Indicator of whether the keepalive command-line option was given.
+bool keepalive_specified = false;
 
 /////////////////////////////
 // The following functions are in scope for all reactors:
@@ -192,10 +192,10 @@ void usage(char* command) {
     printf("\nCommand-line arguments: \n\n");
     printf("  -fast\n");
     printf("   Do not wait for physical time to match logical time.\n\n");
-    printf("  -stop <duration> <units>\n");
+    printf("  -timeout <duration> <units>\n");
     printf("   Stop after the specified amount of logical time, where units are one of\n");
     printf("   nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.\n\n");
-    printf("  -wait\n");
+    printf("  -keepalive\n");
     printf("   Do not stop execution even if there are no events to process. Just wait.\n\n");
     printf("  -threads <n>\n");
     printf("   Executed in <n> threads if possible (optional feature).\n\n");
@@ -209,7 +209,7 @@ int process_args(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-fast") == 0) {
             fast = true;
-        } else if (strcmp(argv[i], "-stop") == 0) {
+        } else if (strcmp(argv[i], "-timeout") == 0) {
             if (argc < i + 3) {
                 usage(argv[0]);
                 return 0;
@@ -247,8 +247,8 @@ int process_args(int argc, char* argv[]) {
                 usage(argv[0]);
                 return 0;
             }
-        } else if (strcmp(argv[i], "-wait") == 0) {
-            wait_specified = true;
+        } else if (strcmp(argv[i], "-keepalive") == 0) {
+            keepalive_specified = true;
         } else if (strcmp(argv[i], "-threads") == 0) {
             if (argc < i + 2) {
                 usage(argv[0]);

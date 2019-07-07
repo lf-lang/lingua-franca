@@ -2,7 +2,7 @@
 // that checks against its own count.
 target C(
 	threads = 1,
-	run = "./CompositionC -fast -stop 10 sec"
+	run = "./CompositionC -fast -timeout 10 sec"
 );
 reactor Source(period:time(2 sec)) {
 	output y:int;

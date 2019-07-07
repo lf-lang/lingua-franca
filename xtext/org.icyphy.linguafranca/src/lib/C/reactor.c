@@ -21,12 +21,12 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
 }
 
 // Advance logical time to the lesser of the specified time or the
-// stop time, if a stop time has been given. If the -fast command-line option
+// timeout time, if a timeout time has been given. If the -fast command-line option
 // was not given, then wait until physical time matches or exceeds the start time of
 // execution plus the current_time plus the specified logical time.  If this is not
 // interrupted, then advance current_time by the specified logical_delay. 
 // Return 0 if time advanced to the time of the event and -1 if the wait
-// was interrupted or if the stop time was reached.
+// was interrupted or if the timeout time was reached.
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (stop_time > 0LL && logical_time_ns > stop_time) {
@@ -94,19 +94,19 @@ int wait_until(instant_t logical_time_ns) {
 // and then execute the reactions in order. Each reaction may produce
 // outputs, which places additional reactions into the index-ordered
 // priority queue. All of those will also be executed in order of indices.
-// If the -stop option has been given on the command line, then return
+// If the -timeout option has been given on the command line, then return
 // 0 when the logical time duration matches the specified duration.
 // Also return 0 if there are no more events in the queue and
-// the wait command-line option has not been given.
+// the keepalive command-line option has not been given.
 // Otherwise, return 1.
 int next() {
     event_t* event = pqueue_peek(event_q);
-    // If there is no next event and -wait has been specified
+    // If there is no next event and -keepalive has been specified
     // on the command line, then we will wait the maximum time possible.
     instant_t next_time = LLONG_MAX;
     if (event == NULL) {
         // No event in the queue.
-        if (!wait_specified) {
+        if (!keepalive_specified) {
             return 0;
         }
     } else {
@@ -115,12 +115,12 @@ int next() {
     // Wait until physical time >= event.time.
     // The wait_until function will advance current_time.
     if (wait_until(next_time) < 0) {
-        // Sleep was interrupted or the stop time has been reached.
+        // Sleep was interrupted or the timeout time has been reached.
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
         event_t* new_event = pqueue_peek(event_q);
         if (new_event == event) {
-            // There is no new event. If the stop time has been reached,
+            // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
             if ((stop_time > 0LL && current_time >= stop_time) || new_event == NULL) {
             	stop_requested = true;

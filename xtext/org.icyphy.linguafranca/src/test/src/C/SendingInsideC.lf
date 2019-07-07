@@ -1,7 +1,7 @@
 // This tests a reactor that contains another reactor and also
 // has its own reaction that routes inputs to the contained reactor.
 target C(
-	run = "./SendingInsideC -fast -stop 10 sec"
+	run = "./SendingInsideC -fast -timeout 10 sec"
 );
 reactor Printer {
 	input x:int;

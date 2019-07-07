@@ -156,7 +156,7 @@ class LinguaFrancaGeneratorTest {
    		var outputFile = file.substring(0, file.length - 3)
        	var compileCommand = newArrayList()
        	// By default, limit tests to 10 seconds.
-       	var runCommand = newArrayList("./" + outputFile, "-stop", "10", "secs")
+       	var runCommand = newArrayList("./" + outputFile, "-timeout", "10", "secs")
        	var runCommandOverridden = false;
        	var threads = ""
    		if (parsed.target.parameters !== null) {

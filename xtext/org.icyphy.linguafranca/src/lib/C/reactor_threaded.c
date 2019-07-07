@@ -61,12 +61,12 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
 }
 
 // Advance logical time to the lesser of the specified time or the
-// stop time, if a stop time has been given. If the -fast command-line option
+// timeout time, if a timeout time has been given. If the -fast command-line option
 // was not given, then wait until physical time matches or exceeds the start time of
 // execution plus the current_time plus the specified logical time.  If this is not
 // interrupted, then advance current_time by the specified logical_delay. 
 // Return 0 if time advanced to the time of the event and -1 if the wait
-// was interrupted or if the stop time was reached.
+// was interrupted or if the timeout time was reached.
 // The mutex lock is assumed to be held by the calling thread.
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
@@ -125,7 +125,7 @@ int wait_until(instant_t logical_time_ns) {
 // and then execute the reactions in order. Each reaction may produce
 // outputs, which places additional reactions into the index-ordered
 // priority queue. All of those will also be executed in order of indices.
-// If the -stop option has been given on the command line, then return
+// If the -timeout option has been given on the command line, then return
 // 0 when the logical time duration matches the specified duration.
 // Also return 0 if there are no more events in the queue and
 // the wait command-line option has not been given.
@@ -172,7 +172,7 @@ int next() {
     if (event == NULL) {
         // No event in the queue and -wait was not specified.
         // Execution is finished.
-        if (!wait_specified) {
+        if (!keepalive_specified) {
      		pthread_mutex_unlock(&mutex);
             return 0;
        }
@@ -187,13 +187,13 @@ int next() {
     between_logical_times = true;
     pthread_cond_broadcast(&end_logical_time);
     if (wait_until(next_time) < 0) {
-        // Sleep was interrupted or the stop time has been reached.
+        // Sleep was interrupted or the timeout time has been reached.
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
         // Mutex lock was reacquired by wait_until.
         event_t* new_event = pqueue_peek(event_q);
         if (new_event == event) {
-            // There is no new event. If the stop time has been reached,
+            // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
             if ((stop_time > 0LL && current_time >= stop_time) || new_event == NULL) {
             	stop_requested = true;
@@ -361,7 +361,7 @@ void* worker(void* arg) {
     	}
 	}
  	pthread_mutex_unlock(&mutex);
-	// Stop has been requested.
+	// timeout has been requested.
 	return NULL;
 }
 
