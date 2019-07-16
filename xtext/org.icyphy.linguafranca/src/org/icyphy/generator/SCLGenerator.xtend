@@ -1,6 +1,5 @@
 package org.icyphy.generator
 
-import java.util.HashMap
 import java.util.Hashtable
 import java.util.LinkedHashMap
 import org.eclipse.emf.ecore.resource.Resource
@@ -10,9 +9,6 @@ import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reactor
 
 class SCLGenerator extends GeneratorBase {
-	var reactorsToInputs = new HashMap<Reactor, HashMap<String, String>>();
-	var reactorsToOutputs = new HashMap<Reactor, HashMap<String, String>>();
-
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context, Hashtable<String,String> importTable) {
 		super.doGenerate(resource, fsa, context, importTable)
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
@@ -85,7 +81,7 @@ class SCLGenerator extends GeneratorBase {
 				unindent()
 				pr('END_VAR')
 			}
-			val ninputs = (if (reaction.uses !== null && reaction.uses.uses !== null) reaction.uses.uses.length) + (if (reaction.triggers !== null) reaction.triggers.length);
+			val ninputs = (if (reaction.uses !== null && reaction.uses.uses !== null) reaction.uses.uses.length) + (if (reaction.triggers !== null) reaction.triggers.length else 0);
 			if (ninputs > 0) {
 				pr('VAR_INPUT')
 				indent()
