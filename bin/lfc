@@ -6,25 +6,30 @@
 # Usage:	lfc [FILE]
 #==========================================================
 
-if [ $1 == '' ]; then
-	echo "Usage: lfc [FILE]";
-	exit 1;
+set -euo pipefail
+
+if [ 1 -ne "$#" ]; then
+	1>&2 echo "Usage: lfc [FILE]"
+	exit 1
 fi
 
-if [ "$(dirname "$0")" == '.' ]; then
-	base="../xtext/"
-	jarpath="../xtext/org.icyphy.linguafranca/build/libs/"
-else
-	suffix=${0#$(dirname "$(dirname "$0")")/};
-	base="${0%$suffix}""xtext/"
-	jarpath="$base""org.icyphy.linguafranca/build/libs/"
+FIND=find
+if [ "${OSTYPE}" = "msys" ]; then  # Make sure we don't use the built-in Windows 'find' command, which is different
+	FIND="/usr/bin/${FIND}"
 fi
 
-if [ ! -f $jarpath/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar ]; then
-	echo "Unable to find jar; running Gradle.";
-	pushd $base;
-	eval "./gradlew generateStandaloneCompiler";
-	popd;
+base=""
+if [ ! "$0" = "${0##*/*}" ]; then  # Do we have a parent directory?
+	base="${0%/*}/"
+fi
+base="${base}../xtext/"
+lfbase="${base}org.icyphy.linguafranca/"
+jarpath="${lfbase}build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar"
+
+if [ ! -f "${jarpath}" ] || ! "${FIND}" "${lfbase}src/" -path "${lfbase}src/test" -prune -o -type f -newer "${jarpath}" -exec false {} +; then  # Check if jar is missing or out-of-date relative to source files
+	1>&2 echo "Jar file is missing or out-of-date; running Gradle..."
+	"${base}gradlew" -p "${base}" generateStandaloneCompiler
+	touch -c -- "${jarpath}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be udpated
 fi
 
-java -jar $jarpath/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar $1
+java -jar "${jarpath}" "$@"
