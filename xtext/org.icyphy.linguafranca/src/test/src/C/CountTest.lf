@@ -1,0 +1,21 @@
+target C(
+    run = "./CountTest -timeout 3 sec -fast"
+);
+import Count.lf;
+reactor Test {
+    input c:int;
+    state i:int(0);
+    reaction(c) {=
+        (self->i)++;
+        if (c != self->i) {
+            printf("ERROR: Expected %d but got %d\n.", self->i, c);
+            exit(1);
+        }
+    =}
+}
+reactor Main {
+    count = new Count();
+    test = new Test();
+    count.c -> test.c;
+}
+
