@@ -219,6 +219,15 @@ class GeneratorBase {
 		}
 		// Record (and check) connections.
 		for (connection: reactor.connections) {
+            // Record the source-destination pair.
+            var destinations = properties.outputNameToInputNames.get(connection.leftPort)
+            if (destinations === null) {
+                destinations = new HashSet<String>()
+                properties.outputNameToInputNames.put(connection.leftPort, destinations)
+            }
+            destinations.add(connection.rightPort)
+            
+            // Next, check the connection and report any errors.
 			var split = connection.leftPort.split('\\.')
 			if (split.length === 1) {
 				// It is a local input port.
@@ -263,6 +272,7 @@ class GeneratorBase {
 							"No such instance: " + split.get(0))
 				} else {
 					var contained = getReactor(instance.reactorClass)
+					// Check that the input port in a contained reactor exists.
 					// Contained object may be imported, i.e. not a Lingua Franca object.
 					// Cannot check here.
 					if (contained !== null) {
@@ -271,18 +281,21 @@ class GeneratorBase {
 							reportError(connection,
 									"No such input port: " + connection.rightPort)
 						}
+                        // If the destination is the input port of a reactor that itself contains other
+                        // reactors, we need to add any input ports inside the destination that it is
+                        // connected to. These will have the form actorInstanceName.containedActorInstanceName.portName.
+                        var insideDestinations = props.outputNameToInputNames.get(split.get(1))
+                        if (insideDestinations !== null) {
+                            // There are inside connections. Record them.
+                            for (insideDestination: insideDestinations) {
+                                destinations.add(split.get(0) + '.' + insideDestination)
+                            }
+                        }
 					}
 				}
 			} else {
 				reportError(connection, "Invalid port specification: " + connection.rightPort)
 			}
-			// Record the source-destination pair.
-			var destinations = properties.outputNameToInputNames.get(connection.leftPort)
-			if (destinations === null) {
-				destinations = new HashSet<String>()
-				properties.outputNameToInputNames.put(connection.leftPort, destinations)
-			}
-			destinations.add(connection.rightPort)
 		}
 	}
 	

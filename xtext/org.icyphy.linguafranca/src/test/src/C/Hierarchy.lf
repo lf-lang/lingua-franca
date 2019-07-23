@@ -1,0 +1,37 @@
+target C;
+reactor Source {
+    output out:int;
+    timer t;
+    reaction(t) -> out {=
+        set(out, 1);
+    =}
+}
+reactor Gain {
+    input in:int;
+    output out:int;
+    reaction(in) -> out {=
+        set(out, in * 2);
+    =}
+}
+reactor Print {
+    input in:int;
+    reaction(in) {=
+        printf("Received: %d.\n", in);
+        if (in != 2) {
+            printf("Expected 2.\n");
+            exit(1);
+        }
+    =}
+}
+reactor GainContainer {
+    input in:int;
+    gain = new Gain();
+    print = new Print();
+    in -> gain.in;
+    gain.out -> print.in;
+}
+reactor Main {
+    source = new Source();
+    container = new GainContainer();
+    source.out -> container.in;
+}
