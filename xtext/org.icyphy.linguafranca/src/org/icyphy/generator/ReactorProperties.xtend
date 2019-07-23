@@ -41,7 +41,7 @@ import org.icyphy.linguaFranca.Timing
 	public var nameToTiming = new LinkedHashMap<String,Timing>()
 	
 	/** Map from output name to list of inputs names triggered
-	 *  by this outputs. The names have form either "instanceName.portName"
+	 *  by this output. The names have form either "instanceName.portName"
 	 *  (if the port belongs to a contained reactor) or "portName"
 	 *  (if the port belongs to this component).
 	 */

@@ -863,9 +863,10 @@ class CGenerator extends GeneratorBase {
 		for (init: deferredInitialize) {
 			// The reactor containing the specified input may be a contained reactor.
 			var reactor = init.reactor
+			var insideReactor = null as ReactorInstance
 			var port = init.inputName
 			var split = init.inputName.split('\\.')
-			if (split.length === 2) {
+			if (split.length === 2 || split.length === 3) {
 				reactor = init.reactor.getContainedInstance(split.get(0))
 				if (reactor === null) {
 					reportError(init.reactor.reactor, "No reactor named: "
@@ -874,36 +875,64 @@ class CGenerator extends GeneratorBase {
 						+ init.reactor.getFullName()
 					)
 				}
-				port = split.get(1)
+				if (split.length === 2) {
+				    port = split.get(1)
+			    } else {
+    			    // The destination of a connection is inside a contained reactor.
+    			    // The form of the inputName is:
+    			    // reactorInstanceName.containedReactorInstanceName.inputName
+    			    insideReactor = reactor.getContainedInstance(split.get(1))
+    			    if (insideReactor === null) {
+                        reportError(init.reactor.reactor, "No reactor named: "
+                            + split.get(1)
+                            + " in container "
+                            + split.get(0)
+                            + " in "
+                            + init.reactor.getFullName()
+                        )    			        
+    			    }
+    			    port = split.get(2)
+			    }
 			} else if (split.length !== 1) {
 				reportError(init.reactor.reactor, "Invalid input specification: " + init.inputName)
 			}
 			if (reactor !== null) {
-				var triggerMap = reactor.properties.get("triggerNameToTriggerStruct")
+				var triggerMap = if (insideReactor !== null) {
+                    insideReactor.properties.get("triggerNameToTriggerStruct")                    
+				} else {
+                    reactor.properties.get("triggerNameToTriggerStruct")				    
+				}
 				if (triggerMap === null) {
 					reportError(init.reactor.reactor,
-						"Internal error: failed to map from name to trigger struct for "
+						"Internal error: failed to find map from name to trigger struct for "
 						+ init.reactor.getFullName()
 					)
 				} else {
 					var triggerStructName = (triggerMap as HashMap<String,String>).get(port)
-					if (triggerStructName === null) {
-						reportError(init.reactor.reactor,
-							"Internal error: failed to find trigger struct for input "
-							+ port
-							+ " in reactor "
-							+ reactor.getFullName()
-						)
-					}
-					pr(init.remoteTriggersArrayName + '['
-						+ init.arrayIndex
-						+ '] = &'
-						+ triggerStructName
-						+ ';'
-					)
+					// Note that triggerStructName will be null if the destination of a
+					// connection is the input port of a reactor that has no reactions to
+					// that input.
+					if (triggerStructName !== null) {
+					    pr(init.remoteTriggersArrayName + '['
+						    + init.arrayIndex
+						    + '] = &'
+						    + triggerStructName
+						    + ';'
+    					)
+    				} else {
+    				    // Destination port has no reactions, but we need to fill in an
+    				    // entry in the table anyway.
+                        pr(init.remoteTriggersArrayName + '['
+                            + init.arrayIndex
+                            + '] = NULL;'
+                        )
+    				}
 				}
 			}
 		}
+		// Set all inputs _is_present variables to point to False by default.
+		setInputsAbsentByDefault(main)
+		
 		// Next, for every input port, populate its "self" struct
 		// fields with pointers to the output port that send it data.
 		connectInputsToOutputs(main)
@@ -914,9 +943,20 @@ class CGenerator extends GeneratorBase {
 	// source reactor.
 	private def void connectInputsToOutputs(ReactorInstance container) {
 		// Collect the set of inputs that have connections so that we can
-		// later handle dangling inputs, ensuring that they are always "absent".
+		// report as an error inputs that are connected to more than one output.
 		var connectedInputs = new HashSet<String>()
 		
+		// Include in connectedInputs all inputs of contained
+		// reactors that are connected to an input of the container.
+		// This is useful for detecting errors where multiple conenctions are
+		// made to an input.
+        for (connection: container.reactor.connections) {
+            var split = connection.leftPort.split('\\.')
+            if (split.length === 1) {
+                connectedInputs.add(connection.rightPort)
+            }
+        }
+        
 		for (containedReactor: container.containedInstances.values()) {
 			// In case this is a composite, handle its assignments.
 			connectInputsToOutputs(containedReactor)
@@ -931,22 +971,29 @@ class CGenerator extends GeneratorBase {
 						}
 						connectedInputs.add(input)
 						var split = input.split('\\.')
-						if (split.length === 2) {
+						if (split.length > 1) {
 							var inputReactor = containedReactor.container.getContainedInstance(split.get(0))
 							if (inputReactor !== null) {
-								// It is an error to be null, but it should have been caught earlier.
-								var inputSelfStructName = inputReactor.properties.get("selfStructName")
-								pr(inputSelfStructName + '.__' + split.get(1) + ' = &'
-									+ outputSelfStructName + '.__' + output.name + ';'
-								)
-								pr(inputSelfStructName + '.__' + split.get(1) + '_is_present = &'
-									+ outputSelfStructName + '.__' + output.name + '_is_present;'
-								)
+                                // It is an error to be null, but it should have been caught earlier.
+							    var port = split.get(1)
+							    if (split.length > 2) {
+                                    port = split.get(2)
+							        inputReactor = inputReactor.getContainedInstance(split.get(1))
+							    }
+                                if (inputReactor !== null) {
+                                    // It is an error to be null, but it should have been caught earlier.
+								    var inputSelfStructName = inputReactor.properties.get("selfStructName")
+								    pr(inputSelfStructName + '.__' + port + ' = &'
+									   + outputSelfStructName + '.__' + output.name + ';'
+								    )
+								    pr(inputSelfStructName + '.__' + port + '_is_present = &'
+									   + outputSelfStructName + '.__' + output.name + '_is_present;'
+								    )
+							    }
 							}
 						} else {
-							// FIXME: Handle case where size is not 2 (communication across hierarchy).
 							reportError(container.reactor,
-								"FIXME: Communication across hierarchy is not yet supported"
+								"FIXME: Communication across hierarchy is not yet fully supported: " + input
 							)
 							// var outputProperties = reactorToProperties.get(containedReactor.reactor)
 						}
@@ -983,19 +1030,6 @@ class CGenerator extends GeneratorBase {
 							)
 						}						
 					}
-				}
-			}
-		}
-		
-		// Handle dangling input ports that are not connected to anything.
-		for (containedReactor: container.containedInstances.values()) {		
-			for (input: containedReactor.reactor.inputs) {
-				var inputName = containedReactor.name + '.' + input.name
-				if (!connectedInputs.contains(inputName)) {
-					// Input is dangling.
-					var inputReactor = containedReactor.container.getContainedInstance(containedReactor.name)
-					var inputSelfStructName = inputReactor.properties.get("selfStructName")
-					pr(inputSelfStructName + '.__' + input.name + '_is_present = &False;')
 				}
 			}
 		}
@@ -1170,6 +1204,24 @@ class CGenerator extends GeneratorBase {
 		var node = NodeModelUtils.getNode(reaction)
 		pr("#line " + node.getStartLine() + ' "' + _resource.getURI() + '"')
 		
+	}
+	
+	// Set inputs _is_present variables to the default to point to False.
+    private def void setInputsAbsentByDefault(ReactorInstance container) {
+        // For all inputs, set a default where their _is_present variable points to False.
+        // This handles dangling input ports that are not connected to anything
+        // even if they are connected locally in the hierarchy, but not globally.
+        for (containedReactor: container.containedInstances.values()) {     
+            for (input: containedReactor.reactor.inputs) {
+                var inputReactor = containedReactor.container.getContainedInstance(containedReactor.name)
+                var inputSelfStructName = inputReactor.properties.get("selfStructName")
+                pr(inputSelfStructName + '.__' + input.name + '_is_present = &False;')
+            }
+        }                
+        for (containedReactor: container.containedInstances.values()) {
+            // In case this is a composite, handle its assignments.
+            setInputsAbsentByDefault(containedReactor)
+	    }
 	}
 	
 	/** Given a representation of time that may possibly include units,

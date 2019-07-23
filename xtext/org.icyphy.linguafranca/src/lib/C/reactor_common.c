@@ -169,19 +169,23 @@ handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload) {
 // For the specified reaction, if it has produced outputs, put the
 // resulting triggered reactions into the reaction queue.
 void trigger_output_reactions(reaction_t* reaction) {
-	// If the reaction produced outputs, put the resulting triggered
+    // If the reaction produced outputs, put the resulting triggered
     // reactions into the queue.
     for(int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
             trigger_t** triggerArray = (reaction->triggers)[i];
             for (int j=0; j < reaction->triggered_sizes[i]; j++) {
             	trigger_t* trigger = triggerArray[j];
-                for (int k=0; k < trigger->number_of_reactions; k++) {
-                    reaction_t* reaction = trigger->reactions[k];
-                    pqueue_insert(reaction_q, trigger->reactions[k]);
-             		// printf("Pushed on reaction_q reaction with level: %lld\n", trigger->reactions[k]->index);
-             		// printf("Reaction pointer: %p\n", trigger->reactions[k]);
-               }
+                if (trigger != NULL) {
+                    for (int k=0; k < trigger->number_of_reactions; k++) {
+                        reaction_t* reaction = trigger->reactions[k];
+                        if (reaction != NULL) {
+                            pqueue_insert(reaction_q, reaction);
+                            // printf("Pushed on reaction_q reaction with level: %lld\n", trigger->reactions[k]->index);
+                            // printf("Reaction pointer: %p\n", trigger->reactions[k]);
+                        }
+                    }
+                }
             }
         }
 	}

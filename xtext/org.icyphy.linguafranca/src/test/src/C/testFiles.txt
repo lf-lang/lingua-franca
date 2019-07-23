@@ -15,6 +15,7 @@ Gain.lf
 HelloC.lf
 HelloCThreaded.lf
 HelloWorld.lf
+Hierarchy.lf
 ImportC.lf
 ImportCThreaded.lf
 Minimal.lf
