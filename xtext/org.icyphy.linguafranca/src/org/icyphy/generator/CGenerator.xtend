@@ -944,7 +944,6 @@ class CGenerator extends GeneratorBase {
 								)
 							}
 						} else {
-						    println("************ FIXME")
 							// FIXME: Handle case where size is not 2 (communication across hierarchy).
 							reportError(container.reactor,
 								"FIXME: Communication across hierarchy is not yet supported"
