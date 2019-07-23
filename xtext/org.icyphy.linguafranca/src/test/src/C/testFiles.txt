@@ -1,6 +1,8 @@
 AsyncCallback.lf
 CompositionC.lf
 CompositionCThreaded.lf
+CountTest.lf
+DanglingOutput.lf
 DeadlineC.lf
 DeadlineCThreaded.lf
 DelayInt.lf

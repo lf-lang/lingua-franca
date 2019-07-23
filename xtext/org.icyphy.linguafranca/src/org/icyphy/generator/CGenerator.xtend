@@ -475,15 +475,9 @@ class CGenerator extends GeneratorBase {
 								if (inputNames === null || inputNames.size === 0) {
 									triggersContents.append("NULL")
 								} else {
-									// FIXME: The following does not seem to be used!
-									var inputTriggerStructPointers = new StringBuilder()
 									var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount + '_remote_triggers'
 									var inputCount = 0;
 									for (inputName: inputNames) {
-										// Insert a comma if needed.
-										if (inputTriggerStructPointers.length > 0) {
-											inputTriggerStructPointers.append(', ')
-										}
 										deferredInitialize.add(
 											new InitializeRemoteTriggersTable(
 												container, remoteTriggersArrayName, (inputCount++), inputName
@@ -496,7 +490,7 @@ class CGenerator extends GeneratorBase {
 										+ inputCount
 										+ '];'
 									)
-									triggersContents.append('&' + remoteTriggersArrayName)
+									triggersContents.append('&' + remoteTriggersArrayName + '[0]')
 								}
 							} else {
 								// It is not an output, but the reaction may be sending data
@@ -542,7 +536,7 @@ class CGenerator extends GeneratorBase {
 											+ remoteTriggersArrayName
 											+ '[1];'
 										)
-										triggersContents.append('&' + remoteTriggersArrayName)
+										triggersContents.append('&' + remoteTriggersArrayName + '[0]')
 									}
 								}
 							}
@@ -576,7 +570,7 @@ class CGenerator extends GeneratorBase {
 						pr(result, 'trigger_t** ' + reactionInstanceName + '_triggers'
 							+ '[] = {'
 							+ triggersContents
-							+ '[0]};'
+							+ '};'
 						)
 					}
 					// Finally, produce the reaction_t struct.			
