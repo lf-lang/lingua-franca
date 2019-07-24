@@ -1,4 +1,5 @@
 AsyncCallback.lf
+AsyncCallback2.lf
 CompositionC.lf
 CompositionCThreaded.lf
 CountTest.lf
