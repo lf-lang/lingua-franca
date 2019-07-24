@@ -35,7 +35,7 @@ pthread_cond_t end_logical_time = PTHREAD_COND_INITIALIZER;
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
- 	
+    pthread_mutex_lock(&mutex); 	
 	// If we are between logical times, this is an asynchronous callback
 	// and we need to use physical time to adjust the delay.
  	//if (between_logical_times) {
@@ -52,7 +52,6 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
         	extra_delay += time_adjustment;
         }
  	}
-    pthread_mutex_lock(&mutex);
 	int return_value = __schedule(trigger, trigger->offset + extra_delay, payload);
  	pthread_mutex_unlock(&mutex);
 	// Notify the main thread in case it is waiting for physical time to elapse.
@@ -90,28 +89,13 @@ int wait_until(instant_t logical_time_ns) {
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule(), or
             // it may have been a control-C to stop the process.
-            // Set current time to match physical time, but not less than
-            // current logical time nor more than next time in the event queue.
-            struct timespec current_physical_time;
-            clock_gettime(CLOCK_REALTIME, &current_physical_time);
-            long long current_physical_time_ns 
-                    = current_physical_time.tv_sec * BILLION
-                    + current_physical_time.tv_nsec;
-            if (current_physical_time_ns > current_time) {
-                if (current_physical_time_ns < logical_time_ns) {
-                    current_time = current_physical_time_ns;
-                    return -1;
-                }
-            } else {
-                // Current physical time does not exceed current logical
-                // time, so do not advance current time.
-                return -1;
-            }
+            // Do not adjust current_time here. If there was an asynchronous
+            // call to schedule(), it will have put an event on the event queue,
+            // and current_time will be set to that time when that event is pulled.
+            return -1;
         }
         // printf("-------- Returned from wait.\n");
     }
-    // Advance current time.
-    current_time = logical_time_ns;
     return return_value;
 }
 
@@ -183,7 +167,7 @@ int next() {
     // Do not hold the lock during that time.
     // NOTE: We should release the lock even if there will be no physical time wait
     // to allow other threads to sneak in. Perhaps also do a yield?
-    // The wait_until function will release the lock while waiting and then advance current_time.
+    // The wait_until function will release the lock while waiting.
     between_logical_times = true;
     pthread_cond_broadcast(&end_logical_time);
     if (wait_until(next_time) < 0) {
@@ -195,7 +179,7 @@ int next() {
         if (new_event == event) {
             // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
-            if ((stop_time > 0LL && current_time >= stop_time) || new_event == NULL) {
+            if ((stop_time > 0LL && event->time > stop_time) || new_event == NULL) {
             	stop_requested = true;
      			between_logical_times = false;
     			pthread_mutex_unlock(&mutex);
@@ -210,7 +194,10 @@ int next() {
         }
     }
     between_logical_times = false;
-        
+
+    // Advance current time to match that of the first event on the queue.
+    current_time = event->time;
+            
     // Invoke code that must execute before starting a new logical time round,
     // such as initializing outputs to be absent.
     __start_time_step();
