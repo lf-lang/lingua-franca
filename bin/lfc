@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-if [ 1 -ne "$#" ]; then
+if [ 1 -lt "$#" ]; then
 	1>&2 echo "Usage: lfc [FILE]"
 	exit 1
 fi
@@ -32,4 +32,6 @@ if [ ! -f "${jarpath}" ] || ! "${FIND}" "${lfbase}src/" -path "${lfbase}src/test
 	touch -c -- "${jarpath}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be udpated
 fi
 
-java -jar "${jarpath}" "$@"
+if [ 0 -lt "$#" ]; then
+	java -jar "${jarpath}" "$@"
+fi
