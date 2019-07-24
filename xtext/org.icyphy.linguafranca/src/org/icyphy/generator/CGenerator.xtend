@@ -546,10 +546,10 @@ class CGenerator extends GeneratorBase {
 					var triggeredSizesArray = "NULL"
 					var triggersArray = "NULL"
 					if (outputCount > 0) {
-						outputProducedArray = '&' + reactionInstanceName + '_outputs_are_present'
+						outputProducedArray = reactionInstanceName + '_outputs_are_present'
 						// Create a array with booleans indicating whether an output has been produced.
 						pr(result, 'bool* ' + reactionInstanceName
-							+ '_outputs_are_present' 
+							+ '_outputs_are_present[]' 
 							+ ' = {' 
 							+ presentPredicates.toString
 							+ '};'
