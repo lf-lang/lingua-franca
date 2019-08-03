@@ -1,0 +1,14 @@
+target C;
+reactor Printer {
+    input x:int;
+    reaction(x) {=
+        printf("Inside reactor received: %d\n", x);
+    =}
+}
+reactor Main {
+    timer t;
+    p = new Printer();
+    reaction(t) -> p.x {=
+        set(p.x, 1);
+    =}
+}
