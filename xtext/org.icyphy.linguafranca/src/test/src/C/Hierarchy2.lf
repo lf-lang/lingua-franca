@@ -1,0 +1,59 @@
+// Test data transport across hierarchy.
+target C(
+    run = "./Hierarchy2 -fast -timeout 5 sec"
+);
+reactor Source {
+    output out:int;
+    timer t(0, 1 sec);
+    reaction(t) -> out {=
+        set(out, 1);
+    =}
+}
+reactor Count {
+    output out:int;
+    timer t(0, 1 sec);
+    state i:int(0);
+    reaction(t) -> out {=
+        (self->i)++;
+        set(out, self->i);
+    =}
+}
+reactor Add {
+    input in1:int;
+    input in2:int;
+    output out:int;
+    reaction(in1, in2) -> out {=
+        int result = 0;
+        if (in1_is_present) result += in1;
+        if (in2_is_present) result += in2;
+        set(out, result);
+    =}
+}
+reactor Print {
+    input in:int;
+    state expected:int(2);
+    reaction(in) {=
+        printf("Received: %d.\n", in);
+        if (in != self->expected) {
+            printf("Expected %d.\n", self->expected);
+            exit(1);
+        }
+        self->expected++;
+    =}
+}
+reactor AddCount {
+    input in:int;
+    output out:int;
+    count = new Count();
+    add = new Add();
+    in -> add.in1;
+    count.out -> add.in2;
+    add.out -> out;
+}
+reactor Main {
+    source = new Source();
+    addCount = new AddCount();
+    print = new Print();
+    source.out -> addCount.in;
+    addCount.out -> print.in;
+}
