@@ -39,19 +39,19 @@ class GeneratorBase {
 	/** Precedence graph of reaction instances. */
 	var precedenceGraph = new ReactionGraph(this)
 	
-	// Map from a reactor AST spec to properties of the reactor.
+	/** Map from a reactor AST spec to properties of the reactor. */
 	protected var reactorToProperties = new HashMap<Reactor,ReactorProperties>()
 	
-	// Map from reactor class name to the AST reactor spec defining that class.
+	/** Map from reactor class name to the AST reactor spec defining that class. */
 	var classToReactor = new LinkedHashMap<String,Reactor>()
 
-	// All code goes into this string buffer.
+	/** All code goes into this string buffer. */
 	var code = new StringBuilder
 	
-	// Map from builder to its current indentation.
+	/** Map from builder to its current indentation. */
 	var indentation = new HashMap<StringBuilder,String>()
 	
-	// The main (top-level) reactor instance.
+	/** The main (top-level) reactor instance. */
 	protected ReactorInstance main 
 	
 	// The root filename for the main file containing the source code.
@@ -226,6 +226,12 @@ class GeneratorBase {
                 properties.outputNameToInputNames.put(connection.leftPort, destinations)
             }
             destinations.add(connection.rightPort)
+            
+            if (!connection.rightPort.contains('.')) {
+                properties.outputNameToContainedOutputName.put(
+                    connection.rightPort, connection.leftPort
+                )
+            }
             
             // Next, check the connection and report any errors.
 			var split = connection.leftPort.split('\\.')

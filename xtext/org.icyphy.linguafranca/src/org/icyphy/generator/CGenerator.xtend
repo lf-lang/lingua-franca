@@ -225,6 +225,13 @@ class CGenerator extends GeneratorBase {
 				// NOTE: Slightly obfuscate output name to help prevent accidental use.
 				pr(body, removeCodeDelimiter(output.type) + ' __' + output.name + ';')
 				pr(body, 'bool __' + output.name + '_is_present;')
+				// If there are contained reactors that send data via this output,
+				// then create a place to put the pointers to the sources of that data.
+				var containedSource = properties.outputNameToContainedOutputName.get(output.name)
+				if (containedSource !== null) {
+                    pr(body, removeCodeDelimiter(output.type) + '* __' + output.name + '_inside;')
+                    pr(body, 'bool* __' + output.name + '_inside_is_present;')
+				}
 			}
 		}
 		// Finally, handle reactions that produce outputs sent to inputs
@@ -262,14 +269,15 @@ class CGenerator extends GeneratorBase {
 		// Generate reactions
 		// For this second pass, restart the reaction count where the first pass started.
 		reactionCount = savedReactionCount;
-		generateReactions(reactor)	
+		generateReactions(reactor)
+		generateTransferOutputs(reactor)
 		pr("// =============== END reactor class " + reactor.name)
 		pr("")
 	}
 
 	/** Generate reaction functions definition for a reactor.
 	 *  These functions have a single argument that is a void* pointing to
-	 *  a struct that contains parameters, inputs (triggering or not),
+	 *  a struct that contains parameters, state variables, inputs (triggering or not),
 	 *  actions (triggering or produced), and outputs.
 	 *  @param reactor The reactor.
 	 */
@@ -362,6 +370,187 @@ class CGenerator extends GeneratorBase {
 		}
 	}
 	
+	/** Generate one reaction function definitions for each output of
+	 *  a reactor that relays data from the output of a contained reactor.
+	 *  This reaction function transfers the data from the output of the
+	 *  contained reactor (in the self struct of this reactor labeled as
+	 *  "inside") to the output of this reactor (also in its self struct).
+	 *  There needs to be one reaction function
+	 *  for each such output because these reaction functions have to be
+	 *  individually invoked after each contained reactor produces an
+	 *  output that must be relayed.
+     *  @param reactor The reactor.
+     */
+    def generateTransferOutputs(Reactor reactor) {
+        var properties = reactorToProperties.get(reactor)
+        for (output: properties.outputNameToContainedOutputName.keySet()) {
+            // The following function name will be unique, assuming that
+            // reactor class names are unique and within each reactor class,
+            // output names are unique.
+            val functionName = "transfer_output_" + reactor.name + "_" + output
+                
+            pr('void ' + functionName + '(void* instance_args) {')
+            indent()
+                        
+            // Define the "self" struct. First get its name. Note that this
+            // must not be null because there is at least one output.
+            var structType = properties.targetProperties.get("structType")
+            pr(structType + "* self = (" + structType + "*)instance_args;")
+            
+            // Transfer the output value from the inside value.
+            pr("self->__" + output + " = *(self->__" + output + "_inside);")
+            // Transfer the presence flag from the inside value.
+            pr("self->__" + output + "_is_present = *(self->__" + output + "_inside_is_present);")
+            unindent()
+            pr("}")
+        }
+    }
+	
+	/** Generate trigger_t objects for transferring outputs from inside a composite
+	 *  to the outside.  Each trigger_t object is a struct that contains an
+     *  array of pointers to reaction_t objects representing
+     *  the transfer output.
+     *  This also creates the reaction_t object for each transfer outputs.
+     *  This object has a pointer to the function to invoke for that
+     *  reaction.
+     *  @param reactorInstance The instance for which we are generating trigger objects.
+     *  @param nameOfSelfStruct The name of the instance of "self" for this instance or
+     *   null if there isn't one.
+     */
+    def generateTriggerForTransferOutputs(
+        ReactorInstance reactorInstance, 
+        String nameOfSelfStruct, 
+        HashMap<String,String> triggerNameToTriggerStruct
+    ) {
+        // FIXME: This code is rather similar to that in generateTriggerObjects(). Refactor?
+        var reactor = reactorInstance.reactor
+        var properties = reactorToProperties.get(reactor)
+        var triggeredSizesContents = new StringBuilder()
+        var triggersContents = new StringBuilder()
+        var outputCount = 0
+        val result = new StringBuilder()
+        for (output: properties.outputNameToContainedOutputName.keySet()) {
+            // The function name for the transfer outputs function:
+            val functionName = "transfer_output_" + reactor.name + "_" + output
+            
+            pr(result, "// --- Reaction and trigger objects for transfer outputs for output " + output)
+
+            outputCount++
+                            
+            // For each output, figure out how many
+            // inputs are connected to it. This is obtained via the container.
+            var container = reactorInstance.container
+            // If there is no container, then the output cannot be connected
+            // to anything, so default to empty set.
+            var inputNames = new HashSet<String>()
+            if (container !== null) {
+                var parentReactor = container.reactor
+                var parentProperties = reactorToProperties.get(parentReactor)
+                var outputName = reactorInstance.getName() + "." + output
+                inputNames = parentProperties.outputNameToInputNames.get(outputName)
+            }
+            // Insert a comma if needed.
+            if (triggeredSizesContents.length > 0) {
+                triggeredSizesContents.append(", ")
+            }
+            if (inputNames === null) {
+                triggeredSizesContents.append("0")
+            } else {
+                triggeredSizesContents.append(inputNames.size)
+            }
+            // Then, for each input connected to this output,
+            // find its trigger_t struct. Create an array of pointers
+            // to these trigger_t structs, and collect pointers to
+            // each of these arrays.
+            // Insert a comma if needed.
+            if (triggersContents.length > 0) {
+                triggersContents.append(", ")
+            }
+            if (inputNames === null || inputNames.size === 0) {
+                triggersContents.append("NULL")
+            } else {
+                var remoteTriggersArrayName = '__' + functionName + '_' + outputCount + '_remote_triggers'
+                var inputCount = 0;
+                for (inputName: inputNames) {
+                    deferredInitialize.add(
+                        new InitializeRemoteTriggersTable(
+                            container, remoteTriggersArrayName, (inputCount++), inputName
+                        )
+                    )
+                }
+                pr(result, 'trigger_t* '
+                    + remoteTriggersArrayName
+                    + '['
+                    + inputCount
+                    + '];'
+                )
+                triggersContents.append('&' + remoteTriggersArrayName + '[0]')
+            }
+            // Next generate the array of booleans which indicates whether outputs are present.
+            var outputProducedArray = '__' + functionName + '_outputs_are_present'
+            pr(result, 'bool* ' + outputProducedArray + '[]' 
+                + ' = {' 
+                + '&' + nameOfSelfStruct + '.__' + output + '_is_present'
+                + '};'
+            )
+            // Create a array with ints indicating these
+            // numbers and assign it to triggered_reactions_sizes
+            // field of the reaction_t object.
+            var triggeredSizesArray = '&__' + functionName + '_triggered_sizes[0]'
+            pr(result, 'int __' + functionName
+                + '_triggered_sizes' 
+                + '[] = {'
+                + triggeredSizesContents
+                + '};'
+            )
+            // Create an array with pointers to arrays of pointers to trigger_t
+            // structs for each input triggered by an output.
+            var triggersArray = '&__' + functionName + '_triggers[0]'
+            pr(result, 'trigger_t** __' + functionName + '_triggers'
+                + '[] = {'
+                + triggersContents
+                + '};'
+            )
+            // First 0 is an index that specifies priorities based on precedences.
+            // It will be set later.
+            var reactionInstanceName = "__reaction" + reactionInstanceCount++
+            pr(result, "reaction_t " + reactionInstanceName 
+                    + " = {&" + functionName 
+                    + ", &" + nameOfSelfStruct
+                    + ", 0"  // index: index from the topological sort.
+                    + ", 0"  // pos: position used by the pqueue implementation for sorting.
+                    + ", 1"  // num_outputs: number of outputs produced by this reaction. This is just one.
+                    + ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
+                    + ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
+                    + ", " + triggersArray // triggered: array of pointers to arrays of triggers.
+                    + ", 0LL" // Deadline.
+                    + ", NULL" // Pointer to deadline violation trigger.
+                    + ", false" // Indicator that the reaction is not running.
+                    + "};"
+            )
+            pr(result, 'reaction_t* ' + output + triggerCount 
+                    + '_reactions[1] = {&' + reactionInstanceName + '};')
+                    
+            pr(result, 'trigger_t ' + output + triggerCount + ' = {')
+            indent(result)
+            pr(result, output + triggerCount + '_reactions, 1, 0LL, 0LL')
+            unindent(result)
+            pr(result,'};')
+            
+            // name output + triggerCount has to be recorded here because
+            // doDeferredInitialize needs it to initialize the remote_triggers
+            // array of the gain reaction that produces the output.            
+            triggerNameToTriggerStruct.put(output, output + triggerCount)
+            
+            triggerCount++
+        }
+        // This goes directly out to the generated code.
+        if(result.length > 0) {
+            pr("// *********** Transfer outputs structures for " + reactor.name)
+            pr(result.toString())            
+        }
+    }
+	
 	/** Generate trigger_t objects, one for
 	 *  each input, clock, and action of the reactor instance.
 	 *  Each trigger_t object is a struct that contains an
@@ -405,9 +594,11 @@ class CGenerator extends GeneratorBase {
 		var count = 0
 		for (triggerName: triggerToReactions.keySet) {
 			val numberOfReactionsTriggered = triggerToReactions.get(triggerName).length
-			var names = new StringBuffer();
+			// Collect names of the reaction_t objects that are triggered together.
+			var reactionTNames = new StringBuffer();
 			
-			// Generate reaction_t object
+			// Generate reaction_t struct.
+			// Along the way, we need to generate its contents, including trigger_t structs.
 			for (reaction : triggerToReactions.get(triggerName)) {
 				var functionName = properties.targetProperties.get(reaction)
 				pr(result, '// --- Reaction and trigger objects for reaction to trigger '+ triggerName
@@ -599,10 +790,10 @@ class CGenerator extends GeneratorBase {
 				}
 				// Collect the reaction instance names to initialize the
 				// reaction pointer array for the trigger.
-				if (names.length != 0) {
-					names.append(", ")
+				if (reactionTNames.length != 0) {
+					reactionTNames.append(", ")
 				}
-				names.append('&' + reactionInstanceName)
+				reactionTNames.append('&' + reactionInstanceName)
 			}
 			var triggerStructName = triggerName + triggerCount
 			
@@ -610,7 +801,7 @@ class CGenerator extends GeneratorBase {
 			triggerNameToTriggerStruct.put(triggerName, triggerStructName)
 			
 			pr(result, 'reaction_t* ' + triggerStructName 
-					+ '_reactions[' + numberOfReactionsTriggered + '] = {' + names + '};')
+					+ '_reactions[' + numberOfReactionsTriggered + '] = {' + reactionTNames + '};')
 			// Declare a variable with the name of the trigger whose
 			// value is a struct.
 			pr(result, 'trigger_t ' + triggerStructName + ' = {')
@@ -681,8 +872,8 @@ class CGenerator extends GeneratorBase {
 			return null
 		}
 
-		// Generate the instance struct containing parameters and state variables.
-		// (the "self" struct).
+		// Generate the instance struct containing parameters, state variables,
+		// and outputs (the "self" struct).
 		var properties = reactorToProperties.get(reactor)
 		var nameOfSelfStruct = "__self_" + instanceCount++ + "_" + instance.name
 		var structType = properties.targetProperties.get("structType")
@@ -755,6 +946,9 @@ class CGenerator extends GeneratorBase {
 		// Generate trigger objects for the instance.
 		var triggerNameToTriggerStruct = generateTriggerObjects(reactorInstance, nameOfSelfStruct)
 		reactorInstance.properties.put("triggerNameToTriggerStruct", triggerNameToTriggerStruct)
+		
+		// Generate trigger objects for transferring outputs of a composite.
+		generateTriggerForTransferOutputs(reactorInstance, nameOfSelfStruct, triggerNameToTriggerStruct)
 				
 		// Next, initialize the struct with actions.
 		for(action: reactor.actions) {
@@ -992,10 +1186,16 @@ class CGenerator extends GeneratorBase {
 							    }
 							}
 						} else {
-							reportError(container.reactor,
-								"FIXME: Communication across hierarchy is not yet fully supported: " + input
-							)
-							// var outputProperties = reactorToProperties.get(containedReactor.reactor)
+						    // Destination is the inside of an output port rather the input of
+						    // another reactor. Hence, "input" here is the name of the output port
+						    // of container.
+						    var containerSelfStructName = container.properties.get("selfStructName")
+                            pr(containerSelfStructName + '.__' + input + '_inside = &'
+                                + outputSelfStructName + '.__' + output.name + ';'
+                            )
+                            pr(containerSelfStructName + '.__' + input + '_inside_is_present = &'
+                                + outputSelfStructName + '.__' + output.name + '_is_present;'
+                            )
 						}
 					}
 				}
