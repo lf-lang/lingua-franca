@@ -47,6 +47,11 @@ import org.icyphy.linguaFranca.Timing
 	 */
 	public var outputNameToInputNames = new LinkedHashMap<String,HashSet<String>>()
 	
+	/** Map from output name for outputs of this reactor to output names
+	 *  of contained reactors that send data via this output port.
+	 */
+	public var outputNameToContainedOutputName = new LinkedHashMap<String,String>();
+	
 	/** For use by language-specific code generators, a generic map
 	 *  for storing properties.
 	 */

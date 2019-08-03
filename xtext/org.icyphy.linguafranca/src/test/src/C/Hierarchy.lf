@@ -25,13 +25,15 @@ reactor Print {
 }
 reactor GainContainer {
     input in:int;
+    output out:int;
     gain = new Gain();
-    print = new Print();
     in -> gain.in;
-    gain.out -> print.in;
+    gain.out -> out;
 }
 reactor Main {
     source = new Source();
     container = new GainContainer();
+    print = new Print();
     source.out -> container.in;
+    container.out -> print.in;
 }
