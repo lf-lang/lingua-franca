@@ -17,6 +17,7 @@ HelloC.lf
 HelloCThreaded.lf
 HelloWorld.lf
 Hierarchy.lf
+Hierarchy2.lf
 ImportC.lf
 ImportCThreaded.lf
 Minimal.lf
