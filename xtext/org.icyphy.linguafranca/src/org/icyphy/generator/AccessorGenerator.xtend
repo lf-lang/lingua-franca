@@ -152,7 +152,7 @@ class AccessorGenerator extends GeneratorBase {
 		}
 		
 		// Add the input handlers.
-		pr(addInputHandlers)
+		pr(addInputHandlers.toString)
 
 		// Add the timer reactions.
 		for (timer: timerReactions.keySet) {
