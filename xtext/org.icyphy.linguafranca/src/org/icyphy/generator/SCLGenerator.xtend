@@ -7,6 +7,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reactor
+import java.util.Collections
 
 class SCLGenerator extends GeneratorBase {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context, Hashtable<String,String> importTable) {
@@ -15,50 +16,42 @@ class SCLGenerator extends GeneratorBase {
 			clearCode()
 			generateReactor(reactor, importTable)
 			var filename = reactor.name
-			if (filename.equalsIgnoreCase('main')) {
+			if (filename.equalsIgnoreCase("main")) {
 				filename = _filename
 			}
 			fsa.generateFile(filename + ".scl", getCode())
 		}
-		clearCode()
-		pr('FUNCTION setup')
-		indent()
-		var graph = new ReactionGraph(this)
+		val graph = new ReactionGraph(this)
 		// Calculate levels for the graph.
 		graph.calculateLevels(main)
-		var nlevels = 0
-		for (node : graph.nodes) {
-			nlevels = Math.max(nlevels, node.level + 1)
-		}
-		var nodesByLevel = newArrayOfSize(nlevels)
-		for (var i = 0; i < nodesByLevel.size; i++) {
-			nodesByLevel.set(i, newArrayList())
-		}
-		for (node : graph.nodes) {
-			nodesByLevel.get(node.level).add(node)
-		}
-		for (var i = 0; i < nodesByLevel.size; i++) {
-			for (node : nodesByLevel.get(i)) {
-				pr("// Check if reaction needs to fire, then fire if so: " + node)
-			}
-		}
+		val instanceName = main.name
+		clearCode()
 		if (false) {
-			val nodeIndices = newHashMap()
-			{
-				var i = 0
-				for (node : graph.nodes) {
-					nodeIndices.put(node, i++)
-				}
+			val content = readFileInClasspath("/lib/SCL/Runtime.scl")
+			if (content !== null) {
+				pr(content)
 			}
-			for (node : graph.nodes) {
-				for (other : node.dependentReactions) {
-					pr('graph_connect(#graph := #graph' + ', ' + 'parent := ' + nodeIndices.get(node) + ', ' + 'child := ' + nodeIndices.get(other) + ')')
-				}
-			}
+			pr("")
 		}
-		unindent()
-		pr('END_FUNCTION')
-		fsa.generateFile("_topology.scl", getCode())
+		val allReactors = graph.nodes.map[it.reactorInstance.reactor].toSet.sortBy[it.name].toArray(<Reactor>newArrayOfSize(0))
+		val reactorIndices = allReactors.indexed.toMap([it.value], [it.key])
+		val reactionIndices = newHashMap(allReactors.toInvertedMap[r | r.reactions.indexed.toMap([it.value], [it.key])].values.flatMap[it.entrySet].map[it.key -> it.value])
+		val reactorName = _filename
+		prBlock("FUNCTION run", "END_FUNCTION")[
+			prBlock("VAR_IN_OUT", "END_VAR")[pr("%s: %s;", instanceName, reactorName)]
+			// TODO: Figure out how to timestamp outputs
+			for (reactionInstance : graph.nodes.toList.sortBy[it.level]) {
+				val reactionName = String.format("%s_%s", reactionInstance.reactorInstance.reactor.name, reactionIndices.get(reactionInstance.reactionSpec) + 1)
+				val args = newArrayList()
+				args.add(String.format("this := %s.%s", instanceName, reactionInstance.reactorInstance.name))
+				for (input : reactionInstance.dependsOnPorts) {
+					input.dependsOnPorts.forEach[args.add(String.format("%s := %s.%s", input.portName, it.reactorInstance.fullName, it.portName))]
+				}
+				reactionInstance.reactionSpec.produces?.produces?.forEach[args.add(String.format("%s := %s.%s", it, reactionInstance.reactorInstance.fullName, it))]
+				pr("%s(%s)", reactionName, args.join(", "))
+			}
+		]
+		fsa.generateFile("run.scl", getCode())
 	}
 
 	override generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
@@ -66,148 +59,40 @@ class SCLGenerator extends GeneratorBase {
 		if (reactor.preamble !== null) {
 			pr(removeCodeDelimiter(reactor.preamble.code))
 		}
-		val inputs = new LinkedHashMap<String, String>()
-		for (input: reactor.inputs) {
-			inputs.put(input.name, input.type)
+		val inputs = newLinkedHashMap(reactor.inputs.map[it.name -> it.type])
+		val outputs = newLinkedHashMap(reactor.outputs.map[it.name -> it.type])
+		for (param : getParameters(reactor)) {
 		}
-		val outputs = new LinkedHashMap<String, String>()
-		for (output: reactor.outputs) {
-			outputs.put(output.name, output.type)
-		}
-		for (param: getParameters(reactor)) {
-		}
-		val isMain = reactor.name.equalsIgnoreCase('main');
-		if (isMain) {
-			val content = readFileInClasspath("/lib/SCL/Runtime.scl")
-			if (content !== null) {
-				pr(content)
-			}
-			pr('')
-		}
-		val compositional = reactor.instances.length + reactor.states.length > 0;
-		if (compositional) {
-			pr('TYPE ' + reactor.name)
-			pr('STRUCT')
-			indent();
-			for (instance: reactor.instances) {
-				pr(instance.name + ': ' + instance.reactorClass + ';')
-			}
-			for (state: reactor.states) {
-				pr(state.name + ': ' + state.type + ';')
-			}
-			unindent();
-			pr('END_STRUCT')
-			pr('END_TYPE')
-			pr('# TODO: Generate port connections and handlers for reactor composition? Should be similar to those for main')
-		}
-		for (connection: reactor.connections) {
-			// TODO: Generate connections
-		}
-		val reactions = reactor.reactions
-		{
-			var ireaction = 0;
-			for (reaction: reactions) {
-				val reaction_name = reactor.name + '_' + (ireaction + 1)
-				pr('FUNCTION ' + reaction_name)
-				indent()
-				if (compositional) {
-					pr('VAR_IN_OUT')
-					indent()
-					pr('this' + ': ' + reactor.name + ';')
-					unindent()
-					pr('END_VAR')
+		val reactorName = if (reactor.name.equalsIgnoreCase("main")) _filename else reactor.name
+		prBlock(String.format("TYPE %s", reactorName), "END_UDT")[
+			prBlock("STRUCT", "END_STRUCT")[
+				reactor.instances.forEach[pr("%s: %s;", it.name, it.reactorClass)]
+				reactor.states.forEach[pr("%s: %s;", it.name, it.type)]
+				if (false) {
+					reactor.inputs.forEach[pr("%s: %s;  // FOR INTERNAL USE ONLY", it.name, it.type)]
 				}
-				val ninputs = (if (reaction.uses !== null && reaction.uses.uses !== null) reaction.uses.uses.length else 0) + (if (reaction.triggers !== null) reaction.triggers.length else 0);
-				if (ninputs > 0) {
-					pr('VAR_INPUT')
-					indent()
-					if (reaction.triggers !== null) {
-						for (v: reaction.triggers) {
-							pr(v + ': ' + inputs.get(v) + ';')
-						}
-					}
-					if (reaction.uses !== null && reaction.uses.uses !== null) {
-						for (v: reaction.uses.uses) {
-							pr(v + ': ' + inputs.get(v) + ';')
-						}
-					}
-					unindent()
-					pr('END_VAR')
-				}
-				if (reaction.produces !== null && reaction.produces.produces !== null && reaction.produces.produces.length > 0) {
-					pr('VAR_OUTPUT')
-					indent()
-					for (v: reaction.produces.produces) {
-						pr(v + ': ' + inputs.get(v) + ';')
-					}
-					unindent()
-					pr('END_VAR')
-				}
-				for(parameter: getParameters(reactor)) {
+				reactor.outputs.forEach[pr("%s: %s;  // FOR INTERNAL USE ONLY", it.name, it.type)]
+			]
+		]
+		reactor.reactions.forEach[reaction, r |
+			val reaction_name = String.format("%s_%s", reactorName, r + 1)
+			prBlock(String.format("FUNCTION %s", reaction_name), "END_FUNCTION")[
+				prBlock("VAR_IN_OUT", "END_VAR")[
+					pr("this: %s;", reactorName)
+				]
+				prBlock("VAR_INPUT", "END_VAR")[
+					reaction.triggers?.forEach[pr("%s: %s;", it, inputs.get(it))]
+					reaction.uses?.uses?.forEach[pr("%s: %s;", it, inputs.get(it))]
+				]
+				prBlock("VAR_OUTPUT", "END_VAR")[
+					reaction.produces?.produces?.forEach[pr("%s: %s;", it, inputs.get(it))]
+				]
+				for (parameter: getParameters(reactor)) {
 					// TODO: Handle parameters
 				}
 				pr(removeCodeDelimiter(reaction.code))
-				unindent()
-				pr('END_FUNCTION')
-				ireaction++
-			}
-		}
-		if (isMain) {
-			// TODO: Combine 'main' reaction generation with the normal reaction generation code below somehow?
-			pr('FUNCTION _' + reactor.name)  // TODO: Name might conflict
-			indent()
-			pr('VAR_IN_OUT')
-			indent()
-			pr('this' + ': ' + reactor.name + ';')
-			unindent()
-			pr('END_VAR')
-			pr('VAR_TEMP')
-			indent()
-			for (instance: reactor.instances) {
-				for (port : instance.reactorClass.reactor.outputs) {
-					val varname = instance.name + '_' + port.name
-					pr(varname + ': ' + port.type + ';')
-				}
-				for (port : instance.reactorClass.reactor.inputs) {
-					val varname = instance.name + '_' + port.name
-					pr(varname + ': ' + port.type + ';')
-				}
-			}
-			unindent()
-			pr('END_VAR')
-			pr('# TODO: Go through the reactions in the correct order based on the port connections!!')
-			pr('# TODO: Check which parameters are present')
-			pr('# TODO: Figure out how to timestamp outputs')
-			for (instance: reactor.instances) {
-				var ireaction = 0
-				for (reaction : instance.reactorClass.reactor.reactions) {
-					val reaction_name = instance.reactorClass.reactor.name + '_' + (ireaction + 1)
-					val args = newArrayList()
-					args.add('this' + ' := ' + 'this' + '.' + instance.name)
-					for (port : instance.reactorClass.reactor.outputs) {
-						val varname = instance.name + '_' + port.name
-						args.add(port.name + ' := ' + varname)
-					}
-					for (port : instance.reactorClass.reactor.inputs) {
-						val varname = instance.name + '_' + port.name
-						args.add(port.name + ' := ' + varname)
-					}
-					pr(reaction_name + '(' + args.join(', ') + ')')
-					for (connection : reactor.connections) {
-						// Propagate any outputs from this actor to the local variables
-						if (connection.leftPort.startsWith(instance.name + '.')) {
-							// TODO: Don't replace '.' with '_'; figure out a more robust solution to avoid naming clash
-							val left = connection.leftPort.replace('.', '_')
-							val right = connection.rightPort.replace('.', '_')
-							pr(right + ' := ' + left + ';')
-						}
-					}
-					ireaction++
-				}
-			}
-			unindent()
-			pr('END_FUNCTION')
-		}
+			]
+		]
 	}
 
 	override instantiate(
@@ -217,7 +102,7 @@ class SCLGenerator extends GeneratorBase {
 	) {
 		var reactor = getReactor(instance.reactorClass)
 		if (reactor === null) {
-			reportError(instance, "No such reactor: " + instance.reactorClass)
+			reportError(instance, String.format("No such reactor: %s", instance.reactorClass))
 			return null
 		}
 		val reactorInstance = super.instantiate(instance, container, importTable)
