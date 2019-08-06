@@ -335,7 +335,7 @@ public class ReactionGraph {
                 port.collapseDependencies(visited);
                 dependsOnReactions.addAll(port.dependsOnReactions);
             }
-            if (false) { dependsOnPorts.clear(); }
+            dependsOnPorts.clear();
         }
     }
     
@@ -390,7 +390,7 @@ public class ReactionGraph {
                 port.collapseDependencies(visited);
                 dependsOnReactions.addAll(port.dependsOnReactions);
             }
-            if (false) { dependsOnPorts.clear(); }
+            dependsOnPorts.clear();
             if (dependsOnReactions.isEmpty()) {
                 _independentReactions.add(this);
             }
