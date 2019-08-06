@@ -537,8 +537,8 @@ class GeneratorBase {
 	 *  code buffer.
 	 *  @param text The text to append.
 	 */
-	protected def pr(Object text) {
-		pr(code, text)
+	protected def pr(String format, Object... args) {
+		pr(code, if (args !== null && args.length > 0) String.format(format, args) else format)
 	}
 	
 	/** Append the specified text plus a final newline to the specified
@@ -697,6 +697,29 @@ class GeneratorBase {
 		}
 	}
 	
+	/** Prints an indented block of text with the given begin and end markers,
+	 * but only if the actions print any text at all.
+	 * This is helpful to avoid the production of empty blocks.
+	 * @param begin The prolog of the block.
+	 * @param end The epilog of the block.
+	 * @param actions Actions that print the interior of the block. 
+	 */
+	protected def prBlock(String begin, String end, Runnable... actions) {
+		val i = code.length
+		indent()
+		for (action : actions) {
+			action.run()
+		}
+		unindent()
+		if (i < code.length) {
+			val inserted = code.substring(i, code.length)
+			code.delete(i, code.length)
+			pr(begin)
+			code.append(inserted)
+			pr(end)
+		}
+	}
+
 	/** Given a representation of time that may possibly include units,
 	 *  return a string for the same amount of time
 	 *  in terms of the specified baseUnit. If the two units are the
