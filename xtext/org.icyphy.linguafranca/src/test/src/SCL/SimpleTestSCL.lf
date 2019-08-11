@@ -1,19 +1,28 @@
 target SCL;
-reactor Clock(period:int(1000)) {
-	output signal: BOOL;
+reactor PeriodicToggler(period: int(1000)) {
+	output signal_out: BOOL;
+	input feedback_in: BOOL;
+	state val: BOOL(FALSE);
 	timer t(0, period);
-	reaction (t) -> signal {=
-		signal := 1;
+	reaction (t) -> signal_out {=
+		this.val := NOT(this.val);  // flip the state
+		signal_out := this.val;  // set the output value
+	=}
+	reaction (feedback_in) {=
+		// Receive feedback
 	=}
 }
-reactor LED(name) {
-	input signal;
-	reaction (signal) {=
-		// write to memory
+reactor LED {
+	input signal_in: BOOL;
+	output feedback_out: BOOL;
+	reaction (signal_in) -> feedback_out {=
+		YellowLamp := signal_in;  // YellowLamp is a global variable
+		feedback_out := signal_in;
 	=}
 }
 reactor main {
-	clock = new Clock();
+	toggler = new PeriodicToggler();
 	led = new LED();
-	clock.signal -> led.signal;
+	toggler.signal_out -> led.signal_in;
+	led.feedback_out -> toggler.feedback_in;
 }

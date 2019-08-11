@@ -110,7 +110,7 @@ class CGenerator extends GeneratorBase {
 			// Generate function to initialize the trigger objects for all reactors.
 			pr('void __initialize_trigger_objects() {\n')
 			indent()
-			pr(initializeTriggerObjects)
+			pr(initializeTriggerObjects.toString)
 			doDeferredInitialize()
 			setReactionPriorities()
 			unindent()
@@ -119,14 +119,14 @@ class CGenerator extends GeneratorBase {
 			// Generate function to start timers for all reactors.
 			pr("void __start_timers() {")
 			indent()
-			pr(startTimers)
+			pr(startTimers.toString)
 			unindent()
 			pr("}")
 		
 			// Generate function to execute at the start of a time step.
 			pr('void __start_time_step() {\n')
 			indent()
-			pr(startTimeStep)
+			pr(startTimeStep.toString)
 			unindent()
 			pr('}\n')
 		}
@@ -262,7 +262,7 @@ class CGenerator extends GeneratorBase {
 			properties.targetProperties.put("structType", argType)
 			pr("typedef struct {")
 			indent()
-			pr(body)
+			pr(body.toString)
 			unindent()
 			pr("} " + argType + ";")
 		}
@@ -371,7 +371,7 @@ class CGenerator extends GeneratorBase {
 			}
 			pr('void ' + functionName + '(void* instance_args) {')
 			indent()
-			pr(reactionInitialization)
+			pr(reactionInitialization.toString)
 			// Code verbatim from 'reaction'
 			prSourceLineNumber(reaction)
 			pr(removeCodeDelimiter(reaction.code))
