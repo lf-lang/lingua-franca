@@ -1,0 +1,36 @@
+target C;
+reactor Destination {
+    input x:int;
+    input y:int;
+    reaction(x, y) {=
+        interval_t elapsed = get_elapsed_logical_time();
+        printf("Time since start: %lld.\n", elapsed);
+        if (elapsed != 0LL) {
+            printf("Expected elapsed time to be 0, but it was %lld.\n", elapsed);
+        }
+        int count = 0;
+        if (x_is_present) {
+            printf("  x is present.\n");
+            count++;
+        }
+        if (y_is_present) {
+            printf("  y is present.\n");
+            count++;
+        }
+        if (count != 1) {
+            printf("Expected exactly one input to be present but got %d.\n", count);
+        }
+    =}
+}
+reactor Main {
+    timer start;
+    action repeat;
+    d = new Destination();
+    reaction(start) -> d.x, repeat {=
+        set(d.x, 1);
+        schedule(repeat, 0, NULL);
+    =}
+    reaction(repeat) -> d.y {=
+        set(d.y, 1);
+    =}
+}
