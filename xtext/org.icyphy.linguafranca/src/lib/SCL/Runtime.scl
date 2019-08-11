@@ -33,21 +33,21 @@ END_UDT
 FUNCTION heap_sift
     VAR_IN_OUT
         heap: ARRAY OF HeapSlot;
-    END_IN_OUT;
+    END_VAR;
     VAR_INPUT
         r: INT;
         begin: INT;
         end: INT;
         min_heap: BOOL;
         down: BOOL;
-    END_INPUT;
+    END_VAR;
     VAR_OUTPUT
         result: INT;
-    END_OUTPUT;
+    END_VAR;
     VAR_TEMP
         i: INT;
         temp: HeapSlot;
-    END_TEMP;
+    END_VAR;
     #i := #r;
     WHILE 1 DO
         IF #down THEN
@@ -111,20 +111,20 @@ END_FUNCTION;
 FUNCTION heap_push
     VAR_IN_OUT
         heap: ARRAY OF HeapSlot;
-    END_IN_OUT;
+    END_VAR;
     VAR_INPUT
         begin: INT;
         end: INT;
         min_heap: BOOL;
-    END_INPUT;
+    END_VAR;
     VAR_OUTPUT
         result: INT;
-    END_OUTPUT;
+    END_VAR;
     VAR_TEMP
         i: INT := end - 1;
         a: INT;
         b: INT;
-    END_TEMP;
+    END_VAR;
     #j := #begin;
     IF #i <> #begin THEN
         #j := #j + ((#i - #begin - 1) / 2);
@@ -141,21 +141,21 @@ END_FUNCTION;
 FUNCTION heap_pop
     VAR_IN_OUT
         heap: ARRAY OF HeapSlot;
-    END_IN_OUT;
+    END_VAR;
     VAR_INPUT
         begin: INT;
         end: INT;
         min_heap: BOOL;
-    END_INPUT;
+    END_VAR;
     VAR_OUTPUT
         result: INT;
-    END_OUTPUT;
+    END_VAR;
     VAR_TEMP
         i := 0;
         temp: HeapSlot;
         a: INT;
         b: INT;
-    END_TEMP;
+    END_VAR;
     #end := #end - 1;
     #temp := #heap[#i];
     #heap[#i] := #heap[#end];
