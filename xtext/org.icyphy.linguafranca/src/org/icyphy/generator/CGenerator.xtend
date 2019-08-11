@@ -15,6 +15,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.generator.ReactionGraph.ReactionInstance
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
@@ -302,6 +303,13 @@ class CGenerator extends GeneratorBase {
 						+ "* self = (" + structType + "*)instance_args;")
 			}
 			
+			// Actions may appear twice, first as a trigger, then with the outputs.
+			// But we need to declare it only once. Collect in this data structure
+			// the actions that are declared as triggered so that if they appear
+			// again with the outputs, they are not defined a second time.
+			// That second redefinition would trigger a compile error.
+			var actionsAsTriggers = new HashSet<Action>();
+			
 			// Next, add the triggers (input and actions; timers are not needed).
 			// This defines a local variable in the reaction function whose
 			// name matches that of the trigger. If the trigger is an input
@@ -316,10 +324,10 @@ class CGenerator extends GeneratorBase {
 					}
 					val action = getAction(reactor, trigger)
 					if (action !== null) {
-						// FIXME: Actions may have payloads.
 						pr(reactionInitialization, "trigger_t* " 
 							+ action.name + ' = self->__' + action.name + ';'
 						);
+						actionsAsTriggers.add(action);
 					}
 				}
 			} else {
@@ -342,8 +350,10 @@ class CGenerator extends GeneratorBase {
 					val action = getAction(reactor, output)
 					if (action !== null) {
 						// It is an action, not an output.
-						// FIXME: Actions may have payloads.
-						pr(reactionInitialization, "trigger_t* " + action.name + ' = self->__' + action.name + ';');
+						// If it has already appeared as trigger, do not redefine it.
+						if (!actionsAsTriggers.contains(action)) {
+						    pr(reactionInitialization, "trigger_t* " + action.name + ' = self->__' + action.name + ';');
+						}
 					} else {
 						var split = output.split('\\.')
 						if (split.length === 1) {

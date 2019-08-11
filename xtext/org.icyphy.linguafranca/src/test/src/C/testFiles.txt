@@ -6,6 +6,7 @@ CountTest.lf
 DanglingOutput.lf
 DeadlineC.lf
 DeadlineCThreaded.lf
+DelayedAction.lf
 DelayInt.lf
 DelayIntThreaded.lf
 Determinism.lf
@@ -20,6 +21,7 @@ Hierarchy.lf
 Hierarchy2.lf
 ImportC.lf
 ImportCThreaded.lf
+Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf
 Schedule.lf
