@@ -54,7 +54,7 @@ class GeneratorBase {
 	/** The main (top-level) reactor instance. */
 	protected ReactorInstance main 
 	
-	// The root filename for the main file containing the source code.
+	// The root filename for the main file containing the source code, without the .lf.
 	protected var String _filename
 	
 	// The file containing the main source code.

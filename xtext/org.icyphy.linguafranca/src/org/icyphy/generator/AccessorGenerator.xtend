@@ -29,6 +29,11 @@ class AccessorGenerator extends GeneratorBase {
 	var inputs = newHashSet()
 	var reactionCount = 0
 	
+	// The directory name into which generated accessor definitions are put.
+	// If there is a main reactor, then this will be the name of the source
+	// file, with the extension .lf, appended with a "/".
+	var directory = ""
+	
 	// Map from timer name to reaction name(s) triggered by the timer.
 	var timerReactions = new LinkedHashMap<String,LinkedList<String>>()
 	
@@ -43,6 +48,14 @@ class AccessorGenerator extends GeneratorBase {
 				
 		super.doGenerate(resource, fsa, context, importTable)
 		
+		// If there is a main reactor in the file, then the variable main will be non-null.
+		// In this case, create a directory into which to put the reactor definitions
+		// because accessors require one file per accessor.
+		if (main !== null) {
+            // IFileSystemAccess2 uses "/" as file system separator.
+            directory = _filename + "/"
+		}
+		
 		// Handle reactors and composites.
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			clearCode()
@@ -51,11 +64,33 @@ class AccessorGenerator extends GeneratorBase {
 			if (filename.equalsIgnoreCase('main')) {
 				filename = _filename
 			}
-			fsa.generateFile(filename + ".js", code)		
+			fsa.generateFile(directory + filename + ".js", code)		
+		}
+		// If there is a main accessor, then create a file to run it using node.
+		if (main !== null) {
+		    var runFile = '''
+		    // To run this: node «_filename».js
+		    var nodeHost = null;
+		    try {
+		        nodeHost = require('@terraswarm/accessors');
+		    } catch {
+		        console.log('ERROR: accessors library is not installed. Install with: npm install @terraswarm/accessors');
+		        console.log('NOTE: Do not do this in the lingua-franca source tree because it confuses the build system.');
+		    }
+		    if (nodeHost !== null) {
+		        // Read the command-line arguments after the first two, if there are any.
+		        var args = process.argv.slice(2);
+		        // Prepend those with the path of the main accessor and process them.
+		        args.unshift('«directory»«_filename».js')
+		        nodeHost.processCommandLineArguments(args);
+		    }
+		    '''
+            fsa.generateFile(_filename + '.js', runFile)        
 		}
 		// Copy the required library files into the target filesystem.
-        var runFile = readFileInClasspath("/lib/Accessors/run")
-        fsa.generateFile("run", runFile)		
+		// No longer used.
+        // var runFile = readFileInClasspath("/lib/Accessors/run")
+        // fsa.generateFile("run", runFile)		
 	}
 	
 	////////////////////////////////////////////
@@ -254,7 +289,8 @@ class AccessorGenerator extends GeneratorBase {
 	def generateInstantiate(Instance instance, Hashtable<String,String> importTable) {
 		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
-			className = instance.reactorClass
+		    // This is not an imported accessor.
+			className = directory + instance.reactorClass
 		}
 		pr('''var «instance.name» = this.instantiate('«instance.name»', '«className»');''')
 		if (instance.parameters !== null) {

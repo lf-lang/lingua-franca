@@ -25,23 +25,23 @@
 target Accessor;
 
 reactor Source(period:int(1000)) {
-	preamble {=
-		var n = 0;
-	=}
-	output y:int;
-	timer t(0, period);
-	reaction(t) -> y {=
-		n = n + 1;
-		set(y, n);
-	=}
+    preamble {=
+        var n = 0;
+    =}
+    output y:int;
+    timer t(0, period);
+    reaction(t) -> y {=
+        n = n + 1;
+        set(y, n);
+    =}
 }
 reactor Test(expected:JSON({= [] =})) {
-	preamble {=
-		var i = 0;
-	=}
-	input x:int;
-	reaction(x) {=
-		console.log('Test received: ' + x);
+    preamble {=
+        var i = 0;
+    =}
+    input x:int;
+    reaction(x) {=
+        console.log('Test received: ' + x);
         if (expected[i] != x) {
             throw "Expected: " + expected[i] + ", but got: " + x;
         }
@@ -49,11 +49,11 @@ reactor Test(expected:JSON({= [] =})) {
         if (i >= expected.length) {
             this.stop();
         }
-	=} 
+    =} 
 }
 reactor Main {
-	a = new Source(period = 1000);
-	b = new Test(expected = {= [1, 2, 3, 4] =});
-	a.y -> b.x;
+    a = new Source(period = 1000);
+    b = new Test(expected = {= [1, 2, 3, 4] =});
+    a.y -> b.x;
 }
 
