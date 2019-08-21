@@ -393,6 +393,14 @@ void wrapup() {
 }
 
 int main(int argc, char* argv[]) {
+    // Initialize the one and only mutex to be recursive, meaning that it is OK
+    // for the same thread to lock and unlock the mutex even if it already holds
+    // the lock.
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&mutex, &attr);
+
     if (process_args(argc, argv)) {
  		pthread_mutex_lock(&mutex);
         initialize();

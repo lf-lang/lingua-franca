@@ -16,9 +16,12 @@ reactor Main {
             // Schedule twice. If the action is not physical, these should
             // get consolidated into a single action triggering. If it is,
             // then they cause two separate triggerings with close but not
-            // equal time stamps.
+            // equal time stamps. To ensure they occur at the same logical time,
+            // acquire the one global mutex.
+            pthread_mutex_lock(&mutex);
             schedule(a, 0, NULL);
             schedule(a, 0, NULL);
+            pthread_mutex_unlock(&mutex);
         }
         // Simulate time passing before a callback occurs.
         void* take_time(void* a) {
