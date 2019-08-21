@@ -1,0 +1,31 @@
+// Test asynchronous callbacks that trigger a non-physical action.
+// This test case assumes that target is multithreaded.
+// This test will not work with the unthreaded C target because that target
+// does not implement any mutex protecting the event queue.
+target C(
+    threads = 1,
+    run = "./SimultaneousTriggers -timeout 2 sec"
+);
+
+reactor Main {
+    
+    timer a(0, 200 msec);
+    timer b(0, 400 msec);
+    state a_expected_time:{=long long=}({=0LL=});
+    state b_expected_time:{=long long=}({=0LL=});
+    
+    reaction(a, b) {=
+        instant_t elapsed_time = get_elapsed_logical_time();
+        printf("Elapsed time: %lld nsec.\n", elapsed_time); 
+        if (a_is_present && elapsed_time != self->a_expected_time) {
+            printf("ERROR: Expected logical time to be %lld.\n", self->a_expected_time);
+            exit(1);
+        }
+        if (b_is_present && elapsed_time != self->b_expected_time) {
+            printf("ERROR: Expected logical time to be %lld.\n", self->b_expected_time);
+            exit(1);
+        }
+        self->a_expected_time += 200000000LL;
+        self->b_expected_time += 400000000LL;
+    =}
+}
