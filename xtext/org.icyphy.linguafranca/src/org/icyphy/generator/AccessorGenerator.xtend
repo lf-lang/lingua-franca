@@ -195,7 +195,7 @@ class AccessorGenerator extends GeneratorBase {
 			for (handler: timerReactions.get(timer)) {
 				var offset = unitAdjustment(timerParams.offset, "ms")
 				var period = unitAdjustment(timerParams.period, "ms")
-				pr('''schedule("«timer»", «handler».bind(this), «offset», «period»);''')
+				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offset», «period»);''')
 			}
 		}
 		unindent()
@@ -206,11 +206,11 @@ class AccessorGenerator extends GeneratorBase {
 	 */
 	def generateReactions(Reactor reactor) {
 		val reactions = reactor.reactions
-		val functionName = "reaction" + reactionCount++
 		for (reaction: reactions) {
-			pr('''function «functionName»() {''')
-			indent()
-			// Add variable declarations for inputs.
+            val functionName = "reaction" + (reactionCount++)
+            val body = new StringBuilder()
+            var args = new LinkedList<String>()
+			// Add variable declarations for inputs and actions.
 			// Meanwhile, record the mapping from triggers to handlers.
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
@@ -219,7 +219,7 @@ class AccessorGenerator extends GeneratorBase {
 						// Declare a variable in the generated code.
 						// NOTE: Here we are not using get() because null works
 						// in JavaScript.
-						pr('''var «trigger» = get("«trigger»");''')
+						pr(body, '''var «trigger» = get("«trigger»");''')
 
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
@@ -233,6 +233,16 @@ class AccessorGenerator extends GeneratorBase {
 							timerReactions.put(trigger, list)
 						}
 						list.add(functionName)
+					} else if (getAction(reactor, trigger) !== null) {
+					    // The trigger is an action.
+					    args.add(trigger)
+					    // Make sure there is an entry for this action in the action table.
+					    pr('''
+					    if (!actionTable.«trigger») {
+					        actionTable.«trigger» = [];
+					    }
+					    actionTable.«trigger».push(«functionName»);
+					    ''')
 					} else {
 						// This is checked by the validator (See LinguaFrancaValidator.xtend).
 						// Nevertheless, in case we are using a command-line tool, we report the line number.
@@ -243,19 +253,24 @@ class AccessorGenerator extends GeneratorBase {
 							+ ": Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
 					}
 				}
+				if (!args.isEmpty()) {
+				    // This reaction is triggered by one or more action.
+				    // Add to the action table.
+				    pr('''reactionArgsTable[«functionName»] = ["«args.join('", "')»"];''')
+				}
 			} else {
 				// No triggers are given, which means react to any input.
 				// Declare a variable for every input.
 				// NOTE: Here we are not using get() because null works in JavaScript.
 				for (input: inputs) {
-					pr('''var «input» = get("«input»");''')
+					pr(body, '''var «input» = get("«input»");''')
 				}
 				addInputHandlers.append('''this.addInputHandler(null, «functionName».bind(this));''')
 			}
 			// Define variables for non-triggering inputs.
 			if (reaction.uses !== null && reaction.uses.uses !== null) {
 				for(get: reaction.uses.uses) {
-					pr('''var «get» = get("«get»");''')
+					pr(body, '''var «get» = get("«get»");''')
 				}
 			}
 			// Define variables for each declared output.
@@ -265,16 +280,20 @@ class AccessorGenerator extends GeneratorBase {
 					// FIXME: String name is too easy to cheat!
 					// LF coder could write set('foo', value) to write to
 					// output foo without having declared the write.
-					pr('''var «output» = "«output»";''');
+					pr(body, '''var «output» = "«output»";''');
 				}
 			}			
 			// Define variables for each parameter.
 			for(parameter: getParameters(reactor)) {
-				pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
+				pr(body, '''var «parameter.name» = this.getParameter("«parameter.name»");''');
 			}
 
 			// Code verbatim from 'reaction'
-			pr(removeCodeDelimiter(reaction.code))
+			pr(body, removeCodeDelimiter(reaction.code))
+			
+			pr('''function «functionName»(«args.join(',')») {''')
+            indent()
+			pr(body.toString())
 			unindent()
 			pr("}")
 		}
@@ -342,56 +361,88 @@ class AccessorGenerator extends GeneratorBase {
 		var TRIGGERED = -1;
 		var ONCE = -1;
 		// Map from trigger names to handles for periodic invocations.
-		var __SCHEDULE_TABLE = {}
+		var __SCHEDULE_TIMER_TABLE = {}
 		
-		// Function to schedule an action. The arguments are:
-		// * trigger: The name of the timer or action.
+		// Function to schedule timer reactions. The arguments are:
+		// * trigger: The name of the timer.
 		// * handler: Function to invoke.
 		// * offset: The time after the current time for the first action.
 		// * period: The period at which to repeat the action, 0 for one time, and -1 to cancel
 		//   a previously initiated periodic action.
-		// FIXME: Make all but the first argument optional.
-		function schedule(trigger, handler, offset, period) {
+		function __scheduleTimer(trigger, handler, offset, period) {
 			if (offset >= 0 && period == 0) {
 				var handle = setTimeout(handler, offset);
-				__SCHEDULE_TABLE[trigger] = handle;
-				setTimeout(function() { __SCHEDULE_TABLE[trigger] = null; }, offset);
+				__SCHEDULE_TIMER_TABLE[trigger] = handle;
+				setTimeout(function() { __SCHEDULE_TIMER_TABLE[trigger] = null; }, offset);
 			} else if (offset == 0 && period > 0) {
 				setTimeout(handler, 0); // First invocation.
 				var handle = setInterval(handler, period);
-				__SCHEDULE_TABLE[trigger] = handle;
+				__SCHEDULE_TIMER_TABLE[trigger] = handle;
 			} else if (offset > 0 && period > 0) {
 				var handle = setTimeout(function() {
 					setTimeout(handler, 0); // First invocation.
 					var handle = setInterval(handler, period);
-					__SCHEDULE_TABLE[trigger] = handle;
+					__SCHEDULE_TIMER_TABLE[trigger] = handle;
 				}, offset);
-				__SCHEDULE_TABLE[trigger] = handle;
+				__SCHEDULE_TIMER_TABLE[trigger] = handle;
 			} else if (period < 0) {
-				if (__SCHEDULE_TABLE[trigger]) {
-					clearTimeout(__SCHEDULE_TABLE[trigger]);
-					clearInterval(__SCHEDULE_TABLE[trigger]);
-					__SCHEDULE_TABLE[trigger] = null;
+				if (__SCHEDULE_TIMER_TABLE[trigger]) {
+					clearTimeout(__SCHEDULE_TIMER_TABLE[trigger]);
+					clearInterval(__SCHEDULE_TIMER_TABLE[trigger]);
+					__SCHEDULE_TIMER_TABLE[trigger] = null;
 				}
 			} else {
 				throw("Illegal schedule arguments: " + offset +", " + period);
 			}
 		}
+		// A table of actions indexed by the action name.
+		// Each property value is an array of function names for reactions triggered by this action.
+		var actionTable = {};
+		// A table of function arguments for reactions that take arguments.
+		var reactionArgsTable = {};
+		var self = this;
+		
+		// Function to schedule reactions to actions. The argument are:
+		// * action: The name of the action.
+		// * offset: Additional logical time beyond the action delay for reactions to be invoked.
+		// * payload: An argument to pass to any reactions that are to be triggered.
+		// FIXME: For reactions that are triggered by more than one action, this does not
+		// have quite the right semantics. If two of those actions are simultaneous, the reaction
+		// will be triggered twice instead of once!
+		function schedule(action, offset, payload) {
+		    var reactions = actionTable[action];
+		    if (reactions) {
+		        for (var i = 0; i < reactions.length; i++) {
+		            var reaction = reactions[i];
+		            var reactionArgNames = reactionArgsTable[reaction];
+		            var reactionArgs = [];
+		            for (var j = 0; j < reactionArgNames.length; j++) {
+		                var argName = reactionArgNames[i];
+		                if (argName === action) {
+		                    reactionArgs.push(payload);
+		                } else {
+		                    reactionArgs.push(null);
+		                }
+		            }
+		            // FIXME: Assuming only one argument here.
+		            var boundReaction = reaction.bind(self, payload);
+		            // FIXME: offset needs to be added to the delay specified by the action.
+		            setTimeout(boundReaction, offset);
+		        }
+		    }
+		}
+		
 		// Dispatch the specified action.
 		function __dispatch(action) {
-			var reactions = actionTable[action];
-			if (!reactions) {
-				throw("No actions named: " + action);
-			}
-			// for (var reaction in reactions) {
-				
-			// }
+		    var reactions = actionTable[action];
+		    if (!reactions) {
+		        throw("No actions named: " + action);
+		    }
+		    // for (var reaction in reactions) {
+		
+		    // }
 		}
-		// A table of actions indexed by the action name.
-		// Each property value is an object with function and arguments properties.
-		// The arguments property is an array of arguments or an empty array to
-		// apply no arguments.
-		var actionTable = {};
+
 		// ********** End boilerplate
 	'''
 }
