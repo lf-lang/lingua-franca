@@ -22,7 +22,7 @@ These can be installed in the copy directory containing this file or
 any directory above it in the file system hierarchy.
 
 To run the code generator on the .lf files, you can use the command-line code generator
-described (here)[https://github.com/icyphy/lingua-franca/wiki/Downloading-and-Building#command-line-compiler]
+described [here](https://github.com/icyphy/lingua-franca/wiki/Downloading-and-Building#command-line-compiler)
 as follows:
 
     cd ~/linguaFrancaTest/src
@@ -30,3 +30,4 @@ as follows:
     cd ../src-gen
     node HelloWorld.js
 
+You can also use the Eclipse IDE, as described [here](https://github.com/icyphy/lingua-franca/wiki/Accessors-Target).
