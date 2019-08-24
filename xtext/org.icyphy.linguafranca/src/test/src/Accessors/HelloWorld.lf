@@ -1,0 +1,7 @@
+target Accessors;
+reactor Main {
+    timer t;
+    reaction(t) {=
+        console.log("Hello World");
+    =}
+}

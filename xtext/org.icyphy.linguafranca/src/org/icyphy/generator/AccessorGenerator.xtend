@@ -193,8 +193,8 @@ class AccessorGenerator extends GeneratorBase {
 		for (timer: timerReactions.keySet) {
 			val timerParams = getTiming(reactor, timer)
 			for (handler: timerReactions.get(timer)) {
-				var offset = unitAdjustment(timerParams.offset, "ms")
-				var period = unitAdjustment(timerParams.period, "ms")
+				var offset = unitAdjustment(timerParams.offset, "msec")
+				var period = unitAdjustment(timerParams.period, "msec")
 				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offset», «period»);''')
 			}
 		}
@@ -424,10 +424,10 @@ class AccessorGenerator extends GeneratorBase {
 		                    reactionArgs.push(null);
 		                }
 		            }
-		            // FIXME: Assuming only one argument here.
-		            var boundReaction = reaction.bind(self, payload);
 		            // FIXME: offset needs to be added to the delay specified by the action.
-		            setTimeout(boundReaction, offset);
+		            setTimeout(function() {
+		                reaction.apply(self, reactionArgs);
+		            }, offset);
 		        }
 		    }
 		}
