@@ -1,0 +1,20 @@
+// Proto file for a simple Greeter service, based on demo from Google.
+
+syntax = "proto3";
+
+// The greeting service definition.
+service Greeter {
+  // Reply with a greeting.
+  rpc sayHello (HelloRequest) returns (HelloReply) {}
+}
+
+// The request message containing text that will be inserted in the greeting
+// such as a user name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greeting.
+message HelloReply {
+  string message = 1;
+}
