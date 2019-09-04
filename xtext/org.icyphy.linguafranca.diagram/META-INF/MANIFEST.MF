@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Diagram
+Bundle-SymbolicName: org.icyphy.linguafranca.diagram;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Automatic-Module-Name: org.icyphy.linguafranca.diagram
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-ActivationPolicy: lazy
+Require-Bundle: de.cau.cs.kieler.klighd;bundle-version="0.44.0",
+ de.cau.cs.kieler.klighd.krendering.extensions;bundle-version="0.44.0",
+ com.google.guava,
+ org.eclipse.xtext.xbase.lib,
+ org.eclipse.xtend.lib,
+ org.eclipse.xtend.lib.macro,
+ org.icyphy.linguafranca;bundle-version="1.0.0",
+ org.eclipse.elk.core;bundle-version="0.4.0",
+ org.eclipse.elk.alg.layered;bundle-version="0.4.0"
