@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="de.cau.cs.kieler.klighd.diagramSyntheses">
+      <diagramSynthesis
+            class="de.cau.cs.kieler.klighd.syntheses.GuiceBasedSynthesisFactory:org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis"
+            id="org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis">
+      </diagramSynthesis>
+   </extension>
+
+</plugin>
