@@ -226,10 +226,20 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		// Transform connections
 		for (Connection connection : reactor.connections?:emptyList) {
-			val left = connection.leftPort.split("\\.") // FIXME model should better contain cross references
-			val right = connection.rightPort.split("\\.") // FIXME model should better contain cross references
+			val source = if (connection.leftPort.contains(".")) { // FIXME model should better contain cross references
+				val left = connection.leftPort.split("\\.")
+				outputPorts.get(left.get(0), left.get(1))
+			} else if (parentInputPorts.containsKey(connection.leftPort)) {
+				parentInputPorts.get(connection.leftPort)
+			}
+			val target = if (connection.rightPort.contains(".")) { // FIXME model should better contain cross references
+				val right = connection.rightPort.split("\\.")
+				inputPorts.get(right.get(0), right.get(1))
+			} else if (parentOutputPorts.containsKey(connection.rightPort)) {
+				parentOutputPorts.get(connection.rightPort)
+			}
 			val edge = createDependencyEdge.associateWith(connection)
-			edge.connect(outputPorts.get(left.get(0), left.get(1)), inputPorts.get(right.get(0), right.get(1)))
+			edge.connect(source, target)
 		}
 
 		return nodes
