@@ -1,12 +1,17 @@
 package org.icyphy.linguafranca.diagram.synthesis
 
 import com.google.common.collect.HashBasedTable
-import com.google.common.collect.Table
+import com.google.common.collect.HashMultimap
 import de.cau.cs.kieler.klighd.KlighdConstants
+import de.cau.cs.kieler.klighd.SynthesisOption
+import de.cau.cs.kieler.klighd.kgraph.KEdge
+import de.cau.cs.kieler.klighd.kgraph.KLabel
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
-import de.cau.cs.kieler.klighd.kgraph.util.KGraphUtil
 import de.cau.cs.kieler.klighd.krendering.Colors
+import de.cau.cs.kieler.klighd.krendering.KPolyline
+import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
+import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions
@@ -15,7 +20,9 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KNodeExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
-import de.cau.cs.kieler.klighd.microlayout.PlacementUtil
+import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX
+import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY
+import de.cau.cs.kieler.klighd.labels.decoration.LabelDecorationConfigurator
 import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis
 import de.cau.cs.kieler.klighd.util.KlighdProperties
 import java.util.List
@@ -26,10 +33,15 @@ import org.eclipse.elk.alg.layered.options.LayeredOptions
 import org.eclipse.elk.alg.layered.p4nodes.bk.EdgeStraighteningStrategy
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.Direction
+import org.eclipse.elk.core.options.PortConstraints
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
+import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Timer
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
 
@@ -45,6 +57,17 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension KColorExtensions
 
 	// -------------------------------------------------------------------------
+	
+	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
+	
+	override getDisplayedSynthesisOptions() {
+		return #[
+			SHOW_INSTANCE_NAMES
+		]
+	}
+	
+	// -------------------------------------------------------------------------
+	
 	override KNode transform(Model model) {
 		val rootNode = createNode()
 
@@ -55,15 +78,16 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		rootNode.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
 		rootNode.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
 
-		model.prepareStructureAccess() // TODO usually Xtext does this
-		// find main
+		model.prepareStructureAccess() // FIXME Usually Xtext does this
+		
+		// Find main
 		val main = model.reactors.findFirst["main".equalsIgnoreCase(name)]
-		if (main !== null && !main.instances.nullOrEmpty) {
+		if (main !== null && main.hasContent) {
 			rootNode.children += main.transformReactorNetwork(emptyMap, emptyMap)
 		} else {
-			val message = createNode
-			message.createReactorFigure
-			message.KContainerRendering.addText("No main reactor containing reactor instances")
+			val message = createNode()
+			message.addRoundedRectangle(4, 4)
+			message.KContainerRendering.addText("No main reactor with content")
 		}
 
 		return rootNode
@@ -72,63 +96,48 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	private def List<KNode> transformReactorNetwork(Reactor reactor, Map<String, KPort> parentInputPorts,
 		Map<String, KPort> parentOutputPorts) {
 		val nodes = newArrayList
-		val Table<String, String, KPort> inputPorts = HashBasedTable.create // TODO should be <Reactor, Input, KPort>
-		val Table<String, String, KPort> outputPorts = HashBasedTable.create // TODO should be <Reactor, Input, KPort>
-		// transform instances
+		val inputPorts = HashBasedTable.<String, String, KPort>create // FIXME should be <Reactor, Input, KPort>
+		val outputPorts = HashBasedTable.<String, String, KPort>create // FIXME should be <Reactor, Input, KPort>
+		val reactionNodes = newHashMap
+		val timerNodes = newHashMap
+		
+		// Transform instances
 		for (instance : reactor.instances) {
-			val node = createNode
+			val node = createNode()
 			nodes += node
 
 			val name = instance.name
-			val clazz = instance.reactorClass.reactor
-			val hasContent = !clazz.reactions.empty || !clazz.instances.empty
+			val reactorClass = instance.reactorClass.reactor
 
-			node.associateWith(clazz)
-			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.free)
+			node.associateWith(reactorClass)
+			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
+			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
 			node.setLayoutOption(KlighdProperties.EXPAND, false)
 
 			// Expanded Rectangle
-			node.createReactorFigure() => [
+			node.addReactorFigure(reactorClass, instance.name) => [
 				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
-				setGridPlacement(1)
 
-				// add name
-				addText(instance.reactorClass) => [
-					fontSize = 10
-					setFontBold(true)
-					setGridPlacementData().from(LEFT, 9, 0, TOP, 8f, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
-					suppressSelectability
-				]
-
-				// collapse button
+				// Collapse button
 				addText("[Hide]") => [
-					foreground = "blue".color
+					foreground = Colors.BLUE
 					fontSize = 8
 					addSingleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
 					addDoubleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
 					setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
 				]
 
-				addChildArea
+				addChildArea()
 			]
 
 			// Collapse Rectangle
-			node.createReactorFigure() => [
-				it.setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
-				it.setGridPlacement(1)
+			node.addReactorFigure(reactorClass, instance.name) => [
+				setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
 
-				// add name
-				addText(instance.reactorClass) => [
-					fontSize = 11
-					fontBold = true
-					setGridPlacementData().from(LEFT, 8, 0, TOP, 8f, 0).to(RIGHT, 8, 0, BOTTOM, hasContent ? 4 : 8, 0)
-					suppressSelectability
-				]
-
-				// expand button
-				if (hasContent) {
+				// Expand button
+				if (reactorClass.hasContent) {
 					it.addText("[Details]") => [
-						foreground = "blue".color
+						foreground = Colors.BLUE
 						fontSize = 9
 						addSingleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
 						addDoubleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
@@ -138,88 +147,174 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			]
 
 			// Create ports
-			for (input : clazz.inputs.reverseView) {
-				inputPorts.put(name, input.name, node.createIOPort(input.name, true))
+			for (input : reactorClass.inputs.reverseView) {
+				inputPorts.put(name, input.name, node.addIOPort(input.name, true))
 			}
-			for (output : clazz.outputs) {
-				outputPorts.put(name, output.name, node.createIOPort(output.name, false))
+			for (output : reactorClass.outputs) {
+				outputPorts.put(name, output.name, node.addIOPort(output.name, false))
 			}
 
 			// Add content
-			if (hasContent) {
-				node.children += clazz.transformReactorNetwork(inputPorts.row(name), outputPorts.row(name))
+			if (reactorClass.hasContent) {
+				node.children += reactorClass.transformReactorNetwork(inputPorts.row(name), outputPorts.row(name))
 			}
 		}
-
-		// Create Reactions
-		for (reaction : reactor.reactions) {
-			val node = createNode
+		
+		// Create timers
+		for (Timer timer : reactor.timers?:emptyList) {
+			val node = createNode().associateWith(timer)
 			nodes += node
+			timerNodes.put(timer.name, node)
+			
+			node.addTimerFigure(timer)
+		}
 
-			// minimal node size is necessary if no text will be added
-			node.setMinimalNodeSize(45, 15)
+		// Create reactions
+		val actionDestinations = HashMultimap.create
+		val actionSource = newHashMap
+		for (reaction : reactor.reactions) {
+			val node = createNode().associateWith(reaction)
+			nodes += node
+			reactionNodes.put(reaction, node)
+			
+			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FREE)
+			
+			node.addReactionFigure(reaction)
 
-			node.addRectangle => [
-				lineWidth = 1
-				background = Colors.GRAY_65
-			]
-
-			// connect
-			for (trigger : reaction.triggers) {
-				val port = parentInputPorts.get(trigger)
-				if (port !== null) {
-					createEdge => [
-						associateWith(trigger)
-						addPolyline.addHeadArrowDecorator
-						source = port.node
-						sourcePort = port
-						target = node
-					]
+			// connect input
+			for (String trigger : reaction.triggers?:emptyList) {
+				if (reactor.actions.exists[name.equals(trigger)]) {
+					actionDestinations.put(trigger, reaction)
+				} else {
+					val src = if (parentInputPorts.containsKey(trigger)) {
+						parentInputPorts.get(trigger)
+					} else if (timerNodes.containsKey(trigger)) {
+						timerNodes.get(trigger)
+					}
+					if (src !== null) {
+						createDependencyEdge().connect(src, node)
+					}
 				}
+			}
+			
+			// connect outputs
+			for (String target : reaction.produces?.produces?:emptyList) {
+				if (reactor.actions.exists[name.equals(target)]) {
+					actionSource.put(target, reaction)
+				} else {
+					val dst = if (parentOutputPorts.containsKey(target)) {
+						parentOutputPorts.get(target)
+					} else if (target.contains(".")) { // FIXME model should better contain cross references
+						val portPair = target.split("\\.")
+						inputPorts.get(portPair.get(0), portPair.get(1))
+					}
+					if (dst !== null) {
+						createDependencyEdge().connect(node, dst)
+					}
+				}
+			}
+		}
+		
+		// Connect actions
+		for (action : actionSource.keySet) {
+			val sourceNode = reactionNodes.get(actionSource.get(action))
+			for (target : actionDestinations.get(action)) {
+				val targetNode  = reactionNodes.get(target)
+				createDelayEdge(action.action(reactor)).connect(sourceNode, targetNode)
 			}
 		}
 
 		// Transform connections
-		for (connection : reactor.connections) {
-			val left = connection.leftPort.split("\\.") // TODO model should better contain cross references
-			val right = connection.rightPort.split("\\.") // TODO model should better contain cross references
-			createEdge => [
-				associateWith(connection)
-				addPolyline.addHeadArrowDecorator
-				sourcePort = outputPorts.get(left.get(0), left.get(1))
-				source = sourcePort?.node
-				targetPort = inputPorts.get(right.get(0), right.get(1))
-				target = targetPort?.node
-			]
+		for (Connection connection : reactor.connections?:emptyList) {
+			val left = connection.leftPort.split("\\.") // FIXME model should better contain cross references
+			val right = connection.rightPort.split("\\.") // FIXME model should better contain cross references
+			val edge = createDependencyEdge.associateWith(connection)
+			edge.connect(outputPorts.get(left.get(0), left.get(1)), inputPorts.get(right.get(0), right.get(1)))
 		}
 
 		return nodes
 	}
-
-	/**
-	 * Translate a structural container feature into a port.
-	 */
-	private def createIOPort(KNode node, String label, boolean input) {
-		val port = KGraphUtil.createInitializedPort
-		node.ports += port
-		port.setPortSize(portEdgeLength, portEdgeLength)
-		port.addLayoutParam(CoreOptions.PORT_SIDE, input ? PortSide.WEST : PortSide.EAST)
-		port.setPortPos(node.width - 1, node.nextEPortYPosition)
-		port.createLabel => [
-			text = label
-			val size = PlacementUtil.estimateSize(it)
-			width = size.width
-			height = size.height
+	
+	private def createDelayEdge(Action action) {
+		return createEdge => [
+			addPolyline() => [
+				//.addHeadArrowDecorator() // added by connect
+				lineStyle = LineStyle.DASH
+			]
+			if (!action?.delay.nullOrEmpty) {
+				addCenterEdgeLabel(action.delay).applyOnEdgeStyle()
+			}
 		]
+	}
+	
+	
+	private def createDependencyEdge() {
+		return createEdge => [
+			addPolyline()//.addHeadArrowDecorator() // added by connect
+		]
+	}
+	
+	private def dispatch connect(KEdge edge, KNode src, KNode dst) {
+		(edge.KContainerRendering as KPolyline).addHeadArrowDecorator()
+		edge.source = src
+		edge.target = dst
+	}
+	private def dispatch connect(KEdge edge, KNode src, KPort dst) {
+		edge.source = src
+		edge.targetPort = dst
+		edge.target = dst?.node
+	}
+	private def dispatch connect(KEdge edge, KPort src, KNode dst) {
+		(edge.KContainerRendering as KPolyline).addHeadArrowDecorator()
+		edge.sourcePort = src
+		edge.source = src?.node
+		edge.target = dst
+	}
+	private def dispatch connect(KEdge edge, KPort src, KPort dst) {
+		edge.sourcePort = src
+		edge.source = src?.node
+		edge.targetPort = dst
+		edge.target = dst?.node
+	}
+	
+	/**
+	 * Translate an input/output into a port.
+	 */
+	private def addIOPort(KNode node, String label, boolean input) {
+		val port = createPort
+		node.ports += port
+		
+		port.setPortSize(6, 6)
+		
+		if (input) {
+			port.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
+			port.addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -3.0)
+		} else {
+			port.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.EAST)
+			port.addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -3.0)
+		}
+		
+		port.addPolygon() => [
+			lineWidth = 1
+			background = Colors.BLACK
+			points += #[
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0),
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
+			]
+		]
+		
+		port.addOutsidePortLabel(label, 8)
 
 		return port
 	}
 
 	/**
-	 * Creates the visual representation of a node
+	 * Creates the visual representation of a reactor node
 	 */
-	private def createReactorFigure(KNode node) {
+	private def addReactorFigure(KNode node, Reactor reactor, String instanceName) {
 		val figure = node.addRoundedRectangle(8, 8, 1)
+		figure.setGridPlacement(1)
 		figure.lineWidth = 1
 		figure.foreground = Colors.GRAY
 		figure.background = Colors.GRAY_95
@@ -227,19 +322,106 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// minimal node size is necessary if no text will be added
 		node.setMinimalNodeSize(2 * figure.cornerWidth, 2 * figure.cornerHeight)
 
+		val showInstanceName = SHOW_INSTANCE_NAMES.booleanValue && !instanceName.nullOrEmpty
+		
+		figure.addText(reactor.name) => [
+			setGridPlacementData().from(LEFT, 8, 0, TOP, 8f, 0).to(RIGHT, 8, 0, BOTTOM, showInstanceName ? 0 : (reactor.hasContent ? 4 : 8), 0)
+			suppressSelectability
+		]
+		
+		if (showInstanceName) {
+			figure.addText("(" + instanceName + ")") => [
+				setGridPlacementData().from(LEFT, 8, 0, TOP, 2, 0).to(RIGHT, 8, 0, BOTTOM, reactor.hasContent ? 4 : 8, 0)
+				suppressSelectability
+			]
+		}
+
 		return figure
+	}
+	
+	/**
+	 * Creates the visual representation of a reaction node
+	 */
+	private def addReactionFigure(KNode node, Reaction reaction) {
+		node.setMinimalNodeSize(45, 15)
+
+		val figure = node.addRectangle()
+		figure.lineWidth = 1
+		figure.foreground = Colors.GRAY_45
+		figure.background = Colors.GRAY_65
+
+		return figure
+	}
+	
+	/**
+	 * Creates the visual representation of a timer node
+	 */
+	private def addTimerFigure(KNode node, Timer timer) {
+		node.setMinimalNodeSize(40, 40)
+		
+		val figure = node.addEllipse
+		figure.lineWidth = 1
+		figure.background = Colors.GRAY_95
+		
+		figure.addPolyline(1,
+			#[
+				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0.1f),
+				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0.5f),
+				createKPosition(PositionReferenceX.LEFT, 0, 0.7f, PositionReferenceY.TOP, 0 , 0.7f)
+			]
+		)
+		
+		if (timer.timing !== null) {
+			val timing = newArrayList
+			if (timer.timing.offset !== null) {
+				timing += timer.timing.offset.time + timer.timing.offset.unit
+			}
+			if (timer.timing.period !== null) {
+				timing += timer.timing.period.time + timer.timing.period.unit
+			}
+			if (!timing.empty) {
+				node.addOutsideBottomCenteredNodeLabel(timing.join("(", ", ", ")")[it])
+			}
+		}
+
+		return figure
+	}
+	
+	private def hasContent(Reactor reactor) {
+		return !reactor.reactions.empty || !reactor.instances.empty
+	}
+	
+	static var LabelDecorationConfigurator _inlineLabelConfigurator; // ONLY for use in applyOnEdgeStyle
+	private def applyOnEdgeStyle(KLabel label) {
+		if (_inlineLabelConfigurator === null) {
+	        _inlineLabelConfigurator = LabelDecorationConfigurator.create
+	        	.withInlineLabels(true)
+	            .withLabelTextRenderingProvider([ container, klabel | 
+	            	val kText = KRenderingFactory.eINSTANCE.createKText()
+	            	kText.fontSize = 9
+        			container.children += kText
+        			kText
+	            ])
+		}
+		
+		_inlineLabelConfigurator.applyTo(label)
 	}
 
 	// -------------------------
 	// Model Helpers
 	var Map<String, Reactor> reactors
 
-	def void prepareStructureAccess(Model model) {
+	private def void prepareStructureAccess(Model model) {
 		reactors = model.reactors.toMap[name]
 		// TODO include imported files
 	}
 
-	def Reactor reactor(String name) {
+	private def Reactor reactor(String name) {
 		return reactors.get(name)
+	}
+	
+
+	private def Action action(String action, Reactor reactor) {
+		return reactor.actions.findFirst[name.equals(action)]
 	}
 }
