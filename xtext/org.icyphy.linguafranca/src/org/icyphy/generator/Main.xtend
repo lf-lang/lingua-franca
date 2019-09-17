@@ -14,6 +14,7 @@ import org.eclipse.xtext.util.CancelIndicator
 import org.eclipse.xtext.validation.CheckMode
 import org.eclipse.xtext.validation.IResourceValidator
 import org.icyphy.LinguaFrancaStandaloneSetup
+import java.io.File
 
 class Main {
 
@@ -38,8 +39,9 @@ class Main {
 	def protected runGenerator(String string) {
 		// Load the resource
 		val set = resourceSetProvider.get
-		val resource = set.getResource(URI.createFileURI(string), true)
-
+		val resource = set.getResource(URI.createFileURI((new File("")).getAbsolutePath() + "/" + string), true)
+		
+		
 		// Validate the resource
 		val issues = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl)
 		if (!issues.empty) {
