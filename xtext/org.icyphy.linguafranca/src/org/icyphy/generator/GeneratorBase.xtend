@@ -116,7 +116,7 @@ class GeneratorBase {
 			// Instantiate the "main" reactor.
 			var mainInstance = LinguaFrancaFactory.eINSTANCE.createInstance()
 			mainInstance.setName(main.reactor.name)
-			mainInstance.setReactorClass(main.reactor.name)
+			mainInstance.setReactorClass(main.reactor)
 			main.instanceStatement = mainInstance
 			// FIXME: Maybe should use mainInstance.setParameters() to set parameter
 			// values from the command line.
@@ -248,7 +248,7 @@ class GeneratorBase {
 					reportError(connection,
 							"No such instance: " + split.get(0))
 				} else {
-					var contained = getReactor(instance.reactorClass)
+					var contained = getReactor(instance.reactorClass.name)
 					// Contained object may be imported, i.e. not a Lingua Franca object.
 					// Cannot check here.
 					if (contained !== null) {
@@ -277,7 +277,7 @@ class GeneratorBase {
 					reportError(connection,
 							"No such instance: " + split.get(0))
 				} else {
-					var contained = getReactor(instance.reactorClass)
+					var contained = getReactor(instance.reactorClass.name)
 					// Check that the input port in a contained reactor exists.
 					// Contained object may be imported, i.e. not a Lingua Franca object.
 					// Cannot check here.
@@ -335,7 +335,7 @@ class GeneratorBase {
 		ReactorInstance container,
 		Hashtable<String,String> importTable
 	) {
-		var reactor = getReactor(instance.reactorClass)
+		var reactor = getReactor(instance.reactorClass.name)
 		// If there is no container, then the reactorInstance is main.
 		// Otherwise, create a new one.
 		var reactorInstance = main
