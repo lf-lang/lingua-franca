@@ -1,0 +1,1 @@
+This directory contains interesting examples of reactors. Each example should have its own directory and include explanation and instructions for running it.
