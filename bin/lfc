@@ -2,7 +2,7 @@
 
 #==========================================================
 # Description: 	Run the lfc compiler.
-# Author:	Marten Lohstroh
+# Author:	Marten Lohstroh, Mehrdad Niknami
 # Usage:	lfc [FILE]
 #==========================================================
 

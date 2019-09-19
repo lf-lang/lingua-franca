@@ -107,7 +107,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			nodes += node
 
 			val name = instance.name
-			val reactorClass = instance.reactorClass.reactor
+			val reactorClass = instance.reactorClass
 
 			node.associateWith(reactorClass)
 			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)

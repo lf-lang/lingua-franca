@@ -100,7 +100,7 @@ class SCLGenerator extends GeneratorBase {
 		ReactorInstance container,
 		Hashtable<String,String> importTable
 	) {
-		var reactor = getReactor(instance.reactorClass)
+		var reactor = getReactor(instance.reactorClass.name)
 		if (reactor === null) {
 			reportError(instance, String.format("No such reactor: %s", instance.reactorClass))
 			return null
