@@ -824,9 +824,9 @@ class CGenerator extends GeneratorBase {
 				)
 			} else if (getAction(reactor, triggerName) !== null) {
 				var modifier = getAction(reactor, triggerName).getModifier();
-				var isPhysical = "false";
-				if (modifier == "physical") {
-					isPhysical = "true";
+				var isPhysical = "true";
+				if (modifier == "logical") {
+					isPhysical = "false";
 				}
 				pr(result, triggerStructName + '_reactions, '
 					+ numberOfReactionsTriggered + ', '
