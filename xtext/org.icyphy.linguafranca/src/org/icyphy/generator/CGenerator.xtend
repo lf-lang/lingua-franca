@@ -27,6 +27,7 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.Trigger
 
 /**
  * Generator for C target.
@@ -318,11 +319,11 @@ class CGenerator extends GeneratorBase {
 			// that indicates whether the input is present.
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
-					val input = getInput(reactor, trigger)
+					val input = getInput(reactor, trigger.name)
 					if (input !== null) {
 						generateInputVariablesInReaction(reactionInitialization, input)
 					}
-					val action = getAction(reactor, trigger)
+					val action = getAction(reactor, trigger.name)
 					if (action !== null) {
 						pr(reactionInitialization, "trigger_t* " 
 							+ action.name + ' = self->__' + action.name + ';'

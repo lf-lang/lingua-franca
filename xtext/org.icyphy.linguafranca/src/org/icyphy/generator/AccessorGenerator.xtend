@@ -224,18 +224,18 @@ class AccessorGenerator extends GeneratorBase {
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
 				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (getTiming(reactor, trigger) !== null) {
+					} else if (getTiming(reactor, trigger.name) !== null) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
 						var list = timerReactions.get(trigger)
 						if (list === null) {
 							list = new LinkedList<String>()
-							timerReactions.put(trigger, list)
+							timerReactions.put(trigger.name, list)
 						}
 						list.add(functionName)
-					} else if (getAction(reactor, trigger) !== null) {
+					} else if (getAction(reactor, trigger.name) !== null) {
 					    // The trigger is an action.
-					    args.add(trigger)
+					    args.add(trigger.name)
 					    // Make sure there is an entry for this action in the action table.
 					    pr('''
 					    if (!actionTable.«trigger») {

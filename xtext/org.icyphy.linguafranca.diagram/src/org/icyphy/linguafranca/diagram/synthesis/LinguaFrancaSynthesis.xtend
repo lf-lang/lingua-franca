@@ -44,6 +44,7 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import org.icyphy.linguaFranca.Trigger
 
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
@@ -182,14 +183,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.addReactionFigure(reaction)
 
 			// connect input
-			for (String trigger : reaction.triggers?:emptyList) {
-				if (reactor.actions.exists[name.equals(trigger)]) {
-					actionDestinations.put(trigger, reaction)
+			for (Trigger trigger : reaction.triggers?:emptyList) {
+				if (trigger instanceof Action) {
+					actionDestinations.put(trigger.name, reaction)		
 				} else {
-					val src = if (parentInputPorts.containsKey(trigger)) {
-						parentInputPorts.get(trigger)
-					} else if (timerNodes.containsKey(trigger)) {
-						timerNodes.get(trigger)
+					val src = if (parentInputPorts.containsKey(trigger.name)) {
+						parentInputPorts.get(trigger.name)
+					} else if (timerNodes.containsKey(trigger.name)) {
+						timerNodes.get(trigger.name)
 					}
 					if (src !== null) {
 						createDependencyEdge().connect(src, node)

@@ -53,19 +53,20 @@ Timer:
 Action:
 	modifier='logical'? 'action' name=ValidID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
 
+Trigger:
+	Input | Action | Timer;
+	
 Reaction:
 	'reaction' 
-	('(' (triggers+=ValidID (',' triggers+=ValidID)*)? ')')?
+	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
 	uses=Uses?
-	produces=Produces?
+	produces=Produces? // FIXME: Can we somehow prevent that a trigger (action) is used to in schedule if it is not declared as a product (after the ->)?
 	code=CODE;
 	
 Preamble:
 	'preamble' code=CODE;
 	
-// FIXME: reactorClass should ideally be something like [Reactor|Composite],
-// to get cross references to work. But this doesn't work for importing
-// foreign reactors that are not defined in Lingua Franca.
+// NOTE: Cross references break foreign imports for now.
 Instance:
 	name=ID '=' 'new' reactorClass=[Reactor] ('(' parameters=Assignments? ')')? ';' ;
 
