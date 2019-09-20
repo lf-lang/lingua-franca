@@ -16,8 +16,8 @@ reactor LED {
 	input signal_in: BOOL;
 	output feedback_out: BOOL;
 	reaction (signal_in) -> feedback_out {=
-		YellowLamp := signal_in;  // YellowLamp is a global variable
-		feedback_out := signal_in;
+		"RedLamp" := #signal_in;  // YellowLamp is a global variable
+		#feedback_out := #signal_in;
 	=}
 }
 main reactor Main {

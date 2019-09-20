@@ -30,6 +30,18 @@ STRUCT
 END_STRUCT
 END_UDT
 
+TYPE RuntimeState
+STRUCT
+    graph: Graph;
+    queue: ARRAY OF HeapSlot;  // TODO: How big of a buffer?
+    nqueue: DINT;
+    nactors: DINT;
+    started: BOOL;
+    now: DINT;
+    root: SimpleTestSCL;  // TODO: The type of root should probably be called 'Main' to be uniform and avoid need for codegen here
+END_STRUCT
+END_UDT
+
 FUNCTION heap_sift
     VAR_IN_OUT
         heap: ARRAY OF HeapSlot;
@@ -169,18 +181,63 @@ FUNCTION heap_pop
     END_IF;
     #heap_sift(heap := #heap, i := #i, begin := #begin, end := #end, min_heap := #min_heap, down := #heap[#a] < #heap[#b]);
     #result := #end;
-END_FUNCTION;
+END_FUNCTION
+
+// TODO: Need to also account for topological order, not just the firing time
+// NOTE: This function ASSUMES there is room in the queue! Should it perhaps be _re_schedule instead, and remove the actor's old firing schedule?
+FUNCTION schedule
+	VAR_IN_OUT
+		state: RuntimeState;
+	END_VAR
+	VAR_INPUT
+		info: HeapSlot;
+	END_VAR
+	VAR_OUTPUT
+		#i: DINT;
+	END_VAR
+	#state.queue[#state.nqueue] = #info;
+	heap_push(heap := #state.queue, begin := 0, end := #state.nqueue, min_heap := 1, result := #i);
+	#state.nqueue = #state.nqueue + 1;
+END_FUNCTION
+
+FUNCTION fire
+	VAR_IN_OUT
+		state: RuntimeState;
+	END_VAR
+	VAR_INPUT
+		actor_id: DINT;
+	END_VAR
+	// TODO: How to map actor ID to actor object?
+	// Should codegen generate a bunch of 'if' -> actor mappings?
+	IF actor_id == 0 THEN
+		// ...
+	END_IF;
+END_FUNCTION
 
 DB:
-    graph: Graph;
-    queue: ARRAY[0..#Actors - 1] OF INT;
-    nqueue: INT;
+    state: RuntimeState;
 
 FUNCTION main
-    // TODO: Topological sort...
-    #ordering = topological_sort(graph := #graph);
-    // TODO: Initialize queue...
-    #nqueue := 0;
-    #i := heap_pop(heap := #queue, begin := 0, end := #nqueue, min_heap := 1);
-    // execute #heap[#i]
-END_FUNCTION;
+	VAR_TEMP
+		info: HeapSlot;
+	END_VAR
+	VAR_IN_OUT
+		state: RuntimeState;
+	END_VAR
+	VAR_TEMP
+		#i: INT;
+	END_VAR
+    IF #state.started == 0 THEN
+    	#state.started := 1;
+    	#state.nqueue := 0;
+    	#info.id := 0;  // TODO: what is the main actor ID?
+    	#info.timestamp := 0;
+    	schedule(state := #state, info := #info);
+    END_IF;
+    IF #state.nqueue > 0 THEN
+	    heap_pop(heap := #state.queue, begin := 0, end := #state.nqueue, min_heap := 1, result := #i);
+	    #state.nqueue = #state.nqueue - 1;
+	    #state.now = #state.queue[#i].timestamp;
+	    fire(state := #state, actor_id := #state.queue[#i].id);
+    END_IF;
+END_FUNCTION
