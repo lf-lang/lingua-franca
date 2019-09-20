@@ -48,7 +48,7 @@ Output:
 	'output' name=ValidID (':' type=Type)? ';';
 
 Timer:
-	'timer' name=ValidID timing=Timing?';';
+	modifier='logical'? 'timer' name=ValidID timing=Timing?';';
 
 Action:
 	modifier='logical'? 'action' name=ValidID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
