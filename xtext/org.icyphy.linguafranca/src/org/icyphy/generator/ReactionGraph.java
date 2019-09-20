@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 import org.icyphy.linguaFranca.Connection;
+import org.icyphy.linguaFranca.Input;
 import org.icyphy.linguaFranca.Reaction;
 import org.icyphy.linguaFranca.Trigger;
 
@@ -86,18 +87,12 @@ public class ReactionGraph {
                 // If the reaction reads an input to this reactor instance,
                 // then create a PortInstance for that port (if it does not already exist)
                 // and establish the dependency on that port.
-                if (reaction.getUses() != null && reaction.getUses().getUses() != null) {
-                    for (String uses: reaction.getUses().getUses()) {
-                        // Check that this is an input, not an action or timer.
-                        if (_generator.getInput(reactorInstance.reactor, uses) != null) {
-                            PortInstance port = reactorInstance.portInstances.get(uses);
-                            if (port == null) {
-                                port = new PortInstance(reactorInstance, uses);
-                                reactorInstance.portInstances.put(uses, port);
-                            }
-                            port.dependentReactions.add(reactionInstance);
-                            reactionInstance.dependsOnPorts.add(port);
-                        }
+                if (reaction.getUses() != null && reaction.getUses().size() > 0) {
+                    for (Input inp: reaction.getUses()) {
+                        PortInstance port = new PortInstance(reactorInstance, inp.getName());
+                        reactorInstance.portInstances.put(inp.getName(), port);
+                        port.dependentReactions.add(reactionInstance);
+                        reactionInstance.dependsOnPorts.add(port);
                     }
                 }
 

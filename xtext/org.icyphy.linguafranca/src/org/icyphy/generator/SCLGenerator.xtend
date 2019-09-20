@@ -81,8 +81,8 @@ class SCLGenerator extends GeneratorBase {
 					pr("this: %s;", reactorName)
 				]
 				prBlock("VAR_INPUT", "END_VAR")[
-					reaction.triggers?.forEach[pr("%s: %s;", it, inputs.get(it))]
-					reaction.uses?.uses?.forEach[pr("%s: %s;", it, inputs.get(it))]
+					reaction.triggers?.forEach[pr("%s: %s;", it.name, inputs.get(it.name))]
+					reaction.uses?.forEach[pr("%s: %s;", it.name, inputs.get(it.name))]
 				]
 				prBlock("VAR_OUTPUT", "END_VAR")[
 					reaction.produces?.produces?.forEach[pr("%s: %s;", it, inputs.get(it))]

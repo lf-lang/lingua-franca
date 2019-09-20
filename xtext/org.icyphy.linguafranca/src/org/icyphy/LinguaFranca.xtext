@@ -39,19 +39,19 @@ Reactor:
 // Note explicit allowance of keywords for names of inputs, outputs, timers.
 // Types are optional for use in untyped languages.
 State:
-	'state' name=ValidID (':' type=Type)? ('(' value=Value ')') ';';
+	'state' name=ID (':' type=Type)? ('(' value=Value ')') ';';
 
 Input:
-	'input' name=ValidID (':' type=Type)? ';';
+	'input' name=ID (':' type=Type)? ';';
 
 Output:
-	'output' name=ValidID (':' type=Type)? ';';
+	'output' name=ID (':' type=Type)? ';';
 
 Timer:
-	modifier='logical'? 'timer' name=ValidID timing=Timing?';';
+	modifier='logical'? 'timer' name=ID timing=Timing?';';
 
 Action:
-	modifier='logical'? 'action' name=ValidID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
+	modifier='logical'? 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
 
 Trigger:
 	Input | Action | Timer;
@@ -59,7 +59,7 @@ Trigger:
 Reaction:
 	'reaction' 
 	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
-	uses=Uses?
+	(uses+=[Input] (',' uses+=[Input])*)?
 	produces=Produces? // FIXME: Can we somehow prevent that a trigger (action) is used to in schedule if it is not declared as a product (after the ->)?
 	code=CODE;
 	
@@ -74,10 +74,7 @@ Connection:
     leftPort=Port '->' rightPort=Port ';';
     
 Deadline:
-	'deadline' '(' port=Port ',' delay=Time ',' action=ValidID ')' ';';
-    
-ValidID:
-	ID | KEYWORD;
+	'deadline' '(' port=Port ',' delay=Time ',' action=ID ')' ';';
 
 KEYWORD:
 	'input' | 'state' | 'output' | 'timer' | 'action';
@@ -91,9 +88,9 @@ Assignment:
 	name=ID '=' value=Value (unit=ID)?;
 
 // Specification of what inputs a reaction reads.
-Uses:
-	uses+=ID (',' uses+=ID)?;
-
+//Uses:
+//	uses+=[Input] (',' uses+=[Input])?;
+// ...
 // Parameters for actors and composites.
 Params:
     '(' params+=Param (',' params+=Param)* ')';
@@ -119,7 +116,7 @@ Time:
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
-    ValidID | (ValidID '.' ValidID);
+    ID | (ID '.' ID);
 
 // Specification of what outputs a reaction writes.
 // Note that Port is either a ValidID or ValidID.ValidID

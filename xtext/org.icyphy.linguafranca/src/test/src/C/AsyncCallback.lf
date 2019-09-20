@@ -36,7 +36,7 @@ reactor Main {
 	state expected_time:{=long long=}({=100000000LL=});
 	state toggle:bool(false);
     action a:int;
-	state i:int(0);
+    state i:int(0);
 	reaction(t) -> a {=
 		// start new thread, provide callback
 		pthread_create(&self->thread_id, NULL, &take_time, a);

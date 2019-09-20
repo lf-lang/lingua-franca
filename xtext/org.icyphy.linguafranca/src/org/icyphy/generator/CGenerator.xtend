@@ -339,10 +339,9 @@ class CGenerator extends GeneratorBase {
 				}
 			}
 			// Define argument for non-triggering inputs.
-			if (reaction.uses !== null && reaction.uses.uses !== null) {
-				for(get: reaction.uses.uses) {
-					val input = getInput(reactor, get)
-					generateInputVariablesInReaction(reactionInitialization, input)
+			if (reaction.uses !== null && reaction.uses.length > 0) {
+				for(inp : reaction.uses) {
+					generateInputVariablesInReaction(reactionInitialization, inp)
 				}
 			}
 			// Define variables for each declared output or action.

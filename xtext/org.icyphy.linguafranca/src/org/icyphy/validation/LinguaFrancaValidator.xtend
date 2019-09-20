@@ -13,12 +13,10 @@ import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Produces
-import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Uses
 
 /**
  * This class contains custom validation rules. 
@@ -86,17 +84,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		}
 	}
 
-	@Check(FAST)
-	def checkGets(Uses uses) {
-		for (get: uses.uses) {
-			if (!inputs.contains(get)) {
-					error("Reaction declares that it reads something that is not an input: "
-					+ get,
-					Literals.USES__USES
-				)
-			}
-		}
-	}
+//	@Check(FAST)
+//	def checkGets(Uses uses) {
+//		for (get: uses.uses) {
+//			if (!inputs.contains(get)) {
+//					error("Reaction declares that it reads something that is not an input: "
+//					+ get,
+//					Literals.USES__USES
+//				)
+//			}
+//		}
+//	}
 
 	@Check(FAST)
 	def checkInput(Input input) {
