@@ -46,7 +46,7 @@ reactor RightPedal {
    
     // Assume all valid pedal values are non-negative.
     state pedal:int(-1);
-    action response(30); //msec
+    logical action response(30); //msec
     input request:int;
     output out:int;
     reaction(request) -> response {=

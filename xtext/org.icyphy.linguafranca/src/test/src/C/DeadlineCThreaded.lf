@@ -32,7 +32,7 @@ reactor Destination {
 	=}
 }
 reactor Main {
-	action panic;
+	logical action panic;
 	reaction(panic) -> d.e {=
 		printf("**** Deadline miss detected.\n");
 		set(d.e, 1);

@@ -11,7 +11,7 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	state count:int(0);
 	state previous_time:{=long long=}(0);
 	timer t(1 secs, period);
-	action a;
+	logical action a;
 	reaction(t) -> a {=
 		printf("%s\n", self->message);
 		schedule(a, MSEC(200), NULL); // No payload.
