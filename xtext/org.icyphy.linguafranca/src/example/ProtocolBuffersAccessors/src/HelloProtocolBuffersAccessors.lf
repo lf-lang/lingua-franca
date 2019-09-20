@@ -1,0 +1,54 @@
+//This example demonstrates a very simple use of protocol buffers
+//within a reactor. It encodes and decodes a very simple protocol
+//buffer definition in hello_string.proto. Documentation for use of
+//protocol buffers in JavaScript can be found at
+//https://developers.google.com/protocol-buffers/docs/reference/javascript-generated#message
+
+//To run this example first install the protocol buffers compiler
+//from https://github.com/protocolbuffers/protobuf. It is also
+//available from homebrew via 
+//$ brew install protobuf
+//. Building protobuf from source is very slow, so avoid doing that
+//if possible. I didn't look into it, but alternatively there exists
+//a protocol buffer compiler implemented entirely in JavaScript at
+//https://www.npmjs.com/package/protobufjs. Perhaps this is an alternative.
+
+//Navigate to the directory containing the protocol buffer definition
+//hello_string.proto. To compile it run:
+//$ protoc --js_out=import_style=commonjs,binary:. hello_string.proto
+//The options on --js_out for this command tell the compiler to use 
+//CommonJS imports and to provide
+//methods for reading and writing binary buffers. These options are separated by
+//the comma. The path for the output file is specified at the colon after binary.
+//In this example the path is the current directory, "." .
+
+//You will also have to install the protocol buffers runtime library with
+//$ npm install google-protobuf
+
+//This command should generate the file hello_string_pb.js. Move
+//it to the node_modules for your project. For testing purposes it's
+//okay if it's not in a folder, but it will be automatically deleted
+//the next time you run an npm command.
+
+//Run as
+//$ node HelloProtocolBuffersAccessors.js -timeout 0
+
+target Accessors;
+reactor Main {
+    preamble {=
+        const helloString = require('hello_string_pb');
+    =}
+    timer t;
+    reaction(t) {=
+        //Create a new helloString protocol buffer object, and write it
+        //into the serialized over the wire binary format. 
+        var helloStringMessage = new helloString.HelloString();     
+        helloStringMessage.setMessage("Hello Protocol Buffers!");
+        var binMessage = helloStringMessage.serializeBinary();
+        
+        //Read the serialized buffer into an object and extract
+        //the message field.
+        var readMessage = helloString.HelloString.deserializeBinary(binMessage);
+        console.log(readMessage.getMessage());
+    =}
+}
