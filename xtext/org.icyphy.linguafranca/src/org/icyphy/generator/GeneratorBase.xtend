@@ -197,17 +197,17 @@ class GeneratorBase {
 			// Iterate over the reaction's triggers
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
-					// Check validity of the trigger.
-					if (properties.nameToInput.get(trigger) === null
-							&& getTiming(reactor, trigger) === null
-							&& getAction(reactor, trigger) === null) {
-                        reportError(reaction,
-                        		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
-                    }
+//					// Check validity of the trigger.
+//					if (properties.nameToInput.get(trigger) === null
+//							&& getTiming(reactor, trigger) === null
+//							&& getAction(reactor, trigger) === null) {
+//                        reportError(reaction,
+//                        		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
+//                    }
                     var reactionList = properties.triggerNameToReactions.get(trigger)
                     if (reactionList === null) {
                     	reactionList = new LinkedList<Reaction>()
-						properties.triggerNameToReactions.put(trigger, reactionList)
+						properties.triggerNameToReactions.put(trigger.name, reactionList)
                     }
                     reactionList.add(reaction)
 				}	

@@ -68,7 +68,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		if (allNames.contains(action.name)) {
 			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ action.name,
-				Literals.ACTION__NAME
+				Literals.TRIGGER__NAME
 			)
 		}
 		actions.add(action.name);
@@ -103,7 +103,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		if (allNames.contains(input.name)) {
 			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ input.name,
-				Literals.INPUT__NAME
+				Literals.TRIGGER__NAME
 			)
 		}
 		inputs.add(input.name);
@@ -133,20 +133,21 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		allNames.add(output.name)
 	}
 
-	@Check(FAST)
-	def checkReaction(Reaction reaction) {
-		for (trigger: reaction.triggers) {
-			if (!inputs.contains(trigger)
-				&& !timers.contains(trigger)
-				&& !actions.contains(trigger)
-			) {
-				error("Reaction trigger is not an input, timer, or action: "
-					+ trigger,
-					Literals.REACTION__TRIGGERS
-				)
-			}
-		}
-	}
+// Superfluous check; now guaranteed by grammar
+//	@Check(FAST)
+//	def checkReaction(Reaction reaction) {
+//		for (trigger: reaction.triggers) {
+//			if (!inputs.contains(trigger.name)
+//				&& !timers.contains(trigger.name)
+//				&& !actions.contains(trigger.name)
+//			) {
+//				error("Reaction trigger is not an input, timer, or action: "
+//					+ trigger.name,
+//					Literals.REACTION__TRIGGERS
+//				)
+//			}
+//		}
+//	}
 
 	@Check(FAST)
 	def checkSets(Produces produces) {
@@ -221,7 +222,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		if (allNames.contains(timer.name)) {
 			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ timer.name,
-				Literals.TIMER__NAME
+				Literals.TRIGGER__NAME
 			)
 		}
 		timers.add(timer.name);

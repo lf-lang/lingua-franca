@@ -9,6 +9,7 @@ import java.util.Set;
 import org.eclipse.emf.common.util.EList;
 import org.icyphy.linguaFranca.Connection;
 import org.icyphy.linguaFranca.Reaction;
+import org.icyphy.linguaFranca.Trigger;
 
 /** Precedence graph analysis for Lingua Franca models.
  *  The way to use this class is to call calculateLevels()
@@ -68,13 +69,13 @@ public class ReactionGraph {
                 // then create a PortInstance for that port (if it does not already exist)
                 // and establish the dependency on that port.
                 if (reaction.getTriggers() != null) {
-                    for (String trigger: reaction.getTriggers()) {
+                    for (Trigger trigger: reaction.getTriggers()) {
                         // Check that this is an input, not an action or timer.
-                        if (_generator.getInput(reactorInstance.reactor, trigger) != null) {
+                        if (_generator.getInput(reactorInstance.reactor, trigger.getName()) != null) {
                             PortInstance port = reactorInstance.portInstances.get(trigger);
                             if (port == null) {
-                                port = new PortInstance(reactorInstance, trigger);
-                                reactorInstance.portInstances.put(trigger, port);
+                                port = new PortInstance(reactorInstance, trigger.getName());
+                                reactorInstance.portInstances.put(trigger.getName(), port);
                             }
                             port.dependentReactions.add(reactionInstance);
                             reactionInstance.dependsOnPorts.add(port);                            
