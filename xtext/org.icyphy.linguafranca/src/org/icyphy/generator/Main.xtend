@@ -50,7 +50,8 @@ class Main {
 
 		// Read the code
 		val code = new StringBuilder();
-		try(val reader = new BufferedReader(new FileReader(fileName))) {
+		try {
+			val reader = new BufferedReader(new FileReader(fileName));
 			var String line;
 			while ((line = reader.readLine()) !== null) {
 				code.append(line).append("\n");
