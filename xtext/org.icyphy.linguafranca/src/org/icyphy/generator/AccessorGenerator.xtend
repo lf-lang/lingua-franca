@@ -268,9 +268,9 @@ class AccessorGenerator extends GeneratorBase {
 				addInputHandlers.append('''this.addInputHandler(null, «functionName».bind(this));''')
 			}
 			// Define variables for non-triggering inputs.
-			if (reaction.uses !== null && reaction.uses.uses !== null) {
-				for(get: reaction.uses.uses) {
-					pr(body, '''var «get» = get("«get»");''')
+			if (reaction.uses !== null && reaction.uses.length > 0) {
+				for(inp: reaction.uses) {
+					pr(body, '''var «inp.name» = get("«inp.name»");''')
 				}
 			}
 			// Define variables for each declared output.

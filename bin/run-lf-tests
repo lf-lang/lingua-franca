@@ -7,26 +7,28 @@
 #==========================================================
 
 if [ "$(dirname "$0")" == '.' ]; then
-        base="../xtext/"
+        base="../xtext/";
 else
         suffix=${0#$(dirname "$(dirname "$0")")/};
-        base="${0%$suffix}""xtext/"
+        base="${0%$suffix}""xtext/";
 fi
 
 if [ "$1" == '' ]; then
 	echo "Usage: run-lf-tests [target]";
 else
-	test_dir="$base""org.icyphy.linguafranca/src/test/src/""$1"
+	test_dir="$base""org.icyphy.linguafranca/src/test/src/""$1";
 	manifest="$test_dir""/testFiles.txt";
+    offset="../../../../../../";
 	
 	if [ ! -f "$manifest" ]; then
 		echo "Unable to locate manifest.";
 		echo "File not found: ""$manifest";
 	else
 		pushd $test_dir;
+        eval $offset"bin/lfc"; # trigger fresh build if necessary
 		while read p; do
 			echo $p;
-			eval "../../../../../../bin/lfc ""$p"
+			eval $offset"bin/lfc ""$p";
 		done <testFiles.txt
 		popd;
 	fi
