@@ -18,7 +18,16 @@ reactor Source(period:time(1 sec)) {
 reactor Destination {
 	input x:int;
 	input e:int;
-	reaction(x, e) {=
+	
+	initialize e {=
+		
+	=}
+	
+	initialize {=
+		
+	=}
+	
+	react(x, e) {=
 		if (e_is_present) {
 			printf("**** Handle deadline miss.\n");
 		} else {

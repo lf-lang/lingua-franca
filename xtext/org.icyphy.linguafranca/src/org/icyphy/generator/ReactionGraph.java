@@ -92,8 +92,8 @@ public class ReactionGraph {
                 // and establish the dependency on that port.
                 if (reaction.getSources() != null && reaction.getSources().size() > 0) {
                     for (SourceRef src: reaction.getSources()) {
-                        PortInstance port = new PortInstance(reactorInstance, src.getPort().getName());
-                        reactorInstance.portInstances.put(src.getPort().getName(), port);
+                        PortInstance port = new PortInstance(reactorInstance, src.getVariable().getName());
+                        reactorInstance.portInstances.put(src.getVariable().getName(), port);
                         port.dependentReactions.add(reactionInstance);
                         reactionInstance.dependsOnPorts.add(port);
                     }

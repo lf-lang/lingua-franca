@@ -22,7 +22,8 @@ Import:
 Reactor:
    	'reactor' name=ID parameters=Params? '{'
    	(preamble = Preamble)?
-	((states += State)
+   	((inits += Initialization) // TODO: code-gen for init
+	| (states += State)
    	| (inputs += Input)
    	| (outputs += Output)
    	| (timers += Timer)
@@ -53,21 +54,29 @@ Action:
 	modifier='logical'? 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
 
 Reaction:
-	'reaction' 
+	('reaction' | 'react')
 	('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
 	(sources+=SourceRef (',' sources+=SourceRef)*)?
 	('->' effects+=EffectRef (',' effects+=EffectRef)*)?
 	code=CODE;
 
 Transformation:
-	'transformation' 
+	('transformation' | 'transform')
 	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
+	(sources+=[Input] (',' sources+=[Input])*)?
+	('->' effects+=[Effect] (',' effects+=[Effect])*)?
+	code=CODE;
+
+Initialization:
+	('initialization' | 'initialize')
 	(sources+=[Input] (',' sources+=[Input])*)?
 	('->' effects+=[Effect] (',' effects+=[Effect])*)?
 	code=CODE;
 
 Preamble:
 	'preamble' code=CODE;
+	
+
 	
 // FIXME: Insert dummy object for foreign imports in scope provider.
 Instance:
@@ -99,7 +108,7 @@ TriggerRef:
 	variable=[Variable] | instance=[Instance] '.' variable=[Output];
 
 SourceRef:
-	port=[Input] | instance=[Instance] '.' port=[Output]; // FIXME: change this to variable as well
+	variable=[Input] | instance=[Instance] '.' variable=[Output];
 	
 InputRef:
 	variable=[Input] | instance=[Instance] '.' variable=[Input];
@@ -111,7 +120,7 @@ Assignments:
 	assignments+=Assignment (',' assignments+=Assignment)*;
 	
 Assignment:
-	name=ID '=' value=Value (unit=ID)?;
+	name=ID '=' value=Value (unit=ID)?; // FIXME: Cross-referencing
 	//name=[Param] '=' value=Value (unit=ID)?;
 
 // Parameters for actors and composites.

@@ -82,7 +82,7 @@ class SCLGenerator extends GeneratorBase {
 				]
 				prBlock("VAR_INPUT", "END_VAR")[
 					reaction.triggers?.forEach[pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))]
-					reaction.sources?.forEach[pr("%s: %s;", it.port.name, inputs.get(it.port.name))]
+					reaction.sources?.forEach[pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))]
 				]
 				prBlock("VAR_OUTPUT", "END_VAR")[
 					reaction.effects?.forEach[pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))]
