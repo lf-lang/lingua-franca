@@ -12,7 +12,6 @@ import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
-import org.icyphy.linguaFranca.Produces
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
@@ -66,7 +65,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		if (allNames.contains(action.name)) {
 			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ action.name,
-				Literals.TRIGGER__NAME
+				Literals.VARIABLE__NAME
 			)
 		}
 		actions.add(action.name);
@@ -101,7 +100,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		if (allNames.contains(input.name)) {
 			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ input.name,
-				Literals.TRIGGER__NAME
+				Literals.VARIABLE__NAME
 			)
 		}
 		inputs.add(input.name);
@@ -124,7 +123,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		if (allNames.contains(output.name)) {
 			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ output.name,
-				Literals.OUTPUT__NAME
+				Literals.VARIABLE__NAME
 			)
 		}
 		outputs.add(output.name);
@@ -147,20 +146,20 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 //		}
 //	}
 
-	@Check(FAST)
-	def checkSets(Produces produces) {
-		for (port: produces.produces) {
-			// If the port has the form of name.name, then skip the check.
-			// We don't have enough information here to check it.
-			if (port.split('\\.').length != 2 && !outputs.contains(port) && !actions.contains(port)) {
-					error("Reaction declares that it produces something that is not an output,"
-						+ " an action, nor an input port: "
-					+ port,
-					Literals.PRODUCES__PRODUCES
-				)
-			}
-		}
-	}
+//	@Check(FAST)
+//	def checkSets(Produces produces) {
+//		for (port: produces.produces) {
+//			// If the port has the form of name.name, then skip the check.
+//			// We don't have enough information here to check it.
+//			if (port.split('\\.').length != 2 && !outputs.contains(port) && !actions.contains(port)) {
+//					error("Reaction declares that it produces something that is not an output,"
+//						+ " an action, nor an input port: "
+//					+ port,
+//					Literals.PRODUCES__PRODUCES
+//				)
+//			}
+//		}
+//	}
 	
 	@Check(FAST)
 	def checkTarget(Target target) {
@@ -220,7 +219,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		if (allNames.contains(timer.name)) {
 			error("Names of parameters, inputs, timers, and actions must be unique: " 
 				+ timer.name,
-				Literals.TRIGGER__NAME
+				Literals.VARIABLE__NAME
 			)
 		}
 		timers.add(timer.name);

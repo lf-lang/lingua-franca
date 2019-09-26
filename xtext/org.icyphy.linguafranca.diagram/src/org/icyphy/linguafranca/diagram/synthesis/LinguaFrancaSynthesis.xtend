@@ -44,7 +44,10 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
-import org.icyphy.linguaFranca.Trigger
+import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.EffectRef
+import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Input
 
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
@@ -183,14 +186,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.addReactionFigure(reaction)
 
 			// connect input
-			for (Trigger trigger : reaction.triggers?:emptyList) {
-				if (trigger instanceof Action) {
-					actionDestinations.put(trigger.name, reaction)		
+			for (TriggerRef trigger : reaction.triggers?:emptyList) {
+				if (trigger.variable instanceof Action) {
+					actionDestinations.put(trigger.variable.name, reaction)		
 				} else {
-					val src = if (parentInputPorts.containsKey(trigger.name)) {
-						parentInputPorts.get(trigger.name)
-					} else if (timerNodes.containsKey(trigger.name)) {
-						timerNodes.get(trigger.name)
+					val src = if (parentInputPorts.containsKey(trigger.variable.name)) {
+						parentInputPorts.get(trigger.variable.name)
+					} else if (timerNodes.containsKey(trigger.variable.name)) {
+						timerNodes.get(trigger.variable.name)
 					}
 					if (src !== null) {
 						createDependencyEdge().connect(src, node)
@@ -199,15 +202,19 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			
 			// connect outputs
-			for (String target : reaction.produces?.produces?:emptyList) {
-				if (reactor.actions.exists[name.equals(target)]) {
-					actionSource.put(target, reaction)
-				} else {
-					val dst = if (parentOutputPorts.containsKey(target)) {
-						parentOutputPorts.get(target)
-					} else if (target.contains(".")) { // FIXME model should better contain cross references
-						val portPair = target.split("\\.")
-						inputPorts.get(portPair.get(0), portPair.get(1))
+			for (EffectRef effect : reaction.effects?:emptyList) {
+				
+				if (effect.variable instanceof Action) {
+					actionSource.put(effect.variable as Action, reaction)
+//				}
+//				if (reactor.actions.exists[name.equals(target)]) {
+//					actionSource.put(target, reaction)
+				} 
+				else  {
+					val dst = if (effect.variable instanceof Output) {
+						parentOutputPorts.get(effect.variable.name)
+					} else {
+						inputPorts.get(effect.instance.name, effect.variable.name)
 					}
 					if (dst !== null) {
 						createDependencyEdge().connect(node, dst)
@@ -217,11 +224,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		
 		// Connect actions
-		for (action : actionSource.keySet) {
+		for (Action action : actionSource.keySet) {
 			val sourceNode = reactionNodes.get(actionSource.get(action))
 			for (target : actionDestinations.get(action)) {
 				val targetNode  = reactionNodes.get(target)
-				createDelayEdge(action.action(reactor)).connect(sourceNode, targetNode)
+				createDelayEdge(action).connect(sourceNode, targetNode)
 			}
 		}
 

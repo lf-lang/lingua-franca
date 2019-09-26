@@ -47,7 +47,7 @@ class SCLGenerator extends GeneratorBase {
 				for (input : reactionInstance.dependsOnPorts) {
 					input.dependsOnPorts.forEach[args.add(String.format("%s := %s.%s", input.portName, it.reactorInstance.fullName, it.portName))]
 				}
-				reactionInstance.reactionSpec.produces?.produces?.forEach[args.add(String.format("%s := %s.%s", it, reactionInstance.reactorInstance.fullName, it))]
+				reactionInstance.reactionSpec.effects.forEach[args.add(String.format("%s := %s.%s", it.variable.name, reactionInstance.reactorInstance.fullName, it))]
 				pr("%s(%s)", reactionName, args.join(", "))
 			}
 		]
@@ -81,11 +81,11 @@ class SCLGenerator extends GeneratorBase {
 					pr("this: %s;", reactorName)
 				]
 				prBlock("VAR_INPUT", "END_VAR")[
-					reaction.triggers?.forEach[pr("%s: %s;", it.name, inputs.get(it.name))]
-					reaction.uses?.forEach[pr("%s: %s;", it.name, inputs.get(it.name))]
+					reaction.triggers?.forEach[pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))]
+					reaction.sources?.forEach[pr("%s: %s;", it.port.name, inputs.get(it.port.name))]
 				]
 				prBlock("VAR_OUTPUT", "END_VAR")[
-					reaction.produces?.produces?.forEach[pr("%s: %s;", it, inputs.get(it))]
+					reaction.effects?.forEach[pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))]
 				]
 				for (parameter: getParameters(reactor)) {
 					// TODO: Handle parameters

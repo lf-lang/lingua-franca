@@ -10,8 +10,7 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 Model:
 	target=Target 
 	(imports += Import)*
-	(reactors += Reactor)+
-	;
+	(reactors += Reactor)+;
 
 /////////// Top level elements
 Target:
@@ -36,7 +35,6 @@ Reactor:
 	
 /////////// Statements
 
-// Note explicit allowance of keywords for names of inputs, outputs, timers.
 // Types are optional for use in untyped languages.
 State:
 	'state' name=ID (':' type=Type)? ('(' value=Value ')') ';';
@@ -53,44 +51,51 @@ Timer:
 Action:
 	modifier='logical'? 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
 
-Trigger:
-	Input | Action | Timer;
-	
 Reaction:
 	'reaction' 
-	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
-	(uses+=[Input] (',' uses+=[Input])*)?
-	produces=Produces? // FIXME: Can we somehow prevent that a trigger (action) is used to in schedule if it is not declared as a product (after the ->)?
+	('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+	(sources+=SourceRef (',' sources+=SourceRef)*)?
+	('->' effects+=EffectRef (',' effects+=EffectRef)*)?
 	code=CODE;
 	
 Preamble:
 	'preamble' code=CODE;
 	
-// NOTE: Cross references break foreign imports for now.
+// FIXME: Insert dummy object for foreign imports in scope provider.
 Instance:
 	name=ID '=' 'new' reactorClass=[Reactor] ('(' parameters=Assignments? ')')? ';' ;
 
 Connection:
-    leftPort=Port '->' rightPort=Port ';';
+    leftPort=Port '->' rightPort=Port ';'; // FIXME: add cross-referencing here
     
-Deadline:
-	'deadline' '(' port=Port ',' delay=Time ',' action=ID ')' ';';
+Deadline: // FIXME: add cross ref to port
+	'deadline' '(' port=Port ',' delay=Time ',' action=[Action] ')' ';';
 
 KEYWORD:
 	'input' | 'state' | 'output' | 'timer' | 'action';
 
 /////////// Pieces
 
+Variable:
+	Input | Output | Action | Timer;
+
+TriggerRef:
+	variable=[Variable] | instance=[Instance] '.' variable=[Output];
+
+SourceRef:
+	port=[Input] | instance=[Instance] '.' port=[Output]; // Use scoping rule
+
+EffectRef:
+	variable=[Variable] | instance=[Instance] '.' variable=[Input]; // Use scoping rule
+
+
 Assignments:
 	assignments+=Assignment (',' assignments+=Assignment)*;
 	
 Assignment:
-	name=ID '=' value=Value (unit=ID)?;
+	name=ID '=' value=Value (unit=ID)?; // FIXME: Add cross-referencing here
 
-// Specification of what inputs a reaction reads.
-//Uses:
-//	uses+=[Input] (',' uses+=[Input])?;
-// ...
+
 // Parameters for actors and composites.
 Params:
     '(' params+=Param (',' params+=Param)* ')';
@@ -112,16 +117,11 @@ Timing:
 // a constant, a number followed by a unit specification.
 // Time unit here is any ID. The validator should check for valid units.
 Time:
-	time=ID | time=NUMBER (unit=ID)?;
+	time=ID | time=NUMBER (unit=ID)?; // FIXME: Add cross-referencing here
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
     ID | (ID '.' ID);
-
-// Specification of what outputs a reaction writes.
-// Note that Port is either a ValidID or ValidID.ValidID
-Produces:
-	'->' produces+=Port (',' produces+=Port)?;
 
 // A type is in the target language, hence either an ID or target code.
 Type:

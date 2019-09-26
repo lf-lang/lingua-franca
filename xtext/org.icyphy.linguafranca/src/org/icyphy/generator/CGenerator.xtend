@@ -22,12 +22,13 @@ import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
-import org.icyphy.linguaFranca.Produces
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
-import org.icyphy.linguaFranca.Trigger
+import org.icyphy.linguaFranca.EffectRef
+import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.SourceRef
 
 /**
  * Generator for C target.
@@ -239,23 +240,32 @@ class CGenerator extends GeneratorBase {
 		// Finally, handle reactions that produce outputs sent to inputs
 		// of contained reactions.
 		for(reaction: reactor.reactions) {
-			if (reaction.produces !== null && reaction.produces.produces !== null) {
-				for(output: reaction.produces.produces) {
-					var split = output.split('\\.')
-					if (split.length === 2) {
-						// Get a port matching the portName.
-						var destinationPort = getInputPortOfContainedReactor(
-							reactor, split.get(0), split.get(1), reaction
+			if (reaction.effects !== null) { 
+				for(effect: reaction.effects) {
+					if (effect.variable instanceof Input) {
+						val port = effect.variable as Input	
+						pr(body, removeCodeDelimiter(port.type) + ' __'
+							+ effect.instance.name + '_' + port.name + ';'
 						)
-						if (destinationPort !== null) {
-							pr(body, removeCodeDelimiter(destinationPort.type) + ' __'
-								+ split.get(0) + '_' + split.get(1) + ';'
-							)
-							pr(body, 'bool __'
-								+ split.get(0) + '_' + split.get(1) + '_is_present;'
-							)
-						}
+						pr(body, 'bool __'
+							+ effect.instance.name + '_' + port.name + '_is_present;'
+						)
 					}
+//					var split = ref.effect.name.split('\\.')
+//					if (split.length === 2) {
+//						// Get a port matching the portName.
+//						var destinationPort = getInputPortOfContainedReactor(
+//							reactor, split.get(0), split.get(1), reaction
+//						)
+//						if (destinationPort !== null) {
+//							pr(body, removeCodeDelimiter(destinationPort.type) + ' __'
+//								+ split.get(0) + '_' + split.get(1) + ';'
+//							)
+//							pr(body, 'bool __'
+//								+ split.get(0) + '_' + split.get(1) + '_is_present;'
+//							)
+//						}
+//					}
 				}				
 			}
 		}
@@ -318,53 +328,70 @@ class CGenerator extends GeneratorBase {
 			// name is the input name with suffix "_is_present", a boolean
 			// that indicates whether the input is present.
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
-				for (trigger: reaction.triggers) {
-					val input = getInput(reactor, trigger.name)
-					if (input !== null) {
-						generateInputVariablesInReaction(reactionInitialization, input)
-					}
-					val action = getAction(reactor, trigger.name)
-					if (action !== null) {
+				for (TriggerRef trigger: reaction.triggers) {
+					//val input = getInput(reactor, trigger.variable.name)
+					if (trigger instanceof Input) {
+						generateInputVariablesInReaction(reactionInitialization, trigger as Input)
+					} else if (trigger instanceof Action) {
 						pr(reactionInitialization, "trigger_t* " 
-							+ action.name + ' = self->__' + action.name + ';'
+							+ trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
 						);
-						actionsAsTriggers.add(action);
+						actionsAsTriggers.add(trigger as Action);
+					} else if (trigger instanceof Output) {
+						// FIXME: triggered by contained output
+						reportError(trigger, "(FIXME) Failed to handle hierarchical reference: " + trigger)
 					}
+					
 				}
 			} else {
 				// No triggers are given, which means react to any input.
 				// Declare an argument for every input.
+				// NOTE: this does not include contained outputs. Should it? 
 				for (input: reactor.inputs) {
 					generateInputVariablesInReaction(reactionInitialization, input)
 				}
 			}
 			// Define argument for non-triggering inputs.
-			if (reaction.uses !== null && reaction.uses.length > 0) {
-				for(inp : reaction.uses) {
-					generateInputVariablesInReaction(reactionInitialization, inp)
+			for (SourceRef src : reaction.sources ?: emptyList) {
+				// FIXME: handle hierarchical references
+				if (src instanceof Input) {
+					generateInputVariablesInReaction(reactionInitialization, src.port as Input)	
+				} else {
+					reportError(src, "(FIXME) Failed to handle hierarchical reference: " + src)
 				}
+				
 			}
+			
 			// Define variables for each declared output or action.
-			if (reaction.produces !== null && reaction.produces.produces !== null) {
-				for(output: reaction.produces.produces) {
-					val action = getAction(reactor, output)
-					if (action !== null) {
+			if (reaction.effects !== null) {
+				for(effect: reaction.effects) {
+					//val action = getAction(reactor, output)
+					if (effect.variable instanceof Action) {
 						// It is an action, not an output.
 						// If it has already appeared as trigger, do not redefine it.
-						if (!actionsAsTriggers.contains(action)) {
-						    pr(reactionInitialization, "trigger_t* " + action.name + ' = self->__' + action.name + ';');
+						if (!actionsAsTriggers.contains(effect.variable.name)) {
+						    pr(reactionInitialization, "trigger_t* " + effect.variable.name + ' = self->__' + effect.variable.name + ';');
 						}
 					} else {
-						var split = output.split('\\.')
-						if (split.length === 1) {
-							// It is an output.
-							var out = getOutput(reactor, output)
-							generateOutputVariablesInReaction(reactionInitialization, out)
-						} else {
-							// It is the input of a contained reactor.
+						if (effect.variable instanceof Output) {
+							generateOutputVariablesInReaction(reactionInitialization, effect.variable as Output)
+						}
+//						var split = output.split('\\.') // FIXME
+//						if (split.length === 1) {
+//							// It is an output.
+//							var out = getOutput(reactor, output)
+//							
+						//}
+						else if (effect.variable instanceof Input) {
+						// It is the input of a contained reactor.
 							generateVariablesForSendingToContainedReactors(
-								reactionInitialization, reaction.produces, reactor, split
+								reactionInitialization,
+								effect.instance,
+								effect.variable as Input
 							)
+						}
+						else {
+							// ERROR
 						}
 					}
 				}
@@ -631,9 +658,9 @@ class CGenerator extends GeneratorBase {
 					var triggeredSizesContents = new StringBuilder()
 					var triggersContents = new StringBuilder()
 					var outputCount = 0
-					if (reaction.produces !== null) {
-						for(output: reaction.produces.produces) {
-							if (getOutput(reactor, output) !== null) {
+					if (reaction.effects !== null) {
+						for(effect: reaction.effects) {
+							if (effect.variable instanceof Output) {
 								// It is an output, not an action.
 								// First create the array of pointers to booleans indicating whether
 								// an output is produced.
@@ -641,7 +668,7 @@ class CGenerator extends GeneratorBase {
 								if (presentPredicates.length > 0) {
 									presentPredicates.append(", ")
 								}
-								presentPredicates.append('&' + nameOfSelfStruct + '.__' + output + '_is_present')
+								presentPredicates.append('&' + nameOfSelfStruct + '.__' + effect.variable.name + '_is_present')
 								outputCount++
 							
 								// For each output, figure out how many
@@ -653,7 +680,7 @@ class CGenerator extends GeneratorBase {
 								if (container !== null) {
 									var parentReactor = container.reactor
 									var parentProperties = reactorToProperties.get(parentReactor)
-									var outputName = instance.getName() + "." + output
+									var outputName = instance.getName() + "." + effect.variable.name
 									inputNames = parentProperties.outputNameToInputNames.get(outputName)
 								}
 								// Insert a comma if needed.
@@ -693,12 +720,14 @@ class CGenerator extends GeneratorBase {
 									)
 									triggersContents.append('&' + remoteTriggersArrayName + '[0]')
 								}
-							} else {
+							} else if (effect.variable instanceof Input) {
+								val input = effect.variable as Input
+								val _instance = effect.instance as Instance
 								// It is not an output, but the reaction may be sending data
 								// to the input of a contained reactor. Check first to see whether
 								// it has the right form.
-								var portSpec = output.split('\\.')
-								if (portSpec.length === 2) {
+								//var portSpec = output.split('\\.')
+								//if (portSpec.length === 2) {
 									// The form is right.
 									// First create the array of pointers to booleans indicating whether
 									// an output is produced.
@@ -707,29 +736,29 @@ class CGenerator extends GeneratorBase {
 										presentPredicates.append(", ")
 									}
 									presentPredicates.append('&' + nameOfSelfStruct + '.__' 
-										+ portSpec.get(0) + '_' + portSpec.get(1) + '_is_present'
+										+ _instance.name + '_' + input.name + '_is_present'
 									)
 									outputCount++
 									
-									var destinationPort = getInputPortOfContainedReactor(
-										reactor, portSpec.get(0), portSpec.get(1), reaction.produces
-									)
+//									var destinationPort = getInputPortOfContainedReactor(
+//										reactor, _instance.name, input.name, reaction.produces
+//									)
 									// Insert a comma if needed.
 									if (triggeredSizesContents.length > 0) {
 										triggeredSizesContents.append(", ")
 									}
 									triggeredSizesContents.append("1")
-									if (destinationPort === null) {
+									if (input === null) {
 										triggersContents.append("NULL")										
 									} else {
 										var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount + '_remote_triggers'
-										var destinationInstance = reactorInstance.getContainedInstance(portSpec.get(0))
+										var destinationInstance = reactorInstance.getContainedInstance(_instance.name)
 										if (destinationInstance !== null) {
 											// Null destinationInstance is an error, but it should have been caught
 											// before this, so no need to report it now.
 											deferredInitialize.add(
 												new InitializeRemoteTriggersTable(
-													destinationInstance, remoteTriggersArrayName, 0, destinationPort.name
+													destinationInstance, remoteTriggersArrayName, 0, input.name
 												)
 											)
 										}
@@ -739,7 +768,7 @@ class CGenerator extends GeneratorBase {
 										)
 										triggersContents.append('&' + remoteTriggersArrayName + '[0]')
 									}
-								}
+								//}
 							}
 						}
 					}
@@ -982,7 +1011,7 @@ class CGenerator extends GeneratorBase {
 		}
 		
 		// Finally, handle deadline commands.
-		for(deadline: reactor.deadlines) {
+		for(deadline: reactor.deadlines) { // FIXME
 			var split = deadline.port.split('\\.')
 			if (split.length !== 2) {
 				reportError(deadline, 'Malformed input port specification: ' + deadline.port)
@@ -1014,11 +1043,11 @@ class CGenerator extends GeneratorBase {
 											+ reactorInstance.getFullName()
 									)
 								} else {
-									var triggerStructName = (triggerMap as HashMap<String,String>).get(deadline.action)
+									var triggerStructName = (triggerMap as HashMap<String,String>).get(deadline.action.name)
 									if (triggerStructName === null) {
 										reportError(reactorInstance.reactor,
 											"Internal error: failed to find trigger struct for action "
-											+ deadline.action
+											+ deadline.action.name
 											+ " in reactor "
 											+ reactorInstance.getFullName()
 										)
@@ -1214,28 +1243,30 @@ class CGenerator extends GeneratorBase {
 		// Handle inputs that get sent data from a reaction rather than from
 		// another contained reactor.
 		for (reaction: container.reactor.reactions) {
-			if (reaction.produces !== null && reaction.produces.produces !== null) {
-				for (produces: reaction.produces.produces) {
-					var split = produces.split('\\.')
-					if (split.length === 2) {
+			if (reaction.effects !== null) {
+				for (effect: reaction.effects) {
+					
+					
+					//var split = produces.split('\\.')
+					if (effect.variable instanceof Input) {
 						// Found an input that is sent data from a reaction.
-						if (connectedInputs.contains(produces)) {
-							reportError(reaction, "Sending to an input that already has a connection: " + produces)
+						if (connectedInputs.contains(effect.variable.name)) {
+							reportError(reaction, "Sending to an input that already has a connection: " + effect.variable.name)
 						}
-						connectedInputs.add(produces)
-						var inputReactor = container.getContainedInstance(split.get(0))
+						connectedInputs.add(effect.variable.name)
+						var inputReactor = container.getContainedInstance(effect.instance.name)
 						if (inputReactor === null) {
-							reportError(reaction, "No such destination reactor: " + split.get(0))
+							reportError(reaction, "No such destination reactor: " + effect.instance.name)
 						} else {
 							var inputSelfStructName = inputReactor.properties.get("selfStructName")
 							var containerSelfStructName = container.properties.get("selfStructName")
-							pr(inputSelfStructName + '.__' + split.get(1) + ' = &'
-								+ containerSelfStructName + '.__' + split.get(0) + '_' + split.get(1) + ';'
+							pr(inputSelfStructName + '.__' + effect.variable.name + ' = &'
+								+ containerSelfStructName + '.__' + effect.instance.name + '_' + effect.variable.name + ';'
 							)
-							pr(inputSelfStructName + '.__' + split.get(1) + '_is_present = &'
-								+ containerSelfStructName + '.__' + split.get(0) + '_' + split.get(1) + '_is_present;'
+							pr(inputSelfStructName + '.__' + effect.variable.name + '_is_present = &'
+								+ containerSelfStructName + '.__' + effect.instance.name + '_' + effect.variable.name + '_is_present;'
 							)
-							pr(startTimeStep, containerSelfStructName + '.__' + split.get(0) + '_' + split.get(1) 
+							pr(startTimeStep, containerSelfStructName + '.__' + effect.instance.name + '_' + effect.variable.name 
 								+ '_is_present = false;'
 							)
 						}						
@@ -1294,33 +1325,22 @@ class CGenerator extends GeneratorBase {
 	 *  @param portSpec The output statement split into reactorName and portName.
 	 */
 	private def generateVariablesForSendingToContainedReactors(
-		StringBuilder builder, Produces produces, Reactor reactor, String[] portSpec
-	) {
-		// Get a port matching the portName.
-		var destinationPort = getInputPortOfContainedReactor(
-			reactor, portSpec.get(0), portSpec.get(1), produces
-		)
-		
-		if (destinationPort === null) {
-			reportError(produces, "Destination port not found: " + portSpec.get(0) + "." + portSpec.get(1))
-			return
-		}
-				
+		StringBuilder builder, Instance instance, Input input) {
 		// Need to create a struct so that the port can be referenced in C code
 		// as reactorName.portName.
 		// FIXME: This means that the destination instance name cannot match
 		// any input port, output port, or action, because we will get a name collision.
-		pr(builder, 'struct ' + portSpec.get(0) + ' {'
-			+ removeCodeDelimiter(destinationPort.type)
-			+ '* ' + portSpec.get(1) + '; '
-			+ 'bool* ' + portSpec.get(1) + '_is_present;} '
-			+ portSpec.get(0)
+		pr(builder, 'struct ' + instance + ' {'
+			+ removeCodeDelimiter(input.type)
+			+ '* ' + input.name + '; '
+			+ 'bool* ' + input.name + '_is_present;} '
+			+ instance
 			+ ';'
 		)
-		pr(builder, portSpec.get(0) + '.' + portSpec.get(1)
-					+ ' = &(self->__' + portSpec.get(0) + '_' + portSpec.get(1) + ');')
-		pr(builder, portSpec.get(0) + '.' + portSpec.get(1)	+ '_is_present'				
-					+ ' = &(self->__' + portSpec.get(0) + '_' + portSpec.get(1) + '_is_present);')
+		pr(builder, instance + '.' + input.name
+					+ ' = &(self->__' + instance + '_' + input.name + ');')
+		pr(builder, instance + '.' + input.name	+ '_is_present'				
+					+ ' = &(self->__' + instance + '_' + input.name + '_is_present);')
 	}
 	
 	/** Given a container reactor, a reactor name, and a port name, return
