@@ -14,6 +14,7 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.SourceRef
 import org.icyphy.linguaFranca.EffectRef
+import org.icyphy.linguaFranca.InputRef
 
 /**
  * This class enforces custom rules. In particular, it resolves references to 
@@ -22,6 +23,7 @@ import org.icyphy.linguaFranca.EffectRef
  * 
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#scoping
  * on how and when to use it.
+ * @author Marten Lohstroh
  */
 class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 
@@ -32,8 +34,28 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 			SourceRef: return getScopeForSourceRef(context, reference)
 			TriggerRef: return getScopeForTriggerRef(context, reference)
 			EffectRef: return getScopeForEffectRef(context, reference)
+			InputRef: return getScopeForInputRef(context, reference)
 		}
 		return super.getScope(context, reference);
+	}
+		
+	protected def getScopeForInputRef(InputRef input, EReference reference) {
+		if (reference.name.equals("variable")) { // Resolve hierarchical port reference
+			val reactor = input.eContainer.eContainer as Reactor;
+			if (input.instance !== null) {
+				val instanceName = nameProvider.getFullyQualifiedName(input.instance).toString;
+				val instances = reactor.instances;
+				for (instance : instances) {
+					if (instance.name.equals(instanceName)) {
+						return Scopes.scopeFor(instance.reactorClass.inputs);
+					}
+				}
+			} else { // Resolve local port reference
+				return Scopes.scopeFor(reactor.inputs)
+			}
+		} else { // Resolve instance
+			return super.getScope(input, reference);
+		}
 	}
 		
 	protected def getScopeForEffectRef(EffectRef effect, EReference reference) {
@@ -81,11 +103,11 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 		}
 	}
 
-	protected def IScope getScopeForSourceRef(SourceRef port, EReference reference) {
+	protected def IScope getScopeForSourceRef(SourceRef source, EReference reference) {
 		if (reference.name.equals("port")) { // Resolve hierarchical port reference
-			val reactor = port.eContainer.eContainer as Reactor;
-			if (port.instance !== null) {
-				val instanceName = nameProvider.getFullyQualifiedName(port.instance).toString;
+			val reactor = source.eContainer.eContainer as Reactor;
+			if (source.instance !== null) {
+				val instanceName = nameProvider.getFullyQualifiedName(source.instance).toString;
 				val instances = reactor.instances;
 				for (instance : instances) {
 					if (instance.name.equals(instanceName)) {
@@ -96,7 +118,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 				return Scopes.scopeFor(reactor.inputs)
 			}
 		} else { // Resolve instance
-			return super.getScope(port, reference);
+			return super.getScope(source, reference);
 		}
 	}
 }

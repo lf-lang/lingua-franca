@@ -37,7 +37,7 @@ reactor Main {
 		printf("**** Deadline miss detected.\n");
 		set(d.e, 1);
 	=}
-	s = new Source();
+	s = new Source(period=1);
 	d = new Destination();
 	s.y -> d.x;
 	deadline(d.x, 100 msec, panic);

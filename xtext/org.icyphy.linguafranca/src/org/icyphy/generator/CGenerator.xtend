@@ -1011,55 +1011,45 @@ class CGenerator extends GeneratorBase {
 		}
 		
 		// Finally, handle deadline commands.
-		for(deadline: reactor.deadlines) { // FIXME
-			var split = deadline.port.split('\\.')
-			if (split.length !== 2) {
-				reportError(deadline, 'Malformed input port specification: ' + deadline.port)
-			} else {
-				var deadlineReactor = reactorInstance.getContainedInstance(split.get(0))
-				if (deadlineReactor === null) {
-					reportError(deadline, "No such reactor: " + split.get(0))
-				} else {
-					var triggerToReactions = getTriggerToReactions(deadlineReactor.reactor)
-					var reactions = triggerToReactions.get(split.get(1))
-					if (reactions === null) {
-						reportError(deadline, "No such port: " + deadline.port)
+		for (deadline : reactor.deadlines) {
+			if (deadline.port.instance !== null) { // x.y
+				var deadlineReactor = reactorInstance.getContainedInstance(deadline.port.instance.name)
+				var triggerToReactions = getTriggerToReactions(deadline.port.instance.reactorClass)
+				var reactions = triggerToReactions.get(deadline.port.variable.name)
+				for (reaction : reactions) {
+					var reactionToReactionTName = deadlineReactor.properties.get("reactionToReactionTName")
+					var reactionTName = (reactionToReactionTName as HashMap<Reaction, String>).get(reaction)
+					if (reactionTName === null) {
+						reportError(deadline, "Internal error: No reaction_t object found for reaction.")
 					} else {
-						for (reaction: reactions) {
-							var reactionToReactionTName =
-									deadlineReactor.properties.get("reactionToReactionTName")
-							var reactionTName = (reactionToReactionTName as HashMap<Reaction,String>).get(reaction)
-							if (reactionTName === null) {
-								reportError(deadline, "Internal error: No reaction_t object found for reaction.")
+						pr(initializeTriggerObjects, reactionTName + '.deadline = ' + timeMacro(deadline.delay) + ';')
+
+						// Next, set the deadline_violation field to point to the trigger_t struct.
+						var triggerMap = reactorInstance.properties.get("triggerNameToTriggerStruct")
+						if (triggerMap === null) {
+							reportError(
+								deadline,
+								"Internal error: failed to map from name to trigger struct for " +
+									reactorInstance.getFullName()
+							)
+						} else {
+							var triggerStructName = (triggerMap as HashMap<String, String>).get(deadline.action.name)
+							if (triggerStructName === null) {
+								reportError(
+									reactorInstance.reactor,
+									"Internal error: failed to find trigger struct for action " + deadline.action.name +
+										" in reactor " + reactorInstance.getFullName()
+								)
 							} else {
 								pr(initializeTriggerObjects,
-										reactionTName + '.deadline = ' + timeMacro(deadline.delay) + ';')
-								
-								// Next, set the deadline_violation field to point to the trigger_t struct.
-								var triggerMap = reactorInstance.properties.get("triggerNameToTriggerStruct")
-								if (triggerMap === null) {
-									reportError(deadline,
-											"Internal error: failed to map from name to trigger struct for "
-											+ reactorInstance.getFullName()
-									)
-								} else {
-									var triggerStructName = (triggerMap as HashMap<String,String>).get(deadline.action.name)
-									if (triggerStructName === null) {
-										reportError(reactorInstance.reactor,
-											"Internal error: failed to find trigger struct for action "
-											+ deadline.action.name
-											+ " in reactor "
-											+ reactorInstance.getFullName()
-										)
-									} else {
-										pr(initializeTriggerObjects,
-											reactionTName + '.deadline_violation = &' + triggerStructName + ';')
-									}
-								}
+									reactionTName + '.deadline_violation = &' + triggerStructName + ';')
 							}
-						}	
-					}					
+						}
+					}
 				}
+
+			} else { // x
+				reportError(deadline, 'Malformed input port specification: ' + deadline.port)
 			}
 		}
 		
@@ -1343,43 +1333,43 @@ class CGenerator extends GeneratorBase {
 					+ ' = &(self->__' + instance + '_' + input.name + '_is_present);')
 	}
 	
-	/** Given a container reactor, a reactor name, and a port name, return
-	 *  the Input statement that it corresponds to, or report an error and
-	 *  return null if there is no such input.
-	 *  @param container A composite reactor.
-	 *  @param reactorName The name of a contained reactor.
-	 *  @param portName The name of an input port of the contained reactor.
-	 *  @param report The AST object on which to report an error.
-	 */
-	private def getInputPortOfContainedReactor(
-		Reactor container, String reactorName, String portName, EObject report
-	) {
-		// First, find an instance whose name matches the reactorName.
-		var instance = container.getInstance(reactorName)
-		if (instance === null) {
-			reportError(report, "No instance named: " + reactorName)
-			return null as Input
-		}
-		
-		// Next, need to find the reactor definition referenced.
-		var containedReactor = getReactor(instance.reactorClass.name)
-		if (containedReactor === null) {
-			reportError(report, "Cannot find reactor definition for: "
-				+ instance.reactorClass
-			)
-			return null as Input
-		}
-		
-		// Next, get a port matching the portName.
-		var destinationPort = containedReactor.getInput(portName)
-		if (destinationPort === null) {
-			reportError(report, "Destination port does not have an input named: " 
-				+ portName
-			)
-			return null as Input
-		}
-		destinationPort
-	}
+//	/** Given a container reactor, a reactor name, and a port name, return
+//	 *  the Input statement that it corresponds to, or report an error and
+//	 *  return null if there is no such input.
+//	 *  @param container A composite reactor.
+//	 *  @param reactorName The name of a contained reactor.
+//	 *  @param portName The name of an input port of the contained reactor.
+//	 *  @param report The AST object on which to report an error.
+//	 */
+//	private def getInputPortOfContainedReactor(
+//		Reactor container, String reactorName, String portName, EObject report
+//	) {
+//		// First, find an instance whose name matches the reactorName.
+//		var instance = container.getInstance(reactorName)
+//		if (instance === null) {
+//			reportError(report, "No instance named: " + reactorName)
+//			return null as Input
+//		}
+//		
+//		// Next, need to find the reactor definition referenced.
+//		var containedReactor = getReactor(instance.reactorClass.name)
+//		if (containedReactor === null) {
+//			reportError(report, "Cannot find reactor definition for: "
+//				+ instance.reactorClass
+//			)
+//			return null as Input
+//		}
+//		
+//		// Next, get a port matching the portName.
+//		var destinationPort = containedReactor.getInput(portName)
+//		if (destinationPort === null) {
+//			reportError(report, "Destination port does not have an input named: " 
+//				+ portName
+//			)
+//			return null as Input
+//		}
+//		destinationPort
+//	}
 	
 	/** Return a C type for the type of the specified parameter.
 	 *  If there are code delimiters around it, those are removed.
