@@ -30,7 +30,8 @@ Reactor:
    	| (instances += Instance)
    	| (connections += Connection)
    	| (deadlines += Deadline)
-   	| (reactions += Reaction))*
+   	| (reactions += Reaction)
+   	| (transformations += Transformation))*
    	'}';
 	
 /////////// Statements
@@ -57,7 +58,14 @@ Reaction:
 	(sources+=SourceRef (',' sources+=SourceRef)*)?
 	('->' effects+=EffectRef (',' effects+=EffectRef)*)?
 	code=CODE;
-	
+
+Transformation:
+	'transformation' 
+	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
+	(sources+=[Input] (',' sources+=[Input])*)?
+	('->' effects+=[Effect] (',' effects+=[Effect])*)?
+	code=CODE;
+
 Preamble:
 	'preamble' code=CODE;
 	
@@ -78,6 +86,14 @@ KEYWORD:
 
 Variable:
 	Input | Output | Action | Timer;
+
+Trigger:
+	Action | Input
+;
+
+Effect:
+	Action | Output
+;
 
 TriggerRef:
 	variable=[Variable] | instance=[Instance] '.' variable=[Output];
