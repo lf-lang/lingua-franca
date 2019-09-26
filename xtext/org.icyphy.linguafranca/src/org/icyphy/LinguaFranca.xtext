@@ -76,8 +76,8 @@ Instance:
 Connection:
     leftPort=Port '->' rightPort=Port ';'; // FIXME: add cross-referencing here
     
-Deadline: // FIXME: add cross ref to port
-	'deadline' '(' port=Port ',' delay=Time ',' action=[Action] ')' ';';
+Deadline:
+    'deadline' '(' port=InputRef ',' delay=Time ',' action=[Action] ')' ';';
 
 KEYWORD:
 	'input' | 'state' | 'output' | 'timer' | 'action';
@@ -99,18 +99,20 @@ TriggerRef:
 	variable=[Variable] | instance=[Instance] '.' variable=[Output];
 
 SourceRef:
-	port=[Input] | instance=[Instance] '.' port=[Output]; // Use scoping rule
+	port=[Input] | instance=[Instance] '.' port=[Output]; // FIXME: change this to variable as well
+	
+InputRef:
+	variable=[Input] | instance=[Instance] '.' variable=[Input];
 
 EffectRef:
-	variable=[Variable] | instance=[Instance] '.' variable=[Input]; // Use scoping rule
-
+	variable=[Variable] | instance=[Instance] '.' variable=[Input];
 
 Assignments:
 	assignments+=Assignment (',' assignments+=Assignment)*;
 	
 Assignment:
-	name=ID '=' value=Value (unit=ID)?; // FIXME: Add cross-referencing here
-
+	name=ID '=' value=Value (unit=ID)?;
+	//name=[Param] '=' value=Value (unit=ID)?;
 
 // Parameters for actors and composites.
 Params:
@@ -133,7 +135,7 @@ Timing:
 // a constant, a number followed by a unit specification.
 // Time unit here is any ID. The validator should check for valid units.
 Time:
-	time=ID | time=NUMBER (unit=ID)?; // FIXME: Add cross-referencing here
+	time=ID | time=NUMBER (unit=ID)?;
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
