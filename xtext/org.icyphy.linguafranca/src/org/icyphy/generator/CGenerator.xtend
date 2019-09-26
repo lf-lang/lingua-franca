@@ -355,7 +355,7 @@ class CGenerator extends GeneratorBase {
 			for (SourceRef src : reaction.sources ?: emptyList) {
 				// FIXME: handle hierarchical references
 				if (src instanceof Input) {
-					generateInputVariablesInReaction(reactionInitialization, src.port as Input)	
+					generateInputVariablesInReaction(reactionInitialization, src.variable as Input)	
 				} else {
 					reportError(src, "(FIXME) Failed to handle hierarchical reference: " + src)
 				}

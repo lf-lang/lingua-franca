@@ -269,7 +269,7 @@ class AccessorGenerator extends GeneratorBase {
 			}
 			// Define variables for non-triggering inputs.
 			for(inp : reaction.sources?:emptyList) {
-				pr(body, '''var «inp.port.name» = get("«inp.port.name»");''')
+				pr(body, '''var «inp.variable.name» = get("«inp.variable.name»");''')
 			}
 			
 			// Define variables for each declared output.
