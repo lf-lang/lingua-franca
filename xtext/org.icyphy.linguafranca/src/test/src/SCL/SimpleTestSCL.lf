@@ -20,7 +20,7 @@ reactor LED {
 		feedback_out := signal_in;
 	=}
 }
-reactor main {
+main reactor Main {
 	toggler = new PeriodicToggler();
 	led = new LED();
 	toggler.signal_out -> led.signal_in;
