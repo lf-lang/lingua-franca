@@ -1320,17 +1320,17 @@ class CGenerator extends GeneratorBase {
 		// as reactorName.portName.
 		// FIXME: This means that the destination instance name cannot match
 		// any input port, output port, or action, because we will get a name collision.
-		pr(builder, 'struct ' + instance + ' {'
+		pr(builder, 'struct ' + instance.name + ' {'
 			+ removeCodeDelimiter(input.type)
 			+ '* ' + input.name + '; '
 			+ 'bool* ' + input.name + '_is_present;} '
-			+ instance
+			+ instance.name
 			+ ';'
 		)
-		pr(builder, instance + '.' + input.name
-					+ ' = &(self->__' + instance + '_' + input.name + ');')
-		pr(builder, instance + '.' + input.name	+ '_is_present'				
-					+ ' = &(self->__' + instance + '_' + input.name + '_is_present);')
+		pr(builder, instance.name + '.' + input.name
+					+ ' = &(self->__' + instance.name + '_' + input.name + ');')
+		pr(builder, instance.name + '.' + input.name	+ '_is_present'				
+					+ ' = &(self->__' + instance.name + '_' + input.name + '_is_present);')
 	}
 	
 //	/** Given a container reactor, a reactor name, and a port name, return
