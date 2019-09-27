@@ -20,7 +20,7 @@ Import:
 	'import' name=Path ';';
 
 Reactor:
-   	'main'? 'reactor' name=ID parameters=Params? '{'
+   	modifier='main'? 'reactor' name=ID parameters=Params? '{'
    	(preamble = Preamble)?
    	((inits += Initialization) // TODO: code-gen for init
 	| (states += State)
