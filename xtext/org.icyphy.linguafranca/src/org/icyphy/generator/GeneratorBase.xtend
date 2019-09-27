@@ -204,7 +204,7 @@ class GeneratorBase {
 //                        reportError(reaction,
 //                        		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
 //                    }
-                    var reactionList = properties.triggerNameToReactions.get(trigger.variable)
+                    var reactionList = properties.triggerNameToReactions.get(trigger.variable.name)
                     if (reactionList === null) {
                     	reactionList = new LinkedList<Reaction>()
 						properties.triggerNameToReactions.put(trigger.variable.name, reactionList)
