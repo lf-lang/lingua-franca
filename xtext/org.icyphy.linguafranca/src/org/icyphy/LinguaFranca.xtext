@@ -20,7 +20,7 @@ Import:
 	'import' name=Path ';';
 
 Reactor:
-   	'reactor' name=ID parameters=Params? '{'
+   	'main'? 'reactor' name=ID parameters=Params? '{'
    	(preamble = Preamble)?
    	((inits += Initialization) // TODO: code-gen for init
 	| (states += State)
@@ -32,7 +32,7 @@ Reactor:
    	| (connections += Connection)
    	| (deadlines += Deadline)
    	| (reactions += Reaction)
-   	| (transformations += Transformation))*
+   	| (mutations += Mutation))*
    	'}';
 	
 /////////// Statements
@@ -48,10 +48,10 @@ Output:
 	'output' name=ID (':' type=Type)? ';';
 
 Timer:
-	modifier='logical'? 'timer' name=ID timing=Timing?';';
+	modifier='logical'|'physical'? 'timer' name=ID timing=Timing?';';
 
 Action:
-	modifier='logical'? 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
+	modifier='logical'|'physical'? 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
 
 Reaction:
 	('reaction' | 'react')
@@ -60,23 +60,21 @@ Reaction:
 	('->' effects+=EffectRef (',' effects+=EffectRef)*)?
 	code=CODE;
 
-Transformation:
-	('transformation' | 'transform')
+Mutation:
+	('mutation' | 'mutate')
 	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
 	(sources+=[Input] (',' sources+=[Input])*)?
 	('->' effects+=[Effect] (',' effects+=[Effect])*)?
 	code=CODE;
 
 Initialization:
-	('initialization' | 'initialize')
+	('initialize' | 'init')
 	(sources+=[Input] (',' sources+=[Input])*)?
 	('->' effects+=[Effect] (',' effects+=[Effect])*)?
 	code=CODE;
 
 Preamble:
 	'preamble' code=CODE;
-	
-
 	
 // FIXME: Insert dummy object for foreign imports in scope provider.
 Instance:

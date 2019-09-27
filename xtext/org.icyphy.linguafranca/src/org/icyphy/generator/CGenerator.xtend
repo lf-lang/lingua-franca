@@ -330,14 +330,14 @@ class CGenerator extends GeneratorBase {
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (TriggerRef trigger: reaction.triggers) {
 					//val input = getInput(reactor, trigger.variable.name)
-					if (trigger instanceof Input) {
-						generateInputVariablesInReaction(reactionInitialization, trigger as Input)
-					} else if (trigger instanceof Action) {
+					if (trigger.variable instanceof Input) {
+						generateInputVariablesInReaction(reactionInitialization, trigger.variable as Input)
+					} else if (trigger.variable instanceof Action) {
 						pr(reactionInitialization, "trigger_t* " 
 							+ trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
 						);
-						actionsAsTriggers.add(trigger as Action);
-					} else if (trigger instanceof Output) {
+						actionsAsTriggers.add(trigger.variable as Action);
+					} else if (trigger.variable instanceof Output) {
 						// FIXME: triggered by contained output
 						reportError(trigger, "(FIXME) Failed to handle hierarchical reference: " + trigger)
 					}
