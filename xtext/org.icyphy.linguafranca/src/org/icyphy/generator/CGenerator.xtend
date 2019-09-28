@@ -29,6 +29,14 @@ import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.EffectRef
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.SourceRef
+import java.io.File
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.BufferedReader
+import java.nio.file.Path
+import java.nio.file.FileSystems
+import org.eclipse.xtext.generator.JavaIoFileSystemAccess
+import java.nio.file.Paths
 
 /**
  * Generator for C target.
@@ -76,12 +84,18 @@ class CGenerator extends GeneratorBase {
 		pr(includes)
 		_resource = resource
 		
-		var uriAsString = resource.getURI().toString()
-		println("Generating code for: " + uriAsString)
-				
+		println("Generating code for: " + resource.getURI.toString)
+		
+		var runCommand = newArrayList("./" + _filename, "-timeout", "3", "secs")
+		var runCommandOverridden = false
+		var compileCommand = newArrayList()
+		
+		var errors = new LinkedList<String>()
+		
+		
 		for (target: resource.allContents.toIterable.filter(Target)) {
 			if (target.parameters !== null) {
-   				for (parameter: target.parameters.assignments) {
+				for (parameter: target.parameters.assignments) {
    					if (parameter.name.equals("threads")) {
    						// This has been checked by the validator.
    						numberOfThreads = Integer.decode(parameter.value)
@@ -93,20 +107,77 @@ class CGenerator extends GeneratorBase {
    						unindent(startTimers)
    						pr(startTimers, "}")
    					}
+   					else if (parameter.name.equals("run")) {
+   						// Strip off enclosing quotation marks and split at spaces.
+   						val command = parameter.value.substring(1, parameter.value.length - 1).split(' ')
+   						runCommand.clear
+   						runCommand.addAll(command)
+   						runCommandOverridden = true
+   					} 
+					else if (parameter.name.equals("compile")) {
+   					// Strip off enclosing quotation marks and split at spaces.
+   					val command = parameter.value.substring(1, parameter.value.length - 1).split(' ')
+   					compileCommand.clear
+   					compileCommand.addAll(command)
+   				} 
+//				 else if (parameter.name.equals("threads")) {
+//   					threads = parameter.value
+//				}
+   					
    				}
    			}
 		}
 		if (numberOfThreads === 0) {
 			pr("#include \"reactor.c\"")
 		} else {
-			pr("#include \"reactor_threaded.c\"")			
+			pr("#include \"reactor_threaded.c\"")
+			if (!runCommandOverridden) {
+   				runCommand.add("-threads")
+   				runCommand.add(numberOfThreads.toString())
+   			}			
 		}
-
+		
 		// First process all the imports.
 		processImports(importTable)
 
 		super.doGenerate(resource, fsa, context, importTable)
 		
+		var prefix = ""
+		val cFilename = _filename + ".c";
+		
+		// Determine path to generated code
+		if (resource.getURI.toString.startsWith("file:")) {
+			var srcFile = Paths.get(resource.getURI.toString.split("file:").get(1)).normalize.toString
+			var srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
+			
+			val curPath = new File("").getAbsolutePath();
+			val srcRoot = srcPath.substring(0, srcPath.lastIndexOf(File.separator))
+			val genPath = srcRoot.substring(0, srcRoot.lastIndexOf(File.separator)) + "/src-gen"
+			if (curPath.startsWith(srcPath)) {
+				val suffix = curPath.substring(srcPath.length, curPath.length)
+				for (var i = 1 + suffix.split(File.separator, -1).length - 1; i > 0; i--) {
+					prefix += "../"
+				}
+				prefix += "src-gen/"
+			} else if (curPath.startsWith(genPath)) {
+				val suffix = curPath.substring(srcPath.length, curPath.length)
+				for (var i = 0 + suffix.split(File.separator, -1).length - 1; i > 0; i--) {
+					prefix += "../"
+				}
+			} else {
+				val dirs = curPath.split(File.separator, -1)
+				var match = ""
+				for (dir : dirs) {
+					if (genPath.startsWith(match + dir)) {
+						match += dir + "/"
+						//println(match)
+					} else {
+						prefix += "../"
+					}
+				}
+				prefix += genPath.substring(match.length, genPath.length) + "/"
+			}
+		}
 		// Any main reactors in imported files are ignored.		
 		if (main !== null) {
 			// Generate function to initialize the trigger objects for all reactors.
@@ -132,7 +203,9 @@ class CGenerator extends GeneratorBase {
 			unindent()
 			pr('}\n')
 		}
-		fsa.generateFile(_filename + ".c", getCode())
+		fsa.generateFile(cFilename, getCode())
+		
+		//println("cFileName: " + cFilename)
 		
 		// Copy the required library files into the target filesystem.
 		var reactorCCommon = readFileInClasspath("/lib/C/reactor_common.c")
@@ -149,9 +222,60 @@ class CGenerator extends GeneratorBase {
 		var pqueueC = readFileInClasspath("/lib/C/pqueue.c")
 		fsa.generateFile("pqueue.c", pqueueC)
 		var pqueueH = readFileInClasspath("/lib/C/pqueue.h")
-		fsa.generateFile("pqueue.h", pqueueH)		
+		fsa.generateFile("pqueue.h", pqueueH)	
+		
+		// Invoke the compiler on the generated code.
+		if (compileCommand.isEmpty()) {
+   			if (numberOfThreads === 0) {
+   				// Non-threaded version.
+   				//compileCommand.addAll("pwd");
+   				compileCommand.addAll("gcc", "-O2", prefix + cFilename, "-o", _filename)
+   			} else {
+   				// Threaded version.
+   				//compileCommand.addAll("pwd");
+   				compileCommand.addAll("gcc", "-O2", "-pthread", prefix + cFilename, "-o", _filename)
+   			}
+		}
+		//println("Filename: " + cFilename);
+   		println("Compiling with command: " + compileCommand.join(" "))
+		var builder = new ProcessBuilder(compileCommand);
+		var process = builder.start()
+		var stdout = readStream(process.getInputStream())
+		var stderr = readStream(process.getErrorStream())
+		if (stdout.length() > 0) {
+			println("--- Standard output:")
+			println(stdout)
+			
+			println("Java current path: " + new File("").getAbsolutePath());
+		}
+		if (stderr.length() > 0) {
+			errors.add(stderr.toString)
+			println("ERRORS")
+			println("--- Standard error:")
+			println(stderr)
+		} else {
+			println("SUCCESS")
+		}
+		// FIXME: copy executable into same directory as LF source 
 	}
 	
+		/** Read the specified input stream until an end of file is encountered
+	 *  and return the result as a StringBuilder.
+	 *  @param stream The stream to read.
+	 *  @return The result as a string.
+	 */
+	private def readStream(InputStream stream) {
+		var reader = new BufferedReader(new InputStreamReader(stream))
+		var result = new StringBuilder();
+		var line = "";
+		while ( (line = reader.readLine()) !== null) {
+   			result.append(line);
+   			result.append(System.getProperty("line.separator"));
+		}
+		stream.close()
+		reader.close()
+		result
+	}
 	////////////////////////////////////////////
 	//// Code generators.
 	
