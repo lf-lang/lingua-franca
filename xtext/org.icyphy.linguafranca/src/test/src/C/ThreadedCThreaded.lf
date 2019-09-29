@@ -22,14 +22,18 @@ reactor TakeTime {
 	input in:int;
 	output out:int;
 	reaction(in) -> out {=
-		struct timespec sleep_time = {(time_t) 0, (long)200000000};
-		struct timespec remaining_time;
-		nanosleep(&sleep_time, &remaining_time);
-		set(out, in);
+		// struct timespec sleep_time = {(time_t) 0, (long)200000000};
+		// struct timespec remaining_time;
+		// nanosleep(&sleep_time, &remaining_time);
+		int offset = 0;
+		for (int i = 0; i < 100000000; i++) {
+		    offset++;
+		}
+		set(out, in + offset);
 	=}
 }
 reactor Destination {
-	state s:int(0);
+	state s:int(400000000);
 	input in1:int;
 	input in2:int;
 	input in3:int;
