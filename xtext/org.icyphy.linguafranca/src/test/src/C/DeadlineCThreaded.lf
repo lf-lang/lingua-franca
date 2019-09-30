@@ -15,7 +15,7 @@ reactor Source(period:time(1 sec)) {
 		nanosleep(&sleep_time, &remaining_time);
 		set(y, self->count);
 	=}
-}
+} 
 reactor Destination {
 	input x:int;
 	input e:int;
@@ -37,7 +37,7 @@ reactor Main {
 		printf("**** Deadline miss detected.\n");
 		set(d.e, 1);
 	=}
-	s = new Source(period=1);
+	s = new Source(period=1 sec);
 	d = new Destination();
 	s.y -> d.x;
 	deadline(d.x, 100 msec, panic);
