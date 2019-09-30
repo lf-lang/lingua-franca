@@ -133,26 +133,33 @@ class CGenerator extends GeneratorBase {
 
 		super.doGenerate(resource, fsa, context, importTable)
 
+		// Determine path to generated code
 		var prefix = ""
 		val cFilename = _filename + ".c";
 		var srcFile = resource.getURI.toString;
-		// Determine path to generated code
-		// if (resource.getURI.toString.startsWith("file:")) {
-		if (srcFile.startsWith("platform:")) {
-			srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
-		}
-
-		if (srcFile.startsWith("file:")) {
+		val curPath = new File("").getAbsolutePath();
+		var outPath = "" // output executable in same dir by default
+		
+		if (srcFile.startsWith("file:")) { // Called from command line
 			srcFile = Paths.get(srcFile.split("file:").get(1)).normalize.toString
+		} else if (srcFile.startsWith("platform:")) { // Called from Eclipse
+			srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
+			srcFile = Paths.get(srcFile.split("file:").get(1)).normalize.toString
+			outPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator)) + File.separator + "bin" + File.separator
+			
+			val directory = new File(outPath);
+    		if (! directory.exists()){
+        		directory.mkdir();
+   	 		}
 		} else {
 			// ERROR
 		}
 
-		var srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
-		val curPath = new File("").getAbsolutePath();
+		val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
 		val srcRoot = srcPath.substring(0, srcPath.lastIndexOf(File.separator))
 		val genPath = srcRoot.substring(0, srcRoot.lastIndexOf(File.separator)) 
 			+ File.separator + "src-gen"
+		
 		if (curPath.startsWith(srcPath)) {
 			val suffix = curPath.substring(srcPath.length, curPath.length)
 			for (var i = 1 + suffix.split(File.separator, -1).length - 1; i > 0; i--) {
@@ -226,11 +233,11 @@ class CGenerator extends GeneratorBase {
 			if (numberOfThreads === 0) {
 				// Non-threaded version.
 				// compileCommand.addAll("pwd");
-				compileCommand.addAll("gcc", "-O2", prefix + cFilename, "-o", _filename)
+				compileCommand.addAll("gcc", "-O2", prefix + cFilename, "-o", outPath + _filename)
 			} else {
 				// Threaded version.
 				// compileCommand.addAll("pwd");
-				compileCommand.addAll("gcc", "-O2", "-pthread", prefix + cFilename, "-o", _filename)
+				compileCommand.addAll("gcc", "-O2", "-pthread", prefix + cFilename, "-o", outPath + _filename)
 			}
 		}
 		// println("Filename: " + cFilename);

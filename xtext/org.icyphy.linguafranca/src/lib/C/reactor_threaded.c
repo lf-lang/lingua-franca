@@ -80,8 +80,8 @@ int wait_until(instant_t logical_time_ns) {
         // timespec is seconds and nanoseconds.
         struct timespec wait_until_time = {(time_t)logical_time_ns / BILLION, (long)logical_time_ns % BILLION};
 
-        // printf("-------- Waiting for physical time to match logical time %lld.\n", logical_time_ns);
-    	// printf("-------- which is %splus %ld nanoseconds.\n", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
+        printf("-------- Waiting for physical time to match logical time %llu.\n", logical_time_ns);
+    	printf("-------- which is %splus %ld nanoseconds.\n", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
 
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
         	// printf("-------- Wait interrupted.\n");
