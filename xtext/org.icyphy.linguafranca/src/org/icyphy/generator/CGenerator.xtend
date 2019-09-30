@@ -157,8 +157,7 @@ class CGenerator extends GeneratorBase {
 
 		val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
 		val srcRoot = srcPath.substring(0, srcPath.lastIndexOf(File.separator))
-		val genPath = srcRoot.substring(0, srcRoot.lastIndexOf(File.separator)) 
-			+ File.separator + "src-gen"
+		val genPath = srcRoot + File.separator + "src-gen"
 		
 		if (curPath.startsWith(srcPath)) {
 			val suffix = curPath.substring(srcPath.length, curPath.length)
