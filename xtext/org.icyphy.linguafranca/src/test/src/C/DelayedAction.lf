@@ -3,7 +3,7 @@ target C(
 );
 reactor Main {
     timer t(0, 1 sec);
-    action a;
+    logical action a;
     state count:int(0);
     reaction(t) -> a {=
         schedule(a, MSEC(100), NULL);

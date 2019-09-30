@@ -24,7 +24,7 @@ reactor Destination {
 }
 reactor Main {
     timer start;
-    action repeat;
+    logical action repeat;
     d = new Destination();
     reaction(start) -> d.x, repeat {=
         set(d.x, 1);

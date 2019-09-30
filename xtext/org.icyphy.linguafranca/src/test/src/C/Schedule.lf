@@ -2,7 +2,7 @@
 target C;
 reactor Schedule {
     input x:int;
-    action a;
+    logical action a;
     reaction(x) -> a {=
         schedule(a, MSEC(200), NULL);
     =}

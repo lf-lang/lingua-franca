@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Automatic-Module-Name: org.icyphy.linguafranca
 Bundle-ManifestVersion: 2
 Bundle-Name: org.icyphy.linguafranca
-Bundle-Vendor: My Company
+Bundle-Vendor: University of California, Berkeley
 Bundle-Version: 1.0.0.qualifier
 Bundle-SymbolicName: org.icyphy.linguafranca; singleton:=true
 Bundle-ActivationPolicy: lazy
@@ -14,7 +14,8 @@ Require-Bundle: org.eclipse.xtext,
  org.eclipse.xtext.util,
  org.eclipse.emf.common,
  org.eclipse.xtend.lib;bundle-version="2.14.0",
- org.antlr.runtime;bundle-version="[3.2.0,3.2.1)"
+ org.antlr.runtime;bundle-version="[3.2.0,3.2.1)",
+ org.eclipse.core.runtime;bundle-version="3.15.300"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Export-Package: org.icyphy.linguaFranca,
  org.icyphy.validation,
