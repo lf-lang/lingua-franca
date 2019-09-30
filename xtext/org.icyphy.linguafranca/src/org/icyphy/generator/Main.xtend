@@ -23,6 +23,7 @@ import org.icyphy.LinguaFrancaStandaloneSetup
 class Main {
 
 	def static main(String[] args) {
+		// FIXME: perhaps accept a `-o` flag here
 		if (args.empty) {
 			System::err.println('Aborting: no path to EMF resource provided!')
 			return
@@ -88,6 +89,7 @@ class Main {
 		val context = new GeneratorContext => [
 			cancelIndicator = CancelIndicator.NullImpl
 		]
+		// FIXME: perhaps use context to pass in additional arguments?
 		generator.generate(resource, fileAccess, context)
 		System.out.println('Code generation finished.')
 	}

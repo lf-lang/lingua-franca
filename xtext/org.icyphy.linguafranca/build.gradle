@@ -1,6 +1,9 @@
 dependencies {
 	compile "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
 	compile "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextVersion}"
+	// https://mvnrepository.com/artifact/org.eclipse.core/org.eclipse.core.runtime
+	compile group: 'org.eclipse.core', name: 'org.eclipse.core.runtime', version: '3.7.0'
+	
 }
 configurations {
 	mwe2 {

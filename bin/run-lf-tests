@@ -33,7 +33,7 @@ else
 			#echo $name;
 			#echo $ext;
 			eval "$offset""bin/lfc ""$p";
-			eval ""./""$name" -timeout 3 sec"
+			eval "./$name -timeout 1 sec";
 		done <testFiles.txt
 		popd;
 	fi

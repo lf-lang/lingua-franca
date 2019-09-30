@@ -1,13 +1,11 @@
 package org.icyphy.generator
 
 import java.util.Hashtable
-import java.util.LinkedHashMap
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reactor
-import java.util.Collections
 
 class SCLGenerator extends GeneratorBase {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context, Hashtable<String,String> importTable) {
