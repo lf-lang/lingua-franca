@@ -224,24 +224,24 @@ class AccessorGenerator extends GeneratorBase {
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
 				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (getTiming(reactor, trigger) !== null) {
+					} else if (getTiming(reactor, trigger.variable.name) !== null) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
 						var list = timerReactions.get(trigger)
 						if (list === null) {
 							list = new LinkedList<String>()
-							timerReactions.put(trigger, list)
+							timerReactions.put(trigger.variable.name, list)
 						}
 						list.add(functionName)
-					} else if (getAction(reactor, trigger) !== null) {
+					} else if (getAction(reactor, trigger.variable.name) !== null) {
 					    // The trigger is an action.
-					    args.add(trigger)
+					    args.add(trigger.variable.name)
 					    // Make sure there is an entry for this action in the action table.
 					    pr('''
-					    if (!actionTable.«trigger») {
-					        actionTable.«trigger» = [];
+					    if (!actionTable.«trigger.variable») {
+					        actionTable.«trigger.variable» = [];
 					    }
-					    actionTable.«trigger».push(«functionName»);
+					    actionTable.«trigger.variable».push(«functionName»);
 					    ''')
 					} else {
 						// This is checked by the validator (See LinguaFrancaValidator.xtend).
@@ -268,21 +268,20 @@ class AccessorGenerator extends GeneratorBase {
 				addInputHandlers.append('''this.addInputHandler(null, «functionName».bind(this));''')
 			}
 			// Define variables for non-triggering inputs.
-			if (reaction.uses !== null && reaction.uses.uses !== null) {
-				for(get: reaction.uses.uses) {
-					pr(body, '''var «get» = get("«get»");''')
-				}
+			for(inp : reaction.sources?:emptyList) {
+				pr(body, '''var «inp.variable.name» = get("«inp.variable.name»");''')
 			}
+			
 			// Define variables for each declared output.
-			if (reaction.produces !== null && reaction.produces.produces !== null) {
-				for(output: reaction.produces.produces) {
-					// Set the output name variable equal to a string.
-					// FIXME: String name is too easy to cheat!
-					// LF coder could write set('foo', value) to write to
-					// output foo without having declared the write.
-					pr(body, '''var «output» = "«output»";''');
-				}
-			}			
+			
+			for (effect : reaction.effects ?: emptyList) {
+				// Set the output name variable equal to a string.
+				// FIXME: String name is too easy to cheat!
+				// LF coder could write set('foo', value) to write to
+				// output foo without having declared the write.
+				pr(body, '''var «effect.variable» = "«effect.variable»";''');
+			}
+						
 			// Define variables for each parameter.
 			for(parameter: getParameters(reactor)) {
 				pr(body, '''var «parameter.name» = this.getParameter("«parameter.name»");''');

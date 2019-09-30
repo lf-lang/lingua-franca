@@ -10,8 +10,7 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 Model:
 	target=Target 
 	(imports += Import)*
-	(reactors += Reactor)+
-	;
+	(reactors += Reactor)+;
 
 /////////// Top level elements
 Target:
@@ -21,9 +20,10 @@ Import:
 	'import' name=Path ';';
 
 Reactor:
-   	'reactor' name=ID parameters=Params? '{'
+   	modifier='main'? 'reactor' name=ID parameters=Params? '{'
    	(preamble = Preamble)?
-	((states += State)
+   	((inits += Initialization) // TODO: code-gen for init
+	| (states += State)
    	| (inputs += Input)
    	| (outputs += Output)
    	| (timers += Timer)
@@ -31,67 +31,95 @@ Reactor:
    	| (instances += Instance)
    	| (connections += Connection)
    	| (deadlines += Deadline)
-   	| (reactions += Reaction))*
+   	| (reactions += Reaction)
+   	| (mutations += Mutation))*
    	'}';
 	
 /////////// Statements
 
-// Note explicit allowance of keywords for names of inputs, outputs, timers.
 // Types are optional for use in untyped languages.
 State:
-	'state' name=ValidID (':' type=Type)? ('(' value=Value ')') ';';
+	'state' name=ID (':' type=Type)? ('(' value=Value ')') ';';
 
 Input:
-	'input' name=ValidID (':' type=Type)? ';';
+	'input' name=ID (':' type=Type)? ';';
 
 Output:
-	'output' name=ValidID (':' type=Type)? ';';
+	'output' name=ID (':' type=Type)? ';';
 
 Timer:
-	'timer' name=ValidID timing=Timing?';';
+	modifier=('logical'|'physical')? 'timer' name=ID timing=Timing?';';
 
 Action:
-	modifier='physical'? 'action' name=ValidID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
+	modifier=('logical'|'physical')? 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
 
 Reaction:
-	'reaction' 
-	('(' (triggers+=ValidID (',' triggers+=ValidID)*)? ')')?
-	uses=Uses?
-	produces=Produces?
+	('reaction' | 'react')
+	('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+	(sources+=SourceRef (',' sources+=SourceRef)*)?
+	('->' effects+=EffectRef (',' effects+=EffectRef)*)?
 	code=CODE;
-	
+
+Mutation:
+	('mutation' | 'mutate')
+	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
+	(sources+=[Input] (',' sources+=[Input])*)?
+	('->' effects+=[Effect] (',' effects+=[Effect])*)?
+	code=CODE;
+
+Initialization:
+	('initialize' | 'init')
+	(sources+=[Input] (',' sources+=[Input])*)?
+	('->' effects+=[Effect] (',' effects+=[Effect])*)?
+	code=CODE;
+
 Preamble:
 	'preamble' code=CODE;
 	
-// FIXME: reactorClass should ideally be something like [Reactor|Composite],
-// to get cross references to work. But this doesn't work for importing
-// foreign reactors that are not defined in Lingua Franca.
+// FIXME: Insert dummy object for foreign imports in scope provider.
 Instance:
-	name=ID '=' 'new' reactorClass=ID ('(' parameters=Assignments? ')')? ';' ;
+	name=ID '=' 'new' reactorClass=[Reactor] ('(' parameters=Assignments? ')')? ';' ;
 
 Connection:
-    leftPort=Port '->' rightPort=Port ';';
+    leftPort=Port '->' rightPort=Port ';'; // FIXME: add cross-referencing here
     
 Deadline:
-	'deadline' '(' port=Port ',' delay=Time ',' action=ValidID ')' ';';
-    
-ValidID:
-	ID | KEYWORD;
+    'deadline' '(' port=InputRef ',' delay=Time ',' action=[Action] ')' ';';
 
 KEYWORD:
 	'input' | 'state' | 'output' | 'timer' | 'action';
 
 /////////// Pieces
 
+Variable:
+	Input | Output | Action | Timer;
+
+Trigger:
+	Action | Input
+;
+
+Effect:
+	Action | Output
+;
+
+TriggerRef:
+	variable=[Variable] | instance=[Instance] '.' variable=[Output];
+
+SourceRef:
+	variable=[Input] | instance=[Instance] '.' variable=[Output];
+	
+InputRef:
+	variable=[Input] | instance=[Instance] '.' variable=[Input];
+
+EffectRef:
+	variable=[Variable] | instance=[Instance] '.' variable=[Input];
+
 Assignments:
 	assignments+=Assignment (',' assignments+=Assignment)*;
 	
 Assignment:
-	name=ID '=' value=Value (unit=ID)?;
-
-// Specification of what inputs a reaction reads.
-Uses:
-	uses+=ID (',' uses+=ID)?;
+	name=ID '=' value=Value (unit=ID)?; // FIXME: Cross-referencing
+	//name=[Param] '=' value=Value (unit=ID)?;
 
 // Parameters for actors and composites.
 Params:
@@ -118,12 +146,7 @@ Time:
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
-    ValidID | (ValidID '.' ValidID);
-
-// Specification of what outputs a reaction writes.
-// Note that Port is either a ValidID or ValidID.ValidID
-Produces:
-	'->' produces+=Port (',' produces+=Port)?;
+    ID | (ID '.' ID);
 
 // A type is in the target language, hence either an ID or target code.
 Type:

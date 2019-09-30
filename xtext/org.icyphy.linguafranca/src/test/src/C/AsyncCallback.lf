@@ -9,7 +9,7 @@ target C(
 
 reactor Main {
 	
-	preamble {=
+	preamble {= 
 		#include <pthread.h>
 				
 		void callback(void* a) {
@@ -35,8 +35,8 @@ reactor Main {
 	state thread_id:pthread_t(NULL);
 	state expected_time:{=long long=}({=100000000LL=});
 	state toggle:bool(false);
-    physical action a:int;
-	state i:int(0);
+    action a:int;
+    state i:int(0);
 	reaction(t) -> a {=
 		// start new thread, provide callback
 		pthread_create(&self->thread_id, NULL, &take_time, a);

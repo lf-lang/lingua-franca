@@ -8,7 +8,12 @@ import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 import org.icyphy.linguaFranca.Connection;
+import org.icyphy.linguaFranca.EffectRef;
+import org.icyphy.linguaFranca.Input;
+import org.icyphy.linguaFranca.Output;
 import org.icyphy.linguaFranca.Reaction;
+import org.icyphy.linguaFranca.SourceRef;
+import org.icyphy.linguaFranca.TriggerRef;
 
 /** Precedence graph analysis for Lingua Franca models.
  *  The way to use this class is to call calculateLevels()
@@ -68,13 +73,13 @@ public class ReactionGraph {
                 // then create a PortInstance for that port (if it does not already exist)
                 // and establish the dependency on that port.
                 if (reaction.getTriggers() != null) {
-                    for (String trigger: reaction.getTriggers()) {
+                    for (TriggerRef trigger: reaction.getTriggers()) {
                         // Check that this is an input, not an action or timer.
-                        if (_generator.getInput(reactorInstance.reactor, trigger) != null) {
-                            PortInstance port = reactorInstance.portInstances.get(trigger);
+                        if (_generator.getInput(reactorInstance.reactor, trigger.getVariable().getName()) != null) {
+                            PortInstance port = reactorInstance.portInstances.get(trigger.getVariable().getName());
                             if (port == null) {
-                                port = new PortInstance(reactorInstance, trigger);
-                                reactorInstance.portInstances.put(trigger, port);
+                                port = new PortInstance(reactorInstance, trigger.getVariable().getName());
+                                reactorInstance.portInstances.put(trigger.getVariable().getName(), port);
                             }
                             port.dependentReactions.add(reactionInstance);
                             reactionInstance.dependsOnPorts.add(port);                            
@@ -85,62 +90,74 @@ public class ReactionGraph {
                 // If the reaction reads an input to this reactor instance,
                 // then create a PortInstance for that port (if it does not already exist)
                 // and establish the dependency on that port.
-                if (reaction.getUses() != null && reaction.getUses().getUses() != null) {
-                    for (String uses: reaction.getUses().getUses()) {
-                        // Check that this is an input, not an action or timer.
-                        if (_generator.getInput(reactorInstance.reactor, uses) != null) {
-                            PortInstance port = reactorInstance.portInstances.get(uses);
-                            if (port == null) {
-                                port = new PortInstance(reactorInstance, uses);
-                                reactorInstance.portInstances.put(uses, port);
-                            }
-                            port.dependentReactions.add(reactionInstance);
-                            reactionInstance.dependsOnPorts.add(port);
-                        }
+                if (reaction.getSources() != null && reaction.getSources().size() > 0) {
+                    for (SourceRef src: reaction.getSources()) {
+                        PortInstance port = new PortInstance(reactorInstance, src.getVariable().getName());
+                        reactorInstance.portInstances.put(src.getVariable().getName(), port);
+                        port.dependentReactions.add(reactionInstance);
+                        reactionInstance.dependsOnPorts.add(port);
                     }
                 }
 
                 // If the reaction produces an output from this reactor instance,
                 // then create a PortInstance for that port (if it does not already exist)
                 // and establish the dependency on that port.
-                if (reaction.getProduces() != null 
-                        && reaction.getProduces().getProduces() != null) {
-                    for (String output: reaction.getProduces().getProduces()) {
+                if (reaction.getEffects() != null 
+                        && reaction.getEffects() != null) {
+                    for (EffectRef effect : reaction.getEffects()) {
                         // Check for dotted output, which is the input of a contained reactor.
-                        String[] split = output.split("\\.");
-                        if (split.length == 2) {
-                            // Dot in the name implies that this is the port of a contained reactor.
-                            ReactorInstance containedReactor = reactorInstance.getContainedInstance(split[0]);
+                        if (effect.getVariable() instanceof Input) {
+                            Input input = (Input) effect.getVariable();
+                            ReactorInstance containedReactor = reactorInstance
+                                    .getContainedInstance(effect.getInstance().getName());
                             if (containedReactor == null) {
                                 _generator.reportError(reactorInstance.reactor,
-                                        "Unknown destination reactor: " + split[0]);
+                                        "Unknown destination reactor: "
+                                                + effect.getInstance().getName());
                             } else {
-                                // Check that this is an output, not an action.
-                                if (_generator.getOutput(containedReactor.reactor, split[1]) != null) {
-                                    PortInstance port = containedReactor.portInstances.get(split[1]);
-                                    if (port == null) {
-                                        port = new PortInstance(containedReactor, split[1]);
-                                        containedReactor.portInstances.put(split[1], port);
-                                    }
-                                    port.dependsOnReactions.add(reactionInstance);
-                                    reactionInstance.dependentPorts.add(port);
-                                }
-                            }
-                        } else if (split.length == 1) {
-                            // No dot in the name, so this is a port of the reactor defining the reaction.
-                            // Check that this is an output, not an action.
-                            if (_generator.getOutput(reactorInstance.reactor, output) != null) {
-                                PortInstance port = reactorInstance.portInstances.get(output);
+                                PortInstance port = containedReactor.portInstances
+                                        .get(input.getName());
                                 if (port == null) {
-                                    port = new PortInstance(reactorInstance, output);
-                                    reactorInstance.portInstances.put(output, port);
+                                    port = new PortInstance(containedReactor,
+                                            input.getName());
+                                    containedReactor.portInstances
+                                            .put(input.getName(), port);
                                 }
                                 port.dependsOnReactions.add(reactionInstance);
                                 reactionInstance.dependentPorts.add(port);
                             }
-                        } else {
-                            _generator.reportError(reaction, "Malformed port designator: " + output);
+                        } else if (effect.getVariable() instanceof Output) {
+                          Output output = (Output)effect.getVariable();
+                          if (_generator.getOutput(reactorInstance.reactor, output.getName()) != null) {
+                          PortInstance port = reactorInstance.portInstances.get(output.getName());
+                          if (port == null) {
+                              port = new PortInstance(reactorInstance, output.getName());
+                              reactorInstance.portInstances.put(output.getName(), port);
+                          }
+                          port.dependsOnReactions.add(reactionInstance);
+                          reactionInstance.dependentPorts.add(port);
+                      }
+
                         }
+//                        String[] split = output.split("\\.");
+//                        if (split.length == 2) {
+//                            // Dot in the name implies that this is the port of a contained reactor.
+//                            
+//                        } else if (split.length == 1) {
+//                            // No dot in the name, so this is a port of the reactor defining the reaction.
+//                            // Check that this is an output, not an action.
+//                            if (_generator.getOutput(reactorInstance.reactor, output) != null) {
+//                                PortInstance port = reactorInstance.portInstances.get(output);
+//                                if (port == null) {
+//                                    port = new PortInstance(reactorInstance, output);
+//                                    reactorInstance.portInstances.put(output, port);
+//                                }
+//                                port.dependsOnReactions.add(reactionInstance);
+//                                reactionInstance.dependentPorts.add(port);
+//                            }
+//                        } else {
+//                            _generator.reportError(reaction, "Malformed port designator: " + output);
+//                        }
                     }
                 }
             }

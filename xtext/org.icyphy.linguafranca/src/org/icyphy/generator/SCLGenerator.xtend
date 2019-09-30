@@ -1,13 +1,11 @@
 package org.icyphy.generator
 
 import java.util.Hashtable
-import java.util.LinkedHashMap
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reactor
-import java.util.Collections
 
 class SCLGenerator extends GeneratorBase {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context, Hashtable<String,String> importTable) {
@@ -47,7 +45,7 @@ class SCLGenerator extends GeneratorBase {
 				for (input : reactionInstance.dependsOnPorts) {
 					input.dependsOnPorts.forEach[args.add(String.format("%s := %s.%s", input.portName, it.reactorInstance.fullName, it.portName))]
 				}
-				reactionInstance.reactionSpec.produces?.produces?.forEach[args.add(String.format("%s := %s.%s", it, reactionInstance.reactorInstance.fullName, it))]
+				reactionInstance.reactionSpec.effects.forEach[args.add(String.format("%s := %s.%s", it.variable.name, reactionInstance.reactorInstance.fullName, it))]
 				pr("%s(%s)", reactionName, args.join(", "))
 			}
 		]
@@ -81,11 +79,11 @@ class SCLGenerator extends GeneratorBase {
 					pr("this: %s;", reactorName)
 				]
 				prBlock("VAR_INPUT", "END_VAR")[
-					reaction.triggers?.forEach[pr("%s: %s;", it, inputs.get(it))]
-					reaction.uses?.uses?.forEach[pr("%s: %s;", it, inputs.get(it))]
+					reaction.triggers?.forEach[pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))]
+					reaction.sources?.forEach[pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))]
 				]
 				prBlock("VAR_OUTPUT", "END_VAR")[
-					reaction.produces?.produces?.forEach[pr("%s: %s;", it, inputs.get(it))]
+					reaction.effects?.forEach[pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))]
 				]
 				for (parameter: getParameters(reactor)) {
 					// TODO: Handle parameters
@@ -100,7 +98,7 @@ class SCLGenerator extends GeneratorBase {
 		ReactorInstance container,
 		Hashtable<String,String> importTable
 	) {
-		var reactor = getReactor(instance.reactorClass)
+		var reactor = getReactor(instance.reactorClass.name)
 		if (reactor === null) {
 			reportError(instance, String.format("No such reactor: %s", instance.reactorClass))
 			return null
