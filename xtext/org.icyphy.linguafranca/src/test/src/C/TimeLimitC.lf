@@ -7,7 +7,7 @@
 // this executes 10,000,000 cycles (two reactions in each cycle) in 0.85 seconds,
 // for over 23 million reactions per second.
 // This translates to 43 nanoseconds per reaction invocation.
-target C( 
+target C(
     compile = "gcc -O2 TimeLimitC.c -o TimeLimitC",
 	run = "./TimeLimitC -fast"
 );
