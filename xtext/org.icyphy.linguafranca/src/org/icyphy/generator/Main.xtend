@@ -86,7 +86,7 @@ class Main {
 		}
 
 		// Configure and start the generator
-		fileAccess.outputPath = '../src-gen/'
+		fileAccess.outputPath = 'src-gen'
 		val context = new GeneratorContext => [
 			cancelIndicator = CancelIndicator.NullImpl
 		]

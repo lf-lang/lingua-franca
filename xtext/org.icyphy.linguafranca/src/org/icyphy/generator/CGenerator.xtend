@@ -134,55 +134,18 @@ class CGenerator extends GeneratorBase {
 		super.doGenerate(resource, fsa, context, importTable)
 
 		// Determine path to generated code
-		var prefix = ""
 		val cFilename = _filename + ".c";
 		var srcFile = resource.getURI.toString;
-		val curPath = new File("").getAbsolutePath();
-		var outPath = "" // output executable in same dir by default
 		
 		if (srcFile.startsWith("file:")) { // Called from command line
-			srcFile = Paths.get(srcFile.split("file:").get(1)).normalize.toString
+			srcFile = Paths.get(srcFile.substring(5)).normalize.toString
 		} else if (srcFile.startsWith("platform:")) { // Called from Eclipse
 			srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
-			srcFile = Paths.get(srcFile.split("file:").get(1)).normalize.toString
-			outPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator)) + File.separator + "bin" + File.separator
-			
-			val directory = new File(outPath);
-    		if (! directory.exists()){
-        		directory.mkdir();
-   	 		}
+			srcFile = Paths.get(srcFile.substring(5)).normalize.toString
 		} else {
-			// ERROR
+			System.err.println("ERROR: Source file protocol is not recognized: " + srcFile);
 		}
-
-		val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
-		val srcRoot = srcPath.substring(0, srcPath.lastIndexOf(File.separator))
-		val genPath = srcRoot + File.separator + "src-gen"
 		
-		if (curPath.startsWith(srcPath)) {
-			val suffix = curPath.substring(srcPath.length, curPath.length)
-			for (var i = 1 + suffix.split(File.separator, -1).length - 1; i > 0; i--) {
-				prefix += ".." + File.separator
-			}
-			prefix += "src-gen" + File.separator
-		} else if (curPath.startsWith(genPath)) {
-			val suffix = curPath.substring(srcPath.length, curPath.length)
-			for (var i = 0 + suffix.split(File.separator, -1).length - 1; i > 0; i--) {
-				prefix += ".." + File.separator
-			}
-		} else {
-			val dirs = curPath.split(File.separator, -1)
-			var match = ""
-			for (dir : dirs) {
-				if (genPath.startsWith(match + dir + File.separator)) {
-					match += dir + File.separator
-				} else {
-					prefix += ".." + File.separator
-				}
-			}
-			prefix += genPath.substring(match.length, genPath.length) + File.separator
-		}
-
 		// Any main reactors in imported files are ignored.		
 		if (main !== null) {
 			// Generate function to initialize the trigger objects for all reactors.
@@ -208,48 +171,76 @@ class CGenerator extends GeneratorBase {
 			unindent()
 			pr('}\n')
 		}
+		// NOTE: IFileSystemAccess2 fsa for some reason does not update the last modified
+		// date on the file. Hence, we delete the file here. This also ensures that no
+		// older file gets mistaken for the result of this code generation in case code
+		// generation failed.
+		fsa.deleteFile(cFilename)
 		fsa.generateFile(cFilename, getCode())
 
 		// Copy the required library files into the target filesystem.
 		var reactorCCommon = readFileInClasspath("/lib/C/reactor_common.c")
+		fsa.deleteFile("reactor_common.c")
 		fsa.generateFile("reactor_common.c", reactorCCommon)
 		if (numberOfThreads === 0) {
 			var reactorC = readFileInClasspath("/lib/C/reactor.c")
+			fsa.deleteFile("reactor.c")
 			fsa.generateFile("reactor.c", reactorC)
 		} else {
 			var reactorC = readFileInClasspath("/lib/C/reactor_threaded.c")
+			fsa.deleteFile("reactor_threaded.c")
 			fsa.generateFile("reactor_threaded.c", reactorC)
 		}
 		var reactorH = readFileInClasspath("/lib/C/reactor.h")
+		fsa.deleteFile("reactor.h")
 		fsa.generateFile("reactor.h", reactorH)
 		var pqueueC = readFileInClasspath("/lib/C/pqueue.c")
+		fsa.deleteFile("pqueue.c")
 		fsa.generateFile("pqueue.c", pqueueC)
 		var pqueueH = readFileInClasspath("/lib/C/pqueue.h")
+        fsa.deleteFile("pqueue.h")
 		fsa.generateFile("pqueue.h", pqueueH)
 
+        val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
+        var srcGenPath = srcPath + File.separator + "src-gen"
+        var outPath = srcPath + File.separator + "bin"
+        
+        // Create directories for generated source and binary if they do not exist.
+        var directory = new File(outPath)
+        if (! directory.exists()){
+            directory.mkdir()
+        }
+        directory = new File(srcGenPath)
+        if (! directory.exists()){
+            directory.mkdir()
+        }
+        
 		// Invoke the compiler on the generated code.
+		val relativeSrcFilename = "src-gen" + File.separator + cFilename;
+		val relativeBinFilename = "bin" + File.separator + _filename;
+		// FIXME: compileCommand is obsolete.
 		if (compileCommand.isEmpty()) {
 			if (numberOfThreads === 0) {
 				// Non-threaded version.
 				// compileCommand.addAll("pwd");
-				compileCommand.addAll("gcc", "-O2", prefix + cFilename, "-o", outPath + _filename)
+				compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o", relativeBinFilename)
 			} else {
 				// Threaded version.
 				// compileCommand.addAll("pwd");
-				compileCommand.addAll("gcc", "-O2", "-pthread", prefix + cFilename, "-o", outPath + _filename)
+				compileCommand.addAll("gcc", "-O2", "-pthread", relativeSrcFilename, "-o", relativeBinFilename)
 			}
 		}
 		// println("Filename: " + cFilename);
+		println("In directory: " + srcPath)
 		println("Compiling with command: " + compileCommand.join(" "))
 		var builder = new ProcessBuilder(compileCommand);
+		builder.directory(new File(srcPath));
 		var process = builder.start()
 		var stdout = readStream(process.getInputStream())
 		var stderr = readStream(process.getErrorStream())
 		if (stdout.length() > 0) {
 			println("--- Standard output:")
 			println(stdout)
-
-			println("Java current path: " + new File("").getAbsolutePath());
 		}
 		if (stderr.length() > 0) {
 			errors.add(stderr.toString)
@@ -259,7 +250,6 @@ class CGenerator extends GeneratorBase {
 		} else {
 			println("SUCCESS")
 		}
-	// FIXME: copy executable into same directory as LF source 
 	}
 
 	/** Read the specified input stream until an end of file is encountered
