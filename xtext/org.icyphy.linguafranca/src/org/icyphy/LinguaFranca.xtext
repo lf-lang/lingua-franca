@@ -48,7 +48,7 @@ Output:
 	'output' name=ID (':' type=Type)? ';';
 
 Timer:
-	modifier=('logical'|'physical')? 'timer' name=ID timing=Timing?';';
+	'timer' name=ID timing=Timing?';';
 
 Action:
 	modifier=('logical'|'physical')? 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
