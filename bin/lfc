@@ -26,7 +26,7 @@ base="${base}../xtext/"
 lfbase="${base}org.icyphy.linguafranca/"
 jarpath="${lfbase}build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar"
 
-if [ ! -f "${jarpath}" ] || ! "${FIND}" "${lfbase}src/" -path "${lfbase}src/test" -prune -o -type f -newer "${jarpath}" -exec false {} +; then  # Check if jar is missing or out-of-date relative to source files
+if [ ! -f "${jarpath}" ] || ! "${FIND}" "${lfbase}src" -path "${lfbase}src/test" -prune -o -type f -newer "${jarpath}" -exec false {} +; then  # Check if jar is missing or out-of-date relative to source files
 	1>&2 echo "Jar file is missing or out-of-date; running Gradle..."
 	"${base}gradlew" -p "${base}" generateStandaloneCompiler
 	touch -c -- "${jarpath}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be updated
