@@ -133,12 +133,15 @@ class CGenerator extends GeneratorBase {
 		// Determine path to generated code
 		val cFilename = _filename + ".c";
 		var srcFile = resource.getURI.toString;
+		var mode = Mode.UNDEFINED;
 		
 		if (srcFile.startsWith("file:")) { // Called from command line
 			srcFile = Paths.get(srcFile.substring(5)).normalize.toString
+			mode = Mode.STANDALONE;
 		} else if (srcFile.startsWith("platform:")) { // Called from Eclipse
 			srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
 			srcFile = Paths.get(srcFile.substring(5)).normalize.toString
+			mode = Mode.INTEGRATED;
 		} else {
 			System.err.println("ERROR: Source file protocol is not recognized: " + srcFile);
 		}
@@ -214,6 +217,9 @@ class CGenerator extends GeneratorBase {
         
 		// Invoke the compiler on the generated code.
 		// Do not do this if there is no main reactor.
+		// FIXME: perhaps we should compile with the `-c` flag in this case so we can gather feedback from the compiler nonetheless.
+        // Also, we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+        // Then again, I think this only makes sense when we can do linking. In any case, a warning is helpful to draw attention to the fact that no binary was produced.
         if (main !== null) {
     	    val relativeSrcFilename = "src-gen" + File.separator + cFilename;
 		    val relativeBinFilename = "bin" + File.separator + _filename;
@@ -248,6 +254,10 @@ class CGenerator extends GeneratorBase {
 		    } else {
 			    println("SUCCESS (compiling generated C code)")
 		    }
+		} else {
+			if (mode === Mode.STANDALONE) {
+				println("ERROR: Did not output executable; no main reactor found.")
+			}
 		}
 	}
 

@@ -7,5 +7,5 @@ reactor ImportedC {
 	a = new ImportedAgainC();
 	reaction(x) -> a.x {=
 		set(a.x, x); 
-	=}
+	=} 
 }
