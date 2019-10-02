@@ -786,4 +786,12 @@ class GeneratorBase {
 		}
 		return result
 	}
+	
+	enum Mode {
+  		STANDALONE,
+  		INTEGRATED,
+  		UNDEFINED
+	}
 }
+
+
