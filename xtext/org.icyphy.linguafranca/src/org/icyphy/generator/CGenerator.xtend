@@ -216,49 +216,45 @@ class CGenerator extends GeneratorBase {
         }
         
 		// Invoke the compiler on the generated code.
-		// Do not do this if there is no main reactor.
-		// FIXME: perhaps we should compile with the `-c` flag in this case so we can gather feedback from the compiler nonetheless.
-        // Also, we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking. In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (main !== null) {
-    	    val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-		    val relativeBinFilename = "bin" + File.separator + _filename;
-		    // FIXME: compileCommand is obsolete.
-		    if (compileCommand.isEmpty()) {
-			    if (numberOfThreads === 0) {
-				    // Non-threaded version.
-				    // compileCommand.addAll("pwd");
-				    compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o", relativeBinFilename)
-			    } else {
-				    // Threaded version.
-				    // compileCommand.addAll("pwd");
-				    compileCommand.addAll("gcc", "-O2", "-pthread", relativeSrcFilename, "-o", relativeBinFilename)
-			    }
-		    }
-		    println("In directory: " + srcPath)
-		    println("Compiling with command: " + compileCommand.join(" "))
-		    var builder = new ProcessBuilder(compileCommand);
-		    builder.directory(new File(srcPath));
-		    var process = builder.start()
-		    var stdout = readStream(process.getInputStream())
-		    var stderr = readStream(process.getErrorStream())
-		    if (stdout.length() > 0) {
-			    println("--- Standard output from C compiler:")
-			    println(stdout)
-		    }
-		    if (stderr.length() > 0) {
-			    errors.add(stderr.toString)
-			    println("ERRORS")
-			    println("--- Standard error from C compiler:")
-			    println(stderr)
-		    } else {
-			    println("SUCCESS (compiling generated C code)")
-		    }
-		} else {
-			if (mode === Mode.STANDALONE) {
-				println("ERROR: Did not output executable; no main reactor found.")
+        val relativeSrcFilename = "src-gen" + File.separator + cFilename;
+	    val relativeBinFilename = "bin" + File.separator + _filename;
+	    // FIXME: Do we want to keep the compileCommand option?
+	    if (compileCommand.isEmpty()) {
+	        compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o", relativeBinFilename)
+	        // If threaded computation is requested, add a -pthread option.
+		    if (numberOfThreads !== 0) {
+				compileCommand.add("-pthread")
 			}
-		}
+            // If there is no main reactor, then use the -c flag to prevent linking from occurring.
+            // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+            // Then again, I think this only makes sense when we can do linking.
+            // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
+            if (main === null) {
+                compileCommand.add("-c")
+                if (mode === Mode.STANDALONE) {
+                    println("ERROR: Did not output executable; no main reactor found.")
+                }
+            }
+        }
+	    println("In directory: " + srcPath)
+	    println("Compiling with command: " + compileCommand.join(" "))
+	    var builder = new ProcessBuilder(compileCommand);
+	    builder.directory(new File(srcPath));
+	    var process = builder.start()
+	    var stdout = readStream(process.getInputStream())
+	    var stderr = readStream(process.getErrorStream())
+	    if (stdout.length() > 0) {
+		    println("--- Standard output from C compiler:")
+		    println(stdout)
+	    }
+	    if (stderr.length() > 0) {
+		    errors.add(stderr.toString)
+		    println("ERRORS")
+		    println("--- Standard error from C compiler:")
+		    println(stderr)
+	    } else {
+		    println("SUCCESS (compiling generated C code)")
+	    }
 	}
 
 	/** Read the specified input stream until an end of file is encountered
@@ -1140,7 +1136,6 @@ class CGenerator extends GeneratorBase {
 		for (deadline : reactor.deadlines) {
 			if (deadline.port.instance !== null) { // x.y
 				var deadlineReactor = reactorInstance.getContainedInstance(deadline.port.instance.name)
-				println("****** FIXME: " + deadline.port.instance.reactorClass)
 				var triggerToReactions = getTriggerToReactions(deadline.port.instance.reactorClass)
 				var reactions = triggerToReactions.get(deadline.port.variable.name)
 				for (reaction : reactions) {
