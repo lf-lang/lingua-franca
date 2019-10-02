@@ -81,7 +81,7 @@ class CGenerator extends GeneratorBase {
 
 		println("Generating code for: " + resource.getURI.toString)
 
-		var runCommand = newArrayList("./" + _filename, "-timeout", "3", "secs")
+		var runCommand = newArrayList("bin/" + _filename, "-timeout", "3", "secs")
 		var runCommandOverridden = false
 		var compileCommand = newArrayList()
 
@@ -112,9 +112,6 @@ class CGenerator extends GeneratorBase {
 						compileCommand.clear
 						compileCommand.addAll(command)
 					}
-//				 else if (parameter.name.equals("threads")) {
-//   					threads = parameter.value
-//				}
 				}
 			}
 		}
@@ -216,39 +213,41 @@ class CGenerator extends GeneratorBase {
         }
         
 		// Invoke the compiler on the generated code.
-		val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-		val relativeBinFilename = "bin" + File.separator + _filename;
-		// FIXME: compileCommand is obsolete.
-		if (compileCommand.isEmpty()) {
-			if (numberOfThreads === 0) {
-				// Non-threaded version.
-				// compileCommand.addAll("pwd");
-				compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o", relativeBinFilename)
-			} else {
-				// Threaded version.
-				// compileCommand.addAll("pwd");
-				compileCommand.addAll("gcc", "-O2", "-pthread", relativeSrcFilename, "-o", relativeBinFilename)
-			}
-		}
-		// println("Filename: " + cFilename);
-		println("In directory: " + srcPath)
-		println("Compiling with command: " + compileCommand.join(" "))
-		var builder = new ProcessBuilder(compileCommand);
-		builder.directory(new File(srcPath));
-		var process = builder.start()
-		var stdout = readStream(process.getInputStream())
-		var stderr = readStream(process.getErrorStream())
-		if (stdout.length() > 0) {
-			println("--- Standard output:")
-			println(stdout)
-		}
-		if (stderr.length() > 0) {
-			errors.add(stderr.toString)
-			println("ERRORS")
-			println("--- Standard error:")
-			println(stderr)
-		} else {
-			println("SUCCESS")
+		// Do not do this if there is no main reactor.
+        if (main !== null) {
+    	    val relativeSrcFilename = "src-gen" + File.separator + cFilename;
+		    val relativeBinFilename = "bin" + File.separator + _filename;
+		    // FIXME: compileCommand is obsolete.
+		    if (compileCommand.isEmpty()) {
+			    if (numberOfThreads === 0) {
+				    // Non-threaded version.
+				    // compileCommand.addAll("pwd");
+				    compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o", relativeBinFilename)
+			    } else {
+				    // Threaded version.
+				    // compileCommand.addAll("pwd");
+				    compileCommand.addAll("gcc", "-O2", "-pthread", relativeSrcFilename, "-o", relativeBinFilename)
+			    }
+		    }
+		    println("In directory: " + srcPath)
+		    println("Compiling with command: " + compileCommand.join(" "))
+		    var builder = new ProcessBuilder(compileCommand);
+		    builder.directory(new File(srcPath));
+		    var process = builder.start()
+		    var stdout = readStream(process.getInputStream())
+		    var stderr = readStream(process.getErrorStream())
+		    if (stdout.length() > 0) {
+			    println("--- Standard output from C compiler:")
+			    println(stdout)
+		    }
+		    if (stderr.length() > 0) {
+			    errors.add(stderr.toString)
+			    println("ERRORS")
+			    println("--- Standard error from C compiler:")
+			    println(stderr)
+		    } else {
+			    println("SUCCESS (compiling generated C code)")
+		    }
 		}
 	}
 
@@ -1131,6 +1130,7 @@ class CGenerator extends GeneratorBase {
 		for (deadline : reactor.deadlines) {
 			if (deadline.port.instance !== null) { // x.y
 				var deadlineReactor = reactorInstance.getContainedInstance(deadline.port.instance.name)
+				println("****** FIXME: " + deadline.port.instance.reactorClass)
 				var triggerToReactions = getTriggerToReactions(deadline.port.instance.reactorClass)
 				var reactions = triggerToReactions.get(deadline.port.variable.name)
 				for (reaction : reactions) {
