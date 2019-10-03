@@ -4,7 +4,7 @@
 // reactions. The first instance has a period of 4 seconds, the second
 // of 2 seconds, and the third (composite) or 1 second.
 target C( 
-	run = "./HelloC -fast -timeout 10 sec"
+	run = "bin/HelloC -fast -timeout 10 sec"
 );
 reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	state count:int(0);

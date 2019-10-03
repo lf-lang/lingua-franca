@@ -7,7 +7,7 @@
 // in about 225 msec.
 target C(
 	threads = 4,
-	run = "./ThreadedCThreaded -timeout 2 sec"
+	run = "bin/ThreadedCThreaded -timeout 2 sec"
 );
 reactor Source {
 	timer t(0, 200 msec);

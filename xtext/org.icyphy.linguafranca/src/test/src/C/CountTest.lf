@@ -1,5 +1,5 @@
 target C(
-    run = "./CountTest -timeout 3 sec -fast"
+    run = "bin/CountTest -timeout 3 sec -fast"
 );
 import Count.lf;
 reactor Test {
