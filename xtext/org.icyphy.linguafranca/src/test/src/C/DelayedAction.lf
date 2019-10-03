@@ -1,5 +1,5 @@
 target C(
-    run = "./DelayedAction -fast -timeout 5 sec"
+    run = "bin/DelayedAction -fast -timeout 5 sec"
 );
 reactor Main {
     timer t(0, 1 sec);
