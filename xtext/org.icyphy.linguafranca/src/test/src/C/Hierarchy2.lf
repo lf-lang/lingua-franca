@@ -1,6 +1,6 @@
 // Test data transport across hierarchy.
 target C(
-    run = "./Hierarchy2 -fast -timeout 5 sec"
+    run = "bin/Hierarchy2 -fast -timeout 5 sec"
 );
 reactor Source {
     output out:int;

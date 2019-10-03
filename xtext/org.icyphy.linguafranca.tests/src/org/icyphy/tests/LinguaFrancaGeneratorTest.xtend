@@ -4,21 +4,26 @@
 package org.icyphy.tests
 
 import com.google.inject.Inject
+import com.google.inject.Provider
 import java.io.BufferedReader
+import java.io.File
+import java.io.FileReader
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.LinkedList
+import java.util.regex.Pattern
 import org.eclipse.emf.common.util.URI
+import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.GeneratorContext
-import org.eclipse.xtext.generator.InMemoryFileSystemAccess
+import org.eclipse.xtext.generator.JavaIoFileSystemAccess
 import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.XtextRunner
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
+import org.eclipse.xtext.util.CancelIndicator
+import org.eclipse.xtext.validation.CheckMode
+import org.eclipse.xtext.validation.IResourceValidator
 import org.icyphy.generator.LinguaFrancaGenerator
 import org.icyphy.linguaFranca.Model
 import org.junit.Test
@@ -36,6 +41,15 @@ class LinguaFrancaGeneratorTest {
 	@Inject
 	LinguaFrancaGenerator generator
 	
+	@Inject
+	Provider<ResourceSet> resourceSetProvider
+	
+	@Inject
+	IResourceValidator validator
+	
+	@Inject
+	JavaIoFileSystemAccess fileAccess
+	
 	@Test
 	def void checkCTestModels() {
 		var target = "C"
@@ -44,15 +58,10 @@ class LinguaFrancaGeneratorTest {
 		
 		var errors = new LinkedList<String>()
 		var testCount = 0
-     	// Write the generated code to a temporary directory.
-    	var directory = Files.createTempDirectory("linguafranca")
-    	// The following causes the files to be deleted as soon as the test is done.
-    	// Probably don't want that while debugging.
-        directory.toFile.deleteOnExit
-    	println("Writing code to temporary directory: " + directory)
+
 		for (file: testFiles) {
 			testCount++
-			compileAndRun(target, file, directory, errors)
+			compileAndRun(target, file, errors)
 		}
 		var message = '''Errors: «errors.length» out of «testCount» tests:
 * «errors.join("\n* ")»'''
@@ -71,102 +80,113 @@ class LinguaFrancaGeneratorTest {
 	 *  @param errors A list to which to append errors.
 	 */
 	private def compileAndRun(
-		String target, String file, Path directory, LinkedList<String> errors
-	) {
-        var code = readTestFile(target, file)
-        if (code === null) {
-        	errors.add("Couldn't find test file: " + file + " for target: " + target)
-        	return
+		String target, String file, LinkedList<String> errors
+	) {        
+        val set = resourceSetProvider.get
+        // Get an absolute path to the file.
+        // Current directory is lingua-franca/xtext/org.icyphy.linguafranca.tests
+        // We need to be in lingua-franca/xtext/org.icyphy.linguafranca/src/test/src/C
+        val fileRoot = (new File("")).getAbsolutePath()
+        val srcPath = fileRoot
+                + File.separator
+                + ".."
+                + File.separator
+                + "org.icyphy.linguafranca"
+                + File.separator
+                + "src"
+                + File.separator
+                + "test"
+                + File.separator
+                + "src"
+                + File.separator
+                + target
+        val fileName = srcPath
+                + File.separator
+                + file;
+        val resource = set.getResource(URI.createFileURI(fileName), true)
+
+        // Validate the resource
+        val issues = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl)
+        if (!issues.empty) {
+            System::err.println('Aborting. Unable to validate resource.');
+            issues.forEach[System.err.println(it)]
+            // Add to the errors list so that this counts as a failed test.
+            issues.forEach[errors.add("ERROR: Validation failed on " + fileName + "\n"
+                + it.toString
+            )]
+            return
         }
+
+        var code = new StringBuilder()
+        try {
+            // The following reads a file relative to the classpath.
+            // The file needs to be in the src directory.
+            var reader = new BufferedReader(new FileReader(fileName))
+            var line = ""
+            while ((line = reader.readLine()) !== null) {
+                code.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            System::err.println('Aborting. Unable to read file: ' + fileName);
+            return;
+        }
+        
+        // Add imports to the resources, as done in Main.xtend.
+        // Parse out imports and add them to a list
+        // RegEx based on org.eclipse.xtext.common.Terminals
+        val id = "(?:([a-z]|[A-Z]|_)\\w*)";
+        // RegEx based on LinguaFranca.xtext
+        val pattern = Pattern.compile("import(?:\\s)*(" + id + "(?:." + id + ")*)\\s*;");
+        val matcher = pattern.matcher(code);
+
+        val imports = newArrayList();
+        while (matcher.find) {
+            imports.add(matcher.group(1));
+        }
+        // Add the listed imports to the resource
+        // FIXME: This doesn't work! There are no imports.
+        for (import : imports) {
+            var importPath = srcPath + File.separator + import
+            set.getResource(URI.createFileURI(importPath), true)
+        }
+        
         // Check that the file parses.
+        // FIXME: Needed?
         println("*** Parsing test file: " + file)
         val parsed = parseHelper.parse(code)
         if (parsed === null) {
-        	errors.add('''Parser returned null on file «file».''')
-        	return
+            errors.add('''Parser returned null on file «file».''')
+            return
         }
         val parseErrors = parsed.eResource.errors
         if (!parseErrors.isEmpty) {
-        	errors.add('''Parse errors in «file»:
+            errors.add('''Parse errors in «file»:
 *** «parseErrors.join("\n*** ")»''')
-        	return
+            return
         }
         
-        // Check that code is generated.
-        // First, give the resource a file name (for resolving imports, etc.)
+        // Generate code.
         println("Generating code for test file: " + file)
-		// Need an absolute path.
-		// NOTE: Although Eclipse has no trouble reading from the file specified this way
-		// see readTestFile(), it has trouble figuring out what the URI is. I have
-		// tried many permutations, and it appears that the following is the only way to make
-		// this URI "hierarchical" (whatever that means) and absolute.
-		// For imports to work, it has to be both.
-		var url = this.class.getResource("/test/src/" + target + "/" + file)
-        parsed.eResource.setURI(URI.createFileURI(url.getPath()))
-        
-        // Create an in-memory filesystem for the result.
-        var fsa = new InMemoryFileSystemAccess()
-        
-        // Generate the code.
-        // FIXME: What is the third argument ("context", not documented anywhere).
-        generator.doGenerate(parsed.eResource, fsa, new GeneratorContext())
-        // Retrieve the generated file.
-        var allFiles = fsa.getAllFiles();
-   		// Construct the C filename.
-   		var cFile = file.substring(0, file.length - 2) + "c"
-        // Check that a .c file was generated.
-        // Bizarrely, the file name is prefixed with DEFAULT_OUTPUT.
-        // This appears to not be changeable...
-        var bizarreFilename = "DEFAULT_OUTPUT" + cFile
-        if (allFiles.get(bizarreFilename) === null) {
-        	errors.add('''File not generated by the code generator: «bizarreFilename»''')
-        	return
-        }
-    	// Write generated files to the temporary directory.
-    	for (generatedFile: allFiles.keySet) {
-    		// For some inexplicable reason, xtext's InMemoryFileSystemAccess
-    		// prefixes all the file names with "DEFAULT_OUTPUT". Remove that junk.
-    		var cleanFilename = generatedFile
-    		if (generatedFile.startsWith("DEFAULT_OUTPUT")) {
-    			cleanFilename = generatedFile.substring(14)
-    		}
-    		// Files.createFile() blocks forever if the file already exists!!!
-    		// Hence, we need to delete it first.
-    		var targetFilename = Paths.get(directory.toString, cleanFilename)
-    		Files.deleteIfExists(targetFilename)
-    		var destinationCodeFile = Files.createFile(Paths.get(directory.toString, cleanFilename))
-
-    		// Delete the files as soon as the test is done.
-    		// Probably don't want that while debugging.
-    		destinationCodeFile.toFile.deleteOnExit
-    		
-    		// Read the generated code and write it to the temporary directory.
-   			// Second argument is not documented anywhere in xtext.
-   			// It is an "output configuration name", whatever the hell that is.
-   			var sourceCode = fsa.readTextFile(generatedFile, "")
-    		var sourceCodeAsList = new LinkedList<CharSequence>()
-   			sourceCodeAsList.add(sourceCode)
-   			Files.write(destinationCodeFile, sourceCodeAsList)
-       	}
-       	
-       	// Determine the compile and run commands.
-       	// Start with a default, but if there is a "compile" or "run"
-       	// parameter to the Target directive, then use those commands.
+                
+        // Configure and start the generator
+        val context = new GeneratorContext => [
+            cancelIndicator = CancelIndicator.NullImpl
+        ]
+        // Specify that output should go into src-gen.
+        fileAccess.outputPath = 'src-gen'
+        generator.doGenerate(resource, fileAccess, context)
+               	
+       	// Run the generated code using a provided run command, if it is provided,
+       	// and a default otherwise.
    		// Construct the output filename.
    		var outputFile = file.substring(0, file.length - 3)
-       	var compileCommand = newArrayList()
        	// By default, limit tests to 10 seconds.
-       	var runCommand = newArrayList("./" + outputFile, "-timeout", "10", "secs")
+       	var runCommand = newArrayList("bin/" + outputFile, "-timeout", "10", "secs")
        	var runCommandOverridden = false;
        	var threads = ""
    		if (parsed.target.parameters !== null) {
    			for (parameter: parsed.target.parameters.assignments) {
-   				if (parameter.name.equals("compile")) {
-   					// Strip off enclosing quotation marks and split at spaces.
-   					val command = parameter.value.substring(1, parameter.value.length - 1).split(' ')
-   					compileCommand.clear
-   					compileCommand.addAll(command)
-   				} else if (parameter.name.equals("run")) {
+   				if (parameter.name.equals("run")) {
     				// Strip off enclosing quotation marks and split at spaces.
    					val command = parameter.value.substring(1, parameter.value.length - 1).split(' ')
    					runCommand.clear
@@ -181,56 +201,34 @@ class LinguaFrancaGeneratorTest {
    			runCommand.add("-threads")
    			runCommand.add(threads)
    		}
-   		if (compileCommand.isEmpty()) {
-   			if (threads.equals("")) {
-   				// Non-threaded version.
-   				compileCommand.addAll("cc", cFile, "-o", outputFile)
-   			} else {
-   				// Threaded version.
-   				compileCommand.addAll("cc", "-pthread", cFile, "-o", outputFile)
-   			}
-		}
-       	
-   		// Invoke the compiler on the generated code.
-   		println("Compiling with command: " + compileCommand.join(" "))
-		var builder = new ProcessBuilder(compileCommand);
-		builder.directory(directory.toFile)
-		var process = builder.start()
-		var stdout = readStream(process.getInputStream())
-		var stderr = readStream(process.getErrorStream())
-		if (stdout.length() > 0) {
-			println("--- Standard output:")
-			println(stdout)
-		}
-		if (stderr.length() > 0) {
-			errors.add(stderr.toString)
-			println("ERRORS")
-			println("--- Standard error:")
-			println(stderr)
-		} else {
-			println("SUCCESS")
-			
-			// Run the generated code.
-   			println("Running with command: " + runCommand.join(" "))
-			builder.command(runCommand)
-			process = builder.start()
-			stdout = readStream(process.getInputStream())
-			stderr = readStream(process.getErrorStream())
-			if (stdout.length() > 0) {
-				println("--- Standard output:")
-				println(stdout)
-				println("--- End standard output.")
-			}
-			if (process.exitValue !== 0 || stderr.length() > 0) {
-				errors.add("ERROR running: " + runCommand.join(" ")
-					+ "\nExecution returned with error code: " + process.exitValue
-					+ "\n"
-					+ stderr.toString)
-			} else if (process.exitValue === 0) {
-				println("SUCCESS")
-			}
-		}
-	}
+   		// Run the generated code.
+        println("In directory: " + srcPath)
+        println("Running with command: " + runCommand.join(" "))
+        try {
+        var builder = new ProcessBuilder(runCommand)
+        builder.directory(new File(srcPath));
+        var process = builder.start()
+        var stdout = readStream(process.getInputStream())
+        var stderr = readStream(process.getErrorStream())
+        if (stdout.length() > 0) {
+            println("--- Standard output:")
+            println(stdout)
+            println("--- End standard output.")
+        }
+        if (process.exitValue !== 0 || stderr.length() > 0) {
+            errors.add("ERROR running: " + runCommand.join(" ")
+                + "\nExecution returned with error code: " + process.exitValue
+                + "\n"
+                + stderr.toString)
+        } else if (process.exitValue === 0) {
+            println("SUCCESS running the generated code.")
+        }
+        
+        } catch (Exception ex) {
+            errors.add("FAILED to run: " + runCommand.join(" ")
+                + "Exception:\n" + ex)
+        }
+   	}
 	
 	/** Read the specified input stream until an end of file is encountered
 	 *  and return the result as a StringBuilder.
@@ -271,31 +269,6 @@ class LinguaFrancaGeneratorTest {
             	result.add(line);
         	}
 			return result
-        } finally {
-        	inputStream.close
-        }
-	}
-	
-	/** Read a test file for the specified target and return its contents.
-	 *  @param target The target name.
-	 *  @param filename The file name.
-	 *  @return The contents of the file as a String or null if the file cannot be opened.
-	 */
-	private def readTestFile(String target, String filename) throws IOException {
-		var inputStream = this.class.getResourceAsStream("/test/src/" + target + "/" + filename)
-		if (inputStream === null) {
-			return null
-		}
-		try {
-    		var resultStringBuilder = new StringBuilder()
-			// The following reads a file relative to the classpath.
-			// The file needs to be in the src directory.
-    		var reader = new BufferedReader(new InputStreamReader(inputStream))
-        	var line = ""
-        	while ((line = reader.readLine()) !== null) {
-            	resultStringBuilder.append(line).append("\n");
-        	}
-			return resultStringBuilder.toString();
         } finally {
         	inputStream.close
         }
