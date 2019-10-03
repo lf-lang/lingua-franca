@@ -35,6 +35,7 @@ import org.icyphy.linguaFranca.SourceRef
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TriggerRef
+import java.io.FileOutputStream
 
 /**
  * Generator for C target.
@@ -171,39 +172,37 @@ class CGenerator extends GeneratorBase {
 			unindent()
 			pr('}\n')
 		}
-		// NOTE: IFileSystemAccess2 fsa for some reason does not update the last modified
-		// date on the file. Hence, we delete the file here. This also ensures that no
-		// older file gets mistaken for the result of this code generation in case code
-		// generation failed.
-		fsa.deleteFile(cFilename)
-		fsa.generateFile(cFilename, getCode())
 
-		// Copy the required library files into the target filesystem.
-		var reactorCCommon = readFileInClasspath("/lib/C/reactor_common.c")
-		fsa.deleteFile("reactor_common.c")
-		fsa.generateFile("reactor_common.c", reactorCCommon)
-		if (numberOfThreads === 0) {
-			var reactorC = readFileInClasspath("/lib/C/reactor.c")
-			fsa.deleteFile("reactor.c")
-			fsa.generateFile("reactor.c", reactorC)
-		} else {
-			var reactorC = readFileInClasspath("/lib/C/reactor_threaded.c")
-			fsa.deleteFile("reactor_threaded.c")
-			fsa.generateFile("reactor_threaded.c", reactorC)
-		}
-		var reactorH = readFileInClasspath("/lib/C/reactor.h")
-		fsa.deleteFile("reactor.h")
-		fsa.generateFile("reactor.h", reactorH)
-		var pqueueC = readFileInClasspath("/lib/C/pqueue.c")
-		fsa.deleteFile("pqueue.c")
-		fsa.generateFile("pqueue.c", pqueueC)
-		var pqueueH = readFileInClasspath("/lib/C/pqueue.h")
-        fsa.deleteFile("pqueue.h")
-		fsa.generateFile("pqueue.h", pqueueH)
-
-        val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
+		val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
         var srcGenPath = srcPath + File.separator + "src-gen"
         var outPath = srcPath + File.separator + "bin"
+		
+		// Copy the required library files into the target filesystem.
+		var fOut = new FileOutputStream(new File(srcGenPath + File.separator + cFilename));
+		fOut.write(getCode().getBytes())
+
+		fOut = new FileOutputStream(new File(srcGenPath + File.separator + "reactor_common.c"));
+		fOut.write(readFileInClasspath("/lib/C/reactor_common.c").getBytes())
+
+		fOut = new FileOutputStream(new File(srcGenPath + File.separator + "reactor.h"));
+		fOut.write(readFileInClasspath("/lib/C/reactor.h").getBytes())
+
+		if (numberOfThreads === 0) {
+			fOut = new FileOutputStream(new File(srcGenPath + File.separator + "reactor.c"));
+			fOut.write(readFileInClasspath("/lib/C/reactor.c").getBytes())
+		} else {
+			fOut = new FileOutputStream(new File(srcGenPath + File.separator + "reactor_threaded.c"));
+			fOut.write(readFileInClasspath("/lib/C/reactor_threaded.c").getBytes())
+		}
+
+		fOut = new FileOutputStream(new File(srcGenPath + File.separator + "pqueue.c"));
+		fOut.write(readFileInClasspath("/lib/C/pqueue.c").getBytes())
+
+		fOut = new FileOutputStream(new File(srcGenPath + File.separator + "pqueue.h"));
+		fOut.write(readFileInClasspath("/lib/C/pqueue.h").getBytes())
+		
+		//iFile.refreshLocal(IResource.DEPTH_ZERO, null);
+		// FIXME: trigger a refresh so Eclipse also sees the generated files in the package explorer
         
         // Create directories for generated source and binary if they do not exist.
         var directory = new File(outPath)
