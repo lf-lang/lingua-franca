@@ -4,7 +4,7 @@
 // Failure for this test is failing to halt.
 target C(
 	threads = 1,
-	run = "./TimeLimitC -fast"
+	run = "bin/TimeLimitC -fast"
 );
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;

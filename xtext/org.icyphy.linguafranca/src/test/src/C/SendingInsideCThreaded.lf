@@ -2,7 +2,7 @@
 // has its own reaction that routes inputs to the contained reactor.
 target C(
 	threads = 3,
-	run = "./SendingInsideC -fast -timeout 10 sec"
+	run = "bin/SendingInsideC -fast -timeout 10 sec"
 );
 reactor Printer {
 	input x:int;

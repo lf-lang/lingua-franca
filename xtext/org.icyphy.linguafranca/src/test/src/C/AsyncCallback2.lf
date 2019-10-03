@@ -4,7 +4,7 @@
 // does not implement any mutex protecting the event queue.
 target C(
     threads = 1,
-    run = "./AsyncCallback2 -timeout 2 sec"
+    run = "bin/AsyncCallback2 -timeout 2 sec"
 );
 
 reactor Main {
