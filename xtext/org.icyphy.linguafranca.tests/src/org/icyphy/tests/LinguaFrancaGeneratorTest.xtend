@@ -105,18 +105,6 @@ class LinguaFrancaGeneratorTest {
                 + file;
         val resource = set.getResource(URI.createFileURI(fileName), true)
 
-        // Validate the resource
-        val issues = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl)
-        if (!issues.empty) {
-            System::err.println('Aborting. Unable to validate resource.');
-            issues.forEach[System.err.println(it)]
-            // Add to the errors list so that this counts as a failed test.
-            issues.forEach[errors.add("ERROR: Validation failed on " + fileName + "\n"
-                + it.toString
-            )]
-            return
-        }
-
         var code = new StringBuilder()
         try {
             // The following reads a file relative to the classpath.
@@ -149,6 +137,19 @@ class LinguaFrancaGeneratorTest {
             var importPath = srcPath + File.separator + import
             set.getResource(URI.createFileURI(importPath), true)
         }
+        
+        // Validate the resource
+        val issues = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl)
+        if (!issues.empty) {
+            System::err.println('Aborting. Unable to validate resource.');
+            issues.forEach[System.err.println(it)]
+            // Add to the errors list so that this counts as a failed test.
+            issues.forEach[errors.add("ERROR: Validation failed on " + fileName + "\n"
+                + it.toString
+            )]
+            return
+        }
+        
         
         // Check that the file parses.
         // FIXME: Needed?
@@ -215,6 +216,7 @@ class LinguaFrancaGeneratorTest {
             println(stdout)
             println("--- End standard output.")
         }
+        process.waitFor()
         if (process.exitValue !== 0 || stderr.length() > 0) {
             errors.add("ERROR running: " + runCommand.join(" ")
                 + "\nExecution returned with error code: " + process.exitValue
