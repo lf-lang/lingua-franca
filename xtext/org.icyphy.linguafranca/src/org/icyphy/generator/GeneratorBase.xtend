@@ -608,6 +608,7 @@ class GeneratorBase {
      */
     protected def readFileInClasspath(String filename) throws IOException {
         var inputStream = this.class.getResourceAsStream(filename)
+        
         if (inputStream === null) {
             return null
         }
