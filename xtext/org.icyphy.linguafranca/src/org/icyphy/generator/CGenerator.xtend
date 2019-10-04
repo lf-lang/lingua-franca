@@ -7,6 +7,7 @@ package org.icyphy.generator
 
 import java.io.BufferedReader
 import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.URL
@@ -15,6 +16,9 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.Hashtable
 import java.util.LinkedList
+import java.util.regex.Pattern
+import org.eclipse.core.resources.IResource
+import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -35,7 +39,6 @@ import org.icyphy.linguaFranca.SourceRef
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TriggerRef
-import java.io.FileOutputStream
 
 /**
  * Generator for C target.
@@ -201,8 +204,30 @@ class CGenerator extends GeneratorBase {
 		fOut = new FileOutputStream(new File(srcGenPath + File.separator + "pqueue.h"));
 		fOut.write(readFileInClasspath("/lib/C/pqueue.h").getBytes())
 		
-		//iFile.refreshLocal(IResource.DEPTH_ZERO, null);
-		// FIXME: trigger a refresh so Eclipse also sees the generated files in the package explorer
+		// Trigger a refresh so Eclipse also sees the generated files in the package explorer.
+		if (mode == Mode.INTEGRATED) {
+			// Find name of current project
+			val id = "((:?[a-z]|[A-Z]|_\\w)*)";
+			val pattern = Pattern.compile("platform:" + File.separator + "resource" + File.separator + id +
+				File.separator);
+			val matcher = pattern.matcher(code);
+			var projName = ""
+			if (matcher.find()) {
+				projName = matcher.group(1)
+			}
+			try {
+				val members = ResourcesPlugin.getWorkspace().root.members
+				for (member : members) {
+					// Refresh current project, or simply entire workspace if project name was not found
+					if (projName == "" || projName.equals(member.fullPath.toString.substring(1))) {
+						member.refreshLocal(IResource.DEPTH_INFINITE, null)
+						println("Refreshed " + member.fullPath.toString)
+					}
+				}
+			} catch (IllegalStateException e) {
+				println("Unable to refresh workspace: " + e)
+			}
+		}
         
         // Create directories for generated source and binary if they do not exist.
         var directory = new File(outPath)
