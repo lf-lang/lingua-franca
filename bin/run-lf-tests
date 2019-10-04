@@ -51,7 +51,7 @@ else
 		echo "Number of tests passed: ("$correct"/"$total")";
 		echo "--------------------------------------------------------------------------------";
 		if (($correct != $total)); then
-			return 1;
+			exit 1;
 		fi
 	fi
 fi
