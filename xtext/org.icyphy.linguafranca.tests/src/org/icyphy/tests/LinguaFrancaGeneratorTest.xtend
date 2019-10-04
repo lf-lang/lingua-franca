@@ -216,7 +216,7 @@ class LinguaFrancaGeneratorTest {
             println(stdout)
             println("--- End standard output.")
         }
-        process.waitFor()
+        process.waitFor() // FIXME: we should probably add a timeout here
         if (process.exitValue !== 0 || stderr.length() > 0) {
             errors.add("ERROR running: " + runCommand.join(" ")
                 + "\nExecution returned with error code: " + process.exitValue
