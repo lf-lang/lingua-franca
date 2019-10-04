@@ -27,4 +27,6 @@ Export-Package: org.icyphy.linguaFranca,
  org.icyphy,
  org.icyphy.linguaFranca.util,
  org.icyphy.services
-Import-Package: org.apache.log4j
+Import-Package: org.apache.log4j,
+ org.eclipse.core.resources,
+ org.eclipse.core.runtime;version="3.5.0"
