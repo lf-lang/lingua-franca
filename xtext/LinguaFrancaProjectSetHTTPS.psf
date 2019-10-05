@@ -4,6 +4,7 @@
 <project reference="1.0,https://github.com/icyphy/lingua-franca.git,master,xtext/org.icyphy.linguafranca"/>
 <project reference="1.0,https://github.com/icyphy/lingua-franca.git,master,xtext/org.icyphy.linguafranca.ide"/>
 <project reference="1.0,https://github.com/icyphy/lingua-franca.git,master,xtext/org.icyphy.linguafranca.tests"/>
+<project reference="1.0,https://github.com/icyphy/lingua-franca.git,master,xtext/org.icyphy.linguafranca.diagram"/>
 <project reference="1.0,https://github.com/icyphy/lingua-franca.git,master,xtext/org.icyphy.linguafranca.ui"/>
 <project reference="1.0,https://github.com/icyphy/lingua-franca.git,master,xtext/org.icyphy.linguafranca.ui.tests"/>
 </provider>
