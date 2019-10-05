@@ -180,6 +180,12 @@ class CGenerator extends GeneratorBase {
         var srcGenPath = srcPath + File.separator + "src-gen"
         var outPath = srcPath + File.separator + "bin"
 		
+		// Create output directories if they don't yet exist
+		var dir = new File(srcGenPath)
+		if (!dir.exists()) dir.mkdirs()
+		dir = new File(srcGenPath)
+		if (!dir.exists()) dir.mkdirs()
+		
 		// Copy the required library files into the target filesystem.
 		var fOut = new FileOutputStream(new File(srcGenPath + File.separator + cFilename));
 		fOut.write(getCode().getBytes())
