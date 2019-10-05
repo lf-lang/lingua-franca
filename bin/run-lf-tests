@@ -17,9 +17,9 @@ if [ "$1" == '' ]; then
 	echo "Usage: run-lf-tests [target]";
 else
 	ext=$(echo "$1" | awk '{print tolower($0)}')
-	test_dir="$base""org.icyphy.linguafranca/src/test/src/""$1";
+	test_dir="$base""org.icyphy.linguafranca/src/test/""$1";
 	manifest="$test_dir""/testFiles.txt";
-    	offset="../../../../../../";
+    	offset="../../../../../";
 	total=0;
 	correct=0;	
 
