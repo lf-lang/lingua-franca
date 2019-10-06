@@ -33,7 +33,7 @@ reactor Pass {
 		set(y, x);
 	=}
 }
-reactor Main {
+main reactor DeterminismThreaded {
 	s = new Source();
 	d = new Destination();
 	p1 = new Pass();

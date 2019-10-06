@@ -15,7 +15,7 @@ reactor Printer {
 		self->count++;
 	=}
 }
-reactor Main {
+main reactor Main {
 	state count:int(0);
 	timer t(0, 1 sec);
 	p = new Printer();

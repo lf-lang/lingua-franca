@@ -17,7 +17,7 @@
             }
         =}
     }
-    reactor Main {
+    main reactor Main { 
         g = new Gain();
         t = new Test();
         g.y -> t.x;

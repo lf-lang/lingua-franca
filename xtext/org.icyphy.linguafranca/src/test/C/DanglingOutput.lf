@@ -15,7 +15,7 @@ reactor Gain {
         set(out, in * 2);
     =}
 }
-reactor Main {
+main reactor DanglingOutput {
     source = new Source();
     container = new Gain();
     source.out -> container.in;

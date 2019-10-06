@@ -25,7 +25,7 @@ reactor Test {
 		}
 	=}
 }
-reactor Main {
+main reactor CompositionCThreaded {
 	s = new Source();
 	d = new Test();
 	s.y -> d.x;

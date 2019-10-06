@@ -21,7 +21,7 @@ reactor Destination {
 		printf("%d\n", x);
 	=}
 }
-reactor Main(period:time(2 secs)) {
+main reactor Main(period:time(2 secs)) {
 	timer stop(6 secs);
 	reaction(stop) {=
 		stop();

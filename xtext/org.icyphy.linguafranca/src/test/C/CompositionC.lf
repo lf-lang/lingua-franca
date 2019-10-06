@@ -24,7 +24,7 @@ reactor Test {
 		}
 	=}
 }
-reactor Main {
+main reactor CompositionC {
 	s = new Source();
 	d = new Test();
 	s.y -> d.x;

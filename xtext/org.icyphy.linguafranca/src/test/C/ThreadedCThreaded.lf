@@ -48,7 +48,7 @@ reactor Destination {
 		self->s += 4;
 	=}
 }
-reactor Main {
+main reactor Main {
 	a = new Source();
 	t1 = new TakeTime();
 	t2 = new TakeTime();

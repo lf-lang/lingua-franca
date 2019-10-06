@@ -31,11 +31,11 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 			exit(1);
 		}
 	=}
-}
+} 
 reactor Inside(period:time(1 sec), message:{=char*=}("Composite default message.")) {
 	third_instance = new HelloC(period = period, message = message);
 }
-reactor Main {
+main reactor Main { 
 	first_instance = new HelloC(period = 4 sec, message = "Hello from first_instance.");
 	second_instance = new HelloC(message = "Hello from second_instance.");
 	composite_instance = new Inside(message = "Hello from composite_instance.");

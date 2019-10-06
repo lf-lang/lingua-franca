@@ -13,7 +13,7 @@ reactor Asynch {
     =}
     input url;
     output response:string;
-    action receivedReply;
+    physical action receivedReply;
     reaction(url) -> receivedReply {=
         request(url, function(err, response, body) {
             schedule(receivedReply, 0, body);

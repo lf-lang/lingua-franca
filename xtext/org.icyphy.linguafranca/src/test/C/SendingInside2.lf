@@ -5,7 +5,7 @@ reactor Printer {
         printf("Inside reactor received: %d\n", x);
     =}
 }
-reactor Main {
+main reactor Main {
     timer t;
     p = new Printer();
     reaction(t) -> p.x {=

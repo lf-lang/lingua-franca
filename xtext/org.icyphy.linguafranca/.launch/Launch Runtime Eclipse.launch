@@ -26,7 +26,7 @@
 <stringAttribute key="product" value="org.eclipse.platform.ide"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value="${target_home}/configuration/config.ini"/>
-<stringAttribute key="timestamp" value="1570169495621"/>
+<stringAttribute key="timestamp" value="1570309671223"/>
 <booleanAttribute key="tracing" value="false"/>
 <booleanAttribute key="useDefaultConfig" value="true"/>
 <booleanAttribute key="useDefaultConfigArea" value="true"/>

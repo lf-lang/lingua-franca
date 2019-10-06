@@ -4,7 +4,7 @@ target C(
 	threads = 2	
 );
 import ImportedC.lf;
-reactor Main {
+main reactor ImportCThreaded {
 	timer t;
 	a = new ImportedC();
 	reaction(t) -> a.x {=

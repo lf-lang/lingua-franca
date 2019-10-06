@@ -22,7 +22,7 @@ reactor Destination {
         }
     =}
 }
-reactor Main {
+main reactor Microsteps {
     timer start;
     logical action repeat;
     d = new Destination();

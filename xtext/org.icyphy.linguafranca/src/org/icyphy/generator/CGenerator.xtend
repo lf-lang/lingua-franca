@@ -27,6 +27,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.generator.ReactionGraph.ReactionInstance
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ActionModifier
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
@@ -1008,7 +1009,7 @@ class CGenerator extends GeneratorBase {
 			} else if (getAction(reactor, triggerName) !== null) {
 				var modifier = getAction(reactor, triggerName).getModifier();
 				var isPhysical = "true";
-				if (modifier == "logical") {
+				if (modifier == ActionModifier.LOGICAL) {
 					isPhysical = "false";
 				}
 				pr(
@@ -1097,7 +1098,7 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		// Next, initialize parameter with either the override or the defaults.
-		for (parameter : getParameters(reactor)) {
+		for (parameter: getParameters(reactor)) {
 			var value = overrides.get(parameter.name)
 			if (value === null) {
 				value = removeCodeDelimiter(parameter.value)
@@ -1562,11 +1563,17 @@ class CGenerator extends GeneratorBase {
 					// Process any imports that the import has.
 					processImports(importTable)
 					for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-						if (!reactor.name.equalsIgnoreCase("main")) {
+						if (!reactor.isMain) {
 							println("Including imported reactor: " + reactor.name)
 							generateReactor(reactor, importTable)
 						}
 					}
+//					for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
+//						if (!reactor.name.equalsIgnoreCase("main")) {
+//							println("Including imported reactor: " + reactor.name)
+//							generateReactor(reactor, importTable)
+//						}
+//					}
 					_resource = oldResource
 				}
 			} else {

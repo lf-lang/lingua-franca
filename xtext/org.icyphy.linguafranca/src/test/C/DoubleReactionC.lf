@@ -33,7 +33,7 @@ reactor Destination {
 		self->s += 2;
 	=}
 }
-reactor Main {
+main reactor DoubleReaction {
 	c1 = new Clock();
 	c2 = new Clock();
 	d = new Destination();
