@@ -155,7 +155,7 @@ class GeneratorBase {
 //			}
 //		}
 		if (reactor.parameters !== null) {
-			for (param : reactor.parameters.params) {
+			for (param : reactor.parameters) {
 				properties.nameToParam.put(param.name, param)
 			}
 		}

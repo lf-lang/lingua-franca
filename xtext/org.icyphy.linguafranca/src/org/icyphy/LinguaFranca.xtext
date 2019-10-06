@@ -20,8 +20,8 @@ Import:
 	'import' name=Path ';';
 
 Reactor:
-	main?='main'? & realtime?='realtime'? 'reactor' name=ID parameters=Params? '{'
-   	// ('(' parameters+=Param (',' parameters+=Param)* ')')? '{'
+	main?='main'? & realtime?='realtime'? 'reactor' name=ID //parameters=Params? '{'
+   	('(' parameters+=Param (',' parameters+=Param)* ')')? '{'
    	(preamble = Preamble)?
    	((inits += Initialization) // TODO: code-gen for init
 	| (states += State)
@@ -123,8 +123,8 @@ Assignment:
 	//name=[Param] '=' value=Value (unit=ID)?;
 
 // Parameters for actors and composites.
-Params:
-    '(' params+=Param (',' params+=Param)* ')';
+//Params:
+//    '(' params+=Param (',' params+=Param)* ')';
 
 // Single parameter.
 Param:
