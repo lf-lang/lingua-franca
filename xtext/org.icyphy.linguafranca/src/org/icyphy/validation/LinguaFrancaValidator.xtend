@@ -16,6 +16,7 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Model
 
 /**
  * This class contains custom validation rules. 
@@ -27,6 +28,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C', 'SCL'}
 	public static val TARGET_PARAMETERS = #{'compile', 'run', 'threads'}
 	
+	var reactorClasses = newHashSet()
 	var parameters = newHashSet()
 	var inputs = newHashSet()
 	var outputs = newHashSet()
@@ -50,6 +52,24 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		allNames.clear()
 		containedNames.clear()
 	}
+	
+	// FAST ensures that these checks run whenever a file is modified.
+	// Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
+	@Check(FAST)
+	def reset(Model model) {
+		reactorClasses.clear()
+	}
+	
+	@Check(FAST)
+	def checkReactor(Reactor reactor) {
+		if (reactorClasses.contains(reactor.name)) {
+			error("Names of reactor classes must be unique: " + reactor.name,
+				Literals.REACTOR__NAME
+			)
+		}
+		reactorClasses.add(reactor.name);
+	}
+	
 	
 	@Check(FAST)
 	def recordParameter(Param param) {

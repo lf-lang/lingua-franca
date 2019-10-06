@@ -50,7 +50,7 @@ reactor AddCount {
     count.out -> add.in2;
     add.out -> out;
 }
-reactor Main {
+main reactor Hierarchy2 {
     source = new Source();
     addCount = new AddCount();
     print = new Print();

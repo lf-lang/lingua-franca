@@ -20,7 +20,8 @@ Import:
 	'import' name=Path ';';
 
 Reactor:
-   	modifier='main'? 'reactor' name=ID parameters=Params? '{'
+	main?='main'? & realtime?='realtime'? 'reactor' name=ID parameters=Params? '{'
+   	// ('(' parameters+=Param (',' parameters+=Param)* ')')? '{'
    	(preamble = Preamble)?
    	((inits += Initialization) // TODO: code-gen for init
 	| (states += State)
@@ -51,7 +52,7 @@ Timer:
 	'timer' name=ID timing=Timing?';';
 
 Action:
-	modifier=('logical'|'physical') 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
+	modifier=ActionModifier 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
 
 Reaction:
 	('reaction' | 'react')
@@ -127,7 +128,7 @@ Params:
 
 // Single parameter.
 Param:
-    'const'? name=ID ((':' type='time' '(' time=Time ')')
+    const?='const'? name=ID ((':' type='time' '(' time=Time ')')
     		| (':' type=Type)? ('(' value=Value ')')
     		)?;
 
@@ -171,3 +172,7 @@ terminal CODE:
 // The following cannot be terminal because it overlaps ID.
 Path:
 	ID ('.' ID)* ;
+	
+/////////// Enums
+enum ActionModifier:
+    LOGICAL = 'logical' | PHYSICAL = 'physical';

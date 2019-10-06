@@ -15,7 +15,7 @@ reactor Schedule {
         }
     =}
 }
-reactor Main {
+main reactor Main {
     a = new Schedule();
     timer t;
     reaction(t) -> a.x {=

@@ -2,7 +2,7 @@
 // that itself imports a reactor definition.
 target C;
 import ImportedC.lf;
-reactor Main {
+main reactor ImportC {
 	timer t;
 	a = new ImportedC();
 	reaction(t) -> a.x {=

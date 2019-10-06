@@ -33,7 +33,7 @@ reactor GainContainer {
     gain.out -> out;
     gain.out -> out2;
 }
-reactor Main {
+main reactor Hierarchy {
     source = new Source();
     container = new GainContainer();
     print = new Print();

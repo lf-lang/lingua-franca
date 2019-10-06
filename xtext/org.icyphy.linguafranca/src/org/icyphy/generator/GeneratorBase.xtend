@@ -108,7 +108,7 @@ class GeneratorBase {
 		
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			generateReactor(reactor, importTable)
-			if (reactor.name.equalsIgnoreCase("main")) {
+			if (reactor.isMain) {
 				main = new ReactorInstance(reactor)
 			}
 		}
@@ -149,6 +149,11 @@ class GeneratorBase {
 		reactorToProperties.put(reactor, properties)
 
 		// Record parameters.
+//		if (reactor.parameters !== null) {
+//			for (param : reactor.parameters) {
+//				properties.nameToParam.put(param.name, param)
+//			}
+//		}
 		if (reactor.parameters !== null) {
 			for (param : reactor.parameters.params) {
 				properties.nameToParam.put(param.name, param)

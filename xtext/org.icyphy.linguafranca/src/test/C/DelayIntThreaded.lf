@@ -41,7 +41,7 @@ reactor Test {
         }
     =}
 }
-reactor Main {
+main reactor DelayIntThreaded {
     timer t;
     d = new DelayInt();
     t = new Test();

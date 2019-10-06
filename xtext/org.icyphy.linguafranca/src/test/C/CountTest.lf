@@ -13,7 +13,7 @@ reactor Test {
         }
     =}
 }
-reactor Main {
+main reactor CountTest {
     count = new Count();
     test = new Test();
     count.c -> test.c;

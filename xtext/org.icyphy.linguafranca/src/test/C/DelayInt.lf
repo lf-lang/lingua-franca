@@ -40,7 +40,7 @@ reactor Test {
         }
     =}
 }
-reactor Main {
+main reactor Main {
     timer t;
     d = new DelayInt();
     t = new Test();

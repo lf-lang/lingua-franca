@@ -31,7 +31,7 @@ reactor Destination {
 		}
 	=}
 }
-reactor Main {
+main reactor DeadlineCThreaded {
 	logical action panic;
 	reaction(panic) -> d.e {=
 		printf("**** Deadline miss detected.\n");
