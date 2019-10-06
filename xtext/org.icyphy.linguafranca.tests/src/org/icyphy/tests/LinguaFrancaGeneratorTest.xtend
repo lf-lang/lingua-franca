@@ -85,7 +85,7 @@ class LinguaFrancaGeneratorTest {
         val set = resourceSetProvider.get
         // Get an absolute path to the file.
         // Current directory is lingua-franca/xtext/org.icyphy.linguafranca.tests
-        // We need to be in lingua-franca/xtext/org.icyphy.linguafranca/src/test/src/C
+        // We need to be in lingua-franca/xtext/org.icyphy.linguafranca/src/test/C
         val fileRoot = (new File("")).getAbsolutePath()
         val srcPath = fileRoot
                 + File.separator
@@ -96,8 +96,6 @@ class LinguaFrancaGeneratorTest {
                 + "src"
                 + File.separator
                 + "test"
-                + File.separator
-                + "src"
                 + File.separator
                 + target
         val fileName = srcPath
@@ -257,7 +255,7 @@ class LinguaFrancaGeneratorTest {
 	 *  @return A list of test files, or null if the testFiles.txt file was not found.
 	 */
 	private def readTestFiles(String target) {
-		var inputStream = this.class.getResourceAsStream("/test/src/" + target + "/testFiles.txt")
+		var inputStream = this.class.getResourceAsStream("/test/" + target + "/testFiles.txt")
 		if (inputStream === null) {
 			return null
 		}
