@@ -5,6 +5,6 @@ reactor HelloWorld {
         printf("Hello World.\n");
     =}
 }
-main reactor Main {
+main reactor HelloWorldTest {
     a = new HelloWorld();
 }
