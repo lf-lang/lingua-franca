@@ -20,7 +20,7 @@ Import:
 	'import' name=Path ';';
 
 Reactor:
-	main?='main'? & realtime?='realtime'? 'reactor' name=ID //parameters=Params? '{'
+	(main?='main'? & realtime?='realtime'?) 'reactor' name=ID
    	('(' parameters+=Param (',' parameters+=Param)* ')')? '{'
    	(preamble = Preamble)?
    	((inits += Initialization) // TODO: code-gen for init
@@ -52,7 +52,7 @@ Timer:
 	'timer' name=ID timing=Timing?';';
 
 Action:
-	modifier=ActionModifier 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';';
+	modifier=ActionModifier 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';'; // FIXME: Link to referenced parameter
 
 Reaction:
 	('reaction' | 'react')
@@ -77,13 +77,13 @@ Initialization:
 Preamble:
 	'preamble' code=CODE;
 	
-// FIXME: Insert dummy object for foreign imports in scope provider.
-Instance:
+// NOTE: Insert dummy object for foreign imports in scope provider?
+Instance: // FIXME: call this reactorInstance?
 	name=ID '=' 'new' reactorClass=[Reactor] ('(' parameters=Assignments? ')')? ';' ;
 
 Connection:
     leftPort=Port '->' rightPort=Port ';'; // FIXME: add cross-referencing here
-    
+    //leftPort=SourceRef '->' rightPort=EffectRef ';';
 Deadline:
     'deadline' '(' port=InputRef ',' delay=Time ',' action=[Action] ')' ';';
 
