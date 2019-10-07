@@ -10,11 +10,11 @@ reactor LeftPedal {
 	
 	output angle:int;
 	output on_off:bool;
-	timer init(0);
+	timer t(0);
 	timer check(0, 2 msec);
 	state pressed:int(0);
 	
-    reaction(init) {=
+    reaction(t) {=
     	// Configure sensor.
     =}
 	

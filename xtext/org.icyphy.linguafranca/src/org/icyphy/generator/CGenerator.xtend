@@ -1568,16 +1568,10 @@ class CGenerator extends GeneratorBase {
 							generateReactor(reactor, importTable)
 						}
 					}
-//					for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-//						if (!reactor.name.equalsIgnoreCase("main")) {
-//							println("Including imported reactor: " + reactor.name)
-//							generateReactor(reactor, importTable)
-//						}
-//					}
 					_resource = oldResource
 				}
 			} else {
-				pr("Unable to open import...")
+				pr("Unable to open import: " + import.name)
 			}
 		}
 	}
