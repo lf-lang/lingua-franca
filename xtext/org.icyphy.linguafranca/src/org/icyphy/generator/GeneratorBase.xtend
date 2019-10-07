@@ -511,7 +511,7 @@ class GeneratorBase {
 		indentation.put(builder, buffer.toString)
 	}
 	
-	/** Open and parse an import given a URI relative currentResource.
+	/** Open and parse an import given a URI relative to currentResource.
 	 *  @param currentResource The current resource.
 	 *  @param importedURIAsString The URI to import as a string.
 	 *  @return The resource specified by the URI or null if either
