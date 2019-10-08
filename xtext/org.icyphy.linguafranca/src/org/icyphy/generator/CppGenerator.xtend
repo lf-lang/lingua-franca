@@ -8,8 +8,8 @@
  * Authors:
  *   Christian Menard
  */
- 
- package org.icyphy.generator
+
+package org.icyphy.generator
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -22,12 +22,14 @@ import java.net.URL
 import java.io.FileOutputStream
 
 class CppGenerator extends GeneratorBase {
- 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context,
+	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context,
 		Hashtable<String, String> importTable) {
-		
-        var srcFile = resource.getURI.toString;
+
+		super.doGenerate(resource, fsa, context, importTable)
+
+		var srcFile = resource.getURI.toString;
 		var mode = Mode.UNDEFINED;
-		
+
 		if (srcFile.startsWith("file:")) { // Called from command line
 			srcFile = Paths.get(srcFile.substring(5)).normalize.toString
 			mode = Mode.STANDALONE;
@@ -38,8 +40,10 @@ class CppGenerator extends GeneratorBase {
 		} else {
 			System.err.println("ERROR: Source file protocol is not recognized: " + srcFile);
 		}
-		
-		super.doGenerate(resource, fsa, context, importTable)
+
+		val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
+		var genPath = srcPath + File.separator + "src-gen" + File.separator + _filename
+		var binPath = srcPath + File.separator + "bin" + File.separator + _filename
 
 		pr('''
 			#include <iostream>
@@ -49,15 +53,63 @@ class CppGenerator extends GeneratorBase {
 				return 0;
 			}
 		''')
-		
-		// Create output directory if it does not yet exist
-		val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
-        var srcGenPath = srcPath + File.separator + "src-gen" + File.separator + _filename
-		var gendir = new File(srcGenPath)
-		if (!gendir.exists()) gendir.mkdirs()
-		
+
+		// Create output directories if they do not yet exist
+		var genDir = new File(genPath)
+		if(!genDir.exists()) genDir.mkdirs()
+		var binDir = new File(binPath)
+		if(!binDir.exists()) binDir.mkdirs()
+
 		// Write the main source file
-		var fOut = new FileOutputStream(new File(srcGenPath + File.separator + "main.cc"));
+		var fOut = new FileOutputStream(new File(genPath + File.separator + "main.cc"));
 		fOut.write(getCode().getBytes())
+
+		writeCmake(genPath)
+
+		doCompile(genDir, binDir)
 	}
- }
+
+	def void writeCmake(String genPath) {
+		var cmake = new StringBuilder()
+
+		pr(cmake, '''
+			cmake_minimum_required(VERSION 3.5)
+			project(«_filename» VERSION 1.0.0 LANGUAGES CXX)
+			
+			add_executable(«_filename» main.cc)
+		''')
+
+		var fOut = new FileOutputStream(new File(genPath + File.separator + "CMakeLists.txt"));
+		fOut.write(cmake.toString().getBytes())
+	}
+
+	def void doCompile(File genDir, File binDir) {
+		var makeCmd = newArrayList()
+		var cmakeCmd = newArrayList()
+
+		makeCmd.addAll("make")
+		cmakeCmd.addAll("cmake", genDir.getAbsolutePath())
+
+		println("--- Running cmake:")
+		var cmakeBuilder = new ProcessBuilder(cmakeCmd)
+		cmakeBuilder.directory(binDir)
+		var cmakeProcess = cmakeBuilder.inheritIO().start()
+		cmakeProcess.waitFor()
+
+		if (cmakeProcess.exitValue() == 0) {
+			println("--- Running make:")
+			var makeBuilder = new ProcessBuilder(makeCmd)
+			makeBuilder.directory(binDir)
+			var makeProcess = makeBuilder.inheritIO().start()
+			makeProcess.waitFor()
+
+			if (makeProcess.exitValue() == 0) {
+				println("SUCCESS (compiling generated C++ code)")
+			} else {
+				println("ERRROR (while compiling generated C++ code)")
+			}
+		} else {
+			println("ERRROR (while executing cmake)")
+		}
+	}
+}
