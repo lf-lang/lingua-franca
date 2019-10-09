@@ -1,0 +1,3 @@
+[submodule "xtext/org.icyphy.linguafranca/src/lib/Cpp/dear"]
+	path = xtext/org.icyphy.linguafranca/src/lib/Cpp/dear
+	url = git@github.com:cmnrd/dear.git
