@@ -110,6 +110,8 @@ struct reaction_t {
   trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output.
   interval_t deadline;      // Deadline relative to the time stamp for invocation of the reaction.
   trigger_t* deadline_violation; // Trigger to fire in the event of a deadline violation.
+  time_t violation_handled; // The time at which the most recent deadline violation has been handled
+                            // (to prevent it from being handled again).
   bool running;   // Indicator that this reaction has already started executing.
 };
 
