@@ -44,31 +44,11 @@ class CppGenerator extends GeneratorBase {
 			System.err.println("ERROR: Source file protocol is not recognized: " + srcFile);
 		}
 
-		val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
-		var genPath = srcPath + File.separator + "src-gen" + File.separator + _filename
+		fsa.generateFile(_filename + File.separator + "fwd.hh", fwd_hh)
+		fsa.generateFile(_filename + File.separator + "main.cc", main_cc)
+		fsa.generateFile(_filename + File.separator + "CMakeLists.txt", cmake)
 
-		pr('''
-			#include <iostream>
-			
-			int main() {
-				std::cout << "Hello World!" << std::endl;
-				return 0;
-			}
-		''')
-
-		// Create output directories if they do not yet exist
-		var genDir = new File(genPath)
-		if(!genDir.exists()) genDir.mkdirs()
-
-		// Write the main source file
-		var fOut = new FileOutputStream(new File(genPath + File.separator + "main.cc"));
-		fOut.write(getCode().getBytes())
-
-		writeCmake(genPath)
-
-		doCompile(srcPath, genPath)
-
-		fsa.generateFile(_filename + File.separator + "fwd.hh", fwdDeclarations)
+		doCompile()
 	}
 
 	def header() '''
@@ -80,7 +60,7 @@ class CppGenerator extends GeneratorBase {
 		 */
 	'''
 
-	def fwdDeclarations() '''
+	def fwd_hh() '''
 	    «header()»
 
 	    #pragma once
@@ -90,66 +70,72 @@ class CppGenerator extends GeneratorBase {
 	    «ENDFOR»
 	'''
 
-	def void writeCmake(String genPath) {
-		var cmake = new StringBuilder()
+	def main_cc() '''
+		«header()»
 
-		pr(cmake, '''
-			cmake_minimum_required(VERSION 3.5)
-			project(«_filename» VERSION 1.0.0 LANGUAGES CXX)
+		#include <iostream>
 
-			include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
-			include(GNUInstallDirs)
+		int main() {
+			std::cout << "Hello World!" << std::endl;
+			return 0;
+		}
+	'''
 
-			set(DEFAULT_BUILD_TYPE "Release")
-			if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-			  message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
-			  set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
-			  # Set the possible values of build type for cmake-gui
-			  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-			endif()
+	def cmake() '''
+		cmake_minimum_required(VERSION 3.5)
+		project(«_filename» VERSION 1.0.0 LANGUAGES CXX)
 
-			if(NOT DEAR_BUILD_DIR)
-			  set(DEAR_BUILD_DIR "" CACHE STRING "Choose the directory to build dear in." FORCE)
-			endif()
+		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+		include(GNUInstallDirs)
 
-			ExternalProject_Add(
-			  dep-dear
-			  PREFIX "${DEAR_BUILD_DIR}"
-			  GIT_REPOSITORY "git@github.com:cmnrd/dear.git"
-			  CMAKE_ARGS
-			    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-			    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
-			)
+		set(DEFAULT_BUILD_TYPE "Release")
+		if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+		  message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
+		  set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
+		  # Set the possible values of build type for cmake-gui
+		  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+		endif()
 
-			set(DEAR_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}dear${CMAKE_SHARED_LIBRARY_SUFFIX}")
-			set(DEAR_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+		if(NOT DEAR_BUILD_DIR)
+		  set(DEAR_BUILD_DIR "" CACHE STRING "Choose the directory to build dear in." FORCE)
+		endif()
 
-			add_library(dear SHARED IMPORTED)
-			add_dependencies(dear dep-dear)
-			set_target_properties(dear PROPERTIES IMPORTED_LOCATION "${DEAR_LIB_DIR}/${DEAR_LIB_NAME}")
+		ExternalProject_Add(
+		  dep-dear
+		  PREFIX "${DEAR_BUILD_DIR}"
+		  GIT_REPOSITORY "git@github.com:cmnrd/dear.git"
+		  CMAKE_ARGS
+		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+		)
 
-			set(CMAKE_INSTALL_RPATH "${DEAR_LIB_DIR}")
-			set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+		set(DEAR_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}dear${CMAKE_SHARED_LIBRARY_SUFFIX}")
+		set(DEAR_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
-			add_executable(«_filename» main.cc)
-			target_link_libraries(«_filename» dear)
+		add_library(dear SHARED IMPORTED)
+		add_dependencies(dear dep-dear)
+		set_target_properties(dear PROPERTIES IMPORTED_LOCATION "${DEAR_LIB_DIR}/${DEAR_LIB_NAME}")
 
-			install(TARGETS «_filename»)
-		''')
+		set(CMAKE_INSTALL_RPATH "${DEAR_LIB_DIR}")
+		set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-		var fOut = new FileOutputStream(new File(genPath + File.separator + "CMakeLists.txt"));
-		fOut.write(cmake.toString().getBytes())
-	}
+		add_executable(«_filename» main.cc)
+		target_link_libraries(«_filename» dear)
 
-	def void doCompile(String srcPath, String genPath) {
+		install(TARGETS «_filename»)
+	'''
+
+	def void doCompile() {
 		var makeCmd = newArrayList()
 		var cmakeCmd = newArrayList()
 
-		var buildPath = srcPath + File.separator + "build" + File.separator + _filename
-		var dearPath = srcPath + File.separator + "build" + File.separator + "dear"
+		var cwd = Paths.get("").toAbsolutePath().toString() 
+		var srcPath = cwd + File.separator + "src-gen" + File.separator + _filename
+		var buildPath = cwd + File.separator + "build" + File.separator + _filename
+		var dearPath = cwd + File.separator + "build" + File.separator + "dear"
 
 		makeCmd.addAll("make", "install")
-		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + srcPath, "-DDEAR_BUILD_DIR=" + dearPath, genPath)
+		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + cwd, "-DDEAR_BUILD_DIR=" + dearPath, srcPath)
 
 		var buildDir = new File(buildPath)
 		if(!buildDir.exists()) buildDir.mkdirs()
