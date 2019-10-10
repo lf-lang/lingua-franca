@@ -711,8 +711,9 @@ class CGenerator extends GeneratorBase {
 				+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
 				+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
 				+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-				+ ", 0LL" // Deadline.
+				+ ", 0LL" // deadline.
 				+ ", NULL" // Pointer to deadline violation trigger.
+                + ", -1LL" // violation_handled. (FIXME: uint64 max value?)
 				+ ", false" // Indicator that the reaction is not running.
 				+ "};"
 			)
@@ -975,8 +976,9 @@ class CGenerator extends GeneratorBase {
 						+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
 						+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
 						+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-						+ ", 0LL" // Deadline.
+						+ ", 0LL" // deadline.
 						+ ", NULL" // Pointer to deadline violation trigger.
+                        + ", -1LL" // violation_handled. (FIXME: uint64 max value?)
 						+ ", false" // Indicator that the reaction is not running.
 						+ "};"
 					)
@@ -1154,7 +1156,7 @@ class CGenerator extends GeneratorBase {
 				nameOfSelfStruct + '.__' + action.name + ' = &' + triggerStruct + ';'
 			)
 		}
-		// Next, generate the code to initialize outputs at the start
+		// Next, generate the code to initialize outputs and inputs at the start
 		// of a time step to be absent.
 		for (output : reactor.outputs) {
 			pr(

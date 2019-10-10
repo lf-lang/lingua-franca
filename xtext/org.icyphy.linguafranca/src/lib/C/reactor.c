@@ -174,12 +174,17 @@ int next() {
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         reaction_t* reaction = pqueue_pop(reaction_q);
-        // printf("Popped from reaction_q reaction with level: %lld\n", reaction->index);
-        
+        // printf("Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
+        // printf("Address of reaction: %p\n", reaction);
+
         // If the reaction has a deadline, compare to current physical time
-        // and invoke the deadline violation reaction before the reaction function
-        // if a violation has occurred.
-        if (reaction->deadline > 0LL) {
+        // and invoke the deadline violation reaction instead of the reaction function
+        // if a violation has occurred. Note that the violation reaction will be invoked
+        // at most once per logical time value. If the violation reaction triggers the
+        // same reaction at the current time value, even if at a future superdense time,
+        // then the reaction will be invoked and the violation reaction will not be invoked again.
+        bool violation = false;
+        if (reaction->deadline > 0LL && reaction->violation_handled != current_time) {
             // Get the current physical time.
             struct timespec current_physical_time;
             clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -190,6 +195,9 @@ int next() {
             // Check for deadline violation.
             if (physical_time > current_time + reaction->deadline) {
                 // Deadline violation has occurred.
+                violation = true;
+                // Prevent this violation from being handled again at the current time.
+                reaction->violation_handled = current_time;
                 // Invoke the violation reactions, if there are any.
                 trigger_t* trigger = reaction->deadline_violation;
                 if (trigger != NULL) {
@@ -197,19 +205,20 @@ int next() {
                         trigger->reactions[i]->function(trigger->reactions[i]->self);
                         // If the reaction produced outputs, put the resulting
                         // triggered reactions into the queue.
-                        // FIXME: The following causes a stack overflow on DeadlineC.lf!  Why???
-         				// trigger_output_reactions(trigger->reactions[i]);
-                   }
+         				schedule_output_reactions(trigger->reactions[i]);
+                    }
                 }
             }
         }
         
-        // Invoke the reaction function.
-        reaction->function(reaction->self);
+        if (!violation) {
+            // Invoke the reaction function.
+            reaction->function(reaction->self);
 
-        // If the reaction produced outputs, put the resulting triggered
-        // reactions into the queue.
-        trigger_output_reactions(reaction);
+            // If the reaction produced outputs, put the resulting triggered
+            // reactions into the queue.
+            schedule_output_reactions(reaction);
+        }
     }
     // Free any payloads that need to be freed and recycle the event
     // carrying them.

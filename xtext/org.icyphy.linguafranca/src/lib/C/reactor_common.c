@@ -168,7 +168,7 @@ handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload) {
 
 // For the specified reaction, if it has produced outputs, put the
 // resulting triggered reactions into the reaction queue.
-void trigger_output_reactions(reaction_t* reaction) {
+void schedule_output_reactions(reaction_t* reaction) {
     // If the reaction produced outputs, put the resulting triggered
     // reactions into the queue.
     for(int i=0; i < reaction->num_outputs; i++) {
@@ -181,7 +181,7 @@ void trigger_output_reactions(reaction_t* reaction) {
                         reaction_t* reaction = trigger->reactions[k];
                         if (reaction != NULL) {
                             pqueue_insert(reaction_q, reaction);
-                            // printf("Pushed on reaction_q reaction with level: %lld\n", trigger->reactions[k]->index);
+                            // printf("Pushed on reaction_q reaction with deadline: %lld\n", trigger->reactions[k]->deadline);
                             // printf("Reaction pointer: %p\n", trigger->reactions[k]);
                         }
                     }
