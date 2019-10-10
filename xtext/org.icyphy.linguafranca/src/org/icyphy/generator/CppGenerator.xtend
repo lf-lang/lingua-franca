@@ -48,8 +48,44 @@ class CppGenerator extends GeneratorBase {
 		fsa.generateFile(_filename + File.separator + "main.cc", main_cc)
 		fsa.generateFile(_filename + File.separator + "CMakeLists.txt", cmake)
 
+		for (r : _resource.allContents.toIterable.filter(Reactor)) {
+			fsa.generateFile(_filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
+			fsa.generateFile(_filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
+		}
+
 		doCompile()
 	}
+
+	def generateReactorHeader(Reactor r) '''
+		«header()»
+
+		#pragma once
+
+		#include "dear/dear.hh"
+
+		class «r.getName()» : public dear::Reactor {
+		 public:
+		  «IF r.isMain()»
+		  «r.getName()»(const std::string& name, dear::Environment* environment);
+		  «ELSE»
+		  «r.getName()»(const std::string& name, dear::Reactor* container);
+   		  «ENDIF»
+		};
+	'''
+
+	def generateReactorSource(Reactor r) '''
+		«header()»
+
+		#include "«r.getName».hh"
+
+		«IF r.isMain()»
+		«r.getName()»::«r.getName()»(const std::string& name, dear::Environment* environment)
+		  : dear::Reactor(name, environment) {}
+		«ELSE»
+		«r.getName()»::«r.getName()»(const std::string& name, dear::Reactor* container)
+		  : dear::Reactor(name, container) {}
+		«ENDIF»
+	'''
 
 	def header() '''
 		/*
@@ -119,7 +155,13 @@ class CppGenerator extends GeneratorBase {
 		set(CMAKE_INSTALL_RPATH "${DEAR_LIB_DIR}")
 		set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-		add_executable(«_filename» main.cc)
+		add_executable(«_filename»
+		  main.cc
+		  «FOR r : _resource.allContents.toIterable.filter(Reactor)»
+		  «r.getName()».cc
+		  «ENDFOR»
+		)
+		target_include_directories(«_filename» PUBLIC ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
 		target_link_libraries(«_filename» dear)
 
 		install(TARGETS «_filename»)
