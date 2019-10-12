@@ -721,7 +721,7 @@ class CGenerator extends GeneratorBase {
 
 			pr(result, 'trigger_t ' + output + triggerCount + ' = {')
 			indent(result)
-			pr(result, output + triggerCount + '_reactions, 1, 0LL, 0LL')
+			pr(result, output + triggerCount + '_reactions, 1, 0LL, 0LL, NULL, false')
 			unindent(result)
 			pr(result, '};')
 
@@ -1006,7 +1006,7 @@ class CGenerator extends GeneratorBase {
 			if (timing !== null || getInput(reactor, triggerName) !== null) {
 				pr(
 					result,
-					triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' + '0LL, 0LL'
+					triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' + '0LL, 0LL, NULL, false'
 				)
 			} else if (getAction(reactor, triggerName) !== null) {
 				var modifier = getAction(reactor, triggerName).getModifier();
