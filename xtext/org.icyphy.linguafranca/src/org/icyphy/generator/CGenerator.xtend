@@ -90,8 +90,6 @@ class CGenerator extends GeneratorBase {
 		var runCommandOverridden = false
 		var compileCommand = newArrayList()
 
-		var errors = new LinkedList<String>()
-
 		for (target : resource.allContents.toIterable.filter(Target)) {
 			if (target.parameters !== null) {
 				for (parameter : target.parameters.assignments) {
@@ -263,7 +261,7 @@ class CGenerator extends GeneratorBase {
             if (main === null) {
                 compileCommand.add("-c")
                 if (mode === Mode.STANDALONE) {
-                    println("ERROR: Did not output executable; no main reactor found.")
+                    reportError("ERROR: Did not output executable; no main reactor found.")
                 }
             }
         }
@@ -272,17 +270,20 @@ class CGenerator extends GeneratorBase {
 	    var builder = new ProcessBuilder(compileCommand);
 	    builder.directory(new File(srcPath));
 	    var process = builder.start()
+	    // FIXME: The following doesn't work. Somehow, the command to
+	    // run the generated code gets executed before the following is printed!
+        val code = process.waitFor()
 	    var stdout = readStream(process.getInputStream())
 	    var stderr = readStream(process.getErrorStream())
 	    if (stdout.length() > 0) {
 		    println("--- Standard output from C compiler:")
 		    println(stdout)
 	    }
+	    if (code !== 0) {
+	        reportError("Compiler returns error code " + code)
+	    }
 	    if (stderr.length() > 0) {
-		    errors.add(stderr.toString)
-		    println("ERRORS")
-		    println("--- Standard error from C compiler:")
-		    println(stderr)
+		    reportError("Compiler reports errors:\n" + stderr.toString)
 	    } else {
 		    println("SUCCESS (compiling generated C code)")
 	    }
@@ -491,12 +492,24 @@ class CGenerator extends GeneratorBase {
 							reactionInitialization,
 							"trigger_t* " + trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
 						);
-						actionsAsTriggers.add(trigger.variable as Action);
+                        actionsAsTriggers.add(trigger.variable as Action);
+                        // If the action has a type, create variables for accessing the payload.
+						val type = (trigger.variable as Action).type
+                        val payloadPointer = trigger.variable.name + '->payload'
+                        // Create the _has_payload variable.
+                        pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_payload = (' + payloadPointer + ' != NULL);')
+						// Create the _payload variable if there is a type.
+						if (type !== null) {
+						    // Create the value variable, but initialize it only if the pointer is not null.
+						    pr(reactionInitialization, type + ' ' + trigger.variable.name + '_payload;')
+						    pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_payload) '
+						        + trigger.variable.name + '_payload = *(' + '(' + type + '*)' + payloadPointer + ');'
+                            );
+                        }
 					} else if (trigger.variable instanceof Output) {
 						// FIXME: triggered by contained output
 						reportError(trigger, "(FIXME) Failed to handle hierarchical reference: " + trigger)
 					}
-
 				}
 			} else {
 				// No triggers are given, which means react to any input.
