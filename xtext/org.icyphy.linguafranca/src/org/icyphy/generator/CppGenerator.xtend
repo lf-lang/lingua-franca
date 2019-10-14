@@ -19,12 +19,18 @@ import java.io.File
 import java.nio.file.Paths
 import org.eclipse.core.runtime.FileLocator
 import java.net.URL
-import java.io.FileOutputStream
 import org.icyphy.linguaFranca.Reactor
 import java.text.SimpleDateFormat
 import java.util.Date
+import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Instance
 
 class CppGenerator extends GeneratorBase {
+	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
+		'secs' -> '_s', 'minute' -> '_min', 'minutes' -> '_min', 'hour' -> '_h', 'hours' -> '_h', 'day' -> '_d',
+		'days' -> '_d', 'week' -> '_weeks', 'weeks' -> '_weeks'}
+
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context,
 		Hashtable<String, String> importTable) {
 
@@ -56,46 +62,71 @@ class CppGenerator extends GeneratorBase {
 		doCompile()
 	}
 
+	def generate(Time t) '''«t.time»«timeUnitsToDearUnits.get(t.unit)»'''
+
+	def instantiate(Timer t) {
+		if (t.timing !== null) {
+			'''dear::Timer «t.name»{"«t.name»", this, «t.timing.period.generate», «t.timing.offset.generate»};'''
+		} else {
+			'''dear::Timer «t.name»{"«t.name»", this};'''
+		}
+	}
+
+	def instantiate(Instance i) '''«i.reactorClass.name» «i.name»{"«i.name»", this};'''
+
+	def instantiateInstances(Reactor r) '''
+		«IF r.instances.size > 0»// reactor instances«ENDIF»
+		«FOR i : r.instances»
+			«i.instantiate»
+		«ENDFOR»
+		«IF r.instances.size > 0»«"\n"»«ENDIF»
+	'''
+
+	def instantiateTimers(Reactor r) '''
+		«IF r.timers.size > 0»// timers«ENDIF»
+		«FOR t : r.timers»
+			«t.instantiate»
+		«ENDFOR»
+		«IF r.timers.size > 0»«"\n"»«ENDIF»
+	'''
+
 	def generateReactorHeader(Reactor r) '''
 		«header()»
-
+		
 		#pragma once
-
+		
 		#include "dear/dear.hh"
-
+		
+		using namespace dear::literals;
+		
 		«FOR i : r.instances»
-		#include "«i.reactorClass.name».hh"
+			#include "«i.reactorClass.name».hh"
 		«ENDFOR»
-
+		
 		class «r.getName()» : public dear::Reactor {
 		 private:
-		  «IF r.instances.size > 0»
-		  // contained reactors
-		  «FOR i : r.instances»
-		  «i.reactorClass.name» «i.name»{"«i.name»", this};
-		  «ENDFOR»
-		  «ENDIF»
-
+		  «r.instantiateInstances»
+		  «r.instantiateTimers»
 		 public:
 		  «IF r.isMain()»
-		  «r.getName()»(const std::string& name, dear::Environment* environment);
+		  	«r.getName()»(const std::string& name, dear::Environment* environment);
 		  «ELSE»
-		  «r.getName()»(const std::string& name, dear::Reactor* container);
-   		  «ENDIF»
-		};
+		  	«r.getName()»(const std::string& name, dear::Reactor* container);
+		  «ENDIF»
+		 };
 	'''
 
 	def generateReactorSource(Reactor r) '''
 		«header()»
-
+		
 		#include "«r.getName».hh"
-
+		
 		«IF r.isMain()»
-		«r.getName()»::«r.getName()»(const std::string& name, dear::Environment* environment)
-		  : dear::Reactor(name, environment) {}
+			«r.getName()»::«r.getName()»(const std::string& name, dear::Environment* environment)
+			  : dear::Reactor(name, environment) {}
 		«ELSE»
-		«r.getName()»::«r.getName()»(const std::string& name, dear::Reactor* container)
-		  : dear::Reactor(name, container) {}
+			«r.getName()»::«r.getName()»(const std::string& name, dear::Reactor* container)
+			  : dear::Reactor(name, container) {}
 		«ENDIF»
 	'''
 
@@ -109,20 +140,20 @@ class CppGenerator extends GeneratorBase {
 	'''
 
 	def fwd_hh() '''
-	    «header()»
-
-	    #pragma once
-
-	    «FOR r : _resource.allContents.toIterable.filter(Reactor)»
-	    class «r.getName()»;
-	    «ENDFOR»
+		«header()»
+		
+		#pragma once
+		
+		«FOR r : _resource.allContents.toIterable.filter(Reactor)»
+			class «r.getName()»;
+		«ENDFOR»
 	'''
 
 	def main_cc() '''
 		«header()»
-
+		
 		#include <iostream>
-
+		
 		int main() {
 			std::cout << "Hello World!" << std::endl;
 			return 0;
@@ -132,10 +163,10 @@ class CppGenerator extends GeneratorBase {
 	def cmake() '''
 		cmake_minimum_required(VERSION 3.5)
 		project(«_filename» VERSION 1.0.0 LANGUAGES CXX)
-
+		
 		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 		include(GNUInstallDirs)
-
+		
 		set(DEFAULT_BUILD_TYPE "Release")
 		if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 		  message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
@@ -143,11 +174,11 @@ class CppGenerator extends GeneratorBase {
 		  # Set the possible values of build type for cmake-gui
 		  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 		endif()
-
+		
 		if(NOT DEAR_BUILD_DIR)
 		  set(DEAR_BUILD_DIR "" CACHE STRING "Choose the directory to build dear in." FORCE)
 		endif()
-
+		
 		ExternalProject_Add(
 		  dep-dear
 		  PREFIX "${DEAR_BUILD_DIR}"
@@ -156,26 +187,26 @@ class CppGenerator extends GeneratorBase {
 		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
 		)
-
+		
 		set(DEAR_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}dear${CMAKE_SHARED_LIBRARY_SUFFIX}")
 		set(DEAR_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-
+		
 		add_library(dear SHARED IMPORTED)
 		add_dependencies(dear dep-dear)
 		set_target_properties(dear PROPERTIES IMPORTED_LOCATION "${DEAR_LIB_DIR}/${DEAR_LIB_NAME}")
-
+		
 		set(CMAKE_INSTALL_RPATH "${DEAR_LIB_DIR}")
 		set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
+		
 		add_executable(«_filename»
 		  main.cc
 		  «FOR r : _resource.allContents.toIterable.filter(Reactor)»
-		  «r.getName()».cc
+		  	«r.getName()».cc
 		  «ENDFOR»
 		)
 		target_include_directories(«_filename» PUBLIC ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
 		target_link_libraries(«_filename» dear)
-
+		
 		install(TARGETS «_filename»)
 	'''
 
@@ -183,7 +214,7 @@ class CppGenerator extends GeneratorBase {
 		var makeCmd = newArrayList()
 		var cmakeCmd = newArrayList()
 
-		var cwd = Paths.get("").toAbsolutePath().toString() 
+		var cwd = Paths.get("").toAbsolutePath().toString()
 		var srcPath = cwd + File.separator + "src-gen" + File.separator + _filename
 		var buildPath = cwd + File.separator + "build" + File.separator + _filename
 		var dearPath = cwd + File.separator + "build" + File.separator + "dear"
