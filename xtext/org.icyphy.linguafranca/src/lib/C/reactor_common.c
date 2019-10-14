@@ -40,14 +40,21 @@ bool keepalive_specified = false;
 /////////////////////////////
 // The following functions are in scope for all reactors:
 
-// Return the elpased logical time in nanoseconds since the start of execution.
+/** Return the elpased logical time in nanoseconds since the start of execution. */
 interval_t get_elapsed_logical_time() {
     return current_time - start_time;
 }
 
-// Return the current logical time in nanoseconds since January 1, 1970.
+/** Return the current logical time in nanoseconds since January 1, 1970. */
 instant_t get_logical_time() {
     return current_time;
+}
+
+/** Return the current physical time in nanoseconds since January 1, 1970. */
+instant_t get_physical_time() {
+    struct timespec physicalTime;
+    clock_gettime(CLOCK_REALTIME, &physicalTime);
+    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec;
 }
 
 /**
@@ -141,7 +148,7 @@ static void prt_evt(FILE *out, void *a) {
 
 // Schedule the specified trigger at current_time plus the
 // offset of the specified trigger plus the delay.
-// The payload is required to be a pointer returned by malloc
+// The payload is required to be a pointer returned by lf_malloc
 // because it will be freed after having been delivered to
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
