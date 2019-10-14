@@ -133,7 +133,13 @@ int next() {
  	// to be freed and recycle the event carrying them.
     event_t* free_event = pqueue_pop(free_q);
     while (free_event != NULL) {
-    	free(free_event->payload);
+        if (free_event->payload != NULL) {
+            free(free_event->payload);
+        }
+        if (free_event->trigger != NULL) {
+            // Make sure the trigger is not pointing to freed memory.
+            free_event->trigger->payload = NULL;
+        }
     	pqueue_insert(recycle_q, free_event);
     	free_event = pqueue_pop(free_q);
     }
