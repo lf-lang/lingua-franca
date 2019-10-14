@@ -148,7 +148,6 @@ class LinguaFrancaGeneratorTest {
             return
         }
         
-        
         // Check that the file parses.
         // FIXME: Needed?
         println("*** Parsing test file: " + file)
@@ -174,6 +173,10 @@ class LinguaFrancaGeneratorTest {
         // Specify that output should go into src-gen.
         fileAccess.outputPath = 'src-gen'
         generator.doGenerate(resource, fileAccess, context)
+        // FIXME: How to wait for doGenerate to finish???
+        if (generator.errorsOccurred()) {
+            errors.add('''Generator errors in «file»''')
+        }
                	
        	// Run the generated code using a provided run command, if it is provided,
        	// and a default otherwise.

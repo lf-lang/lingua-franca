@@ -22,6 +22,9 @@ import org.icyphy.linguaFranca.Target
 class LinguaFrancaGenerator extends AbstractGenerator {
 	val importTable = new Hashtable<String,String>
 
+    // Indicator of whether generator errors occurred.
+    protected var generatorErrorsOccurred = false
+
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		// First collect all the imports.
 		for (import : resource.allContents.toIterable.filter(Import)) {
@@ -39,18 +42,28 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 				val generator = new AccessorGenerator()
 				targetFound = true
 				generator.doGenerate(resource, fsa, context, importTable)
+				generatorErrorsOccurred = generator.errorsOccurred()
 			} else if (target.name.equalsIgnoreCase("C")) {
 				targetFound = true
 				val generator = new CGenerator()
 				generator.doGenerate(resource, fsa, context, importTable)
+                generatorErrorsOccurred = generator.errorsOccurred()
 			} else if (target.name.equalsIgnoreCase("SCL")) {
 				targetFound = true
 				val generator = new SCLGenerator()
 				generator.doGenerate(resource, fsa, context, importTable)
+                generatorErrorsOccurred = generator.errorsOccurred()
 			}
 		}
 		if (!targetFound) {
 			System.err.println("Warning: No recognized target.")
 		}
 	}
+	
+	/** Return true if errors occurred in the last call to doGenerate().
+     *  @return True if errors occurred.
+     */
+    def errorsOccurred() {
+        return generatorErrorsOccurred;
+    }
 }
