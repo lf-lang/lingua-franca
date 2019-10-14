@@ -70,6 +70,7 @@
 #define WEEK(t)  (t * 604800000000000LL)
 #define WEEKS(t) (t * 604800000000000LL)
 
+/** set() is a macro that handles pointers and the _is_present variable. */
 #define set(out, value) (*out) = value; (*out ## _is_present) = true;
 
 //  ======== Type definitions ========  //
@@ -149,6 +150,13 @@ interval_t get_elapsed_logical_time();
  * @return a time instant
  */
 instant_t get_logical_time();
+
+/**
+ * Return the current physical time in nanoseconds
+ * since January 1, 1970.
+ * @return a time instant
+ */
+instant_t get_physical_time();
 
 /**
  * Function to request stopping execution at the end of the current logical time.
