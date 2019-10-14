@@ -5,7 +5,7 @@ target C(
 reactor DelayInt(delay:time(100 msec)) {
     input in:int;
     output out:int;
-    logical action d:{=int*=};
+    logical action d:int;
     reaction(in) -> d {=
         // Allocate memory for a copy of the input. Use lf_malloc(),
         // the Lingua Franca specialized version of malloc().
@@ -15,10 +15,9 @@ reactor DelayInt(delay:time(100 msec)) {
     =}
     reaction(d) -> out {=
         // This will pass the value, so the malloc can be freed.
-        // The action d will be a trigger pointer (because it may be
-        // used like an input or an output), so the payload has to be
-        // referred to indirectly.
-        set(out, *((int*)d->payload));
+        if (d_has_payload) {
+            set(out, d_payload);
+        }
     =}
 }
 reactor Test {
@@ -38,6 +37,10 @@ reactor Test {
         if (elapsed != 100000000LL) {
             printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
             exit(1);
+        }
+        if (in != 42) {
+            printf("ERROR: Expected input value to be 42. It was %d.\n", in);
+            exit(2);            
         }
     =}
 }

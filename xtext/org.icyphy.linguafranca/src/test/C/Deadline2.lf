@@ -29,10 +29,10 @@ reactor Destination {
         exit(2);
     =}
 }
-main reactor DeadlineC {
-    logical action panic;
+main reactor Deadline2 {
+    logical action panic:int;
     reaction(panic) -> d.e {=
-        printf("**** Deadline miss detected.\n");
+        printf("**** Deadline miss detected. Data value is: %p.\n", (int*)panic->payload );
         set(d.e, 1);
     =}
     s = new Source();

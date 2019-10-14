@@ -15,6 +15,7 @@ DeterminismThreaded.lf
 DoubleReactionC.lf
 DoubleReactionCThreaded.lf
 Gain.lf
+GetTime.lf
 HelloC.lf
 HelloCThreaded.lf
 HelloWorld.lf
@@ -30,6 +31,7 @@ SendingInsideC.lf
 SendingInside2.lf
 SendingInsideCThreaded.lf
 SimpleImport.lf
+Stride.lf
 ThreadedC.lf
 ThreadedCThreaded.lf
 TimeLimitC.lf
