@@ -63,7 +63,19 @@ class CppGenerator extends GeneratorBase {
 
 		#include "dear/dear.hh"
 
+		«FOR i : r.instances»
+		#include "«i.reactorClass.name».hh"
+		«ENDFOR»
+
 		class «r.getName()» : public dear::Reactor {
+		 private:
+		  «IF r.instances.size > 0»
+		  // contained reactors
+		  «FOR i : r.instances»
+		  «i.reactorClass.name» «i.name»{"«i.name»", this};
+		  «ENDFOR»
+		  «ENDIF»
+
 		 public:
 		  «IF r.isMain()»
 		  «r.getName()»(const std::string& name, dear::Environment* environment);
