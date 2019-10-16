@@ -78,27 +78,21 @@ class CppGenerator extends GeneratorBase {
 	def instantiate(Reaction n, int id) '''dear::Reaction r«id»{"r«id»", «id», this, [this]() { r«id»_impl(); }};'''
 
 	def instantiateInstances(Reactor r) '''
-		«IF r.instances.size > 0»// reactor instances«ENDIF»
-		«FOR i : r.instances»
+		«FOR i : r.instances BEFORE '// reactor instances\n' AFTER '\n'»
 			«i.instantiate»
 		«ENDFOR»
-		«IF r.instances.size > 0»«"\n"»«ENDIF»
 	'''
 
 	def instantiateTimers(Reactor r) '''
-		«IF r.timers.size > 0»// timers«ENDIF»
-		«FOR t : r.timers»
+		«FOR t : r.timers BEFORE '// timers\n' AFTER '\n'»
 			«t.instantiate»
 		«ENDFOR»
-		«IF r.timers.size > 0»«"\n"»«ENDIF»
 	'''
 
 	def instantiateReactions(Reactor r) '''
-		«IF r.timers.size > 0»// reactions«ENDIF»
-		«FOR n : r.reactions»
+		«FOR n : r.reactions BEFORE '// reactions\n' AFTER '\n'»
 			«n.instantiate(r.reactions.lastIndexOf(n))»
 		«ENDFOR»
-		«IF r.timers.size > 0»«"\n"»«ENDIF»
 	'''
 
 	def generateReactorHeader(Reactor r) '''
