@@ -1,13 +1,13 @@
 target Cpp;
 reactor HelloWorld {
+    preamble {=
+        #include <iostream>
+    =}
     timer t;
     reaction(t) {=
         std::cout << "Hello World." << std::endl;
     =}
 }
 main reactor HelloWorldTest {
-    preamble {=
-        #include <iostream>
-    =}
     a = new HelloWorld();
 }
