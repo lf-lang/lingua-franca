@@ -65,6 +65,16 @@ class CppGenerator extends GeneratorBase {
 
 	def generate(Time t) '''«t.time»«timeUnitsToDearUnits.get(t.unit)»'''
 
+	def name(Reaction n) {
+		var r = n.eContainer as Reactor
+		'r' + r.reactions.lastIndexOf(n)
+	}
+
+	def priority(Reaction n) {
+		var r = n.eContainer as Reactor
+		r.reactions.lastIndexOf(n)
+	}
+
 	def instantiate(Timer t) {
 		if (t.timing !== null) {
 			'''dear::Timer «t.name»{"«t.name»", this, «t.timing.period.generate», «t.timing.offset.generate»};'''
@@ -75,7 +85,8 @@ class CppGenerator extends GeneratorBase {
 
 	def instantiate(Instance i) '''«i.reactorClass.name» «i.name»{"«i.name»", this};'''
 
-	def instantiate(Reaction n, int id) '''dear::Reaction r«id»{"r«id»", «id», this, [this]() { r«id»_body(); }};'''
+	def instantiate(
+		Reaction n) '''dear::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};'''
 
 	def instantiateInstances(Reactor r) '''
 		«FOR i : r.instances BEFORE '// reactor instances\n' AFTER '\n'»
@@ -91,19 +102,19 @@ class CppGenerator extends GeneratorBase {
 
 	def instantiateReactions(Reactor r) '''
 		«FOR n : r.reactions BEFORE '// reactions\n' AFTER '\n'»
-			«n.instantiate(r.reactions.lastIndexOf(n))»
+			«n.instantiate»
 		«ENDFOR»
 	'''
 
 	def declareReactionBodies(Reactor r) '''
 		«FOR n : r.reactions BEFORE '// reactions bodies\n' AFTER '\n'»
-			void r«r.reactions.lastIndexOf(n)»_body();
+			void «n.name»_body();
 		«ENDFOR»
 	'''
 
 	def implementReactionBodies(Reactor r) '''
 		«FOR n : r.reactions SEPARATOR '\n'»
-			void «r.name»::r«r.reactions.lastIndexOf(n)»_body() {
+			void «r.name»::«n.name»_body() {
 			  «removeCodeDelimiter(n.code)»
 			}
 		«ENDFOR»
