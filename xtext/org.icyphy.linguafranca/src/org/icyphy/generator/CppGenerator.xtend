@@ -109,6 +109,20 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
+	def includeInstances(Reactor r) '''
+		«FOR i : r.instances AFTER '\n'»
+			#include "«i.reactorClass.name».hh"
+		«ENDFOR»
+	'''
+
+	def generatePreamble(Reactor r) '''
+		«IF r.preamble !== null»
+			// preamble
+			«removeCodeDelimiter(r.preamble.code)»
+			
+		«ENDIF»
+	'''
+
 	def generateReactorHeader(Reactor r) '''
 		«header()»
 		
@@ -116,11 +130,9 @@ class CppGenerator extends GeneratorBase {
 		
 		#include "dear/dear.hh"
 		
+		«r.includeInstances»
+		«r.generatePreamble»
 		using namespace dear::literals;
-		
-		«FOR i : r.instances»
-			#include "«i.reactorClass.name».hh"
-		«ENDFOR»
 		
 		class «r.getName()» : public dear::Reactor {
 		 private:
