@@ -25,6 +25,7 @@ import java.util.Date
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Instance
+import org.icyphy.linguaFranca.Reaction
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -74,6 +75,8 @@ class CppGenerator extends GeneratorBase {
 
 	def instantiate(Instance i) '''«i.reactorClass.name» «i.name»{"«i.name»", this};'''
 
+	def instantiate(Reaction n, int id) '''dear::Reaction r«id»{"r«id»", «id», this, [this]() { r«id»_impl(); }};'''
+
 	def instantiateInstances(Reactor r) '''
 		«IF r.instances.size > 0»// reactor instances«ENDIF»
 		«FOR i : r.instances»
@@ -86,6 +89,14 @@ class CppGenerator extends GeneratorBase {
 		«IF r.timers.size > 0»// timers«ENDIF»
 		«FOR t : r.timers»
 			«t.instantiate»
+		«ENDFOR»
+		«IF r.timers.size > 0»«"\n"»«ENDIF»
+	'''
+
+	def instantiateReactions(Reactor r) '''
+		«IF r.timers.size > 0»// reactions«ENDIF»
+		«FOR n : r.reactions»
+			«n.instantiate(r.reactions.lastIndexOf(n))»
 		«ENDFOR»
 		«IF r.timers.size > 0»«"\n"»«ENDIF»
 	'''
@@ -107,6 +118,7 @@ class CppGenerator extends GeneratorBase {
 		 private:
 		  «r.instantiateInstances»
 		  «r.instantiateTimers»
+		  «r.instantiateReactions»
 		 public:
 		  «IF r.isMain()»
 		  	«r.getName()»(const std::string& name, dear::Environment* environment);
