@@ -134,6 +134,43 @@ class CppGenerator extends GeneratorBase {
 		«ENDIF»
 	'''
 
+	def declareTriggers(Reaction n) '''
+		«FOR t : n.triggers»
+			«IF t.instance !== null»
+				«n.name».declare_trigger(&«t.instance.name».«t.variable.name»);
+			«ELSE»
+				«n.name».declare_trigger(&«t.variable.name»);
+			«ENDIF»
+		«ENDFOR»
+	'''
+
+	def declareDependencies(Reaction n) '''
+		«FOR t : n.sources»
+			«IF t.instance !== null»
+				«n.name».declare_dependency(&«t.instance.name».«t.variable.name»);
+			«ELSE»
+				«n.name».declare_dependency(&«t.variable.name»);
+			«ENDIF»
+		«ENDFOR»
+	'''
+
+	def declareAntidependencies(Reaction n) '''
+		«FOR t : n.effects»
+			«IF t.instance !== null»
+				«n.name».declare_antidependency(&«t.instance.name».«t.variable.name»);
+			«ELSE»
+				«n.name».declare_antidependency(&«t.variable.name»);
+			«ENDIF»
+		«ENDFOR»
+	'''
+
+	def assembleReaction(Reactor r, Reaction n) '''
+		// «n.name»
+		«n.declareTriggers»
+		«n.declareDependencies»
+		«n.declareAntidependencies»
+	'''
+
 	def generateReactorHeader(Reactor r) '''
 		«header()»
 		
@@ -157,7 +194,9 @@ class CppGenerator extends GeneratorBase {
 		  «ELSE»
 		  	«r.getName()»(const std::string& name, dear::Reactor* container);
 		  «ENDIF»
-		 };
+		  
+		  void assemble() override;
+		};
 	'''
 
 	def generateReactorSource(Reactor r) '''
@@ -172,6 +211,12 @@ class CppGenerator extends GeneratorBase {
 			«r.getName()»::«r.getName()»(const std::string& name, dear::Reactor* container)
 			  : dear::Reactor(name, container) {}
 		«ENDIF»
+		
+		void «r.name»::assemble() {
+		  «FOR n : r.reactions SEPARATOR '\n'»
+		  	«r.assembleReaction(n)»
+		  «ENDFOR»
+		}
 		
 		«r.implementReactionBodies»
 	'''
