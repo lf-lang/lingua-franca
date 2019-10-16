@@ -75,6 +75,22 @@ class CppGenerator extends GeneratorBase {
 		r.reactions.lastIndexOf(n)
 	}
 
+	def findMainReactor() {
+		var main = null as Reactor
+		for (r : _resource.allContents.toIterable.filter(Reactor)) {
+			if (r.isMain) {
+				if (main !== null) {
+					throw new RuntimeException("There is more than one main reactor!")
+				}
+				main = r
+			}
+		}
+		if (main === null) {
+			throw new RuntimeException("No main reactor found!")
+		}
+		main
+	}
+
 	def instantiate(Timer t) {
 		if (t.timing !== null) {
 			'''dear::Timer «t.name»{"«t.name»", this, «t.timing.period.generate», «t.timing.offset.generate»};'''
@@ -240,16 +256,29 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
-	def main_cc() '''
-		«header()»
-		
-		#include <iostream>
-		
-		int main() {
-			std::cout << "Hello World!" << std::endl;
-			return 0;
-		}
-	'''
+	def main_cc() {
+		var main = findMainReactor()
+		'''
+			«header()»
+			
+			#include "dear/dear.hh"
+			
+			#include "«main.name».hh"
+			
+			int main() {
+			  dear::Environment e{4};
+			
+			  «main.name» main{"main", &e};
+			  e.assemble();
+			  e.init();
+			
+			  auto t = e.start();
+			  t.join();
+			
+			  return 0;
+			}
+		'''
+	}
 
 	def cmake() '''
 		cmake_minimum_required(VERSION 3.5)
