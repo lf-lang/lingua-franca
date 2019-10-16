@@ -75,7 +75,7 @@ class CppGenerator extends GeneratorBase {
 
 	def instantiate(Instance i) '''«i.reactorClass.name» «i.name»{"«i.name»", this};'''
 
-	def instantiate(Reaction n, int id) '''dear::Reaction r«id»{"r«id»", «id», this, [this]() { r«id»_impl(); }};'''
+	def instantiate(Reaction n, int id) '''dear::Reaction r«id»{"r«id»", «id», this, [this]() { r«id»_body(); }};'''
 
 	def instantiateInstances(Reactor r) '''
 		«FOR i : r.instances BEFORE '// reactor instances\n' AFTER '\n'»
@@ -92,6 +92,20 @@ class CppGenerator extends GeneratorBase {
 	def instantiateReactions(Reactor r) '''
 		«FOR n : r.reactions BEFORE '// reactions\n' AFTER '\n'»
 			«n.instantiate(r.reactions.lastIndexOf(n))»
+		«ENDFOR»
+	'''
+
+	def declareReactionBodies(Reactor r) '''
+		«FOR n : r.reactions BEFORE '// reactions bodies\n' AFTER '\n'»
+			void r«r.reactions.lastIndexOf(n)»_body();
+		«ENDFOR»
+	'''
+
+	def implementReactionBodies(Reactor r) '''
+		«FOR n : r.reactions SEPARATOR '\n'»
+			void «r.name»::r«r.reactions.lastIndexOf(n)»_body() {
+			  «removeCodeDelimiter(n.code)»
+			}
 		«ENDFOR»
 	'''
 
@@ -113,6 +127,7 @@ class CppGenerator extends GeneratorBase {
 		  «r.instantiateInstances»
 		  «r.instantiateTimers»
 		  «r.instantiateReactions»
+		  «r.declareReactionBodies»
 		 public:
 		  «IF r.isMain()»
 		  	«r.getName()»(const std::string& name, dear::Environment* environment);
@@ -134,6 +149,8 @@ class CppGenerator extends GeneratorBase {
 			«r.getName()»::«r.getName()»(const std::string& name, dear::Reactor* container)
 			  : dear::Reactor(name, container) {}
 		«ENDIF»
+		
+		«r.implementReactionBodies»
 	'''
 
 	def header() '''
