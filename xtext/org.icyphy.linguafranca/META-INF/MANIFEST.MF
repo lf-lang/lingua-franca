@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Automatic-Module-Name: org.icyphy.linguafranca
 Bundle-ManifestVersion: 2
 Bundle-Name: org.icyphy.linguafranca
-Bundle-Vendor: University of California, Berkeley
+Bundle-Vendor: iCyPhy Project, University of California, Berkeley
 Bundle-Version: 1.0.0.qualifier
 Bundle-SymbolicName: org.icyphy.linguafranca; singleton:=true
 Bundle-ActivationPolicy: lazy
