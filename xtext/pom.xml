@@ -21,12 +21,25 @@
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <!-- To build with Java 10 or later, change tycho-version to 1.5.0
+         and uncomment the pluginRepositories section below -->
     <tycho-version>1.4.0</tycho-version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <xtext.version>2.18.0</xtext.version>
     <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
   </properties>
 
+  <!-- To build with tycho 1.5.0, uncomment the next section.
+       See https://wiki.eclipse.org/Tycho/Release_Notes/1.5 -->
+  <!--
+  <pluginRepositories>
+    <pluginRepository>
+      <id>tycho-staged</id>
+      <url>https://oss.sonatype.org/content/repositories/orgeclipsetycho-1056</url>
+    </pluginRepository>
+  </pluginRepositories>
+  -->
+  
   <repositories>
     <repository>
       <id>eclipse</id>
