@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: Diagram
+Bundle-Name: Lingua Franca polyglot reactor language block diagram editor
 Bundle-SymbolicName: org.icyphy.linguafranca.diagram;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Automatic-Module-Name: org.icyphy.linguafranca.diagram

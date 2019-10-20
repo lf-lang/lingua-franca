@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Automatic-Module-Name: org.icyphy.linguafranca.ui.tests
 Bundle-ManifestVersion: 2
-Bundle-Name: org.icyphy.linguafranca.ui.tests
+Bundle-Name: Lingua Franca polyglot reactor language user interface tests
 Bundle-Vendor: iCyPhy Project, University of California, Berkeley
 Bundle-Version: 1.0.0.qualifier
 Bundle-SymbolicName: org.icyphy.linguafranca.ui.tests; singleton:=true
