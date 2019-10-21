@@ -56,13 +56,17 @@ and generate code from them into the src-gen directory.
 ## Building org.icyphy.linguafranca.diagram
 org.icyphy.linguafranca.diagram is a work in progress.  To build it, we need to install
 [Kieler Lightweight Diagram](https://rtsys.informatik.uni-kiel.de/confluence/pages/viewpage.action?pageId=328115)
-* Choose Help -> Install New Software... from the menu bar and under Add....
-* Enter in  http://rtsys.informatik.uni-kiel.de/~kieler/updatesite/
-* Under Kieler Lightweight Diagrams, select Kieler Lightweight Diagrams - Developer Resources and Examples.
+* Choose Help -> Install New Software... from the menu bar
+* In the Add.... entry, enter in  http://rtsys.informatik.uni-kiel.de/~kieler/updatesite/
+* Hit the enter key
+* Under Kieler Lightweight Diagrams:
+* Select KIELER Lightweight Diagrams Generic Diagram View
+* Select KIELER Lightweight Diagrams Runtime
+* Click Next
 * Accept the licenses
 * Accept the unsigned content
 * Restart Eclipse
-* Repeat the above steps for https://build.eclipse.org/modeling/elk/updates/nightly
+* Project -> Clean -> Clean
 
 ## Troubleshooting
 * Importing the Team Project Set from `LinguaFrancaProjectSet.psf` will result in Eclipse cloning a fresh copy of the lingua-franca repository; the clone will be located in `~/git/lingua-franca` (it will not use the clone that you obtained the `LinguaFrancaProjectSet.psf` from!) Note that, if you already have a clone in `~/git/lingua-franca`, that will simply be reused (not overwritten).
