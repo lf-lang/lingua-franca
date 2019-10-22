@@ -4,6 +4,7 @@ CompositionC.lf
 CompositionCThreaded.lf
 CountTest.lf
 DanglingOutput.lf
+Deadline.lf
 Deadline2.lf
 DeadlineC.lf
 DeadlineCThreaded.lf
@@ -30,6 +31,7 @@ Schedule.lf
 SendingInsideC.lf
 SendingInside2.lf
 SendingInsideCThreaded.lf
+SimpleDeadline.lf
 SimpleImport.lf
 Stride.lf
 ThreadedC.lf
