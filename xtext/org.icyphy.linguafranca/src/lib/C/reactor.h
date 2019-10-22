@@ -109,11 +109,14 @@ struct reaction_t {
   bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced.
   int* triggered_sizes;     // Pointer to array of ints with number of triggers per output.
   trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output.
-  interval_t deadline;      // Deadline relative to the time stamp for invocation of the reaction.
-  trigger_t* deadline_violation; // Trigger to fire in the event of a deadline violation.
+  bool running;             // Indicator that this reaction has already started executing.
+  interval_t local_deadline;// Local deadline relative to the time stamp for invocation of the reaction.
+  reaction_function_t deadline_violation_handler; // Local deadline violation handler.
+  // NOTE: The next three items are for deadlines set in the container. These may go away.
+  interval_t deadline;      // Container deadline relative to the time stamp for invocation of the reaction.
+  trigger_t* deadline_violation; // Trigger to fire in the event of a container deadline violation.
   time_t violation_handled; // The time at which the most recent deadline violation has been handled
                             // (to prevent it from being handled again).
-  bool running;   // Indicator that this reaction has already started executing.
 };
 
 /** Reaction activation record to push onto the reaction queue. */

@@ -454,7 +454,7 @@ class CGenerator extends GeneratorBase {
 		var properties = reactorToProperties.get(reactor)
 		for (reaction : reactions) {
 			// Create a unique function name for each reaction.
-			val functionName = "reaction_function" + reactionCount++
+			val functionName = "reaction_function" + reactionCount
 
 			properties.targetProperties.put(reaction, functionName)
 
@@ -527,7 +527,6 @@ class CGenerator extends GeneratorBase {
 				} else {
 					reportError(src, "(FIXME) Failed to handle hierarchical reference: " + src)
 				}
-
 			}
 
 			// Define variables for each declared output or action.
@@ -571,6 +570,22 @@ class CGenerator extends GeneratorBase {
 			pr(removeCodeDelimiter(reaction.code))
 			unindent()
 			pr("}")
+			
+			// Now generate code for the deadline violation function, if there is one.
+			if (reaction.localDeadline !== null) {
+			    val deadlineFunctionName = 'deadline_function' + reactionCount
+                properties.targetProperties.put(reaction.localDeadline, deadlineFunctionName)
+
+			    pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+			    indent();
+                pr(reactionInitialization.toString)
+                // Code verbatim from 'deadline'
+                prSourceLineNumber(reaction.localDeadline.time)
+                pr(removeCodeDelimiter(reaction.localDeadline.deadlineCode))
+                unindent()
+                pr("}")
+			}
+			reactionCount++
 		}
 	}
 
@@ -723,11 +738,13 @@ class CGenerator extends GeneratorBase {
 				+ ", 1" // num_outputs: number of outputs produced by this reaction. This is just one.
 				+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
 				+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
-				+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-				+ ", 0LL" // deadline.
-				+ ", NULL" // Pointer to deadline violation trigger.
-                + ", -1LL" // violation_handled. (FIXME: uint64 max value?)
-				+ ", false" // Indicator that the reaction is not running.
+				+ ", " + triggersArray       // triggered: array of pointers to arrays of triggers.
+                + ", false" // Indicator that the reaction is not running.
+				+ ", 0LL"   // Local deadline.
+				+ ", NULL"  // Pointer to local deadline_violation_handler.
+                + ", 0LL"   // Container deadline.
+				+ ", NULL"  // Pointer to container deadline violation trigger.
+                + ", -1LL"  // violation_handled for container deadline.
 				+ "};"
 			)
 			pr(result, 'reaction_t* ' + output + triggerCount + '_reactions[1] = {&' + reactionInstanceName + '};')
@@ -979,6 +996,10 @@ class CGenerator extends GeneratorBase {
 					if (nameOfSelfStruct === null) {
 						selfStructArgument = ", NULL"
 					}
+					var deadlineFunctionPointer = ", NULL"
+					if (reaction.localDeadline !== null) {
+					    deadlineFunctionPointer = ", &" + properties.targetProperties.get(reaction.localDeadline)
+					}
 					// First 0 is an index that specifies priorities based on precedences.
 					// It will be set later.
 					pr(
@@ -988,11 +1009,13 @@ class CGenerator extends GeneratorBase {
 						+ ", " + outputCount // num_outputs: number of outputs produced by this reaction.
 						+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
 						+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
-						+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-						+ ", 0LL" // deadline.
-						+ ", NULL" // Pointer to deadline violation trigger.
-                        + ", -1LL" // violation_handled. (FIXME: uint64 max value?)
-						+ ", false" // Indicator that the reaction is not running.
+						+ ", " + triggersArray       // triggered: array of pointers to arrays of triggers.
+                        + ", false"    // Indicator that the reaction is not running.
+						+ ", 0LL"      // Local deadline.
+						+ deadlineFunctionPointer // deadline_violation_handler: Pointer to local handler function.
+                        + ", 0LL"      // Container deadline.
+						+ ", NULL"     // Pointer to container deadline violation trigger.
+                        + ", -1LL"     // violation_handled for container deadlines.
 						+ "};"
 					)
 				}
@@ -1177,8 +1200,16 @@ class CGenerator extends GeneratorBase {
 				nameOfSelfStruct + '.__' + output.name + '_is_present = false;'
 			)
 		}
+		// Handle reaction local deadlines.
+		for (reaction: reactor.reactions) {
+		    if (reaction.localDeadline !== null) {
+                var reactionToReactionTName = reactorInstance.properties.get("reactionToReactionTName")
+                var reactionTName = (reactionToReactionTName as HashMap<Reaction, String>).get(reaction)
+		        pr(initializeTriggerObjects, reactionTName + '.local_deadline = ' + timeMacro(reaction.localDeadline.time) + ';')
+		    }
+		}
 
-		// Finally, handle deadline commands.
+		// Finally, handle container deadline commands.
 		for (deadline : reactor.deadlines) {
 			if (deadline.port.instance !== null) { // x.y
 				var deadlineReactor = reactorInstance.getContainedInstance(deadline.port.instance.name)
