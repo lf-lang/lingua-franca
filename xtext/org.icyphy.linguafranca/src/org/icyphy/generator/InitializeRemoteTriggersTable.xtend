@@ -3,21 +3,24 @@
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
+import org.icyphy.linguaFranca.Instance
+import org.icyphy.linguaFranca.VarRef
+
 /** A data class used by CGenerator. */
 class InitializeRemoteTriggersTable {
 	new (
-		ReactorInstance reactor,
+		Instance reactor,
 		String remoteTriggersArrayName,
 		int arrayIndex,
-		String inputName
+		VarRef input
 	) {
 		this.reactor = reactor
 		this.remoteTriggersArrayName = remoteTriggersArrayName
 		this.arrayIndex = arrayIndex
-		this.inputName = inputName
+		this.input = input
 	}
-	public ReactorInstance reactor
+	public Instance reactor
 	public String remoteTriggersArrayName
 	public int arrayIndex
-	public String inputName
+	public VarRef input
 }

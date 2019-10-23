@@ -34,7 +34,7 @@ class SCLGenerator extends GeneratorBase {
 			pr("")
 		}
 
-		val allReactors = graph.nodes.map[it.reactorInstance.reactor].toSet.sortBy[it.name].toArray(<Reactor>newArrayOfSize(0))  // TODO: This doesn't seem to include all reactors??
+		val allReactors = graph.nodes.map[it.reactorInstance.getReactorClass()].toSet.sortBy[it.name].toArray(<Reactor>newArrayOfSize(0))  // TODO: This doesn't seem to include all reactors??
 		val reactorIndices = allReactors.indexed.toMap([it.value], [it.key])
 		val reactionIndices = newHashMap(allReactors.toInvertedMap[r | r.reactions.indexed.toMap([it.value], [it.key])].values.flatMap[it.entrySet].map[it.key -> it.value])
 		val reactorName = _filename
@@ -45,10 +45,10 @@ class SCLGenerator extends GeneratorBase {
 			for (reactionInstance : graph.nodes.toList.sortBy[it.level]) {
 				val reaction = reactionInstance.reactionSpec
 				val reactorInstance = reactionInstance.reactorInstance
-				val containerReactorInstance = reactorInstance.container
-				val containerReactor = containerReactorInstance.reactor
+				val containerReactorInstance = InstanceInfo.get(reactorInstance).parent
+				val containerReactor = containerReactorInstance.getReactorClass()
 				val containerReactorIndex = reactorIndices.get(containerReactor)
-				val reactor = reactorInstance.reactor
+				val reactor = reactorInstance.getReactorClass()
 				val reactionIndex = reactionIndices.get(reaction) + 1;
 				val reactionName = String.format("%s_%s", reactor.name, reactionIndex)
 				val args = newArrayList(String.format("\"this\" := #%s.%s", instanceName, reactorInstance.name))
@@ -56,13 +56,13 @@ class SCLGenerator extends GeneratorBase {
 				val containerConnectionMap = containerReactor.connections.toMap([it.rightPort], [it.leftPort])
 				val incomings = instanceTriggerNames.map[containerConnectionMap.get(it)]
 				incomings.indexed.forEach[if (it.value !== null) {
-					args.add(String.format("%s := #%s.%s", instanceTriggerNames.get(it.key).split("\\.").last, containerReactorInstance.fullName, it.value))
+					args.add(String.format("%s := #%s.%s", instanceTriggerNames.get(it.key).split("\\.").last, InstanceInfo.get(containerReactorInstance).fullName, it.value))
 				}]
 				reaction.effects?.forEach[
-					args.add(String.format("#%s := #%s.%s", it.variable.name, reactorInstance.fullName, it.variable.name))
-					args.add(String.format("#%s_present := #%s.%s_present", it.variable.name, reactorInstance.fullName, it.variable.name))
+					args.add(String.format("#%s := #%s.%s", it.variable.name, InstanceInfo.get(reactorInstance).fullName, it.variable.name))
+					args.add(String.format("#%s_present := #%s.%s_present", it.variable.name, InstanceInfo.get(reactorInstance).fullName, it.variable.name))
 				]
-				val conditions = incomings.indexed.map[String.format("#%s.%s_present", containerReactorInstance.fullName, it.value ?: instanceTriggerNames.get(it.key))].filterNull.toList
+				val conditions = incomings.indexed.map[String.format("#%s.%s_present", InstanceInfo.get(containerReactorInstance).fullName, it.value ?: instanceTriggerNames.get(it.key))].filterNull.toList
 				if (conditions.size == 0) {
 					conditions.add("TRUE")
 				}
@@ -79,7 +79,7 @@ class SCLGenerator extends GeneratorBase {
 		}
 		val inputs = newLinkedHashMap(reactor.inputs.map[it.name -> it.type])
 		val outputs = newLinkedHashMap(reactor.outputs.map[it.name -> it.type])
-		for (param : getParameters(reactor)) {
+		for (param : reactor.parameters) {
 		}
 		val reactorName = if (reactor.name.equalsIgnoreCase(MAIN)) _filename else reactor.name
 		prBlock(String.format("TYPE %s", reactorName), "END_UDT")[
@@ -115,7 +115,7 @@ class SCLGenerator extends GeneratorBase {
 						pr("%s_present: %s;", it.variable.name, "BOOL")
 					]
 				]
-				for (parameter: getParameters(reactor)) {
+				for (parameter: reactor.parameters) {
 					// TODO: Handle parameters
 				}
 				reaction.effects?.forEach[
@@ -128,15 +128,15 @@ class SCLGenerator extends GeneratorBase {
 
 	override instantiate(
 		Instance instance,
-		ReactorInstance container,
+		Instance container,
 		Hashtable<String,String> importTable
 	) {
-		var reactor = getReactor(instance.reactorClass.name)
-		if (reactor === null) {
-			reportError(instance, String.format("No such reactor: %s", instance.reactorClass))
-			return null
-		}
-		val reactorInstance = super.instantiate(instance, container, importTable)
-		reactorInstance
+		var reactor = instance.reactorClass
+//		if (reactor === null) {
+//			reportError(instance, String.format("No such reactor: %s", instance.reactorClass))
+//			return null
+//		}
+		super.instantiate(instance, container, importTable)
+		//reactorInstance
 	}
 }

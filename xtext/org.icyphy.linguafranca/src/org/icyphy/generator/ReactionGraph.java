@@ -8,12 +8,12 @@ import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 import org.icyphy.linguaFranca.Connection;
-import org.icyphy.linguaFranca.EffectRef;
 import org.icyphy.linguaFranca.Input;
+import org.icyphy.linguaFranca.Instance;
 import org.icyphy.linguaFranca.Output;
+import org.icyphy.linguaFranca.Port;
 import org.icyphy.linguaFranca.Reaction;
-import org.icyphy.linguaFranca.SourceRef;
-import org.icyphy.linguaFranca.TriggerRef;
+import org.icyphy.linguaFranca.VarRef;
 
 /** Precedence graph analysis for Lingua Franca models.
  *  The way to use this class is to call calculateLevels()
@@ -36,11 +36,11 @@ public class ReactionGraph {
     /** Add the specified reactor instance and all its contained reactor instances to the graph.
      *  This will create a reaction instance for each reaction and establish the dependencies
      *  between reactions and ports and between ports.
-     *  That reaction instance can be retrieved using {@link getReactionInstance(ReactorInstance, int)}
+     *  That reaction instance can be retrieved using {@link getReactionInstance(Instance, Reaction)}
      *  or by iterating over nodes.
      *  @param reactorInstance The reactor instance.
      */
-    public void addReactorInstance(ReactorInstance reactorInstance) {
+    public void addReactorInstance(Instance reactorInstance) {
         // In the first pass, create a ReactionInstance for each reaction and
         // a PortInstance for each port on which reactions depend and for each
         // port that a reaction writes to.
@@ -52,10 +52,11 @@ public class ReactionGraph {
             _reactorToReactionList.put(reactorInstance, reactionInstances);
         }
         
-        EList<Reaction> reactions = reactorInstance.reactor.getReactions();
+        EList<Reaction> reactions = reactorInstance.getReactorClass().getReactions();
         if (reactions != null) {
             ReactionInstance previousReaction = null;
-            for (Reaction reaction: reactions) {
+            InstanceInfo info = InstanceInfo.get(reactorInstance);
+           for (Reaction reaction: reactions) {
                 // Create the reaction instance.
                 ReactionInstance reactionInstance = new ReactionInstance(reaction, reactorInstance);
                 // If there is an earlier reaction in this same reactor, then create a link
@@ -72,68 +73,114 @@ public class ReactionGraph {
                 // If the reaction is triggered by an input to this reactor instance,
                 // then create a PortInstance for that port (if it does not already exist)
                 // and establish the dependency on that port.
+                // Only consider inputs  and outputs, ignore actions and timers.
+                EList<VarRef> deps = null;
+                // First handle dependencies
                 if (reaction.getTriggers() != null) {
-                    for (TriggerRef trigger: reaction.getTriggers()) {
-                        // Check that this is an input, not an action or timer.
-                        if (_generator.getInput(reactorInstance.reactor, trigger.getVariable().getName()) != null) {
-                            PortInstance port = reactorInstance.portInstances.get(trigger.getVariable().getName());
-                            if (port == null) {
-                                port = new PortInstance(reactorInstance, trigger.getVariable().getName());
-                                reactorInstance.portInstances.put(trigger.getVariable().getName(), port);
-                            }
+                   deps = reaction.getTriggers();
+                }
+                if (reaction.getSources() != null) {
+                   if (deps != null) {
+                       deps.addAll(reaction.getSources());
+                   } else {
+                       deps = reaction.getSources();
+                   }
+                }
+                if (deps != null) {
+                    for (VarRef ref: deps) {
+                        if (ref.getVariable() instanceof Input) {
+                            Input input = (Input)ref.getVariable();
+                            PortInstance port = new PortInstance(reactorInstance, input);
+                            InstanceInfo.get(reactorInstance).portInstances.put(input, port);
                             port.dependentReactions.add(reactionInstance);
-                            reactionInstance.dependsOnPorts.add(port);                            
+                            reactionInstance.dependsOnPorts.add(port);
+                        } else if (ref.getVariable() instanceof Output) {
+                            Instance childInstance = ref.getInstance();
+                            if (childInstance == null) {
+                                // Scope provider should catch this
+                                _generator.reportError(ref,
+                                        "Invalid trigger `"
+                                                + ref.getVariable()
+                                                        .getName()
+                                                + "` for reaction in reactor `"
+                                                + reactorInstance
+                                                        .getReactorClass()
+                                                        .getName());
+                            } else {
+                                Output output = (Output)ref.getVariable();
+                                InstanceInfo childInfo = InstanceInfo.get(childInstance);
+                                PortInstance port = childInfo.portInstances.get(output);
+                                if (port == null) {
+                                    port = new PortInstance(childInstance, output);
+                                    childInfo.portInstances.put(output, port);
+                                }
+                                port.dependentReactions.add(reactionInstance);
+                                reactionInstance.dependentPorts.add(port);
+                            }
+                            
+                            
                         }
+                        //>>>>>>>>>>>>>>>>>>>>>>>
+//                        PortInstance port = info.portInstances.get(trigger.getVariable());
+//                            if (port == null) {
+//                                port = new PortInstance(reactorInstance, trigger.getVariable());
+//                                reactorInstance.portInstances.put(trigger.getVariable().getName(), port);
+//                            else if (effect.getVariable() instanceof Output) {
+//                            port.dependentReactions.add(reactionInstance);
+//                            reactionInstance.dependsOnPorts.add(port);                            
+                        //}
                     }
                 }
 
-                // If the reaction reads an input to this reactor instance,
-                // then create a PortInstance for that port (if it does not already exist)
-                // and establish the dependency on that port.
-                if (reaction.getSources() != null && reaction.getSources().size() > 0) {
-                    for (SourceRef src: reaction.getSources()) {
-                        PortInstance port = new PortInstance(reactorInstance, src.getVariable().getName());
-                        reactorInstance.portInstances.put(src.getVariable().getName(), port);
-                        port.dependentReactions.add(reactionInstance);
-                        reactionInstance.dependsOnPorts.add(port);
-                    }
-                }
-
+//                // If the reaction reads an input to this reactor instance,
+//                // then create a PortInstance for that port (if it does not already exist)
+//                // and establish the dependency on that port.
+//                if (reaction.getSources() != null && reaction.getSources().size() > 0) {
+//                    // FIXME:
+//                    for (VarRef src: reaction.getSources()) {
+//                        PortInstance port = new PortInstance(reactorInstance, (Port)src.getVariable());
+//                        InstanceInfo.get(reactorInstance).portInstances.put((Port)src.getVariable(), port);
+//                        port.dependentReactions.add(reactionInstance);
+//                        reactionInstance.dependsOnPorts.add(port);
+//                    }
+//                }
+                
+                // Then handle anti-dependencies
                 // If the reaction produces an output from this reactor instance,
                 // then create a PortInstance for that port (if it does not already exist)
                 // and establish the dependency on that port.
-                if (reaction.getEffects() != null 
-                        && reaction.getEffects() != null) {
-                    for (EffectRef effect : reaction.getEffects()) {
+                if (reaction.getEffects() != null) {
+                    for (VarRef antidep : reaction.getEffects()) {
                         // Check for dotted output, which is the input of a contained reactor.
-                        if (effect.getVariable() instanceof Input) {
-                            Input input = (Input) effect.getVariable();
-                            ReactorInstance containedReactor = reactorInstance
-                                    .getContainedInstance(effect.getInstance().getName());
-                            if (containedReactor == null) {
-                                _generator.reportError(reactorInstance.reactor,
-                                        "Unknown destination reactor: "
-                                                + effect.getInstance().getName());
+                        if (antidep.getVariable() instanceof Input) {
+                            Instance childInstance = antidep.getInstance();
+                            if (childInstance == null) {
+                                // Scope provider should catch this
+                                _generator.reportError(antidep,
+                                        "Invalid trigger `"
+                                                + antidep.getVariable()
+                                                        .getName()
+                                                + "` for reaction in reactor `"
+                                                + reactorInstance
+                                                        .getReactorClass()
+                                                        .getName());
                             } else {
-                                PortInstance port = containedReactor.portInstances
-                                        .get(input.getName());
+                                Input input = (Input) antidep.getVariable();
+                                InstanceInfo childInfo = InstanceInfo.get(childInstance);
+                                PortInstance port =  childInfo.portInstances.get(input);
                                 if (port == null) {
-                                    port = new PortInstance(containedReactor,
-                                            input.getName());
-                                    containedReactor.portInstances
-                                            .put(input.getName(), port);
+                                    port = new PortInstance(childInstance,input);
+                                    childInfo.portInstances.put(input, port);
                                 }
                                 port.dependsOnReactions.add(reactionInstance);
                                 reactionInstance.dependentPorts.add(port);
                             }
-                        } else if (effect.getVariable() instanceof Output) {
-                          Output output = (Output)effect.getVariable();
-                          if (_generator.getOutput(reactorInstance.reactor, output.getName()) != null) {
-                          PortInstance port = reactorInstance.portInstances.get(output.getName());
+                        } else if (antidep.getVariable() instanceof Output) {
+                          Output output = (Output)antidep.getVariable();
+                          PortInstance port = info.portInstances.get(output);
                           if (port == null) {
-                              port = new PortInstance(reactorInstance, output.getName());
-                              reactorInstance.portInstances.put(output.getName(), port);
-                          }
+                              port = new PortInstance(reactorInstance, output);
+                              info.portInstances.put(output, port);
                           port.dependsOnReactions.add(reactionInstance);
                           reactionInstance.dependentPorts.add(port);
                       }
@@ -163,13 +210,12 @@ public class ReactionGraph {
             }
         }
         // Next, iterate over all contained reactors to repeat the above.
-        for (ReactorInstance containedReactor: reactorInstance.containedInstances.values()) {
+        for (Instance containedReactor: InstanceInfo.get(reactorInstance).children) {
             addReactorInstance(containedReactor);
         }
         
         // Next, iterate over all connections to establish dependencies between ports.
-        for (Connection connection: reactorInstance.reactor.getConnections()) {
-            
+        for (Connection connection: reactorInstance.getReactorClass().getConnections()) {
             // First, get or create a left port instance.
             PortInstance leftPort = _portInstance(connection.getLeftPort(), reactorInstance);
             if (leftPort == null) {
@@ -193,7 +239,7 @@ public class ReactionGraph {
     /** Calculate the levels for the graph.
      *  @param main The top-level reactor instance for the model.
      */
-    public void calculateLevels(ReactorInstance main) {
+    public void calculateLevels(Instance main) {
         // Create a dependence graph (this includes ports).
         addReactorInstance(main);
         // Collapse the dependence graph to only include reactions.
@@ -210,9 +256,9 @@ public class ReactionGraph {
                     if (cycleReactors.length() > 0) {
                         cycleReactors.append(", ");
                     }
-                    cycleReactors.append(instance.reactorInstance.getFullName());
+                    cycleReactors.append(InstanceInfo.get(instance.reactorInstance).getFullName());
                 }
-                _generator.reportError(main.reactor,
+                _generator.reportError(main.getReactorClass(),
                         "Dependency graph has cycles including: " + cycleReactors.toString());
                 return;
             }
@@ -254,7 +300,7 @@ public class ReactionGraph {
      *  @return The reaction instance or null if there is none.
      *  @exception If the reaction instance is not in the graph.
      */
-    public ReactionInstance getReactionInstance(ReactorInstance reactorInstance, Reaction reaction) throws Exception {
+    public ReactionInstance getReactionInstance(Instance reactorInstance, Reaction reaction) throws Exception {
         LinkedHashMap<Reaction,ReactionInstance> reactionInstances = _reactorToReactionList.get(reactorInstance);
         if (reactionInstances == null) {
             throw new Exception("Reaction instance is not in the graph.");
@@ -266,31 +312,53 @@ public class ReactionGraph {
     //// Private methods
 
     /** Get or create a port instance.
-     *  @param name The name of the port, possibly dotted.
+     *  @param ref A reference to a port.
      *  @param reactorInstance The reactor instance in which to find the port.
      *  @return A port instance, or null if there is none.
      */
-    private PortInstance _portInstance(String name, ReactorInstance reactorInstance) {
-        String[] split = name.split("\\.");
+    private PortInstance _portInstance(VarRef ref, Instance reactorInstance) {
         PortInstance port = null;
-        if (split.length == 1) {
-            port = reactorInstance.portInstances.get(split[0]);
+        
+        if (!(ref.getVariable() instanceof Port)) {
+            _generator.reportError(ref,
+                    "`" + ref.getVariable().getName() + "` is not a port.");
+        }
+        if (ref.getInstance() == null) {
+            port = InstanceInfo.get(reactorInstance).portInstances.get(ref.getVariable());
             if (port == null) {
-                port = new PortInstance(reactorInstance, split[0]);
-                reactorInstance.portInstances.put(split[0], port);
-            }
-        } else if (split.length == 2) {
-            // Dot in the name implies that this is the port of a contained reactor.
-            ReactorInstance containedReactor = reactorInstance.getContainedInstance(split[0]);
-            if (containedReactor != null) {
-                port = containedReactor.portInstances.get(split[1]);
-                if (port == null) {
-                    port = new PortInstance(containedReactor, split[1]);
-                    containedReactor.portInstances.put(split[1], port);
-                }
+                port = new PortInstance(reactorInstance, (Port)ref.getVariable());
+                InstanceInfo.get(reactorInstance).portInstances.put((Port)ref.getVariable(), port);
+           }
+        } else {
+            Instance containedInstance = ref.getInstance();
+            port = InstanceInfo.get(containedInstance).portInstances.get(ref.getVariable());
+            if (port == null ) {
+                port = new PortInstance(containedInstance, (Port)ref.getVariable());
+                InstanceInfo.get(containedInstance).portInstances.put((Port)ref.getVariable(), port);
             }
         }
         return port;
+        
+//        String[] split = name.split("\\.");
+//        
+//        if (split.length == 1) {
+//            port = reactorInstance.portInstances.get(split[0]);
+//            if (port == null) {
+//                port = new PortInstance(reactorInstance, split[0]);
+//                reactorInstance.portInstances.put(split[0], port);
+//            }
+//        } else if (split.length == 2) {
+//            // Dot in the name implies that this is the port of a contained reactor.
+//            Instance containedReactor = reactorInstance.getContainedInstance(split[0]);
+//            if (containedReactor != null) {
+//                port = containedReactor.portInstances.get(split[1]);
+//                if (port == null) {
+//                    port = new PortInstance(containedReactor, split[1]);
+//                    containedReactor.portInstances.put(split[1], port);
+//                }
+//            }
+//        }
+//        return port;
     }
     
     //////////////////////////////////////////////////////////////////////////
@@ -303,8 +371,8 @@ public class ReactionGraph {
     private Set<ReactionInstance> _independentReactions = new HashSet<ReactionInstance>();
     
     /** Map from reactor instances to a map from reaction to reaction instances. */
-    private HashMap<ReactorInstance,LinkedHashMap<Reaction,ReactionInstance>> _reactorToReactionList
-        = new HashMap<ReactorInstance,LinkedHashMap<Reaction,ReactionInstance>>();
+    private HashMap<Instance,LinkedHashMap<Reaction,ReactionInstance>> _reactorToReactionList
+        = new HashMap<Instance,LinkedHashMap<Reaction,ReactionInstance>>();
 
     //////////////////////////////////////////////////////////////////////////
     //// Inner classes
@@ -313,12 +381,12 @@ public class ReactionGraph {
      */
     public class PortInstance {
         
-        public PortInstance(ReactorInstance reactorInstance, String portName) {
+        public PortInstance(Instance reactorInstance, Port port) {
             this.reactorInstance = reactorInstance;
             this.portName = portName;
         }
         
-        public ReactorInstance reactorInstance;
+        public Instance reactorInstance;
         public String portName;
         
         /** Set of reactions that are triggered by messages from this port. */
@@ -360,7 +428,7 @@ public class ReactionGraph {
      */
     public class ReactionInstance {
         
-        public ReactionInstance(Reaction reactionSpec, ReactorInstance reactorInstance) {
+        public ReactionInstance(Reaction reactionSpec, Instance reactorInstance) {
             this.reactionSpec = reactionSpec;
             this.reactorInstance = reactorInstance;
         }
@@ -384,7 +452,7 @@ public class ReactionGraph {
         public Reaction reactionSpec;
         
         /** The instance of the reactor. */
-        public ReactorInstance reactorInstance;
+        public Instance reactorInstance;
         
         /** Place to store properties specific to a particular code generator. */
         public HashMap<String,String> properties = new HashMap<String,String>();

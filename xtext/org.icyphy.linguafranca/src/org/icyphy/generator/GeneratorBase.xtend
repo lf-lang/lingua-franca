@@ -28,6 +28,8 @@ import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.VarRef
+import org.icyphy.generator.ReactionGraph.ReactionInstance
 
 /**
  * Generator base class for shared code between code generators.
@@ -40,19 +42,19 @@ class GeneratorBase {
 	var precedenceGraph = new ReactionGraph(this)
 	
 	/** Map from a reactor AST spec to properties of the reactor. */
-	protected var reactorToProperties = new HashMap<Reactor,ReactorProperties>()
+	//protected var reactorToProperties = new HashMap<Reactor, ReactorInfo>()
 	
 	/** Map from reactor class name to the AST reactor spec defining that class. */
-	var classToReactor = new LinkedHashMap<String,Reactor>()
+	//var classToReactor = new LinkedHashMap<String, Reactor>()
 
 	/** All code goes into this string buffer. */
 	var code = new StringBuilder
 	
 	/** Map from builder to its current indentation. */
-	var indentation = new HashMap<StringBuilder,String>()
+	var indentation = new HashMap<StringBuilder, String>()
 	
 	/** The main (top-level) reactor instance. */
-	protected ReactorInstance main 
+	protected Instance main 
 	
 	// The root filename for the main file containing the source code, without the .lf.
 	protected var String _filename
@@ -109,18 +111,11 @@ class GeneratorBase {
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			generateReactor(reactor, importTable)
 			if (reactor.isMain) {
-				main = new ReactorInstance(reactor)
+				main = LinguaFrancaFactory.eINSTANCE.createInstance()
+				main.setName(reactor.name)
+				main.setReactorClass(reactor)
+				instantiate(main, null, importTable)
 			}
-		}
-		if (main !== null) {
-			// Instantiate the "main" reactor.
-			var mainInstance = LinguaFrancaFactory.eINSTANCE.createInstance()
-			mainInstance.setName(main.reactor.name)
-			mainInstance.setReactorClass(main.reactor)
-			main.instanceStatement = mainInstance
-			// FIXME: Maybe should use mainInstance.setParameters() to set parameter
-			// values from the command line.
-			instantiate(mainInstance, null, importTable)
 		}
 	}
 	
@@ -142,11 +137,11 @@ class GeneratorBase {
 		    + _filename
 		)
 		
-		classToReactor.put(reactor.name, reactor)
-		
+		//classToReactor.put(reactor.name, reactor)
+		var info = ReactorInfo.get(reactor);
 		// Create the object for storing reactor properties.
-		var properties = new ReactorProperties()
-		reactorToProperties.put(reactor, properties)
+		//var properties = new ReactorInfo()
+		//reactorToProperties.put(reactor, properties)
 
 		// Record parameters.
 //		if (reactor.parameters !== null) {
@@ -154,48 +149,48 @@ class GeneratorBase {
 //				properties.nameToParam.put(param.name, param)
 //			}
 //		}
-		if (reactor.parameters !== null) {
-			for (param : reactor.parameters) {
-				properties.nameToParam.put(param.name, param)
-			}
-		}
-		
-		// Record inputs.
-		for (input: reactor.inputs) {
-			properties.nameToInput.put(input.name, input)
-		}
-		
-		// Record outputs.
-		for (output: reactor.outputs) {
-			properties.nameToOutput.put(output.name, output)
-		}
-		
-		// Record actions.
-		for (action: reactor.actions) {
-			if (action.getDelay() === null) {
-				action.setDelay("0")
-			}
-			properties.nameToAction.put(action.name, action)
-		}
-		
-		// Record timers.
-		for (timer: reactor.timers) {
-			properties.nameToTimer.put(timer.name, timer)
-			var timing = timer.timing
-			// Make sure every timing object has both an offset
-			// and a period by inserting default of 0.
-			var zeroTime = LinguaFrancaFactory.eINSTANCE.createTime()
-			zeroTime.setTime("0")
-			if (timing === null) {
-				timing = LinguaFrancaFactory.eINSTANCE.createTiming()
-				timing.setOffset(zeroTime)
-				timing.setPeriod(zeroTime)
-			} else if (timing.getPeriod === null) {
-				timing.setPeriod(zeroTime)
-			}
-			
-			properties.nameToTiming.put(timer.name, timing)
-		}
+//		if (reactor.parameters !== null) {
+//			for (param : reactor.parameters) {
+//				properties.nameToParam.put(param.name, param)
+//			}
+//		}
+//		
+//		// Record inputs.
+//		for (input: reactor.inputs) {
+//			properties.nameToInput.put(input.name, input)
+//		}
+//		
+//		// Record outputs.
+//		for (output: reactor.outputs) {
+//			properties.nameToOutput.put(output.name, output)
+//		}
+//		
+//		// Record actions.
+//		for (action: reactor.actions) {
+//			if (action.getDelay() === null) {
+//				action.setDelay("0")
+//			}
+//			properties.nameToAction.put(action.name, action)
+//		}
+//		
+//		// Record timers.
+//		for (timer: reactor.timers) {
+//			properties.nameToTimer.put(timer.name, timer)
+//			var timing = timer.timing
+//			// Make sure every timing object has both an offset
+//			// and a period by inserting default of 0.
+//			var zeroTime = LinguaFrancaFactory.eINSTANCE.createTime()
+//			zeroTime.setTime("0")
+//			if (timing === null) {
+//				timing = LinguaFrancaFactory.eINSTANCE.createTiming()
+//				timing.setOffset(zeroTime)
+//				timing.setPeriod(zeroTime)
+//			} else if (timing.getPeriod === null) {
+//				timing.setPeriod(zeroTime)
+//			}
+//			
+//			properties.nameToTiming.put(timer.name, timing)
+//		}
 		
 		// Record the reactions triggered by each trigger.
 		for (reaction: reactor.reactions) {
@@ -209,104 +204,114 @@ class GeneratorBase {
 //                        reportError(reaction,
 //                        		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
 //                    }
-                    var reactionList = properties.triggerNameToReactions.get(trigger.variable.name)
+                    var reactionList = info.triggerToReactions.get(trigger)
                     if (reactionList === null) {
                     	reactionList = new LinkedList<Reaction>()
-						properties.triggerNameToReactions.put(trigger.variable.name, reactionList)
+						info.triggerToReactions.put(trigger.variable, reactionList)
                     }
                     reactionList.add(reaction)
 				}	
 			}
 		}
-		// Record contained instances.
-		for (instance: reactor.instances) {
-			properties.nameToInstance.put(instance.name, instance)
-		}
+//		// Record contained instances.
+//		for (instance: reactor.instances) {
+//			properties.nameToInstance.put(instance.name, instance)
+//		}
 		// Record (and check) connections.
 		for (connection: reactor.connections) {
             // Record the source-destination pair.
-            var destinations = properties.outputNameToInputNames.get(connection.leftPort)
+            var destinations = info.outputToInputs.get(connection.leftPort)
             if (destinations === null) {
-                destinations = new HashSet<String>()
-                properties.outputNameToInputNames.put(connection.leftPort, destinations)
+                destinations = new HashSet<VarRef>()
+                info.outputToInputs.put(connection.leftPort, destinations)
             }
             destinations.add(connection.rightPort)
-            
-            if (!connection.rightPort.contains('.')) {
-                properties.outputNameToContainedOutputName.put(
+
+			// FIXME: this seems wrong            
+            if (connection.rightPort.instance === null) {
+                info.outputToContainedOutput.put(
                     connection.rightPort, connection.leftPort
                 )
             }
             
-            // Next, check the connection and report any errors.
-			var split = connection.leftPort.split('\\.')
-			if (split.length === 1) {
-				// It is a local input port.
-				if (getInput(reactor, connection.leftPort) === null) {
-					reportError(connection,
-							"Left side is not an input port of this composite: " + connection.leftPort)
-				}
-			} else if (split.length === 2) {
-				// Form is reactorName.portName.
-				var instance = properties.nameToInstance.get(split.get(0))
-				if(instance === null) {
-					reportError(connection,
-							"No such instance: " + split.get(0))
-				} else {
-					var contained = getReactor(instance.reactorClass.name)
-					// Contained object may be imported, i.e. not a Lingua Franca object.
-					// Cannot check here.
-					if (contained !== null) {
-						var props = reactorToProperties.get(contained)
-						if(props !== null && props.nameToOutput.get(split.get(1)) === null) {
-							reportError(connection,
-									"No such output port: " + connection.leftPort)
-						}
+            // Next, check the connection and report any errors.			
+//			var split = connection.leftPort.split('\\.')
+//			if (split.length === 1) {
+//				// It is a local input port.
+//				if (getInput(reactor, connection.leftPort) === null) {
+//					reportError(connection,
+//							"Left side is not an input port of this composite: " + connection.leftPort)
+//				}
+//			} else if (split.length === 2) {
+//				// Form is reactorName.portName.
+//				var instance = properties.nameToInstance.get(split.get(0))
+//				if(instance === null) {
+//					reportError(connection,
+//							"No such instance: " + split.get(0))
+//				} else {
+//					var contained = getReactor(instance.reactorClass.name)
+//					// Contained object may be imported, i.e. not a Lingua Franca object.
+//					// Cannot check here.
+//					if (contained !== null) {
+//						var props = reactorToProperties.get(contained)
+//						if(props !== null && props.nameToOutput.get(split.get(1)) === null) {
+//							reportError(connection,
+//									"No such output port: " + connection.leftPort)
+//						}
+//					}
+//				}
+//			} else {
+//				reportError(connection, "Invalid port specification: " + connection.leftPort)
+//			}
+			// Check the right port.
+			if (connection.rightPort.instance !== null) {
+				// FIXME: Looks like this will only work on level deep; should this not be recursive?
+				// FIXME: Also, we should synthesize reactions for data transfer across levels of hierarchy
+				
+				// If the destination is the input port of a reactor that itself contains other
+				// reactors, we need to add any input ports inside the destination that it is
+				// connected to. These will have the form actorInstanceName.containedActorInstanceName.portName.
+				var insideDestinations = ReactorInfo.get(connection.rightPort.instance.reactorClass).outputToInputs.get(connection.rightPort)
+				if (insideDestinations !== null) {
+					// There are inside connections. Record them.
+					for (insideDestination : insideDestinations) {
+						destinations.add(insideDestination)
 					}
 				}
-			} else {
-				reportError(connection, "Invalid port specification: " + connection.leftPort)
 			}
-			// Check the right port.
-			split = connection.rightPort.split('\\.')
-			if (split.length === 1) {
-				// It is a local input port.
-				if (getOutput(reactor, connection.rightPort) === null) {
-					reportError(connection,
-							"Right side is not an output port of this reactor: " + connection.rightPort)
-				}
-			} else if (split.length === 2) {
-				// Form is reactorName.portName.
-				var instance = properties.nameToInstance.get(split.get(0))
-				if(instance === null) {
-					reportError(connection,
-							"No such instance: " + split.get(0))
-				} else {
-					var contained = getReactor(instance.reactorClass.name)
-					// Check that the input port in a contained reactor exists.
-					// Contained object may be imported, i.e. not a Lingua Franca object.
-					// Cannot check here.
-					if (contained !== null) {
-						var props = reactorToProperties.get(contained)
-						if(props !== null && props.nameToInput.get(split.get(1)) === null) {
-							reportError(connection,
-									"No such input port: " + connection.rightPort)
-						}
+//			split = connection.rightPort.split('\\.')
+//			if (split.length === 1) {
+//				// It is a local input port.
+//				if (getOutput(reactor, connection.rightPort) === null) {
+//					reportError(connection,
+//							"Right side is not an output port of this reactor: " + connection.rightPort)
+//				}
+//			} else if (split.length === 2) {
+//				// Form is reactorName.portName.
+//				var instance = properties.nameToInstance.get(split.get(0))
+//				if(instance === null) {
+//					reportError(connection,
+//							"No such instance: " + split.get(0))
+//				} else {
+//					var contained = getReactor(instance.reactorClass.name)
+//					// Check that the input port in a contained reactor exists.
+//					// Contained object may be imported, i.e. not a Lingua Franca object.
+//					// Cannot check here.
+//					if (contained !== null) {
+//						var props = reactorToProperties.get(contained)
+//						if(props !== null && props.nameToInput.get(split.get(1)) === null) {
+//							reportError(connection,
+//									"No such input port: " + connection.rightPort)
+//						}
+						// FIXME: Looks like this will only work on level deep; should this not be recursive?
                         // If the destination is the input port of a reactor that itself contains other
                         // reactors, we need to add any input ports inside the destination that it is
                         // connected to. These will have the form actorInstanceName.containedActorInstanceName.portName.
-                        var insideDestinations = props.outputNameToInputNames.get(split.get(1))
-                        if (insideDestinations !== null) {
-                            // There are inside connections. Record them.
-                            for (insideDestination: insideDestinations) {
-                                destinations.add(split.get(0) + '.' + insideDestination)
-                            }
-                        }
-					}
-				}
-			} else {
-				reportError(connection, "Invalid port specification: " + connection.rightPort)
-			}
+//					}
+//				}
+//			} else {
+//				reportError(connection, "Invalid port specification: " + connection.rightPort)
+//			}
 		}
 	}
 	
@@ -318,43 +323,33 @@ class GeneratorBase {
 	 */
 	def void generateContainedInstances(
 		Reactor reactor,
-		ReactorInstance container,
+		Instance parent,
 		Hashtable<String,String> importTable
 	) {
-		// Generated instances
-		for (instance: reactor.instances) {
-			var contained = instantiate(instance, container, importTable)
-			if (contained !== null) {
-				container.addContainedInstance(contained)
-			}
-		}
+		
 	}
 		
-	/** Instantiate a reactor.
-	 *  @param instance The instance declaration.
-	 *  @param container The instance that is the container.
+	/** Recursively instantiate reactors.
+	 *  @param instance Reactor to instantiate.
+	 *  @param container Parent of the to-be-instantiated reactor.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	def instantiate(
+	def void instantiate(
 		Instance instance,
-		ReactorInstance container,
+		Instance parent,
 		Hashtable<String,String> importTable
 	) {
-		var reactor = getReactor(instance.reactorClass.name)
-		// If there is no container, then the reactorInstance is main.
-		// Otherwise, create a new one.
-		var reactorInstance = main
-		if (container !== null) {
-			reactorInstance = new ReactorInstance(reactor, instance, container)
+		if (parent !== null) {
+			// Create object to track info about this instance.
+			// It is now retrievable using InstanceInfo.getInfo().
+			new InstanceInfo(instance, parent)  
 		}
-		// Reactor may be imported, i.e. not a Lingua Franca reactor,
-		// in which case, reactor === null.
-		if (reactor !== null) {
-			// In case the reactor is a composite, create instances of
-			// whatever it instantiates.
-			generateContainedInstances(reactor, reactorInstance, importTable)
+		
+		// Instantiate children of this instance
+		for (child: instance.reactorClass.instances) {
+			instantiate(child, instance, importTable)
+			InstanceInfo.get(instance).children.add(child)
 		}
-		reactorInstance
 	}
 	
 	////////////////////////////////////////////
@@ -366,129 +361,13 @@ class GeneratorBase {
 		code = new StringBuilder
 	}
 	
-	/** Return the Action with the given name.
-	 *  @param reactor The Reactor.
-	 *  @param name The name of the desired action.
-	 *  @return The action, or null if there isn't one.
-	 */
-	protected def getAction(Reactor reactor, String name) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToAction.get(name)
-	}
-	
 	/** Get the code produced so far.
 	 *  @return The code produced so far as a String.
 	 */
 	protected def getCode() {
 		code.toString()
 	}
-	
-	/** Return the Input with the given name.
-	 *  @param reactor The Reactor.
-	 *  @param name The name of the desired input.
-	 *  @return The input, or null if there isn't one.
-	 */
-	protected def getInput(Reactor reactor, String name) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToInput.get(name)
-	}
-	
-	/** Return the Instance with the given name.
-	 *  @param reactor The container Reactor.
-	 *  @param name The name of the desired instance.
-	 *  @return The instance, or null if there isn't one.
-	 */
-	protected def getInstance(Reactor reactor, String name) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToInstance.get(name)
-	}
-	
-	/** Return the Output with the given name.
-	 *  @param reactor The Reactor.
-	 *  @param name The name of the desired output.
-	 *  @return The output, or null if there isn't one.
-	 */
-	protected def getOutput(Reactor reactor, String name) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToOutput.get(name)
-	}
-	
-	/** Return the parameter with the given name.
-	 *  @param reactor The Reactor.
-	 *  @param name The name of the desired parameter.
-	 *  @return The parameter, or null if there isn't one.
-	 */
-	protected def getParameter(Reactor reactor, String name) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToParam.get(name)
-	}
-	
-	/** Return the parameters defined for the specified reactor.
-	 *  @param reactor The reactor.
-	 *  @return The parameters for the reactor.
-	 */
-	protected def getParameters(Reactor reactor) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToParam.values()
-	}
-
-	/** Get the list of reactions triggered by the specified trigger
-	 *  for the specified reactor.
-	 *  @param reactor The reactor.
-	 *  @param name The name of the trigger (input, action, or timer).
-	 *  @return A list of Reaction objects or null if there are none.
-	 */
-	protected def getReactions(Reactor reactor, String name) {
-		var properties = reactorToProperties.get(reactor)
-		properties.triggerNameToReactions.get(name)
-	}
-
-	/** Get the AST element defining a reactor that has
-	 *  the specified class name, or null if there is none.
-	 *  @param className The reactor class name.
-	 *  @return The reactor, or null if there isn't one matching the name.
-	 */
-	protected def getReactor(String className) {
-		classToReactor.get(className)
-	}
-
-	/** Return a set of timer names for a reactor class.
-	 */
-	protected def getTimerNames(Reactor reactor) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToTimer.keySet()
-	}
-	
-	/** Get the timer with the specified name in the specified reactor.
-	 *  @param reactor The reactor.
-	 *  @param name The name of the timer.
-	 *  @return A Timer object or null if there is no timer with the specified name.
-	 */
-	protected def getTimer(Reactor reactor, String name) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToTimer.get(name)
-	}
-	
-	/** Get the timing of the timer with the specified name in the specified reactor.
-	 *  @param reactor The reactor.
-	 *  @param name The name of the timer.
-	 *  @return A Timing object or null if there is no timer with the specified name.
-	 */
-	protected def getTiming(Reactor reactor, String name) {
-		var properties = reactorToProperties.get(reactor)
-		properties.nameToTiming.get(name)
-	}
-	
-	/** Get the map from triggers to the list of reactions
-	 *  triggered by the trigger for the specified reactor.
-	 *  @param reactor The reactor.
-	 *  @return A map from triggers to the list of reactions triggered.
-	 */
-	protected def getTriggerToReactions(Reactor reactor) {
-		var properties = reactorToProperties.get(reactor)
-		properties.triggerNameToReactions
-	}
-	
+		
 	/** Increase the indentation of the output code produced.
 	 */
 	protected def indent() {
