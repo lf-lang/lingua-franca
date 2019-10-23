@@ -29,6 +29,8 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.State
+import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Output
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -149,6 +151,22 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
+	def instantiate(Input i) {
+		if (i.type !== null) {
+			'''dear::Input<«i.type»> «i.name»{"«i.name»", this};'''
+		} else {
+			'''// «reportError(i, "Input port has no type.")»'''
+		}
+	}
+
+	def instantiate(Output o) {
+		if (o.type !== null) {
+			'''dear::Output<«o.type»> «o.name»{"«o.name»", this};'''
+		} else {
+			'''// «reportError(o, "Output port has no type.")»'''
+		}
+	}
+
 	def instantiateState(Reactor r) '''
 		«FOR s : r.states BEFORE '// state variables\n' AFTER '\n'»
 			«s.instantiate»
@@ -170,6 +188,15 @@ class CppGenerator extends GeneratorBase {
 	def instantiateReactions(Reactor r) '''
 		«FOR n : r.reactions BEFORE '// reactions\n' AFTER '\n'»
 			«n.instantiate»
+		«ENDFOR»
+	'''
+
+	def instantiatePorts(Reactor r) '''
+		«FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
+			«i.instantiate»
+		«ENDFOR»
+		«FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
+			«o.instantiate»
 		«ENDFOR»
 	'''
 
@@ -257,6 +284,7 @@ class CppGenerator extends GeneratorBase {
 		  «r.instantiateReactions»
 		  «r.declareReactionBodies»
 		 public:
+		  «r.instantiatePorts»
 		  «IF r.isMain()»
 		  	«r.getName()»(const std::string& name, dear::Environment* environment);
 		  «ELSE»
