@@ -28,6 +28,7 @@ import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.State
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -136,6 +137,24 @@ class CppGenerator extends GeneratorBase {
 	def instantiate(
 		Reaction n) '''dear::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};'''
 
+	def instantiate(State s) {
+		if (s.type !== null) {
+			if (s.value !== null) {
+				'''«s.type» «s.name»{«s.value»};'''
+			} else {
+				'''«s.type» «s.name»{};'''
+			}
+		} else {
+			'''// «reportError(s, "State variable has no type.")»'''
+		}
+	}
+
+	def instantiateState(Reactor r) '''
+		«FOR s : r.states BEFORE '// state variables\n' AFTER '\n'»
+			«s.instantiate»
+		«ENDFOR»
+	'''
+
 	def instantiateInstances(Reactor r) '''
 		«FOR i : r.instances BEFORE '// reactor instances\n' AFTER '\n'»
 			«i.instantiate»
@@ -232,6 +251,7 @@ class CppGenerator extends GeneratorBase {
 		
 		class «r.getName()» : public dear::Reactor {
 		 private:
+		  «r.instantiateState»
 		  «r.instantiateInstances»
 		  «r.instantiateTimers»
 		  «r.instantiateReactions»
