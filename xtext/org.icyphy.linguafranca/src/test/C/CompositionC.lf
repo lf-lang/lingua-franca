@@ -18,12 +18,12 @@ reactor Test {
 	reaction(x) {=
 		(self->count)++;
 		printf("Received %d\n", x);
-		if (x != self->count) {
+		if (x != self->count) { 
 			printf("FAILURE: Expected %d\n", self->count);
-			exit(1);
+			exit(1); 
 		}
-	=}
-}
+	=} 
+} 
 main reactor CompositionC {
 	s = new Source();
 	d = new Test();

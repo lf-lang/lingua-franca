@@ -13,11 +13,13 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Timer
 
 /**
  * Generator for Accessors.
@@ -34,8 +36,8 @@ class AccessorGenerator extends GeneratorBase {
 	// file, with the extension .lf, appended with a "/".
 	var directory = ""
 	
-	// Map from timer name to reaction name(s) triggered by the timer.
-	var timerReactions = new LinkedHashMap<String,LinkedList<String>>()
+	// Map from timer to reaction name(s) triggered by the timer.
+	var timerReactions = new LinkedHashMap<Timer,LinkedList<String>>()
 	
 	// Text of generated code to add input handlers.
 	var addInputHandlers = new StringBuffer()
@@ -137,7 +139,7 @@ class AccessorGenerator extends GeneratorBase {
 			generateOutput(output)
 		}
 		// Generate parameters, if any
-		for (param : getParameters(reactor)) {
+		for (param : reactor.parameters) {
 			generateParameter(param)
 		}
 		// Generated instances
@@ -146,7 +148,7 @@ class AccessorGenerator extends GeneratorBase {
 		}
 		// Generated connections
 		for (connection: reactor.connections) {
-			pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
+			pr('''this.connect(«portSpec(connection.leftPort.variable.name)», «portSpec(connection.rightPort.variable.name)»);''')
 		}
 		unindent()
 		pr("}")
@@ -182,7 +184,7 @@ class AccessorGenerator extends GeneratorBase {
 		pr("exports.initialize = function () {\n")
 		indent()
 		// Define variables for each parameter.
-		for(parameter: getParameters(reactor)) {
+		for(parameter: reactor.parameters) {
 			pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
 		}
 		
@@ -191,11 +193,16 @@ class AccessorGenerator extends GeneratorBase {
 
 		// Add the timer reactions.
 		for (timer: timerReactions.keySet) {
-			val timerParams = getTiming(reactor, timer)
+			val timing = timer.timing
+			
+			
+			//val timerParams = getTiming(reactor, timer)
 			for (handler: timerReactions.get(timer)) {
-				var offset = unitAdjustment(timerParams.offset, "msec")
-				var period = unitAdjustment(timerParams.period, "msec")
-				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offset», «period»);''')
+				var offset = if (timing === null) { null } else {timing.offset}
+				var period = if (timing === null) { null } else {timing.period}
+				var offsetStr = unitAdjustment(offset, "msec")
+				var periodStr = unitAdjustment(period, "msec")
+				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offsetStr», «periodStr»);''')
 			}
 		}
 		unindent()
@@ -224,16 +231,16 @@ class AccessorGenerator extends GeneratorBase {
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
 				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (getTiming(reactor, trigger.variable.name) !== null) {
+					} else if (trigger instanceof Timer) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
 						var list = timerReactions.get(trigger)
 						if (list === null) {
 							list = new LinkedList<String>()
-							timerReactions.put(trigger.variable.name, list)
+							timerReactions.put(trigger, list)
 						}
 						list.add(functionName)
-					} else if (getAction(reactor, trigger.variable.name) !== null) {
+					} else if (trigger instanceof Action) {
 					    // The trigger is an action.
 					    args.add(trigger.variable.name)
 					    // Make sure there is an entry for this action in the action table.
@@ -283,7 +290,7 @@ class AccessorGenerator extends GeneratorBase {
 			}
 						
 			// Define variables for each parameter.
-			for(parameter: getParameters(reactor)) {
+			for(parameter: reactor.parameters) {
 				pr(body, '''var «parameter.name» = this.getParameter("«parameter.name»");''');
 			}
 

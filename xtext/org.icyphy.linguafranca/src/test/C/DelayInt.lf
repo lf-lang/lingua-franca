@@ -27,7 +27,7 @@ reactor Test {
     reaction(start) {=
         // Record the logical time at the start.
         self->start_time = get_logical_time();
-    =}
+    =} 
     reaction(in) {=
         printf("Received: %d.\n", in);
         // Check the time of the input.
@@ -40,11 +40,12 @@ reactor Test {
         }
     =}
 }
-main reactor Main {
+
+main reactor Main { 
     timer t;
     d = new DelayInt();
     t = new Test();
-    d.out -> t.in;
+    d.out -> t.in; 
     reaction(t) -> d.in{=
         set(d.in, 42);
     =}

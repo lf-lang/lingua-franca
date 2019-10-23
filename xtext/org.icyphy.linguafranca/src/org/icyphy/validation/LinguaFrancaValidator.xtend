@@ -8,15 +8,16 @@ import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
+import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.Reactor
 
 /**
  * This class contains custom validation rules. 
@@ -42,6 +43,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
 	// FAST ensures that these checks run whenever a file is modified.
 	// Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
+	
+	// FIXME: Only checking uniqueness of reactor class definitions per file
+	@Check(FAST)
+	def reset(Model model) {
+		reactorClasses.clear()
+	}
+	
 	@Check(FAST)
 	def resetSets(Reactor reactor) {
 		parameters.clear()
@@ -51,25 +59,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		actions.clear()
 		allNames.clear()
 		containedNames.clear()
-	}
-	
-	// FAST ensures that these checks run whenever a file is modified.
-	// Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
-	@Check(FAST)
-	def reset(Model model) {
-		reactorClasses.clear()
-	}
-	
-	@Check(FAST)
-	def checkReactor(Reactor reactor) {
-		if (reactorClasses.contains(reactor.name)) {
-			error("Names of reactor classes must be unique: " + reactor.name,
-				Literals.REACTOR__NAME
-			)
-		}
-		reactorClasses.add(reactor.name);
-	}
-	
+	}	
 	
 	@Check(FAST)
 	def recordParameter(Param param) {
@@ -245,4 +235,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		timers.add(timer.name);
 		allNames.add(timer.name)
 	}
+	
+	@Check(FAST)
+	def checkReactor(Reactor reactor) {
+		if (reactorClasses.contains(reactor.name)) {
+			error("Names of reactor classes must be unique: " + reactor.name,
+				Literals.REACTOR__MAIN
+			)
+		}
+		reactorClasses.add(reactor.name);
+	}
+	
 }
