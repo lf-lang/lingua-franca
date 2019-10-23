@@ -59,8 +59,12 @@ Reaction:
 	('(' (triggers+=VarRef (',' triggers+=VarRef)*)? ')')?
 	(sources+=VarRef (',' sources+=VarRef)*)?
 	('->' effects+=VarRef (',' effects+=VarRef)*)?
-	code=CODE;
+	code=CODE
+	(localDeadline=LocalDeadline)?;
 
+LocalDeadline:
+    'deadline' '(' time=Time ')' deadlineCode=CODE;
+    
 Mutation:
 	('mutation' | 'mutate')
 	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?

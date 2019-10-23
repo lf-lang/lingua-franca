@@ -174,12 +174,18 @@ int next() {
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         reaction_t* reaction = pqueue_pop(reaction_q);
-        // printf("Popped from reaction_q reaction with level: %lld\n", reaction->index);
-        
+        // printf("Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
+        // printf("Address of reaction: %p\n", reaction);
+
         // If the reaction has a deadline, compare to current physical time
-        // and invoke the deadline violation reaction before the reaction function
-        // if a violation has occurred.
-        if (reaction->deadline > 0LL) {
+        // and invoke the deadline violation reaction instead of the reaction function
+        // if a violation has occurred. Note that the violation reaction will be invoked
+        // at most once per logical time value. If the violation reaction triggers the
+        // same reaction at the current time value, even if at a future superdense time,
+        // then the reaction will be invoked and the violation reaction will not be invoked again.
+        bool violation = false;
+        if ((reaction->deadline > 0LL && reaction->violation_handled != current_time)
+                || reaction->local_deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;
             clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -188,34 +194,67 @@ int next() {
                     current_physical_time.tv_sec * BILLION
                     + current_physical_time.tv_nsec;
             // Check for deadline violation.
-            if (physical_time > current_time + reaction->deadline) {
+            // There are currently two distinct deadline mechanisms:
+            // local deadlines are defined with the reaction;
+            // container deadlines are defined in the container.
+            // They can have different deadlines, so we have to check both.
+            // Handle the local deadline first.
+            if (reaction->local_deadline > 0LL && physical_time > current_time + reaction->local_deadline) {
                 // Deadline violation has occurred.
-                // Invoke the violation reactions, if there are any.
+                violation = true;
+                // Invoke the local handler, if there is one.
+                reaction_function_t handler = reaction->deadline_violation_handler;
+                if (handler != NULL) {
+                    (*handler)(reaction->self);
+                    // If the reaction produced outputs, put the resulting
+                    // triggered reactions into the queue.
+                    schedule_output_reactions(reaction);
+                }
+            }
+            // Next handle the container deadline.
+            if ((reaction->deadline > 0LL && reaction->violation_handled != current_time)
+                    && physical_time > current_time + reaction->deadline) {
+                // Deadline violation has occurred.
+                violation = true;
+                // Prevent this violation from being handled again at the current time.
+                // This could occur if the handler produces outputs directed to this
+                // same reaction. FIXME: This should not be allowed because an input
+                // should not be able to have more than one source. We can probably
+                // remove violation_handled once the compiler prevents this error.
+                reaction->violation_handled = current_time;
+                // Invoke the trigger reactions, if there are any.
                 trigger_t* trigger = reaction->deadline_violation;
                 if (trigger != NULL) {
                     for (int i = 0; i < trigger->number_of_reactions; i++) {
                         trigger->reactions[i]->function(trigger->reactions[i]->self);
                         // If the reaction produced outputs, put the resulting
                         // triggered reactions into the queue.
-                        // FIXME: The following causes a stack overflow on DeadlineC.lf!  Why???
-         				// trigger_output_reactions(trigger->reactions[i]);
-                   }
+         				schedule_output_reactions(trigger->reactions[i]);
+                    }
                 }
             }
         }
         
-        // Invoke the reaction function.
-        reaction->function(reaction->self);
+        if (!violation) {
+            // Invoke the reaction function.
+            reaction->function(reaction->self);
 
-        // If the reaction produced outputs, put the resulting triggered
-        // reactions into the queue.
-        trigger_output_reactions(reaction);
+            // If the reaction produced outputs, put the resulting triggered
+            // reactions into the queue.
+            schedule_output_reactions(reaction);
+        }
     }
     // Free any payloads that need to be freed and recycle the event
     // carrying them.
     event_t* free_event = pqueue_pop(free_q);
     while (free_event != NULL) {
-    	free(free_event->payload);
+        if (free_event->payload != NULL) {
+    	    free(free_event->payload);
+    	}
+    	if (free_event->trigger != NULL) {
+    	    // Make sure the trigger is not pointing to freed memory.
+    	    free_event->trigger->payload = NULL;
+    	}
     	pqueue_insert(recycle_q, free_event);
     	free_event = pqueue_pop(free_q);
     }
