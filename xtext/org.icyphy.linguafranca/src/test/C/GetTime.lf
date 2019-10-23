@@ -1,0 +1,20 @@
+// This file includes code documented on the Wiki.
+// For this test, success is just compiling and running.
+target C(
+    run = "bin/GetTime -timeout 2 sec -fast"
+);
+main reactor GetTime {
+    timer t(0, 1 sec);
+    reaction(t) {=
+        instant_t logical = get_logical_time();
+        printf("Logical time is %lld.\n", logical);
+
+        interval_t elapsed = get_elapsed_logical_time();
+        printf("Elapsed logical time is %lld.\n", elapsed);
+        
+        instant_t physical = get_physical_time();
+        printf("Physical time is %lld.\n", physical);
+        
+        printf("Time lag is %lld.\n", physical - logical);
+    =}
+}

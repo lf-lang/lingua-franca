@@ -1,0 +1,40 @@
+// Test local deadline, where a deadline is associated with a reaction
+// definition. This test triggers a reaction exactly once with a
+// deadline violation.
+target C;
+reactor Deadline(threshold:time(100 msec)) {
+    input x:int;
+    output deadlineViolation:bool;
+    reaction(x) -> deadlineViolation {=
+        printf("ERROR: Deadline violation was not detected!\n");
+        exit(1);
+    =} deadline(threshold) {=
+        printf("Deadline violation detected.\n");
+        set(deadlineViolation, true);
+    =}
+    // FIXME: Causes an NPE:
+    // logical action foo;
+    // deadline(d.x, 100 msec, foo);
+    // It is erroneous code, but it should not cause an NPE.
+    // May need to uncomment logical action foo above.
+}
+reactor Print {
+    input in:bool;
+    reaction(in) {=
+        if (in) {
+            printf("Output successfully produced by deadline handler.\n");
+        }
+    =}
+}
+main reactor SimpleDeadline {
+    timer start;
+    d = new Deadline(threshold = 10 msec);
+    p = new Print();
+    d.deadlineViolation -> p.in;
+    reaction(start) -> d.x {=
+        struct timespec sleep_time = {(time_t) 0, (long)20000000};
+        struct timespec remaining_time;
+        nanosleep(&sleep_time, &remaining_time);
+        set(d.x, 42);
+    =}
+} 

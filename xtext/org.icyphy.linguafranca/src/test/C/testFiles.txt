@@ -4,6 +4,8 @@ CompositionC.lf
 CompositionCThreaded.lf
 CountTest.lf
 DanglingOutput.lf
+Deadline.lf
+Deadline2.lf
 DeadlineC.lf
 DeadlineCThreaded.lf
 DelayedAction.lf
@@ -14,6 +16,7 @@ DeterminismThreaded.lf
 DoubleReactionC.lf
 DoubleReactionCThreaded.lf
 Gain.lf
+GetTime.lf
 HelloC.lf
 HelloCThreaded.lf
 HelloWorld.lf
@@ -28,7 +31,9 @@ Schedule.lf
 SendingInsideC.lf
 SendingInside2.lf
 SendingInsideCThreaded.lf
+SimpleDeadline.lf
 SimpleImport.lf
+Stride.lf
 ThreadedC.lf
 ThreadedCThreaded.lf
 TimeLimitC.lf
