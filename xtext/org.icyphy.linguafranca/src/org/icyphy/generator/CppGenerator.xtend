@@ -26,11 +26,40 @@ import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.Target
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
 		'secs' -> '_s', 'minute' -> '_min', 'minutes' -> '_min', 'hour' -> '_h', 'hours' -> '_h', 'day' -> '_d',
 		'days' -> '_d', 'week' -> '_weeks', 'weeks' -> '_weeks'}
+
+	private def void processImports(Resource resource, IFileSystemAccess2 fsa) {
+		for (import : resource.allContents.toIterable.filter(Import)) {
+			val importResource = openImport(resource, import)
+			if (importResource !== null) {
+				// Make sure the target of the import is C++.
+				var targetOK = false
+				for (target : importResource.allContents.toIterable.filter(Target)) {
+					if ("Cpp".equalsIgnoreCase(target.name)) {
+						targetOK = true
+					}
+				}
+				if (!targetOK) {
+					reportError(import, "Import does not have a Cpp target.")
+				} else {
+					// Process any imports that the import has.
+					importResource.processImports(fsa);
+					for (r : importResource.allContents.toIterable.filter(Reactor)) {
+						fsa.generateFile(_filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
+						fsa.generateFile(_filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
+					}
+				}
+			} else {
+				reportError(import, "Unable to open import")
+			}
+		}
+	}
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context,
 		Hashtable<String, String> importTable) {
@@ -59,6 +88,9 @@ class CppGenerator extends GeneratorBase {
 			fsa.generateFile(_filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
 			fsa.generateFile(_filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
 		}
+
+		// generate code for all imports
+		resource.processImports(fsa)
 
 		doCompile()
 	}
