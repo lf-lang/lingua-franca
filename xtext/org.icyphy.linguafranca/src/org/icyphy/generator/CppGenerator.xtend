@@ -91,6 +91,50 @@ class CppGenerator extends GeneratorBase {
 		doCompile()
 	}
 
+	override removeCodeDelimiter(String code) {
+		if (code === null) {
+			""
+		} else if (code.startsWith("{=")) {
+			code.substring(2, code.length - 2).trimCode
+		} else {
+			code.trimCode
+		}
+	}
+
+	def trimCode(String code) {
+		var codeLines = code.split("\n")
+		var String prefix = null
+		var buffer = new StringBuilder()
+		for (line : codeLines) {
+			if (prefix === null) {
+				// skip any lines that only contain whitespaces
+				if (line.trim.length > 0) {
+					val characters = line.toCharArray()
+					var foundFirstCharacter = false
+					var int firstCharacter = 0
+					for (var i = 0; i < characters.length(); i++) {
+						if (!foundFirstCharacter && !Character.isWhitespace(characters.get(i))) {
+							foundFirstCharacter = true
+							firstCharacter = i
+						}
+					}
+					prefix = line.substring(0, firstCharacter)
+				}
+			}
+
+			if (prefix !== null) {
+				if (line.startsWith(prefix)) {
+					buffer.append(line.substring(prefix.length))
+					buffer.append('\n')
+				} else {
+					buffer.append(line)
+					buffer.append('\n')
+				}
+			}
+		}
+		buffer.toString
+	}
+
 	def generate(Time t) '''«t.time»«timeUnitsToDearUnits.get(t.unit)»'''
 
 	def name(Reaction n) {
