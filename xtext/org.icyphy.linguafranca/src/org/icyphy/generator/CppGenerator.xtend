@@ -31,6 +31,7 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import java.util.List
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Param
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -188,6 +189,19 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
+	def instantiate(Param p) {
+		val const = p.const ? "const " : ""
+		if (p.type !== null) {
+			if (p.type == "time") {
+				'''«const»dear::time_t «p.name»{«p.time.generate»};'''
+			} else {
+				'''«const»«p.type» «p.name»{«p.value»};'''
+			}
+		} else {
+			'''// «reportError(p, "Parameter has no type.")»'''
+		}
+	}
+
 	def instantiate(Input i) {
 		if (i.type !== null) {
 			'''dear::Input<«i.type»> «i.name»{"«i.name»", this};'''
@@ -207,6 +221,12 @@ class CppGenerator extends GeneratorBase {
 	def instantiateState(Reactor r) '''
 		«FOR s : r.states BEFORE '// state variables\n' AFTER '\n'»
 			«s.instantiate»
+		«ENDFOR»
+	'''
+
+	def instantiateParameters(Reactor r) '''
+		«FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
+			«p.instantiate»
 		«ENDFOR»
 	'''
 
@@ -295,6 +315,41 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
+	def declareConstructor(Reactor r) '''
+		«IF r.isMain()»
+			«r.getName()»(const std::string& name, dear::Environment* environment);
+		«ELSE»
+			«r.getName()»(const std::string& name, dear::Reactor* container);
+		«ENDIF»
+	'''
+
+	def declareParameterizedConstructor(Reactor r) '''
+		«IF r.isMain()»
+			«r.getName()»(const std::string& name, dear::Environment* environment«FOR p : r.parameters», «p.type» «p.name»«ENDFOR»);
+		«ELSE»
+			«r.getName()»(const std::string& name, dear::Reactor* container«FOR p : r.parameters», «p.type» «p.name»«ENDFOR»);
+		«ENDIF»
+	'''
+
+	def defineConstructor(Reactor r) '''
+		«IF r.isMain()»
+			«r.getName()»::«r.getName()»(const std::string& name, dear::Environment* environment)
+			  : dear::Reactor(name, environment) {}
+		«ELSE»
+			«r.getName()»::«r.getName()»(const std::string& name, dear::Reactor* container)
+			  : dear::Reactor(name, container) {}
+		«ENDIF»
+	'''
+
+	def defineParameterizedConstructor(Reactor r) '''
+		«r.getName()»::«r.getName()»(
+		    const std::string& name,
+		    «IF r.isMain()»dear::Environment* environment«ELSE»dear::Reactor* container«ENDIF»,
+		    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.type» «p.name»«ENDFOR»
+		  : dear::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
+		  «FOR p : r.parameters SEPARATOR "\n"», «p.name»(«p.name»)«ENDFOR» {}
+	'''
+
 	def assembleReaction(Reactor r, Reaction n) '''
 		// «n.name»
 		«n.declareTriggers»
@@ -318,16 +373,16 @@ class CppGenerator extends GeneratorBase {
 		class «r.getName()» : public dear::Reactor {
 		 private:
 		  «r.instantiateState»
+		  «r.instantiateParameters»
 		  «r.instantiateInstances»
 		  «r.instantiateTimers»
 		  «r.instantiateReactions»
 		  «r.declareReactionBodies»
 		 public:
 		  «r.instantiatePorts»
-		  «IF r.isMain()»
-		  	«r.getName()»(const std::string& name, dear::Environment* environment);
-		  «ELSE»
-		  	«r.getName()»(const std::string& name, dear::Reactor* container);
+		  «r.declareConstructor»
+		  «IF r.parameters.length > 0»
+		  	«r.declareParameterizedConstructor»
 		  «ENDIF»
 		  
 		  void assemble() override;
@@ -339,14 +394,12 @@ class CppGenerator extends GeneratorBase {
 		
 		#include "«r.getName».hh"
 		
-		«IF r.isMain()»
-			«r.getName()»::«r.getName()»(const std::string& name, dear::Environment* environment)
-			  : dear::Reactor(name, environment) {}
-		«ELSE»
-			«r.getName()»::«r.getName()»(const std::string& name, dear::Reactor* container)
-			  : dear::Reactor(name, container) {}
-		«ENDIF»
+		«r.defineConstructor»
 		
+		«IF r.parameters.length > 0»
+			«r.defineParameterizedConstructor»
+			
+		«ENDIF»
 		void «r.name»::assemble() {
 		  «FOR n : r.reactions SEPARATOR '\n' AFTER '\n'»
 		  	«r.assembleReaction(n)»
