@@ -77,25 +77,13 @@ class CppGenerator extends GeneratorBase {
 
 		super.doGenerate(resource, fsa, context, importTable)
 
-		var srcFile = resource.getURI.toString;
-		var mode = Mode.UNDEFINED;
-
-		if (srcFile.startsWith("file:")) { // Called from command line
-			srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-			mode = Mode.STANDALONE;
-		} else if (srcFile.startsWith("platform:")) { // Called from Eclipse
-			srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
-			srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-			mode = Mode.INTEGRATED;
-		} else {
-			System.err.println("ERROR: Source file protocol is not recognized: " + srcFile);
-		}
-
-		fsa.generateFile(_filename + File.separator + "fwd.hh", fwd_hh)
-		fsa.generateFile(_filename + File.separator + "main.cc", main_cc)
-		fsa.generateFile(_filename + File.separator + "CMakeLists.txt", cmake)
-
 		var reactors = resource.collectReactors
+		var mainReactor = resource.findMainReactor
+
+		fsa.generateFile(_filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
+		fsa.generateFile(_filename + File.separator + "main.cc", mainReactor.generateMain)
+		fsa.generateFile(_filename + File.separator + "CMakeLists.txt", reactors.generateCmake)
+
 		for (r : reactors) {
 			fsa.generateFile(_filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
 			fsa.generateFile(_filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
@@ -116,9 +104,9 @@ class CppGenerator extends GeneratorBase {
 		r.reactions.lastIndexOf(n)
 	}
 
-	def findMainReactor() {
+	def findMainReactor(Resource resource) {
 		var main = null as Reactor
-		for (r : _resource.allContents.toIterable.filter(Reactor)) {
+		for (r : resource.allContents.toIterable.filter(Reactor)) {
 			if (r.isMain) {
 				if (main !== null) {
 					throw new RuntimeException("There is more than one main reactor!")
@@ -332,41 +320,38 @@ class CppGenerator extends GeneratorBase {
 		 */
 	'''
 
-	def fwd_hh() '''
+	def generateForwardDeclarations(List<Reactor> reactors) '''
 		«header()»
 		
 		#pragma once
 		
-		«FOR r : _resource.allContents.toIterable.filter(Reactor)»
+		«FOR r : reactors»
 			class «r.getName()»;
 		«ENDFOR»
 	'''
 
-	def main_cc() {
-		var main = findMainReactor()
-		'''
-			«header()»
-			
-			#include "dear/dear.hh"
-			
-			#include "«main.name».hh"
-			
-			int main() {
-			  dear::Environment e{4};
-			
-			  «main.name» main{"main", &e};
-			  e.assemble();
-			  e.init();
-			
-			  auto t = e.start();
-			  t.join();
-			
-			  return 0;
-			}
-		'''
-	}
+	def generateMain(Reactor main) '''
+		«header()»
+		
+		#include "dear/dear.hh"
+		
+		#include "«main.name».hh"
+		
+		int main() {
+		  dear::Environment e{4};
+		
+		  «main.name» main{"main", &e};
+		  e.assemble();
+		  e.init();
+		
+		  auto t = e.start();
+		  t.join();
+		
+		  return 0;
+		}
+	'''
 
-	def cmake() '''
+	def generateCmake(List<Reactor> reactors) '''
 		cmake_minimum_required(VERSION 3.5)
 		project(«_filename» VERSION 1.0.0 LANGUAGES CXX)
 		
@@ -406,7 +391,7 @@ class CppGenerator extends GeneratorBase {
 		
 		add_executable(«_filename»
 		  main.cc
-		  «FOR r : _resource.allContents.toIterable.filter(Reactor)»
+		  «FOR r : reactors»
 		  	«r.getName()».cc
 		  «ENDFOR»
 		)
