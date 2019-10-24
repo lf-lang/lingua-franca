@@ -31,37 +31,45 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.State
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
+import java.util.List
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
 		'secs' -> '_s', 'minute' -> '_min', 'minutes' -> '_min', 'hour' -> '_h', 'hours' -> '_h', 'day' -> '_d',
 		'days' -> '_d', 'week' -> '_weeks', 'weeks' -> '_weeks'}
 
-	private def void processImports(Resource resource, IFileSystemAccess2 fsa) {
+	private def validateTarget(Resource resource) {
+		var targetOK = false
+		for (target : resource.allContents.toIterable.filter(Target)) {
+			if ("Cpp".equalsIgnoreCase(target.name)) {
+				targetOK = true
+			}
+		}
+		targetOK
+	}
+
+	private def collectReactors(Resource resource) {
+		val List<Reactor> reactors = newArrayList
+		resource.collectReactors(reactors)
+	}
+
+	private def List<Reactor> collectReactors(Resource resource, List<Reactor> reactors) {
+		reactors.addAll(resource.allContents.toIterable.filter(Reactor))
+
 		for (import : resource.allContents.toIterable.filter(Import)) {
 			val importResource = openImport(resource, import)
 			if (importResource !== null) {
-				// Make sure the target of the import is C++.
-				var targetOK = false
-				for (target : importResource.allContents.toIterable.filter(Target)) {
-					if ("Cpp".equalsIgnoreCase(target.name)) {
-						targetOK = true
-					}
-				}
-				if (!targetOK) {
-					reportError(import, "Import does not have a Cpp target.")
+				var ok = importResource.validateTarget
+				if (ok) {
+					importResource.collectReactors(reactors)
 				} else {
-					// Process any imports that the import has.
-					importResource.processImports(fsa);
-					for (r : importResource.allContents.toIterable.filter(Reactor)) {
-						fsa.generateFile(_filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
-						fsa.generateFile(_filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
-					}
+					reportError(import, "Import does not have a Cpp target.")
 				}
 			} else {
 				reportError(import, "Unable to open import")
 			}
 		}
+		reactors
 	}
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context,
@@ -87,13 +95,11 @@ class CppGenerator extends GeneratorBase {
 		fsa.generateFile(_filename + File.separator + "main.cc", main_cc)
 		fsa.generateFile(_filename + File.separator + "CMakeLists.txt", cmake)
 
-		for (r : _resource.allContents.toIterable.filter(Reactor)) {
+		var reactors = resource.collectReactors
+		for (r : reactors) {
 			fsa.generateFile(_filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
 			fsa.generateFile(_filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
 		}
-
-		// generate code for all imports
-		resource.processImports(fsa)
 
 		doCompile()
 	}
