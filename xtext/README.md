@@ -12,16 +12,18 @@
 * Checkout or pull lingua-franca repo: https://github.com/icyphy/lingua-franca.git
 * Start Eclipse in a new workspace.
 * In Eclipse, select File->Import->Team->Team Project Set
-* Browse to lingua-franca/xtext and select the file LinguaFrancaProjectSet.psf
+* Browse to lingua-franca/xtext and select one of the Project Set Files (.psf) files:
+    * LinguaFrancaProjectSetHTTPS.psf - most users will select this one to use https to access github
+    * LinguaFrancaProjectSetSSH.pdf - users with ssh set up to access github will select this file
 * Close the Eclipse welcome page (which obscures the projects)
 * You should have five projects. Open org.icyphy.linguafranca
 * Note that Eclipse puts the source files in into $(HOME)/git/lingua-franca
 
 ## Build and Run the Lingua-Franca editor
 
-* Browse to src->org.icyphy->LinguaFranca.xtext (double click to open)
+* While in the org.icyphy.linguafranca project, browse to src->org.icyphy->LinguaFranca.xtext (double click to open)
 * You should see the latest Lingua-Franca grammar specification.
-* Right click in that grammar file editor, select Run As->Generate Xtext Artifacts
+* Right click in that grammar file editor, select Run As->Generate Xtext Artifacts.
 * Right click on the first project in the PackageExplorer, org.icyphy.linguafranca and select Run As->Eclipse Application
 * This should start a new Eclipse.
 
@@ -50,6 +52,21 @@ and generate code from them into the src-gen directory.
 * The code generator for the C target is in src->org.icyphy.generator->CGenerator.xtend
 * The code generator for the Accessor target is in src->org.icyphy.generator->AccessorGenerator.xtend
 * To add a code generator for a new target, edit src->org.icyphy.generator->LinguaFrancaGenerator.xtend
+
+## Building org.icyphy.linguafranca.diagram
+org.icyphy.linguafranca.diagram is a work in progress.  To build it, we need to install
+[Kieler Lightweight Diagram](https://rtsys.informatik.uni-kiel.de/confluence/pages/viewpage.action?pageId=328115)
+* Choose Help -> Install New Software... from the menu bar
+* In the Add.... entry, enter in  http://rtsys.informatik.uni-kiel.de/~kieler/updatesite/
+* Hit the enter key
+* Under Kieler Lightweight Diagrams:
+* Select KIELER Lightweight Diagrams Generic Diagram View
+* Select KIELER Lightweight Diagrams Runtime
+* Click Next
+* Accept the licenses
+* Accept the unsigned content
+* Restart Eclipse
+* Project -> Clean -> Clean
 
 ## Troubleshooting
 * Importing the Team Project Set from `LinguaFrancaProjectSet.psf` will result in Eclipse cloning a fresh copy of the lingua-franca repository; the clone will be located in `~/git/lingua-franca` (it will not use the clone that you obtained the `LinguaFrancaProjectSet.psf` from!) Note that, if you already have a clone in `~/git/lingua-franca`, that will simply be reused (not overwritten).

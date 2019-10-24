@@ -1,0 +1,41 @@
+// Setup for WCET analysis of Worker
+target C;
+reactor Source {
+    output out1: int;
+    output out2: int;
+    timer t;
+    reaction(t) -> out1, out2 {=
+        set(out1, 5);
+        set(out2, 10);
+    =}
+}
+reactor Work {
+    input in1: int;
+    input in2: int;
+    output out:int;
+    reaction(in1, in2) -> out {=
+    	int ret;
+    	if (in1 > 10) {
+    		ret = in2 * in1;
+    	} else {
+    		ret = in2 + in1;
+    	}
+        set(out, ret);
+    =}
+}
+reactor Print {
+    input in:int;
+    reaction(in) {=
+        printf("Received: %d\n", in);
+    =}
+}
+
+main reactor Wcet {
+    source = new Source();
+    work = new Work();
+    print = new Print();
+    
+    source.out1 -> work.in1;
+    source.out2 -> work.in2;
+    work.out -> print.in;
+}
