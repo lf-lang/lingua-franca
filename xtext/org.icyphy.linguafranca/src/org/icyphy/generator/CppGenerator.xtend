@@ -17,8 +17,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import java.util.Hashtable
 import java.io.File
 import java.nio.file.Paths
-import org.eclipse.core.runtime.FileLocator
-import java.net.URL
 import org.icyphy.linguaFranca.Reactor
 import java.text.SimpleDateFormat
 import java.util.Date
