@@ -60,6 +60,9 @@ class GeneratorBase {
 	// The file containing the main source code.
 	protected var Resource _resource
 	
+	// Indicator of whether generator errors occurred.
+	protected var generatorErrorsOccurred = false
+	
 	// Map from time units to an expression that can convert a number in
 	// the specified time unit into nanoseconds. This expression may need
 	// to have a suffix like 'LL' or 'L' appended to it, depending on the
@@ -85,7 +88,8 @@ class GeneratorBase {
 	/** Generate code from the Lingua Franca model contained by the
 	 *  specified resource. This is the main entry point for code
 	 *  generation. This base class invokes generateReactor()
-	 *  for each contained reactor.
+	 *  for each contained reactor. If errors occur during generation,
+	 *  then a subsequent call to errorsOccurred() will return true.
 	 *  @param resource The resource containing the source code.
 	 *  @param fsa The file system access (used to write the result).
 	 *  @param context FIXME: What is this?
@@ -97,6 +101,8 @@ class GeneratorBase {
 			IGeneratorContext context,
 			Hashtable<String,String> importTable) {
 
+        generatorErrorsOccurred = false
+        
 		_resource = resource
 
 		// Figure out the file name for the target code from the source file name.
@@ -122,6 +128,14 @@ class GeneratorBase {
 			// values from the command line.
 			instantiate(mainInstance, null, importTable)
 		}
+	}
+	
+	/** Return true if errors occurred in the last call to doGenerate().
+	 *  This will return true if any of the reportError methods was called.
+	 *  @return True if errors occurred.
+	 */
+	def errorsOccurred() {
+	    return generatorErrorsOccurred;
 	}
 	
 	/** Collect data in a reactor or composite definition.
@@ -646,11 +660,19 @@ class GeneratorBase {
         }
 	}
 	
+	/** Report an error.
+     *  @param message The error message.
+     */
+    protected def reportError(String message) {
+        System.err.println("ERROR: " + message)
+    }
+	
 	/** Report an error on the specified parse tree object.
 	 *  @param object The parse tree object.
 	 *  @param message The error message.
 	 */
 	protected def reportError(EObject object, String message) {
+	    generatorErrorsOccurred = true;
 		// FIXME: All calls to this should also be checked by the validator (See LinguaFrancaValidator.xtend).
         // In case we are using a command-line tool, we report the line number.
         // The caller should not throw an exception so compilation can continue.

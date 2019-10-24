@@ -90,8 +90,6 @@ class CGenerator extends GeneratorBase {
 		var runCommandOverridden = false
 		var compileCommand = newArrayList()
 
-		var errors = new LinkedList<String>()
-
 		for (target : resource.allContents.toIterable.filter(Target)) {
 			if (target.parameters !== null) {
 				for (parameter : target.parameters.assignments) {
@@ -263,7 +261,7 @@ class CGenerator extends GeneratorBase {
             if (main === null) {
                 compileCommand.add("-c")
                 if (mode === Mode.STANDALONE) {
-                    println("ERROR: Did not output executable; no main reactor found.")
+                    reportError("ERROR: Did not output executable; no main reactor found.")
                 }
             }
         }
@@ -272,17 +270,20 @@ class CGenerator extends GeneratorBase {
 	    var builder = new ProcessBuilder(compileCommand);
 	    builder.directory(new File(srcPath));
 	    var process = builder.start()
+	    // FIXME: The following doesn't work. Somehow, the command to
+	    // run the generated code gets executed before the following is printed!
+        val code = process.waitFor()
 	    var stdout = readStream(process.getInputStream())
 	    var stderr = readStream(process.getErrorStream())
 	    if (stdout.length() > 0) {
 		    println("--- Standard output from C compiler:")
 		    println(stdout)
 	    }
+	    if (code !== 0) {
+	        reportError("Compiler returns error code " + code)
+	    }
 	    if (stderr.length() > 0) {
-		    errors.add(stderr.toString)
-		    println("ERRORS")
-		    println("--- Standard error from C compiler:")
-		    println(stderr)
+		    reportError("Compiler reports errors:\n" + stderr.toString)
 	    } else {
 		    println("SUCCESS (compiling generated C code)")
 	    }
@@ -453,7 +454,7 @@ class CGenerator extends GeneratorBase {
 		var properties = reactorToProperties.get(reactor)
 		for (reaction : reactions) {
 			// Create a unique function name for each reaction.
-			val functionName = "reaction_function" + reactionCount++
+			val functionName = "reaction_function" + reactionCount
 
 			properties.targetProperties.put(reaction, functionName)
 
@@ -491,12 +492,24 @@ class CGenerator extends GeneratorBase {
 							reactionInitialization,
 							"trigger_t* " + trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
 						);
-						actionsAsTriggers.add(trigger.variable as Action);
+                        actionsAsTriggers.add(trigger.variable as Action);
+                        // If the action has a type, create variables for accessing the payload.
+						val type = (trigger.variable as Action).type
+                        val payloadPointer = trigger.variable.name + '->payload'
+                        // Create the _has_payload variable.
+                        pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_payload = (' + payloadPointer + ' != NULL);')
+						// Create the _payload variable if there is a type.
+						if (type !== null) {
+						    // Create the value variable, but initialize it only if the pointer is not null.
+						    pr(reactionInitialization, type + ' ' + trigger.variable.name + '_payload;')
+						    pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_payload) '
+						        + trigger.variable.name + '_payload = *(' + '(' + type + '*)' + payloadPointer + ');'
+                            );
+                        }
 					} else if (trigger.variable instanceof Output) {
 						// FIXME: triggered by contained output
 						reportError(trigger, "(FIXME) Failed to handle hierarchical reference: " + trigger)
 					}
-
 				}
 			} else {
 				// No triggers are given, which means react to any input.
@@ -514,7 +527,6 @@ class CGenerator extends GeneratorBase {
 				} else {
 					reportError(src, "(FIXME) Failed to handle hierarchical reference: " + src)
 				}
-
 			}
 
 			// Define variables for each declared output or action.
@@ -558,6 +570,22 @@ class CGenerator extends GeneratorBase {
 			pr(removeCodeDelimiter(reaction.code))
 			unindent()
 			pr("}")
+			
+			// Now generate code for the deadline violation function, if there is one.
+			if (reaction.localDeadline !== null) {
+			    val deadlineFunctionName = 'deadline_function' + reactionCount
+                properties.targetProperties.put(reaction.localDeadline, deadlineFunctionName)
+
+			    pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+			    indent();
+                pr(reactionInitialization.toString)
+                // Code verbatim from 'deadline'
+                prSourceLineNumber(reaction.localDeadline.time)
+                pr(removeCodeDelimiter(reaction.localDeadline.deadlineCode))
+                unindent()
+                pr("}")
+			}
+			reactionCount++
 		}
 	}
 
@@ -710,17 +738,20 @@ class CGenerator extends GeneratorBase {
 				+ ", 1" // num_outputs: number of outputs produced by this reaction. This is just one.
 				+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
 				+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
-				+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-				+ ", 0LL" // Deadline.
-				+ ", NULL" // Pointer to deadline violation trigger.
-				+ ", false" // Indicator that the reaction is not running.
+				+ ", " + triggersArray       // triggered: array of pointers to arrays of triggers.
+                + ", false" // Indicator that the reaction is not running.
+				+ ", 0LL"   // Local deadline.
+				+ ", NULL"  // Pointer to local deadline_violation_handler.
+                + ", 0LL"   // Container deadline.
+				+ ", NULL"  // Pointer to container deadline violation trigger.
+                + ", -1LL"  // violation_handled for container deadline.
 				+ "};"
 			)
 			pr(result, 'reaction_t* ' + output + triggerCount + '_reactions[1] = {&' + reactionInstanceName + '};')
 
 			pr(result, 'trigger_t ' + output + triggerCount + ' = {')
 			indent(result)
-			pr(result, output + triggerCount + '_reactions, 1, 0LL, 0LL')
+			pr(result, output + triggerCount + '_reactions, 1, 0LL, 0LL, NULL, false')
 			unindent(result)
 			pr(result, '};')
 
@@ -965,6 +996,10 @@ class CGenerator extends GeneratorBase {
 					if (nameOfSelfStruct === null) {
 						selfStructArgument = ", NULL"
 					}
+					var deadlineFunctionPointer = ", NULL"
+					if (reaction.localDeadline !== null) {
+					    deadlineFunctionPointer = ", &" + properties.targetProperties.get(reaction.localDeadline)
+					}
 					// First 0 is an index that specifies priorities based on precedences.
 					// It will be set later.
 					pr(
@@ -974,10 +1009,13 @@ class CGenerator extends GeneratorBase {
 						+ ", " + outputCount // num_outputs: number of outputs produced by this reaction.
 						+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
 						+ ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
-						+ ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-						+ ", 0LL" // Deadline.
-						+ ", NULL" // Pointer to deadline violation trigger.
-						+ ", false" // Indicator that the reaction is not running.
+						+ ", " + triggersArray       // triggered: array of pointers to arrays of triggers.
+                        + ", false"    // Indicator that the reaction is not running.
+						+ ", 0LL"      // Local deadline.
+						+ deadlineFunctionPointer // deadline_violation_handler: Pointer to local handler function.
+                        + ", 0LL"      // Container deadline.
+						+ ", NULL"     // Pointer to container deadline violation trigger.
+                        + ", -1LL"     // violation_handled for container deadlines.
 						+ "};"
 					)
 				}
@@ -1004,7 +1042,7 @@ class CGenerator extends GeneratorBase {
 			if (timing !== null || getInput(reactor, triggerName) !== null) {
 				pr(
 					result,
-					triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' + '0LL, 0LL'
+					triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' + '0LL, 0LL, NULL, false'
 				)
 			} else if (getAction(reactor, triggerName) !== null) {
 				var modifier = getAction(reactor, triggerName).getModifier();
@@ -1154,7 +1192,7 @@ class CGenerator extends GeneratorBase {
 				nameOfSelfStruct + '.__' + action.name + ' = &' + triggerStruct + ';'
 			)
 		}
-		// Next, generate the code to initialize outputs at the start
+		// Next, generate the code to initialize outputs and inputs at the start
 		// of a time step to be absent.
 		for (output : reactor.outputs) {
 			pr(
@@ -1162,8 +1200,16 @@ class CGenerator extends GeneratorBase {
 				nameOfSelfStruct + '.__' + output.name + '_is_present = false;'
 			)
 		}
+		// Handle reaction local deadlines.
+		for (reaction: reactor.reactions) {
+		    if (reaction.localDeadline !== null) {
+                var reactionToReactionTName = reactorInstance.properties.get("reactionToReactionTName")
+                var reactionTName = (reactionToReactionTName as HashMap<Reaction, String>).get(reaction)
+		        pr(initializeTriggerObjects, reactionTName + '.local_deadline = ' + timeMacro(reaction.localDeadline.time) + ';')
+		    }
+		}
 
-		// Finally, handle deadline commands.
+		// Finally, handle container deadline commands.
 		for (deadline : reactor.deadlines) {
 			if (deadline.port.instance !== null) { // x.y
 				var deadlineReactor = reactorInstance.getContainedInstance(deadline.port.instance.name)

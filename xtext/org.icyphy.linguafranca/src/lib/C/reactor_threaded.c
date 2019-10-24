@@ -80,8 +80,8 @@ int wait_until(instant_t logical_time_ns) {
         // timespec is seconds and nanoseconds.
         struct timespec wait_until_time = {(time_t)logical_time_ns / BILLION, (long)logical_time_ns % BILLION};
 
-        printf("-------- Waiting for physical time to match logical time %llu.\n", logical_time_ns);
-    	printf("-------- which is %splus %ld nanoseconds.\n", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
+        // printf("-------- Waiting for physical time to match logical time %llu.\n", logical_time_ns);
+    	// printf("-------- which is %splus %ld nanoseconds.\n", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
 
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
         	// printf("-------- Wait interrupted.\n");
@@ -133,7 +133,13 @@ int next() {
  	// to be freed and recycle the event carrying them.
     event_t* free_event = pqueue_pop(free_q);
     while (free_event != NULL) {
-    	free(free_event->payload);
+        if (free_event->payload != NULL) {
+            free(free_event->payload);
+        }
+        if (free_event->trigger != NULL) {
+            // Make sure the trigger is not pointing to freed memory.
+            free_event->trigger->payload = NULL;
+        }
     	pqueue_insert(recycle_q, free_event);
     	free_event = pqueue_pop(free_q);
     }
@@ -300,10 +306,11 @@ void* worker(void* arg) {
         	// reactions that may depend on it from executing before this reaction is finished.
         	pqueue_insert(executing_q, reaction);
         
-        	// If the reaction has a deadline, compare to current physical time
-        	// and invoke the deadline violation reaction before the reaction function
-        	// if a violation has occurred.
-        	if (reaction->deadline > 0LL) {
+            // If the reaction has a deadline, compare to current physical time
+            // and invoke the deadline violation reaction instead of the reaction function
+            // if a violation has occurred.
+            bool violation = false;
+            if (reaction->deadline > 0LL && reaction->violation_handled != current_time) {
             	// Get the current physical time.
             	struct timespec current_physical_time;
             	clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -314,6 +321,9 @@ void* worker(void* arg) {
             	// Check for deadline violation.
             	if (physical_time > current_time + reaction->deadline) {
                 	// Deadline violation has occurred.
+                	violation = true;
+                    // Prevent this violation from being handled again at the current time.
+                    reaction->violation_handled = current_time;
                 	// Invoke the violation reactions, if there are any.
                 	trigger_t* trigger = reaction->deadline_violation;
                 	if (trigger != NULL) {
@@ -322,29 +332,29 @@ void* worker(void* arg) {
  							pthread_mutex_unlock(&mutex);
                        		trigger->reactions[i]->function(trigger->reactions[i]->self);
 							pthread_mutex_lock(&mutex);
-                        	// If the reaction produced outputs, put the resulting
-                        	// triggered reactions into the queue.
-                        	// FIXME: The following causes a stack overflow on DeadlineC.lf!  Why???
-         					// trigger_output_reactions(trigger->reactions[i]);
-         					// trigger_output_reactions(trigger->reactions[i]);
+                            // If the reaction produced outputs, put the resulting
+                            // triggered reactions into the queue.
+                            schedule_output_reactions(trigger->reactions[i]);
                     	}
                 	}
             	}
         	}
         
-            // Unlock the mutex to run the reaction.
- 			pthread_mutex_unlock(&mutex);
-        	// Invoke the reaction function.
-        	reaction->function(reaction->self);
-        	// Reacquire the mutex lock.
- 			pthread_mutex_lock(&mutex);
-        	// If the reaction produced outputs, put the resulting triggered
-        	// reactions into the queue while holding the mutex lock.
-        	trigger_output_reactions(reaction);
-        	// There may be new reactions on the reaction queue, so notify other threads.
-			pthread_cond_broadcast(&reaction_q_changed);
-        	// Remove the reaction from the executing queue.
-        	pqueue_remove(executing_q, reaction);
+            if (!violation) {
+                // Unlock the mutex to run the reaction.
+ 			    pthread_mutex_unlock(&mutex);
+        	    // Invoke the reaction function.
+        	    reaction->function(reaction->self);
+        	    // Reacquire the mutex lock.
+ 			    pthread_mutex_lock(&mutex);
+        	    // If the reaction produced outputs, put the resulting triggered
+        	    // reactions into the queue while holding the mutex lock.
+        	    schedule_output_reactions(reaction);
+        	    // There may be new reactions on the reaction queue, so notify other threads.
+			    pthread_cond_broadcast(&reaction_q_changed);
+        	    // Remove the reaction from the executing queue.
+        	    pqueue_remove(executing_q, reaction);
+            }
     	}
 	}
  	pthread_mutex_unlock(&mutex);

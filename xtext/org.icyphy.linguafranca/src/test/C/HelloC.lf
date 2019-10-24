@@ -23,6 +23,11 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	reaction(a) {=
 		(self->count)++;
 		printf("***** action %d at time %lld\n", self->count, get_logical_time());
+		// Check the a_has_payload variable.
+		if (a_has_payload) {
+		    printf("FAILURE: Expected a_has_payload to be false, but it was true.\n");
+		    exit(2);
+		}
 		long long time = get_logical_time();
 		if (time - self->previous_time != 200000000ll) {
 			printf("FAILURE: Expected 200ms of logical time to elapse but got %lld nanoseconds.\n",

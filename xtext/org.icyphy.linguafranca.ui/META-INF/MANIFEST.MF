@@ -1,8 +1,8 @@
 Manifest-Version: 1.0
 Automatic-Module-Name: org.icyphy.linguafranca.ui
 Bundle-ManifestVersion: 2
-Bundle-Name: org.icyphy.linguafranca.ui
-Bundle-Vendor: My Company
+Bundle-Name: Lingua Franca polyglot reactor language user interface
+Bundle-Vendor: iCyPhy Project, University of California, Berkeley
 Bundle-Version: 1.0.0.qualifier
 Bundle-SymbolicName: org.icyphy.linguafranca.ui; singleton:=true
 Bundle-ActivationPolicy: lazy
