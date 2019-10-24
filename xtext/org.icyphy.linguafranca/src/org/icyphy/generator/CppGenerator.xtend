@@ -32,6 +32,7 @@ import org.icyphy.linguaFranca.State
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import java.util.List
+import org.icyphy.linguaFranca.Connection
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -259,6 +260,8 @@ class CppGenerator extends GeneratorBase {
 		«n.declareAntidependencies»
 	'''
 
+	def assembleConnection(Connection c) '''«c.leftPort».bind_to(&«c.rightPort»);'''
+
 	def generateReactorHeader(Reactor r) '''
 		«header()»
 		
@@ -303,8 +306,11 @@ class CppGenerator extends GeneratorBase {
 		«ENDIF»
 		
 		void «r.name»::assemble() {
-		  «FOR n : r.reactions SEPARATOR '\n'»
+		  «FOR n : r.reactions SEPARATOR '\n' AFTER '\n'»
 		  	«r.assembleReaction(n)»
+		  «ENDFOR»
+		  «FOR c : r.connections BEFORE '// connections\n'»
+		  	«c.assembleConnection»
 		  «ENDFOR»
 		}
 		
