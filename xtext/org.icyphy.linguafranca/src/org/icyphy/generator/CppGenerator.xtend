@@ -21,7 +21,6 @@ import org.icyphy.linguaFranca.Reactor
 import java.text.SimpleDateFormat
 import java.util.Date
 import org.icyphy.linguaFranca.Time
-import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Import
@@ -145,8 +144,6 @@ class CppGenerator extends GeneratorBase {
 		buffer.toString
 	}
 
-	def generate(Time t) '''«t.time»«timeUnitsToDearUnits.get(t.unit)»'''
-
 	def name(Reaction n) {
 		var r = n.eContainer as Reactor
 		'r' + r.reactions.lastIndexOf(n)
@@ -171,14 +168,6 @@ class CppGenerator extends GeneratorBase {
 			throw new RuntimeException("No main reactor found!")
 		}
 		main
-	}
-
-	def instantiate(Timer t) {
-		if (t.timing !== null) {
-			'''dear::Timer «t.name»{"«t.name»", this, «t.timing.period.generate», «t.timing.offset.generate»};'''
-		} else {
-			'''dear::Timer «t.name»{"«t.name»", this};'''
-		}
 	}
 
 	def declare(Instance i) '''«i.reactorClass.name» «i.name»;'''
@@ -224,9 +213,9 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
-	def instantiateTimers(Reactor r) '''
+	def declareTimers(Reactor r) '''
 		«FOR t : r.timers BEFORE '// timers\n' AFTER '\n'»
-			«t.instantiate»
+			dear::Timer «t.name»;
 		«ENDFOR»
 	'''
 
@@ -345,7 +334,16 @@ class CppGenerator extends GeneratorBase {
 			'''«p.value.removeCodeDelimiter»'''
 		} else {
 			// if its not a value it must be a time
-			'''«p.time.generate»'''
+			'''«p.time.trimmedValue»'''
+		}
+	}
+
+	def trimmedValue(Time t) {
+		if (t.unit !== null) {
+			'''«t.time»«timeUnitsToDearUnits.get(t.unit)»'''
+		} else {
+			// time refers to a parameter or is a number without a unit
+			'''«t.time»'''
 		}
 	}
 
@@ -376,6 +374,7 @@ class CppGenerator extends GeneratorBase {
 		  «r.initializeParameters»
 		  «r.initializeStateVariables»
 		  «r.initializeInstances»
+		  «r.initializeTimers»
 		{}
 	'''
 
@@ -394,6 +393,12 @@ class CppGenerator extends GeneratorBase {
 	def initializeInstances(Reactor r) '''
 		«FOR i : r.instances BEFORE "// reactor instances\n"»
 			, «i.name»{"«i.name»", this«FOR v : i.trimmedValues», «v»«ENDFOR»}
+		«ENDFOR»
+	'''
+
+	def initializeTimers(Reactor r) '''
+		«FOR t : r.timers BEFORE "// timers\n"»
+			, «t.name»{"«t.name»", this, «t.timing.period.trimmedValue», «t.timing.offset.trimmedValue»}
 		«ENDFOR»
 	'''
 
@@ -439,7 +444,7 @@ class CppGenerator extends GeneratorBase {
 		  «r.declareParameters»
 		  «r.declareStateVariables»
 		  «r.declareInstances»
-		  «r.instantiateTimers»
+		  «r.declareTimers»
 		  «r.instantiateReactions»
 		  «r.declareReactionBodies»
 		 public:
