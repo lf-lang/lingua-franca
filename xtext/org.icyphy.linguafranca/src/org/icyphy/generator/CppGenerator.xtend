@@ -172,7 +172,27 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
-	def instantiate(Instance i) '''«i.reactorClass.name» «i.name»{"«i.name»", this};'''
+	def instantiate(Instance i) {
+		if (i.parameters !== null && i.parameters.assignments.length > 0) {
+			var List<String> values = newArrayList
+			for (p : i.reactorClass.parameters) {
+				var String value = null
+				for (a : i.parameters.assignments) {
+					if (a.name == p.name) {
+						value = '''«a.value»'''
+					}
+				}
+				if (value === null) {
+					value = '''«p.value»'''
+				}
+				values.add(value)
+			}
+			'''«i.reactorClass.name» «i.name»{"«i.name»", this«FOR v : values», «v»«ENDFOR»};'''
+		} else {
+			// no assignments
+			'''«i.reactorClass.name» «i.name»{"«i.name»", this};'''
+		}
+	}
 
 	def instantiate(
 		Reaction n) '''dear::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};'''
