@@ -96,13 +96,21 @@ class CppGenerator extends GeneratorBase {
 		if (code === null) {
 			""
 		} else if (code.startsWith("{=")) {
-			code.substring(2, code.length - 2).trimCode
+			if (code.split('\n').length > 1) {
+				code.substring(2, code.length - 2).trimCodeBlock
+			} else {
+				code.substring(2, code.length - 2).trim
+			}
 		} else {
-			code.trimCode
+			if (code.split('\n').length > 1) {
+				code.trimCodeBlock
+			} else {
+				code.trim
+			}
 		}
 	}
 
-	def trimCode(String code) {
+	def trimCodeBlock(String code) {
 		var codeLines = code.split("\n")
 		var String prefix = null
 		var buffer = new StringBuilder()
