@@ -303,13 +303,21 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
-	def declareConstructor(Reactor r) '''
-		«IF r.isMain()»
-			«r.getName()»(const std::string& name, dear::Environment* environment);
-		«ELSE»
-			«r.getName()»(const std::string& name, dear::Reactor* container);
-		«ENDIF»
-	'''
+	def declareConstructor(Reactor r) {
+		if (r.parameters.length > 0) {
+			'''
+				«r.name»(const std::string& name,
+				    «IF r.main»dear::Environment* environment,«ELSE»dear::Reactor* container«ENDIF»,
+				    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «p.trimmedValue»«ENDFOR»
+			'''
+		} else {
+			if (r.main) {
+				'''«r.name»(const std::string& name, dear::Environment* environment);'''
+			} else {
+				'''«r.name»(const std::string& name, dear::Reactor* container);'''
+			}
+		}
+	}
 
 	def trimmedType(Param p) {
 		val const = p.const ? "const " : ""
@@ -352,29 +360,18 @@ class CppGenerator extends GeneratorBase {
 
 	def trimmedValue(State s) { s.value.removeCodeDelimiter }
 
-	def declareParameterizedConstructor(Reactor r) '''
-		«r.getName()»(const std::string& name,
-		    «IF r.isMain()»dear::Environment* environment,«ELSE»dear::Reactor* container,«ENDIF»
-		    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name»«ENDFOR»
-	'''
-
-	def defineConstructor(Reactor r) {
-		if (r.parameters.length > 0) {
-			'''	
-				«r.name»::«r.name»(const std::string& name, «IF r.main»dear::Environment* environment«ELSE»dear::Reactor* container«ENDIF»)
-				  : «r.name»::«r.name»(name, «IF r.main»environment«ELSE»container«ENDIF», «FOR p : r.parameters SEPARATOR ", "»«p.trimmedValue»«ENDFOR») {}
-			'''
-		} else
-			'''	
-				«r.name»::«r.name»(const std::string& name, «IF r.main»dear::Environment* environment«ELSE»dear::Reactor* container«ENDIF»)
-				  : dear::Reactor(name, «IF r.main»environment«ELSE»container«ENDIF») {}
-			'''
-	}
-
-	def defineParameterizedConstructor(Reactor r) '''
-		«r.getName()»::«r.getName()»(const std::string& name,
-		    «IF r.isMain()»dear::Environment* environment«ELSE»dear::Reactor* container«ENDIF»,
-		    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
+	def defineConstructor(Reactor r) '''
+		«IF r.parameters.length > 0»
+			«r.name»::«r.name»(const std::string& name,
+			    «IF r.isMain()»dear::Environment* environment,«ELSE»dear::Reactor* container«ENDIF»,
+			    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
+		«ELSE»
+			«IF r.main»
+				«r.name»::«r.name»(const std::string& name, dear::Environment* environment)
+			«ELSE»
+				«r.name»::«r.name»(const std::string& name, dear::Reactor* container)
+			«ENDIF»
+		«ENDIF»
 		  : dear::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
 		  «r.initializeParameters»
 		  «r.initializeStateVariables»
@@ -384,7 +381,8 @@ class CppGenerator extends GeneratorBase {
 
 	def initializeParameters(Reactor r) '''
 		«FOR p : r.parameters BEFORE "// parameters\n"»
-		, «p.name»(«p.name»)«ENDFOR»
+			, «p.name»(«p.name»)
+		«ENDFOR»
 	'''
 
 	def initializeStateVariables(Reactor r) '''
@@ -447,9 +445,6 @@ class CppGenerator extends GeneratorBase {
 		 public:
 		  «r.instantiatePorts»
 		  «r.declareConstructor»
-		  «IF r.parameters.length > 0»
-		  	«r.declareParameterizedConstructor»
-		  «ENDIF»
 		  
 		  void assemble() override;
 		};
@@ -462,10 +457,6 @@ class CppGenerator extends GeneratorBase {
 		
 		«r.defineConstructor»
 		
-		«IF r.parameters.length > 0»
-			«r.defineParameterizedConstructor»
-			
-		«ENDIF»
 		void «r.name»::assemble() {
 		  «FOR n : r.reactions SEPARATOR '\n' AFTER '\n'»
 		  	«r.assembleReaction(n)»
