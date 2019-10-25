@@ -205,17 +205,7 @@ class CppGenerator extends GeneratorBase {
 	def instantiate(
 		Reaction n) '''dear::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};'''
 
-	def instantiate(State s) {
-		if (s.type !== null) {
-			if (s.value !== null) {
-				'''«s.type» «s.name»{«s.value»};'''
-			} else {
-				'''«s.type» «s.name»{};'''
-			}
-		} else {
-			'''// «reportError(s, "State variable has no type.")»'''
-		}
-	}
+	def declare(State s) '''«s.trimmedType» «s.name»;'''
 
 	def declare(Param p) '''«p.trimmedType» «p.name»;'''
 
@@ -235,9 +225,9 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
-	def instantiateState(Reactor r) '''
+	def declareStateVariables(Reactor r) '''
 		«FOR s : r.states BEFORE '// state variables\n' AFTER '\n'»
-			«s.instantiate»
+			«s.declare»
 		«ENDFOR»
 	'''
 
@@ -353,6 +343,14 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
+	def trimmedType(State s) {
+		if (s.type !== null) {
+			s.type.removeCodeDelimiter
+		} else {
+			'''/* «s.reportError("State variable has no type")» */'''
+		}
+	}
+
 	def trimmedValue(Param p) {
 		if (p.value !== null) {
 			p.value.removeCodeDelimiter
@@ -361,6 +359,8 @@ class CppGenerator extends GeneratorBase {
 			p.time.generate
 		}
 	}
+
+	def trimmedValue(State s) { s.value.removeCodeDelimiter }
 
 	def declareParameterizedConstructor(Reactor r) '''
 		«r.getName()»(const std::string& name,
@@ -386,7 +386,20 @@ class CppGenerator extends GeneratorBase {
 		    «IF r.isMain()»dear::Environment* environment«ELSE»dear::Reactor* container«ENDIF»,
 		    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
 		  : dear::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
-		  «FOR p : r.parameters SEPARATOR "\n"», «p.name»(«p.name»)«ENDFOR» {}
+		  «r.initializeParameters»
+		  «r.initializeStateVariables»
+		{}
+	'''
+
+	def initializeParameters(Reactor r) '''
+		«FOR p : r.parameters BEFORE "// parameters\n"»
+		, «p.name»(«p.name»)«ENDFOR»
+	'''
+
+	def initializeStateVariables(Reactor r) '''
+		«FOR s : r.states BEFORE "// state variables\n"»
+			, «s.name»(«s.trimmedValue»)
+		«ENDFOR»
 	'''
 
 	def assembleReaction(Reactor r, Reaction n) '''
@@ -412,7 +425,7 @@ class CppGenerator extends GeneratorBase {
 		class «r.getName()» : public dear::Reactor {
 		 private:
 		  «r.declareParameters»
-		  «r.instantiateState»
+		  «r.declareStateVariables»
 		  «r.instantiateInstances»
 		  «r.instantiateTimers»
 		  «r.instantiateReactions»
