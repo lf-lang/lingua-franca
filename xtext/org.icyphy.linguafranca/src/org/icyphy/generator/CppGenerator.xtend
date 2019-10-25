@@ -217,7 +217,7 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
-	def instantiate(Param p) '''«p.trimmedType» «p.name»{«p.value»};'''
+	def declare(Param p) '''«p.trimmedType» «p.name»;'''
 
 	def instantiate(Input i) {
 		if (i.type !== null) {
@@ -241,9 +241,9 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
-	def instantiateParameters(Reactor r) '''
+	def declareParameters(Reactor r) '''
 		«FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
-			«p.instantiate»
+			«p.declare»
 		«ENDFOR»
 	'''
 
@@ -353,21 +353,33 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
+	def trimmedValue(Param p) {
+		if (p.value !== null) {
+			p.value.removeCodeDelimiter
+		} else {
+			// if its not a value it must be a time
+			p.time.generate
+		}
+	}
+
 	def declareParameterizedConstructor(Reactor r) '''
 		«r.getName()»(const std::string& name,
 		    «IF r.isMain()»dear::Environment* environment,«ELSE»dear::Reactor* container,«ENDIF»
 		    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name»«ENDFOR»
 	'''
 
-	def defineConstructor(Reactor r) '''
-		«IF r.isMain()»
-			«r.getName()»::«r.getName()»(const std::string& name, dear::Environment* environment)
-			  : dear::Reactor(name, environment) {}
-		«ELSE»
-			«r.getName()»::«r.getName()»(const std::string& name, dear::Reactor* container)
-			  : dear::Reactor(name, container) {}
-		«ENDIF»
-	'''
+	def defineConstructor(Reactor r) {
+		if (r.parameters.length > 0) {
+			'''	
+				«r.name»::«r.name»(const std::string& name, «IF r.main»dear::Environment* environment«ELSE»dear::Reactor* container«ENDIF»)
+				  : «r.name»::«r.name»(name, «IF r.main»environment«ELSE»container«ENDIF», «FOR p : r.parameters SEPARATOR ", "»«p.trimmedValue»«ENDFOR») {}
+			'''
+		} else
+			'''	
+				«r.name»::«r.name»(const std::string& name, «IF r.main»dear::Environment* environment«ELSE»dear::Reactor* container«ENDIF»)
+				  : dear::Reactor(name, «IF r.main»environment«ELSE»container«ENDIF») {}
+			'''
+	}
 
 	def defineParameterizedConstructor(Reactor r) '''
 		«r.getName()»::«r.getName()»(const std::string& name,
@@ -399,8 +411,8 @@ class CppGenerator extends GeneratorBase {
 		
 		class «r.getName()» : public dear::Reactor {
 		 private:
+		  «r.declareParameters»
 		  «r.instantiateState»
-		  «r.instantiateParameters»
 		  «r.instantiateInstances»
 		  «r.instantiateTimers»
 		  «r.instantiateReactions»
