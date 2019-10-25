@@ -29,7 +29,7 @@ Reactor:
    	| (outputs += Output)
    	| (timers += Timer)
    	| (actions += Action)
-   	| (instances += Instance)
+   	| (instantiations += Instantiation)
    	| (connections += Connection)
    	| (deadlines += Deadline)
    	| (reactions += Reaction)
@@ -82,7 +82,7 @@ Preamble:
 	'preamble' code=CODE;
 	
 // NOTE: Insert dummy object for foreign imports in scope provider?
-Instance:
+Instantiation:
 	name=ID '=' 'new' reactorClass=[Reactor] ('(' parameters=Assignments? ')')? ';' ;
 
 Connection:
@@ -107,7 +107,7 @@ Effect:
 	Action | Output
 ;
 
-VarRef: variable=[Variable] | instance=[Instance] '.' variable=[Variable];
+VarRef: variable=[Variable] | container=[Instantiation] '.' variable=[Variable];
 
 Assignments:
 	assignments+=Assignment (',' assignments+=Assignment)*;

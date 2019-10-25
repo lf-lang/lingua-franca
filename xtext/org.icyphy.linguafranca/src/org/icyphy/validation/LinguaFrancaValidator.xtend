@@ -8,16 +8,15 @@ import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Reactor
 
 /**
  * This class contains custom validation rules. 
@@ -118,11 +117,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	}
 	
 	@Check(FAST)
-	def checkInstance(Instance instance) {
+	def checkInstance(Instantiation instance) {
 		if (containedNames.contains(instance.name)) {
 			error("Names of instances must be unique: " 
 				+ instance.name,
-				Literals.INSTANCE__NAME
+				Literals.INSTANTIATION__NAME
 			)
 		}
 		containedNames.add(instance.name)

@@ -30,7 +30,7 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionModifier
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instance
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
@@ -134,6 +134,9 @@ class CGenerator extends GeneratorBase {
 
 		super.doGenerate(resource, fsa, context, importTable)
 
+		// Generate main instance
+		generateReactorInstance(this.main)
+	
 		// Determine path to generated code
 		val cFilename = _filename + ".c";
 		var srcFile = resource.getURI.toString;
@@ -386,7 +389,7 @@ class CGenerator extends GeneratorBase {
 				// If there are contained reactors that send data via this output,
 				// then create a place to put the pointers to the sources of that data.
 				var containedSource = classInfo.outputToContainedOutput.get(output)
-				if (containedSource !== null) {
+				if (containedSource !== null) { // FIXME: outputToContainedOutput appears to be always null
 					pr(body, removeCodeDelimiter(output.type) + '* __' + output.name + '_inside;')
 					pr(body, 'bool* __' + output.name + '_inside_is_present;')
 				}
@@ -401,11 +404,11 @@ class CGenerator extends GeneratorBase {
 						val port = effect.variable as Input
 						pr(
 							body,
-							removeCodeDelimiter(port.type) + ' __' + effect.instance.name + '_' + port.name + ';'
+							removeCodeDelimiter(port.type) + ' __' + effect.container.name + '_' + port.name + ';'
 						)
 						pr(
 							body,
-							'bool __' + effect.instance.name + '_' + port.name + '_is_present;'
+							'bool __' + effect.container.name + '_' + port.name + '_is_present;'
 						)
 					}
 				}
@@ -539,7 +542,7 @@ class CGenerator extends GeneratorBase {
 							// It is the input of a contained reactor.
 							generateVariablesForSendingToContainedReactors(
 								reactionInitialization,
-								effect.instance,
+								effect.container,
 								effect.variable as Input
 							)
 						} else {
@@ -623,13 +626,12 @@ class CGenerator extends GeneratorBase {
 	 *   null if there isn't one.
 	 */
 	def generateTriggerForTransferOutputs(
-		Instance reactorInstance,
+		ReactorInstance reactorInstance,
 		String nameOfSelfStruct,
-		HashMap<Variable, String> triggerToTriggerStruct
+		HashMap<PortInstance, String> triggerToTriggerStruct
 	) {
 		// FIXME: This code is rather similar to that in generateTriggerObjects(). Refactor?
-		var reactor = reactorInstance.getReactorClass()
-		var classInfo = ReactorInfo.get(reactor)
+		var classInfo = ReactorInfo.get(reactorInstance.definition.reactorClass)
 		var triggeredSizesContents = new StringBuilder()
 		var triggersContents = new StringBuilder()
 		var outputCount = 0
@@ -637,7 +639,7 @@ class CGenerator extends GeneratorBase {
 		
 		for (output : classInfo.outputToContainedOutput.keySet()) {
 			// The function name for the transfer outputs function:
-			val functionName = "transfer_output_" + reactor.name + "_" + output.variable.name
+			val functionName = "transfer_output_" + reactorInstance.definition.name + "_" + output.variable.name
 
 			pr(result, "// --- Reaction and trigger objects for transfer outputs for output " + output)
 
@@ -645,22 +647,20 @@ class CGenerator extends GeneratorBase {
 
 			// For each output, figure out how many
 			// inputs are connected to it. This is obtained via the container.
-			var parent = InstanceInfo.get(reactorInstance).parent
+			var parent = reactorInstance.parent
 			// If there is no container, then the output cannot be connected
 			// to anything, so default to empty set.
-			var inputNames = new HashSet<VarRef>()
+			var destinations = new HashSet<PortInstance>()
 			if (parent !== null) {
-				inputNames = ReactorInfo.get(parent.getReactorClass()).outputToInputs.get(output)
+				parent.transitiveClosure(reactorInstance.getPortInstance(output), destinations)
 			}
 			// Insert a comma if needed.
 			if (triggeredSizesContents.length > 0) {
 				triggeredSizesContents.append(", ")
 			}
-			if (inputNames === null) {
-				triggeredSizesContents.append("0")
-			} else {
-				triggeredSizesContents.append(inputNames.size)
-			}
+			
+			triggeredSizesContents.append(destinations.size)
+			
 			// Then, for each input connected to this output,
 			// find its trigger_t struct. Create an array of pointers
 			// to these trigger_t structs, and collect pointers to
@@ -669,18 +669,18 @@ class CGenerator extends GeneratorBase {
 			if (triggersContents.length > 0) {
 				triggersContents.append(", ")
 			}
-			if (inputNames === null || inputNames.size === 0) {
+			if (destinations.size === 0) {
 				triggersContents.append("NULL")
 			} else {
 				var remoteTriggersArrayName = '__' + functionName + '_' + outputCount + '_remote_triggers'
 				var inputCount = 0;
-				for (inputName : inputNames) {
+				for (destination : destinations) {
 					deferredInitialize.add(
 						new InitializeRemoteTriggersTable(
 							parent,
 							remoteTriggersArrayName,
 							(inputCount++),
-							inputName
+							destination
 						)
 					)
 				}
@@ -742,13 +742,13 @@ class CGenerator extends GeneratorBase {
 			// name output + triggerCount has to be recorded here because
 			// doDeferredInitialize needs it to initialize the remote_triggers
 			// array of the gain reaction that produces the output.            
-			triggerToTriggerStruct.put(output.variable, output + triggerCount.toString)
-
+			triggerToTriggerStruct.put(reactorInstance.getPortInstance(output), output.variable.name + triggerCount.toString)
+			
 			triggerCount++
 		}
 		// This goes directly out to the generated code.
 		if (result.length > 0) {
-			pr("// *********** Transfer outputs structures for " + reactor.name)
+			pr("// *********** Transfer outputs structures for " + reactorInstance.definition.name)
 			pr(result.toString())
 		}
 	}
@@ -771,20 +771,17 @@ class CGenerator extends GeneratorBase {
 	 *   null if there isn't one.
 	 *  @return A map of trigger names to the name of the trigger struct.
 	 */
-	def generateTriggerObjects(Instance reactorInstance, String nameOfSelfStruct) {
-		var triggerToTriggerStruct = new HashMap<Variable, String>()
-		val instanceInfo = InstanceInfo.get(reactorInstance)
-		
+	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfSelfStruct) {
+		var triggerToTriggerStruct = new HashMap<PortInstance, String>()
 		
 		// If there is no instance statement, then this is main.
-		var reactor = reactorInstance.reactorClass
-		val classInfo = ReactorInfo.get(reactor)
+		val classInfo = ReactorInfo.get(reactorInstance.definition.reactorClass)
 		val triggerToReactions = classInfo.triggerToReactions
 		val result = new StringBuilder()
 
 		// Create a place to store reaction_t object names, indexed by Reaction.
 		val reactionToReactionTName = new HashMap<Reaction, String>()
-		instanceInfo.properties.put("reactionToReactionTName", reactionToReactionTName)
+		reactorInstance.properties.put("reactionToReactionTName", reactionToReactionTName)
 
 		var count = 0
 		for (trigger : triggerToReactions.keySet) {
@@ -798,8 +795,8 @@ class CGenerator extends GeneratorBase {
 				var functionName = classInfo.targetProperties.get(reaction)
 				pr(
 					result,
-					'// --- Reaction and trigger objects for reaction to trigger ' + trigger.name + ' of instance ' +
-						reactorInstance.name
+					'// --- Reaction and trigger objects for reaction to trigger ' + trigger.variable.name + ' of instance ' +
+						reactorInstance.definition.name
 				)
 				// First check to see whether the reaction_t object has already been
 				// created for this reaction.
@@ -821,7 +818,6 @@ class CGenerator extends GeneratorBase {
 					if (reaction.effects !== null) {
 						for (effect : reaction.effects) {
 							if (effect.variable instanceof Output) {
-								// It is an output, not an action.
 								// First create the array of pointers to booleans indicating whether
 								// an output is produced.
 								// Insert a comma if needed.
@@ -832,32 +828,21 @@ class CGenerator extends GeneratorBase {
 									'_is_present')
 								outputCount++
 
-								// For each output, figure out how many
-								// inputs are connected to it. This is obtained via the container.
-								var container = instanceInfo.parent
+								// For each output, obtain the destinations from the container.
+								var container = reactorInstance.parent
 								// If there is no container, then the output cannot be connected
 								// to anything, so default to empty set.
-								var receivers = new HashSet<VarRef>()
+								var destinations = new HashSet<PortInstance>()
 								if (container !== null) {
-									// Add receiver if the variables match 
-									for (connection: container.reactorClass.connections) {
-										if (connection.leftPort.variable === effect.variable &&
-											((effect.instance === null &&
-												connection.leftPort.instance === reactorInstance) ||
-												connection.leftPort.instance === effect.instance)) {
-											receivers.add(connection.rightPort)
-										}
-									}
+									container.transitiveClosure(container.getPortInstance(effect), destinations)
 								}
+
 								// Insert a comma if needed.
 								if (triggeredSizesContents.length > 0) {
 									triggeredSizesContents.append(", ")
 								}
-								if (receivers === null) {
-									triggeredSizesContents.append("0")
-								} else {
-									triggeredSizesContents.append(receivers.size)
-								}
+								triggeredSizesContents.append(destinations.size)
+
 								// Then, for each input connected to this output,
 								// find its trigger_t struct. Create an array of pointers
 								// to these trigger_t structs, and collect pointers to
@@ -866,19 +851,19 @@ class CGenerator extends GeneratorBase {
 								if (triggersContents.length > 0) {
 									triggersContents.append(", ")
 								}
-								if (receivers === null || receivers.size === 0) {
+								if (destinations.size === 0) {
 									triggersContents.append("NULL")
 								} else {
 									var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount +
 										'_remote_triggers'
 									var inputCount = 0;
-									for (receiver : receivers) {
+									for (destination : destinations) {
 										deferredInitialize.add(
 											new InitializeRemoteTriggersTable(
 												container,
 												remoteTriggersArrayName,
 												(inputCount++),
-												receiver
+												destination
 											)
 										)
 									}
@@ -890,9 +875,7 @@ class CGenerator extends GeneratorBase {
 								}
 							} else if (effect.variable instanceof Input) {
 								val input = effect.variable as Input
-								val _instance = effect.instance
-								// It is not an output, but the reaction may be sending data
-								// to the input of a contained reactor.
+								// The reaction is sending data to the input of a contained reactor.
 								// First create the array of pointers to booleans indicating whether
 								// an output is produced.
 								// Insert a comma if needed.
@@ -900,7 +883,7 @@ class CGenerator extends GeneratorBase {
 									presentPredicates.append(", ")
 								}
 								presentPredicates.append(
-									'&' + nameOfSelfStruct + '.__' + _instance.name + '_' + input.name + '_is_present'
+									'&' + nameOfSelfStruct + '.__' + effect.container.name + '_' + input.name + '_is_present'
 								)
 								outputCount++
 
@@ -909,27 +892,21 @@ class CGenerator extends GeneratorBase {
 									triggeredSizesContents.append(", ")
 								}
 								triggeredSizesContents.append("1")
-								if (input === null) { // FIXME: this will never happen. Why is it here?
-									triggersContents.append("NULL")
-								} else {
-									var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount +
-										'_remote_triggers'
-									deferredInitialize.add(
-										new InitializeRemoteTriggersTable(
-										effect.instance,
+								var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount +
+									'_remote_triggers'
+								deferredInitialize.add(
+									new InitializeRemoteTriggersTable(
+										reactorInstance,
 										remoteTriggersArrayName,
 										0,
-										effect
-										)
+										reactorInstance.getPortInstance(effect)
 									)
-									//}
-									pr(
-										result,
-										'trigger_t* ' + remoteTriggersArrayName + '[1];'
-									)
-									triggersContents.append('&' + remoteTriggersArrayName + '[0]')
-								}
-							// }
+								)
+								pr(
+									result,
+									'trigger_t* ' + remoteTriggersArrayName + '[1];'
+								)
+								triggersContents.append('&' + remoteTriggersArrayName + '[0]')
 							}
 						}
 					}
@@ -970,7 +947,7 @@ class CGenerator extends GeneratorBase {
 					}
 					var deadlineFunctionPointer = ", NULL"
 					if (reaction.localDeadline !== null) {
-					    deadlineFunctionPointer = ", &" + ReactorInfo.get(reactor).targetProperties.get(reaction.localDeadline)
+					    deadlineFunctionPointer = ", &" + ReactorInfo.get(reactorInstance.definition.reactorClass).targetProperties.get(reaction.localDeadline)
 					}
 					// First 0 is an index that specifies priorities based on precedences.
 					// It will be set later.
@@ -998,10 +975,10 @@ class CGenerator extends GeneratorBase {
 				}
 				reactionTNames.append('&' + reactionInstanceName)
 			}
-			var triggerStructName = trigger.name + triggerCount.toString
+			var triggerStructName = trigger.variable.name + triggerCount.toString
 
 			// Record the triggerStructName.
-			triggerToTriggerStruct.put(trigger, triggerStructName)
+			triggerToTriggerStruct.put(reactorInstance.getPortInstance(trigger), triggerStructName)
 
 			pr(result,
 				'reaction_t* ' + triggerStructName + '_reactions[' + numberOfReactionsTriggered + '] = {' +
@@ -1031,7 +1008,7 @@ class CGenerator extends GeneratorBase {
 						delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
 				)
 			} else {
-				reportError(reactor, "Internal error: Seems to not be an input, timer, or action: " + trigger.name)
+				//reportError(reactorInstance.definition, "Internal error: Seems to not be an input, timer, or action: " + trigger.variable.name)
 			}
 			unindent(result)
 			pr(result, '};')
@@ -1058,34 +1035,23 @@ class CGenerator extends GeneratorBase {
 		return triggerToTriggerStruct
 	}
 
-	/** Instantiate a reactor.
-	 *  @param instance The instance declaration in the AST.
-	 *  @param container The instance that is the container.
-	 *  @param importTable Substitution table for class names (from import statements).
-	 *  @return The reactor instance, or null if an error occurs.
+	/** Traverse the runtime hierarchy of reaction instances and generate code.
 	 */
-	override instantiate(
-		Instance instance,
-		Instance parent,
-		Hashtable<String, String> importTable
-	) {
-		var className = importTable.get(instance.reactorClass);
-		if (className === null) {
-			className = instance.reactorClass.name
-		}
-		pr('// ************* Instance ' + instance.name + ' of class ' + className)
-		var reactor = instance.reactorClass
-		if (reactor === null) {
-			reportError(instance, "No such reactor: " + instance.reactorClass)
-		}
-
+	def generateReactorInstance(ReactorInstance instance) {
+		var instanceName = instance.definition.name
+		var reactorClass = instance.definition.reactorClass
+		var classInfo = ReactorInfo.get(reactorClass)
+		var className = reactorClass.name
+		
+		pr('// ************* Instance ' + instanceName + ' of class ' + className)
+		
 		// Generate the instance struct containing parameters, state variables,
 		// and outputs (the "self" struct).
-		var classInfo = ReactorInfo.get(reactor)
-		var nameOfSelfStruct = "__self_" + instanceCount++ + "_" + instance.name
+		
+		var nameOfSelfStruct = "__self_" + instanceCount++ + "_" + instanceName
 		var structType = classInfo.targetProperties.get("structType")
 		if (structType !== null) {
-			pr('// --- "self" struct for instance ' + instance.name)
+			pr('// --- "self" struct for instance ' + instanceName)
 			pr(structType + " " + nameOfSelfStruct + ";")
 		} else {
 			// Nullify the name, indicating that there is no self struct.
@@ -1095,12 +1061,12 @@ class CGenerator extends GeneratorBase {
 		// Generate code to initialize the "self" struct in the
 		// __initialize_trigger_objects function.
 		// Create a scope for the parameters in case the names collide with other instances.
-		pr(initializeTriggerObjects, "{ // Scope for " + instance.name)
+		pr(initializeTriggerObjects, "{ // Scope for " + instanceName)
 		indent(initializeTriggerObjects)
 		// Start with parameters.
 		// First, collect the overrides.
 		var overrides = new HashMap<String, String>()
-		var parameters = instance.parameters
+		var parameters = instance.definition.parameters
 		if (parameters !== null) {
 			for (assignment : parameters.assignments) {
 				var value = assignment.value;
@@ -1114,7 +1080,7 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		// Next, initialize parameter with either the override or the defaults.
-		for (parameter: reactor.parameters) {
+		for (parameter: reactorClass.parameters) {
 			var value = overrides.get(parameter.name)
 			if (value === null) {
 				value = removeCodeDelimiter(parameter.value)
@@ -1132,37 +1098,30 @@ class CGenerator extends GeneratorBase {
 			pr(initializeTriggerObjects, nameOfSelfStruct + "." + parameter.name + " = " + value + ";")
 		}
 		// Next, initialize the "self" struct with state variables.
-		for (state : reactor.states) {
+		for (state : reactorClass.states) {
 			var value = removeCodeDelimiter(state.value)
 			pr(initializeTriggerObjects, nameOfSelfStruct + "." + state.name + " = " + value + ";")
 		}
 
-		// Call superclass here so that parameters of this reactor
-		// are in scope for contained instances.
-		super.instantiate(instance, parent, importTable)
-//		if (reactorInstance === null) {
-//			// An error occurred.
-//			return null
-//		}
 		// Store the name of the "self" struct as a property of the instance
 		// so that it can be used when establishing connections.
 		// Only store it if the structType was actually created, however.
 		if (nameOfSelfStruct !== null) {
-			InstanceInfo.get(instance).properties.put("selfStructName", nameOfSelfStruct)
+			instance.properties.put("selfStructName", nameOfSelfStruct)
 		}
 
 		// Generate trigger objects for the instance.
 		var triggerToTriggerStruct = generateTriggerObjects(instance, nameOfSelfStruct)
-		InstanceInfo.get(instance).properties.put("triggerToTriggerStruct", triggerToTriggerStruct)
+		instance.properties.put("triggerToTriggerStruct", triggerToTriggerStruct)
 
 		// Generate trigger objects for transferring outputs of a composite.
 		generateTriggerForTransferOutputs(instance, nameOfSelfStruct, triggerToTriggerStruct)
 
 		// Next, initialize the struct with actions.
-		for (action : reactor.actions) {
+		for (action : reactorClass.actions) {
 			var triggerStruct = triggerToTriggerStruct.get(action)
 			if (triggerStruct === null) {
-				reportError(reactor, "Internal error: No trigger struct found for action " + action.name)
+				reportError(reactorClass, "Internal error: No trigger struct found for action " + action.name)
 			}
 			// FIXME: Actions may have payloads.
 			pr(
@@ -1172,30 +1131,30 @@ class CGenerator extends GeneratorBase {
 		}
 		// Next, generate the code to initialize outputs and inputs at the start
 		// of a time step to be absent.
-		for (output : reactor.outputs) {
+		for (output : reactorClass.outputs) {
 			pr(
 				startTimeStep,
 				nameOfSelfStruct + '.__' + output.name + '_is_present = false;'
 			)
 		}
 		// Handle reaction local deadlines.
-		for (reaction: reactor.reactions) {
+		for (reaction: reactorClass.reactions) {
 		    if (reaction.localDeadline !== null) {
-                var reactionToReactionTName = InstanceInfo.get(instance).properties.get("reactionToReactionTName")
+                var reactionToReactionTName = instance.properties.get("reactionToReactionTName")
                 var reactionTName = (reactionToReactionTName as HashMap<Reaction, String>).get(reaction)
 		        pr(initializeTriggerObjects, reactionTName + '.local_deadline = ' + timeMacro(reaction.localDeadline.time) + ';')
 		    }
 		}
 
 		// Finally, handle container deadline commands.
-		for (deadline : reactor.deadlines) {
-			if (deadline.port.instance !== null) { // x.y
+		for (deadline : reactorClass.deadlines) {
+			if (deadline.port.container !== null) { // x.y
 				//var deadlineReactor = reactorInstance.getContainedInstance(deadline.port.instance.name)
-				var triggerToReactions = ReactorInfo.get(deadline.port.instance.reactorClass).triggerToReactions
+				var triggerToReactions = ReactorInfo.get(deadline.port.container.reactorClass).triggerToReactions
 				var reactions = triggerToReactions.get(deadline.port.variable.name)
 				if (reactions !== null) {
 					for (reaction : reactions) {
-						var reactionToReactionTName = InstanceInfo.get(deadline.port.instance).properties.get("reactionToReactionTName")
+						var reactionToReactionTName = instance.getChildReactorInstance(deadline.port.container).properties.get("reactionToReactionTName")
 						var reactionTName = (reactionToReactionTName as HashMap<Reaction, String>).get(reaction)
 						if (reactionTName === null) {
 							reportError(deadline, "Internal error: No reaction_t object found for reaction.")
@@ -1203,20 +1162,20 @@ class CGenerator extends GeneratorBase {
 							pr(initializeTriggerObjects, reactionTName + '.deadline = ' + timeMacro(deadline.delay) + ';')
 	
 							// Next, set the deadline_violation field to point to the trigger_t struct.
-							var triggerMap = InstanceInfo.get(instance).properties.get("triggerToTriggerStruct")
+							var triggerMap = instance.properties.get("triggerToTriggerStruct")
 							if (triggerMap === null) {
 								reportError(
 									deadline,
 									"Internal error: failed to map from name to trigger struct for " +
-										InstanceInfo.get(instance).getFullName()
+										instance.getFullName()
 								)
 							} else {
 								var triggerStructName = (triggerMap as HashMap<String, String>).get(deadline.action.name)
 								if (triggerStructName === null) {
 									reportError(
-										instance.getReactorClass(),
+										instance.definition.getReactorClass(),
 										"Internal error: failed to find trigger struct for action " + deadline.action.name +
-											" in reactor " + InstanceInfo.get(instance).getFullName()
+											" in reactor " + instance.getFullName()
 									)
 								} else {
 									pr(initializeTriggerObjects,
@@ -1232,9 +1191,11 @@ class CGenerator extends GeneratorBase {
 		}
 
 		unindent(initializeTriggerObjects)
-		pr(initializeTriggerObjects, "} // End of scope for " + instance.name)
-//
-//		reactorInstance
+		pr(initializeTriggerObjects, "} // End of scope for " + instance.definition.name)
+		
+		for (child : instance.children) {
+			generateReactorInstance(child)
+		}
 	}
 
 	/** Set the reaction priorities based on dependency analysis. */
@@ -1246,9 +1207,7 @@ class CGenerator extends GeneratorBase {
 		// Use "reactionToReactionTName" property of reactionInstance
 		// to set the levels.
 		for (ReactionInstance instance : graph.nodes) {
-			val reactorInstance = instance.reactorInstance;
-			val info = InstanceInfo.get(reactorInstance)
-			val map = info.properties.get("reactionToReactionTName") as HashMap<Reaction, String>;
+			val map = instance.reactorInstance.properties.get("reactionToReactionTName") as HashMap<Reaction, String>;
 			val reactionTName = map.get(instance.reactionSpec);
 			pr(reactionTName + ".index = " + instance.level + ";")
 		}
@@ -1263,22 +1222,22 @@ class CGenerator extends GeneratorBase {
 		pr('// doDeferredInitialize')
 		for (init : deferredInitialize) {
 			// The reactor containing the specified input may be a contained reactor.
-			var reactor = init.reactor
-
-			var ref = init.input
-			var triggerMap = if (ref.instance !== null) {
-					InstanceInfo.get(ref.instance).properties.get("triggerToTriggerStruct")
+			var reactorInstance = init.reactor
+			
+			var triggerMap = if (init.input.parent === reactorInstance) {
+					reactorInstance.properties.get("triggerToTriggerStruct")
 				} else {
-					InstanceInfo.get(reactor).properties.get("triggerToTriggerStruct")
+					// look deeper
+					init.input.parent.properties.get("triggerToTriggerStruct")
 				}
 			if (triggerMap === null) {
 				reportError(
-					init.reactor.reactorClass,
+					init.reactor.definition.reactorClass,
 					"Internal error: failed to find map from name to trigger struct for " +
-						InstanceInfo.get(init.reactor).getFullName()
+						init.reactor.getFullName()
 				)
 			} else {
-				var triggerStructName = (triggerMap as HashMap<Variable, String>).get(ref.variable)
+				var triggerStructName = (triggerMap as HashMap<PortInstance, String>).get(init.input)
 				// Note that triggerStructName will be null if the destination of a
 				// connection is the input port of a reactor that has no reactions to
 				// that input.
@@ -1307,56 +1266,89 @@ class CGenerator extends GeneratorBase {
 	// Generate assignments of pointers in the "self" struct of a destination
 	// port's reactor to the appropriate entries in the "self" struct of the
 	// source reactor.
-	private def void connectInputsToOutputs(Instance instance) {
-		// Collect the set of inputs that have connections so that we can
-		// report as an error for inputs that are connected to more than one output.
-		//var connectedInputs = new HashSet<Input>()
+	private def void connectInputsToOutputs(ReactorInstance instance) {
+		// Collect the set of destinations that have connections so that we can
+		// report as an error for ones that are connected to more than one source.
+		var connectedDestinations = new HashSet<VarRef>()
 		
 		// Include in connectedInputs all inputs of contained
 		// reactors that are connected to an input of the container.
 		// This is useful for detecting errors where multiple connections are
 		// made to an input.
-		for (conn : instance.getReactorClass().connections) {
-
-			var inputSelfStructName = InstanceInfo.get(instance).properties.get("selfStructName")
-			var outputSelfStructName = InstanceInfo.get(instance).properties.get("selfStructName")
-
-			if (conn.rightPort.instance !== null) {
-				inputSelfStructName = InstanceInfo.get(conn.rightPort.instance).properties.get("selfStructName")
+		
+		for (source : instance.destinations.keySet) {
+			var sourceStruct = null as String
+			if (source.parent === instance) {
+				sourceStruct = instance.properties.get("selfStructName") as String
+			} else {
+				sourceStruct = instance.getChildReactorInstance(source.parent.definition).properties.get(
+					"selfStructName") as String
 			}
-			if (conn.leftPort.instance !== null) {
-				outputSelfStructName = InstanceInfo.get(conn.leftPort.instance).properties.get("selfStructName")
+			for (destination : instance.destinations.get(source)) {
+				var destStruct = null as String
+				if (destination.parent === instance) {
+					destStruct = instance.properties.get("selfStructName") as String
+				} else {
+					destStruct = instance.getChildReactorInstance(destination.parent.definition).properties.get(
+						"selfStructName") as String
+				}
+				
+				pr(
+					destStruct + '.__' + destination.portDecl.name + ' = &' + sourceStruct + '.__' +
+						source.portDecl.name + ';'
+				)
+				pr(
+					destStruct + '.__' + destination.portDecl.name + '_is_present = &' + sourceStruct + '.__' +
+						source.portDecl.name + '_is_present;'
+				)
+				
 			}
-			
-			if (conn.leftPort.variable instanceof Output && conn.rightPort.variable instanceof Input) {
-				// out -> in
-				pr(
-					inputSelfStructName + '.__' + conn.rightPort.variable.name + ' = &' + outputSelfStructName + '.__' +
-						conn.leftPort.variable.name + ';'
-				)
-				pr(
-					inputSelfStructName + '.__' + conn.rightPort.variable.name + '_is_present = &' + outputSelfStructName +
-						'.__' + conn.leftPort.variable.name + '_is_present;'
-				)
-			} 
-			else if (conn.leftPort.variable instanceof Output && conn.rightPort.variable instanceof Output) {
-				// out -> out
-				var containerSelfStructName = InstanceInfo.get(instance).properties.get("selfStructName")
-				pr(
-					containerSelfStructName + '.__' + conn.rightPort.variable.name + '_inside = &' +
-						outputSelfStructName + '.__' + conn.leftPort.variable.name + ';'
-				)
-				pr(
-					containerSelfStructName + '.__' + conn.rightPort.variable.name + '_inside_is_present = &' +
-						outputSelfStructName + '.__' + conn.leftPort.variable.name + '_is_present;'
-				)
-			}
-			// in -> in
-			//?????????
-			
-			
 		}
-		for (child : InstanceInfo.get(instance).children) {
+		
+//		for (conn : instance.definition.getReactorClass().connections) { // FIXME: can we just use destinations?
+//
+//			var inputSelfStructName = instance.properties.get("selfStructName")
+//			var outputSelfStructName = instance.properties.get("selfStructName")
+//
+//			if (conn.rightPort.container !== null) {
+//				inputSelfStructName = conn.rightPort.container.properties.get("selfStructName")
+//			}
+//			if (conn.leftPort.instance !== null) {
+//				outputSelfStructName = ReactorInstance.get(conn.leftPort.instance).properties.get("selfStructName")
+//			}
+//			
+//			if (connectedDestinations.contains(conn.rightPort.variable)) {
+//				reportError(conn.rightPort.variable,
+//					"Connecting to a destination that already has a source: " + conn.leftPort.variable.name)
+//			} else {
+//				connectedDestinations.add(conn.rightPort)
+//				if (conn.leftPort.variable instanceof Output && conn.rightPort.variable instanceof Input) {
+//					// out -> in
+//					pr(
+//						inputSelfStructName + '.__' + conn.rightPort.variable.name + ' = &' + outputSelfStructName +
+//							'.__' + conn.leftPort.variable.name + ';'
+//					)
+//					pr(
+//						inputSelfStructName + '.__' + conn.rightPort.variable.name + '_is_present = &' +
+//							outputSelfStructName + '.__' + conn.leftPort.variable.name + '_is_present;'
+//					)
+//				} else if (conn.leftPort.variable instanceof Output && conn.rightPort.variable instanceof Output) {
+//					// out -> out
+//					var containerSelfStructName = ReactorInstance.get(instance).properties.get("selfStructName")
+//					pr(
+//						containerSelfStructName + '.__' + conn.rightPort.variable.name + '_inside = &' +
+//							outputSelfStructName + '.__' + conn.leftPort.variable.name + ';'
+//					)
+//					pr(
+//						containerSelfStructName + '.__' + conn.rightPort.variable.name + '_inside_is_present = &' +
+//							outputSelfStructName + '.__' + conn.leftPort.variable.name + '_is_present;'
+//					)
+//				}
+//			}
+//			// FIXME: in -> in
+//			
+//		}
+		for (child : instance.children) {
 			// In case this is a composite, recurse.
 			connectInputsToOutputs(child)
 		}	
@@ -1430,40 +1422,40 @@ class CGenerator extends GeneratorBase {
 //		}
 //		// Handle inputs that get sent data from a reaction rather than from
 //		// another contained reactor.
-//		for (reaction : container.getReactorClass().reactions) {
+//		for (reaction : instance.getReactorClass().reactions) {
 //			if (reaction.effects !== null) {
 //				for (effect : reaction.effects) {
-//
-//					// var split = produces.split('\\.')
-//					if (effect.variable instanceof Input) {
+//					
+//					if (connectedDestinations.contains(effect.variable)) {
+//						reportError(reaction,
+//							"Sending to an input that already has a connection: " + effect.variable.name)
+//					} else if (effect.variable instanceof Input) {
 //						// Found an input that is sent data from a reaction.
-//						if (connectedInputs.contains(effect.variable.name)) {
-//							reportError(reaction,
-//								"Sending to an input that already has a connection: " + effect.variable.name)
-//						}
-//						connectedInputs.add(effect.variable as Input) // FIXME: check
-//						//var inputReactor = InstanceInfo.get(container).children.findFirst[it === effect.instance]
-//						if (effect.instance !== null) {
-////							reportError(reaction, "No such destination reactor: " + effect.instance.name)
-////						} else {
-//							var inputSelfStructName = InstanceInfo.get(effect.instance).properties.get("selfStructName")
-//							var containerSelfStructName = InstanceInfo.get(container).properties.get("selfStructName")
-//							pr(
-//								inputSelfStructName + '.__' + effect.variable.name + ' = &' + containerSelfStructName +
-//									'.__' + effect.instance.name + '_' + effect.variable.name + ';'
-//							)
-//							pr(
-//								inputSelfStructName + '.__' + effect.variable.name + '_is_present = &' +
-//									containerSelfStructName + '.__' + effect.instance.name + '_' +
-//									effect.variable.name + '_is_present;'
-//							)
-//							pr(
-//								startTimeStep,
+//						// This must be an input of a contained reactor.
+//						connectedDestinations.add(effect)
+//
+//						var inputSelfStructName = ReactorInstance.get(effect.instance).properties.get("selfStructName")
+//						var containerSelfStructName = ReactorInstance.get(instance).properties.get("selfStructName")
+//						pr(
+//							inputSelfStructName + '.__' + effect.variable.name + ' = &' + containerSelfStructName +
+//								'.__' + effect.instance.name + '_' + effect.variable.name + ';'
+//						)
+//						pr(
+//							inputSelfStructName + '.__' + effect.variable.name + '_is_present = &' +
 //								containerSelfStructName + '.__' + effect.instance.name + '_' + effect.variable.name +
-//									'_is_present = false;'
-//							)
-//						} // FIXME: throw error in else block?
+//								'_is_present;'
+//						)
+//						pr(
+//							startTimeStep,
+//							containerSelfStructName + '.__' + effect.instance.name + '_' + effect.variable.name +
+//								'_is_present = false;'
+//						)
+//
 //					}
+//					// FIXME: should we handle this case? 
+////					else if (effect.variable instanceof Output) {
+////						
+////					}
 //				}
 //			}
 //		}
@@ -1517,23 +1509,22 @@ class CGenerator extends GeneratorBase {
 	 *  initialize local variables for sending data to an input
 	 *  of a contained reaction (e.g. for a deadline violation).
 	 *  @param builder The string builder.
-	 *  @param produces The output statement from the AST.
-	 *  @param reactor The reactor within which this occurs.
-	 *  @param portSpec The output statement split into reactorName and portName.
+	 *  @param definition AST node defining the reactor within which this occurs
+	 *  @param input Input of the contained reactor.
 	 */
-	private def generateVariablesForSendingToContainedReactors(StringBuilder builder, Instance instance, Input input) {
+	private def generateVariablesForSendingToContainedReactors(StringBuilder builder, Instantiation definition, Input input) {
 		// Need to create a struct so that the port can be referenced in C code
 		// as reactorName.portName.
 		// FIXME: This means that the destination instance name cannot match
 		// any input port, output port, or action, because we will get a name collision.
 		pr(
 			builder,
-			'struct ' + instance.name + ' {' + removeCodeDelimiter(input.type) + '* ' + input.name + '; ' + 'bool* ' +
-				input.name + '_is_present;} ' + instance.name + ';'
+			'struct ' + definition.name + ' {' + removeCodeDelimiter(input.type) + '* ' + input.name + '; ' + 'bool* ' +
+				input.name + '_is_present;} ' + definition.name + ';'
 		)
-		pr(builder, instance.name + '.' + input.name + ' = &(self->__' + instance.name + '_' + input.name + ');')
+		pr(builder, definition.name + '.' + input.name + ' = &(self->__' + definition.name + '_' + input.name + ');')
 		pr(builder,
-			instance.name + '.' + input.name + '_is_present' + ' = &(self->__' + instance.name + '_' + input.name +
+			definition.name + '.' + input.name + '_is_present' + ' = &(self->__' + definition.name + '_' + input.name +
 				'_is_present);')
 	}
 
@@ -1597,18 +1588,18 @@ class CGenerator extends GeneratorBase {
 	}
 
 	// Set inputs _is_present variables to the default to point to False.
-	private def void setInputsAbsentByDefault(Instance container) {
+	private def void setInputsAbsentByDefault(ReactorInstance parent) {
 		// For all inputs, set a default where their _is_present variable points to False.
 		// This handles dangling input ports that are not connected to anything
 		// even if they are connected locally in the hierarchy, but not globally.
-		for (containedReactor : InstanceInfo.get(container).children) {
-			for (input : containedReactor.getReactorClass().inputs) {
+		for (containedReactor : parent.children) {
+			for (input : containedReactor.inputs) {
 				//var inputReactor = containedReactor.container.getContainedInstance(containedReactor.instanceStatement.name)
-				var inputSelfStructName = InstanceInfo.get(containedReactor).properties.get("selfStructName")
-				pr(inputSelfStructName + '.__' + input.name + '_is_present = &False;')
+				var inputSelfStructName = containedReactor.properties.get("selfStructName")
+				pr(inputSelfStructName + '.__' + input.portDecl.name + '_is_present = &False;')
 			}
 		}
-		for (containedReactor : InstanceInfo.get(container).children) {
+		for (containedReactor : parent.children) {
 			// In case this is a composite, handle its assignments.
 			setInputsAbsentByDefault(containedReactor)
 		}
