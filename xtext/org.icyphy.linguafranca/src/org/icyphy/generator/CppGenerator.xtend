@@ -170,46 +170,25 @@ class CppGenerator extends GeneratorBase {
 		main
 	}
 
-	def declare(Instance i) '''«i.reactorClass.name» «i.name»;'''
-
-	def instantiate(
-		Reaction n) '''dear::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};'''
-
-	def declare(State s) '''«s.trimmedType» «s.name»;'''
-
-	def declare(Param p) '''«p.trimmedType» «p.name»;'''
-
-	def instantiate(Input i) {
-		if (i.type !== null) {
-			'''dear::Input<«i.type»> «i.name»{"«i.name»", this};'''
-		} else {
-			'''// «reportError(i, "Input port has no type.")»'''
-		}
-	}
-
-	def instantiate(Output o) {
-		if (o.type !== null) {
-			'''dear::Output<«o.type»> «o.name»{"«o.name»", this};'''
-		} else {
-			'''// «reportError(o, "Output port has no type.")»'''
-		}
-	}
+	def declare(Reaction n) '''
+		dear::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};
+	'''
 
 	def declareStateVariables(Reactor r) '''
 		«FOR s : r.states BEFORE '// state variables\n' AFTER '\n'»
-			«s.declare»
+			«s.trimmedType» «s.name»;
 		«ENDFOR»
 	'''
 
 	def declareParameters(Reactor r) '''
 		«FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
-			«p.declare»
+			«p.trimmedType» «p.name»;
 		«ENDFOR»
 	'''
 
 	def declareInstances(Reactor r) '''
 		«FOR i : r.instances BEFORE '// reactor instances\n' AFTER '\n'»
-			«i.declare»
+			«i.reactorClass.name» «i.name»;
 		«ENDFOR»
 	'''
 
@@ -219,18 +198,18 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
-	def instantiateReactions(Reactor r) '''
+	def declareReactions(Reactor r) '''
 		«FOR n : r.reactions BEFORE '// reactions\n' AFTER '\n'»
-			«n.instantiate»
+			«n.declare»
 		«ENDFOR»
 	'''
 
-	def instantiatePorts(Reactor r) '''
+	def declarePorts(Reactor r) '''
 		«FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-			«i.instantiate»
+			dear::Input<«i.trimmedType»> «i.name»{"«i.name»", this};
 		«ENDFOR»
 		«FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-			«o.instantiate»
+			dear::Output<«o.trimmedType»> «o.name»{"«o.name»", this};
 		«ENDFOR»
 	'''
 
@@ -326,6 +305,22 @@ class CppGenerator extends GeneratorBase {
 			s.type.removeCodeDelimiter
 		} else {
 			'''/* «s.reportError("State variable has no type")» */'''
+		}
+	}
+
+	def trimmedType(Input i) {
+		if (i.type !== null) {
+			i.type.removeCodeDelimiter
+		} else {
+			'''/* «i.reportError("Input port has no type.")» */'''
+		}
+	}
+
+	def trimmedType(Output o) {
+		if (o.type !== null) {
+			o.type.removeCodeDelimiter
+		} else {
+			'''/* «o.reportError("Input port has no type.")» */'''
 		}
 	}
 
@@ -445,10 +440,10 @@ class CppGenerator extends GeneratorBase {
 		  «r.declareStateVariables»
 		  «r.declareInstances»
 		  «r.declareTimers»
-		  «r.instantiateReactions»
+		  «r.declareReactions»
 		  «r.declareReactionBodies»
 		 public:
-		  «r.instantiatePorts»
+		  «r.declarePorts»
 		  «r.declareConstructor»
 		  
 		  void assemble() override;
