@@ -32,6 +32,7 @@ import org.icyphy.linguaFranca.Output
 import java.util.List
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Assignment
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -180,27 +181,7 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
-	def instantiate(Instance i) {
-		if (i.parameters !== null && i.parameters.assignments.length > 0) {
-			var List<String> values = newArrayList
-			for (p : i.reactorClass.parameters) {
-				var String value = null
-				for (a : i.parameters.assignments) {
-					if (a.name == p.name) {
-						value = '''«a.value»'''
-					}
-				}
-				if (value === null) {
-					value = '''«p.value»'''
-				}
-				values.add(value)
-			}
-			'''«i.reactorClass.name» «i.name»{"«i.name»", this«FOR v : values», «v»«ENDFOR»};'''
-		} else {
-			// no assignments
-			'''«i.reactorClass.name» «i.name»{"«i.name»", this};'''
-		}
-	}
+	def declare(Instance i) '''«i.reactorClass.name» «i.name»;'''
 
 	def instantiate(
 		Reaction n) '''dear::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};'''
@@ -237,9 +218,9 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
-	def instantiateInstances(Reactor r) '''
+	def declareInstances(Reactor r) '''
 		«FOR i : r.instances BEFORE '// reactor instances\n' AFTER '\n'»
-			«i.instantiate»
+			«i.declare»
 		«ENDFOR»
 	'''
 
@@ -353,10 +334,19 @@ class CppGenerator extends GeneratorBase {
 
 	def trimmedValue(Param p) {
 		if (p.value !== null) {
-			p.value.removeCodeDelimiter
+			'''«p.value.removeCodeDelimiter»'''
 		} else {
 			// if its not a value it must be a time
-			p.time.generate
+			'''«p.time.generate»'''
+		}
+	}
+
+	def trimmedValue(Assignment a) {
+		if (a.unit !== null) {
+			// assume we have a time
+			'''«a.value.removeCodeDelimiter»«timeUnitsToDearUnits.get(a.unit)»'''
+		} else {
+			'''«a.value.removeCodeDelimiter»'''
 		}
 	}
 
@@ -388,6 +378,7 @@ class CppGenerator extends GeneratorBase {
 		  : dear::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
 		  «r.initializeParameters»
 		  «r.initializeStateVariables»
+		  «r.initializeInstances»
 		{}
 	'''
 
@@ -401,6 +392,29 @@ class CppGenerator extends GeneratorBase {
 			, «s.name»(«s.trimmedValue»)
 		«ENDFOR»
 	'''
+
+	def initializeInstances(Reactor r) '''
+		«FOR i : r.instances BEFORE "// reactor instances\n"»
+			, «i.name»{"«i.name»", this«FOR v : i.trimmedValues», «v»«ENDFOR»}
+		«ENDFOR»
+	'''
+
+	def trimmedValues(Instance i) {
+		var List<String> values = newArrayList
+		for (p : i.reactorClass.parameters) {
+			var String value = null
+			for (a : i.parameters.assignments) {
+				if (a.name == p.name) {
+					value = '''«a.trimmedValue»'''
+				}
+			}
+			if (value === null) {
+				value = '''«p.trimmedValue»'''
+			}
+			values.add(value)
+		}
+		values
+	}
 
 	def assembleReaction(Reactor r, Reaction n) '''
 		// «n.name»
@@ -426,7 +440,7 @@ class CppGenerator extends GeneratorBase {
 		 private:
 		  «r.declareParameters»
 		  «r.declareStateVariables»
-		  «r.instantiateInstances»
+		  «r.declareInstances»
 		  «r.instantiateTimers»
 		  «r.instantiateReactions»
 		  «r.declareReactionBodies»
