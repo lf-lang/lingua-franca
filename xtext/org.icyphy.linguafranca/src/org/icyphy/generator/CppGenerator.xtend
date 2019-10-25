@@ -31,6 +31,7 @@ import org.icyphy.linguaFranca.Output
 import java.util.List
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Assignment
+import org.icyphy.linguaFranca.Timer
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -393,9 +394,21 @@ class CppGenerator extends GeneratorBase {
 
 	def initializeTimers(Reactor r) '''
 		«FOR t : r.timers BEFORE "// timers\n"»
-			, «t.name»{"«t.name»", this, «t.timing.period.trimmedValue», «t.timing.offset.trimmedValue»}
+			«t.initialize»
 		«ENDFOR»
 	'''
+
+	def initialize(Timer t) {
+		var String period = "0"
+		var String offset = "0"
+		if (t.timing !== null) {
+			offset = '''«t.timing.offset.trimmedValue»'''
+			if (t.timing.period !== null) {
+				period = '''«t.timing.period.trimmedValue»'''
+			}
+		}
+		''', «t.name»{"«t.name»", this, «period», «offset»}'''
+	}
 
 	def trimmedValues(Instance i) {
 		var List<String> values = newArrayList
