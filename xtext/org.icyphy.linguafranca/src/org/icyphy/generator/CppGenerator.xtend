@@ -217,18 +217,7 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
-	def instantiate(Param p) {
-		val const = p.const ? "const " : ""
-		if (p.type !== null) {
-			if (p.type == "time") {
-				'''«const»dear::time_t «p.name»{«p.time.generate»};'''
-			} else {
-				'''«const»«p.type» «p.name»{«p.value»};'''
-			}
-		} else {
-			'''// «reportError(p, "Parameter has no type.")»'''
-		}
-	}
+	def instantiate(Param p) '''«p.trimmedType» «p.name»{«p.value»};'''
 
 	def instantiate(Input i) {
 		if (i.type !== null) {
@@ -351,12 +340,23 @@ class CppGenerator extends GeneratorBase {
 		«ENDIF»
 	'''
 
+	def trimmedType(Param p) {
+		val const = p.const ? "const " : ""
+		if (p.type !== null) {
+			if (p.type == "time") {
+				'''«const»dear::time_t'''
+			} else {
+				'''«const»«p.type.removeCodeDelimiter»'''
+			}
+		} else {
+			'''/* «p.reportError("Parameter has no type")» */'''
+		}
+	}
+
 	def declareParameterizedConstructor(Reactor r) '''
-		«IF r.isMain()»
-			«r.getName()»(const std::string& name, dear::Environment* environment«FOR p : r.parameters», «p.type» «p.name»«ENDFOR»);
-		«ELSE»
-			«r.getName()»(const std::string& name, dear::Reactor* container«FOR p : r.parameters», «p.type» «p.name»«ENDFOR»);
-		«ENDIF»
+		«r.getName()»(const std::string& name,
+		    «IF r.isMain()»dear::Environment* environment,«ELSE»dear::Reactor* container,«ENDIF»
+		    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name»«ENDFOR»
 	'''
 
 	def defineConstructor(Reactor r) '''
@@ -370,10 +370,9 @@ class CppGenerator extends GeneratorBase {
 	'''
 
 	def defineParameterizedConstructor(Reactor r) '''
-		«r.getName()»::«r.getName()»(
-		    const std::string& name,
+		«r.getName()»::«r.getName()»(const std::string& name,
 		    «IF r.isMain()»dear::Environment* environment«ELSE»dear::Reactor* container«ENDIF»,
-		    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.type» «p.name»«ENDFOR»
+		    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
 		  : dear::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
 		  «FOR p : r.parameters SEPARATOR "\n"», «p.name»(«p.name»)«ENDFOR» {}
 	'''
