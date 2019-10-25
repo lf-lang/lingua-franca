@@ -1,0 +1,35 @@
+// This example extends the Stride example by passing multiple parameters through a hierarchy
+// For this test, success is just compiling and running.
+target Cpp(
+    run = "bin/MultiParam -timeout 2 sec -fast"
+);
+reactor Count(stride:int(1), period:time(100 msec), const start:int(0)) {
+    state count:int(start);
+    state test:bool(false);
+    state blub:{=const int*=}({=&start=});
+    output y:int;
+    timer t(0, period);
+    reaction(t) -> y {=
+        y.set(count);
+        count += stride;
+    =}
+}
+reactor Display {
+    preamble {=
+         #include <iostream>
+    =}
+    input x:int;
+    reaction(x) {=
+    	std::cout << "Received " << *x.get() << std::endl;
+    =}
+}
+reactor Wrapper(stride:int(1), period:time(100 msec)) {
+    output y:int;
+    c = new Count(stride = stride, period = period, start = 3);
+    c.y -> y;
+}
+main reactor StrideHierarchy {
+    c = new Wrapper(stride = 2, period = 500 msec);
+    d = new Display();
+    c.y -> d.x;
+}
