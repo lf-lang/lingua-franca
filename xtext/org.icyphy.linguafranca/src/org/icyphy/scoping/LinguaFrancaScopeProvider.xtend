@@ -75,9 +75,9 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 				}
 			}
 			
-			if (variable.instance !== null) { // Resolve hierarchical port reference
-				val instanceName = nameProvider.getFullyQualifiedName(variable.instance).toString
-				val instances = reactor.instances
+			if (variable.container !== null) { // Resolve hierarchical port reference
+				val instanceName = nameProvider.getFullyQualifiedName(variable.container).toString
+				val instances = reactor.instantiations
 				for (instance : instances) {
 					if (instance.name.equals(instanceName)) {
 						if (type == RefType.TRIGGER || type == RefType.SOURCE || type == RefType.CLEFT) {

@@ -13,7 +13,6 @@ import java.text.ParseException
 import java.util.HashMap
 import java.util.HashSet
 import java.util.Hashtable
-import java.util.LinkedHashMap
 import java.util.LinkedList
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
@@ -23,13 +22,14 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Import
-import org.icyphy.linguaFranca.Instance
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.VarRef
-import org.icyphy.generator.ReactionGraph.ReactionInstance
 
 /**
  * Generator base class for shared code between code generators.
@@ -54,7 +54,7 @@ class GeneratorBase {
 	var indentation = new HashMap<StringBuilder, String>()
 	
 	/** The main (top-level) reactor instance. */
-	protected Instance main 
+	protected ReactorInstance main 
 	
 	// The root filename for the main file containing the source code, without the .lf.
 	protected var String _filename
@@ -110,17 +110,19 @@ class GeneratorBase {
 		// Figure out the file name for the target code from the source file name.
 		_filename = extractFilename(_resource.getURI.toString)
 
-		// Generate reactors and composites.
-		main = null
+		var mainDef = null as Instantiation
+		
 		precedenceGraph.nodes.clear()
 		
+		// Recursively instantiate reactors from their definitions
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			generateReactor(reactor, importTable)
 			if (reactor.isMain) {
-				main = LinguaFrancaFactory.eINSTANCE.createInstance()
-				main.setName(reactor.name)
-				main.setReactorClass(reactor)
-				instantiate(main, null, importTable)
+				// Creating an definition for the main reactor because there isn't one.
+				mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
+				mainDef.setName(reactor.name)
+				mainDef.setReactorClass(reactor)
+				this.main = new ReactorInstance(mainDef, null) // this call recursively builds instances
 			}
 		}
 	}
@@ -221,7 +223,7 @@ class GeneratorBase {
                     var reactionList = info.triggerToReactions.get(trigger)
                     if (reactionList === null) {
                     	reactionList = new LinkedList<Reaction>()
-						info.triggerToReactions.put(trigger.variable, reactionList)
+						info.triggerToReactions.put(trigger, reactionList)
                     }
                     reactionList.add(reaction)
 				}	
@@ -234,15 +236,15 @@ class GeneratorBase {
 		// Record (and check) connections.
 		for (connection: reactor.connections) {
             // Record the source-destination pair.
-            var destinations = info.outputToInputs.get(connection.leftPort)
+            var destinations = info.sourceToDestinations.get(connection.leftPort)
             if (destinations === null) {
                 destinations = new HashSet<VarRef>()
-                info.outputToInputs.put(connection.leftPort, destinations)
+                info.sourceToDestinations.put(connection.leftPort.variable as Port, destinations)	
             }
             destinations.add(connection.rightPort)
 
-			// FIXME: this seems wrong            
-            if (connection.rightPort.instance === null) {
+			// Record inside connections to output ports  // to excluded direct feed through
+            if (connection.rightPort.container === null) { // && connection.leftPort.instance !== null) {
                 info.outputToContainedOutput.put(
                     connection.rightPort, connection.leftPort
                 )
@@ -277,22 +279,24 @@ class GeneratorBase {
 //			} else {
 //				reportError(connection, "Invalid port specification: " + connection.leftPort)
 //			}
-			// Check the right port.
-			if (connection.rightPort.instance !== null) {
-				// FIXME: Looks like this will only work on level deep; should this not be recursive?
-				// FIXME: Also, we should synthesize reactions for data transfer across levels of hierarchy
-				
-				// If the destination is the input port of a reactor that itself contains other
-				// reactors, we need to add any input ports inside the destination that it is
-				// connected to. These will have the form actorInstanceName.containedActorInstanceName.portName.
-				var insideDestinations = ReactorInfo.get(connection.rightPort.instance.reactorClass).outputToInputs.get(connection.rightPort)
-				if (insideDestinations !== null) {
-					// There are inside connections. Record them.
-					for (insideDestination : insideDestinations) {
-						destinations.add(insideDestination)
-					}
-				}
-			}
+//
+//
+//			// Check the right port.
+//			if (connection.rightPort.instance !== null) {
+//				// FIXME: Looks like this will only work on level deep; should this not be recursive?
+//				// FIXME: Also, we should synthesize reactions for data transfer across levels of hierarchy
+//				
+//				// If the destination is the input port of a reactor that itself contains other
+//				// reactors, we need to add any input ports inside the destination that it is
+//				// connected to. These will have the form actorInstanceName.containedActorInstanceName.portName.
+//				var insideDestinations = ReactorInfo.get(connection.rightPort.instance.reactorClass).sourceToDestinations.get(connection.rightPort)
+//				if (insideDestinations !== null) {
+//					// There are inside connections. Record them.
+//					for (insideDestination : insideDestinations) {
+//						destinations.add(insideDestination)
+//					}
+//				}
+//			}
 //			split = connection.rightPort.split('\\.')
 //			if (split.length === 1) {
 //				// It is a local input port.
@@ -326,43 +330,6 @@ class GeneratorBase {
 //			} else {
 //				reportError(connection, "Invalid port specification: " + connection.rightPort)
 //			}
-		}
-	}
-	
-	/** For the given reactor, create instances of each reactor
-	 *  that it contains.
-	 *  @param reactor The reactor.
-	 *  @param container The instance that is the container.
-	 *  @param importTable The table of imports.
-	 */
-	def void generateContainedInstances(
-		Reactor reactor,
-		Instance parent,
-		Hashtable<String,String> importTable
-	) {
-		
-	}
-		
-	/** Recursively instantiate reactors.
-	 *  @param instance Reactor to instantiate.
-	 *  @param container Parent of the to-be-instantiated reactor.
-	 *  @param importTable Substitution table for class names (from import statements).
-	 */
-	def void instantiate(
-		Instance instance,
-		Instance parent,
-		Hashtable<String,String> importTable
-	) {
-		if (parent !== null) {
-			// Create object to track info about this instance.
-			// It is now retrievable using InstanceInfo.getInfo().
-			new InstanceInfo(instance, parent)  
-		}
-		
-		// Instantiate children of this instance
-		for (child: instance.reactorClass.instances) {
-			instantiate(child, instance, importTable)
-			InstanceInfo.get(instance).children.add(child)
 		}
 	}
 	

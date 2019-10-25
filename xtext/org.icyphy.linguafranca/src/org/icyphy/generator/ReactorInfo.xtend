@@ -7,6 +7,8 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedList
+import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
@@ -15,7 +17,8 @@ import org.icyphy.linguaFranca.Variable
 /** The properties of a reactor class.  
  */
  class ReactorInfo {
- 	
+ 	// FIXME: We can probably get rid of this class.
+ 	// See ReactorInstance	
  	static val reactorToInfo = new HashMap<Reactor, ReactorInfo>()
 	
 	static def get(Reactor reactor) {
@@ -33,35 +36,15 @@ import org.icyphy.linguaFranca.Variable
 	}
 	
 	public var Reactor reactor
- 	
-// 	/** Map from input name to Input object. */
-//	public var nameToInput = new LinkedHashMap<String,Input>()
-//	
-//	/** Map from output name to Output object. */
-//	public var nameToOutput = new LinkedHashMap<String,Output>()
-//	
-//	/** Map from parameter name to Parameter object. */		
-//	public var nameToParam = new LinkedHashMap<String,Param>()
-//
-//	/** Map from action name to Action object. */
-//	public var nameToAction = new LinkedHashMap<String,Action>()
-//
-//	/** Map from name to Instance object. */
-//	public var nameToInstance = new LinkedHashMap<String,Instance>()
-//
-//	/** Map from timer name to Timer object. */
-//	public var nameToTimer = new LinkedHashMap<String,Timer>()
-//	
-//	/** Map from timer name to Timing object. */
-//	public var nameToTiming = new LinkedHashMap<String,Timing>()
-	
-	
-	/** Map from output name to list of inputs names triggered
-	 *  by this output. The names have form either "instanceName.portName"
-	 *  (if the port belongs to a contained reactor) or "portName"
-	 *  (if the port belongs to this component).
+ 		
+	/** A recording of the connections defined by this reactor. 
+	 * This includes connections from outputs of contained reactors to 
+	 * inputs of contained reactors, connections from inputs of this reactor
+	 * to inputs of contained reactors, outputs of contained reactors to 
+	 * outputs of this reactor, and inputs of this reactor to outputs of
+	 * this reactor.
 	 */
-	public var outputToInputs = new LinkedHashMap<VarRef,HashSet<VarRef>>() // FIXME: could we use a HashSet<Input> instead?
+	public var sourceToDestinations = new LinkedHashMap<Port, HashSet<VarRef>>()
 	
 	/** Map from output name for outputs of this reactor to output names
 	 *  of contained reactors that send data via this output port.
@@ -71,8 +54,10 @@ import org.icyphy.linguaFranca.Variable
 	/** For use by language-specific code generators, a generic map
 	 *  for storing properties.
 	 */
-	public var targetProperties = new LinkedHashMap<Object,String>()
+	public var targetProperties = new LinkedHashMap<Object, String>()
  	
 	/** Map from trigger names to list of reactions triggered by it. */
-	public var triggerToReactions = new LinkedHashMap<Variable,LinkedList<Reaction>>()
+	public var triggerToReactions = new LinkedHashMap<VarRef, LinkedList<Reaction>>()
+
+	
 }

@@ -45,7 +45,7 @@ class SCLGenerator extends GeneratorBase {
 			for (reactionInstance : graph.nodes.toList.sortBy[it.level]) {
 				val reaction = reactionInstance.reactionSpec
 				val reactorInstance = reactionInstance.reactorInstance
-				val containerReactorInstance = InstanceInfo.get(reactorInstance).parent
+				val containerReactorInstance = org.icyphy.generator.ReactorInstance.get(reactorInstance).parent
 				val containerReactor = containerReactorInstance.getReactorClass()
 				val containerReactorIndex = reactorIndices.get(containerReactor)
 				val reactor = reactorInstance.getReactorClass()
@@ -56,13 +56,13 @@ class SCLGenerator extends GeneratorBase {
 				val containerConnectionMap = containerReactor.connections.toMap([it.rightPort], [it.leftPort])
 				val incomings = instanceTriggerNames.map[containerConnectionMap.get(it)]
 				incomings.indexed.forEach[if (it.value !== null) {
-					args.add(String.format("%s := #%s.%s", instanceTriggerNames.get(it.key).split("\\.").last, InstanceInfo.get(containerReactorInstance).fullName, it.value))
+					args.add(String.format("%s := #%s.%s", instanceTriggerNames.get(it.key).split("\\.").last, org.icyphy.generator.ReactorInstance.get(containerReactorInstance).fullName, it.value))
 				}]
 				reaction.effects?.forEach[
-					args.add(String.format("#%s := #%s.%s", it.variable.name, InstanceInfo.get(reactorInstance).fullName, it.variable.name))
-					args.add(String.format("#%s_present := #%s.%s_present", it.variable.name, InstanceInfo.get(reactorInstance).fullName, it.variable.name))
+					args.add(String.format("#%s := #%s.%s", it.variable.name, org.icyphy.generator.ReactorInstance.get(reactorInstance).fullName, it.variable.name))
+					args.add(String.format("#%s_present := #%s.%s_present", it.variable.name, org.icyphy.generator.ReactorInstance.get(reactorInstance).fullName, it.variable.name))
 				]
-				val conditions = incomings.indexed.map[String.format("#%s.%s_present", InstanceInfo.get(containerReactorInstance).fullName, it.value ?: instanceTriggerNames.get(it.key))].filterNull.toList
+				val conditions = incomings.indexed.map[String.format("#%s.%s_present", org.icyphy.generator.ReactorInstance.get(containerReactorInstance).fullName, it.value ?: instanceTriggerNames.get(it.key))].filterNull.toList
 				if (conditions.size == 0) {
 					conditions.add("TRUE")
 				}
