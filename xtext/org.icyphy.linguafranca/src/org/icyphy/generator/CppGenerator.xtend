@@ -29,7 +29,6 @@ import org.icyphy.linguaFranca.State
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import java.util.List
-import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Assignment
 
@@ -141,6 +140,7 @@ class CppGenerator extends GeneratorBase {
 				}
 			}
 		}
+		buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
 		buffer.toString
 	}
 
@@ -222,7 +222,7 @@ class CppGenerator extends GeneratorBase {
 	def implementReactionBodies(Reactor r) '''
 		«FOR n : r.reactions SEPARATOR '\n'»
 			void «r.name»::«n.name»_body() {
-			  «removeCodeDelimiter(n.code)»
+			  «n.code.removeCodeDelimiter»
 			}
 		«ENDFOR»
 	'''
@@ -421,8 +421,6 @@ class CppGenerator extends GeneratorBase {
 		«n.declareAntidependencies»
 	'''
 
-	def assembleConnection(Connection c) '''«c.leftPort».bind_to(&«c.rightPort»);'''
-
 	def generateReactorHeader(Reactor r) '''
 		«header()»
 		
@@ -458,15 +456,15 @@ class CppGenerator extends GeneratorBase {
 		«r.defineConstructor»
 		
 		void «r.name»::assemble() {
-		  «FOR n : r.reactions SEPARATOR '\n' AFTER '\n'»
+		  «FOR n : r.reactions»
 		  	«r.assembleReaction(n)»
 		  «ENDFOR»
-		  «FOR c : r.connections BEFORE '// connections\n'»
-		  	«c.assembleConnection»
-		  «ENDFOR»
-		}
+		  «FOR c : r.connections BEFORE "  // connections\n"»
+			«'''  «c.leftPort».bind_to(&«c.rightPort»);'''»
+			«ENDFOR»
+			}
 		
-		«r.implementReactionBodies»
+			«r.implementReactionBodies»
 	'''
 
 	def header() '''
