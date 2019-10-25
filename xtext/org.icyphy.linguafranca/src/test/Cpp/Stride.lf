@@ -1,0 +1,28 @@
+// This example illustrates state variables and parameters on the wiki.
+// For this test, success is just compiling and running.
+target Cpp(
+    run = "bin/Stride -timeout 2 sec -fast"
+);
+reactor Count(stride:int(1)) {
+    state count:int(0);
+    output y:int;
+    timer t(0, 100 msec);
+    reaction(t) -> y {=
+        y.set(count);
+        count += stride;
+    =}
+}
+reactor Display {
+	preamble {=
+        #include <iostream>
+    =}
+    input x:int;
+    reaction(x) {=
+    	std::cout << "Received " << *x.get() << std::endl;
+    =}
+}
+main reactor Stride {
+    c = new Count(stride = 2);
+    d = new Display();
+    c.y -> d.x;
+}
