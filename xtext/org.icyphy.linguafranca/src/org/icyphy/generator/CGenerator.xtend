@@ -40,7 +40,6 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Variable
 
 /**
  * Generator for C target.
@@ -648,12 +647,15 @@ class CGenerator extends GeneratorBase {
 			// For each output, figure out how many
 			// inputs are connected to it. This is obtained via the container.
 			var parent = reactorInstance.parent
-			// If there is no container, then the output cannot be connected
-			// to anything, so default to empty set.
-			var destinations = new HashSet<PortInstance>()
-			if (parent !== null) {
-				parent.transitiveClosure(reactorInstance.getPortInstance(output), destinations)
-			}
+            var destinations = null as HashSet<PortInstance>
+            if (parent !== null) {
+                destinations = parent.transitiveClosure(parent.getPortInstance(output))
+            } else {
+                // At the top level, where there cannot be any destinations.
+                destinations = new HashSet<PortInstance>()
+            }
+            
+            // Append to the array that records the length of each trigger_t array.
 			// Insert a comma if needed.
 			if (triggeredSizesContents.length > 0) {
 				triggeredSizesContents.append(", ")
@@ -828,23 +830,27 @@ class CGenerator extends GeneratorBase {
 									'_is_present')
 								outputCount++
 
+                                // Next, create an array trigger_t objects, which are
+                                // the triggers that fire if this output is produced.
 								// For each output, obtain the destinations from the container.
-								var container = reactorInstance.parent
-								// If there is no container, then the output cannot be connected
-								// to anything, so default to empty set.
-								var destinations = new HashSet<PortInstance>()
-								if (container !== null) {
-									container.transitiveClosure(container.getPortInstance(effect), destinations)
+								var parent = reactorInstance.parent
+								var destinations = null as HashSet<PortInstance>
+								if (parent !== null) {
+									destinations = parent.transitiveClosure(parent.getPortInstance(effect))
+								} else {
+								    // At the top level, where there cannot be any destinations.
+								    destinations = new HashSet<PortInstance>()
 								}
 
+                                // Append to the array that records the sizes of the trigger arrays.
 								// Insert a comma if needed.
 								if (triggeredSizesContents.length > 0) {
 									triggeredSizesContents.append(", ")
 								}
 								triggeredSizesContents.append(destinations.size)
 
-								// Then, for each input connected to this output,
-								// find its trigger_t struct. Create an array of pointers
+								// Then, for each destination connected to this output,
+								// find the name of its trigger_t struct. Create an array of pointers
 								// to these trigger_t structs, and collect pointers to
 								// each of these arrays.
 								// Insert a comma if needed.
@@ -860,7 +866,7 @@ class CGenerator extends GeneratorBase {
 									for (destination : destinations) {
 										deferredInitialize.add(
 											new InitializeRemoteTriggersTable(
-												container,
+												parent,
 												remoteTriggersArrayName,
 												(inputCount++),
 												destination
@@ -1036,8 +1042,9 @@ class CGenerator extends GeneratorBase {
 	}
 
 	/** Traverse the runtime hierarchy of reaction instances and generate code.
+	 *  @param instance A reactor instance.
 	 */
-	def generateReactorInstance(ReactorInstance instance) {
+	def void generateReactorInstance(ReactorInstance instance) {
 		var instanceName = instance.definition.name
 		var reactorClass = instance.definition.reactorClass
 		var classInfo = ReactorInfo.get(reactorClass)
@@ -1267,15 +1274,6 @@ class CGenerator extends GeneratorBase {
 	// port's reactor to the appropriate entries in the "self" struct of the
 	// source reactor.
 	private def void connectInputsToOutputs(ReactorInstance instance) {
-		// Collect the set of destinations that have connections so that we can
-		// report as an error for ones that are connected to more than one source.
-		var connectedDestinations = new HashSet<VarRef>()
-		
-		// Include in connectedInputs all inputs of contained
-		// reactors that are connected to an input of the container.
-		// This is useful for detecting errors where multiple connections are
-		// made to an input.
-		
 		for (source : instance.destinations.keySet) {
 			var sourceStruct = null as String
 			if (source.parent === instance) {
@@ -1294,14 +1292,13 @@ class CGenerator extends GeneratorBase {
 				}
 				
 				pr(
-					destStruct + '.__' + destination.portDecl.name + ' = &' + sourceStruct + '.__' +
-						source.portDecl.name + ';'
+					destStruct + '.__' + destination.definition.name + ' = &' + sourceStruct + '.__' +
+						source.definition.name + ';'
 				)
 				pr(
-					destStruct + '.__' + destination.portDecl.name + '_is_present = &' + sourceStruct + '.__' +
-						source.portDecl.name + '_is_present;'
+					destStruct + '.__' + destination.definition.name + '_is_present = &' + sourceStruct + '.__' +
+						source.definition.name + '_is_present;'
 				)
-				
 			}
 		}
 		
@@ -1596,7 +1593,7 @@ class CGenerator extends GeneratorBase {
 			for (input : containedReactor.inputs) {
 				//var inputReactor = containedReactor.container.getContainedInstance(containedReactor.instanceStatement.name)
 				var inputSelfStructName = containedReactor.properties.get("selfStructName")
-				pr(inputSelfStructName + '.__' + input.portDecl.name + '_is_present = &False;')
+				pr(inputSelfStructName + '.__' + input.definition.name + '_is_present = &False;')
 			}
 		}
 		for (containedReactor : parent.children) {
