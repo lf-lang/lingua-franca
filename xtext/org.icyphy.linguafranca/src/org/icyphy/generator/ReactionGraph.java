@@ -47,16 +47,8 @@ public class ReactionGraph {
         // In the first pass, create a ReactionInstance for each reaction and
         // a PortInstance for each port on which reactions depend and for each
         // port that a reaction writes to.
-
-        // Store the reaction instances in a list index by the defining reactor
-        // instance.
-        LinkedHashMap<Reaction, ReactionInstance> reactionInstances = _reactorToReactionList
-                .get(reactorInstance);
-        if (reactionInstances == null) {
-            reactionInstances = new LinkedHashMap<Reaction, ReactionInstance>();
-            _reactorToReactionList.put(reactorInstance, reactionInstances);
-        }
-
+        // Add each ReactionInstance to the list of reaction instances in the
+        // reactor instance.
         EList<Reaction> reactions = reactorInstance.definition.getReactorClass()
                 .getReactions();
         if (reactions != null) {
@@ -75,14 +67,13 @@ public class ReactionGraph {
                 previousReaction = reactionInstance;
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
-                reactionInstances.put(reactionInstance.reactionSpec,
+                reactorInstance.reactionInstances.put(reactionInstance.reactionSpec,
                         reactionInstance);
                 nodes.add(reactionInstance);
 
                 // If the reaction is triggered by an input to this reactor
-                // instance,
-                // then create a PortInstance for that port (if it does not
-                // already exist)
+                // instance, then create a PortInstance for that port
+                // (if it does not already exist)
                 // and establish the dependency on that port.
                 // Only consider inputs and outputs, ignore actions and timers.
                 EList<VarRef> deps = null;
@@ -102,7 +93,7 @@ public class ReactionGraph {
                         if (ref.getVariable() instanceof Input) {
                             Input input = (Input) ref.getVariable();
                             PortInstance port = new PortInstance(
-                                    reactorInstance, input);
+                                    input, reactorInstance);
                             reactorInstance.portInstances.put(input, port);
                             port.dependentReactions.add(reactionInstance);
                             reactionInstance.dependsOnPorts.add(port);
@@ -124,15 +115,12 @@ public class ReactionGraph {
                                 PortInstance port = childInstance.portInstances
                                         .get(output);
                                 if (port == null) {
-                                    port = new PortInstance(childInstance,
-                                            output);
-                                    childInstance.portInstances.put(output,
-                                            port);
+                                    port = new PortInstance(output, childInstance);
+                                    childInstance.portInstances.put(output, port);
                                 }
                                 port.dependentReactions.add(reactionInstance);
                                 reactionInstance.dependentPorts.add(port);
                             }
-
                         }
                     }
                 }
@@ -167,10 +155,8 @@ public class ReactionGraph {
                                 PortInstance port = childInstance.portInstances
                                         .get(input);
                                 if (port == null) {
-                                    port = new PortInstance(childInstance,
-                                            input);
-                                    childInstance.portInstances.put(input,
-                                            port);
+                                    port = new PortInstance(input, childInstance);
+                                    childInstance.portInstances.put(input, port);
                                 }
                                 port.dependsOnReactions.add(reactionInstance);
                                 reactionInstance.dependentPorts.add(port);
@@ -180,8 +166,7 @@ public class ReactionGraph {
                             PortInstance port = reactorInstance.portInstances
                                     .get(output);
                             if (port == null) {
-                                port = new PortInstance(reactorInstance,
-                                        output);
+                                port = new PortInstance(output, reactorInstance);
                                 reactorInstance.portInstances.put(output, port);
                             }
                             port.dependsOnReactions.add(reactionInstance);
@@ -198,6 +183,7 @@ public class ReactionGraph {
 
         // Next, iterate over all connections to establish dependencies between
         // ports.
+        /* FIXME: This seems to not be used.
         for (PortInstance source : reactorInstance.destinations.keySet()) {
             for (PortInstance destination : reactorInstance.destinations
                     .get(source)) {
@@ -205,6 +191,7 @@ public class ReactionGraph {
                 source.dependentPorts.add(destination);
             }
         }
+        */
     }
 
     /**
@@ -273,22 +260,15 @@ public class ReactionGraph {
         }
     }
 
-    /**
-     * Get the reaction instance.
-     * 
-     * @param reactorInstance The reactor instance for the reaction.
-     * @param reaction        The reaction specification in the AST.
-     * @return The reaction instance or null if there is none.
-     * @exception If the reaction instance is not in the graph.
+    /** Return the reaction instance in the specified reactor instance
+     *  that corresponds to the specified reaction definition.
+     *  @param reactorInstance The reactor instance for the reaction.
+     *  @param reaction The reaction specification in the AST.
+     *  @return The reaction instance or null if there is none.
      */
     public ReactionInstance getReactionInstance(ReactorInstance reactorInstance,
             Reaction reaction) throws Exception {
-        LinkedHashMap<Reaction, ReactionInstance> reactionInstances = _reactorToReactionList
-                .get(reactorInstance);
-        if (reactionInstances == null) {
-            throw new Exception("Reaction instance is not in the graph.");
-        }
-        return reactionInstances.get(reaction);
+        return reactorInstance.reactionInstances.get(reaction);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -300,11 +280,6 @@ public class ReactionGraph {
     /** Set of independent reactions. */
     private Set<ReactionInstance> _independentReactions = new HashSet<ReactionInstance>();
 
-    /**
-     * Map from reactor instances to a map from reaction to reaction instances.
-     */
-    private HashMap<ReactorInstance, LinkedHashMap<Reaction, ReactionInstance>> _reactorToReactionList = new HashMap<ReactorInstance, LinkedHashMap<Reaction, ReactionInstance>>();
-    // FIXME: move this to ReactorInstance
     //////////////////////////////////////////////////////////////////////////
     //// Inner classes
 
