@@ -329,17 +329,17 @@ public class ReactionGraph {
          * independent reactions.
          */
         public void collapseDependencies() {
-            HashSet<PortInstance> visited = new HashSet<PortInstance>();
+            //HashSet<ReactionInstance> visited = new HashSet<ReactionInstance>();
             for (PortInstance port : dependentPorts) {
-                port.collapseDependencies(visited);
+                //port.collapseDependencies(visited);
                 dependentReactions.addAll(port.dependentReactions);
             }
-            dependentPorts.clear();
+            dependentPorts.clear(); // FIXME: why are we clearing these?
             for (PortInstance port : dependsOnPorts) {
-                port.collapseDependencies(visited);
+                //port.collapseDependencies(visited);
                 dependsOnReactions.addAll(port.dependsOnReactions);
             }
-            dependsOnPorts.clear();
+            dependsOnPorts.clear(); // FIXME: why are we clearing these?
             if (dependsOnReactions.isEmpty()) {
                 _independentReactions.add(this);
             }
