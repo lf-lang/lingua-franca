@@ -995,12 +995,12 @@ class CGenerator extends GeneratorBase {
 			pr(result, 'trigger_t ' + triggerStructName + ' = {')
 			indent(result)
 			//var timing = getTiming(reactor, trigger.name)
-			if (trigger instanceof Timer || trigger instanceof Input) {
+			if (trigger.variable instanceof Timer || trigger.variable instanceof Input) {
 				pr(
 					result,
 					triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' + '0LL, 0LL, NULL, false'
 				)
-			} else if (trigger instanceof Action) {
+			} else if (trigger.variable instanceof Action) {
 				var isPhysical = "true";
 				var delay = (trigger as Action).delay
 				if (delay === null) {
@@ -1021,8 +1021,8 @@ class CGenerator extends GeneratorBase {
 			pr(result, '};')
 			// Assignment of the offset and period have to occur after creating
 			// the struct because the value assigned may not be a compile-time constant.
-			if (trigger instanceof Timer) {
-				val timing = (trigger as Timer).timing
+			if (trigger.variable instanceof Timer) {
+				val timing = (trigger.variable as Timer).timing
 				var offset = if (timing === null) { null } else {timing.offset}
 				var period = if (timing === null) { null } else {timing.period}
 
