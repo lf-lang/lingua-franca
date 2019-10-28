@@ -31,6 +31,7 @@ import org.icyphy.linguaFranca.ActionModifier
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.generator.PortInstance
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param

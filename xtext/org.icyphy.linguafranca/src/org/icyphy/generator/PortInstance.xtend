@@ -54,4 +54,26 @@ class PortInstance {
             definition.name
         }
     }
+    
+//    /** Add to the dependsOnReactions all the reactions that this port
+//     *  depends on indirectly through other ports. Do the same for the
+//     *  dependent reactions. Clear out the dependentPorts and dependsOnPorts sets.
+//     *  @param visited A set of port instances already visited.
+//     */
+//	def void collapseDependencies(HashSet<PortInstance> visited) {
+//		if (visited.contains(this)) {
+//			return;
+//		}
+//		visited.add(this);
+//		for(PortInstance port: dependentPorts) {
+//			port.collapseDependencies(visited);
+//			dependentReactions.addAll(port.dependentReactions);
+//		}
+//		dependentPorts.clear();
+//		for(PortInstance port: dependsOnPorts) {
+//			port.collapseDependencies(visited);
+//			dependsOnReactions.addAll(port.dependsOnReactions);
+//		}
+//		dependsOnPorts.clear();
+//	}
 }

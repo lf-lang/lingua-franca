@@ -104,7 +104,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val timerNodes = newHashMap
 		
 		// Transform instances
-		for (instance : reactor.instances) {
+		for (instance : reactor.instantiations) {
 			val node = createNode()
 			nodes += node
 
@@ -212,7 +212,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					val dst = if (effect.variable instanceof Output) {
 						parentOutputPorts.get(effect.variable.name)
 					} else {
-						inputPorts.get(effect.instance.name, effect.variable.name)
+						inputPorts.get(effect.container.name, effect.variable.name)
 					}
 					if (dst !== null) {
 						createDependencyEdge().connect(node, dst)
@@ -232,13 +232,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		// Transform connections
 		for (Connection connection : reactor.connections?:emptyList) {
-			val source = if (connection.leftPort.instance !== null) {
-				outputPorts.get(connection.leftPort.instance.name, connection.leftPort.variable.name)
+			val source = if (connection.leftPort.container !== null) {
+				outputPorts.get(connection.leftPort.container.name, connection.leftPort.variable.name)
 			} else if (parentInputPorts.containsKey(connection.leftPort)) {
-				parentInputPorts.get(connection.leftPort.instance.name)
+				parentInputPorts.get(connection.leftPort.container.name)
 			}
-			val target = if (connection.rightPort.instance !== null) {
-				inputPorts.get(connection.leftPort.instance.name, connection.leftPort.variable.name)
+			val target = if (connection.rightPort.container !== null) {
+				inputPorts.get(connection.leftPort.container.name, connection.leftPort.variable.name)
 			} else if (parentOutputPorts.containsKey(connection.rightPort)) {
 				parentOutputPorts.get(connection.rightPort)
 			}
@@ -402,7 +402,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 	
 	private def hasContent(Reactor reactor) {
-		return !reactor.reactions.empty || !reactor.instances.empty
+		return !reactor.reactions.empty || !reactor.instantiations.empty
 	}
 	
 	static var LabelDecorationConfigurator _inlineLabelConfigurator; // ONLY for use in applyOnEdgeStyle

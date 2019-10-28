@@ -15,7 +15,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reactor
@@ -143,8 +142,9 @@ class AccessorGenerator extends GeneratorBase {
 			generateParameter(param)
 		}
 		// Generated instances
-		for (instance: reactor.instances) {
-			generateInstantiate(instance, importTable)
+		for (instance: reactor.instantiations) {
+			//generateInstantiate(instance, importTable)
+			// FIXME: this should be done differently now
 		}
 		// Generated connections
 		for (connection: reactor.connections) {
@@ -311,16 +311,16 @@ class AccessorGenerator extends GeneratorBase {
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	def generateInstantiate(Instance instance, Hashtable<String,String> importTable) {
-		var className = importTable.get(instance.reactorClass);
+	def generateInstantiate(ReactorInstance instance, Hashtable<String,String> importTable) {
+		var className = importTable.get(instance.definition.reactorClass);
 		if (className === null) {
 		    // This is not an imported accessor.
-			className = directory + instance.reactorClass
+			className = directory + instance.definition.reactorClass
 		}
-		pr('''var «instance.name» = this.instantiate('«instance.name»', '«className»');''')
-		if (instance.parameters !== null) {
-			for (param: instance.parameters.assignments) {
-				pr('''«instance.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
+		pr('''var «instance.definition.name» = this.instantiate('«instance.definition.name»', '«className»');''')
+		if (instance.definition.parameters !== null) {
+			for (param: instance.definition.parameters.assignments) {
+				pr('''«instance.definition.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
 			}
 		}
 	}
