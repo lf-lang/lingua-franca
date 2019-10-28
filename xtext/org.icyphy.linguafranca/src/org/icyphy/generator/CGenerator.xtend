@@ -186,8 +186,21 @@ class CGenerator extends GeneratorBase {
 		// Create output directories if they don't yet exist
 		var dir = new File(srcGenPath)
 		if (!dir.exists()) dir.mkdirs()
-		dir = new File(srcGenPath)
+		dir = new File(outPath)
 		if (!dir.exists()) dir.mkdirs()
+		
+		
+		// Delete source previously output the LF compiler
+		var file = new File(srcPath + File.separator + cFilename)
+		if (file.exists) {
+			file.delete
+		}
+		
+		// Delete binary previously output by C compiler
+		file = new File(outPath + File.separator + _filename)
+		if (file.exists) {
+			file.delete
+		}
 		
 		// Copy the required library files into the target filesystem.
 		var fOut = new FileOutputStream(new File(srcGenPath + File.separator + cFilename));
@@ -239,14 +252,16 @@ class CGenerator extends GeneratorBase {
 		}
         
         // Create directories for generated source and binary if they do not exist.
-        var directory = new File(outPath)
-        if (! directory.exists()){
-            directory.mkdir()
-        }
-        directory = new File(srcGenPath)
-        if (! directory.exists()){
-            directory.mkdir()
-        }
+//        var directory = new File(outPath)
+//        if (! directory.exists()){
+//            directory.mkdir()
+//        }
+//        directory = new File(srcGenPath)
+//        if (! directory.exists()){
+//            directory.mkdir()
+//        }
+        
+        
         
 		// Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
@@ -837,7 +852,7 @@ class CGenerator extends GeneratorBase {
 								var parent = reactorInstance.parent
 								var destinations = null as HashSet<PortInstance>
 								if (parent !== null) {
-									destinations = parent.transitiveClosure(parent.getPortInstance(effect))
+									destinations = parent.transitiveClosure(reactorInstance.getPortInstance(effect))
 								} else {
 								    // At the top level, where there cannot be any destinations.
 								    destinations = new HashSet<PortInstance>()
@@ -901,6 +916,8 @@ class CGenerator extends GeneratorBase {
 								triggeredSizesContents.append("1")
 								var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount +
 									'_remote_triggers'
+									
+								// FIXME: computer transitive closure here as well
 								deferredInitialize.add(
 									new InitializeRemoteTriggersTable(
 										reactorInstance,
@@ -1230,14 +1247,10 @@ class CGenerator extends GeneratorBase {
 		pr('// doDeferredInitialize')
 		for (init : deferredInitialize) {
 			// The reactor containing the specified input may be a contained reactor.
-			var reactorInstance = init.reactor
+			//var reactorInstance = init.reactor
 			
-			var triggerMap = if (init.input.parent === reactorInstance) {
-					reactorInstance.properties.get("triggerToTriggerStruct")
-				} else {
-					// look deeper
-					init.input.parent.properties.get("triggerToTriggerStruct")
-				}
+			var triggerMap = init.input.parent.properties.get("triggerToTriggerStruct")
+			
 			if (triggerMap === null) {
 				reportError(
 					init.reactor.definition.reactorClass,
