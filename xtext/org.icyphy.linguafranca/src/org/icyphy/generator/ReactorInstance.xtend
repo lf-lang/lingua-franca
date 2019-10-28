@@ -49,12 +49,12 @@ class ReactorInstance {
         // port instances have been created.
         for (connection : definition.reactorClass.connections) {
             var srcInstance = this.getPortInstance(connection.leftPort)
-            var destinations = this.destinations.get(srcInstance)
-            if (destinations === null) {
-                destinations = new HashMap()
-                this.destinations.put(srcInstance, destinations)    
+            var dstInstances = this.destinations.get(srcInstance)
+            if (dstInstances === null) {
+                dstInstances = new HashSet()
+                this.destinations.put(srcInstance, dstInstances)   
             }
-            destinations.add(this.getPortInstance(connection.rightPort))
+            dstInstances.add(this.getPortInstance(connection.rightPort))
         }
     }
     
