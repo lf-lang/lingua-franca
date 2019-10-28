@@ -1006,7 +1006,7 @@ class CGenerator extends GeneratorBase {
 				if (delay === null) {
 					delay = "0"
 				}
-				if ((trigger as Action).modifier == ActionModifier.LOGICAL) {
+				if ((trigger.variable as Action).modifier == ActionModifier.LOGICAL) {
 					isPhysical = "false";
 				}
 				pr(
