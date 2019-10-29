@@ -5,7 +5,6 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.HashSet
-import org.icyphy.generator.ReactionGraph.ReactionInstance
 import org.icyphy.linguaFranca.Port
 
 /** Representation of a runtime instance of a port.
