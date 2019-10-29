@@ -1,9 +1,9 @@
 // Test data transport across hierarchy.
-target C;
+target C; 
 reactor Source {
-    output out:int;
+    output foo:int;
     timer t;
-    reaction(t) -> out {=
+    reaction(t) -> foo {=
         set(out, 1);
     =}
 }
@@ -38,7 +38,7 @@ main reactor Hierarchy {
     container = new GainContainer();
     print = new Print();
     print2 = new Print(); 
-    source.out -> container.in;
+    source.foo -> container.in;
     container.out -> print.in;
     container.out -> print2.in;
 }

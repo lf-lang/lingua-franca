@@ -4,7 +4,6 @@ import java.util.Hashtable
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reactor
 
 class SCLGenerator extends GeneratorBase {
@@ -21,6 +20,7 @@ class SCLGenerator extends GeneratorBase {
 			}
 			fsa.generateFile(filename + ".scl", getCode())
 		}
+		/* FIXME: Removed to get it to compile.
 		val graph = new ReactionGraph(this)
 		// Calculate levels for the graph.
 		graph.calculateLevels(main)
@@ -70,6 +70,8 @@ class SCLGenerator extends GeneratorBase {
 			}
 		]
 		fsa.generateFile("run.scl", getCode())
+		* 
+		*/
 	}
 
 	override generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
@@ -85,7 +87,8 @@ class SCLGenerator extends GeneratorBase {
 		prBlock(String.format("TYPE %s", reactorName), "END_UDT")[
 			prBlock("STRUCT", "END_STRUCT")[
 				pr("next_firing_time: DINT;  // FOR INTERNAL USE ONLY")
-				reactor.instances.forEach[pr("%s: %s;", it.name, it.reactorClass)]
+				// FIXME: Removed to get it to compile.
+				// reactor.instances.forEach[pr("%s: %s;", it.name, it.reactorClass)]
 				reactor.states.forEach[pr("%s: %s;", it.name, it.type)]
 				reactor.outputs.forEach[
 					pr("%s: %s;  // FOR INTERNAL USE ONLY", it.name, it.type)
@@ -126,6 +129,7 @@ class SCLGenerator extends GeneratorBase {
 		]
 	}
 
+    /* FIXME: Removed to get it to compile.
 	override instantiate(
 		Instance instance,
 		Instance container,
@@ -139,4 +143,6 @@ class SCLGenerator extends GeneratorBase {
 		super.instantiate(instance, container, importTable)
 		//reactorInstance
 	}
+	*
+	*/
 }

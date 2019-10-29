@@ -24,6 +24,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
@@ -121,7 +122,7 @@ class GeneratorBase {
 				mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
 				mainDef.setName(reactor.name)
 				mainDef.setReactorClass(reactor)
-				this.main = new ReactorInstance(mainDef, null) // this call recursively builds instances
+				this.main = reactorInstanceFactory(mainDef, null) // this call recursively builds instances
 			}
 		}
 	}
@@ -242,11 +243,23 @@ class GeneratorBase {
             }
             destinations.add(connection.rightPort)
 
-			// Record inside connections to output ports  // to excluded direct feed through
-            if (connection.rightPort.container === null) { // && connection.leftPort.instance !== null) {
-                info.outputToContainedOutput.put(
-                    connection.rightPort, connection.leftPort
+			// Record inside connections to output ports.
+            if (connection.rightPort.container === null) { // && connection.leftPort.instance !== null) { // FIXME: to excluded direct feed through
+                // Right port is a simple name, not actor.name.
+                // Hence, it must be an output port.
+                System.err.println("FIXME ***** " + info)
+                System.err.println("FIXME ***** recording " + connection.leftPort.container.name + "." + connection.leftPort.variable.name + " to " + connection.rightPort.variable.name
+                    + ": " + connection.rightPort.variable
                 )
+                if (connection.rightPort.variable instanceof Output) {
+                    info.outputToContainedOutput.put(
+                        connection.rightPort.variable as Output, connection.leftPort
+                    )
+                } else {
+                    reportError(connection, "Expected an output port but got "
+                        + connection.rightPort.variable.name
+                    )
+                }
             }
             
             // Next, check the connection and report any errors.			
@@ -331,7 +344,7 @@ class GeneratorBase {
 //			}
 		}
 	}
-	
+		
 	////////////////////////////////////////////
 	//// Utility functions for generating code.
 	
@@ -465,6 +478,19 @@ class GeneratorBase {
 	protected def prComment(String comment) {
 	    pr(code, '// ' + comment);
 	}
+
+    /** Create a new ReactorInstance object.
+     *  This can be overridden by specific code generators,
+     *  each of which should return something that subclasses
+     *  ReactorInstance.
+     *  @param definition The syntactic "new" command in the AST
+     *   that creates this reactor instance.
+     *  @param parent The reactor instance that creates this
+     *   reactor, or null if this is the main reactor.
+     */
+    protected def reactorInstanceFactory(Instantiation definition, ReactorInstance parent) {
+        return new ReactorInstance(definition, parent, this)
+    }
 
     /** Read a text file in the classpath and return its contents as a string.
      *  @param filename The file name as a path relative to the classpath.

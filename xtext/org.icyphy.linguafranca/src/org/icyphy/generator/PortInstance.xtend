@@ -25,6 +25,12 @@ class PortInstance {
     /** The Instantiation AST object from which this was created. */
     public var Port definition
     
+    /** Set of port instances that receive messages from this port. */
+    public HashSet<PortInstance> dependentPorts = new HashSet<PortInstance>();
+        
+    /** Set of port instances that send messages to this port. */
+    public HashSet<PortInstance> dependsOnPorts = new HashSet<PortInstance>();
+    
     /** Reaction instances that are triggered by this port. */
     public var dependentReactions = new HashSet<ReactionInstance>();
 
@@ -35,11 +41,33 @@ class PortInstance {
     public var ReactorInstance parent
     
     /** Properties associated with this instance.
-     *  This is used by particular code generators.
+     *  This may be used by particular code generators.
      */
     public var HashMap<String,Object> properties = new HashMap<String,Object>()
     
     /////////////////////////////////////////////
+    
+    /** Add to the dependsOnReactions all the reactions that this port
+     *  depends on indirectly through other ports. Do the same for the
+     *  dependent reactions. Clear out the dependentPorts and dependsOnPorts sets.
+     *  @param visited A set of port instances already visited.
+     */
+    def void collapseDependencies(HashSet<PortInstance> visited) {
+        if (visited.contains(this)) {
+            return;
+        }
+        visited.add(this);
+        for(PortInstance port: dependentPorts) {
+            port.collapseDependencies(visited);
+            dependentReactions.addAll(port.dependentReactions);
+        }
+        dependentPorts.clear();
+        for(PortInstance port: dependsOnPorts) {
+            port.collapseDependencies(visited);
+            dependsOnReactions.addAll(port.dependsOnReactions);
+        }
+        dependsOnPorts.clear();
+    }
     
     /** Return the full name of this instance, which has the form
      *  "a.b.c", where "c" is the name of this instance, "b" is the name
