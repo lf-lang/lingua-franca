@@ -30,16 +30,17 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         super(definition, parent)
         this.generator = generator
         
-        // Record how many times the definition has been used 
-        // to create a new ReactorInstance
-        var count = GeneratorBase.nameRegistry.get(this.prefix -> definition.name);
+        // Record how many times the an instance based on the same
+        // has been created on this level of the hierarchy. 
+        var count = GeneratorBase.nameRegistry.get(this.prefix -> definition.name); // FIXME: no need to have a list, we could just concat the two strings?
         if (count === null) {
         	count = 0
         }
         this.instantiationOrdinal = count++
         GeneratorBase.nameRegistry.put(this.prefix -> definition.name, this.instantiationOrdinal)
         
-        // Record how many new ReactorInstance objects have been created
+        // Record how many new ReactorInstance objects 
+        // have been created using the same definition.
         count = ReactorInstance.instanceCounter.get(definition);
         if (count === null) {
         	count = 0
@@ -55,12 +56,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
         // Instantiate inputs for this reactor instance
         for (inputDecl : definition.reactorClass.inputs) {
-            this.inputs.add(new PortInstance(inputDecl, parent))
+            this.inputs.add(new PortInstance(inputDecl, this))
         }
         
         // Instantiate outputs for this reactor instance
         for (outputDecl : definition.reactorClass.outputs) {
-            this.outputs.add(new PortInstance(outputDecl, parent))
+            this.outputs.add(new PortInstance(outputDecl, this))
         }
         
         // Populate destinations map.
@@ -95,15 +96,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
     /** The reactor instance that instantiated this reactor instance, or null if Main. */
     public var ReactorInstance parent
-            
-//    /** Port instances indexed by port. */
-//    public var portInstances = new HashMap<Port, PortInstance>()
-    
-    /** Properties associated with this instance.
-     *  This is used by particular code generators.
-     */
-    // FIXME: Replace this with subclassing.
-    // public var HashMap<String,Object> properties = new HashMap<String,Object>()
     
     /** List of reaction instances for this reactor instance. */
     public var LinkedHashMap<Reaction, ReactionInstance> reactionInstances = new LinkedHashMap(); // FIXME: Why is this not just an array?
