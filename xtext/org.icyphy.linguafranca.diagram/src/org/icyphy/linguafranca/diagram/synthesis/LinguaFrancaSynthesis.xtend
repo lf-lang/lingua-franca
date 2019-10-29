@@ -232,13 +232,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		// Transform connections
 		for (Connection connection : reactor.connections?:emptyList) {
-			val source = if (connection.leftPort.variable !== null) {
-				outputPorts.get(connection.leftPort.variable.name, connection.leftPort.variable.name)
+			val source = if (connection.leftPort.container !== null) {
+				outputPorts.get(connection.leftPort.container.name, connection.leftPort.variable.name)
 			} else if (parentInputPorts.containsKey(connection.leftPort)) {
-				parentInputPorts.get(connection.leftPort.variable.name)
+				parentInputPorts.get(connection.leftPort.container.name)
 			}
-			val target = if (connection.rightPort.variable !== null) {
-				inputPorts.get(connection.leftPort.variable.name, connection.leftPort.variable.name)
+			val target = if (connection.rightPort.container !== null) {
+				inputPorts.get(connection.leftPort.container.name, connection.leftPort.variable.name)
 			} else if (parentOutputPorts.containsKey(connection.rightPort)) {
 				parentOutputPorts.get(connection.rightPort)
 			}

@@ -5,12 +5,11 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.HashSet
-import org.icyphy.generator.ReactionGraph.ReactionInstance
 import org.icyphy.linguaFranca.Port
 
 /** Representation of a runtime instance of a port.
  */
-class PortInstance {
+class PortInstance extends NamedInstance<Port> {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
@@ -18,13 +17,9 @@ class PortInstance {
      *  @param parent The parent.
      */
     new(Port definition, ReactorInstance parent) {
-        this.definition = definition
-        this.parent = parent
+        super(definition, parent)
     }
-    
-    /** The Instantiation AST object from which this was created. */
-    public var Port definition
-    
+        
     /** Set of port instances that receive messages from this port. */
     public HashSet<PortInstance> dependentPorts = new HashSet<PortInstance>();
         
@@ -36,9 +31,6 @@ class PortInstance {
 
     /** Reaction instances that may send outputs via this port. */
     public var dependsOnReactions = new HashSet<ReactionInstance>();
-
-    /** The reactor instance that instantiated this port instance. */
-    public var ReactorInstance parent
     
     /** Properties associated with this instance.
      *  This may be used by particular code generators.
@@ -69,17 +61,11 @@ class PortInstance {
         dependsOnPorts.clear();
     }
     
-    /** Return the full name of this instance, which has the form
-     *  "a.b.c", where "c" is the name of this instance, "b" is the name
-     *  of its parent, and "a" is the name of its parent, stopping
-     *  at the container in main.
-     *  @return The full name of this instance.
+    /** Return the name of this port. 
+     *  @return The name of this port.
      */
-    def String getFullName() {
-        if (parent !== null) {
-            this.parent.getFullName() + '.' + definition.name
-        } else {
-            definition.name
-        }
+    override String getName() {
+    	this.definition.name
     }
+
 }

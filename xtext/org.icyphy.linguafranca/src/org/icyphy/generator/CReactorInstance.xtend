@@ -24,9 +24,6 @@ class CReactorInstance extends ReactorInstance {
     
     /** Map from a reaction definition to the name of its reaction_t struct. */
     public var reactionToReactionTName = new HashMap<Reaction, String>()
-    
-    /** Name of the "self" struct for this instance. */
-    public var selfStructName = "Unnamed"
 
     /** Map from an Input, Output, or Action to the name of its trigger_t struct. */
     public var triggerToTriggerStructName = new HashMap<Variable, String>()
