@@ -25,7 +25,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.generator.ReactionGraph.ReactionInstance
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionModifier
 import org.icyphy.linguaFranca.Import
