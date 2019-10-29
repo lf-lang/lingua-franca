@@ -32,6 +32,7 @@ import java.util.List
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Action
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -214,6 +215,12 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
+	def declareActions(Reactor r) '''
+		«FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
+			dear::Action<«a.trimmedType»> «a.name»{"«a.name»", this};
+		«ENDFOR»
+	'''
+
 	def declareReactionBodies(Reactor r) '''
 		«FOR n : r.reactions BEFORE '// reactions bodies\n' AFTER '\n'»
 			void «n.name»_body();
@@ -264,10 +271,14 @@ class CppGenerator extends GeneratorBase {
 
 	def declareAntidependencies(Reaction n) '''
 		«FOR t : n.effects»
-			«IF t.instance !== null»
-				«n.name».declare_antidependency(&«t.instance.name».«t.variable.name»);
+			«IF t.variable instanceof Action»
+				«n.name».declare_scheduable_action(&«t.variable.name»);
 			«ELSE»
-				«n.name».declare_antidependency(&«t.variable.name»);
+				«IF t.instance !== null»
+					«n.name».declare_antidependency(&«t.instance.name».«t.variable.name»);
+				«ELSE»
+					«n.name».declare_antidependency(&«t.variable.name»);
+				«ENDIF»
 			«ENDIF»
 		«ENDFOR»
 	'''
@@ -322,6 +333,14 @@ class CppGenerator extends GeneratorBase {
 			o.type.removeCodeDelimiter
 		} else {
 			'''/* «o.reportError("Input port has no type.")» */'''
+		}
+	}
+
+	def trimmedType(Action a) {
+		if (a.type !== null) {
+			a.type.removeCodeDelimiter
+		} else {
+			'''/* «a.reportError("Action has no type.")» */'''
 		}
 	}
 
@@ -451,6 +470,7 @@ class CppGenerator extends GeneratorBase {
 		  «r.declareStateVariables»
 		  «r.declareInstances»
 		  «r.declareTimers»
+		  «r.declareActions»
 		  «r.declareReactions»
 		  «r.declareReactionBodies»
 		 public:
@@ -475,9 +495,9 @@ class CppGenerator extends GeneratorBase {
 		  «FOR c : r.connections BEFORE "  // connections\n"»
 			«'''  «c.leftPort».bind_to(&«c.rightPort»);'''»
 			«ENDFOR»
-			}
+		}
 		
-			«r.implementReactionBodies»
+		«r.implementReactionBodies»
 	'''
 
 	def header() '''
