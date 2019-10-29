@@ -76,8 +76,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             dstInstances.add(this.getPortInstance(connection.rightPort))
         }
         
-        // Create the reaction instances in this reactor instance
-        // This also establishes all the implied dependencies
+        // Create the reaction instances in this reactor instance.
+        // This also establishes all the implied dependencies.
         createReactionInstances()
     }
     
@@ -96,8 +96,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** The reactor instance that instantiated this reactor instance, or null if Main. */
     public var ReactorInstance parent
             
-    /** Port instances indexed by port. */
-    public var portInstances = new HashMap<Port, PortInstance>()
+//    /** Port instances indexed by port. */
+//    public var portInstances = new HashMap<Port, PortInstance>()
     
     /** Properties associated with this instance.
      *  This is used by particular code generators.
@@ -121,113 +121,86 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     
     /////////////////////////////////////////////
     
-    
+    /** Create all the reaction instances of this reactor instance
+     *  and record the (anti-)dependencies between ports and reactions.
+     */
     def createReactionInstances() {
- 		var reactions = this.definition.reactorClass.reactions
-    	if (this.definition.reactorClass.reactions !== null) {
-            var ReactionInstance previousReaction = null
-            for (Reaction reaction : reactions) {
-                // Create the reaction instance.
-                var reactionInstance = new ReactionInstance(reaction, this)
-                // If there is an earlier reaction in this same reactor, then
-                // create a link
-                // in the dependence graph.
-                if (previousReaction !== null) {
-                    previousReaction.dependentReactions.add(reactionInstance)
-                    reactionInstance.dependsOnReactions.add(previousReaction)
-                }
-                previousReaction = reactionInstance;
-                // Add the reaction instance to the map of reactions for this
-                // reactor.
-                this.reactionInstances.put(reactionInstance.definition,
-                        reactionInstance);
-                // nodes.add(reactionInstance); // FIXME
+		var reactions = this.definition.reactorClass.reactions
+		if (this.definition.reactorClass.reactions !== null) {
+			var ReactionInstance previousReaction = null
+			for (Reaction reaction : reactions) {
+				// Create the reaction instance.
+				var reactionInstance = new ReactionInstance(reaction, this)
+				// If there is an earlier reaction in this same reactor, then
+				// create a link
+				// in the dependence graph.
+				if (previousReaction !== null) {
+					previousReaction.dependentReactions.add(reactionInstance)
+					reactionInstance.dependsOnReactions.add(previousReaction)
+				}
+				previousReaction = reactionInstance;
+				// Add the reaction instance to the map of reactions for this
+				// reactor.
+				this.reactionInstances.put(reactionInstance.definition, reactionInstance);
 
-                // If the reaction is triggered by an input to this reactor
-                // instance, then create a PortInstance for that port
-                // (if it does not already exist)
-                // and establish the dependency on that port.
-                // Only consider inputs and outputs, ignore actions and timers.
-                var EList<VarRef> deps = null;
-                // First handle dependencies
-                if (reaction.getTriggers() !== null) {
-                    deps = reaction.getTriggers();
-                }
-                if (reaction.getSources() !== null) {
-                    if (deps !== null) {
-                        deps.addAll(reaction.getSources());
-                    } else {
-                        deps = reaction.getSources();
-                    }
-                }
-                if (deps !== null) {
-                    for (VarRef ref : deps) {
-                        if (ref.getVariable() instanceof Input) {
-                            var Input input = ref.getVariable as Input;
-                            var PortInstance port = new PortInstance(
-                                    input, this);
-                            this.portInstances.put(input, port);
-                            port.dependentReactions.add(reactionInstance);
-                            reactionInstance.dependsOnPorts.add(port);
-                        } else if (ref.variable instanceof Output) {
-                            var ReactorInstance childInstance = this
-                                    .getChildReactorInstance(
-                                            ref.getContainer());
-                                var output = ref.variable as Output;
-                                var port = childInstance.portInstances
-                                        .get(output);
-                                if (port === null) {
-                                    port = new PortInstance(output, childInstance);
-                                    childInstance.portInstances.put(output, port);
-                                }
-                                port.dependentReactions.add(reactionInstance);
-                                reactionInstance.dependentPorts.add(port);
-                            
-                        }
-                    }
-                }
+				// Establish (anti-)dependencies based
+				// on what reactions use and produce.
+				// Only consider inputs and outputs, ignore actions and timers.
+				var EList<VarRef> deps = null;
+				// First handle dependencies
+				if (reaction.getTriggers() !== null) {
+					deps = reaction.getTriggers();
+				}
+				if (reaction.getSources() !== null) {
+					if (deps !== null) {
+						deps.addAll(reaction.getSources());
+					} else {
+						deps = reaction.getSources();
+					}
+				}
+				if (deps !== null) {
+					for (VarRef dep : deps) {
+						if (dep.getVariable() instanceof Input) {
+							var PortInstance port = this.getPortInstance(dep)
+							port.dependentReactions.add(reactionInstance);
+							reactionInstance.dependsOnPorts.add(port);
+						} else if (dep.variable instanceof Output) {
+							var ReactorInstance childInstance = this.getChildReactorInstance(dep.getContainer());
+							var port = childInstance.getPortInstance(dep);
+							port.dependentReactions.add(reactionInstance);
+							reactionInstance.dependentPorts.add(port);
+						}
+					}
+				}
 
-                // Then handle anti-dependencies
-                // If the reaction produces an output from this reactor
-                // instance,
-                // then create a PortInstance for that port (if it does not
-                // already exist)
-                // and establish the dependency on that port.
-                if (reaction.effects !== null) {
-                    for (VarRef antidep : reaction.getEffects()) {
-                        // Check for dotted output, which is the input of a
-                        // contained reactor.
-                        if (antidep.variable instanceof Input) {
-                            var childInstance = this
-                                    .getChildReactorInstance(
-                                            antidep.getContainer());
-                                var input = antidep.getVariable() as Input;
-                                var port = childInstance.portInstances
-                                        .get(input);
-                                if (port === null) {
-                                    port = new PortInstance(input, childInstance);
-                                    childInstance.portInstances.put(input, port);
-                                }
-                                port.dependsOnReactions.add(reactionInstance);
-                                reactionInstance.dependentPorts.add(port);
-                            
-                        } else if (antidep.variable instanceof Output) {
-                            var output = antidep.getVariable() as Output;
-                            var port = this.portInstances
-                                    .get(output);
-                            if (port === null) {
-                                port = new PortInstance(output, this);
-                                this.portInstances.put(output, port);
-                            }
-                            port.dependsOnReactions.add(reactionInstance);
-                            reactionInstance.dependentPorts.add(port);
-                        }
-                    }
-                }
-            }
-        }
-    	
-    }
+				// Then handle anti-dependencies
+				// If the reaction produces an output from this reactor
+				// instance,
+				// then create a PortInstance for that port (if it does not
+				// already exist)
+				// and establish the dependency on that port.
+				if (reaction.effects !== null) {
+					for (VarRef antidep : reaction.getEffects()) {
+						// Check for dotted output, which is the input of a
+						// contained reactor.
+						if (antidep.variable instanceof Input) {
+							var childInstance = this.getChildReactorInstance(antidep.getContainer());
+
+							var port = childInstance.getPortInstance(antidep);
+							port.dependsOnReactions.add(reactionInstance);
+							reactionInstance.dependentPorts.add(port);
+
+						} else if (antidep.variable instanceof Output) {
+							var port = this.getPortInstance(antidep);
+							port.dependsOnReactions.add(reactionInstance);
+							reactionInstance.dependentPorts.add(port);
+						}
+					}
+				}
+			}
+		}
+
+	}
     
     
     /** Return the name of this instance. If other instances due to
