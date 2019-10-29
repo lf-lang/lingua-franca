@@ -10,7 +10,7 @@ import org.icyphy.linguaFranca.Port
 
 /** Representation of a runtime instance of a port.
  */
-class PortInstance {
+class PortInstance extends NamedInstance<Port> {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
@@ -18,21 +18,14 @@ class PortInstance {
      *  @param parent The parent.
      */
     new(Port definition, ReactorInstance parent) {
-        this.definition = definition
-        this.parent = parent
+        super(definition, parent)
     }
-    
-    /** The Instantiation AST object from which this was created. */
-    public var Port definition
-    
+        
     /** Reaction instances that are triggered by this port. */
     public var dependentReactions = new HashSet<ReactionInstance>();
 
     /** Reaction instances that may send outputs via this port. */
     public var dependsOnReactions = new HashSet<ReactionInstance>();
-
-    /** The reactor instance that instantiated this port instance. */
-    public var ReactorInstance parent
     
     /** Properties associated with this instance.
      *  This is used by particular code generators.
@@ -40,40 +33,12 @@ class PortInstance {
     public var HashMap<String,Object> properties = new HashMap<String,Object>()
     
     /////////////////////////////////////////////
-    
-    /** Return the full name of this instance, which has the form
-     *  "a.b.c", where "c" is the name of this instance, "b" is the name
-     *  of its parent, and "a" is the name of its parent, stopping
-     *  at the container in main.
-     *  @return The full name of this instance.
+				
+    /** Return the name of this port. 
+     *  @return The name of this port.
      */
-    def String getFullName() {
-        if (parent !== null) {
-            this.parent.getFullName() + '.' + definition.name
-        } else {
-            definition.name
-        }
+    override String getName() {
+    	this.definition.name
     }
-    
-//    /** Add to the dependsOnReactions all the reactions that this port
-//     *  depends on indirectly through other ports. Do the same for the
-//     *  dependent reactions. Clear out the dependentPorts and dependsOnPorts sets.
-//     *  @param visited A set of port instances already visited.
-//     */
-//	def void collapseDependencies(HashSet<PortInstance> visited) {
-//		if (visited.contains(this)) {
-//			return;
-//		}
-//		visited.add(this);
-//		for(PortInstance port: dependentPorts) {
-//			port.collapseDependencies(visited);
-//			dependentReactions.addAll(port.dependentReactions);
-//		}
-//		dependentPorts.clear();
-//		for(PortInstance port: dependsOnPorts) {
-//			port.collapseDependencies(visited);
-//			dependsOnReactions.addAll(port.dependsOnReactions);
-//		}
-//		dependsOnPorts.clear();
-//	}
+
 }

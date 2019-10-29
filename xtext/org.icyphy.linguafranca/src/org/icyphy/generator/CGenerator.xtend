@@ -49,11 +49,9 @@ import org.icyphy.linguaFranca.VarRef
 class CGenerator extends GeneratorBase {
 
 	// For each reactor, we collect a set of input and parameter names.
-	var reactorClassCount = 0
 	var reactionCount = 0
 	var reactionInstanceCount = 0
 	var triggerCount = 0
-	var instanceCount = 0
 	var tmpVariableCount = 0
 
 	// Indicator of whether to generate multithreaded code and how many by default.
@@ -249,19 +247,7 @@ class CGenerator extends GeneratorBase {
 			} catch (IllegalStateException e) {
 				println("Unable to refresh workspace: " + e)
 			}
-		}
-        
-        // Create directories for generated source and binary if they do not exist.
-//        var directory = new File(outPath)
-//        if (! directory.exists()){
-//            directory.mkdir()
-//        }
-//        directory = new File(srcGenPath)
-//        if (! directory.exists()){
-//            directory.mkdir()
-//        }
-        
-        
+		}        
         
 		// Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
@@ -352,10 +338,9 @@ class CGenerator extends GeneratorBase {
 		// Put parameters into a struct and construct the code to go
 		// into the preamble of any reaction function to extract the
 		// parameters from the struct.
-		val argType = "reactor_instance_" + (reactorClassCount++) + "_self_t"
-
+		//val argType = "reactor_instance_" + (reactorClassCount++) + "_self_t"
+		val argType = reactor.name.toLowerCase + "_self_t" 
 		// Construct the typedef for the "self" struct.
-		// NOTE: The struct cannot be empty in C; should we make a dummy field or suppress the struct?
 		var body = new StringBuilder()
 		// Start with parameters.
 		for (parameter : reactor.parameters) {
@@ -456,10 +441,11 @@ class CGenerator extends GeneratorBase {
 	def generateReactions(Reactor reactor) {
 		var reactions = reactor.reactions
 		var classInfo = ReactorInfo.get(reactor)
+		var reactionIndex = 0;
 		for (reaction : reactions) {
 			// Create a unique function name for each reaction.
-			val functionName = "reaction_function" + reactionCount
-
+			//val functionName = "reaction_function" + reactionCount
+			val functionName = reactor.name.toLowerCase + "_rfunc_" + reactionIndex
 			classInfo.targetProperties.put(reaction, functionName)
 
 			// Construct the reactionInitialization code to go into
@@ -590,6 +576,7 @@ class CGenerator extends GeneratorBase {
                 pr("}")
 			}
 			reactionCount++
+			reactionIndex++
 		}
 	}
 
@@ -642,7 +629,6 @@ class CGenerator extends GeneratorBase {
 	 */
 	def generateTriggerForTransferOutputs(
 		ReactorInstance reactorInstance,
-		String nameOfSelfStruct,
 		HashMap<PortInstance, String> triggerToTriggerStruct
 	) {
 		// FIXME: This code is rather similar to that in generateTriggerObjects(). Refactor?
@@ -712,7 +698,7 @@ class CGenerator extends GeneratorBase {
 			var outputProducedArray = '__' + functionName + '_outputs_are_present'
 			pr(
 				result,
-				'bool* ' + outputProducedArray + '[]' + ' = {' + '&' + nameOfSelfStruct + '.__' + output.variable.name +
+				'bool* ' + outputProducedArray + '[]' + ' = {' + '&' + selfStructName(reactorInstance) + '.__' + output.variable.name +
 					'_is_present' + '};'
 			)
 			// Create a array with ints indicating these
@@ -735,7 +721,7 @@ class CGenerator extends GeneratorBase {
 			var reactionInstanceName = "__reaction" + reactionInstanceCount++
 			pr(
 				result,
-				"reaction_t " + reactionInstanceName + " = {&" + functionName + ", &" + nameOfSelfStruct + ", 0" // index: index from the topological sort.
+				"reaction_t " + reactionInstanceName + " = {&" + functionName + ", &" + selfStructName(reactorInstance) + ", 0" // index: index from the topological sort.
 				+ ", 0" // pos: position used by the pqueue implementation for sorting.
 				+ ", 1" // num_outputs: number of outputs produced by this reaction. This is just one.
 				+ ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
@@ -789,7 +775,7 @@ class CGenerator extends GeneratorBase {
 	 *   null if there isn't one.
 	 *  @return A map of trigger names to the name of the trigger struct.
 	 */
-	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfSelfStruct) {
+	def generateTriggerObjects(ReactorInstance reactorInstance) {
 		var triggerToTriggerStruct = new HashMap<PortInstance, String>()
 		
 		// If there is no instance statement, then this is main.
@@ -809,12 +795,14 @@ class CGenerator extends GeneratorBase {
 
 			// Generate reaction_t struct.
 			// Along the way, we need to generate its contents, including trigger_t structs.
-			for (reaction : triggerToReactions.get(trigger)) {
+			var reactionIndex = 0;
+			for (reaction : triggerToReactions.get(trigger)) { // FIXME: we should probably iterate over reactorInstance.reactionInstances 
+			
 				var functionName = classInfo.targetProperties.get(reaction)
 				pr(
 					result,
 					'// --- Reaction and trigger objects for reaction to trigger ' + trigger.variable.name + ' of instance ' +
-						reactorInstance.definition.name
+						reactorInstance.fullName + " (" + reactorInstance.instanceID + ")"
 				)
 				// First check to see whether the reaction_t object has already been
 				// created for this reaction.
@@ -822,8 +810,8 @@ class CGenerator extends GeneratorBase {
 				if (reactionInstanceName === null) {
 					// There isn't already a reaction_t object for this reaction.
 					// Generate a reaction_t object for an instance of a reaction.
-					reactionInstanceName = "__reaction" + reactionInstanceCount++
-
+					//reactionInstanceName = "__reaction" + reactionInstanceCount++
+					reactionInstanceName = reactorInstance.instanceID + "_r_" + reactionIndex;
 					// Store the reaction_t object name for future use, indexed by the Reaction.
 					reactionToReactionTName.put(reaction, reactionInstanceName)
 
@@ -842,7 +830,7 @@ class CGenerator extends GeneratorBase {
 								if (presentPredicates.length > 0) {
 									presentPredicates.append(", ")
 								}
-								presentPredicates.append('&' + nameOfSelfStruct + '.__' + effect.variable.name +
+								presentPredicates.append('&' + selfStructName(reactorInstance) + '.__' + effect.variable.name +
 									'_is_present')
 								outputCount++
 
@@ -851,7 +839,7 @@ class CGenerator extends GeneratorBase {
 								// For each output, obtain the destinations from the container.
 								var parent = reactorInstance.parent
 								var destinations = null as HashSet<PortInstance>
-								if (parent !== null) {
+								if (parent !== null) { // This assumes that top-level reactors cannot have outputs.
 									destinations = parent.transitiveClosure(reactorInstance.getPortInstance(effect))
 								} else {
 								    // At the top level, where there cannot be any destinations.
@@ -882,7 +870,7 @@ class CGenerator extends GeneratorBase {
 									for (destination : destinations) {
 										deferredInitialize.add(
 											new InitializeRemoteTriggersTable(
-												parent,
+												reactorInstance,
 												remoteTriggersArrayName,
 												(inputCount++),
 												destination
@@ -905,7 +893,7 @@ class CGenerator extends GeneratorBase {
 									presentPredicates.append(", ")
 								}
 								presentPredicates.append(
-									'&' + nameOfSelfStruct + '.__' + effect.container.name + '_' + input.name + '_is_present'
+									'&' + selfStructName(reactorInstance) + '.__' + effect.container.name + '_' + input.name + '_is_present'
 								)
 								outputCount++
 
@@ -917,7 +905,7 @@ class CGenerator extends GeneratorBase {
 								var remoteTriggersArrayName = reactionInstanceName + '_' + outputCount +
 									'_remote_triggers'
 									
-								// FIXME: computer transitive closure here as well
+								// FIXME: computer transitive closure here as well?
 								deferredInitialize.add(
 									new InitializeRemoteTriggersTable(
 										reactorInstance,
@@ -965,8 +953,8 @@ class CGenerator extends GeneratorBase {
 					// Finally, produce the reaction_t struct.			
 					// The argument specifying the self struct may be NULL if there
 					// is no self struct.
-					var selfStructArgument = ", &" + nameOfSelfStruct
-					if (nameOfSelfStruct === null) {
+					var selfStructArgument = ", &" + selfStructName(reactorInstance)
+					if (classInfo.targetProperties.get("structType") === null) {
 						selfStructArgument = ", NULL"
 					}
 					var deadlineFunctionPointer = ", NULL"
@@ -998,6 +986,7 @@ class CGenerator extends GeneratorBase {
 					reactionTNames.append(", ")
 				}
 				reactionTNames.append('&' + reactionInstanceName)
+				reactionIndex++
 			}
 			var triggerStructName = trigger.variable.name + triggerCount.toString
 
@@ -1059,6 +1048,10 @@ class CGenerator extends GeneratorBase {
 		return triggerToTriggerStruct
 	}
 
+	def selfStructName(ReactorInstance instance) {
+		return instance.instanceID + "_self"
+	}
+
 	/** Traverse the runtime hierarchy of reaction instances and generate code.
 	 *  @param instance A reactor instance.
 	 */
@@ -1073,20 +1066,16 @@ class CGenerator extends GeneratorBase {
 		// Generate the instance struct containing parameters, state variables,
 		// and outputs (the "self" struct).
 		
-		var nameOfSelfStruct = "__self_" + instanceCount++ + "_" + instanceName
 		var structType = classInfo.targetProperties.get("structType")
 		if (structType !== null) {
-			pr('// --- "self" struct for instance ' + instanceName)
-			pr(structType + " " + nameOfSelfStruct + ";")
-		} else {
-			// Nullify the name, indicating that there is no self struct.
-			nameOfSelfStruct = null;
+			pr('// --- "self" struct for instance ' + instance.fullName + " (" + instance.instanceID + ")")
+			pr(structType + " " + selfStructName(instance) + ";")
 		}
 
 		// Generate code to initialize the "self" struct in the
 		// __initialize_trigger_objects function.
 		// Create a scope for the parameters in case the names collide with other instances.
-		pr(initializeTriggerObjects, "{ // Scope for " + instanceName)
+		pr(initializeTriggerObjects, "{ // Scope for " + instance.fullName)
 		indent(initializeTriggerObjects)
 		// Start with parameters.
 		// First, collect the overrides.
@@ -1120,27 +1109,27 @@ class CGenerator extends GeneratorBase {
 			pr(initializeTriggerObjects, getParameterType(parameter) + ' ' + tmpVariableName + ' = ' + value + ';')
 			pr(initializeTriggerObjects,
 				getParameterType(parameter) + ' ' + parameter.name + ' = ' + tmpVariableName + ';')
-			pr(initializeTriggerObjects, nameOfSelfStruct + "." + parameter.name + " = " + value + ";")
+			pr(initializeTriggerObjects, selfStructName(instance) + "." + parameter.name + " = " + value + ";")
 		}
 		// Next, initialize the "self" struct with state variables.
 		for (state : reactorClass.states) {
 			var value = removeCodeDelimiter(state.value)
-			pr(initializeTriggerObjects, nameOfSelfStruct + "." + state.name + " = " + value + ";")
+			pr(initializeTriggerObjects, selfStructName(instance) + "." + state.name + " = " + value + ";")
 		}
 
 		// Store the name of the "self" struct as a property of the instance
 		// so that it can be used when establishing connections.
 		// Only store it if the structType was actually created, however.
-		if (nameOfSelfStruct !== null) {
-			instance.properties.put("selfStructName", nameOfSelfStruct)
-		}
+//		if (nameOfSelfStruct !== null) {
+//			instance.properties.put("selfStructName", selfStructName(instance))
+//		}
 
 		// Generate trigger objects for the instance.
-		var triggerToTriggerStruct = generateTriggerObjects(instance, nameOfSelfStruct)
+		var triggerToTriggerStruct = generateTriggerObjects(instance)
 		instance.properties.put("triggerToTriggerStruct", triggerToTriggerStruct)
 
 		// Generate trigger objects for transferring outputs of a composite.
-		generateTriggerForTransferOutputs(instance, nameOfSelfStruct, triggerToTriggerStruct)
+		generateTriggerForTransferOutputs(instance, triggerToTriggerStruct)
 
 		// Next, initialize the struct with actions.
 		for (action : reactorClass.actions) {
@@ -1151,7 +1140,7 @@ class CGenerator extends GeneratorBase {
 			// FIXME: Actions may have payloads.
 			pr(
 				initializeTriggerObjects,
-				nameOfSelfStruct + '.__' + action.name + ' = &' + triggerStruct + ';' // FIXME: triggerStruct is null
+				selfStructName(instance) + '.__' + action.name + ' = &' + triggerStruct + ';' // FIXME: triggerStruct is null
 			)
 		}
 		// Next, generate the code to initialize outputs and inputs at the start
@@ -1159,7 +1148,7 @@ class CGenerator extends GeneratorBase {
 		for (output : reactorClass.outputs) {
 			pr(
 				startTimeStep,
-				nameOfSelfStruct + '.__' + output.name + '_is_present = false;'
+				selfStructName(instance) + '.__' + output.name + '_is_present = false;'
 			)
 		}
 		// Handle reaction local deadlines.
@@ -1215,12 +1204,13 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 
-		unindent(initializeTriggerObjects)
-		pr(initializeTriggerObjects, "} // End of scope for " + instance.definition.name)
-		
 		for (child : instance.children) {
 			generateReactorInstance(child)
 		}
+		unindent(initializeTriggerObjects)
+		pr(initializeTriggerObjects, "} // End of scope for " + instance.fullName)
+		
+		
 	}
 
 	/** Set the reaction priorities based on dependency analysis. */
@@ -1232,8 +1222,8 @@ class CGenerator extends GeneratorBase {
 		// Use "reactionToReactionTName" property of reactionInstance
 		// to set the levels.
 		for (ReactionInstance instance : graph.nodes) {
-			val map = instance.reactorInstance.properties.get("reactionToReactionTName") as HashMap<Reaction, String>;
-			val reactionTName = map.get(instance.reactionSpec);
+			val map = instance.parent.properties.get("reactionToReactionTName") as HashMap<Reaction, String>;
+			val reactionTName = map.get(instance.definition);
 			pr(reactionTName + ".index = " + instance.level + ";")
 		}
 	}
@@ -1299,7 +1289,7 @@ class CGenerator extends GeneratorBase {
 			for (destination : instance.destinations.get(source)) {
 				var destStruct = null as String
 				if (destination.parent === instance) {
-					destStruct = instance.properties.get("selfStructName") as String
+					destStruct = instance.properties.get("selfStructName") as String // FIXME: getting null here
 				} else {
 					destStruct = instance.getChildReactorInstance(destination.parent.definition).properties.get(
 						"selfStructName") as String
@@ -1635,4 +1625,5 @@ class CGenerator extends GeneratorBase {
 	val static includes = '''
 		#include "pqueue.c"
 	'''
+	
 }

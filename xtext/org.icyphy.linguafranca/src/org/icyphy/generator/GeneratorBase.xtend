@@ -37,6 +37,8 @@ import org.icyphy.linguaFranca.VarRef
  */
 class GeneratorBase {
 	
+	public static var HashMap<Pair<String, String>, Integer> nameRegistry = new HashMap();	
+	
 	/** Precedence graph of reaction instances. */
 	var precedenceGraph = new ReactionGraph(this)
 	
