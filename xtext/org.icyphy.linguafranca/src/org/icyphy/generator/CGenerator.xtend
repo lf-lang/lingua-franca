@@ -133,8 +133,10 @@ class CGenerator extends GeneratorBase {
 
 		super.doGenerate(resource, fsa, context, importTable)
 
-		// Generate main instance
-		generateReactorInstance(this.main)
+		// Generate main instance, if there is one.
+		if (this.main !== null) {
+            generateReactorInstance(this.main)
+        }
 	
 		// Determine path to generated code
 		val cFilename = _filename + ".c";
@@ -387,8 +389,11 @@ class CGenerator extends GeneratorBase {
 				pr(body, 'bool __' + output.name + '_is_present;')
 				// If there are contained reactors that send data via this output,
 				// then create a place to put the pointers to the sources of that data.
+                System.err.println("FIXME ***** " + classInfo)
+                System.err.println("FIXME ***** fetching " + output.name + ": " + output)
 				var containedSource = classInfo.outputToContainedOutput.get(output)
 				if (containedSource !== null) { // FIXME: outputToContainedOutput appears to be always null
+                System.err.println("FIXME ***** containedSource " + containedSource.variable.name)
 					pr(body, removeCodeDelimiter(output.type) + '* __' + output.name + '_inside;')
 					pr(body, 'bool* __' + output.name + '_inside_is_present;')
 				}
@@ -531,13 +536,7 @@ class CGenerator extends GeneratorBase {
 					} else {
 						if (effect.variable instanceof Output) {
 							generateOutputVariablesInReaction(reactionInitialization, effect.variable as Output)
-						} //						var split = output.split('\\.') // FIXME
-//						if (split.length === 1) {
-//							// It is an output.
-//							var out = getOutput(reactor, output)
-//							
-						// }
-						else if (effect.variable instanceof Input) {
+						} else if (effect.variable instanceof Input) {
 							// It is the input of a contained reactor.
 							generateVariablesForSendingToContainedReactors(
 								reactionInitialization,
@@ -545,7 +544,9 @@ class CGenerator extends GeneratorBase {
 								effect.variable as Input
 							)
 						} else {
-							// ERROR
+							reportError(reaction, "In generateReactor(): "
+							    + effect.variable.name + " is neither an input nor an output."
+							)
 						}
 					}
 				}
@@ -594,7 +595,7 @@ class CGenerator extends GeneratorBase {
 			// The following function name will be unique, assuming that
 			// reactor class names are unique and within each reactor class,
 			// output names are unique.
-			val functionName = "transfer_output_" + reactor.name + "_" + output.variable.name
+			val functionName = "transfer_output_" + reactor.name + "_" + output.name
 
 			pr('void ' + functionName + '(void* instance_args) {')
 			indent()
@@ -605,9 +606,9 @@ class CGenerator extends GeneratorBase {
 			pr(structType + "* self = (" + structType + "*)instance_args;")
 
 			// Transfer the output value from the inside value.
-			pr("self->__" + output.variable.name + " = *(self->__" + output.variable.name + "_inside);")
+			pr("self->__" + output.name + " = *(self->__" + output.name + "_inside);")
 			// Transfer the presence flag from the inside value.
-			pr("self->__" + output.variable.name + "_is_present = *(self->__" + output.variable.name + "_inside_is_present);")
+			pr("self->__" + output.name + "_is_present = *(self->__" + output.name + "_inside_is_present);")
 			unindent()
 			pr("}")
 		}
@@ -626,8 +627,7 @@ class CGenerator extends GeneratorBase {
 	 */
 	def generateTriggerForTransferOutputs(
 		ReactorInstance reactorInstance,
-		String nameOfSelfStruct,
-		HashMap<PortInstance, String> triggerToTriggerStruct
+		String nameOfSelfStruct
 	) {
 		// FIXME: This code is rather similar to that in generateTriggerObjects(). Refactor?
 		var classInfo = ReactorInfo.get(reactorInstance.definition.reactorClass)
@@ -638,7 +638,7 @@ class CGenerator extends GeneratorBase {
 		
 		for (output : classInfo.outputToContainedOutput.keySet()) {
 			// The function name for the transfer outputs function:
-			val functionName = "transfer_output_" + reactorInstance.definition.name + "_" + output.variable.name
+			val functionName = "transfer_output_" + reactorInstance.definition.name + "_" + output.name
 
 			pr(result, "// --- Reaction and trigger objects for transfer outputs for output " + output)
 
@@ -649,7 +649,7 @@ class CGenerator extends GeneratorBase {
 			var parent = reactorInstance.parent
             var destinations = null as HashSet<PortInstance>
             if (parent !== null) {
-                destinations = parent.transitiveClosure(parent.getPortInstance(output))
+                destinations = parent.transitiveClosure(parent.lookupLocalPort(output))
             } else {
                 // At the top level, where there cannot be any destinations.
                 destinations = new HashSet<PortInstance>()
@@ -696,7 +696,7 @@ class CGenerator extends GeneratorBase {
 			var outputProducedArray = '__' + functionName + '_outputs_are_present'
 			pr(
 				result,
-				'bool* ' + outputProducedArray + '[]' + ' = {' + '&' + nameOfSelfStruct + '.__' + output.variable.name +
+				'bool* ' + outputProducedArray + '[]' + ' = {' + '&' + nameOfSelfStruct + '.__' + output.name +
 					'_is_present' + '};'
 			)
 			// Create a array with ints indicating these
@@ -733,18 +733,20 @@ class CGenerator extends GeneratorBase {
                 + ", -1LL"  // violation_handled for container deadline.
 				+ "};"
 			)
-			pr(result, 'reaction_t* ' + output.variable.name + triggerCount + '_reactions[1] = {&' + reactionInstanceName + '};')
+			pr(result, 'reaction_t* ' + output.name + triggerCount + '_reactions[1] = {&' + reactionInstanceName + '};')
 
-			pr(result, 'trigger_t ' + output.variable.name + triggerCount + ' = {')
+			pr(result, 'trigger_t ' + output.name + triggerCount + ' = {')
 			indent(result)
-			pr(result, output.variable.name + triggerCount.toString + '_reactions, 1, 0LL, 0LL, NULL, false')
+			pr(result, output.name + triggerCount.toString + '_reactions, 1, 0LL, 0LL, NULL, false')
 			unindent(result)
 			pr(result, '};')
 
 			// name output + triggerCount has to be recorded here because
 			// doDeferredInitialize needs it to initialize the remote_triggers
-			// array of the gain reaction that produces the output.            
-			triggerToTriggerStruct.put(reactorInstance.getPortInstance(output), output.variable.name + triggerCount.toString)
+			// array of the gain reaction that produces the output.
+			(reactorInstance as CReactorInstance).triggerToTriggerStructName.put(
+			    output, output.name + triggerCount.toString
+			)
 			
 			triggerCount++
 		}
@@ -773,17 +775,14 @@ class CGenerator extends GeneratorBase {
 	 *   null if there isn't one.
 	 *  @return A map of trigger names to the name of the trigger struct.
 	 */
-	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfSelfStruct) {
-		var triggerToTriggerStruct = new HashMap<PortInstance, String>()
-		
+	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfSelfStruct) {		
 		// If there is no instance statement, then this is main.
 		val classInfo = ReactorInfo.get(reactorInstance.definition.reactorClass)
 		val triggerToReactions = classInfo.triggerToReactions
 		val result = new StringBuilder()
 
 		// Create a place to store reaction_t object names, indexed by Reaction.
-		val reactionToReactionTName = new HashMap<Reaction, String>()
-		reactorInstance.properties.put("reactionToReactionTName", reactionToReactionTName)
+		val reactionToReactionTName = (reactorInstance as CReactorInstance).reactionToReactionTName
 
 		var count = 0
 		for (trigger : triggerToReactions.keySet) {
@@ -981,10 +980,10 @@ class CGenerator extends GeneratorBase {
 				}
 				reactionTNames.append('&' + reactionInstanceName)
 			}
-			var triggerStructName = trigger.variable.name + triggerCount.toString
+			var triggerStructName = trigger.variable.name + triggerCount.toString()
 
 			// Record the triggerStructName.
-			triggerToTriggerStruct.put(reactorInstance.getPortInstance(trigger), triggerStructName)
+            (reactorInstance as CReactorInstance).triggerToTriggerStructName.put(trigger.variable, triggerStructName)
 
 			pr(result,
 				'reaction_t* ' + triggerStructName + '_reactions[' + numberOfReactionsTriggered + '] = {' +
@@ -993,19 +992,18 @@ class CGenerator extends GeneratorBase {
 			// value is a struct.
 			pr(result, 'trigger_t ' + triggerStructName + ' = {')
 			indent(result)
-			//var timing = getTiming(reactor, trigger.name)
-			if (trigger instanceof Timer || trigger instanceof Input) {
+			if (trigger.variable instanceof Timer || trigger.variable instanceof Input) {
 				pr(
 					result,
 					triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' + '0LL, 0LL, NULL, false'
 				)
-			} else if (trigger instanceof Action) {
+			} else if (trigger.variable instanceof Action) {
 				var isPhysical = "true";
-				var delay = (trigger as Action).delay
+				var delay = (trigger.variable as Action).delay
 				if (delay === null) {
-					delay = "0"
+					delay = "0LL"
 				}
-				if ((trigger as Action).modifier == ActionModifier.LOGICAL) {
+				if ((trigger.variable as Action).modifier == ActionModifier.LOGICAL) {
 					isPhysical = "false";
 				}
 				pr(
@@ -1014,14 +1012,16 @@ class CGenerator extends GeneratorBase {
 						delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
 				)
 			} else {
-				//reportError(reactorInstance.definition, "Internal error: Seems to not be an input, timer, or action: " + trigger.variable.name)
+				reportError(reactorInstance.definition, "Internal error: Seems to not be an input, timer, or action: "
+				    + trigger.variable.name
+				)
 			}
 			unindent(result)
 			pr(result, '};')
 			// Assignment of the offset and period have to occur after creating
 			// the struct because the value assigned may not be a compile-time constant.
-			if (trigger instanceof Timer) {
-				val timing = (trigger as Timer).timing
+			if (trigger.variable instanceof Timer) {
+				val timing = (trigger.variable as Timer).timing
 				var offset = if (timing === null) { null } else {timing.offset}
 				var period = if (timing === null) { null } else {timing.period}
 
@@ -1038,7 +1038,6 @@ class CGenerator extends GeneratorBase {
 		}
 		// This goes directly out to the generated code.
 		pr(result.toString())
-		return triggerToTriggerStruct
 	}
 
 	/** Traverse the runtime hierarchy of reaction instances and generate code.
@@ -1114,27 +1113,27 @@ class CGenerator extends GeneratorBase {
 		// so that it can be used when establishing connections.
 		// Only store it if the structType was actually created, however.
 		if (nameOfSelfStruct !== null) {
-			instance.properties.put("selfStructName", nameOfSelfStruct)
+			(instance as CReactorInstance).selfStructName = nameOfSelfStruct
 		}
 
 		// Generate trigger objects for the instance.
-		var triggerToTriggerStruct = generateTriggerObjects(instance, nameOfSelfStruct)
-		instance.properties.put("triggerToTriggerStruct", triggerToTriggerStruct)
+		generateTriggerObjects(instance, nameOfSelfStruct)
 
 		// Generate trigger objects for transferring outputs of a composite.
-		generateTriggerForTransferOutputs(instance, nameOfSelfStruct, triggerToTriggerStruct)
+		generateTriggerForTransferOutputs(instance, nameOfSelfStruct)
 
 		// Next, initialize the struct with actions.
 		for (action : reactorClass.actions) {
-			var triggerStruct = triggerToTriggerStruct.get(action)
+		    // FIXME: The following always seems to return null.
+			var triggerStruct = (instance as CReactorInstance).triggerToTriggerStructName.get(action)
 			if (triggerStruct === null) {
 				reportError(reactorClass, "Internal error: No trigger struct found for action " + action.name)
-			}
-			// FIXME: Actions may have payloads.
-			pr(
-				initializeTriggerObjects,
-				nameOfSelfStruct + '.__' + action.name + ' = &' + triggerStruct + ';' // FIXME: triggerStruct is null
-			)
+			} else {
+			    pr(
+				    initializeTriggerObjects,
+				    nameOfSelfStruct + '.__' + action.name + ' = &' + triggerStruct + ';' // FIXME: triggerStruct is null
+			    )
+		    }
 		}
 		// Next, generate the code to initialize outputs and inputs at the start
 		// of a time step to be absent.
@@ -1147,8 +1146,7 @@ class CGenerator extends GeneratorBase {
 		// Handle reaction local deadlines.
 		for (reaction: reactorClass.reactions) {
 		    if (reaction.localDeadline !== null) {
-                var reactionToReactionTName = instance.properties.get("reactionToReactionTName")
-                var reactionTName = (reactionToReactionTName as HashMap<Reaction, String>).get(reaction)
+                var reactionTName = (instance as CReactorInstance).reactionToReactionTName.get(reaction)
 		        pr(initializeTriggerObjects, reactionTName + '.local_deadline = ' + timeMacro(reaction.localDeadline.time) + ';')
 		    }
 		}
@@ -1161,7 +1159,8 @@ class CGenerator extends GeneratorBase {
 				var reactions = triggerToReactions.get(deadline.port.variable.name)
 				if (reactions !== null) {
 					for (reaction : reactions) {
-						var reactionToReactionTName = instance.getChildReactorInstance(deadline.port.container).properties.get("reactionToReactionTName")
+                        var childReactorInstance = instance.getChildReactorInstance(deadline.port.container)
+						var reactionToReactionTName = (childReactorInstance as CReactorInstance).reactionToReactionTName
 						var reactionTName = (reactionToReactionTName as HashMap<Reaction, String>).get(reaction)
 						if (reactionTName === null) {
 							reportError(deadline, "Internal error: No reaction_t object found for reaction.")
@@ -1169,25 +1168,16 @@ class CGenerator extends GeneratorBase {
 							pr(initializeTriggerObjects, reactionTName + '.deadline = ' + timeMacro(deadline.delay) + ';')
 	
 							// Next, set the deadline_violation field to point to the trigger_t struct.
-							var triggerMap = instance.properties.get("triggerToTriggerStruct")
-							if (triggerMap === null) {
+						    var triggerStructName = (instance as CReactorInstance).triggerToTriggerStructName.get(deadline.action)
+							if (triggerStructName === null) {
 								reportError(
-									deadline,
-									"Internal error: failed to map from name to trigger struct for " +
-										instance.getFullName()
+									instance.definition.getReactorClass(),
+									"Internal error: failed to find trigger struct for action " + deadline.action.name +
+									" in reactor " + instance.getFullName()
 								)
 							} else {
-								var triggerStructName = (triggerMap as HashMap<String, String>).get(deadline.action.name)
-								if (triggerStructName === null) {
-									reportError(
-										instance.definition.getReactorClass(),
-										"Internal error: failed to find trigger struct for action " + deadline.action.name +
-											" in reactor " + instance.getFullName()
-									)
-								} else {
-									pr(initializeTriggerObjects,
-										reactionTName + '.deadline_violation = &' + triggerStructName + ';')
-								}
+								pr(initializeTriggerObjects,
+									reactionTName + '.deadline_violation = &' + triggerStructName + ';')
 							}
 						}
 					}
@@ -1214,14 +1204,30 @@ class CGenerator extends GeneratorBase {
 		// Use "reactionToReactionTName" property of reactionInstance
 		// to set the levels.
 		for (ReactionInstance instance : graph.nodes) {
-			val map = instance.reactorInstance.properties.get("reactionToReactionTName") as HashMap<Reaction, String>;
+			val map = (instance.reactorInstance as CReactorInstance).reactionToReactionTName
 			val reactionTName = map.get(instance.reactionSpec);
 			pr(reactionTName + ".index = " + instance.level + ";")
 		}
 	}
+	
+	/////////////////////////////////////////////
+	
+    /** Create a new ReactorInstance object.
+     *  This can be overridden by specific code generators,
+     *  each of which should return something that subclasses
+     *  ReactorInstance.
+     *  @param definition The syntactic "new" command in the AST
+     *   that creates this reactor instance.
+     *  @param parent The reactor instance that creates this
+     *   reactor, or null if this is the main reactor.
+     */
+    override reactorInstanceFactory(Instantiation definition, ReactorInstance parent) {
+        return new CReactorInstance(definition, parent, this)
+    }
 
 	// //////////////////////////////////////////
 	// // Utility functions for generating code.
+	
 	/** Perform deferred initializations in initialize_trigger_objects. */
 	private def doDeferredInitialize() {
 		// First, populate the trigger tables for each output.
@@ -1232,35 +1238,22 @@ class CGenerator extends GeneratorBase {
 			var reactorInstance = init.reactor
 			
 			var triggerMap = if (init.input.parent === reactorInstance) {
-					reactorInstance.properties.get("triggerToTriggerStruct")
+					(reactorInstance as CReactorInstance).triggerToTriggerStructName
 				} else {
-					// look deeper
-					init.input.parent.properties.get("triggerToTriggerStruct")
+					// look in the parent.
+					(init.input.parent as CReactorInstance).triggerToTriggerStructName
 				}
-			if (triggerMap === null) {
-				reportError(
-					init.reactor.definition.reactorClass,
-					"Internal error: failed to find map from name to trigger struct for " +
-						init.reactor.getFullName()
-				)
+			var triggerStructName = triggerMap.get(init.input.definition)
+			// Note that triggerStructName will be null if the destination of a
+			// connection is the input port of a reactor that has no reactions to
+			// that input.
+			if (triggerStructName !== null) {
+				pr(init.remoteTriggersArrayName + '[' + init.arrayIndex + '] = &' + triggerStructName + ';')
 			} else {
-				var triggerStructName = (triggerMap as HashMap<PortInstance, String>).get(init.input)
-				// Note that triggerStructName will be null if the destination of a
-				// connection is the input port of a reactor that has no reactions to
-				// that input.
-				if (triggerStructName !== null) {
-					pr(
-						init.remoteTriggersArrayName + '[' + init.arrayIndex + '] = &' + triggerStructName + ';'
-					)
-				} else {
-					// Destination port has no reactions, but we need to fill in an
-					// entry in the table anyway.
-					pr(
-						init.remoteTriggersArrayName + '[' + init.arrayIndex + '] = NULL;'
-					)
-				}
+				// Destination port has no reactions, but we need to fill in an
+				// entry in the table anyway.
+				pr(init.remoteTriggersArrayName + '[' + init.arrayIndex + '] = NULL;')
 			}
-
 		}
 		// Set all inputs _is_present variables to point to False by default.
 		setInputsAbsentByDefault(main)
@@ -1277,18 +1270,16 @@ class CGenerator extends GeneratorBase {
 		for (source : instance.destinations.keySet) {
 			var sourceStruct = null as String
 			if (source.parent === instance) {
-				sourceStruct = instance.properties.get("selfStructName") as String
+				sourceStruct = (instance as CReactorInstance).selfStructName
 			} else {
-				sourceStruct = instance.getChildReactorInstance(source.parent.definition).properties.get(
-					"selfStructName") as String
+				sourceStruct = (source.parent as CReactorInstance).selfStructName
 			}
 			for (destination : instance.destinations.get(source)) {
 				var destStruct = null as String
 				if (destination.parent === instance) {
-					destStruct = instance.properties.get("selfStructName") as String
+					destStruct = (instance as CReactorInstance).selfStructName
 				} else {
-					destStruct = instance.getChildReactorInstance(destination.parent.definition).properties.get(
-						"selfStructName") as String
+                    destStruct = (destination.parent as CReactorInstance).selfStructName
 				}
 				
 				pr(
@@ -1561,8 +1552,6 @@ class CGenerator extends GeneratorBase {
 					// Process any imports that the import has.
 					processImports(importTable)
 					for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-//						System.err.println("FIXME: " + reactor.name)
-//            			System.err.println("FIXME: " + reactor.isMain)
 						if (!reactor.isMain) {
 							println("Including imported reactor: " + reactor.name)
 							generateReactor(reactor, importTable)
@@ -1592,7 +1581,7 @@ class CGenerator extends GeneratorBase {
 		for (containedReactor : parent.children) {
 			for (input : containedReactor.inputs) {
 				//var inputReactor = containedReactor.container.getContainedInstance(containedReactor.instanceStatement.name)
-				var inputSelfStructName = containedReactor.properties.get("selfStructName")
+				var inputSelfStructName = (containedReactor as CReactorInstance).selfStructName
 				pr(inputSelfStructName + '.__' + input.definition.name + '_is_present = &False;')
 			}
 		}

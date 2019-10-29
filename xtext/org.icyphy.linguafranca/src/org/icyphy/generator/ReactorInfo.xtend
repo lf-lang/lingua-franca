@@ -12,7 +12,6 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Variable
 
 /** The properties of a reactor class.  
  */
@@ -49,7 +48,7 @@ import org.icyphy.linguaFranca.Variable
 	/** Map from output name for outputs of this reactor to output names
 	 *  of contained reactors that send data via this output port.
 	 */
-	public var outputToContainedOutput = new LinkedHashMap<VarRef, VarRef>();
+	public var outputToContainedOutput = new LinkedHashMap<Output, VarRef>();
 	
 	/** For use by language-specific code generators, a generic map
 	 *  for storing properties.

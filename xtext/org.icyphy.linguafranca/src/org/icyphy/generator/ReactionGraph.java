@@ -183,7 +183,6 @@ public class ReactionGraph {
 
         // Next, iterate over all connections to establish dependencies between
         // ports.
-        /* FIXME: This seems to not be used.
         for (PortInstance source : reactorInstance.destinations.keySet()) {
             for (PortInstance destination : reactorInstance.destinations
                     .get(source)) {
@@ -191,7 +190,6 @@ public class ReactionGraph {
                 source.dependentPorts.add(destination);
             }
         }
-        */
     }
 
     /**

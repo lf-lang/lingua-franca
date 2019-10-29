@@ -21,16 +21,20 @@ class ReactorInstance {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
+     *  This constructor should not be used directly.
+     *  Instead, use GeneratorBase.reactorInstanceFactory().
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent.
+     *  @param generator The generator creating this instance.
      */
-    new(Instantiation definition, ReactorInstance parent) {
+    protected new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         this.definition = definition
         this.parent = parent
+        this.generator = generator
         
         // Instantiate children for this reactor instance
         for (child : definition.reactorClass.instantiations) {
-            var childInstance = new ReactorInstance(child, this)
+            var childInstance = generator.reactorInstanceFactory(child, this)
             this.children.add(childInstance)
         }
         
@@ -51,7 +55,7 @@ class ReactorInstance {
             var srcInstance = this.getPortInstance(connection.leftPort)
             var destinations = this.destinations.get(srcInstance)
             if (destinations === null) {
-                destinations = new HashMap()
+                destinations = new HashSet<PortInstance>()
                 this.destinations.put(srcInstance, destinations)    
             }
             destinations.add(this.getPortInstance(connection.rightPort))
@@ -82,10 +86,16 @@ class ReactorInstance {
     /** Properties associated with this instance.
      *  This is used by particular code generators.
      */
-    public var HashMap<String,Object> properties = new HashMap<String,Object>()
+    // FIXME: Replace this with subclassing.
+    // public var HashMap<String,Object> properties = new HashMap<String,Object>()
     
     /** List of reaction instances for this reactor instance. */
     public var LinkedHashMap<Reaction, ReactionInstance> reactionInstances = new LinkedHashMap();
+    
+    /////////////////////////////////////////////
+
+    /** The generator that created this reactor instance. */
+    protected GeneratorBase generator
     
     /////////////////////////////////////////////
     
@@ -118,28 +128,6 @@ class ReactorInstance {
         null
     }
      
-    /** Given a port definition, return the port instance
-     *  corresponding to that definition, or null if there is
-     *  no such instance.
-     *  @param port The port definition (a syntactic object in the AST).
-     *  @return A port instance, or null if there is none.
-     */
-    def private lookupLocalPort(Port port) {
-        // Search one of the inputs and outputs sets.
-        var ports = null as HashSet<PortInstance>
-        if (port instanceof Input) {
-            ports = this.inputs
-        } else if (port instanceof Output) {
-            ports = this.outputs
-        }
-        for (portInstance : ports) {
-            if (portInstance.definition === port) {
-                return portInstance
-            }
-        }
-        null
-    }
-     
     /** Given a reference to a port either belongs to this reactor
      *  instance or to a child reactor instance, return the port instance.
      *  Return null if there is no such instance.
@@ -163,6 +151,28 @@ class ReactorInstance {
         }
     }
     
+     /** Given a port definition, return the port instance
+     *  corresponding to that definition, or null if there is
+     *  no such instance.
+     *  @param port The port definition (a syntactic object in the AST).
+     *  @return A port instance, or null if there is none.
+     */
+    def lookupLocalPort(Port port) {
+        // Search one of the inputs and outputs sets.
+        var ports = null as HashSet<PortInstance>
+        if (port instanceof Input) {
+            ports = this.inputs
+        } else if (port instanceof Output) {
+            ports = this.outputs
+        }
+        for (portInstance : ports) {
+            if (portInstance.definition === port) {
+                return portInstance
+            }
+        }
+        null
+    }
+     
     /** Return the set of all ports that receive data from the 
      *  specified source. This includes inputs and outputs at the same level 
      *  of hierarchy and input ports deeper in the hierarchy.
