@@ -33,7 +33,7 @@ class SCLGenerator extends GeneratorBase {
 			pr("")
 		}
 
-		val allReactors = graph.nodes.map[it.reactorInstance.definition.getReactorClass()].toSet.sortBy[it.name].toArray(<Reactor>newArrayOfSize(0))  // TODO: This doesn't seem to include all reactors??
+		val allReactors = graph.nodes.map[it.parent.definition.getReactorClass()].toSet.sortBy[it.name].toArray(<Reactor>newArrayOfSize(0))  // TODO: This doesn't seem to include all reactors??
 		val reactorIndices = allReactors.indexed.toMap([it.value], [it.key])
 		val reactionIndices = newHashMap(allReactors.toInvertedMap[r | r.reactions.indexed.toMap([it.value], [it.key])].values.flatMap[it.entrySet].map[it.key -> it.value])
 		val reactorName = _filename
@@ -42,8 +42,8 @@ class SCLGenerator extends GeneratorBase {
 			// TODO: Figure out how to timestamp outputs
 			// TODO: Add 't' and 't_present' field in structs!
 			for (reactionInstance : graph.nodes.toList.sortBy[it.level]) {
-				val reaction = reactionInstance.reactionSpec
-				val reactorInstance = reactionInstance.reactorInstance
+				val reaction = reactionInstance.definition
+				val reactorInstance = reactionInstance.parent
 				val containerReactorInstance = reactorInstance.parent
 				val containerReactor = containerReactorInstance.definition.getReactorClass()
 				val containerReactorIndex = reactorIndices.get(containerReactor)

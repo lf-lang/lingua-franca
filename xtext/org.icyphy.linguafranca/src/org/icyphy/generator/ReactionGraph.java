@@ -67,7 +67,7 @@ public class ReactionGraph {
                 previousReaction = reactionInstance;
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
-                reactorInstance.reactionInstances.put(reactionInstance.reactionSpec,
+                reactorInstance.reactionInstances.put(reactionInstance.definition,
                         reactionInstance);
                 nodes.add(reactionInstance);
 
@@ -217,7 +217,7 @@ public class ReactionGraph {
                         cycleReactors.append(", ");
                     }
                     cycleReactors
-                            .append(instance.reactorInstance.getFullName());
+                            .append(instance.parent.getFullName());
                 }
                 _generator.reportError(main.definition.getReactorClass(),
                         "Dependency graph has cycles including: "
@@ -286,14 +286,19 @@ public class ReactionGraph {
     /**
      * Inner class for each reaction instance.
      */
-    public class ReactionInstance {
+    public class ReactionInstance extends NamedInstance<Reaction> { // FIXME: this should probably not be an inner class
 
-        public ReactionInstance(Reaction reactionSpec,
-                ReactorInstance reactorInstance) {
-            this.reactionSpec = reactionSpec;
-            this.reactorInstance = reactorInstance;
+        public ReactionInstance(Reaction definition,
+                ReactorInstance parent) {
+            super(definition, parent);
+            for (Reaction r : parent.definition.getReactorClass().getReactions()) {
+                if (definition == r) {
+                    break;
+                }
+                this.reactionIndex++;
+            }
         }
-
+        
         /** The ports that this reaction may write to. */
         public HashSet<PortInstance> dependentPorts = new HashSet<PortInstance>();
 
@@ -309,17 +314,14 @@ public class ReactionGraph {
         /** The level in the dependence graph. */
         public int level = 0;
 
-        /** The AST node specifying the reaction. */
-        public Reaction reactionSpec;
-
-        /** The instance of the reactor. */
-        public ReactorInstance reactorInstance;
-
         /**
          * Place to store properties specific to a particular code generator.
          */
         public HashMap<String, String> properties = new HashMap<String, String>();
 
+        /* Index of occurence in the reactor definition. */
+        private int reactionIndex = 0;
+        
         /**
          * Add to the dependsOnReactions and dependentReactions all the
          * reactions that this reaction depends on indirectly through ports or
@@ -343,6 +345,11 @@ public class ReactionGraph {
             if (dependsOnReactions.isEmpty()) {
                 _independentReactions.add(this);
             }
+        }
+
+        @Override
+        public String getName() {
+            return "r_" + this.reactionIndex;
         }
     }
 }

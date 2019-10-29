@@ -5,19 +5,18 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.HashSet
-import org.icyphy.generator.PortInstance
+import java.util.LinkedHashMap
+import org.icyphy.generator.ReactionGraph.ReactionInstance
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.VarRef
-import java.util.LinkedHashMap
 import org.icyphy.linguaFranca.Reaction
-import org.icyphy.generator.ReactionGraph.ReactionInstance
+import org.icyphy.linguaFranca.VarRef
 
 /** Representation of a runtime instance of a reactor.
  */
-class ReactorInstance {
+class ReactorInstance extends NamedInstance<Instantiation> {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
@@ -25,8 +24,24 @@ class ReactorInstance {
      *  @param parent The parent.
      */
     new(Instantiation definition, ReactorInstance parent) {
-        this.definition = definition
-        this.parent = parent
+        super(definition, parent)
+        
+        // Record how many times the definition has been used 
+        // to create a new ReactorInstance
+        var count = GeneratorBase.nameRegistry.get(this.prefix -> definition.name);
+        if (count === null) {
+        	count = 0
+        }
+        this.instantiationOrdinal = count++
+        GeneratorBase.nameRegistry.put(this.prefix -> definition.name, this.instantiationOrdinal)
+        
+        // Record how many new ReactorInstance objects have been created
+        count = ReactorInstance.instanceCounter.get(definition);
+        if (count === null) {
+        	count = 0
+        }
+        this.instanceOrdinal = count++
+        ReactorInstance.instanceCounter.put(definition, this.instantiationOrdinal)
         
         // Instantiate children for this reactor instance
         for (child : definition.reactorClass.instantiations) {
@@ -61,9 +76,6 @@ class ReactorInstance {
     /** The contained instances, indexed by name. */
     public var HashSet<ReactorInstance> children = new HashSet<ReactorInstance>()
 
-    /** The Instantiation AST object from which this was created. */
-    public var Instantiation definition
-
     /** A map from sources to destinations as specified by the connections of this reactor instance. */
     public var HashMap<PortInstance, HashSet<PortInstance>> destinations = new HashMap();
 
@@ -87,21 +99,36 @@ class ReactorInstance {
     /** List of reaction instances for this reactor instance. */
     public var LinkedHashMap<Reaction, ReactionInstance> reactionInstances = new LinkedHashMap();
     
+    var instanceOrdinal = Integer.MIN_VALUE
+    
+    var instantiationOrdinal = Integer.MIN_VALUE
+    
+    static var HashMap<Instantiation, Integer> instanceCounter = new HashMap();
+    
     /////////////////////////////////////////////
     
-    /** Return the full name of this instance, which has the form
-     *  "a.b.c", where "c" is the name of this instance, "b" is the name
-     *  of its container, and "a" is the name of its container, stopping
-     *  at the container in main.
-     *  @return The full name of this instance.
+    
+    /** Return the name of this instance. If other instances due to
+     *  the same instantiation exist at the same level of hierarchy, 
+     *  the name is appended with an additional index between braces 
+     *  to disambiguate it from those other instances.
+     *  @return The name of this instance.
      */
-    def String getFullName() {
-        if (parent !== null) {
-            this.parent.getFullName() + '.' + definition.name
-        } else {
-            definition.name
-        }
+    override String getName() {
+    	if (this.instantiationOrdinal > 0) {
+    		this.definition.name + "(" + this.instantiationOrdinal + ")"
+    	} else {
+    		this.definition.name	
+    	}
     }
+
+	def String getInstanceID() {
+		this.definition.name + "_" + this.instanceOrdinal;
+	}
+	
+	def String getInstantiationID() {
+		this.definition.name + "_" + this.instantiationOrdinal;
+	}
 
     /** Return the instance of a child rector created by the specified
      *  definition or null if there is none.
@@ -191,5 +218,5 @@ class ReactorInstance {
             destinations.add(destination)
             destination.parent.transitiveClosure(destination, destinations)
         }
-    }
+    } 
 }
