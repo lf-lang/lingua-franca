@@ -1,0 +1,49 @@
+// Test data transport across hierarchy.
+target Cpp;
+reactor Source {
+    output out:int;
+    timer t;
+    reaction(t) -> out {=
+        out.set(1);
+    =}
+}
+reactor Gain {
+    input in:int;
+    output out:int;
+    reaction(in) -> out {=
+        out.set((*in.get()) * 2);
+    =}
+}
+reactor Print {
+    preamble {=
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    input in:int;
+    reaction(in) {=
+        auto value = *in.get();
+        std::cout << "Received: " << value << std::endl;
+        if (value != 2) {
+            std::cerr << "Expected 2." << std::endl;
+            exit(1);
+        }
+    =}
+}
+reactor GainContainer {
+    input in:int;
+    output out:int;
+    output out2:int;
+    gain = new Gain();
+    in -> gain.in;
+    gain.out -> out;
+    gain.out -> out2;
+}
+main reactor Hierarchy {
+    source = new Source();
+    container = new GainContainer();
+    print = new Print();
+    print2 = new Print();
+    source.out -> container.in;
+    container.out -> print.in;
+    container.out -> print2.in;
+}
