@@ -800,6 +800,7 @@ class CGenerator extends GeneratorBase {
 					'// --- Reaction and trigger objects for reaction to trigger ' + trigger.variable.name + ' of instance ' +
 					reactorInstance.fullName + " (" + reactorInstance.instanceID + ")"
 				)
+				
 				// First check to see whether the reaction_t object has already been
 				// created for this reaction.
 				var reactionInstanceName = reactionToReactionTName.get(reaction)
