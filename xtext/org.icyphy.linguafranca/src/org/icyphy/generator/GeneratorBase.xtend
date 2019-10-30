@@ -217,6 +217,7 @@ class GeneratorBase {
 //		}
 		
 		// Record the reactions triggered by each trigger.
+		// FIXME: This should already be captured in ReactorInstance
 		for (reaction: reactor.reactions) {
 			// Iterate over the reaction's triggers
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
@@ -237,12 +238,12 @@ class GeneratorBase {
 		// Record (and check) connections.
 		for (connection: reactor.connections) {
             // Record the source-destination pair.
-            var destinations = info.sourceToDestinations.get(connection.leftPort)
-            if (destinations === null) {
-                destinations = new HashSet<VarRef>()
-                info.sourceToDestinations.put(connection.leftPort.variable as Port, destinations)	
-            }
-            destinations.add(connection.rightPort)
+//            var destinations = info.sourceToDestinations.get(connection.leftPort)
+//            if (destinations === null) {
+//                destinations = new HashSet<VarRef>()
+//                info.sourceToDestinations.put(connection.leftPort.variable as Port, destinations)	
+//            }
+//            destinations.add(connection.rightPort)
 
 			// Record inside connections to output ports.
             if (connection.rightPort.container === null) { // && connection.leftPort.instance !== null) { // FIXME: to excluded direct feed through
