@@ -35,15 +35,6 @@ import org.icyphy.linguaFranca.VarRef
 	}
 	
 	public var Reactor reactor
- 		
-	/** A recording of the connections defined by this reactor. 
-	 * This includes connections from outputs of contained reactors to 
-	 * inputs of contained reactors, connections from inputs of this reactor
-	 * to inputs of contained reactors, outputs of contained reactors to 
-	 * outputs of this reactor, and inputs of this reactor to outputs of
-	 * this reactor.
-	 */
-	public var sourceToDestinations = new LinkedHashMap<Port, HashSet<VarRef>>()
 	
 	/** Map from output name for outputs of this reactor to output names
 	 *  of contained reactors that send data via this output port.
