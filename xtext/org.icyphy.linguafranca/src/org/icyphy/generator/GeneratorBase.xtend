@@ -249,10 +249,6 @@ class GeneratorBase {
             if (connection.rightPort.container === null) { // && connection.leftPort.instance !== null) { // FIXME: to excluded direct feed through
                 // Right port is a simple name, not actor.name.
                 // Hence, it must be an output port.
-                System.err.println("FIXME ***** " + info)
-                System.err.println("FIXME ***** recording " + connection.leftPort.container.name + "." + connection.leftPort.variable.name + " to " + connection.rightPort.variable.name
-                    + ": " + connection.rightPort.variable
-                )
                 if (connection.rightPort.variable instanceof Output) {
                     info.outputToContainedOutput.put(
                         connection.rightPort.variable as Output, connection.leftPort
