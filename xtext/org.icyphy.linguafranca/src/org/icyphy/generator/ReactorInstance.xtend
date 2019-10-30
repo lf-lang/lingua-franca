@@ -149,15 +149,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 				}
 				if (deps !== null) {
 					for (VarRef dep : deps) {
-						if (dep.getVariable() instanceof Input) {
+						if (dep.getVariable() instanceof Port) {
 							var PortInstance port = this.getPortInstance(dep)
 							port.dependentReactions.add(reactionInstance);
 							reactionInstance.dependsOnPorts.add(port);
-						} else if (dep.variable instanceof Output) {
-							var ReactorInstance childInstance = this.getChildReactorInstance(dep.getContainer());
-							var port = childInstance.getPortInstance(dep);
-							port.dependentReactions.add(reactionInstance);
-							reactionInstance.dependentPorts.add(port);
 						}
 					}
 				}
@@ -170,16 +165,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 				// and establish the dependency on that port.
 				if (reaction.effects !== null) {
 					for (VarRef antidep : reaction.getEffects()) {
-						// Check for dotted output, which is the input of a
-						// contained reactor.
-						if (antidep.variable instanceof Input) {
-							var childInstance = this.getChildReactorInstance(antidep.getContainer());
-
-							var port = childInstance.getPortInstance(antidep);
-							port.dependsOnReactions.add(reactionInstance);
-							reactionInstance.dependentPorts.add(port);
-
-						} else if (antidep.variable instanceof Output) {
+						if (antidep.variable instanceof Port) {
 							var port = this.getPortInstance(antidep);
 							port.dependsOnReactions.add(reactionInstance);
 							reactionInstance.dependentPorts.add(port);
@@ -188,7 +174,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 				}
 			}
 		}
-
 	}
     
     
