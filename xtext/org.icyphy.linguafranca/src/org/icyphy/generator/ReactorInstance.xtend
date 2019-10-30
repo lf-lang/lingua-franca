@@ -6,15 +6,17 @@ package org.icyphy.generator
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedHashMap
+import java.util.LinkedHashSet
+import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.VarRef
-import org.eclipse.emf.common.util.EList
 
 /** Representation of a runtime instance of a reactor.
+ *  @author Edward A. Lee, Marten Lohstroh
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
         
@@ -64,6 +66,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             this.outputs.add(new PortInstance(outputDecl, this))
         }
         
+        // Instantiate timers for this reactor instance
+        for (timerDecl : definition.reactorClass.timers) {
+        	this.timers.add(new TimerInstance(timerDecl, this))
+        }
+        
+        // Instantiate actions for this reactor instance
+        for (actionDecl : definition.reactorClass.actions) {
+        	this.actions.add(new ActionInstance(actionDecl, this))
+        }
+        
         // Populate destinations map.
         // Note that this can only happen _after_ the children and 
         // port instances have been created.
@@ -79,6 +91,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
         // Create the reaction instances in this reactor instance.
         // This also establishes all the implied dependencies.
+        // Note that this can only happen _after_ the children and 
+        // port instances have been created.
         createReactionInstances()
     }
     
@@ -93,6 +107,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The output port instances belonging to this reactor instance. */    
     public var outputs = new HashSet<PortInstance>    
+    
+    public var timers = new HashSet<TimerInstance>
+    
+    public var actions = new HashSet<ActionInstance>
+        
+    /** The reactor instance that instantiated this reactor instance, or null if Main. */
+    public var ReactorInstance parent
     
     /** List of reaction instances for this reactor instance. */
     public var LinkedHashMap<Reaction, ReactionInstance> reactionInstances = new LinkedHashMap(); // FIXME: Why is this not just an array?
@@ -195,7 +216,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 		this.definition.name.toLowerCase + "_" + this.instanceOrdinal;
 	}
 	
-	def String getInstantiationID() {
+	def String getInstantiationID() { // FIXME: We probably don't need this. InstantiationOrdinal is only useful for getName (i.e., for pretty printing)
 		this.definition.name.toLowerCase + "_" + this.instantiationOrdinal;
 	}
 
@@ -287,5 +308,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             destinations.add(destination)
             destination.parent.transitiveClosure(destination, destinations)
         }
-    } 
+    }
+    
+    def getLocalTriggers() {
+    	var LinkedHashSet<TriggerInstance> triggers = new LinkedHashSet()
+    	triggers.addAll(this.inputs)
+    	triggers.addAll(this.actions)
+    	triggers.addAll(this.timers)
+    	return triggers
+    }
+    
+    // FIXME: add stuff here to get remote triggers
 }

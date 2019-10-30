@@ -13,7 +13,7 @@ import java.text.ParseException
 import java.util.HashMap
 import java.util.HashSet
 import java.util.Hashtable
-import java.util.LinkedList
+import java.util.LinkedHashMap
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -26,10 +26,11 @@ import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.VarRef
+import java.util.LinkedList
+import org.icyphy.linguaFranca.Reaction
 
 /**
  * Generator base class for shared code between code generators.
@@ -37,6 +38,11 @@ import org.icyphy.linguaFranca.VarRef
  * @author Edward A. Lee, Marten Lohstroh, Chris Gill
  */
 class GeneratorBase {
+	
+	/** For use by language-specific code generators, a generic map
+	 *  for storing properties.
+	 */
+	public var targetProperties = new LinkedHashMap<Object, String>()
 	
 	public static var HashMap<Pair<String, String>, Integer> nameRegistry = new HashMap();	
 	
@@ -211,17 +217,11 @@ class GeneratorBase {
 //		}
 		
 		// Record the reactions triggered by each trigger.
+		// FIXME: This should already be captured in ReactorInstance
 		for (reaction: reactor.reactions) {
 			// Iterate over the reaction's triggers
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (trigger: reaction.triggers) {
-//					// Check validity of the trigger.
-//					if (properties.nameToInput.get(trigger) === null
-//							&& getTiming(reactor, trigger) === null
-//							&& getAction(reactor, trigger) === null) {
-//                        reportError(reaction,
-//                        		"Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
-//                    }
                     var reactionList = info.triggerToReactions.get(trigger)
                     if (reactionList === null) {
                     	reactionList = new LinkedList<Reaction>()
@@ -238,12 +238,12 @@ class GeneratorBase {
 		// Record (and check) connections.
 		for (connection: reactor.connections) {
             // Record the source-destination pair.
-            var destinations = info.sourceToDestinations.get(connection.leftPort)
-            if (destinations === null) {
-                destinations = new HashSet<VarRef>()
-                info.sourceToDestinations.put(connection.leftPort.variable as Port, destinations)	
-            }
-            destinations.add(connection.rightPort)
+//            var destinations = info.sourceToDestinations.get(connection.leftPort)
+//            if (destinations === null) {
+//                destinations = new HashSet<VarRef>()
+//                info.sourceToDestinations.put(connection.leftPort.variable as Port, destinations)	
+//            }
+//            destinations.add(connection.rightPort)
 
 			// Record inside connections to output ports.
             if (connection.rightPort.container === null) { // && connection.leftPort.instance !== null) { // FIXME: to excluded direct feed through
