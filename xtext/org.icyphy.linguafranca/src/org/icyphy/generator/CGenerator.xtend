@@ -1300,7 +1300,6 @@ class CGenerator extends GeneratorBase {
 	private def void connectInputsToOutputs(ReactorInstance instance) {
 		for (source : instance.destinations.keySet) {
 			var sourceStruct = null as String
-			System.err.println("FIXME ******* source = " + source.fullName + ", instance = " + instance.fullName)
 			if (source.parent === instance) {
 				sourceStruct = selfStructName(instance as CReactorInstance)
 			} else {
