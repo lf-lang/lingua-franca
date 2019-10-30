@@ -416,7 +416,7 @@ class CGenerator extends GeneratorBase {
 			}
 		}
 		if (body.length > 0) {
-			classInfo.targetProperties.put("structType", argType)
+			selfStructType(reactor)
 			pr("typedef struct {")
 			indent()
 			pr(body.toString)
@@ -447,14 +447,14 @@ class CGenerator extends GeneratorBase {
 			// Create a unique function name for each reaction.
 			//val functionName = "reaction_function" + reactionCount
 			val functionName = reactor.name.toLowerCase + "_rfunc_" + reactionIndex
-			classInfo.targetProperties.put(reaction, functionName)
+			classInfo.targetProperties.put(reaction, functionName) // FIXME
 
 			// Construct the reactionInitialization code to go into
 			// the body of the function before the verbatim code.
 			// This defines the "self" struct.
 			var StringBuilder reactionInitialization = new StringBuilder()
-			var structType = classInfo.targetProperties.get("structType")
-			if (structType !== null) {
+			var structType = selfStructType(reactor)
+			if (!hasEmptySelfStruct(reactor)) {
 				// A null structType means there are no inputs, state,
 				// or anything else. No need to declare it.
 				pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
@@ -561,7 +561,7 @@ class CGenerator extends GeneratorBase {
 			// Now generate code for the deadline violation function, if there is one.
 			if (reaction.localDeadline !== null) {
 			    val deadlineFunctionName = 'deadline_function' + reactionCount
-                ReactorInfo.get(reactor).targetProperties.put(reaction.localDeadline, deadlineFunctionName)
+                ReactorInfo.get(reactor).targetProperties.put(reaction.localDeadline, deadlineFunctionName) // FIXME
 
 			    pr('void ' + deadlineFunctionName + '(void* instance_args) {')
 			    indent();
@@ -601,7 +601,7 @@ class CGenerator extends GeneratorBase {
 
 			// Define the "self" struct. First get its name. Note that this
 			// must not be null because there is at least one output.
-			var structType = classInfo.targetProperties.get("structType")
+			var structType = selfStructType(reactor)
 			pr(structType + "* self = (" + structType + "*)instance_args;")
 
 			// Transfer the output value from the inside value.
@@ -776,7 +776,8 @@ class CGenerator extends GeneratorBase {
 	 */
 	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfSelfStruct) {		
 		// If there is no instance statement, then this is main.
-		val classInfo = ReactorInfo.get(reactorInstance.definition.reactorClass)
+		val reactorClass = reactorInstance.definition.reactorClass
+		val classInfo = ReactorInfo.get(reactorClass)
 		val triggerToReactions = classInfo.triggerToReactions
 		val result = new StringBuilder()
 
@@ -794,7 +795,7 @@ class CGenerator extends GeneratorBase {
 			// Along the way, we need to generate its contents, including trigger_t structs.
 			for (reaction : triggerToReactions.get(trigger)) { // FIXME: we should probably iterate over reactorInstance.reactionInstances 
 			
-				var functionName = classInfo.targetProperties.get(reaction)
+				var functionName = classInfo.targetProperties.get(reaction) // FIXME
 				pr(
 					result,
 					'// --- Reaction and trigger objects for reaction to trigger ' + trigger.variable.name + ' of instance ' +
@@ -951,7 +952,7 @@ class CGenerator extends GeneratorBase {
 					// The argument specifying the self struct may be NULL if there
 					// is no self struct.
 					var selfStructArgument = ", &" + selfStructName(reactorInstance)
-					if (classInfo.targetProperties.get("structType") === null) {
+					if (hasEmptySelfStruct(reactorClass)) {
 						selfStructArgument = ", NULL"
 					}
 					var deadlineFunctionPointer = ", NULL"
@@ -1053,13 +1054,40 @@ class CGenerator extends GeneratorBase {
 		return instance.instanceID + "_self"
 	}
 
+    /** Construct a unique type for the "self" struct of the specified
+     *  reactor class from the reactor class.
+     *  @param instance The reactor instance.
+     *  @return The name of the self struct.
+     */
+	def selfStructType(Reactor reactor) {
+		return reactor.name.toLowerCase + "_self_t"
+	}
+
+	/** Return true of the given reactor has an empty self struct, false otherwise.
+	 *  @param reactor A reactor class
+	 */	
+	def hasEmptySelfStruct(Reactor reactor) {
+		if (!reactor.parameters.isEmpty || !reactor.states.isEmpty || !reactor.actions.isEmpty ||
+			!reactor.inputs.isEmpty || !reactor.outputs.isEmpty) {
+			return false
+		}
+		for (reaction : reactor.reactions ?: emptyList) {
+			for (effect : reaction.effects ?: emptyList) {
+				// Sending to input of contained reactor
+				if (effect.variable instanceof Input) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+
 	/** Traverse the runtime hierarchy of reaction instances and generate code.
 	 *  @param instance A reactor instance.
 	 */
 	def void generateReactorInstance(ReactorInstance instance) {
 		var instanceName = instance.definition.name
 		var reactorClass = instance.definition.reactorClass
-		var classInfo = ReactorInfo.get(reactorClass)
 		var className = reactorClass.name
 		
 		pr('// ************* Instance ' + instanceName + ' of class ' + className)
@@ -1069,8 +1097,8 @@ class CGenerator extends GeneratorBase {
 		
 		var nameOfSelfStruct = selfStructName(instance)
 		
-		var structType = classInfo.targetProperties.get("structType")
-		if (structType !== null) {
+		var structType = selfStructType(reactorClass)
+		if (!hasEmptySelfStruct(reactorClass)) {
 			pr('// --- "self" struct for instance ' + instance.fullName + " (" + instance.instanceID + ")")
 			pr(structType + " " + nameOfSelfStruct + ";")
 		}
