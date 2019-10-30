@@ -93,9 +93,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The output port instances belonging to this reactor instance. */    
     public var outputs = new HashSet<PortInstance>    
-        
-    /** The reactor instance that instantiated this reactor instance, or null if Main. */
-    public var ReactorInstance parent
     
     /** List of reaction instances for this reactor instance. */
     public var LinkedHashMap<Reaction, ReactionInstance> reactionInstances = new LinkedHashMap(); // FIXME: Why is this not just an array?
