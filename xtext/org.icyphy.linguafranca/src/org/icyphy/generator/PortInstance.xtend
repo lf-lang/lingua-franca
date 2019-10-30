@@ -9,7 +9,7 @@ import org.icyphy.linguaFranca.Port
 
 /** Representation of a runtime instance of a port.
  */
-class PortInstance extends NamedInstance<Port> {
+class PortInstance extends NamedInstance<Port> implements TriggerInstance {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.

@@ -12,7 +12,6 @@ reactor Source(period:time(2 sec)) {
 		set(y, self->count);
 	=}
 }
-
 reactor Test {
 	input x:int;
 	state count:int(0);
@@ -24,7 +23,7 @@ reactor Test {
 			exit(1); 
 		}
 	=} 
-} 
+}
 main reactor CompositionC {
 	s = new Source();
 	d = new Test();
