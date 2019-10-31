@@ -111,9 +111,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     public var timers = new HashSet<TimerInstance>
     
     public var actions = new HashSet<ActionInstance>
-        
-    /** The reactor instance that instantiated this reactor instance, or null if Main. */
-    public var ReactorInstance parent
     
     /** List of reaction instances for this reactor instance. */
     public var LinkedHashMap<Reaction, ReactionInstance> reactionInstances = new LinkedHashMap(); // FIXME: Why is this not just an array?
