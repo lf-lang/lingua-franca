@@ -12,6 +12,7 @@ reactor Gain {
     input in:int;
     output out:int;
     reaction(in) -> out {=
+        printf("Received %d\n.");
         set(out, in * 2);
     =}
 }
