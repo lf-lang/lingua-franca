@@ -11,9 +11,9 @@ import java.io.InputStreamReader
 import java.text.NumberFormat
 import java.text.ParseException
 import java.util.HashMap
-import java.util.HashSet
 import java.util.Hashtable
 import java.util.LinkedHashMap
+import java.util.LinkedList
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -25,12 +25,9 @@ import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
-import org.icyphy.linguaFranca.VarRef
-import java.util.LinkedList
-import org.icyphy.linguaFranca.Reaction
 
 /**
  * Generator base class for shared code between code generators.
