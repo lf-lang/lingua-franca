@@ -5,7 +5,6 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.HashSet
-import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import org.eclipse.emf.common.util.EList
@@ -23,7 +22,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
-     *  This constructor should not be used directly.
+     *  This constructor should not be used directly, which is
+     *  why it is protected.
      *  Instead, use GeneratorBase.reactorInstanceFactory().
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent.
@@ -32,24 +32,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     protected new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         super(definition, parent)
         this.generator = generator
-        
-        // Record how many times the an instance based on the same
-        // has been created on this level of the hierarchy. 
-        var count = GeneratorBase.nameRegistry.get(this.prefix -> definition.name); // FIXME: no need to have a list, we could just concat the two strings?
-        if (count === null) {
-        	count = 0
-        }
-        this.instantiationOrdinal = count++
-        GeneratorBase.nameRegistry.put(this.prefix -> definition.name, this.instantiationOrdinal)
-        
-        // Record how many new ReactorInstance objects 
-        // have been created using the same definition.
-        count = ReactorInstance.instanceCounter.get(definition);
-        if (count === null) {
-        	count = 0
-        }
-        this.instanceOrdinal = count++
-        ReactorInstance.instanceCounter.put(definition, this.instantiationOrdinal)
         
         // Instantiate children for this reactor instance
         for (child : definition.reactorClass.instantiations) {
@@ -96,7 +78,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // port instances have been created.
         createReactionInstances()
     }
+
+    //////////////////////////////////////////////////////
+    //// Public fields.
     
+    /** The action instances belonging to this reactor instance. */
+    public var actions = new HashSet<ActionInstance>
+
     /** The contained instances, indexed by name. */
     public var HashSet<ReactorInstance> children = new HashSet<ReactorInstance>()
 
@@ -109,115 +97,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** The output port instances belonging to this reactor instance. */    
     public var outputs = new HashSet<PortInstance>    
     
-    public var timers = new HashSet<TimerInstance>
-    
-    public var actions = new HashSet<ActionInstance>
-    
     /** List of reaction instances for this reactor instance. */
     public var List<ReactionInstance> reactionInstances = new LinkedList<ReactionInstance>();
-    
-    var instanceOrdinal = Integer.MIN_VALUE
-    
-    var instantiationOrdinal = Integer.MIN_VALUE
-    
-    static var HashMap<Instantiation, Integer> instanceCounter = new HashMap();
-    
-    /////////////////////////////////////////////
 
-    /** The generator that created this reactor instance. */
-    protected GeneratorBase generator
+    /** The timer instances belonging to this reactor instance. */
+    public var timers = new HashSet<TimerInstance>
     
-    /////////////////////////////////////////////
-    
-    /** Create all the reaction instances of this reactor instance
-     *  and record the (anti-)dependencies between ports and reactions.
-     */
-    def createReactionInstances() {
-		var reactions = this.definition.reactorClass.reactions
-		if (this.definition.reactorClass.reactions !== null) {
-			var ReactionInstance previousReaction = null
-			for (Reaction reaction : reactions) {
-				// Create the reaction instance.
-				var reactionInstance = new ReactionInstance(reaction, this)
-				// If there is an earlier reaction in this same reactor, then
-				// create a link
-				// in the dependence graph.
-				if (previousReaction !== null) {
-					previousReaction.dependentReactions.add(reactionInstance)
-					reactionInstance.dependsOnReactions.add(previousReaction)
-				}
-				previousReaction = reactionInstance;
-				// Add the reaction instance to the map of reactions for this
-				// reactor.
-				this.reactionInstances.add(reactionInstance);
-
-				// Establish (anti-)dependencies based
-				// on what reactions use and produce.
-				// Only consider inputs and outputs, ignore actions and timers.
-				var EList<VarRef> deps = null;
-				// First handle dependencies
-				if (reaction.getTriggers() !== null) {
-					deps = reaction.getTriggers();
-				}
-				if (reaction.getSources() !== null) {
-					if (deps !== null) {
-						deps.addAll(reaction.getSources());
-					} else {
-						deps = reaction.getSources();
-					}
-				}
-				if (deps !== null) {
-					for (VarRef dep : deps) {
-						if (dep.getVariable() instanceof Port) {
-							var PortInstance port = this.getPortInstance(dep)
-							port.dependentReactions.add(reactionInstance);
-							reactionInstance.dependsOnPorts.add(port);
-						}
-					}
-				}
-
-				// Then handle anti-dependencies
-				// If the reaction produces an output from this reactor
-				// instance,
-				// then create a PortInstance for that port (if it does not
-				// already exist)
-				// and establish the dependency on that port.
-				if (reaction.effects !== null) {
-					for (VarRef antidep : reaction.getEffects()) {
-						if (antidep.variable instanceof Port) {
-							var port = this.getPortInstance(antidep);
-							port.dependsOnReactions.add(reactionInstance);
-							reactionInstance.dependentPorts.add(port);
-						}
-					}
-				}
-			}
-		}
-	}
-    
-    
-    /** Return the name of this instance. If other instances due to
-     *  the same instantiation exist at the same level of hierarchy, 
-     *  the name is appended with an additional index between braces 
-     *  to disambiguate it from those other instances.
-     *  @return The name of this instance.
-     */
-    override String getName() {
-    	if (this.instantiationOrdinal > 0) {
-    		this.definition.name + "(" + this.instantiationOrdinal + ")"
-    	} else {
-    		this.definition.name	
-    	}
-    }
-
-	def String getInstanceID() {
-		this.definition.name.toLowerCase + "_" + this.instanceOrdinal;
-	}
-	
-	def String getInstantiationID() { // FIXME: We probably don't need this. InstantiationOrdinal is only useful for getName (i.e., for pretty printing)
-		this.definition.name.toLowerCase + "_" + this.instantiationOrdinal;
-	}
-
+    //////////////////////////////////////////////////////
+    //// Public methods.
+        
     /** Return the instance of a child rector created by the specified
      *  definition or null if there is none.
      *  @param definition The definition of the child reactor ("new" statement).
@@ -233,6 +121,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         null
     }
      
+    /** Return the name of this instance as given by the definition.
+     *  Note that is unique only relative to other instances with the same
+     *  parent.
+     *  @return The name of this instance.
+     */
+    override String getName() {
+        this.definition.name    
+    }
+
     /** Given a reference to a port either belongs to this reactor
      *  instance or to a child reactor instance, return the port instance.
      *  Return null if there is no such instance.
@@ -277,7 +174,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         null
     }
-     
+
+    /** Return the main reactor, which is the top-level parent.
+     *  @return The top-level parent.
+     */
+    override ReactorInstance main() {
+        if (this.parent === null) {
+            this
+        } else {
+            parent.main
+        }
+    }
+
     /** Return the set of all ports that receive data from the 
      *  specified source. This includes inputs and outputs at the same level 
      *  of hierarchy and input ports deeper in the hierarchy.
@@ -290,7 +198,85 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         transitiveClosure(source, result);
         result
     }    
-     
+    
+    //////////////////////////////////////////////////////
+    //// Protected fields.
+
+    /** The generator that created this reactor instance. */
+    protected GeneratorBase generator
+
+    //////////////////////////////////////////////////////
+    //// Protected methods.
+    
+    /** Create all the reaction instances of this reactor instance
+     *  and record the dependencies and antidependencies
+     *  between ports and reactions. This also records the
+     *  dependencies between reactions that follows from the
+     *  order in which they are defined.
+     */
+    protected def createReactionInstances() {
+        var reactions = this.definition.reactorClass.reactions
+        if (this.definition.reactorClass.reactions !== null) {
+            var ReactionInstance previousReaction = null
+            var count = 0
+            for (Reaction reaction : reactions) {
+                // Create the reaction instance.
+                var reactionInstance = new ReactionInstance(reaction, this, count++)
+                // If there is an earlier reaction in this same reactor, then
+                // create a link in the dependence graph.
+                if (previousReaction !== null) {
+                    previousReaction.dependentReactions.add(reactionInstance)
+                    reactionInstance.dependsOnReactions.add(previousReaction)
+                }
+                previousReaction = reactionInstance;
+                // Add the reaction instance to the map of reactions for this
+                // reactor.
+                this.reactionInstances.add(reactionInstance);
+
+                // Establish (anti-)dependencies based
+                // on what reactions use and produce.
+                // Only consider inputs and outputs, ignore actions and timers.
+                var EList<VarRef> deps = null;
+                // First handle dependencies
+                if (reaction.getTriggers() !== null) {
+                    deps = reaction.getTriggers();
+                }
+                if (reaction.getSources() !== null) {
+                    if (deps !== null) {
+                        deps.addAll(reaction.getSources());
+                    } else {
+                        deps = reaction.getSources();
+                    }
+                }
+                if (deps !== null) {
+                    for (VarRef dep : deps) {
+                        if (dep.getVariable() instanceof Port) {
+                            var PortInstance port = this.getPortInstance(dep)
+                            port.dependentReactions.add(reactionInstance);
+                            reactionInstance.dependsOnPorts.add(port);
+                        }
+                    }
+                }
+
+                // Then handle anti-dependencies
+                // If the reaction produces an output from this reactor
+                // instance,
+                // then create a PortInstance for that port (if it does not
+                // already exist)
+                // and establish the dependency on that port.
+                if (reaction.effects !== null) {
+                    for (VarRef antidep : reaction.getEffects()) {
+                        if (antidep.variable instanceof Port) {
+                            var port = this.getPortInstance(antidep);
+                            port.dependsOnReactions.add(reactionInstance);
+                            reactionInstance.dependentPorts.add(port);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /** Add to the destinations hash set all ports that receive data from the 
      *  specified source. This includes inputs and outputs at the same level 
      *  of hierarchy and input ports deeper in the hierarchy.
@@ -299,7 +285,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  
      *  @param destinations The set of destinations to populate.
      */    
-    private def void transitiveClosure(PortInstance source, HashSet<PortInstance> destinations) {
+    protected def void transitiveClosure(PortInstance source, HashSet<PortInstance> destinations) {
         var localDestinations = this.destinations.get(source)
         
         for (destination : localDestinations?:emptyList) {
@@ -307,14 +293,4 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             destination.parent.transitiveClosure(destination, destinations)
         }
     }
-    
-    def getLocalTriggers() {
-    	var LinkedHashSet<TriggerInstance> triggers = new LinkedHashSet()
-    	triggers.addAll(this.inputs)
-    	triggers.addAll(this.actions)
-    	triggers.addAll(this.timers)
-    	return triggers
-    }
-    
-    // FIXME: add stuff here to get remote triggers
 }
