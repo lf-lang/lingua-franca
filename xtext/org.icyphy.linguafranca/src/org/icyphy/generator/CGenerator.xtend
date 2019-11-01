@@ -1045,12 +1045,12 @@ class CGenerator extends GeneratorBase {
 		pr(result.toString())
 	}
 
-    /** Construct a unique name for the "self" struct of the specified
+    /** Return the unique name for the "self" struct of the specified
      *  reactor instance from the instance ID.
      *  @param instance The reactor instance.
      *  @return The name of the self struct.
      */
-	def selfStructName(ReactorInstance instance) {
+	static def selfStructName(ReactorInstance instance) {
 		return instance.instanceID + "_self"
 	}
 
@@ -1439,45 +1439,33 @@ class CGenerator extends GeneratorBase {
 //				}
 //			}
 //		}
+
+
 //		// Handle inputs that get sent data from a reaction rather than from
 //		// another contained reactor.
-//		for (reaction : instance.getReactorClass().reactions) {
-//			if (reaction.effects !== null) {
-//				for (effect : reaction.effects) {
-//					
-//					if (connectedDestinations.contains(effect.variable)) {
-//						reportError(reaction,
-//							"Sending to an input that already has a connection: " + effect.variable.name)
-//					} else if (effect.variable instanceof Input) {
-//						// Found an input that is sent data from a reaction.
-//						// This must be an input of a contained reactor.
-//						connectedDestinations.add(effect)
-//
-//						var inputSelfStructName = ReactorInstance.get(effect.instance).properties.get("selfStructName")
-//						var containerSelfStructName = ReactorInstance.get(instance).properties.get("selfStructName")
-//						pr(
-//							inputSelfStructName + '.__' + effect.variable.name + ' = &' + containerSelfStructName +
-//								'.__' + effect.instance.name + '_' + effect.variable.name + ';'
-//						)
-//						pr(
-//							inputSelfStructName + '.__' + effect.variable.name + '_is_present = &' +
-//								containerSelfStructName + '.__' + effect.instance.name + '_' + effect.variable.name +
-//								'_is_present;'
-//						)
-//						pr(
-//							startTimeStep,
-//							containerSelfStructName + '.__' + effect.instance.name + '_' + effect.variable.name +
-//								'_is_present = false;'
-//						)
-//
-//					}
-//					// FIXME: should we handle this case? 
-////					else if (effect.variable instanceof Output) {
-////						
-////					}
-//				}
-//			}
-//		}
+		for (reaction : instance.reactionInstances) {
+		    for (port : reaction.dependentPorts) {
+		        if (port.definition instanceof Input) {
+		            // This reaction is sending to an input. Must be
+		            // the input of a contained reactor.
+		            var inputSelfStructName = selfStructName(port.parent)
+		            var containerSelfStructName = selfStructName(instance)
+                    pr(
+                        inputSelfStructName + '.__' + port.definition.name + ' = &' + containerSelfStructName +
+                            '.__' + port.parent.definition.name + '_' + port.definition.name + ';'
+                    )
+                    pr(
+                        inputSelfStructName + '.__' + port.definition.name + '_is_present = &' + containerSelfStructName +
+                            '.__' + port.parent.definition.name + '_' + port.definition.name + '_is_present;'
+                    )
+                    pr(
+                        startTimeStep,
+                        containerSelfStructName + '.__' + port.parent.definition.name + '_' + port.definition.name +
+                            '_is_present = false;'
+                    )
+                }
+		    }
+		}
 	}
 
 	/** Generate into the specified string builder the code to

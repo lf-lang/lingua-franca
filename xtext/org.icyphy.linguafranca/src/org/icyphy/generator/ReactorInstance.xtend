@@ -5,8 +5,9 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.HashSet
-import java.util.LinkedHashMap
 import java.util.LinkedHashSet
+import java.util.LinkedList
+import java.util.List
 import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -113,7 +114,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     public var actions = new HashSet<ActionInstance>
     
     /** List of reaction instances for this reactor instance. */
-    public var LinkedHashMap<Reaction, ReactionInstance> reactionInstances = new LinkedHashMap(); // FIXME: Why is this not just an array?
+    public var List<ReactionInstance> reactionInstances = new LinkedList<ReactionInstance>();
     
     var instanceOrdinal = Integer.MIN_VALUE
     
@@ -148,7 +149,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 				previousReaction = reactionInstance;
 				// Add the reaction instance to the map of reactions for this
 				// reactor.
-				this.reactionInstances.put(reactionInstance.definition, reactionInstance);
+				this.reactionInstances.add(reactionInstance);
 
 				// Establish (anti-)dependencies based
 				// on what reactions use and produce.
