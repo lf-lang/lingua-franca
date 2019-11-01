@@ -798,8 +798,8 @@ class CGenerator extends GeneratorBase {
 				var functionName = classInfo.targetProperties.get(reaction) // FIXME
 				pr(
 					result,
-					'// --- Reaction and trigger objects for reaction to trigger ' + trigger.variable.name + ' of instance ' +
-					reactorInstance.fullName + " (" + reactorInstance.instanceID + ")"
+					'// --- Reaction and trigger objects for reaction to trigger ' 
+					+ trigger.variable.name + ' of instance ' +	reactorInstance.fullName
 				)
 				
 				// First check to see whether the reaction_t object has already been
@@ -808,7 +808,7 @@ class CGenerator extends GeneratorBase {
 				if (reactionInstanceName === null) {
 					// There isn't already a reaction_t object for this reaction.
 					// Generate a reaction_t object for an instance of a reaction.
-					reactionInstanceName = reactorInstance.instanceID + "_r_" + reactionIndex
+					reactionInstanceName = reactorInstance.uniqueID + "_reaction_" + reactionIndex
 					reactionIndex++
 					// Store the reaction_t object name for future use, indexed by the Reaction.
 					reactionToReactionTName.put(reaction, reactionInstanceName)
@@ -1051,7 +1051,7 @@ class CGenerator extends GeneratorBase {
      *  @return The name of the self struct.
      */
 	static def selfStructName(ReactorInstance instance) {
-		return instance.instanceID + "_self"
+		return instance.uniqueID + "_self"
 	}
 
     /** Construct a unique type for the "self" struct of the specified
@@ -1099,7 +1099,7 @@ class CGenerator extends GeneratorBase {
 		
 		var structType = selfStructType(reactorClass)
 		if (!hasEmptySelfStruct(reactorClass)) {
-			pr('// --- "self" struct for instance ' + instance.fullName + " (" + instance.instanceID + ")")
+			pr('// --- "self" struct for instance ' + instance.fullName)
 			pr(structType + " " + nameOfSelfStruct + ";")
 		}
 
@@ -1236,10 +1236,10 @@ class CGenerator extends GeneratorBase {
 
 		// Use "reactionToReactionTName" property of reactionInstance
 		// to set the levels.
-		for (ReactionInstance instance : graph.nodes) {
-			val map = (instance.parent as CReactorInstance).reactionToReactionTName
-			val reactionTName = map.get(instance.definition);
-			pr(reactionTName + ".index = " + instance.level + ";")
+		for (ReactionInstance reactionInstance : graph.nodes) {
+			val map = (reactionInstance.parent as CReactorInstance).reactionToReactionTName
+			val reactionTName = map.get(reactionInstance.definition);
+			pr(reactionTName + ".index = " + reactionInstance.level + ";")
 		}
 	}
 	

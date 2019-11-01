@@ -18,6 +18,10 @@ class PortInstance extends NamedInstance<Port> implements TriggerInstance {
      */
     new(Port definition, ReactorInstance parent) {
         super(definition, parent)
+        
+        if (parent === null) {
+            throw new Exception('Cannot create a PortInstance with no parent.')
+        }
     }
         
     /** Set of port instances that receive messages from this port. */
@@ -68,4 +72,10 @@ class PortInstance extends NamedInstance<Port> implements TriggerInstance {
     	this.definition.name
     }
 
+    /** Return the main reactor, which is the top-level parent.
+     *  @return The top-level parent.
+     */
+    override ReactorInstance main() {
+        parent.main
+    }
 }

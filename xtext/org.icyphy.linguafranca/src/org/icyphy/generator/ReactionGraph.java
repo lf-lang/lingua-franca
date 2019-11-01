@@ -6,16 +6,14 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Precedence graph analysis for Lingua Franca models. The way to use this class
- * is to call calculateLevels() after creating the graph. Upon completion, you
- * can retrieve the levels by calling getReactionInstance() to get the
- * ReactionInstance, which has a level field.
+ * Precedence graph for Lingua Franca models. The way to use this class
+ * is to call calculateLevels() after creating the graph. Upon completion, the
+ * level field of each ReactionInstance will have been set.
  */
 public class ReactionGraph {
 
-    /**
-     * Create a new precedence graph for reactions for the specified code
-     * generator.
+    /** Create a new reaction graph for reactions for the specified code
+     *  generator.
      * 
      * @param generator The code generator.
      */
@@ -25,31 +23,6 @@ public class ReactionGraph {
 
     /** All nodes in the graph. */
     public LinkedHashSet<ReactionInstance> nodes = new LinkedHashSet<ReactionInstance>();
-
-    /**
-     * Recursively collect reactions contained in a given reactor instance
-     * and all of the reactors that it contains.
-     * 
-     * @param reactorInstance The reactor instance.
-     */
-    private void collectNodes(ReactorInstance reactorInstance) {
-        // Add all reactions of the given reactor instance as nodes of the graph.
-        nodes.addAll(reactorInstance.reactionInstances);
-        // Do the same for all of its children
-        for (ReactorInstance containedReactor : reactorInstance.children) {
-            collectNodes(containedReactor);
-        }
-
-        // Next, iterate over all connections to establish dependencies between
-        // ports.
-        for (PortInstance source : reactorInstance.destinations.keySet()) {
-            for (PortInstance destination : reactorInstance.destinations
-                    .get(source)) {
-                destination.dependsOnPorts.add(source);
-                source.dependentPorts.add(destination);
-            }
-        }
-    }
 
     /**
      * Calculate the levels for the graph.
@@ -125,6 +98,35 @@ public class ReactionGraph {
 
     /** Set of independent reactions. */
     private Set<ReactionInstance> _independentReactions = new HashSet<ReactionInstance>();
+
+    //////////////////////////////////////////////////////////////////////////
+    //// Private methods
+
+    /**
+     * Recursively collect reactions contained in a given reactor instance
+     * and all of the reactors that it contains.
+     * 
+     * @param reactorInstance The reactor instance.
+     */
+    private void collectNodes(ReactorInstance reactorInstance) {
+        // Add all reactions of the given reactor instance as nodes of the graph.
+        nodes.addAll(reactorInstance.reactionInstances);
+        // Do the same for all of its children
+        for (ReactorInstance containedReactor : reactorInstance.children) {
+            collectNodes(containedReactor);
+        }
+
+        // Next, iterate over all connections to establish dependencies between
+        // ports.
+        for (PortInstance source : reactorInstance.destinations.keySet()) {
+            for (PortInstance destination : reactorInstance.destinations
+                    .get(source)) {
+                destination.dependsOnPorts.add(source);
+                source.dependentPorts.add(destination);
+            }
+        }
+    }
+
 
     //////////////////////////////////////////////////////////////////////////
     //// Inner classes

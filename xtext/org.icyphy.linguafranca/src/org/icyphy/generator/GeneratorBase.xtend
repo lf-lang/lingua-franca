@@ -40,18 +40,7 @@ class GeneratorBase {
 	 *  for storing properties.
 	 */
 	public var targetProperties = new LinkedHashMap<Object, String>()
-	
-	public static var HashMap<Pair<String, String>, Integer> nameRegistry = new HashMap();	
-	
-	/** Precedence graph of reaction instances. */
-	var precedenceGraph = new ReactionGraph(this)
-	
-	/** Map from a reactor AST spec to properties of the reactor. */
-	//protected var reactorToProperties = new HashMap<Reactor, ReactorInfo>()
-	
-	/** Map from reactor class name to the AST reactor spec defining that class. */
-	//var classToReactor = new LinkedHashMap<String, Reactor>()
-
+		
 	/** All code goes into this string buffer. */
 	var code = new StringBuilder
 	
@@ -116,8 +105,6 @@ class GeneratorBase {
 		_filename = extractFilename(_resource.getURI.toString)
 
 		var mainDef = null as Instantiation
-		
-		precedenceGraph.nodes.clear()
 		
 		// Recursively instantiate reactors from their definitions
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
