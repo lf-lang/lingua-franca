@@ -127,10 +127,6 @@ public class ReactionGraph {
         }
     }
 
-
-    //////////////////////////////////////////////////////////////////////////
-    //// Inner classes
-
     /**
      * Add to the dependsOnReactions and dependentReactions all the
      * reactions that this reaction depends on indirectly through ports or
