@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.icyphy.linguaFranca.Reaction;
-
 /**
  * Precedence graph analysis for Lingua Franca models. The way to use this class
  * is to call calculateLevels() after creating the graph. Upon completion, you
@@ -36,7 +34,7 @@ public class ReactionGraph {
      */
     private void collectNodes(ReactorInstance reactorInstance) {
         // Add all reactions of the given reactor instance as nodes of the graph.
-        nodes.addAll(reactorInstance.reactionInstances.values());
+        nodes.addAll(reactorInstance.reactionInstances);
         // Do the same for all of its children
         for (ReactorInstance containedReactor : reactorInstance.children) {
             collectNodes(containedReactor);
@@ -117,17 +115,6 @@ public class ReactionGraph {
         for (ReactionInstance reaction : nodes) {
             collapseDependencies(reaction);
         }
-    }
-
-    /** Return the reaction instance in the specified reactor instance
-     *  that corresponds to the specified reaction definition.
-     *  @param reactorInstance The reactor instance for the reaction.
-     *  @param reaction The reaction specification in the AST.
-     *  @return The reaction instance or null if there is none.
-     */
-    public ReactionInstance getReactionInstance(ReactorInstance reactorInstance, // FIXME: We don't use this. Remove?
-            Reaction reaction) throws Exception {
-        return reactorInstance.reactionInstances.get(reaction);
     }
 
     //////////////////////////////////////////////////////////////////////////
