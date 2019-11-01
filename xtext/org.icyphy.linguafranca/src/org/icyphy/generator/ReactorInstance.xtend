@@ -14,8 +14,13 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.VarRef
+import java.util.Set
 
 /** Representation of a runtime instance of a reactor.
+ *  For the main reactor, which has no parent, once constructed,
+ *  this object represents the entire Lingua Franca program.
+ *  The constructor analyzes the graph of dependencies between
+ *  reactions and throws exception if this graph is cyclic.
  *  @author Edward A. Lee, Marten Lohstroh
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
@@ -26,7 +31,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  why it is protected.
      *  Instead, use GeneratorBase.reactorInstanceFactory().
      *  @param instance The Instance statement in the AST.
-     *  @param parent The parent.
+     *  @param parent The parent, or null for the main rector.
      *  @param generator The generator creating this instance.
      */
     protected new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
@@ -77,6 +82,38 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // Note that this can only happen _after_ the children and 
         // port instances have been created.
         createReactionInstances()
+        
+        // If this is the main reactor, then perform static analysis.
+        if (parent === null) {
+            independentReactions = new HashSet<ReactionInstance>()
+            // Add to the dependsOnReactions
+            // and dependentReactions of each reaction instance all the
+            // reaction instances that it depends on indirectly through ports or
+            // that depend on this reaction. Collect all the reactions that
+            // depend on no other reactions into the _independentReactions set.
+            collapseDependencies(this)
+            
+            // Analyze the dependency graph for reactions and assign
+            // levels to each reaction.
+            analyzeDependencies()
+
+            // If there are reaction instances that have not been assigned
+            // a level, throw an exception. There are cyclic dependencies.
+            var reactionsInCycle = new LinkedList<ReactionInstance>()
+            reactionsWithoutLevels(this, reactionsInCycle)
+            if (!reactionsInCycle.isEmpty) {
+                // There are cycles. Construct an error message.
+                var inCycle = new LinkedList<String>
+                for (reaction : reactionsInCycle) {
+                    inCycle.add("reaction " + reaction.reactionIndex
+                        + " in " + reaction.parent.getFullName
+                    )
+                }
+                throw new Exception("Found cycles including: "
+                    + inCycle.join(", ")
+                )
+            }
+        }
     }
 
     //////////////////////////////////////////////////////
@@ -186,6 +223,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
+    /** Return a descriptive string. */
+    override toString() {
+        "ReactorInstance " + getFullName
+    }
+
     /** Return the set of all ports that receive data from the 
      *  specified source. This includes inputs and outputs at the same level 
      *  of hierarchy and input ports deeper in the hierarchy.
@@ -205,9 +247,126 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** The generator that created this reactor instance. */
     protected GeneratorBase generator
 
+    /** Set of independent reactions. */
+    protected Set<ReactionInstance> independentReactions
+
     //////////////////////////////////////////////////////
     //// Protected methods.
+
+    /** Add to the specified set of reactions all the reactions
+     *  that the specified port depends on.
+     *  @param port The port.
+     *  @param reactions The set of reactions to add to.
+     */
+    protected def void addReactionsPortDependsOn(
+        PortInstance port, HashSet<ReactionInstance> reactions
+    ) {
+        reactions.addAll(port.dependsOnReactions)
+        for (upstreamPort : port.dependsOnPorts) {
+            addReactionsPortDependsOn(upstreamPort, reactions)
+        }
+    }
+
+    /** Add to the specified set of reactions all the reactions
+     *  that depend on the specified port.
+     *  @param port The port.
+     *  @param reactions The set of reactions to add to.
+     */
+    protected def void addReactionsDependingOnPort(
+        PortInstance port, HashSet<ReactionInstance> reactions
+    ) {
+        reactions.addAll(port.dependentReactions)
+        for (downstreamPort : port.dependentPorts) {
+            addReactionsDependingOnPort(downstreamPort, reactions)
+        }
+    }
     
+    /** Analyze the dependencies between reactions and assign levels.
+     *  A reaction has level 0 if it has no dependence on any other reaction,
+     *  i.e. it is the first reaction in a reactor and it is triggered by
+     *  by an action or a timer, not a port. It has level 1 if it depends
+     *  only on level 0 reactions. Etc.
+     *  Throw an exception if there are cyclic dependencies and
+     *  report the reactions that cannot be assigned levels and hence are
+     *  part of the cycle.
+     *  This should be called only on the top-level (main) reactor.
+     */
+    protected def void analyzeDependencies() {
+        if (independentReactions.isEmpty()) {
+            throw new Exception("Reactions form a cycle, where every reaction depends on another reaction!")
+        }
+        var candidatesForLevel = new LinkedList<ReactionInstance>()
+        var level = 0
+        for (reaction : independentReactions) {
+            reaction.level = level
+            candidatesForLevel.addAll(reaction.dependentReactions)
+        }
+        while (!candidatesForLevel.isEmpty) {
+            level++
+            candidatesForLevel = analyzeDependencies(candidatesForLevel, level)            
+        }
+    }
+    
+    /** For each reaction instance in the specified list, assign it the
+     *  specified level if every reaction it depends on already has an
+     *  assigned level less than the specified level. Otherwise, add it
+     *  to a new list that is returned. For each reaction that is assigned
+     *  a level, also add all its dependent reactions to the returned list.
+     *  @param candidatesForLevel Candidate reactions for the specified level.
+     *  @param level The specified level.
+     *  @return Candidates for the next level.
+     */
+    protected def analyzeDependencies(
+        LinkedList<ReactionInstance> candidatesForLevel,
+        int level
+    ) {
+        var newCandidatesForLevel = new LinkedList<ReactionInstance>()
+        for (reaction : candidatesForLevel) {
+            var ready = true
+            for (dependsOnReaction : reaction.dependsOnReactions) {
+                if (dependsOnReaction.level < 0 // Not assigned.
+                    || dependsOnReaction.level >= level // Should not occur.
+                ) {
+                    // Would be nice to break here, but xtend can't do that.
+                    ready = false
+                }
+            }
+            if (ready) {
+                reaction.level = level
+                newCandidatesForLevel.addAll(reaction.dependentReactions)
+            } else {
+                newCandidatesForLevel.add(reaction)
+            }
+        }
+        newCandidatesForLevel
+    }
+
+    /** Add to the dependsOnReactions and dependentReactions all the
+     *  reactions defined by the specified reactor that that
+     *  reaction depends on indirectly through ports or
+     *  that depend on that reaction.
+     *  If there are ultimately no reactions that that
+     *  reaction depends on, then add that reaction to the list of
+     *  independent reactions at the top level (the main reactor).
+     *  @param reactionInstance The reaction instance (must not be null).
+     */
+    protected def void collapseDependencies(ReactorInstance reactor) {
+        for (ReactionInstance reactionInstance : reactor.reactionInstances) {
+            for (PortInstance port : reactionInstance.dependentPorts) {
+                addReactionsDependingOnPort(port, reactionInstance.dependentReactions)
+            }
+            for (PortInstance port : reactionInstance.dependsOnPorts) {
+                addReactionsPortDependsOn(port, reactionInstance.dependsOnReactions)
+            }
+            if (reactionInstance.dependsOnReactions.isEmpty()) {
+                main.independentReactions.add(reactionInstance);
+            }
+        }
+        for (child : reactor.children) {
+            collapseDependencies(child)
+        }
+    }
+        
     /** Create all the reaction instances of this reactor instance
      *  and record the dependencies and antidependencies
      *  between ports and reactions. This also records the
@@ -292,5 +451,26 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             destinations.add(destination)
             destination.parent.transitiveClosure(destination, destinations)
         }
+    }
+    
+    /** Collect all reactions that have not been assigned a level and
+     *  return the list.
+     *  @param reactor The reactor for which to check reactions.
+     *  @param result The list to add reactions to.
+     *  @return The list of reactions without levels.
+     */
+    protected def LinkedList<ReactionInstance> reactionsWithoutLevels(
+        ReactorInstance reactor,
+        LinkedList<ReactionInstance> result
+    ) {
+        for (reaction : reactor.reactionInstances) {
+            if (reaction.level < 0) {
+                result.add(reaction)
+            }
+        }
+        for (child : reactor.children) {
+            reactionsWithoutLevels(child, result)
+        }
+        result
     }
 }

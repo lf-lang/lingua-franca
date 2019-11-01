@@ -78,4 +78,9 @@ class PortInstance extends NamedInstance<Port> implements TriggerInstance {
     override ReactorInstance main() {
         parent.main
     }
+
+    /** Return a descriptive string. */
+    override toString() {
+        "ReactorInstance " + getFullName
+    }
 }

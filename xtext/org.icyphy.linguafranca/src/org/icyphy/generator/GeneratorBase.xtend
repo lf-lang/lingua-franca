@@ -145,60 +145,7 @@ class GeneratorBase {
 		    + _filename
 		)
 		
-		//classToReactor.put(reactor.name, reactor)
 		var info = ReactorInfo.get(reactor);
-		// Create the object for storing reactor properties.
-		//var properties = new ReactorInfo()
-		//reactorToProperties.put(reactor, properties)
-
-		// Record parameters.
-//		if (reactor.parameters !== null) {
-//			for (param : reactor.parameters) {
-//				properties.nameToParam.put(param.name, param)
-//			}
-//		}
-//		if (reactor.parameters !== null) {
-//			for (param : reactor.parameters) {
-//				properties.nameToParam.put(param.name, param)
-//			}
-//		}
-//		
-//		// Record inputs.
-//		for (input: reactor.inputs) {
-//			properties.nameToInput.put(input.name, input)
-//		}
-//		
-//		// Record outputs.
-//		for (output: reactor.outputs) {
-//			properties.nameToOutput.put(output.name, output)
-//		}
-//		
-//		// Record actions.
-//		for (action: reactor.actions) {
-//			if (action.getDelay() === null) {
-//				action.setDelay("0")
-//			}
-//			properties.nameToAction.put(action.name, action)
-//		}
-//		
-//		// Record timers.
-//		for (timer: reactor.timers) {
-//			properties.nameToTimer.put(timer.name, timer)
-//			var timing = timer.timing
-//			// Make sure every timing object has both an offset
-//			// and a period by inserting default of 0.
-//			var zeroTime = LinguaFrancaFactory.eINSTANCE.createTime()
-//			zeroTime.setTime("0")
-//			if (timing === null) {
-//				timing = LinguaFrancaFactory.eINSTANCE.createTiming()
-//				timing.setOffset(zeroTime)
-//				timing.setPeriod(zeroTime)
-//			} else if (timing.getPeriod === null) {
-//				timing.setPeriod(zeroTime)
-//			}
-//			
-//			properties.nameToTiming.put(timer.name, timing)
-//		}
 		
 		// Record the reactions triggered by each trigger.
 		// FIXME: This should already be captured in ReactorInstance

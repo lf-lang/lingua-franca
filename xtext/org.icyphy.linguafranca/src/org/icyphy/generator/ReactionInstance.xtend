@@ -1,6 +1,7 @@
 package org.icyphy.generator
 
 import java.util.HashSet
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 
 /** Instance of a reaction. */
@@ -17,6 +18,32 @@ class ReactionInstance extends NamedInstance<Reaction> {
     protected new (Reaction definition, ReactorInstance parent, int index) {
         super(definition, parent);
         this.reactionIndex = index
+        
+        // Identify the dependencies for this reaction.
+        // First handle the triggers.
+        for (trigger : definition.triggers) {
+            if (trigger instanceof Port) {
+                var portInstance = parent.getPortInstance(trigger)
+                this.dependsOnPorts.add(portInstance)
+                portInstance.dependentReactions.add(this)
+            }
+        }
+        // Next handle the ports that this reaction reads.
+        for (source : definition.sources) {
+            if (source instanceof Port) {
+                var portInstance = parent.getPortInstance(source)
+                this.dependsOnPorts.add(portInstance)
+                portInstance.dependentReactions.add(this)
+            }
+        }
+        // Finally, handle the effects.
+        for (effect : definition.effects) {
+            if (effect instanceof Port) {
+                var portInstance = parent.getPortInstance(effect)
+                this.dependentPorts.add(portInstance)
+                portInstance.dependsOnReactions.add(this)
+            }
+        }
     }
         
     /** The ports that this reaction may write to. */
@@ -31,11 +58,15 @@ class ReactionInstance extends NamedInstance<Reaction> {
     /** The reactions that this reaction depends on. */
     public HashSet<ReactionInstance> dependsOnReactions = new HashSet<ReactionInstance>();
 
-    /** The level in the dependence graph. */
-    public int level = 0;
+    /** The level in the dependence graph. -1 indicates that the level
+     *  has not yet been assigned.
+     */
+    public int level = -1;
 
-    /* Index of occurrence in the reactor definition. */
-    int reactionIndex = 0;
+    /** Index of order of occurrence within the reactor definition.
+     *  The first reaction has index 0, the second index 1, etc.
+     */
+    public int reactionIndex = -1;
 
     /** Return the name of this reaction, which is 'reaction_n',
      *  where n is replaced by the reactionIndex. 
@@ -50,5 +81,10 @@ class ReactionInstance extends NamedInstance<Reaction> {
      */
     override ReactorInstance main() {
         parent.main
+    }
+    
+    /** Return a descriptive string. */
+    override toString() {
+        getName + " of " + parent.getFullName
     }
 }

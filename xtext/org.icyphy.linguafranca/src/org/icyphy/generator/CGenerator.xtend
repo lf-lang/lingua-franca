@@ -159,7 +159,7 @@ class CGenerator extends GeneratorBase {
 			indent()
 			pr(initializeTriggerObjects.toString)
 			doDeferredInitialize()
-			setReactionPriorities()
+			setReactionPriorities(main)
 			unindent()
 			pr('}\n')
 
@@ -1224,22 +1224,22 @@ class CGenerator extends GeneratorBase {
 		}
 		unindent(initializeTriggerObjects)
 		pr(initializeTriggerObjects, "} // End of scope for " + instance.fullName)
-		
-		
 	}
 
-	/** Set the reaction priorities based on dependency analysis. */
-	def setReactionPriorities() {
-		var graph = new ReactionGraph(this)
-		// Calculate levels for the graph.		
-		graph.calculateLevels(main)
-
+	/** Set the reaction priorities based on dependency analysis.
+	 *  @param reactor The reactor on which to do this.
+	 */
+	def void setReactionPriorities(ReactorInstance reactor) {
 		// Use "reactionToReactionTName" property of reactionInstance
 		// to set the levels.
-		for (ReactionInstance reactionInstance : graph.nodes) {
+		for (reactionInstance : reactor.reactionInstances) {
 			val map = (reactionInstance.parent as CReactorInstance).reactionToReactionTName
 			val reactionTName = map.get(reactionInstance.definition);
+			// FIXME: index should be renamed level.
 			pr(reactionTName + ".index = " + reactionInstance.level + ";")
+		}
+		for (child : reactor.children) {
+		    setReactionPriorities(child)
 		}
 	}
 	
