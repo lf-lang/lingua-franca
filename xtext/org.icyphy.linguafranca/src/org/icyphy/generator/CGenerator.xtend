@@ -16,6 +16,7 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.Hashtable
 import java.util.LinkedList
+import java.util.List
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
@@ -30,14 +31,11 @@ import org.icyphy.linguaFranca.ActionModifier
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.generator.PortInstance
-import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
-import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 
@@ -642,12 +640,12 @@ class CGenerator extends GeneratorBase {
 			// For each output, figure out how many
 			// inputs are connected to it. This is obtained via the container.
 			var parent = reactorInstance.parent
-            var destinations = null as HashSet<PortInstance>
+            var destinations = null as List<PortInstance>
             if (parent !== null) {
                 destinations = parent.transitiveClosure(parent.lookupLocalPort(output))
             } else {
                 // At the top level, where there cannot be any destinations.
-                destinations = new HashSet<PortInstance>()
+                destinations = new LinkedList<PortInstance>()
             }
             
             // Append to the array that records the length of each trigger_t array.
@@ -830,12 +828,12 @@ class CGenerator extends GeneratorBase {
                                 // the triggers that fire if this output is produced.
 								// For each output, obtain the destinations from the container.
 								var parent = reactorInstance.parent
-								var destinations = null as HashSet<PortInstance>
+								var destinations = null as List<PortInstance>
 								if (parent !== null) { // This assumes that top-level reactors cannot have outputs.
 									destinations = parent.transitiveClosure(reactorInstance.getPortInstance(effect))
 								} else {
 								    // At the top level, where there cannot be any destinations.
-								    destinations = new HashSet<PortInstance>()
+								    destinations = new LinkedList<PortInstance>()
 								}
 
                                 // Append to the array that records the sizes of the trigger arrays.
@@ -1024,8 +1022,8 @@ class CGenerator extends GeneratorBase {
 				var offset = if (timing === null) { null } else {timing.offset}
 				var period = if (timing === null) { null } else {timing.period}
 
-				pr(initializeTriggerObjects, triggerStructName + '.offset = ' + timeMacro(offset) + ';')
-				pr(initializeTriggerObjects, triggerStructName + '.period = ' + timeMacro(period) + ';')
+				pr(initializeTriggerObjects, triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
+				pr(initializeTriggerObjects, triggerStructName + '.period = ' + timeInTargetLanguage(period) + ';')
 
 				// Generate a line to go into the __start_timers() function.
 				// Note that the delay, the second argument, is zero because the
@@ -1080,29 +1078,41 @@ class CGenerator extends GeneratorBase {
 	 *  @param instance A reactor instance.
 	 */
 	def void generateReactorInstance(ReactorInstance instance) {
-		var instanceName = instance.definition.name
 		var reactorClass = instance.definition.reactorClass
-		var className = reactorClass.name
-		
-		pr('// ************* Instance ' + instanceName + ' of class ' + className)
+		var fullName = instance.fullName
+		pr('// ************* Instance ' + fullName + ' of class ' + reactorClass.name)
 		
 		// Generate the instance struct containing parameters, state variables,
 		// and outputs (the "self" struct).
-		
 		var nameOfSelfStruct = selfStructName(instance)
-		
 		var structType = selfStructType(reactorClass)
 		if (!hasEmptySelfStruct(reactorClass)) {
-			pr('// --- "self" struct for instance ' + instance.fullName)
+			pr('// --- "self" struct for instance ' + fullName)
 			pr(structType + " " + nameOfSelfStruct + ";")
 		}
 
 		// Generate code to initialize the "self" struct in the
 		// __initialize_trigger_objects function.
 		// Create a scope for the parameters in case the names collide with other instances.
-		pr(initializeTriggerObjects, "{ // Scope for " + instance.fullName)
+		pr(initializeTriggerObjects, "{ // Scope for " + fullName)
 		indent(initializeTriggerObjects)
 		// Start with parameters.
+		for (parameter : instance.parameters) {
+            // In case the parameter value refers to a container parameter with the same name,
+            // we have to first store the value in a temporary variable, then in the
+            // parameter variable.
+            var tmpVariableName = '__tmp' + tmpVariableCount++
+            pr(initializeTriggerObjects,
+                parameter.type + ' ' + tmpVariableName + ' = ' + parameter.value + ';'
+            )
+            pr(initializeTriggerObjects,
+                parameter.type + ' ' + parameter.name + ' = ' + tmpVariableName + ';'
+            )
+            pr(initializeTriggerObjects,
+                nameOfSelfStruct + "." + parameter.name + " = " + parameter.value + ";"
+            )
+		}
+		/* FIXME
 		// First, collect the overrides.
 		var overrides = new HashMap<String, String>()
 		var parameters = instance.definition.parameters
@@ -1113,7 +1123,7 @@ class CGenerator extends GeneratorBase {
 					var time = LinguaFrancaFactory.eINSTANCE.createTime()
 					time.setTime(value)
 					time.setUnit(assignment.unit)
-					value = timeMacro(time)
+					value = timeInTargetLanguage(time)
 				}
 				overrides.put(assignment.name, removeCodeDelimiter(value))
 			}
@@ -1124,7 +1134,7 @@ class CGenerator extends GeneratorBase {
 			if (value === null) {
 				value = removeCodeDelimiter(parameter.value)
 				if (parameter.time !== null) {
-					value = timeMacro(parameter.time)
+					value = timeInTargetLanguage(parameter.time)
 				}
 			}
 			// In case the parameter value refers to a container parameter with the same name,
@@ -1136,6 +1146,9 @@ class CGenerator extends GeneratorBase {
 				getParameterType(parameter) + ' ' + parameter.name + ' = ' + tmpVariableName + ';')
 			pr(initializeTriggerObjects, nameOfSelfStruct + "." + parameter.name + " = " + value + ";")
 		}
+		*
+		*/
+		
 		// Next, initialize the "self" struct with state variables.
 		for (state : reactorClass.states) {
 			var value = removeCodeDelimiter(state.value)
@@ -1173,7 +1186,7 @@ class CGenerator extends GeneratorBase {
 		for (reaction: reactorClass.reactions) {
 		    if (reaction.localDeadline !== null) {
                 var reactionTName = (instance as CReactorInstance).reactionToReactionTName.get(reaction)
-		        pr(initializeTriggerObjects, reactionTName + '.local_deadline = ' + timeMacro(reaction.localDeadline.time) + ';')
+		        pr(initializeTriggerObjects, reactionTName + '.local_deadline = ' + timeInTargetLanguage(reaction.localDeadline.time) + ';')
 		    }
 		}
 
@@ -1191,7 +1204,7 @@ class CGenerator extends GeneratorBase {
 						if (reactionTName === null) {
 							reportError(deadline, "Internal error: No reaction_t object found for reaction.")
 						} else {
-							pr(initializeTriggerObjects, reactionTName + '.deadline = ' + timeMacro(deadline.delay) + ';')
+							pr(initializeTriggerObjects, reactionTName + '.deadline = ' + timeInTargetLanguage(deadline.delay) + ';')
 	
 							// Next, set the deadline_violation field to point to the trigger_t struct.
 						    var triggerStructName = (instance as CReactorInstance).triggerToTriggerStructName.get(deadline.action)
@@ -1601,22 +1614,6 @@ class CGenerator extends GeneratorBase {
 		for (containedReactor : parent.children) {
 			// In case this is a composite, handle its assignments.
 			setInputsAbsentByDefault(containedReactor)
-		}
-	}
-
-	/** Given a representation of time that may possibly include units,
-	 *  return a string that invokes a macro to convert to nanoseconds.
-	 *  @param time The time to convert.
-	 *  @return A string, such as "MSEC(100)" for 100 milliseconds.
-	 */
-	protected def timeMacro(Time time) {
-		if (time === null || time.time === null) {
-			'0LL'
-		} else if (time.unit === null) {
-			// Assume the literal is correct.
-			time.time
-		} else {
-			time.unit.toUpperCase + '(' + time.time + ')'
 		}
 	}
 

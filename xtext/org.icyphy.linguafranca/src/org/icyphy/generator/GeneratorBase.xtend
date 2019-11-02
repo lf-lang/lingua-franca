@@ -273,7 +273,39 @@ class GeneratorBase {
 //			}
 		}
 	}
-		
+
+    /** Given a representation of time that may possibly include units,
+     *  return a string that the target language can recognize as a value.
+     *  In this base class, if units are given, e.g. "msec", then
+     *  we convert the units to upper case and return an expression
+     *  of the form "MSEC(value)". Particular target generators will need
+     *  to either define functions or macros for each possible time unit
+     *  or override this method to return something acceptable to the
+     *  target language.
+     *  @param time The time to convert.
+     *  @return A string, such as "MSEC(100)" for 100 milliseconds.
+     */
+    def timeInTargetLanguage(Time time) {
+        if (time === null || time.time === null) {
+            '0LL'
+        } else if (time.unit === null) {
+            // Assume the literal is correct.
+            time.time
+        } else {
+            time.unit.toUpperCase + '(' + time.time + ')'
+        }
+    }
+    
+    /** Return a string that the target language can recognize as a type
+     *  for a time value. This base class returns "instant_t".
+     *  Particular target generators will likely need to override
+     *  this method to return something acceptable to the target language.
+     *  @return The string "instant_t"
+     */
+    def timeTypeInTargetLanguage() {
+        "instant_t"
+    }
+
 	////////////////////////////////////////////
 	//// Utility functions for generating code.
 	

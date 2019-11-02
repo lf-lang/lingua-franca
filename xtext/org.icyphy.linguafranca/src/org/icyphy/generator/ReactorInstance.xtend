@@ -3,10 +3,12 @@
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
-import java.util.HashMap
 import java.util.HashSet
+import java.util.LinkedHashMap
+import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Set
 import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -14,7 +16,6 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.VarRef
-import java.util.Set
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -37,6 +38,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     protected new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         super(definition, parent)
         this.generator = generator
+        
+        // Instatiate parameters for this reactor instance.
+        for (parameter: definition.reactorClass.parameters) {
+            parameters.add(new ParameterInstance(parameter, this))
+        }
         
         // Instantiate children for this reactor instance
         for (child : definition.reactorClass.instantiations) {
@@ -75,7 +81,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             dstInstance.dependsOnPorts.add(srcInstance)
             var dstInstances = this.destinations.get(srcInstance)
             if (dstInstances === null) {
-                dstInstances = new HashSet<PortInstance>()
+                dstInstances = new LinkedHashSet<PortInstance>()
                 this.destinations.put(srcInstance, dstInstances)   
             }
             dstInstances.add(dstInstance)
@@ -127,29 +133,32 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     //// Public fields.
     
     /** The action instances belonging to this reactor instance. */
-    public var actions = new HashSet<ActionInstance>
+    public var actions = new LinkedList<ActionInstance>
 
     /** The contained instances, indexed by name. */
-    public var HashSet<ReactorInstance> children = new HashSet<ReactorInstance>()
+    public var LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
 
     /** A map from sources to destinations as specified by the connections
      *  of this reactor instance. Note that this is redundant, because the same
      *  information is available in the port instances of this reactor and its
      *  children, but it is sometimes convenient to have it collected here.
      */
-    public var HashMap<PortInstance, HashSet<PortInstance>> destinations = new HashMap();
+    public var LinkedHashMap<PortInstance, LinkedHashSet<PortInstance>> destinations = new LinkedHashMap();
 
     /** The input port instances belonging to this reactor instance. */    
-    public var inputs = new HashSet<PortInstance>    
+    public var inputs = new LinkedList<PortInstance>    
 
     /** The output port instances belonging to this reactor instance. */    
-    public var outputs = new HashSet<PortInstance>    
+    public var outputs = new LinkedList<PortInstance> 
+    
+    /** The parameters of this instance. */
+    public var parameters = new LinkedList<ParameterInstance>
     
     /** List of reaction instances for this reactor instance. */
-    public var List<ReactionInstance> reactionInstances = new LinkedList<ReactionInstance>();
+    public var LinkedList<ReactionInstance> reactionInstances = new LinkedList<ReactionInstance>();
 
     /** The timer instances belonging to this reactor instance. */
-    public var timers = new HashSet<TimerInstance>
+    public var timers = new LinkedList<TimerInstance>
     
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -209,7 +218,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def lookupLocalPort(Port port) {
         // Search one of the inputs and outputs sets.
-        var ports = null as HashSet<PortInstance>
+        var ports = null as LinkedList<PortInstance>
         if (port instanceof Input) {
             ports = this.inputs
         } else if (port instanceof Output) {
@@ -247,7 +256,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  @param source An output or input port.
      */    
     def transitiveClosure(PortInstance source) {
-        var result = new HashSet<PortInstance>();
+        var result = new LinkedList<PortInstance>();
         transitiveClosure(source, result);
         result
     }    
@@ -465,7 +474,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *   of its children.
      *  @param destinations The set of destinations to populate.
      */    
-    protected def void transitiveClosure(PortInstance source, HashSet<PortInstance> destinations) {
+    protected def void transitiveClosure(PortInstance source, List<PortInstance> destinations) {
         // Check that the specified port belongs to this reactor or one of its children.
         // The following assumes that the main reactor has no ports, or else
         // a NPE will occur.
