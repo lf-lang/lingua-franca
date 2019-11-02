@@ -621,14 +621,10 @@ class CGenerator extends GeneratorBase {
 	 *  This object has a pointer to the function to invoke for that
 	 *  reaction.
 	 *  @param reactorInstance The instance for which we are generating trigger objects.
-	 *  @param nameOfSelfStruct The name of the instance of "self" for this instance or
-	 *   null if there isn't one.
 	 */
-	def generateTriggerForTransferOutputs(
-		ReactorInstance reactorInstance,
-		String nameOfSelfStruct
-	) {
+	def generateTriggerForTransferOutputs(ReactorInstance reactorInstance) {
 		// FIXME: This code is rather similar to that in generateTriggerObjects(). Refactor?
+		var nameOfSelfStruct = selfStructName(reactorInstance)
 		var classInfo = ReactorInfo.get(reactorInstance.definition.reactorClass)
 		var triggeredSizesContents = new StringBuilder()
 		var triggersContents = new StringBuilder()
@@ -770,11 +766,9 @@ class CGenerator extends GeneratorBase {
 	 *  This object has a pointer to the function to invoke for that
 	 *  reaction.
 	 *  @param reactorInstance The instance for which we are generating trigger objects.
-	 *  @param nameOfSelfStruct The name of the instance of "self" for this instance or
-	 *   null if there isn't one.
 	 *  @return A map of trigger names to the name of the trigger struct.
 	 */
-	def generateTriggerObjects(ReactorInstance reactorInstance, String nameOfSelfStruct) {		
+	def generateTriggerObjects(ReactorInstance reactorInstance) {
 		// If there is no instance statement, then this is main.
 		val reactorClass = reactorInstance.definition.reactorClass
 		val classInfo = ReactorInfo.get(reactorClass)
@@ -1149,10 +1143,10 @@ class CGenerator extends GeneratorBase {
 		}
 
 		// Generate trigger objects for the instance.
-		generateTriggerObjects(instance, nameOfSelfStruct)
+		generateTriggerObjects(instance)
 
 		// Generate trigger objects for transferring outputs of a composite.
-		generateTriggerForTransferOutputs(instance, nameOfSelfStruct)
+		generateTriggerForTransferOutputs(instance)
 
 		// Next, initialize the struct with actions.
 		for (action : reactorClass.actions) {
