@@ -64,17 +64,21 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         	this.actions.add(new ActionInstance(actionDecl, this))
         }
         
-        // Populate destinations map.
+        // Populate destinations map and the connectivity information
+        // in the port instances.
         // Note that this can only happen _after_ the children and 
         // port instances have been created.
         for (connection : definition.reactorClass.connections) {
             var srcInstance = this.getPortInstance(connection.leftPort)
+            var dstInstance = this.getPortInstance(connection.rightPort)
+            srcInstance.dependentPorts.add(dstInstance)
+            dstInstance.dependsOnPorts.add(srcInstance)
             var dstInstances = this.destinations.get(srcInstance)
             if (dstInstances === null) {
                 dstInstances = new HashSet<PortInstance>()
                 this.destinations.put(srcInstance, dstInstances)   
             }
-            dstInstances.add(this.getPortInstance(connection.rightPort))
+            dstInstances.add(dstInstance)
         }
         
         // Create the reaction instances in this reactor instance.
@@ -85,9 +89,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
         // If this is the main reactor, then perform static analysis.
         if (parent === null) {
+            // Set of reactions that do not depend on other reactions at
+            // a logical time instant.
             independentReactions = new HashSet<ReactionInstance>()
-            // Add to the dependsOnReactions
-            // and dependentReactions of each reaction instance all the
+            
+            // Add to the dependsOnReactions and dependentReactions
+            // of each reaction instance all the
             // reaction instances that it depends on indirectly through ports or
             // that depend on this reaction. Collect all the reactions that
             // depend on no other reactions into the _independentReactions set.
@@ -125,7 +132,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** The contained instances, indexed by name. */
     public var HashSet<ReactorInstance> children = new HashSet<ReactorInstance>()
 
-    /** A map from sources to destinations as specified by the connections of this reactor instance. */
+    /** A map from sources to destinations as specified by the connections
+     *  of this reactor instance. Note that this is redundant, because the same
+     *  information is available in the port instances of this reactor and its
+     *  children, but it is sometimes convenient to have it collected here.
+     */
     public var HashMap<PortInstance, HashSet<PortInstance>> destinations = new HashMap();
 
     /** The input port instances belonging to this reactor instance. */    
@@ -190,7 +201,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
-     /** Given a port definition, return the port instance
+    /** Given a port definition, return the port instance
      *  corresponding to that definition, or null if there is
      *  no such instance.
      *  @param port The port definition (a syntactic object in the AST).
@@ -352,16 +363,25 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected def void collapseDependencies(ReactorInstance reactor) {
         for (ReactionInstance reactionInstance : reactor.reactionInstances) {
+            // Handle the ports that this reaction writes to.
             for (PortInstance port : reactionInstance.dependentPorts) {
+                // Reactions that depend on a port that this reaction writes to
+                // also, by transitivity, depend on this reaction instance.
                 addReactionsDependingOnPort(port, reactionInstance.dependentReactions)
             }
+            // Handle the ports that this reaction reads from.
             for (PortInstance port : reactionInstance.dependsOnPorts) {
+                // Reactions that write to such a port are also reactions that
+                // that this reaction depends on, by transitivity.
                 addReactionsPortDependsOn(port, reactionInstance.dependsOnReactions)
             }
+            // If, after all this, the reaction does not depend on any other
+            // reactions, then it is an independent reaction.
             if (reactionInstance.dependsOnReactions.isEmpty()) {
                 main.independentReactions.add(reactionInstance);
             }
         }
+        // Repeat for all children.
         for (child : reactor.children) {
             collapseDependencies(child)
         }
@@ -436,15 +456,25 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    /** Add to the destinations hash set all ports that receive data from the 
+    /** Add to the specified destinations set all ports that receive data from the 
      *  specified source. This includes inputs and outputs at the same level 
      *  of hierarchy and input ports deeper in the hierarchy.
      *  It does not include inputs or outputs up the hierarchy (i.e., ones
      *  that are reached via any output port that it does return).
-     *  
+     *  @param source A port belonging to this reaction instance or one
+     *   of its children.
      *  @param destinations The set of destinations to populate.
      */    
     protected def void transitiveClosure(PortInstance source, HashSet<PortInstance> destinations) {
+        // Check that the specified port belongs to this reactor or one of its children.
+        // The following assumes that the main reactor has no ports, or else
+        // a NPE will occur.
+        // FIXME: Should this use an assertion instead?
+        if (source.parent !== this && source.parent.parent !== this) {
+            throw new Exception("Internal error: port " + source + " does not belong to "
+                + this + " nor any of its children."
+            )
+        }
         var localDestinations = this.destinations.get(source)
         
         for (destination : localDestinations?:emptyList) {
