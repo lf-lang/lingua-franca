@@ -95,7 +95,7 @@ abstract class NamedInstance<T extends EObject> {
     protected HashMap<String,Integer> _uniqueIDCount;
 
     //////////////////////////////////////////////////////
-    //// Private methods.
+    //// Protected methods.
 
     /** Return a string of the form
      *  "a.b.c", where "." is replaced by the specified joiner,
@@ -104,11 +104,11 @@ abstract class NamedInstance<T extends EObject> {
      *  at the container in main.
      *  @return A string representing this instance.
      */
-    private def String getFullNameWithJoiner(String joiner) {
+    protected def String getFullNameWithJoiner(String joiner) {
         if (this.parent === null) {
             this.getName
         } else {
-            parent.getFullName + joiner + this.getName
+            parent.getFullNameWithJoiner(joiner) + joiner + this.getName
         }
     }
 
