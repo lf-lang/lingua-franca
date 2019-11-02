@@ -24,6 +24,9 @@ class PortInstance extends NamedInstance<Port> implements TriggerInstance {
         }
     }
         
+    /////////////////////////////////////////////
+    //// Public Fields
+
     /** Set of port instances that receive messages from this port. */
     public HashSet<PortInstance> dependentPorts = new HashSet<PortInstance>();
         
@@ -42,6 +45,7 @@ class PortInstance extends NamedInstance<Port> implements TriggerInstance {
     public var HashMap<String,Object> properties = new HashMap<String,Object>()
     
     /////////////////////////////////////////////
+    //// Public Methods
     
     /** Add to the dependsOnReactions all the reactions that this port
      *  depends on indirectly through other ports. Do the same for the
