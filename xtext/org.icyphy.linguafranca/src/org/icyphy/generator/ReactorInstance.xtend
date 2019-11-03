@@ -80,7 +80,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             var srcInstance = this.getPortInstance(connection.leftPort)
             var dstInstance = this.getPortInstance(connection.rightPort)
             srcInstance.dependentPorts.add(dstInstance)
-            dstInstance.dependsOnPorts.add(srcInstance)
+            if (dstInstance.dependsOnPort !== null && dstInstance.dependsOnPort !== srcInstance) {
+                // FIXME: Is this the right way to handle the error?
+                throw new Exception("Destination port " + dstInstance.getFullName
+                    + " is already connected to " + dstInstance.dependsOnPort.getFullName
+                )
+            }
+            dstInstance.dependsOnPort = srcInstance
             var dstInstances = this.destinations.get(srcInstance)
             if (dstInstances === null) {
                 dstInstances = new LinkedHashSet<PortInstance>()
@@ -333,8 +339,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         PortInstance port, HashSet<ReactionInstance> reactions
     ) {
         reactions.addAll(port.dependsOnReactions)
-        for (upstreamPort : port.dependsOnPorts) {
-            addReactionsPortDependsOn(upstreamPort, reactions)
+        if (port.dependsOnPort !== null) {
+            addReactionsPortDependsOn(port.dependsOnPort, reactions)
         }
     }
 

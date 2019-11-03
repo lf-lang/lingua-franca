@@ -5,6 +5,8 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.HashSet
+import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Variable
 
@@ -31,8 +33,8 @@ class PortInstance extends TriggerInstance<Variable> {
     /** Set of port instances that receive messages from this port. */
     public HashSet<PortInstance> dependentPorts = new HashSet<PortInstance>();
         
-    /** Set of port instances that send messages to this port. */
-    public HashSet<PortInstance> dependsOnPorts = new HashSet<PortInstance>();
+    /** Port that sends messages to this port, if there is one. */
+    public PortInstance dependsOnPort = null;
     
     /** Properties associated with this instance.
      *  This may be used by particular code generators.
@@ -41,6 +43,16 @@ class PortInstance extends TriggerInstance<Variable> {
     
     /////////////////////////////////////////////
     //// Public Methods
+    
+    /** Return true if the port is an input. */
+    def isInput() {
+        definition instanceof Input
+    }
+
+    /** Return true if the port is an output. */
+    def isOutput() {
+        definition instanceof Output
+    }
 
     /** Return a descriptive string. */
     override toString() {
