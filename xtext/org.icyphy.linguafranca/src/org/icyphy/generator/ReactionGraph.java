@@ -121,7 +121,7 @@ public class ReactionGraph {
         for (PortInstance source : reactorInstance.destinations.keySet()) {
             for (PortInstance destination : reactorInstance.destinations
                     .get(source)) {
-                destination.dependsOnPorts.add(source);
+                destination.dependsOnPort = source;
                 source.dependentPorts.add(destination);
             }
         }
