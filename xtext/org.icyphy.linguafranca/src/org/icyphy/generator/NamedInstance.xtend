@@ -25,7 +25,7 @@ abstract class NamedInstance<T extends EObject> {
     public var T definition
     
     /** A limit on the number of characters returned by uniqueID. */
-    public static var identifierLengthLimit = 20
+    public static var identifierLengthLimit = 40
     
     /** The reactor instance that creates this instance. */
     public var ReactorInstance parent

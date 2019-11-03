@@ -65,7 +65,7 @@ class ParameterInstance extends NamedInstance<Param> {
             // Check for an override.
             if (parent.definition.parameters !== null) {
                 for (assignment : parent.definition.parameters.assignments ?: emptyList) {
-                    if (assignment.name == parent.definition.name) {
+                    if (assignment.name == this.name) {
                         // Parameter is overridden.
                         var value = assignment.value;
                         if (assignment.unit !== null) {

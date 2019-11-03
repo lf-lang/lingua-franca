@@ -1,7 +1,7 @@
 // This test checks that a deadline violation is detected and that the original
 // input of the deadline violation is not triggered by default.
-target C(
-    run = "bin/DeadlineC -timeout 2 sec"
+target C( 
+    run = "bin/Deadline2 -timeout 2 sec"
 );
 reactor Source(period:time(1 sec)) {
     output y:int;
@@ -24,8 +24,7 @@ reactor Destination {
         printf("**** Handle deadline miss.\n");
     =}
     react(x) {=
-        printf("FAILURE: Deadline miss should have blocked delivery of x.\n");
-        printf("x input: %d\n", x);
+        printf("FAILURE: Deadline miss should have blocked delivery of x: %d.\n", x);
         exit(2);
     =}
 }
