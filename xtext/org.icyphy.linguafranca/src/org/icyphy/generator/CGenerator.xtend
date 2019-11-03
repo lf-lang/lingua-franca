@@ -46,7 +46,6 @@ class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
     var reactionCount = 0
-    var reactionInstanceCount = 0
     var triggerCount = 0
     var tmpVariableCount = 0
 
@@ -736,8 +735,9 @@ class CGenerator extends GeneratorBase {
             // The following function name will be unique, assuming that
             // reactor class names are unique and within each reactor class,
             // output names are unique.
-            val functionName = "transfer_output_" + reactor.name + "_" + output.name
-
+            // This has to match what's in generateTriggerForTransferOutputs
+            val functionName = reactor.name.toLowerCase + "_xfer_outs_" + "_" + output.name
+            
             pr('void ' + functionName + '(void* instance_args) {')
             indent()
 
@@ -775,11 +775,16 @@ class CGenerator extends GeneratorBase {
             if (output.dependsOnPort !== null) {
                 // The output is connected on the inside.
                 // Create the reaction and trigger structs for this port.
-
+                
                 // The function name for the transfer outputs function:
-                val functionName = "transfer_output_" + reactorInstance.definition.reactorClass.name + "_" + output.name
+                // This has to match what's in generateTransferOutputs
+                val functionName = 
+                    output.parent.definition.reactorClass.name.toLowerCase
+                    + "_xfer_outs_" + "_" + output.name
 
-                pr(result, "// --- Reaction and trigger objects for transfer outputs for " + output)
+                pr(result, "// --- Reaction and trigger objects for transfer outputs for "
+                    + output.getFullName
+                )
 
                 // Figure out how many inputs are connected to the output.
                 // This is obtained via the container.
@@ -795,6 +800,8 @@ class CGenerator extends GeneratorBase {
                 // Append to the array that records the length of each trigger_t array.            
                 triggeredSizesContents.add("" + destinations.size)
             
+                val structName = triggerStructName(output)
+
                 // Then, for each input connected to this output,
                 // find its trigger_t struct. Create an array of pointers
                 // to these trigger_t structs, and collect pointers to
@@ -802,25 +809,24 @@ class CGenerator extends GeneratorBase {
                 if (destinations.size === 0) {
                     triggersContents.add("NULL")
                 } else {
-                    var remoteTriggersArrayName = '__' + functionName + '_' + outputCount + '_remote_triggers'
                     var inputCount = 0;
                     for (destination : destinations) {
                         deferredInitialize.add(
                             new InitializeRemoteTriggersTable(
                                 parent,
-                                remoteTriggersArrayName,
+                                output.uniqueID + '_remote_triggers',
                                 (inputCount++),
                                 destination
                             )
                         )
                     }
                     pr(result,
-                        'trigger_t* ' + remoteTriggersArrayName + '[' + inputCount + '];'
+                        'trigger_t* ' + output.uniqueID + '_remote_triggers[' + inputCount + '];'
                     )
-                    triggersContents.add('&' + remoteTriggersArrayName + '[0]')
+                    triggersContents.add('&' + output.uniqueID + '_remote_triggers[0]')
                 }
                 // Next generate the array of booleans which indicates whether outputs are present.
-                var outputProducedArray = '__' + functionName + '_outputs_are_present'
+                var outputProducedArray = output.uniqueID + '_outputs_are_present'
                 pr(result,
                     'bool* ' + outputProducedArray + '[]' + ' = {' + '&'
                     + nameOfSelfStruct + '.__' + output.name + '_is_present' + '};'
@@ -828,22 +834,24 @@ class CGenerator extends GeneratorBase {
                 // Create a array with ints indicating these
                 // numbers and assign it to triggered_reactions_sizes
                 // field of the reaction_t object.
-                var triggeredSizesArray = '&__' + functionName + '_triggered_sizes[0]'
+                var triggeredSizesArray = '&' + output.uniqueID + '_triggered_sizes[0]'
                 pr(result,
-                    'int __' + functionName + '_triggered_sizes' + '[] = {' + triggeredSizesContents.join(', ') + '};'
+                    'int ' + output.uniqueID + '_triggered_sizes' + '[] = {' + triggeredSizesContents.join(', ') + '};'
                 )
                 // Create an array with pointers to arrays of pointers to trigger_t
                 // structs for each input triggered by an output.
-                var triggersArray = '&__' + functionName + '_triggers[0]'
+                var triggersArray = '&' + output.uniqueID + '_triggers[0]'
                 pr(result,
-                    'trigger_t** __' + functionName + '_triggers' + '[] = {' + triggersContents.join(', ') + '};'
+                    'trigger_t** ' + output.uniqueID + '_triggers' + '[] = {' + triggersContents.join(', ') + '};'
                 )
                 // First 0 is an index that specifies priorities based on precedences.
                 // It will be set later.
-                var reactionInstanceName = "__reaction" + reactionInstanceCount++
+                var reactionInstanceName = output.uniqueID + "_reaction"
                 pr(
                     result,
-                    "reaction_t " + reactionInstanceName + " = {&" + functionName + ", &" + nameOfSelfStruct + ", 0" // index: index from the topological sort.
+                    "reaction_t " + reactionInstanceName 
+                    + " = {&" + functionName + ", &" + nameOfSelfStruct // Function
+                    + ", 0" // index: index from the topological sort.
                     + ", 0" // pos: position used by the pqueue implementation for sorting.
                     + ", 1" // num_outputs: number of outputs produced by this reaction. This is just one.
                     + ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
@@ -857,11 +865,11 @@ class CGenerator extends GeneratorBase {
                     + ", -1LL"  // violation_handled for container deadline.
                     + "};"
                 )
-                pr(result, 'reaction_t* ' + output.name + triggerCount + '_reactions[1] = {&' + reactionInstanceName + '};')
+                pr(result, 'reaction_t* ' + structName + '_reactions[1] = {&' + reactionInstanceName + '};')
 
-                pr(result, 'trigger_t ' + output.name + triggerCount + ' = {')
+                pr(result, 'trigger_t ' + structName + ' = {')
                 indent(result)
-                pr(result, output.name + triggerCount.toString + '_reactions, 1, 0LL, 0LL, NULL, false')
+                pr(result, structName + '_reactions, 1, 0LL, 0LL, NULL, false')
                 unindent(result)
                 pr(result, '};')
             
@@ -902,8 +910,7 @@ class CGenerator extends GeneratorBase {
             var numberOfReactionsTriggered = triggerInstance.dependentReactions.length
 
             // Collect names of the reaction_t objects that are triggered together.
-            // FIXME: This should be a list that later joined.
-            var reactionTNames = new StringBuffer();
+            var reactionTNames = new LinkedList<String>();
 
             // Generate reaction_t struct.
             // Along the way, we need to generate its contents, including trigger_t structs.
@@ -917,24 +924,20 @@ class CGenerator extends GeneratorBase {
 
                 // Collect the reaction instance names to initialize the
                 // reaction pointer array for the trigger.
-                if (reactionTNames.length != 0) {
-                    reactionTNames.append(", ")
-                }
-                reactionTNames.append('&' + reactionInstanceName)
+                reactionTNames.add('&' + reactionInstanceName)
             }
             // Trigger could be a Timer, Action, or Input
             var triggerStructName = triggerStructName(triggerInstance)
 
             pr(result,
                 'reaction_t* ' + triggerStructName + '_reactions[' + numberOfReactionsTriggered + '] = {' +
-                    reactionTNames + '};')
+                    reactionTNames.join(", ") + '};')
             // Declare a variable with the name of the trigger whose
             // value is a struct.
             pr(result, 'trigger_t ' + triggerStructName + ' = {')
             indent(result)
             if (trigger instanceof Timer || trigger instanceof Input) {
-                pr(
-                    result,
+                pr(result,
                     triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' + '0LL, 0LL, NULL, false'
                 )
             } else if (trigger instanceof Action) {
@@ -946,8 +949,7 @@ class CGenerator extends GeneratorBase {
                 if ((trigger as Action).modifier == ActionModifier.LOGICAL) {
                     isPhysical = "false";
                 }
-                pr(
-                    result,
+                pr(result,
                     triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' +
                         delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
                 )
@@ -1201,8 +1203,11 @@ class CGenerator extends GeneratorBase {
             // If the destination of a connection is an input
             // port of a reactor that has no reactions to that input,
             // then this trigger struct will not have been created.
-            // In that case, we want null.
-            if (init.input.dependentReactions.size === 0) {
+            // In that case, we want NULL.
+            // If the destination is an output port, however, then
+            // the dependentReactions.size will be zero, but we nevertheless
+            // want to set up the trigger.
+            if (init.input.dependentReactions.size === 0 && !init.input.isOutput) {
                 pr(init.remoteTriggersArrayName + '[' + init.arrayIndex + '] = NULL;')
             } else {
                 pr(init.remoteTriggersArrayName + '[' + init.arrayIndex + '] = &' + triggerStructName + ';')
@@ -1233,36 +1238,41 @@ class CGenerator extends GeneratorBase {
             // connection and we don't need to do anything.
             if (eventualSource.isOutput) {
                 var sourceStruct = selfStructName(eventualSource.parent)
-                // Since the eventual source is an ouput port, its parent cannot be
-                // the top-level reactor. Hence, the parent.parent reference below is OK.
-                for (destination : eventualSource.parent.parent.destinations.get(eventualSource)) {
-                    var destStruct = null as String
-                    if (destination.parent === instance) {
-                        destStruct = selfStructName(instance)
-                    } else {
-                        destStruct = selfStructName(destination.parent)
-                    }
+                // Use the source, not the eventualSource here to find the destinations.
+                // If .parent.parent is null, then the source is an input port belonging
+                // the top-level reactor, in which case, it cannot receive any inputs
+                // and there is nothing to do.
+                // FIXME: If the source is an input, we want to use just parent!
+                val destinations = if (source.isInput) {
+                    source.parent.destinations.get(source)
+                } else if (source.parent.parent !== null) {
+                    source.parent.parent.destinations.get(source)
+                }
+                if (destinations !== null) {
+                    for (destination : destinations) {
+                        var destStruct = selfStructName(destination.parent)
                 
-                    if (destination.isInput) {
-                        pr(
-                            destStruct + '.__' + destination.name + ' = &' + sourceStruct + '.__' +
-                                eventualSource.name + ';'
-                        )
-                        pr(
-                            destStruct + '.__' + destination.name + '_is_present = &' + sourceStruct + '.__' +
-                                eventualSource.name + '_is_present;'
-                        )
-                    } else {
-                        // Destination is an output.
-                        var containerSelfStructName = selfStructName(destination.parent)
-                        pr(
-                            containerSelfStructName + '.__' + destination.name + '_inside = &' +
-                                sourceStruct + '.__' + eventualSource.name + ';'
-                        )
-                        pr(
-                            containerSelfStructName + '.__' + destination.name + '_inside_is_present = &' +
-                                sourceStruct + '.__' + eventualSource.name + '_is_present;'
-                        )
+                        if (destination.isInput) {
+                            pr(
+                                destStruct + '.__' + destination.name + ' = &' + sourceStruct + '.__' +
+                                    eventualSource.name + ';'
+                            )
+                            pr(
+                                destStruct + '.__' + destination.name + '_is_present = &' + sourceStruct + '.__' +
+                                    eventualSource.name + '_is_present;'
+                            )
+                        } else {
+                            // Destination is an output.
+                            var containerSelfStructName = selfStructName(destination.parent)
+                            pr(
+                                containerSelfStructName + '.__' + destination.name + '_inside = &' +
+                                    sourceStruct + '.__' + eventualSource.name + ';'
+                            )
+                            pr(
+                                containerSelfStructName + '.__' + destination.name + '_inside_is_present = &' +
+                                    sourceStruct + '.__' + eventualSource.name + '_is_present;'
+                            )
+                        }
                     }
                 }
             }
