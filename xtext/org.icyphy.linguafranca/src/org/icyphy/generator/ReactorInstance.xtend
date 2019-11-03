@@ -7,15 +7,17 @@ import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
-import java.util.List
 import java.util.Set
 import org.eclipse.emf.common.util.EList
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Variable
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -89,8 +91,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
         // Create the reaction instances in this reactor instance.
         // This also establishes all the implied dependencies.
-        // Note that this can only happen _after_ the children and 
-        // port instances have been created.
+        // Note that this can only happen _after_ the children, 
+        // port, action, and timer instances have been created.
         createReactionInstances()
         
         // If this is the main reactor, then perform static analysis.
@@ -155,14 +157,33 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     public var parameters = new LinkedList<ParameterInstance>
     
     /** List of reaction instances for this reactor instance. */
-    public var LinkedList<ReactionInstance> reactionInstances = new LinkedList<ReactionInstance>();
+    public var reactions = new LinkedList<ReactionInstance>();
 
     /** The timer instances belonging to this reactor instance. */
     public var timers = new LinkedList<TimerInstance>
     
+    /** The trigger instances (input ports, timers, and actions
+     *  that trigger reactions) belonging to this reactor instance.
+     */
+    public var triggers = new HashSet<TriggerInstance<Variable>>
+    
     //////////////////////////////////////////////////////
     //// Public methods.
-        
+
+    /** Return the action instance within this reactor 
+     *  instance corresponding to the specified action reference.
+     *  @param action The action as an AST node.
+     *  @return The corresponding action instance or null if the
+     *   action does not belong to this reactor.
+     */
+    def getActionInstance(Action action) {
+        for (actionInstance : actions) {
+            if (actionInstance.name.equals(action.name)) {
+                return actionInstance
+            }
+        }
+    }
+    
     /** Return the instance of a child rector created by the specified
      *  definition or null if there is none.
      *  @param definition The definition of the child reactor ("new" statement).
@@ -210,6 +231,34 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
+    /** Return the reaction instance within this reactor 
+     *  instance corresponding to the specified reaction.
+     *  @param reaction The reaction as an AST node.
+     *  @return The corresponding reaction instance or null if the
+     *   reaction does not belong to this reactor.
+     */
+    def getReactionInstance(Reaction reaction) {
+        for (reactionInstance : reactions) {
+            if (reactionInstance.definition === reaction) {
+                return reactionInstance
+            }
+        }
+    }
+
+    /** Return the timer instance within this reactor 
+     *  instance corresponding to the specified timer reference.
+     *  @param timer The timer as an AST node.
+     *  @return The corresponding timer instance or null if the
+     *   timer does not belong to this reactor.
+     */
+    def getTimerInstance(Timer timer) {
+        for (timerInstance : timers) {
+            if (timerInstance.name.equals(timer.name)) {
+                return timerInstance
+            }
+        }
+    }
+    
     /** Given a port definition, return the port instance
      *  corresponding to that definition, or null if there is
      *  no such instance.
@@ -253,10 +302,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  of hierarchy and input ports deeper in the hierarchy.
      *  It does not include inputs or outputs up the hierarchy (i.e., ones
      *  that are reached via any output port that it does return).
+     *  If the argument is an input port, then it is included in the result.
+     *  No port will appear more than once in the result.
      *  @param source An output or input port.
      */    
     def transitiveClosure(PortInstance source) {
-        var result = new LinkedList<PortInstance>();
+        var result = new LinkedHashSet<PortInstance>();
         transitiveClosure(source, result);
         result
     }    
@@ -371,7 +422,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  @param reactionInstance The reaction instance (must not be null).
      */
     protected def void collapseDependencies(ReactorInstance reactor) {
-        for (ReactionInstance reactionInstance : reactor.reactionInstances) {
+        for (ReactionInstance reactionInstance : reactor.reactions) {
             // Handle the ports that this reaction writes to.
             for (PortInstance port : reactionInstance.dependentPorts) {
                 // Reactions that depend on a port that this reaction writes to
@@ -398,9 +449,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
     /** Create all the reaction instances of this reactor instance
      *  and record the dependencies and antidependencies
-     *  between ports and reactions. This also records the
-     *  dependencies between reactions that follows from the
-     *  order in which they are defined.
+     *  between ports, actions, and timers and reactions.
+     *  This also records the dependencies between reactions
+     *  that follows from the order in which they are defined.
      */
     protected def createReactionInstances() {
         var reactions = this.definition.reactorClass.reactions
@@ -419,13 +470,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 previousReaction = reactionInstance;
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
-                this.reactionInstances.add(reactionInstance);
+                this.reactions.add(reactionInstance);
 
                 // Establish (anti-)dependencies based
                 // on what reactions use and produce.
                 // Only consider inputs and outputs, ignore actions and timers.
                 var EList<VarRef> deps = null;
-                // First handle dependencies
+                // First handle dependencies.
+                // Collect all the triggering ports, actions, and timers
+                // and also all the ports that the reaction reads.
                 if (reaction.getTriggers() !== null) {
                     deps = reaction.getTriggers();
                 }
@@ -438,10 +491,22 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 }
                 if (deps !== null) {
                     for (VarRef dep : deps) {
-                        if (dep.getVariable() instanceof Port) {
-                            var PortInstance port = this.getPortInstance(dep)
-                            port.dependentReactions.add(reactionInstance);
-                            reactionInstance.dependsOnPorts.add(port);
+                        var variable = dep.getVariable()
+                        if (variable instanceof Port) {
+                            var port = this.getPortInstance(dep)
+                            triggers.add(port)
+                            port.dependentReactions.add(reactionInstance)
+                            reactionInstance.dependsOnPorts.add(port)
+                        } else if (variable instanceof Action) {
+                            var action = this.getActionInstance(variable)
+                            triggers.add(action)
+                            action.dependentReactions.add(reactionInstance)
+                            reactionInstance.dependsOnActions.add(action)
+                        } else if (variable instanceof Timer) {
+                            var timer = this.getTimerInstance(variable)
+                            triggers.add(timer)
+                            timer.dependentReactions.add(reactionInstance)
+                            reactionInstance.dependsOnTimers.add(timer)
                         }
                     }
                 }
@@ -474,15 +539,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *   of its children.
      *  @param destinations The set of destinations to populate.
      */    
-    protected def void transitiveClosure(PortInstance source, List<PortInstance> destinations) {
+    protected def void transitiveClosure(PortInstance source, LinkedHashSet<PortInstance> destinations) {
         // Check that the specified port belongs to this reactor or one of its children.
         // The following assumes that the main reactor has no ports, or else
         // a NPE will occur.
-        // FIXME: Should this use an assertion instead?
         if (source.parent !== this && source.parent.parent !== this) {
             throw new Exception("Internal error: port " + source + " does not belong to "
                 + this + " nor any of its children."
             )
+        }
+        // If the port is an input port, then include it in the result.
+        if (source.definition instanceof Input) {
+            destinations.add(source)
         }
         var localDestinations = this.destinations.get(source)
         
@@ -502,7 +570,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         ReactorInstance reactor,
         LinkedList<ReactionInstance> result
     ) {
-        for (reaction : reactor.reactionInstances) {
+        for (reaction : reactor.reactions) {
             if (reaction.level < 0) {
                 result.add(reaction)
             }

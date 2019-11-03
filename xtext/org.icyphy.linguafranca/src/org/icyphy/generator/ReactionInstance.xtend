@@ -1,6 +1,7 @@
 package org.icyphy.generator
 
 import java.util.HashSet
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 
@@ -38,25 +39,39 @@ class ReactionInstance extends NamedInstance<Reaction> {
         }
         // Finally, handle the effects.
         for (effect : definition.effects) {
-            if (effect instanceof Port) {
+            if (effect.variable instanceof Port) {
                 var portInstance = parent.getPortInstance(effect)
                 this.dependentPorts.add(portInstance)
                 portInstance.dependsOnReactions.add(this)
+            } else {
+                // Effect must be an Action.
+                var actionInstance = parent.getActionInstance(effect.variable as Action)
+                this.dependentActions.add(actionInstance)
+                actionInstance.dependsOnReactions.add(this)
             }
         }
     }
+
+    /** The actions that this reaction triggers. */
+    public var dependentActions = new HashSet<ActionInstance>();
         
     /** The ports that this reaction may write to. */
-    public HashSet<PortInstance> dependentPorts = new HashSet<PortInstance>();
+    public var dependentPorts = new HashSet<PortInstance>();
 
     /** The reactions that depend on this reaction. */
-    public HashSet<ReactionInstance> dependentReactions = new HashSet<ReactionInstance>();
+    public var dependentReactions = new HashSet<ReactionInstance>();
+
+    /** The actions that this reaction is triggered by. */
+    public var dependsOnActions = new HashSet<ActionInstance>();
 
     /** The ports that this reaction is triggered by or uses. */
-    public HashSet<PortInstance> dependsOnPorts = new HashSet<PortInstance>();
+    public var dependsOnPorts = new HashSet<PortInstance>();
+
+    /** The timers that this reaction is triggered by. */
+    public var dependsOnTimers = new HashSet<TimerInstance>();
 
     /** The reactions that this reaction depends on. */
-    public HashSet<ReactionInstance> dependsOnReactions = new HashSet<ReactionInstance>();
+    public var dependsOnReactions = new HashSet<ReactionInstance>();
 
     /** The level in the dependence graph. -1 indicates that the level
      *  has not yet been assigned.

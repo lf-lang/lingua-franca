@@ -110,7 +110,7 @@ public class ReactionGraph {
      */
     private void collectNodes(ReactorInstance reactorInstance) {
         // Add all reactions of the given reactor instance as nodes of the graph.
-        nodes.addAll(reactorInstance.reactionInstances);
+        nodes.addAll(reactorInstance.reactions);
         // Do the same for all of its children
         for (ReactorInstance containedReactor : reactorInstance.children) {
             collectNodes(containedReactor);
