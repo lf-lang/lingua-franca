@@ -1,0 +1,31 @@
+// This test connects a simple counting source to tester
+// that checks against its own count.
+target C(
+	run = "bin/IdentifierLength -fast -timeout 10 sec"
+);
+reactor A_Really_Long_Name_For_A_Source(period:time(2 sec)) {
+	output y:int;
+	timer t(1 sec, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		(self->count)++;
+		set(y, self->count);
+	=}
+}
+reactor Another_Really_Long_Name_For_A_Test_Class {
+	input x:int;
+	state count:int(0);
+	reaction(x) {=
+		(self->count)++;
+		printf("Received %d\n", x);
+		if (x != self->count) { 
+			printf("FAILURE: Expected %d\n", self->count);
+			exit(1); 
+		}
+	=} 
+}
+main reactor CompositionC {
+	a_really_long_name_for_a_source_instance = new A_Really_Long_Name_For_A_Source();
+	another_really_long_name_for_a_test_instance = new Another_Really_Long_Name_For_A_Test_Class();
+	a_really_long_name_for_a_source_instance.y -> another_really_long_name_for_a_test_instance.x;
+}

@@ -1101,8 +1101,6 @@ class CGenerator extends GeneratorBase {
         // Handle reaction local deadlines.
         for (reaction: instance.reactions) {
             if (reaction.definition.localDeadline !== null) {
-                // FIXME: time used here will not work if it is a parameter!
-                // Need a local deadline instance rather than using the class definition.
                 pr(initializeTriggerObjects, reactionStructName(reaction) + '.local_deadline
                     = ' + timeInTargetLanguage(reaction.definition.localDeadline.time) + ';')
             }
@@ -1110,6 +1108,7 @@ class CGenerator extends GeneratorBase {
 
         // Finally, handle container deadline commands.
         // FIXME: Need deadline instances.
+        /* FIXME: Remove this for now. Should we bury this?
         for (deadline : reactorClass.deadlines) {
             if (deadline.port.container !== null) { // Form is x.y
                 var triggerToReactions = ReactorInfo.get(deadline.port.container.reactorClass).triggerToReactions
@@ -1139,6 +1138,8 @@ class CGenerator extends GeneratorBase {
                 reportError(deadline, 'Malformed input port specification: ' + deadline.port)
             }
         }
+        * 
+        */
 
         for (child : instance.children) {
             generateReactorInstance(child)
