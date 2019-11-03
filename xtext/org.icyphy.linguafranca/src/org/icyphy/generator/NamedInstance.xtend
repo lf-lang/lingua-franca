@@ -63,6 +63,7 @@ abstract class NamedInstance<T extends EObject> {
      *   unique within the top-level parent.
      */
     def String uniqueID() {
+        // FIXME: Limit the length.
         if (_uniqueID === null) {
             // Construct the unique ID only if it has not been
             // previously constructed.

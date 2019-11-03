@@ -4,11 +4,9 @@
 package org.icyphy.generator
 
 import java.util.HashMap
-import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedList
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
