@@ -24,6 +24,9 @@ abstract class NamedInstance<T extends EObject> {
     /** The Instantiation AST object from which this was created. */
     public var T definition
     
+    /** A limit on the number of characters returned by uniqueID. */
+    public static var identifierLengthLimit = 20
+    
     /** The reactor instance that creates this instance. */
     public var ReactorInstance parent
 
@@ -58,16 +61,28 @@ abstract class NamedInstance<T extends EObject> {
      *  at the container in main. All names are converted to lower case.
      *  The suffix _n is usually omitted, but it is possible to get name
      *  collisions using the above scheme, in which case _n will be an
-     *  increasing integer until there is no collision. 
+     *  increasing integer until there is no collision.
+     *  If the length of the root of the name as calculated above (the root
+     *  is without the _n suffix) is longer than
+     *  the static variable identifierLengthLimit, then the name will be
+     *  truncated. The returned name will be the tail of the name calculated
+     *  above with the prefix '__'.
      *  @return An identifier for this instance that is guaranteed to be
      *   unique within the top-level parent.
      */
     def String uniqueID() {
-        // FIXME: Limit the length.
         if (_uniqueID === null) {
             // Construct the unique ID only if it has not been
             // previously constructed.
-            var prefix = getFullNameWithJoiner('_')
+            var prefix = getFullNameWithJoiner('_').toLowerCase
+            
+            // Truncate, if necessary.
+            if (prefix.length > identifierLengthLimit) {
+                prefix = '__' 
+                    + prefix.substring(prefix.length - identifierLengthLimit + 2)
+            }
+            
+            // Ensure uniqueness.
             var toplevel = main()
             if (toplevel._uniqueIDCount === null) {
                 toplevel._uniqueIDCount = new HashMap<String,Integer>()
@@ -78,6 +93,8 @@ abstract class NamedInstance<T extends EObject> {
                 _uniqueID = prefix
             } else {
                 toplevel._uniqueIDCount.put(prefix, count + 1)
+                // NOTE: The length of this name could exceed
+                // identifierLengthLimit. Is this OK?
                 _uniqueID = prefix + '_' + (count + 1)
             }
         }
