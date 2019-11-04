@@ -60,6 +60,7 @@ Reaction:
 	(sources+=VarRef (',' sources+=VarRef)*)?
 	('->' effects+=VarRef (',' effects+=VarRef)*)?
 	code=CODE
+	('after' timeAfter=Time)?
 	(localDeadline=LocalDeadline)?;
 
 LocalDeadline:

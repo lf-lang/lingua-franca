@@ -82,6 +82,28 @@ class GeneratorBase {
 
         // Figure out the file name for the target code from the source file name.
         filename = extractFilename(resource.getURI.toString)
+        
+        // loop over reactors as below
+		// for after add a logical action with delay
+		// original outputs into additional state variables
+		// have an abstract function to generate the C code for the delay,
+		// implemented in the C generator
+		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+			println("reactor: "+reactor)
+			for (action : reactor.actions) {
+				println("action: " + action)
+			}
+			for (reaction : reactor.reactions) {
+				println("reaction: " + reaction)
+			}
+	
+			/*
+			generateReactor(reactor, importTable)
+			if (reactor.isMain) {
+				main = new ReactorInstance(reactor)
+			}
+			*/
+		}
 
         var mainDef = null as Instantiation
         
