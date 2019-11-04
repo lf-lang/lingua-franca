@@ -1,8 +1,38 @@
+
+
 target C;
+
+reactor EngineControl {
+	
+	input on_off:bool;
+	input angle:int;
+	output torque:int;
+	output check:bool; 
+	state braking:bool(true);
+	timer pulse(0, 10 msec);
+	
+	reaction(on_off) -> torque {=
+		if(self->braking) {
+			self->braking = true;
+			set(torque, 0);
+		} else {
+			self->braking = false;
+		}
+	=}
+	 
+	reaction(angle) -> torque {= 
+		if (!*(self->braking)) { 
+			set(torque, calc_torq(angle));
+		}	
+	=}
+	
+	reaction(pulse) -> check {=
+		set(check, true);	
+	=} 
+}
 
 reactor LeftPedal { 
 	preamble {=
-		#include <stdbool.h>
 	  	#define ZERO_MAX 3;
 	  	#define ZERO_MIN 0;
 	    volatile unsigned char* mm_reg = (char*) 0x1ffff670;    
@@ -47,19 +77,19 @@ reactor RightPedal {
     // Assume all valid pedal values are non-negative.
     state pedal:int(-1);
     logical action response(30); //msec
-    input request:int;
-    output out:int;
-    reaction(request) -> response {=
+    input check:int;
+    output angle:int;
+    reaction(check) -> response {=
         self->pedal = -1;
         init_poll();
         schedule(response);
     =}
     
-    reaction(response) -> out {=
+    reaction(response) -> angle {=
         if (self->pedal < 0) {
             // handle error
         } else {
-            set(out, self->pedal);
+            set(angle, self->pedal); 
         }
     =}
 }
@@ -102,45 +132,17 @@ reactor RightPedal {
 
 // Simply apply the requested force
 reactor Brakes {
-	input force;
+	input force:int;
 }
 
 // Simply apply the requested torque
 reactor Engine {
-	input torque;
+	input torque:int;
 }
 
 reactor BrakeControl {
-	input angle;
-	output force;
-}
-
-reactor EngineControl {
-	input braking;
-	input angle;
-	output torque;
-	output check;
-	state braking:bool(true);
-	timer pulse(0, 10);
-	
-	reaction(braking) -> torque {=
-		if(self->braking) {
-			self->braking = true;
-			set(torque, 0);
-		} else {
-			self->braking = false;
-		}
-	=}
-	
-	reaction(pulse) -> check {=
-		set(check, NULL); // pure event	
-	=}
-	
-	reaction(angle) -> torque {=
-		if (!self->braking) {
-			set(torque, calc_torq(get(angle)));
-		}	
-	=}
+	input angle:int;
+	output force:int;
 }
 
 reactor Main {
@@ -153,7 +155,7 @@ reactor Main {
 	
 	lp.angle -> bc.angle;
 	bc.force -> b.force;
-	lp.on_off -> ec.braking;
+	lp.on_off -> ec.on_off;
 	ec.torque -> e.torque;
 	ec.check -> rp.check;
 	rp.angle -> ec.angle;

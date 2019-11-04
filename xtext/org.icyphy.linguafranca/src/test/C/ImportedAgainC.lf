@@ -4,6 +4,7 @@ target C;
 reactor ImportedAgainC {
 	input x:int;
 	reaction(x) {=
+        printf("Received: %d.\n", x);
 		if (x != 42) {
 			printf("ERROR: Expected input to be 42. Got: %d.\n", x);
 			exit(1);

@@ -13,11 +13,12 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Timer
 
 /**
  * Generator for Accessors.
@@ -34,8 +35,8 @@ class AccessorGenerator extends GeneratorBase {
 	// file, with the extension .lf, appended with a "/".
 	var directory = ""
 	
-	// Map from timer name to reaction name(s) triggered by the timer.
-	var timerReactions = new LinkedHashMap<String,LinkedList<String>>()
+	// Map from timer to reaction name(s) triggered by the timer.
+	var timerReactions = new LinkedHashMap<Timer,LinkedList<String>>()
 	
 	// Text of generated code to add input handlers.
 	var addInputHandlers = new StringBuffer()
@@ -53,7 +54,7 @@ class AccessorGenerator extends GeneratorBase {
 		// because accessors require one file per accessor.
 		if (main !== null) {
             // IFileSystemAccess2 uses "/" as file system separator.
-            directory = _filename + "/"
+            directory = filename + "/"
 		}
 		
 		// Handle reactors and composites.
@@ -62,14 +63,14 @@ class AccessorGenerator extends GeneratorBase {
 			generateReactor(reactor, importTable)
 			var filename = reactor.name
 			if (filename.equalsIgnoreCase('main')) {
-				filename = _filename
+				filename = filename
 			}
 			fsa.generateFile(directory + filename + ".js", code)		
 		}
 		// If there is a main accessor, then create a file to run it using node.
 		if (main !== null) {
 		    var runFile = '''
-		    // To run this: node «_filename».js
+		    // To run this: node «filename».js
 		    var nodeHost = null;
 		    try {
 		        nodeHost = require('@terraswarm/accessors');
@@ -81,11 +82,11 @@ class AccessorGenerator extends GeneratorBase {
 		        // Read the command-line arguments after the first two, if there are any.
 		        var args = process.argv.slice(2);
 		        // Prepend those with the path of the main accessor and process them.
-		        args.unshift('«directory»«_filename».js')
+		        args.unshift('«directory»«filename».js')
 		        nodeHost.processCommandLineArguments(args);
 		    }
 		    '''
-            fsa.generateFile(_filename + '.js', runFile)        
+            fsa.generateFile(filename + '.js', runFile)        
 		}
 		// Copy the required library files into the target filesystem.
 		// No longer used.
@@ -137,16 +138,17 @@ class AccessorGenerator extends GeneratorBase {
 			generateOutput(output)
 		}
 		// Generate parameters, if any
-		for (param : getParameters(reactor)) {
+		for (param : reactor.parameters) {
 			generateParameter(param)
 		}
 		// Generated instances
-		for (instance: reactor.instances) {
-			generateInstantiate(instance, importTable)
+		for (instance: reactor.instantiations) {
+			//generateInstantiate(instance, importTable)
+			// FIXME: this should be done differently now
 		}
 		// Generated connections
 		for (connection: reactor.connections) {
-			pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
+			pr('''this.connect(«portSpec(connection.leftPort.variable.name)», «portSpec(connection.rightPort.variable.name)»);''')
 		}
 		unindent()
 		pr("}")
@@ -182,7 +184,7 @@ class AccessorGenerator extends GeneratorBase {
 		pr("exports.initialize = function () {\n")
 		indent()
 		// Define variables for each parameter.
-		for(parameter: getParameters(reactor)) {
+		for(parameter: reactor.parameters) {
 			pr('''var «parameter.name» = this.getParameter("«parameter.name»");''');
 		}
 		
@@ -191,11 +193,16 @@ class AccessorGenerator extends GeneratorBase {
 
 		// Add the timer reactions.
 		for (timer: timerReactions.keySet) {
-			val timerParams = getTiming(reactor, timer)
+			val timing = timer.timing
+			
+			
+			//val timerParams = getTiming(reactor, timer)
 			for (handler: timerReactions.get(timer)) {
-				var offset = unitAdjustment(timerParams.offset, "msec")
-				var period = unitAdjustment(timerParams.period, "msec")
-				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offset», «period»);''')
+				var offset = if (timing === null) { null } else {timing.offset}
+				var period = if (timing === null) { null } else {timing.period}
+				var offsetStr = unitAdjustment(offset, "msec")
+				var periodStr = unitAdjustment(period, "msec")
+				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offsetStr», «periodStr»);''')
 			}
 		}
 		unindent()
@@ -224,16 +231,16 @@ class AccessorGenerator extends GeneratorBase {
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
 				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (getTiming(reactor, trigger.variable.name) !== null) {
+					} else if (trigger instanceof Timer) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
 						var list = timerReactions.get(trigger)
 						if (list === null) {
 							list = new LinkedList<String>()
-							timerReactions.put(trigger.variable.name, list)
+							timerReactions.put(trigger, list)
 						}
 						list.add(functionName)
-					} else if (getAction(reactor, trigger.variable.name) !== null) {
+					} else if (trigger instanceof Action) {
 					    // The trigger is an action.
 					    args.add(trigger.variable.name)
 					    // Make sure there is an entry for this action in the action table.
@@ -283,7 +290,7 @@ class AccessorGenerator extends GeneratorBase {
 			}
 						
 			// Define variables for each parameter.
-			for(parameter: getParameters(reactor)) {
+			for(parameter: reactor.parameters) {
 				pr(body, '''var «parameter.name» = this.getParameter("«parameter.name»");''');
 			}
 
@@ -304,16 +311,16 @@ class AccessorGenerator extends GeneratorBase {
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	def generateInstantiate(Instance instance, Hashtable<String,String> importTable) {
-		var className = importTable.get(instance.reactorClass);
+	def generateInstantiate(ReactorInstance instance, Hashtable<String,String> importTable) {
+		var className = importTable.get(instance.definition.reactorClass);
 		if (className === null) {
 		    // This is not an imported accessor.
-			className = directory + instance.reactorClass
+			className = directory + instance.definition.reactorClass
 		}
-		pr('''var «instance.name» = this.instantiate('«instance.name»', '«className»');''')
-		if (instance.parameters !== null) {
-			for (param: instance.parameters.assignments) {
-				pr('''«instance.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
+		pr('''var «instance.definition.name» = this.instantiate('«instance.definition.name»', '«className»');''')
+		if (instance.definition.parameters !== null) {
+			for (param: instance.definition.parameters.assignments) {
+				pr('''«instance.definition.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
 			}
 		}
 	}
