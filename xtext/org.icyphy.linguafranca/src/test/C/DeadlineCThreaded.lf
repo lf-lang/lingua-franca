@@ -46,6 +46,6 @@ main reactor DeadlineCThreaded {
 	=}
 	s = new Source(period=1 sec);
 	d = new Destination();
-	s.y -> d.x;
+	s.y -> d.x; 
 	deadline(d.x, 100 msec, panic);
 }

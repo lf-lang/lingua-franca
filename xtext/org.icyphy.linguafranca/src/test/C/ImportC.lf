@@ -4,7 +4,7 @@ target C;
 import ImportedC.lf;
 main reactor ImportC {
 	timer t;
-	a = new ImportedC();
+	a = new ImportedC(); 
 	reaction(t) -> a.x {=
 		set(a.x, 42); 
 	=}

@@ -39,15 +39,13 @@ import org.eclipse.elk.core.options.SizeConstraint
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.VarRef
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
-import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.EffectRef
-import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Input
 
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
@@ -106,7 +104,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val timerNodes = newHashMap
 		
 		// Transform instances
-		for (instance : reactor.instances) {
+		for (instance : reactor.instantiations) {
 			val node = createNode()
 			nodes += node
 
@@ -186,7 +184,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.addReactionFigure(reaction)
 
 			// connect input
-			for (TriggerRef trigger : reaction.triggers?:emptyList) {
+			for (VarRef trigger : reaction.triggers?:emptyList) {
 				if (trigger.variable instanceof Action) {
 					actionDestinations.put(trigger.variable.name, reaction)		
 				} else {
@@ -202,7 +200,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			
 			// connect outputs
-			for (EffectRef effect : reaction.effects?:emptyList) {
+			for (VarRef effect : reaction.effects?:emptyList) {
 				
 				if (effect.variable instanceof Action) {
 					actionSource.put(effect.variable as Action, reaction)
@@ -214,7 +212,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					val dst = if (effect.variable instanceof Output) {
 						parentOutputPorts.get(effect.variable.name)
 					} else {
-						inputPorts.get(effect.instance.name, effect.variable.name)
+						inputPorts.get(effect.container.name, effect.variable.name)
 					}
 					if (dst !== null) {
 						createDependencyEdge().connect(node, dst)
@@ -234,15 +232,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		// Transform connections
 		for (Connection connection : reactor.connections?:emptyList) {
-			val source = if (connection.leftPort.contains(".")) { // FIXME model should better contain cross references
-				val left = connection.leftPort.split("\\.")
-				outputPorts.get(left.get(0), left.get(1))
+			val source = if (connection.leftPort.container !== null) {
+				outputPorts.get(connection.leftPort.container.name, connection.leftPort.variable.name)
 			} else if (parentInputPorts.containsKey(connection.leftPort)) {
-				parentInputPorts.get(connection.leftPort)
+				parentInputPorts.get(connection.leftPort.container.name)
 			}
-			val target = if (connection.rightPort.contains(".")) { // FIXME model should better contain cross references
-				val right = connection.rightPort.split("\\.")
-				inputPorts.get(right.get(0), right.get(1))
+			val target = if (connection.rightPort.container !== null) {
+				inputPorts.get(connection.leftPort.container.name, connection.leftPort.variable.name)
 			} else if (parentOutputPorts.containsKey(connection.rightPort)) {
 				parentOutputPorts.get(connection.rightPort)
 			}
@@ -406,7 +402,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 	
 	private def hasContent(Reactor reactor) {
-		return !reactor.reactions.empty || !reactor.instances.empty
+		return !reactor.reactions.empty || !reactor.instantiations.empty
 	}
 	
 	static var LabelDecorationConfigurator _inlineLabelConfigurator; // ONLY for use in applyOnEdgeStyle

@@ -1,7 +1,7 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
 // This is a start at handling dynamic memory allocation for such actions.
 target C;
-reactor DelayInt(delay:time(100 msec)) {
+reactor Delay(delay:time(100 msec)) {
     input in:int;
     output out:int;
     logical action d:int;
@@ -26,7 +26,7 @@ reactor Test {
     reaction(start) {=
         // Record the logical time at the start.
         self->start_time = get_logical_time();
-    =}
+    =} 
     reaction(in) {=
         printf("Received: %d.\n", in);
         // Check the time of the input.
@@ -43,12 +43,13 @@ reactor Test {
         }
     =}
 }
-main reactor Main {
+
+main reactor DelayInt { 
     timer t;
-    d = new DelayInt();
+    d = new Delay();
     t = new Test();
-    d.out -> t.in;
-    reaction(t) -> d.in{=
+    d.out -> t.in; 
+    reaction(t) -> d.in {=
         set(d.in, 42);
     =}
 }
