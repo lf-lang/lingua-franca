@@ -76,19 +76,18 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 			}
 			
 			if (variable.container !== null) { // Resolve hierarchical port reference
-				val instanceName = nameProvider.getFullyQualifiedName(variable.container).toString
+				val instanceName = nameProvider.getFullyQualifiedName(variable.container)
 				val instances = reactor.instantiations
 				for (instance : instances) {
-					if (instance.name.equals(instanceName)) {
-						if (type == RefType.TRIGGER || type == RefType.SOURCE || type == RefType.CLEFT) {
+					if (instanceName !== null && instance.name.equals(instanceName.toString)) {
+						if (type === RefType.TRIGGER || type === RefType.SOURCE || type === RefType.CLEFT) {
 							return Scopes.scopeFor(instance.reactorClass.outputs)
-						} else if (type == RefType.EFFECT || type == RefType.DEADLINE || type == RefType.CRIGHT) {
+						} else if (type === RefType.EFFECT || type === RefType.DEADLINE || type === RefType.CRIGHT) {
 							return Scopes.scopeFor(instance.reactorClass.inputs)
-						} else {
-							return Scopes.scopeFor(candidates) // empty set
 						}
 					}
 				}
+				return Scopes.scopeFor(candidates) // empty set
 			} else { // Resolve local reference
 				switch (type) {
 					case RefType.TRIGGER: {
