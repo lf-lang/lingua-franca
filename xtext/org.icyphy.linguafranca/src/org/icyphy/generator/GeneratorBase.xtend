@@ -114,7 +114,7 @@ class GeneratorBase {
 				mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
 				mainDef.setName(reactor.name)
 				mainDef.setReactorClass(reactor)
-				this.main = reactorInstanceFactory(mainDef, null) // this call recursively builds instances
+				this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.
 			}
 		}
 	}
@@ -273,6 +273,20 @@ class GeneratorBase {
 //			}
 		}
 	}
+
+    /** If the argument starts with '{=', then remove it and the last two characters.
+     *  @return The body without the code delimiter or the unmodified argument if it
+     *   is not delimited.
+     */
+    static def String removeCodeDelimiter(String code) {
+        if (code === null) {
+            ""
+        } else if (code.startsWith("{=")) {
+            code.substring(2, code.length - 2).trim();
+        } else {
+            code
+        }
+    }
 
     /** Given a representation of time that may possibly include units,
      *  return a string that the target language can recognize as a value.
@@ -440,19 +454,6 @@ class GeneratorBase {
 	    pr(code, '// ' + comment);
 	}
 
-    /** Create a new ReactorInstance object.
-     *  This can be overridden by specific code generators,
-     *  each of which should return something that subclasses
-     *  ReactorInstance.
-     *  @param definition The syntactic "new" command in the AST
-     *   that creates this reactor instance.
-     *  @param parent The reactor instance that creates this
-     *   reactor, or null if this is the main reactor.
-     */
-    protected def reactorInstanceFactory(Instantiation definition, ReactorInstance parent) {
-        return new ReactorInstance(definition, parent, this)
-    }
-
     /** Read a text file in the classpath and return its contents as a string.
      *  @param filename The file name as a path relative to the classpath.
      *  @return The contents of the file as a String or null if the file cannot be opened.
@@ -478,20 +479,6 @@ class GeneratorBase {
         }
     }
 
-	/** If the argument starts with '{=', then remove it and the last two characters.
-	 *  @return The body without the code delimiter or the unmodified argument if it
-	 *   is not delimited.
-	 */
-	protected def String removeCodeDelimiter(String code) {
-		if (code === null) {
-			""
-		} else if (code.startsWith("{=")) {
-            code.substring(2, code.length - 2).trim();
-        } else {
-        	code
-        }
-	}
-	
 	/** Report an error.
      *  @param message The error message.
      */
