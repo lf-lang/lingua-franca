@@ -60,12 +60,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
         // Instantiate timers for this reactor instance
         for (timerDecl : definition.reactorClass.timers) {
-        	this.timers.add(new TimerInstance(timerDecl, this))
+            this.timers.add(new TimerInstance(timerDecl, this))
         }
         
         // Instantiate actions for this reactor instance
         for (actionDecl : definition.reactorClass.actions) {
-        	this.actions.add(new ActionInstance(actionDecl, this))
+            this.actions.add(new ActionInstance(actionDecl, this))
         }
         
         // Populate destinations map and the connectivity information

@@ -76,11 +76,11 @@ class CGenerator extends GeneratorBase {
         Hashtable<String, String> importTable) {
 
         pr(includes)
-        _resource = resource
+        this.resource = resource
 
         println("Generating code for: " + resource.getURI.toString)
 
-        var runCommand = newArrayList("bin/" + _filename, "-timeout", "3", "secs")
+        var runCommand = newArrayList("bin/" + filename, "-timeout", "3", "secs")
         var runCommandOverridden = false
         var compileCommand = newArrayList()
 
@@ -133,7 +133,7 @@ class CGenerator extends GeneratorBase {
         }
     
         // Determine path to generated code
-        val cFilename = _filename + ".c";
+        val cFilename = filename + ".c";
         var srcFile = resource.getURI.toString;
         var mode = Mode.UNDEFINED;
         
@@ -192,7 +192,7 @@ class CGenerator extends GeneratorBase {
         }
         
         // Delete binary previously output by C compiler
-        file = new File(outPath + File.separator + _filename)
+        file = new File(outPath + File.separator + filename)
         if (file.exists) {
             file.delete
         }
@@ -248,7 +248,7 @@ class CGenerator extends GeneratorBase {
         
         // Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-        val relativeBinFilename = "bin" + File.separator + _filename;
+        val relativeBinFilename = "bin" + File.separator + filename;
         // FIXME: Do we want to keep the compileCommand option?
         if (compileCommand.isEmpty()) {
             compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o", relativeBinFilename)
@@ -1392,8 +1392,8 @@ class CGenerator extends GeneratorBase {
      *  @param importTable The import table.
      */
     private def void processImports(Hashtable<String, String> importTable) {
-        for (import : _resource.allContents.toIterable.filter(Import)) {
-            val importResource = openImport(_resource, import)
+        for (import : resource.allContents.toIterable.filter(Import)) {
+            val importResource = openImport(resource, import)
             if (importResource !== null) {
                 // Make sure the target of the import is C.
                 var targetOK = false
@@ -1405,8 +1405,8 @@ class CGenerator extends GeneratorBase {
                 if (!targetOK) {
                     reportError(import, "Import does not have a C target.")
                 } else {
-                    val oldResource = _resource
-                    _resource = importResource
+                    val oldResource = resource
+                    resource = importResource
                     // Process any imports that the import has.
                     processImports(importTable)
                     for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
@@ -1415,7 +1415,7 @@ class CGenerator extends GeneratorBase {
                             generateReactor(reactor, importTable)
                         }
                     }
-                    _resource = oldResource
+                    resource = oldResource
                 }
             } else {
                 pr("Unable to open import: " + import.name)
@@ -1427,7 +1427,7 @@ class CGenerator extends GeneratorBase {
     // the most recently used node.
     private def prSourceLineNumber(EObject reaction) {
         var node = NodeModelUtils.getNode(reaction)
-        pr("#line " + node.getStartLine() + ' "' + _resource.getURI() + '"')
+        pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
 
     }
 
