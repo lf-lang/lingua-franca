@@ -15,7 +15,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Reactor
@@ -55,7 +54,7 @@ class AccessorGenerator extends GeneratorBase {
 		// because accessors require one file per accessor.
 		if (main !== null) {
             // IFileSystemAccess2 uses "/" as file system separator.
-            directory = _filename + "/"
+            directory = filename + "/"
 		}
 		
 		// Handle reactors and composites.
@@ -64,14 +63,14 @@ class AccessorGenerator extends GeneratorBase {
 			generateReactor(reactor, importTable)
 			var filename = reactor.name
 			if (filename.equalsIgnoreCase('main')) {
-				filename = _filename
+				filename = filename
 			}
 			fsa.generateFile(directory + filename + ".js", code)		
 		}
 		// If there is a main accessor, then create a file to run it using node.
 		if (main !== null) {
 		    var runFile = '''
-		    // To run this: node «_filename».js
+		    // To run this: node «filename».js
 		    var nodeHost = null;
 		    try {
 		        nodeHost = require('@terraswarm/accessors');
@@ -83,11 +82,11 @@ class AccessorGenerator extends GeneratorBase {
 		        // Read the command-line arguments after the first two, if there are any.
 		        var args = process.argv.slice(2);
 		        // Prepend those with the path of the main accessor and process them.
-		        args.unshift('«directory»«_filename».js')
+		        args.unshift('«directory»«filename».js')
 		        nodeHost.processCommandLineArguments(args);
 		    }
 		    '''
-            fsa.generateFile(_filename + '.js', runFile)        
+            fsa.generateFile(filename + '.js', runFile)        
 		}
 		// Copy the required library files into the target filesystem.
 		// No longer used.
@@ -143,8 +142,9 @@ class AccessorGenerator extends GeneratorBase {
 			generateParameter(param)
 		}
 		// Generated instances
-		for (instance: reactor.instances) {
-			generateInstantiate(instance, importTable)
+		for (instance: reactor.instantiations) {
+			//generateInstantiate(instance, importTable)
+			// FIXME: this should be done differently now
 		}
 		// Generated connections
 		for (connection: reactor.connections) {
@@ -311,16 +311,16 @@ class AccessorGenerator extends GeneratorBase {
 	 *  @param instance The instance declaration.
 	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	def generateInstantiate(Instance instance, Hashtable<String,String> importTable) {
-		var className = importTable.get(instance.reactorClass);
+	def generateInstantiate(ReactorInstance instance, Hashtable<String,String> importTable) {
+		var className = importTable.get(instance.definition.reactorClass);
 		if (className === null) {
 		    // This is not an imported accessor.
-			className = directory + instance.reactorClass
+			className = directory + instance.definition.reactorClass
 		}
-		pr('''var «instance.name» = this.instantiate('«instance.name»', '«className»');''')
-		if (instance.parameters !== null) {
-			for (param: instance.parameters.assignments) {
-				pr('''«instance.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
+		pr('''var «instance.definition.name» = this.instantiate('«instance.definition.name»', '«className»');''')
+		if (instance.definition.parameters !== null) {
+			for (param: instance.definition.parameters.assignments) {
+				pr('''«instance.definition.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
 			}
 		}
 	}

@@ -4,7 +4,6 @@ import java.util.Hashtable
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.icyphy.linguaFranca.Instance
 import org.icyphy.linguaFranca.Reactor
 
 class SCLGenerator extends GeneratorBase {
@@ -17,14 +16,15 @@ class SCLGenerator extends GeneratorBase {
 			generateReactor(reactor, importTable)
 			var filename = reactor.name
 			if (filename.equalsIgnoreCase(MAIN)) {
-				filename = _filename
+				filename = filename
 			}
 			fsa.generateFile(filename + ".scl", getCode())
 		}
+		/* FIXME: Removed to get it to compile.
 		val graph = new ReactionGraph(this)
 		// Calculate levels for the graph.
 		graph.calculateLevels(main)
-		val instanceName = main.name
+		val instanceName = main.definition.name
 		clearCode()
 		if (false) {
 			val content = readFileInClasspath("/lib/SCL/Runtime.scl")
@@ -34,7 +34,7 @@ class SCLGenerator extends GeneratorBase {
 			pr("")
 		}
 
-		val allReactors = graph.nodes.map[it.reactorInstance.getReactorClass()].toSet.sortBy[it.name].toArray(<Reactor>newArrayOfSize(0))  // TODO: This doesn't seem to include all reactors??
+		val allReactors = graph.nodes.map[it.parent.definition.getReactorClass()].toSet.sortBy[it.name].toArray(<Reactor>newArrayOfSize(0))  // TODO: This doesn't seem to include all reactors??
 		val reactorIndices = allReactors.indexed.toMap([it.value], [it.key])
 		val reactionIndices = newHashMap(allReactors.toInvertedMap[r | r.reactions.indexed.toMap([it.value], [it.key])].values.flatMap[it.entrySet].map[it.key -> it.value])
 		val reactorName = _filename
@@ -43,26 +43,26 @@ class SCLGenerator extends GeneratorBase {
 			// TODO: Figure out how to timestamp outputs
 			// TODO: Add 't' and 't_present' field in structs!
 			for (reactionInstance : graph.nodes.toList.sortBy[it.level]) {
-				val reaction = reactionInstance.reactionSpec
-				val reactorInstance = reactionInstance.reactorInstance
-				val containerReactorInstance = org.icyphy.generator.ReactorInstance.get(reactorInstance).parent
-				val containerReactor = containerReactorInstance.getReactorClass()
+				val reaction = reactionInstance.definition
+				val reactorInstance = reactionInstance.parent
+				val containerReactorInstance = reactorInstance.parent
+				val containerReactor = containerReactorInstance.definition.getReactorClass()
 				val containerReactorIndex = reactorIndices.get(containerReactor)
-				val reactor = reactorInstance.getReactorClass()
+				val reactor = reactorInstance.definition.getReactorClass()
 				val reactionIndex = reactionIndices.get(reaction) + 1;
 				val reactionName = String.format("%s_%s", reactor.name, reactionIndex)
-				val args = newArrayList(String.format("\"this\" := #%s.%s", instanceName, reactorInstance.name))
-				val instanceTriggerNames = reaction.triggers.map[reactorInstance.name + "." + it];
+				val args = newArrayList(String.format("\"this\" := #%s.%s", instanceName, reactorInstance.definition.name))
+				val instanceTriggerNames = reaction.triggers.map[reactorInstance.definition.name + "." + it];
 				val containerConnectionMap = containerReactor.connections.toMap([it.rightPort], [it.leftPort])
 				val incomings = instanceTriggerNames.map[containerConnectionMap.get(it)]
 				incomings.indexed.forEach[if (it.value !== null) {
-					args.add(String.format("%s := #%s.%s", instanceTriggerNames.get(it.key).split("\\.").last, org.icyphy.generator.ReactorInstance.get(containerReactorInstance).fullName, it.value))
+					args.add(String.format("%s := #%s.%s", instanceTriggerNames.get(it.key).split("\\.").last, containerReactorInstance.fullName, it.value))
 				}]
 				reaction.effects?.forEach[
-					args.add(String.format("#%s := #%s.%s", it.variable.name, org.icyphy.generator.ReactorInstance.get(reactorInstance).fullName, it.variable.name))
-					args.add(String.format("#%s_present := #%s.%s_present", it.variable.name, org.icyphy.generator.ReactorInstance.get(reactorInstance).fullName, it.variable.name))
+					args.add(String.format("#%s := #%s.%s", it.variable.name, reactorInstance.fullName, it.variable.name))
+					args.add(String.format("#%s_present := #%s.%s_present", it.variable.name, reactorInstance.fullName, it.variable.name))
 				]
-				val conditions = incomings.indexed.map[String.format("#%s.%s_present", org.icyphy.generator.ReactorInstance.get(containerReactorInstance).fullName, it.value ?: instanceTriggerNames.get(it.key))].filterNull.toList
+				val conditions = incomings.indexed.map[String.format("#%s.%s_present", containerReactorInstance.fullName, it.value ?: instanceTriggerNames.get(it.key))].filterNull.toList
 				if (conditions.size == 0) {
 					conditions.add("TRUE")
 				}
@@ -70,6 +70,8 @@ class SCLGenerator extends GeneratorBase {
 			}
 		]
 		fsa.generateFile("run.scl", getCode())
+		* 
+		*/
 	}
 
 	override generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
@@ -81,11 +83,11 @@ class SCLGenerator extends GeneratorBase {
 		val outputs = newLinkedHashMap(reactor.outputs.map[it.name -> it.type])
 		for (param : reactor.parameters) {
 		}
-		val reactorName = if (reactor.name.equalsIgnoreCase(MAIN)) _filename else reactor.name
+		val reactorName = if (reactor.name.equalsIgnoreCase(MAIN)) filename else reactor.name
 		prBlock(String.format("TYPE %s", reactorName), "END_UDT")[
 			prBlock("STRUCT", "END_STRUCT")[
 				pr("next_firing_time: DINT;  // FOR INTERNAL USE ONLY")
-				reactor.instances.forEach[pr("%s: %s;", it.name, it.reactorClass)]
+				reactor.instantiations.forEach[pr("%s: %s;", it.name, it.reactorClass)]
 				reactor.states.forEach[pr("%s: %s;", it.name, it.type)]
 				reactor.outputs.forEach[
 					pr("%s: %s;  // FOR INTERNAL USE ONLY", it.name, it.type)
@@ -126,6 +128,7 @@ class SCLGenerator extends GeneratorBase {
 		]
 	}
 
+    /* FIXME: Removed to get it to compile.
 	override instantiate(
 		Instance instance,
 		Instance container,
@@ -139,4 +142,6 @@ class SCLGenerator extends GeneratorBase {
 		super.instantiate(instance, container, importTable)
 		//reactorInstance
 	}
+	*
+	*/
 }
