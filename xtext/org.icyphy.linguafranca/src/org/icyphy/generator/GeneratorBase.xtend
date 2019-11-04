@@ -13,7 +13,6 @@ import java.text.ParseException
 import java.util.HashMap
 import java.util.Hashtable
 import java.util.LinkedHashMap
-import java.util.LinkedList
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -25,7 +24,6 @@ import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
 
@@ -147,21 +145,6 @@ class GeneratorBase {
 		
 		var info = ReactorInfo.get(reactor);
 		
-		// Record the reactions triggered by each trigger.
-		// FIXME: This should already be captured in ReactorInstance
-		for (reaction: reactor.reactions) {
-			// Iterate over the reaction's triggers
-			if (reaction.triggers !== null && reaction.triggers.length > 0) {
-				for (trigger: reaction.triggers) {
-                    var reactionList = info.triggerToReactions.get(trigger)
-                    if (reactionList === null) {
-                    	reactionList = new LinkedList<Reaction>()
-						info.triggerToReactions.put(trigger, reactionList)
-                    }
-                    reactionList.add(reaction)
-				}	
-			}
-		}
 //		// Record contained instances.
 //		for (instance: reactor.instances) {
 //			properties.nameToInstance.put(instance.name, instance)

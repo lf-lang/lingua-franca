@@ -5,9 +5,7 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.LinkedHashMap
-import java.util.LinkedList
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
 
@@ -38,14 +36,4 @@ import org.icyphy.linguaFranca.VarRef
 	 *  of contained reactors that send data via this output port.
 	 */
 	public var outputToContainedOutput = new LinkedHashMap<Output, VarRef>();
-	
-	/** For use by language-specific code generators, a generic map
-	 *  for storing properties.
-	 */
-	public var targetProperties = new LinkedHashMap<Object, String>()
- 	
-	/** Map from trigger names to list of reactions triggered by it. */
-	public var triggerToReactions = new LinkedHashMap<VarRef, LinkedList<Reaction>>()
-
-	
 }
