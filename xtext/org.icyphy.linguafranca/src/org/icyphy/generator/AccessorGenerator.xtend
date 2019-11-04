@@ -54,7 +54,7 @@ class AccessorGenerator extends GeneratorBase {
 		// because accessors require one file per accessor.
 		if (main !== null) {
             // IFileSystemAccess2 uses "/" as file system separator.
-            directory = _filename + "/"
+            directory = filename + "/"
 		}
 		
 		// Handle reactors and composites.
@@ -63,14 +63,14 @@ class AccessorGenerator extends GeneratorBase {
 			generateReactor(reactor, importTable)
 			var filename = reactor.name
 			if (filename.equalsIgnoreCase('main')) {
-				filename = _filename
+				filename = filename
 			}
 			fsa.generateFile(directory + filename + ".js", code)		
 		}
 		// If there is a main accessor, then create a file to run it using node.
 		if (main !== null) {
 		    var runFile = '''
-		    // To run this: node «_filename».js
+		    // To run this: node «filename».js
 		    var nodeHost = null;
 		    try {
 		        nodeHost = require('@terraswarm/accessors');
@@ -82,11 +82,11 @@ class AccessorGenerator extends GeneratorBase {
 		        // Read the command-line arguments after the first two, if there are any.
 		        var args = process.argv.slice(2);
 		        // Prepend those with the path of the main accessor and process them.
-		        args.unshift('«directory»«_filename».js')
+		        args.unshift('«directory»«filename».js')
 		        nodeHost.processCommandLineArguments(args);
 		    }
 		    '''
-            fsa.generateFile(_filename + '.js', runFile)        
+            fsa.generateFile(filename + '.js', runFile)        
 		}
 		// Copy the required library files into the target filesystem.
 		// No longer used.

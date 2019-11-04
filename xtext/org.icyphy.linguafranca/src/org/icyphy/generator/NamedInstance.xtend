@@ -4,23 +4,23 @@ import java.util.HashMap
 import org.eclipse.emf.ecore.EObject
 
 abstract class NamedInstance<T extends EObject> {
-		
-	/** Construct a new instance with the specified definition
-	 *  and parent. E.g., for a reactor instance, the definition
-	 *  is Instantiation, and for a port instance, it is Port. These are
-	 *  nodes in the AST. This is protected because only subclasses
-	 *  should be constructed.
-	 *  @param definition The definition in the AST for this instance.
-	 *  @param parent The reactor instance that creates this instance.
-	 */
-	protected new(T definition, ReactorInstance parent) {
-		this.definition = definition;
-		this.parent = parent
-	}
-	
-	//////////////////////////////////////////////////////
-	//// Public fields.
-	
+        
+    /** Construct a new instance with the specified definition
+     *  and parent. E.g., for a reactor instance, the definition
+     *  is Instantiation, and for a port instance, it is Port. These are
+     *  nodes in the AST. This is protected because only subclasses
+     *  should be constructed.
+     *  @param definition The definition in the AST for this instance.
+     *  @param parent The reactor instance that creates this instance.
+     */
+    protected new(T definition, ReactorInstance parent) {
+        this.definition = definition;
+        this.parent = parent
+    }
+    
+    //////////////////////////////////////////////////////
+    //// Public fields.
+    
     /** The Instantiation AST object from which this was created. */
     public var T definition
     
@@ -33,7 +33,7 @@ abstract class NamedInstance<T extends EObject> {
     //////////////////////////////////////////////////////
     //// Public methods.
 
-	/** Return the full name of this instance, which has the form
+    /** Return the full name of this instance, which has the form
      *  "a.b.c", where "c" is the name of this instance, "b" is the name
      *  of its container, and "a" is the name of its container, stopping
      *  at the container in main.

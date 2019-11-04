@@ -16,7 +16,7 @@ class SCLGenerator extends GeneratorBase {
 			generateReactor(reactor, importTable)
 			var filename = reactor.name
 			if (filename.equalsIgnoreCase(MAIN)) {
-				filename = _filename
+				filename = filename
 			}
 			fsa.generateFile(filename + ".scl", getCode())
 		}
@@ -83,7 +83,7 @@ class SCLGenerator extends GeneratorBase {
 		val outputs = newLinkedHashMap(reactor.outputs.map[it.name -> it.type])
 		for (param : reactor.parameters) {
 		}
-		val reactorName = if (reactor.name.equalsIgnoreCase(MAIN)) _filename else reactor.name
+		val reactorName = if (reactor.name.equalsIgnoreCase(MAIN)) filename else reactor.name
 		prBlock(String.format("TYPE %s", reactorName), "END_UDT")[
 			prBlock("STRUCT", "END_STRUCT")[
 				pr("next_firing_time: DINT;  // FOR INTERNAL USE ONLY")
