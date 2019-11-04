@@ -22,7 +22,7 @@ class ParameterInstance extends NamedInstance<Param> {
             throw new Exception('Cannot create a ParameterInstance with no parent.')
         }
         
-        type = parent.generator.removeCodeDelimiter(definition.type)
+        type = GeneratorBase.removeCodeDelimiter(definition.type)
         if (type.equals("time")) {
             type = parent.generator.timeTypeInTargetLanguage()
         }
@@ -74,7 +74,7 @@ class ParameterInstance extends NamedInstance<Param> {
                             time.setUnit(assignment.unit)
                             value = parent.generator.timeInTargetLanguage(time)
                         }
-                        return parent.generator.removeCodeDelimiter(value)
+                        return GeneratorBase.removeCodeDelimiter(value)
                     }
                 }
             }
@@ -83,7 +83,7 @@ class ParameterInstance extends NamedInstance<Param> {
             if (definition.time !== null) {
                 value = parent.generator.timeInTargetLanguage(definition.time)
             }
-            parent.generator.removeCodeDelimiter(value)
+            GeneratorBase.removeCodeDelimiter(value)
         }
     }
 

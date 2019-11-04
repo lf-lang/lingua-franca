@@ -1162,23 +1162,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /////////////////////////////////////////////
-    
-    // FIXME: Not needed anymore!
-    
-    /** Create a new ReactorInstance object.
-     *  This can be overridden by specific code generators,
-     *  each of which should return something that subclasses
-     *  ReactorInstance.
-     *  @param definition The syntactic "new" command in the AST
-     *   that creates this reactor instance.
-     *  @param parent The reactor instance that creates this
-     *   reactor, or null if this is the main reactor.
-     */
-    override reactorInstanceFactory(Instantiation definition, ReactorInstance parent) {
-        return new CReactorInstance(definition, parent, this)
-    }
-
     ////////////////////////////////////////////
     //// Protected methods.
 
@@ -1442,8 +1425,7 @@ class CGenerator extends GeneratorBase {
         // even if they are connected locally in the hierarchy, but not globally.
         for (containedReactor : parent.children) {
             for (input : containedReactor.inputs) {
-                //var inputReactor = containedReactor.container.getContainedInstance(containedReactor.instanceStatement.name)
-                var inputSelfStructName = (containedReactor as CReactorInstance).selfStructName
+                var inputSelfStructName = selfStructName(containedReactor)
                 pr(inputSelfStructName + '.__' + input.definition.name + '_is_present = &False;')
             }
         }

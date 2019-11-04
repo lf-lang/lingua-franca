@@ -30,25 +30,21 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
-     *  This constructor should not be used directly, which is
-     *  why it is protected.
-     *  Instead, use GeneratorBase.reactorInstanceFactory().
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent, or null for the main rector.
-     *  @param generator The generator creating this instance.
      */
-    protected new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
+    new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         super(definition, parent)
         this.generator = generator
         
-        // Instatiate parameters for this reactor instance.
+        // Instantiate parameters for this reactor instance.
         for (parameter: definition.reactorClass.parameters) {
             parameters.add(new ParameterInstance(parameter, this))
         }
         
         // Instantiate children for this reactor instance
         for (child : definition.reactorClass.instantiations) {
-            var childInstance = generator.reactorInstanceFactory(child, this)
+            var childInstance = new ReactorInstance(child, this, generator)
             this.children.add(childInstance)
         }
         
