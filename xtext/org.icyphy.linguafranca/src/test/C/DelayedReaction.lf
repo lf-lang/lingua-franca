@@ -1,0 +1,44 @@
+target C(
+    run = "bin/DelayedReaction -fast -timeout 5 sec"
+);
+reactor Source {
+    output out:int;
+    timer t;
+    reaction(t) -> out after 100 msec {=
+        set(out, 1);
+    =}
+}
+reactor Sink {
+	input in:int;
+	reaction(in) {=
+        interval_t elapsed = get_elapsed_logical_time();
+        printf("Nanoseconds since start: %lld.\n", elapsed);		
+	=}
+}
+main reactor DelayedReaction {
+    
+    source = new Source();
+    sink = new Sink();
+    source.out -> sink.in;
+    
+    
+    timer t(0, 1 sec);
+    logical action a;
+    state count:int(0);
+    
+    
+    reaction(t) -> a {=
+        schedule(a, MSEC(100), NULL);
+        
+    =}
+    reaction(a) {=
+        interval_t elapsed = get_elapsed_logical_time();
+        printf("Nanoseconds since start: %lld.\n", elapsed);
+        interval_t expected = self->count * 1000000000LL + 100000000LL;
+        self->count++;
+        if (elapsed != expected) {
+            printf("Expected %lld but got %lld.\n", expected, elapsed);
+            exit(1);
+        }
+    =}
+}
