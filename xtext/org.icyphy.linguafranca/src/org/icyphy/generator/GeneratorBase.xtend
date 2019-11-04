@@ -23,7 +23,6 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
 
@@ -142,119 +141,6 @@ class GeneratorBase {
 		    + " in "
 		    + _filename
 		)
-		
-		var info = ReactorInfo.get(reactor);
-		
-//		// Record contained instances.
-//		for (instance: reactor.instances) {
-//			properties.nameToInstance.put(instance.name, instance)
-//		}
-		// Record (and check) connections.
-		for (connection: reactor.connections) {
-            // Record the source-destination pair.
-//            var destinations = info.sourceToDestinations.get(connection.leftPort)
-//            if (destinations === null) {
-//                destinations = new HashSet<VarRef>()
-//                info.sourceToDestinations.put(connection.leftPort.variable as Port, destinations)	
-//            }
-//            destinations.add(connection.rightPort)
-
-			// Record inside connections to output ports.
-            if (connection.rightPort.container === null) { // && connection.leftPort.instance !== null) { // FIXME: to excluded direct feed through
-                // Right port is a simple name, not actor.name.
-                // Hence, it must be an output port.
-                if (connection.rightPort.variable instanceof Output) {
-                    info.outputToContainedOutput.put(
-                        connection.rightPort.variable as Output, connection.leftPort
-                    )
-                } else {
-                    reportError(connection, "Expected an output port but got "
-                        + connection.rightPort.variable.name
-                    )
-                }
-            }
-            
-            // Next, check the connection and report any errors.			
-//			var split = connection.leftPort.split('\\.')
-//			if (split.length === 1) {
-//				// It is a local input port.
-//				if (getInput(reactor, connection.leftPort) === null) {
-//					reportError(connection,
-//							"Left side is not an input port of this composite: " + connection.leftPort)
-//				}
-//			} else if (split.length === 2) {
-//				// Form is reactorName.portName.
-//				var instance = properties.nameToInstance.get(split.get(0))
-//				if(instance === null) {
-//					reportError(connection,
-//							"No such instance: " + split.get(0))
-//				} else {
-//					var contained = getReactor(instance.reactorClass.name)
-//					// Contained object may be imported, i.e. not a Lingua Franca object.
-//					// Cannot check here.
-//					if (contained !== null) {
-//						var props = reactorToProperties.get(contained)
-//						if(props !== null && props.nameToOutput.get(split.get(1)) === null) {
-//							reportError(connection,
-//									"No such output port: " + connection.leftPort)
-//						}
-//					}
-//				}
-//			} else {
-//				reportError(connection, "Invalid port specification: " + connection.leftPort)
-//			}
-//
-//
-//			// Check the right port.
-//			if (connection.rightPort.instance !== null) {
-//				// FIXME: Looks like this will only work on level deep; should this not be recursive?
-//				// FIXME: Also, we should synthesize reactions for data transfer across levels of hierarchy
-//				
-//				// If the destination is the input port of a reactor that itself contains other
-//				// reactors, we need to add any input ports inside the destination that it is
-//				// connected to. These will have the form actorInstanceName.containedActorInstanceName.portName.
-//				var insideDestinations = ReactorInfo.get(connection.rightPort.instance.reactorClass).sourceToDestinations.get(connection.rightPort)
-//				if (insideDestinations !== null) {
-//					// There are inside connections. Record them.
-//					for (insideDestination : insideDestinations) {
-//						destinations.add(insideDestination)
-//					}
-//				}
-//			}
-//			split = connection.rightPort.split('\\.')
-//			if (split.length === 1) {
-//				// It is a local input port.
-//				if (getOutput(reactor, connection.rightPort) === null) {
-//					reportError(connection,
-//							"Right side is not an output port of this reactor: " + connection.rightPort)
-//				}
-//			} else if (split.length === 2) {
-//				// Form is reactorName.portName.
-//				var instance = properties.nameToInstance.get(split.get(0))
-//				if(instance === null) {
-//					reportError(connection,
-//							"No such instance: " + split.get(0))
-//				} else {
-//					var contained = getReactor(instance.reactorClass.name)
-//					// Check that the input port in a contained reactor exists.
-//					// Contained object may be imported, i.e. not a Lingua Franca object.
-//					// Cannot check here.
-//					if (contained !== null) {
-//						var props = reactorToProperties.get(contained)
-//						if(props !== null && props.nameToInput.get(split.get(1)) === null) {
-//							reportError(connection,
-//									"No such input port: " + connection.rightPort)
-//						}
-						// FIXME: Looks like this will only work on level deep; should this not be recursive?
-                        // If the destination is the input port of a reactor that itself contains other
-                        // reactors, we need to add any input ports inside the destination that it is
-                        // connected to. These will have the form actorInstanceName.containedActorInstanceName.portName.
-//					}
-//				}
-//			} else {
-//				reportError(connection, "Invalid port specification: " + connection.rightPort)
-//			}
-		}
 	}
 
     /** If the argument starts with '{=', then remove it and the last two characters.

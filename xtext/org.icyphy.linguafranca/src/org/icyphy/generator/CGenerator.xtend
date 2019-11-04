@@ -13,6 +13,7 @@ import java.io.InputStreamReader
 import java.net.URL
 import java.nio.file.Paths
 import java.util.Collection
+import java.util.HashMap
 import java.util.HashSet
 import java.util.Hashtable
 import java.util.LinkedList
@@ -327,8 +328,6 @@ class CGenerator extends GeneratorBase {
             pr("\n// *********** End of preamble.")
         }
 
-        var classInfo = ReactorInfo.get(reactor)
-
         // Put parameters into a struct and construct the code to go
         // into the preamble of any reaction function to extract the
         // parameters from the struct.
@@ -370,6 +369,25 @@ class CGenerator extends GeneratorBase {
                 pr(body, 'bool* __' + input.name + '_is_present;');
             }
         }
+        
+        // Find output ports that receive data from inside reactors
+        // and put them into a HashMap for future use.
+        var outputToContainedOutput = new HashMap<Output, VarRef>();
+        for (connection: reactor.connections) {
+            // If the connection has the form c.x -> y, then it's what we are looking for.
+            if (connection.rightPort.container === null && connection.leftPort.container !== null) {
+                if (connection.rightPort.variable instanceof Output) {
+                    outputToContainedOutput.put(
+                        connection.rightPort.variable as Output, connection.leftPort
+                    )
+                } else {
+                    reportError(connection, "Expected an output port but got "
+                        + connection.rightPort.variable.name
+                    )
+                }
+            }
+        }
+        
         // Next handle outputs.
         for (output : reactor.outputs) {
             prSourceLineNumber(output)
@@ -381,14 +399,14 @@ class CGenerator extends GeneratorBase {
                 pr(body, 'bool __' + output.name + '_is_present;')
                 // If there are contained reactors that send data via this output,
                 // then create a place to put the pointers to the sources of that data.
-                var containedSource = classInfo.outputToContainedOutput.get(output)
+                var containedSource = outputToContainedOutput.get(output)
                 if (containedSource !== null) {
                     pr(body, removeCodeDelimiter(output.type) + '* __' + output.name + '_inside;')
                     pr(body, 'bool* __' + output.name + '_inside_is_present;')
                 }
             }
         }
-        // Finally, handle reactions that produce outputs sent to inputs
+        // Next, handle reactions that produce outputs sent to inputs
         // of contained reactions.
         for (reaction : reactor.reactions) {
             if (reaction.effects !== null) {
@@ -418,7 +436,7 @@ class CGenerator extends GeneratorBase {
 
         // Generate reactions
         generateReactions(reactor)
-        generateTransferOutputs(reactor)
+        generateTransferOutputs(reactor, outputToContainedOutput)
         pr("// =============== END reactor class " + reactor.name)
         pr("")
     }
@@ -721,10 +739,12 @@ class CGenerator extends GeneratorBase {
      *  individually invoked after each contained reactor produces an
      *  output that must be relayed.
      *  @param reactor The reactor.
+     *  @param outputToContainedOutput A map of output ports of this
+     *   reactor to output ports of contained reactors that they receive
+     *   data from.
      */
-    def generateTransferOutputs(Reactor reactor) {
-        var classInfo = ReactorInfo.get(reactor)
-        for (output : classInfo.outputToContainedOutput.keySet()) {
+    def generateTransferOutputs(Reactor reactor, HashMap<Output, VarRef> outputToContainedOutput) {
+        for (output : outputToContainedOutput.keySet()) {
             // The following function name will be unique, assuming that
             // reactor class names are unique and within each reactor class,
             // output names are unique.
