@@ -45,7 +45,6 @@ import org.icyphy.linguaFranca.Variable
 class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
-    var reactionCount = 0
     var triggerCount = 0
     var tmpVariableCount = 0
 
@@ -320,9 +319,7 @@ class CGenerator extends GeneratorBase {
 
         pr("// =============== START reactor class " + reactor.name)
 
-        // Scan reactions
-        var savedReactionCount = reactionCount;
-
+        // Scan reactions.
         // Preamble code contains state declarations with static initializers.
         if (reactor.preamble !== null) {
             pr("// *********** From the preamble, verbatim:")
@@ -335,7 +332,6 @@ class CGenerator extends GeneratorBase {
         // Put parameters into a struct and construct the code to go
         // into the preamble of any reaction function to extract the
         // parameters from the struct.
-        //val argType = "reactor_instance_" + (reactorClassCount++) + "_self_t"
         val argType = reactor.name.toLowerCase + "_self_t" 
         // Construct the typedef for the "self" struct.
         var body = new StringBuilder()
@@ -386,7 +382,7 @@ class CGenerator extends GeneratorBase {
                 // If there are contained reactors that send data via this output,
                 // then create a place to put the pointers to the sources of that data.
                 var containedSource = classInfo.outputToContainedOutput.get(output)
-                if (containedSource !== null) { // FIXME: outputToContainedOutput result appears to be always null
+                if (containedSource !== null) {
                     pr(body, removeCodeDelimiter(output.type) + '* __' + output.name + '_inside;')
                     pr(body, 'bool* __' + output.name + '_inside_is_present;')
                 }
@@ -421,8 +417,6 @@ class CGenerator extends GeneratorBase {
         }
 
         // Generate reactions
-        // For this second pass, restart the reaction count where the first pass started.
-        reactionCount = savedReactionCount;
         generateReactions(reactor)
         generateTransferOutputs(reactor)
         pr("// =============== END reactor class " + reactor.name)
@@ -437,12 +431,10 @@ class CGenerator extends GeneratorBase {
      */
     def generateReactions(Reactor reactor) {
         var reactions = reactor.reactions
-        var classInfo = ReactorInfo.get(reactor)
         var reactionIndex = 0;
         for (reaction : reactions) {
             // Create a unique function name for each reaction.
             val functionName = reactor.name.toLowerCase + "_rfunc_" + reactionIndex
-            classInfo.targetProperties.put(reaction, functionName) // FIXME
 
             // Construct the reactionInitialization code to go into
             // the body of the function before the verbatim code.
@@ -555,8 +547,8 @@ class CGenerator extends GeneratorBase {
             
             // Now generate code for the deadline violation function, if there is one.
             if (reaction.localDeadline !== null) {
-                val deadlineFunctionName = 'deadline_function' + reactionCount
-                ReactorInfo.get(reactor).targetProperties.put(reaction.localDeadline, deadlineFunctionName) // FIXME
+                // The following name has to match the choice in generateReactionStructs
+                val deadlineFunctionName = reactor.name.toLowerCase + '_deadline_function' + reactionIndex
 
                 pr('void ' + deadlineFunctionName + '(void* instance_args) {')
                 indent();
@@ -567,7 +559,6 @@ class CGenerator extends GeneratorBase {
                 unindent()
                 pr("}")
             }
-            reactionCount++
             reactionIndex++
         }
     }
@@ -579,7 +570,6 @@ class CGenerator extends GeneratorBase {
      */
     def generateReactionStructs(ReactorInstance reactorInstance) {
         val result = new StringBuilder()
-        var reactionIndex = 0;
         for (reaction : reactorInstance.reactions) {
             
             val reactionInstanceName = reaction.uniqueID
@@ -687,13 +677,16 @@ class CGenerator extends GeneratorBase {
             }
             var deadlineFunctionPointer = ", NULL"
             if (reaction.definition.localDeadline !== null) {
-                deadlineFunctionPointer = ", &" + ReactorInfo.get(reactorClass).targetProperties.get(reaction.definition.localDeadline)
+                // The following has to match the name chosen in generateReactions
+                val deadlineFunctionName = reactorInstance.definition.reactorClass.name.toLowerCase
+                    + '_deadline_function' + reaction.reactionIndex
+                
+                deadlineFunctionPointer = ", &" + deadlineFunctionName
             }
             
             // Use the same function name as in generateReactions.
             // FIXME: Fragile!  Find a better way to get agreement on function name.
-            val functionName = reactorClass.name.toLowerCase + "_rfunc_" + reactionIndex
-            reactionIndex++
+            val functionName = reactorClass.name.toLowerCase + "_rfunc_" + reaction.reactionIndex
             
             // First 0 is an index that specifies priorities based on precedences.
             // It will be set later.

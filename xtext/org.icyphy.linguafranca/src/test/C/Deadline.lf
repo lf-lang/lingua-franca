@@ -24,7 +24,7 @@ reactor Source(period:time(1 sec)) {
 reactor Destination(timeout:time(1 sec)) {
     input x:int;
     state count:int(0);
-    react(x) {=
+    reaction(x) {=
         printf("Destination receives: %d\n", x);
         if (2 * (self->count / 2) != self->count) {
             // The count variable is odd, so the deadline should have been violated.
