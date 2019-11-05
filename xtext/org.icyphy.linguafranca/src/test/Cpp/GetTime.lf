@@ -1,0 +1,23 @@
+// This file includes code documented on the Wiki.
+// For this test, success is just compiling and running.
+target Cpp(
+    run = "bin/GetTime -timeout 2 sec -fast"
+);
+main reactor GetTime {
+    preamble {=
+        #include <iostream>
+    =}
+    timer t(0, 1 sec);
+    reaction(t) {=
+        auto logical = get_logical_time();
+        std::cout << "Logical time is " << logical << std::endl;
+
+        auto elapsed = get_elapsed_logical_time();
+        std::cout << "Elapsed logical time is " << elapsed << std::endl;
+ 
+        auto physical = get_physical_time();
+        std::cout << "Physical time is " << physical << std::endl;
+
+        std::cout << "Time lag is " << physical - logical << std::endl;
+    =}
+}
