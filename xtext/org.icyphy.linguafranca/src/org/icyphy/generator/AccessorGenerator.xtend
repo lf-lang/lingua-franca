@@ -411,11 +411,11 @@ class AccessorGenerator extends GeneratorBase {
 		// Function to schedule reactions to actions. The argument are:
 		// * action: The name of the action.
 		// * offset: Additional logical time beyond the action delay for reactions to be invoked.
-		// * payload: An argument to pass to any reactions that are to be triggered.
+		// * value: An argument to pass to any reactions that are to be triggered.
 		// FIXME: For reactions that are triggered by more than one action, this does not
 		// have quite the right semantics. If two of those actions are simultaneous, the reaction
 		// will be triggered twice instead of once!
-		function schedule(action, offset, payload) {
+		function schedule(action, offset, value) {
 		    var reactions = actionTable[action];
 		    if (reactions) {
 		        for (var i = 0; i < reactions.length; i++) {
@@ -425,7 +425,7 @@ class AccessorGenerator extends GeneratorBase {
 		            for (var j = 0; j < reactionArgNames.length; j++) {
 		                var argName = reactionArgNames[i];
 		                if (argName === action) {
-		                    reactionArgs.push(payload);
+		                    reactionArgs.push(value);
 		                } else {
 		                    reactionArgs.push(null);
 		                }

@@ -36,11 +36,6 @@ class PortInstance extends TriggerInstance<Variable> {
     /** Port that sends messages to this port, if there is one. */
     public PortInstance dependsOnPort = null;
     
-    /** Properties associated with this instance.
-     *  This may be used by particular code generators.
-     */
-    public var HashMap<String,Object> properties = new HashMap<String,Object>()
-    
     /////////////////////////////////////////////
     //// Public Methods
     

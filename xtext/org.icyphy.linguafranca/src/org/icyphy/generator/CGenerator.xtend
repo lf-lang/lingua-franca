@@ -489,17 +489,17 @@ class CGenerator extends GeneratorBase {
                             "trigger_t* " + trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
                         );
                         actionsAsTriggers.add(trigger.variable as Action);
-                        // If the action has a type, create variables for accessing the payload.
+                        // If the action has a type, create variables for accessing the value.
                         val type = (trigger.variable as Action).type
-                        val payloadPointer = trigger.variable.name + '->payload'
-                        // Create the _has_payload variable.
-                        pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_payload = (' + payloadPointer + ' != NULL);')
-                        // Create the _payload variable if there is a type.
+                        val valuePointer = trigger.variable.name + '->value'
+                        // Create the _has_value variable.
+                        pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_value = (' + valuePointer + ' != NULL);')
+                        // Create the _value variable if there is a type.
                         if (type !== null) {
                             // Create the value variable, but initialize it only if the pointer is not null.
-                            pr(reactionInitialization, type + ' ' + trigger.variable.name + '_payload;')
-                            pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_payload) '
-                                + trigger.variable.name + '_payload = *(' + '(' + type + '*)' + payloadPointer + ');'
+                            pr(reactionInitialization, type + ' ' + trigger.variable.name + '_value;')
+                            pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_value) '
+                                + trigger.variable.name + '_value = *(' + '(' + type + '*)' + valuePointer + ');'
                             );
                         }
                     } else if (trigger.variable instanceof Output) {
