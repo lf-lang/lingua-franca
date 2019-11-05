@@ -21,7 +21,7 @@ import org.icyphy.linguaFranca.Reactor
 import java.text.SimpleDateFormat
 import java.util.Date
 import org.icyphy.linguaFranca.Time
-import org.icyphy.linguaFranca.Instance
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Target
@@ -33,6 +33,7 @@ import org.icyphy.linguaFranca.Param
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.VarRef
 
 class CppGenerator extends GeneratorBase {
 	static public var timeUnitsToEnactorUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
@@ -76,24 +77,24 @@ class CppGenerator extends GeneratorBase {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context,
 		Hashtable<String, String> importTable) {
 
-		super.doGenerate(resource, fsa, context, importTable)
-
 		var reactors = resource.collectReactors
 		var mainReactor = resource.findMainReactor
 
-		fsa.generateFile(_filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
-		fsa.generateFile(_filename + File.separator + "main.cc", mainReactor.generateMain)
-		fsa.generateFile(_filename + File.separator + "CMakeLists.txt", reactors.generateCmake)
+		super.doGenerate(resource, fsa, context, importTable)
+
+		fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
+		fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
+		fsa.generateFile(filename + File.separator + "CMakeLists.txt", reactors.generateCmake)
 
 		for (r : reactors) {
-			fsa.generateFile(_filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
-			fsa.generateFile(_filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
+			fsa.generateFile(filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
+			fsa.generateFile(filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
 		}
 
 		doCompile()
 	}
 
-	override removeCodeDelimiter(String code) {
+	static def removeCodeDelimiter(String code) {
 		if (code === null) {
 			""
 		} else if (code.startsWith("{=")) {
@@ -111,7 +112,7 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
-	def trimCodeBlock(String code) {
+	static def trimCodeBlock(String code) {
 		var codeLines = code.split("\n")
 		var String prefix = null
 		var buffer = new StringBuilder()
@@ -189,7 +190,7 @@ class CppGenerator extends GeneratorBase {
 	'''
 
 	def declareInstances(Reactor r) '''
-		«FOR i : r.instances BEFORE '// reactor instances\n' AFTER '\n'»
+		«FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
 			«i.reactorClass.name» «i.name»;
 		«ENDFOR»
 	'''
@@ -236,7 +237,7 @@ class CppGenerator extends GeneratorBase {
 	'''
 
 	def includeInstances(Reactor r) '''
-		«FOR i : r.instances AFTER '\n'»
+		«FOR i : r.instantiations AFTER '\n'»
 			#include "«i.reactorClass.name».hh"
 		«ENDFOR»
 	'''
@@ -251,18 +252,22 @@ class CppGenerator extends GeneratorBase {
 
 	def declareTriggers(Reaction n) '''
 		«FOR t : n.triggers»
-			«IF t.instance !== null»
-				«n.name».declare_trigger(&«t.instance.name».«t.variable.name»);
-			«ELSE»
-				«n.name».declare_trigger(&«t.variable.name»);
-			«ENDIF»
+			«n.name».declare_trigger(&«t.fullName»);
 		«ENDFOR»
 	'''
 
+	def fullName(VarRef v) {
+		if (v.container !== null) {
+			'''«v.container.name».«v.variable.name»'''
+		} else {
+			'''«v.variable.name»'''
+		}
+	}
+
 	def declareDependencies(Reaction n) '''
 		«FOR t : n.sources»
-			«IF t.instance !== null»
-				«n.name».declare_dependency(&«t.instance.name».«t.variable.name»);
+			«IF t.container !== null»
+				«n.name».declare_dependency(&«t.container.name».«t.variable.name»);
 			«ELSE»
 				«n.name».declare_dependency(&«t.variable.name»);
 			«ENDIF»
@@ -274,8 +279,8 @@ class CppGenerator extends GeneratorBase {
 			«IF t.variable instanceof Action»
 				«n.name».declare_scheduable_action(&«t.variable.name»);
 			«ELSE»
-				«IF t.instance !== null»
-					«n.name».declare_antidependency(&«t.instance.name».«t.variable.name»);
+				«IF t.container !== null»
+					«n.name».declare_antidependency(&«t.container.name».«t.variable.name»);
 				«ELSE»
 					«n.name».declare_antidependency(&«t.variable.name»);
 				«ENDIF»
@@ -406,7 +411,7 @@ class CppGenerator extends GeneratorBase {
 	'''
 
 	def initializeInstances(Reactor r) '''
-		«FOR i : r.instances BEFORE "// reactor instances\n"»
+		«FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
 			, «i.name»{"«i.name»", this«FOR v : i.trimmedValues», «v»«ENDFOR»}
 		«ENDFOR»
 	'''
@@ -429,7 +434,7 @@ class CppGenerator extends GeneratorBase {
 		''', «t.name»{"«t.name»", this, «period», «offset»}'''
 	}
 
-	def trimmedValues(Instance i) {
+	def trimmedValues(Instantiation i) {
 		var List<String> values = newArrayList
 		for (p : i.reactorClass.parameters) {
 			var String value = null
@@ -493,7 +498,7 @@ class CppGenerator extends GeneratorBase {
 		  	«r.assembleReaction(n)»
 		  «ENDFOR»
 		  «FOR c : r.connections BEFORE "  // connections\n"»
-			«'''  «c.leftPort».bind_to(&«c.rightPort»);'''»
+			«'''  «c.leftPort.fullName».bind_to(&«c.rightPort.fullName»);'''»
 			«ENDFOR»
 		}
 		
@@ -504,7 +509,7 @@ class CppGenerator extends GeneratorBase {
 		/*
 		 * This file was autogenerated by the Lingua Franca Compiler
 		 *
-		 * Source: «_resource.getURI()»
+		 * Source: «resource.getURI()»
 		 * Date: «new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())»
 		 */
 	'''
@@ -542,7 +547,7 @@ class CppGenerator extends GeneratorBase {
 
 	def generateCmake(List<Reactor> reactors) '''
 		cmake_minimum_required(VERSION 3.5)
-		project(«_filename» VERSION 1.0.0 LANGUAGES CXX)
+		project(«filename» VERSION 1.0.0 LANGUAGES CXX)
 		
 		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 		include(GNUInstallDirs)
@@ -578,16 +583,16 @@ class CppGenerator extends GeneratorBase {
 		set(CMAKE_INSTALL_RPATH "${ENACTOR_LIB_DIR}")
 		set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 		
-		add_executable(«_filename»
+		add_executable(«filename»
 		  main.cc
 		  «FOR r : reactors»
 		  	«r.getName()».cc
 		  «ENDFOR»
 		)
-		target_include_directories(«_filename» PUBLIC ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
-		target_link_libraries(«_filename» enactor)
+		target_include_directories(«filename» PUBLIC ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
+		target_link_libraries(«filename» enactor)
 		
-		install(TARGETS «_filename»)
+		install(TARGETS «filename»)
 	'''
 
 	def void doCompile() {
@@ -595,8 +600,8 @@ class CppGenerator extends GeneratorBase {
 		var cmakeCmd = newArrayList()
 
 		var cwd = Paths.get("").toAbsolutePath().toString()
-		var srcPath = cwd + File.separator + "src-gen" + File.separator + _filename
-		var buildPath = cwd + File.separator + "build" + File.separator + _filename
+		var srcPath = cwd + File.separator + "src-gen" + File.separator + filename
+		var buildPath = cwd + File.separator + "build" + File.separator + filename
 		var enactorPath = cwd + File.separator + "build" + File.separator + "enactor"
 
 		makeCmd.addAll("make", "install")
