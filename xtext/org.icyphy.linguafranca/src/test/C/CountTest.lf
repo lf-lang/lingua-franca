@@ -6,6 +6,7 @@ reactor Test {
     input c:int;
     state i:int(0);
     reaction(c) {=
+        printf("Received %d.\n", c);
         (self->i)++;
         if (c != self->i) {
             printf("ERROR: Expected %d but got %d\n.", self->i, c);

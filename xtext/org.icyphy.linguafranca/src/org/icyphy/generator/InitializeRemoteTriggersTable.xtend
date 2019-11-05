@@ -6,18 +6,18 @@ package org.icyphy.generator
 /** A data class used by CGenerator. */
 class InitializeRemoteTriggersTable {
 	new (
-		ReactorInstance reactor,
+		ReactorInstance reactorInstance,
 		String remoteTriggersArrayName,
 		int arrayIndex,
-		String inputName
+		PortInstance input
 	) {
-		this.reactor = reactor
+		this.reactor = reactorInstance
 		this.remoteTriggersArrayName = remoteTriggersArrayName
 		this.arrayIndex = arrayIndex
-		this.inputName = inputName
+		this.input = input
 	}
 	public ReactorInstance reactor
 	public String remoteTriggersArrayName
 	public int arrayIndex
-	public String inputName
+	public PortInstance input
 }

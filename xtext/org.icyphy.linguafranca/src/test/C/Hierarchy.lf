@@ -11,6 +11,7 @@ reactor Gain {
     input in:int;
     output out:int;
     reaction(in) -> out {=
+        printf("Gain received %d.\n", in);
         set(out, in * 2);
     =}
 }
@@ -37,7 +38,7 @@ main reactor Hierarchy {
     source = new Source();
     container = new GainContainer();
     print = new Print();
-    print2 = new Print();
+    print2 = new Print(); 
     source.out -> container.in;
     container.out -> print.in;
     container.out -> print2.in;
