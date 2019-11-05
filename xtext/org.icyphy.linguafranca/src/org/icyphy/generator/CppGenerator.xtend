@@ -438,9 +438,11 @@ class CppGenerator extends GeneratorBase {
 		var List<String> values = newArrayList
 		for (p : i.reactorClass.parameters) {
 			var String value = null
-			for (a : i.parameters.assignments) {
-				if (a.name == p.name) {
-					value = '''«a.trimmedValue»'''
+			if (i.parameters !== null) {
+				for (a : i.parameters.assignments) {
+					if (a.name == p.name) {
+						value = '''«a.trimmedValue»'''
+					}
 				}
 			}
 			if (value === null) {
