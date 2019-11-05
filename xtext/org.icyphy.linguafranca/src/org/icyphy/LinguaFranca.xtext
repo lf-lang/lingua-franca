@@ -29,7 +29,7 @@ Reactor:
    	| (outputs += Output)
    	| (timers += Timer)
    	| (actions += Action)
-   	| (instances += Instance)
+   	| (instantiations += Instantiation)
    	| (connections += Connection)
    	| (deadlines += Deadline)
    	| (reactions += Reaction)
@@ -53,12 +53,12 @@ Timer:
 
 Action:
 	modifier=ActionModifier 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';'; // FIXME: Link to referenced parameter
-
+	// delay=VarRef | NUMBER
 Reaction:
 	('reaction' | 'react')
-	('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
-	(sources+=SourceRef (',' sources+=SourceRef)*)?
-	('->' effects+=EffectRef (',' effects+=EffectRef)*)?
+	('(' (triggers+=VarRef (',' triggers+=VarRef)*)? ')')?
+	(sources+=VarRef (',' sources+=VarRef)*)?
+	('->' effects+=VarRef (',' effects+=VarRef)*)?
 	code=CODE
 	(localDeadline=LocalDeadline)?;
 
@@ -82,14 +82,14 @@ Preamble:
 	'preamble' code=CODE;
 	
 // NOTE: Insert dummy object for foreign imports in scope provider?
-Instance: // FIXME: call this reactorInstance?
+Instantiation:
 	name=ID '=' 'new' reactorClass=[Reactor] ('(' parameters=Assignments? ')')? ';' ;
 
 Connection:
-    leftPort=Port '->' rightPort=Port ';'; // FIXME: add cross-referencing here
-    //leftPort=SourceRef '->' rightPort=EffectRef ';';
+    leftPort=VarRef '->' rightPort=VarRef ';';
+
 Deadline:
-    'deadline' '(' port=InputRef ',' delay=Time ',' action=[Action] ')' ';';
+    'deadline' '(' port=VarRef ',' delay=Time ',' action=[Action] ')' ';';
 
 KEYWORD:
 	'input' | 'state' | 'output' | 'timer' | 'action';
@@ -97,7 +97,7 @@ KEYWORD:
 /////////// Pieces
 
 Variable:
-	Input | Output | Action | Timer;
+	Port | Action | Timer;
 
 Trigger:
 	Action | Input
@@ -107,17 +107,7 @@ Effect:
 	Action | Output
 ;
 
-TriggerRef:
-	variable=[Variable] | instance=[Instance] '.' variable=[Output];
-
-SourceRef:
-	variable=[Input] | instance=[Instance] '.' variable=[Output];
-	
-InputRef:
-	variable=[Input] | instance=[Instance] '.' variable=[Input];
-
-EffectRef:
-	variable=[Variable] | instance=[Instance] '.' variable=[Input];
+VarRef: variable=[Variable] | container=[Instantiation] '.' variable=[Variable];
 
 Assignments:
 	assignments+=Assignment (',' assignments+=Assignment)*;
@@ -125,10 +115,6 @@ Assignments:
 Assignment:
 	name=ID '=' value=Value (unit=ID)?; // FIXME: Cross-referencing
 	//name=[Param] '=' value=Value (unit=ID)?;
-
-// Parameters for actors and composites.
-//Params:
-//    '(' params+=Param (',' params+=Param)* ')';
 
 // Single parameter.
 Param:
@@ -151,7 +137,9 @@ Time:
 
 // 'input' and 'output' are allowed port names despite being keywords.
 Port:
-    ID | (ID '.' ID);
+    Input | Output;
+
+//PortRef: SinkRef | SourceRef;
 
 // A type is in the target language, hence either an ID or target code.
 Type:
