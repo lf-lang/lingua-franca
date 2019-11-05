@@ -35,7 +35,7 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Action
 
 class CppGenerator extends GeneratorBase {
-	static public var timeUnitsToDearUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
+	static public var timeUnitsToEnactorUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
 		'secs' -> '_s', 'minute' -> '_min', 'minutes' -> '_min', 'hour' -> '_h', 'hours' -> '_h', 'day' -> '_d',
 		'days' -> '_d', 'week' -> '_weeks', 'weeks' -> '_weeks'}
 
@@ -173,7 +173,7 @@ class CppGenerator extends GeneratorBase {
 	}
 
 	def declare(Reaction n) '''
-		dear::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};
+		enactor::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};
 	'''
 
 	def declareStateVariables(Reactor r) '''
@@ -196,7 +196,7 @@ class CppGenerator extends GeneratorBase {
 
 	def declareTimers(Reactor r) '''
 		«FOR t : r.timers BEFORE '// timers\n' AFTER '\n'»
-			dear::Timer «t.name»;
+			enactor::Timer «t.name»;
 		«ENDFOR»
 	'''
 
@@ -208,16 +208,16 @@ class CppGenerator extends GeneratorBase {
 
 	def declarePorts(Reactor r) '''
 		«FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-			dear::Input<«i.trimmedType»> «i.name»{"«i.name»", this};
+			enactor::Input<«i.trimmedType»> «i.name»{"«i.name»", this};
 		«ENDFOR»
 		«FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-			dear::Output<«o.trimmedType»> «o.name»{"«o.name»", this};
+			enactor::Output<«o.trimmedType»> «o.name»{"«o.name»", this};
 		«ENDFOR»
 	'''
 
 	def declareActions(Reactor r) '''
 		«FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
-			dear::Action<«a.trimmedType»> «a.name»{"«a.name»", this};
+			enactor::Action<«a.trimmedType»> «a.name»{"«a.name»", this};
 		«ENDFOR»
 	'''
 
@@ -287,14 +287,14 @@ class CppGenerator extends GeneratorBase {
 		if (r.parameters.length > 0) {
 			'''
 				«r.name»(const std::string& name,
-				    «IF r.main»dear::Environment* environment,«ELSE»dear::Reactor* container«ENDIF»,
+				    «IF r.main»enactor::Environment* environment,«ELSE»enactor::Reactor* container«ENDIF»,
 				    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «p.trimmedValue»«ENDFOR»
 			'''
 		} else {
 			if (r.main) {
-				'''«r.name»(const std::string& name, dear::Environment* environment);'''
+				'''«r.name»(const std::string& name, enactor::Environment* environment);'''
 			} else {
-				'''«r.name»(const std::string& name, dear::Reactor* container);'''
+				'''«r.name»(const std::string& name, enactor::Reactor* container);'''
 			}
 		}
 	}
@@ -303,7 +303,7 @@ class CppGenerator extends GeneratorBase {
 		val const = p.const ? "const " : ""
 		if (p.type !== null) {
 			if (p.type == "time") {
-				'''«const»dear::time_t'''
+				'''«const»enactor::time_t'''
 			} else {
 				'''«const»«p.type.removeCodeDelimiter»'''
 			}
@@ -355,7 +355,7 @@ class CppGenerator extends GeneratorBase {
 
 	def trimmedValue(Time t) {
 		if (t.unit !== null) {
-			'''«t.time»«timeUnitsToDearUnits.get(t.unit)»'''
+			'''«t.time»«timeUnitsToEnactorUnits.get(t.unit)»'''
 		} else {
 			// time refers to a parameter or is a number without a unit
 			'''«t.time»'''
@@ -365,7 +365,7 @@ class CppGenerator extends GeneratorBase {
 	def trimmedValue(Assignment a) {
 		if (a.unit !== null) {
 			// assume we have a time
-			'''«a.value.removeCodeDelimiter»«timeUnitsToDearUnits.get(a.unit)»'''
+			'''«a.value.removeCodeDelimiter»«timeUnitsToEnactorUnits.get(a.unit)»'''
 		} else {
 			'''«a.value.removeCodeDelimiter»'''
 		}
@@ -376,16 +376,16 @@ class CppGenerator extends GeneratorBase {
 	def defineConstructor(Reactor r) '''
 		«IF r.parameters.length > 0»
 			«r.name»::«r.name»(const std::string& name,
-			    «IF r.isMain()»dear::Environment* environment,«ELSE»dear::Reactor* container«ENDIF»,
+			    «IF r.isMain()»enactor::Environment* environment,«ELSE»enactor::Reactor* container«ENDIF»,
 			    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
 		«ELSE»
 			«IF r.main»
-				«r.name»::«r.name»(const std::string& name, dear::Environment* environment)
+				«r.name»::«r.name»(const std::string& name, enactor::Environment* environment)
 			«ELSE»
-				«r.name»::«r.name»(const std::string& name, dear::Reactor* container)
+				«r.name»::«r.name»(const std::string& name, enactor::Reactor* container)
 			«ENDIF»
 		«ENDIF»
-		  : dear::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
+		  : enactor::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
 		  «r.initializeParameters»
 		  «r.initializeStateVariables»
 		  «r.initializeInstances»
@@ -458,13 +458,13 @@ class CppGenerator extends GeneratorBase {
 		
 		#pragma once
 		
-		#include "dear/dear.hh"
+		#include "enactor/enactor.hh"
 		
 		«r.includeInstances»
 		«r.generatePreamble»
-		using namespace dear::literals;
+		using namespace enactor::literals;
 		
-		class «r.getName()» : public dear::Reactor {
+		class «r.getName()» : public enactor::Reactor {
 		 private:
 		  «r.declareParameters»
 		  «r.declareStateVariables»
@@ -522,12 +522,12 @@ class CppGenerator extends GeneratorBase {
 	def generateMain(Reactor main) '''
 		«header()»
 		
-		#include "dear/dear.hh"
+		#include "enactor/enactor.hh"
 		
 		#include "«main.name».hh"
 		
 		int main() {
-		  dear::Environment e{4};
+		  enactor::Environment e{4};
 		
 		  «main.name» main{"main", &e};
 		  e.assemble();
@@ -555,27 +555,27 @@ class CppGenerator extends GeneratorBase {
 		  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 		endif()
 		
-		if(NOT DEAR_BUILD_DIR)
-		  set(DEAR_BUILD_DIR "" CACHE STRING "Choose the directory to build dear in." FORCE)
+		if(NOT ENACTOR_BUILD_DIR)
+		  set(ENACTOR_BUILD_DIR "" CACHE STRING "Choose the directory to build enactor in." FORCE)
 		endif()
 		
 		ExternalProject_Add(
-		  dep-dear
-		  PREFIX "${DEAR_BUILD_DIR}"
-		  GIT_REPOSITORY "git@github.com:cmnrd/dear.git"
+		  dep-enactor
+		  PREFIX "${ENACTOR_BUILD_DIR}"
+		  GIT_REPOSITORY "git@github.com:tud-ccc/enactor.git"
 		  CMAKE_ARGS
 		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
 		)
 		
-		set(DEAR_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}dear${CMAKE_SHARED_LIBRARY_SUFFIX}")
-		set(DEAR_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+		set(ENACTOR_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}enactor${CMAKE_SHARED_LIBRARY_SUFFIX}")
+		set(ENACTOR_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 		
-		add_library(dear SHARED IMPORTED)
-		add_dependencies(dear dep-dear)
-		set_target_properties(dear PROPERTIES IMPORTED_LOCATION "${DEAR_LIB_DIR}/${DEAR_LIB_NAME}")
+		add_library(enactor SHARED IMPORTED)
+		add_dependencies(enactor dep-enactor)
+		set_target_properties(enactor PROPERTIES IMPORTED_LOCATION "${ENACTOR_LIB_DIR}/${ENACTOR_LIB_NAME}")
 		
-		set(CMAKE_INSTALL_RPATH "${DEAR_LIB_DIR}")
+		set(CMAKE_INSTALL_RPATH "${ENACTOR_LIB_DIR}")
 		set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 		
 		add_executable(«_filename»
@@ -585,7 +585,7 @@ class CppGenerator extends GeneratorBase {
 		  «ENDFOR»
 		)
 		target_include_directories(«_filename» PUBLIC ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
-		target_link_libraries(«_filename» dear)
+		target_link_libraries(«_filename» enactor)
 		
 		install(TARGETS «_filename»)
 	'''
@@ -597,10 +597,10 @@ class CppGenerator extends GeneratorBase {
 		var cwd = Paths.get("").toAbsolutePath().toString()
 		var srcPath = cwd + File.separator + "src-gen" + File.separator + _filename
 		var buildPath = cwd + File.separator + "build" + File.separator + _filename
-		var dearPath = cwd + File.separator + "build" + File.separator + "dear"
+		var enactorPath = cwd + File.separator + "build" + File.separator + "enactor"
 
 		makeCmd.addAll("make", "install")
-		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + cwd, "-DDEAR_BUILD_DIR=" + dearPath, srcPath)
+		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + cwd, "-DENACTOR_BUILD_DIR=" + enactorPath, srcPath)
 
 		var buildDir = new File(buildPath)
 		if(!buildDir.exists()) buildDir.mkdirs()
