@@ -58,10 +58,12 @@ Reaction:
 	('reaction' | 'react')
 	('(' (triggers+=VarRef (',' triggers+=VarRef)*)? ')')?
 	(sources+=VarRef (',' sources+=VarRef)*)?
-	('->' effects+=VarRef (',' effects+=VarRef)*)?
+	('->' effects+=VarRef (',' effects+=VarRef)* (delay=Delay)?)?
 	code=CODE
-	('after' timeAfter=Time)?
 	(localDeadline=LocalDeadline)?;
+	
+Delay:
+	'after' time=Time;
 
 LocalDeadline:
     'deadline' '(' time=Time ')' deadlineCode=CODE;
