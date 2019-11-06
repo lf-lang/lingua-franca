@@ -228,10 +228,24 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
+	def declareDeadlineHandlers(Reactor r) '''
+		«FOR n : r.reactions.filter([Reaction x | x.localDeadline !== null]) BEFORE '// local deadline handlers\n' AFTER '\n'»
+			void «n.name»_deadline_handler();
+		«ENDFOR»
+	'''
+
 	def implementReactionBodies(Reactor r) '''
 		«FOR n : r.reactions SEPARATOR '\n'»
 			void «r.name»::«n.name»_body() {
 			  «n.code.removeCodeDelimiter»
+			}
+		«ENDFOR»
+	'''
+
+	def implementReactionDeadlineHandlers(Reactor r) '''
+		«FOR n : r.reactions.filter([Reaction x | x.localDeadline !== null]) BEFORE '\n' SEPARATOR '\n'»
+			void «r.name»::«n.name»_deadline_handler() {
+			  «n.localDeadline.deadlineCode.removeCodeDelimiter»
 			}
 		«ENDFOR»
 	'''
@@ -458,6 +472,9 @@ class CppGenerator extends GeneratorBase {
 		«n.declareTriggers»
 		«n.declareDependencies»
 		«n.declareAntidependencies»
+		«IF n.localDeadline !== null»
+			«n.name».set_deadline(«n.localDeadline.time.trimmedValue», [this]() { «n.name»_deadline_handler(); });
+		«ENDIF»
 	'''
 
 	def generateReactorHeader(Reactor r) '''
@@ -480,6 +497,7 @@ class CppGenerator extends GeneratorBase {
 		  «r.declareActions»
 		  «r.declareReactions»
 		  «r.declareReactionBodies»
+		  «r.declareDeadlineHandlers»
 		 public:
 		  «r.declarePorts»
 		  «r.declareConstructor»
@@ -505,6 +523,7 @@ class CppGenerator extends GeneratorBase {
 		}
 		
 		«r.implementReactionBodies»
+		«r.implementReactionDeadlineHandlers»
 	'''
 
 	def header() '''
