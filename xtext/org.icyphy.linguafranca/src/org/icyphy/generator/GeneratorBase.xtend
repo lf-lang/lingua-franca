@@ -1,7 +1,7 @@
 /*
  * Generator base class for shared code between code generators.
  */
-// The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License.
+// The Lingua-Franca toolkit is licensed under the BSD 2-Clause License.
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
@@ -24,6 +24,7 @@ import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.Action
 
 /**
  * Generator base class for shared code between code generators.
@@ -89,20 +90,34 @@ class GeneratorBase {
 		// have an abstract function to generate the C code for the delay,
 		// implemented in the C generator
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+			/*
 			println("reactor: "+reactor)
 			for (action : reactor.actions) {
 				println("action: " + action)
 			}
+			*/
 			for (reaction : reactor.reactions) {
 				println("reaction: " + reaction)
+				if (reaction.delay !== null) {
+					println("after: " + reaction.delay.time)
+					println("time units: " + timeInTargetLanguage(reaction.delay.time))
+					for (effects : reaction.effects) {
+						println("effect variable: " + effects.variable)
+						// TODO: add state variable for each output in the reactor
+						// in the C code generator set state, schedule timer action
+					}
+					// remove the output in the reactions, add it in the timer reaction
+					/* FIXME: how to create an actions object
+					val action = new Action()
+					reactor.actions.add(action)
+					* 
+					*/
+				}
+				if (reaction.localDeadline !== null) {
+					println("deadline: " + reaction.localDeadline.time)
+				}
 			}
 	
-			/*
-			generateReactor(reactor, importTable)
-			if (reactor.isMain) {
-				main = new ReactorInstance(reactor)
-			}
-			*/
 		}
 
         var mainDef = null as Instantiation

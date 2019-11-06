@@ -6,14 +6,14 @@ reactor Source {
     timer t;
     reaction(t) -> out after 100 msec {=
         set(out, 1);
-    =}
+    =} 
 }
 reactor Sink {
 	input in:int;
 	reaction(in) {=
         interval_t elapsed = get_elapsed_logical_time();
         printf("Nanoseconds since start: %lld.\n", elapsed);		
-	=}
+	=} deadline(200 msec) {= =}
 }
 main reactor DelayedReaction {
     
