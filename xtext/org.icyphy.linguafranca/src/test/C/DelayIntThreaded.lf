@@ -1,4 +1,4 @@
-// This tests actions with payloads by delaying an input by a fixed amount.
+// This tests actions with values by delaying an input by a fixed amount.
 target C(
     threads = 1 
 );
@@ -9,14 +9,14 @@ reactor DelayInt(delay:time(100 msec)) {
     reaction(in) -> d {=
         // Allocate memory for a copy of the input. Use lf_malloc(),
         // the Lingua Franca specialized version of malloc().
-        int* payload = lf_malloc(sizeof(int));
-        *payload = in;
-        schedule(d, self->delay, payload);
+        int* value = lf_malloc(sizeof(int));
+        *value = in;
+        schedule(d, self->delay, value);
     =}
     reaction(d) -> out {=
         // This will pass the value, so the malloc can be freed.
-        if (d_has_payload) {
-            set(out, d_payload);
+        if (d_has_value) {
+            set(out, d_value);
         }
     =}
 }

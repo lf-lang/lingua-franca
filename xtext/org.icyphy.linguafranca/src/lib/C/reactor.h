@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2019, Industrial Cyberphysical Systems (iCyPhy). 
+ * Copyright (c) 2019, Industrial Cyberphysical Systems Center (iCyPhy)
+ * University of California at Berkeley
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -125,7 +126,7 @@ struct trigger_t {
 	int number_of_reactions;  // Number of reactions sensitive to this trigger.
 	interval_t offset;        // For an action, this will be a minimum delay.
 	interval_t period;        // For periodic timers (not for actions).
-  void* payload;            // Pointer to malloc'd payload (or NULL).
+  void* value;              // Pointer to malloc'd value (or NULL).
   bool is_physical;         // Indicator that this denotes a physical action 
                             // (i.e., to be scheduled relative to physical time)
 };
@@ -135,7 +136,7 @@ typedef struct event_t {
   instant_t time;     // Time of release.
   trigger_t* trigger; // Associated trigger.
   size_t pos;         // Position in the priority queue.
-  void* payload;      // Pointer to malloc'd payload (or NULL).
+  void* value;      // Pointer to malloc'd value (or NULL).
 } event_t;
 
 //  ======== Function Declarations ========  //
@@ -183,9 +184,9 @@ void __initialize_trigger_objects();
  * __start_timers() function. 
  * @param trigger The action or timer to be triggered.
  * @param delay Offset of the event release.
- * @param payload The malloc'd payload.
+ * @param value The malloc'd value.
  */
-handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload);
+handle_t __schedule(trigger_t* trigger, interval_t delay, void* value);
 
 /**
  * Function (to be code generated) to start timers.
@@ -203,12 +204,12 @@ int number_of_threads;
  * External version of schedule, callable from within reactors.
  * @param trigger The action or timer to be triggered.
  * @param delay Extra offset of the event release.
- * @param payload The malloc'd payload.
+ * @param value The malloc'd value.
 */
-handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload);
+handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value);
 
 /**
- * Specialized version of malloc used by Lingua Franca for action payloads
+ * Specialized version of malloc used by Lingua Franca for action values
  * and messages contained in dynamically allocated memory.
  * @param size The size of the memory block to allocate.
  * @return A pointer to the allocated memory block.
