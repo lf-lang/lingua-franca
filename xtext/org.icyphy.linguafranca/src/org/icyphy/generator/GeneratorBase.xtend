@@ -25,6 +25,12 @@ import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.impl.ActionImpl
+import org.icyphy.linguaFranca.impl.LinguaFrancaFactoryImpl
+import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Port
+import java.util.List
+import java.util.LinkedList
 
 /**
  * Generator base class for shared code between code generators.
@@ -57,6 +63,75 @@ class GeneratorBase {
             'days'->86400000000000L,
             'week'->604800000000000L, 
             'weeks'->604800000000000L}
+            
+            
+    def generateDelayReactor(Reaction reaction) {
+    	
+    	val lffi = LinguaFrancaFactory.eINSTANCE
+    	val delayReactor = lffi.createReactor
+    	delayReactor.name = "generatedDelay" // TODO: check unique name
+    	
+    	
+		for (effect : reaction.effects) {
+			println("effect variable: " + effect.variable)
+			if (effect.variable instanceof Action) {
+				throw new Error("No after on actions")
+			}
+			val v = (effect.variable as Port)
+			
+			val in = lffi.createInput
+			in.name = v.name + "_in"
+			in.type = v.type
+			delayReactor.inputs.add(in)
+			
+			val out = lffi.createOutput
+			out.name = v.name + "_out"
+			out.type = v.type
+			delayReactor.outputs.add(out)
+			
+			val state = lffi.createState
+			state.name = v.name + "_state"
+			state.type = v.type
+			state.value = "0" // FIXME: default for types
+			delayReactor.states.add(state)
+			
+		// original outputs into additional state variables
+		// in the C code generator set state, schedule timer action
+		}
+		println("after: " + reaction.delay.time)
+		// TODO: for after add a logical action and reaction with delay
+		val action = lffi.createAction
+		action.delay = timeInTargetLanguage(reaction.delay.time)
+		action.name = "act"
+		delayReactor.actions.add(action)
+
+		// println("time: " + action.delay)
+		
+		val r1 = lffi.createReaction
+		for (i : delayReactor.inputs) {
+			val vr = lffi.createVarRef
+			vr.variable = i
+			r1.triggers.add(vr)
+		}
+		val a = lffi.createVarRef
+		a.variable = action
+		r1.effects.add(a)
+		r1.code = "{= printf(\"generatedDelay\"); =}"
+		delayReactor.reactions.add(r1)
+		
+		
+		// quite some to do as this already generates a null pointer exception					
+		// create a reactor first
+		// reactor.actions.add(action)
+		val r2 = lffi.createReaction
+		val vr = lffi.createVarRef
+		vr.variable = action
+		r2.triggers.add(vr)
+		r2.code = "{= printf(\"reaction 2\"); =}"
+		// TODO: effects
+		
+		delayReactor
+	}
     
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -83,12 +158,15 @@ class GeneratorBase {
 
         // Figure out the file name for the target code from the source file name.
         filename = extractFilename(resource.getURI.toString)
-        
-        // loop over reactors as below
-		// for after add a logical action with delay
-		// original outputs into additional state variables
+
+
 		// have an abstract function to generate the C code for the delay,
 		// implemented in the C generator
+		
+		val genDelayReactor = new LinkedList<Reactor>
+		val lffi = LinguaFrancaFactory.eINSTANCE
+		
+		// Iterate over reactors
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			/*
 			println("reactor: "+reactor)
@@ -96,28 +174,26 @@ class GeneratorBase {
 				println("action: " + action)
 			}
 			*/
+			// Iterate over reactions to find some with a delay ("after time")
 			for (reaction : reactor.reactions) {
 				println("reaction: " + reaction)
 				if (reaction.delay !== null) {
-					println("after: " + reaction.delay.time)
-					println("time units: " + timeInTargetLanguage(reaction.delay.time))
-					for (effects : reaction.effects) {
-						println("effect variable: " + effects.variable)
-						// TODO: add state variable for each output in the reactor
-						// in the C code generator set state, schedule timer action
-					}
-					// remove the output in the reactions, add it in the timer reaction
-					/* FIXME: how to create an actions object
-					val action = new Action()
-					reactor.actions.add(action)
-					* 
-					*/
+					val dr = generateDelayReactor(reaction)
+					genDelayReactor.add(dr)
+					val createInst = lffi.createInstantiation
+					createInst.name = "uniqueTODO" // TODO:
+					createInst.reactorClass = dr
+					reactor.instantiations.add(createInst)
+					// remove the output of the reaction, add it in the timer reaction
 				}
-				if (reaction.localDeadline !== null) {
-					println("deadline: " + reaction.localDeadline.time)
-				}
+//				if (reaction.localDeadline !== null) {
+//					println("deadline: " + reaction.localDeadline.time)
+//				}
 			}
 	
+		}
+		for (reactor : genDelayReactor) {
+			generateReactor(reactor, importTable)
 		}
 
         var mainDef = null as Instantiation
@@ -133,6 +209,9 @@ class GeneratorBase {
                 this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.
             }
         }
+
+                
+        
     }
     
     /** Return true if errors occurred in the last call to doGenerate().

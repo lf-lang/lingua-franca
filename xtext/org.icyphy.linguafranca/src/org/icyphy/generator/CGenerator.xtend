@@ -1427,7 +1427,10 @@ class CGenerator extends GeneratorBase {
     // the most recently used node.
     private def prSourceLineNumber(EObject reaction) {
         var node = NodeModelUtils.getNode(reaction)
-        pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
+        if (node !== null) {
+          pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
+        	
+        }
 
     }
 
