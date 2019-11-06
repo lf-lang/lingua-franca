@@ -14,7 +14,7 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	logical action a;
 	reaction(t) -> a {=
 		printf("%s\n", self->message);
-		schedule(a, MSEC(200), NULL); // No payload.
+		schedule(a, MSEC(200), NULL); // No value.
 		// Print the current time.
 		self->previous_time = get_logical_time();
 		time_t secs = self->previous_time/BILLION;
@@ -24,9 +24,9 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	reaction(a) {=
 		(self->count)++;
 		printf("***** action %d at time %lld\n", self->count, get_logical_time());
-        // Check the a_has_payload variable.
-        if (a_has_payload) {
-            printf("FAILURE: Expected a_has_payload to be false, but it was true.\n");
+        // Check the a_has_value variable.
+        if (a_has_value) {
+            printf("FAILURE: Expected a_has_value to be false, but it was true.\n");
             exit(2);
         }
 		long long time = get_logical_time();

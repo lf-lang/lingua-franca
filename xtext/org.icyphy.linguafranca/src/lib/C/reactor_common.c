@@ -58,7 +58,7 @@ instant_t get_physical_time() {
 }
 
 /**
- * Specialized version of malloc used by Lingua Franca for action payloads
+ * Specialized version of malloc used by Lingua Franca for action values
  * and messages contained in dynamically allocated memory.
  * @param size The size of the memory block to allocate.
  * @return A pointer to the allocated memory block.
@@ -82,7 +82,7 @@ void stop() {
 pqueue_t* event_q;     // For sorting by time.
 pqueue_t* reaction_q;  // For sorting by index (precedence sort)
 pqueue_t* recycle_q;   // For recycling malloc'd events.
-pqueue_t* free_q;      // For free malloc'd payloads carried by events.
+pqueue_t* free_q;      // For free malloc'd values carried by events.
 
 handle_t __handle = 0;
 struct timespec physicalStartTime;
@@ -140,19 +140,19 @@ static void prt_rct(FILE *out, void *a) {
 
 static void prt_evt(FILE *out, void *a) {
 	event_t *n = a;
-    fprintf(out, "time: %lld, trigger: %p, payload: %p\n",
-			n->time, n->trigger, n->payload);
+    fprintf(out, "time: %lld, trigger: %p, value: %p\n",
+			n->time, n->trigger, n->value);
 }
 
 // ********** Priority Queue Support End
 
 // Schedule the specified trigger at current_time plus the
 // offset of the specified trigger plus the delay.
-// The payload is required to be a pointer returned by lf_malloc
+// The value is required to be a pointer returned by lf_malloc
 // because it will be freed after having been delivered to
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
-handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload) {
+handle_t __schedule(trigger_t* trigger, interval_t delay, void* value) {
     // Recycle event_t structs, if possible.
     event_t* e = pqueue_pop(recycle_q);
     if (e == NULL) {
@@ -160,7 +160,7 @@ handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload) {
     }
     e->time = current_time + trigger->offset + delay;
     e->trigger = trigger;
-    e->payload = payload;
+    e->value = value;
     
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
