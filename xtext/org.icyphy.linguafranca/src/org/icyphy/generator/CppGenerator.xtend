@@ -218,7 +218,11 @@ class CppGenerator extends GeneratorBase {
 
 	def declareActions(Reactor r) '''
 		«FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
-			enactor::Action<«a.trimmedType»> «a.name»{"«a.name»", this};
+			«IF a.modifier.literal == 'logical'»
+				enactor::LogicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
+			«ELSE»
+				enactor::PhysicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
+			«ENDIF»
 		«ENDFOR»
 	'''
 
