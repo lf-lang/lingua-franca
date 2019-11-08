@@ -600,6 +600,9 @@ class CppGenerator extends GeneratorBase {
 	def generateMain(Reactor main, Target t) '''
 		«header()»
 		
+		#include <thread>
+		#include <chrono>
+		
 		#include "enactor/enactor.hh"
 		
 		#include "CLI/CLI11.hpp"
@@ -611,6 +614,8 @@ class CppGenerator extends GeneratorBase {
 		  
 		  unsigned threads = «IF t.hasParam('threads')»«t.getParam('threads')»«ELSE»4«ENDIF»;
 		  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
+		  unsigned timeout;
+		  auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
 		  
 		  CLI11_PARSE(app, argc, argv);
 		  
@@ -621,6 +626,10 @@ class CppGenerator extends GeneratorBase {
 		  e.init();
 		
 		  auto t = e.start();
+		  if (opt_timeout->count() > 0) {
+		    std::this_thread::sleep_for(std::chrono::seconds(timeout));
+		    e.stop();
+		  }
 		  t.join();
 		
 		  return 0;
