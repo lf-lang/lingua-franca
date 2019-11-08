@@ -56,7 +56,10 @@ class CGenerator extends GeneratorBase {
     var initializeTriggerObjects = new StringBuilder()
 
     // List of deferred assignments to perform in initialize_trigger_objects.
-    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>();
+    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
+    
+    // Place to collect shutdown action instances.
+    var shutdownActionInstances = new LinkedList<ActionInstance>()
 
     // Place to collect code to execute at the start of a time step.
     var startTimeStep = new StringBuilder()
@@ -170,6 +173,21 @@ class CGenerator extends GeneratorBase {
             pr('void __start_time_step() {\n')
             indent()
             pr(startTimeStep.toString)
+            unindent()
+            pr('}\n')
+            
+            // Generate function to schedule shutdown actions if any
+            // reactors have reactions to shutdown.
+            pr('bool __wrapup() {\n')
+            indent()
+            for (instance : shutdownActionInstances) {
+                pr('schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
+            }
+            if (shutdownActionInstances.length === 0) {
+                pr('return false;')
+            } else {
+                pr('return true;')
+            }
             unindent()
             pr('}\n')
         }
@@ -966,6 +984,11 @@ class CGenerator extends GeneratorBase {
                     triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' +
                         delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
                 )
+                // If this is a shutdown action, add it to the list of shutdown actions.
+                // FIXME: Is there a better way to check than name matching here?
+                if (trigger.name.equals("shutdown")) {
+                    shutdownActionInstances.add(triggerInstance as ActionInstance)
+                }
             } else {
                 reportError(reactorInstance.definition, "Internal error: Seems to not be an input, timer, or action: "
                     + trigger.name
@@ -1425,10 +1448,11 @@ class CGenerator extends GeneratorBase {
 
     // Print the #line compiler directive with the line number of
     // the most recently used node.
-    private def prSourceLineNumber(EObject reaction) {
-        var node = NodeModelUtils.getNode(reaction)
-        pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
-
+    private def prSourceLineNumber(EObject eObject) {
+        var node = NodeModelUtils.getNode(eObject)
+        if (node !== null) {
+            pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
+        }
     }
 
     // Set inputs _is_present variables to the default to point to False.

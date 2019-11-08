@@ -376,6 +376,12 @@ void start_threads() {
 
 // Print elapsed logical and physical times.
 void wrapup() {
+    // Invoke any code generated wrapup. If this returns true,
+    // then actions have been scheduled at the next microstep.
+    // Invoke next() one more time to react to those actions.
+    if (__wrapup()) {
+        next();
+    }
 	// Signal worker threads to exit.
 	// Assume the following write is atomic and therefore need not be guarded.
 	stop_requested = true;
