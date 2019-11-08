@@ -79,12 +79,13 @@ class CppGenerator extends GeneratorBase {
 
 		var reactors = resource.collectReactors
 		var mainReactor = resource.findMainReactor
+		var target = resource.findTarget
 
 		super.doGenerate(resource, fsa, context, importTable)
 
 		fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
 		fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
-		fsa.generateFile(filename + File.separator + "CMakeLists.txt", reactors.generateCmake)
+		fsa.generateFile(filename + File.separator + "CMakeLists.txt", target.generateCmake(reactors))
 
 		for (r : reactors) {
 			fsa.generateFile(filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
@@ -92,6 +93,21 @@ class CppGenerator extends GeneratorBase {
 		}
 
 		doCompile()
+	}
+
+	def extractDir(String path) {
+		var result = path
+		if (path.startsWith('platform:')) {
+			result = result.substring(9)
+		}
+		if (path.startsWith('file:')) {
+			result = result.substring(5)
+		}
+		var lastSlash = result.lastIndexOf('/')
+		if (lastSlash >= 0) {
+			result = result.substring(0, lastSlash)
+		}
+		return result
 	}
 
 	static def removeCodeDelimiter(String code) {
@@ -171,6 +187,38 @@ class CppGenerator extends GeneratorBase {
 			throw new RuntimeException("No main reactor found!")
 		}
 		main
+	}
+
+	def findTarget(Resource resource) {
+		var target = null as Target
+		for (t : resource.allContents.toIterable.filter(Target)) {
+			if (target !== null) {
+				throw new RuntimeException("There is more than one target!")
+			}
+			target = t
+		}
+		if (target === null) {
+			throw new RuntimeException("No target found!")
+		}
+		target
+	}
+
+	def getParam(Target t, String s) {
+		for (p : t.parameters.assignments) {
+			if (p.name == s) {
+				return p.value
+			}
+		}
+		null
+	}
+
+	def hasParam(Target t, String s) {
+		for (p : t.parameters.assignments) {
+			if (p.name == s) {
+				return true
+			}
+		}
+		false
 	}
 
 	def declare(Reaction n) '''
@@ -570,14 +618,14 @@ class CppGenerator extends GeneratorBase {
 		}
 	'''
 
-	def generateCmake(List<Reactor> reactors) '''
+	def generateCmake(Target target, List<Reactor> reactors) '''
 		cmake_minimum_required(VERSION 3.5)
 		project(«filename» VERSION 1.0.0 LANGUAGES CXX)
 		
 		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 		include(GNUInstallDirs)
 		
-		set(DEFAULT_BUILD_TYPE "Release")
+		set(DEFAULT_BUILD_TYPE "Debug")
 		if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 		  message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
 		  set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
@@ -618,7 +666,15 @@ class CppGenerator extends GeneratorBase {
 		target_link_libraries(«filename» enactor)
 		
 		install(TARGETS «filename»)
+		
+		«IF target.hasParam("cmake_include")»
+			include(«resource.URI.toFileString.extractDir»«File.separator»«target.getParam("cmake_include").withoutQuotes»)
+		«ENDIF»
 	'''
+
+	def withoutQuotes(String s) {
+		s.replace("\"", "").replace("\'", "")
+	}
 
 	def void doCompile() {
 		var makeCmd = newArrayList()
