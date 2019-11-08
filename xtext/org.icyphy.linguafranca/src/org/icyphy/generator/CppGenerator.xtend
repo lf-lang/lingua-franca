@@ -84,7 +84,7 @@ class CppGenerator extends GeneratorBase {
 		super.doGenerate(resource, fsa, context, importTable)
 
 		fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
-		fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
+		fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain(target))
 		fsa.generateFile(filename + File.separator + "CMakeLists.txt", target.generateCmake(reactors))
 
 		for (r : reactors) {
@@ -597,15 +597,24 @@ class CppGenerator extends GeneratorBase {
 		«ENDFOR»
 	'''
 
-	def generateMain(Reactor main) '''
+	def generateMain(Reactor main, Target t) '''
 		«header()»
 		
 		#include "enactor/enactor.hh"
 		
+		#include "CLI/CLI11.hpp"
+		
 		#include "«main.name».hh"
 		
-		int main() {
-		  enactor::Environment e{4};
+		int main(int argc, char **argv) {
+		  CLI::App app("«filename» Reactor Program");
+		  
+		  unsigned threads = «IF t.hasParam('threads')»«t.getParam('threads')»«ELSE»4«ENDIF»;
+		  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
+		  
+		  CLI11_PARSE(app, argc, argv);
+		  
+		  enactor::Environment e{threads};
 		
 		  «main.name» main{"main", &e};
 		  e.assemble();
@@ -646,11 +655,14 @@ class CppGenerator extends GeneratorBase {
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
 		)
 		
+		set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
+		file(DOWNLOAD "https://github.com/CLIUtils/CLI11/releases/download/v1.8.0/CLI11.hpp" "${CLI11_PATH}")
+		
 		set(ENACTOR_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}enactor${CMAKE_SHARED_LIBRARY_SUFFIX}")
 		set(ENACTOR_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 		
 		add_library(enactor SHARED IMPORTED)
-		add_dependencies(enactor dep-enactor)
+		add_dependencies(enactor dep-enactor "${CLI11_PATH}")
 		set_target_properties(enactor PROPERTIES IMPORTED_LOCATION "${ENACTOR_LIB_DIR}/${ENACTOR_LIB_NAME}")
 		
 		set(CMAKE_INSTALL_RPATH "${ENACTOR_LIB_DIR}")
