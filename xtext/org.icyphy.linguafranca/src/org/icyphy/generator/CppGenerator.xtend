@@ -706,7 +706,7 @@ class CppGenerator extends GeneratorBase {
 		var buildPath = cwd + File.separator + "build" + File.separator + filename
 		var enactorPath = cwd + File.separator + "build" + File.separator + "enactor"
 
-		makeCmd.addAll("make", "install")
+		makeCmd.addAll("make", "-j" + Runtime.getRuntime().availableProcessors(), "install")
 		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + cwd, "-DENACTOR_BUILD_DIR=" + enactorPath, srcPath)
 
 		var buildDir = new File(buildPath)
