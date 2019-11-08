@@ -154,7 +154,7 @@ class CppGenerator extends GeneratorBase {
 
 	def priority(Reaction n) {
 		var r = n.eContainer as Reactor
-		r.reactions.lastIndexOf(n)
+		r.reactions.lastIndexOf(n) + 1
 	}
 
 	def findMainReactor(Resource resource) {
