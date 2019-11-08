@@ -3,7 +3,6 @@
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
-import java.util.HashMap
 import java.util.HashSet
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output

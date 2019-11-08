@@ -9,20 +9,28 @@
     }
     reactor Test {
         input x:int;
+        state received_value:bool(false);
         reaction(x) {=
             printf("Received %d.\n", x);
+            self->received_value = true;
             if (x != 2) {
-                printf("Expected 2!");
+                printf("ERROR: Expected 2!\n");
                 exit(1);
+            }
+        =}
+        reaction(shutdown) {=
+            if (!self->received_value) {
+                printf("ERROR: No value received by Test reactor!\n");
+            } else {
+                printf("Test passes.\n");
             }
         =}
     }
     main reactor Main {
         g = new Gain();
-        t = new Test();
-        g.y -> t.x;
-        timer t;
-        reaction(t) -> g.x {=
+        d = new Test();
+        g.y -> d.x;
+        reaction(startup) -> g.x {=
             set(g.x, 1);
         =}
     }

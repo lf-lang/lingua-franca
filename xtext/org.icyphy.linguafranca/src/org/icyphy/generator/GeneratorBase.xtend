@@ -19,11 +19,14 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.Timer
 
 /**
  * Generator base class for shared code between code generators.
@@ -44,7 +47,7 @@ class GeneratorBase {
     // target language, to ensure that the result is a 64-bit long.
     static public var timeUnitsToNs = #{
             'nsec' -> 1L,
-             'usec' -> 1000L,
+            'usec' -> 1000L,
             'msec'->1000000L,
             'sec'->1000000000L,
             'secs'->1000000000L,
@@ -123,6 +126,60 @@ class GeneratorBase {
             + " in "
             + filename
         )
+        
+        // Special Timer and Action for startup and shutdown, if they occur.
+        // Only one of each of these should be created even if multiple
+        // reactions are triggered by them.
+        var timer = null as Timer
+        var action = null as Action
+        
+        if (reactor.reactions !== null) {
+            for (Reaction reaction : reactor.reactions) {
+                // If the reaction triggers include 'startup' or 'shutdown',
+                // then create Timer and TimerInstance objects named 'startup'
+                // or Action and ActionInstance objects named 'shutdown'.
+                // Using a Timer for startup means that the target-specific
+                // code generator doesn't have to do anything special to support this.
+                // However, for 'shutdown', the target-specific code generator
+                // needs to check all reaction instances for a shutdownActionInstance
+                // and schedule that action before shutting down the program.
+                // These get inserted into both the ECore model and the
+                // instance model.
+                var hasStartupTrigger = false;
+                var hasShutdownTrigger = false;
+                for (trigger : reaction.triggers) {
+                    if (trigger.startup !== null) {
+                        hasStartupTrigger = true
+                        if (timer === null) {
+                            // FIXME: Creating here a pretty incomplete EObject. Is that OK?
+                            timer = LinguaFrancaFactory.eINSTANCE.createTimer()
+                            timer.setName('startup')
+                            reactor.timers.add(timer)
+                        }
+                    } else if (trigger.shutdown !== null) {
+                        hasShutdownTrigger = true
+                        if (action === null) {
+                            // FIXME: Creating here a pretty incomplete EObject. Is that OK?
+                            action = LinguaFrancaFactory.eINSTANCE.createAction()
+                            action.setName('shutdown')
+                            reactor.actions.add(action)
+                        }
+                    }
+                }
+                // If appropriate, add a VarRef to the triggers list of this
+                // reaction for the startup timer or shutdown action.
+                if (hasStartupTrigger) {
+                    var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
+                    variableReference.setVariable(timer)
+                    reaction.triggers.add(variableReference)
+                }
+                if (hasShutdownTrigger) {
+                    var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
+                    variableReference.setVariable(action)
+                    reaction.triggers.add(variableReference)
+                }
+            }
+        }
     }
 
     /** If the argument starts with '{=', then remove it and the last two characters.

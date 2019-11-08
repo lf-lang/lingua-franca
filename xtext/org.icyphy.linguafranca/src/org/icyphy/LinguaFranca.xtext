@@ -107,7 +107,11 @@ Effect:
 	Action | Output
 ;
 
-VarRef: variable=[Variable] | container=[Instantiation] '.' variable=[Variable];
+VarRef: variable=[Variable] 
+    | container=[Instantiation] '.' variable=[Variable]
+    | startup='startup'
+    | shutdown='shutdown'
+;
 
 Assignments:
 	assignments+=Assignment (',' assignments+=Assignment)*;
