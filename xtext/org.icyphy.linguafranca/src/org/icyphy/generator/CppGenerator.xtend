@@ -640,7 +640,7 @@ class CppGenerator extends GeneratorBase {
 		ExternalProject_Add(
 		  dep-enactor
 		  PREFIX "${ENACTOR_BUILD_DIR}"
-		  GIT_REPOSITORY "git@github.com:tud-ccc/enactor.git"
+		  GIT_REPOSITORY "https://github.com/tud-ccc/enactor.git"
 		  CMAKE_ARGS
 		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
