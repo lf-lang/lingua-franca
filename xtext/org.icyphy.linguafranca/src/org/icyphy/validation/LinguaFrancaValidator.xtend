@@ -12,11 +12,12 @@ import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
-import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.TimeUnit
 
 /**
  * This class contains custom validation rules. 
@@ -61,7 +62,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	}	
 	
 	@Check(FAST)
-	def recordParameter(Param param) {
+	def recordParameter(Parameter param) {
 		parameters.add(param.name)
 		allNames.add(param.name)
 	}
@@ -83,13 +84,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
 	@Check(FAST)
 	def checkAssignment(Assignment assignment) {
-		if (assignment.unit !== null
-				&& GeneratorBase.timeUnitsToNs.get(assignment.unit) === null) {
-			error("Invalid time units: " + assignment.unit
-					+ ". Should be one of "
-					+ GeneratorBase.timeUnitsToNs.keySet,
-					Literals.ASSIGNMENT__UNIT)
-		}
+//		if (assignment.rhs.unit != TimeUnit.NONE
+//				&& GeneratorBase.timeUnitsToNs.get(assignment.rhs.unit) === null) {
+//			error("Invalid time units: " + assignment.rhs.unit
+//					+ ". Should be one of "
+//					+ GeneratorBase.timeUnitsToNs.keySet,
+//					Literals.ASSIGNMENT__RHS)
+//		}
 	}
 
 //	@Check(FAST)
@@ -138,37 +139,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		outputs.add(output.name);
 		allNames.add(output.name)
 	}
-
-// Superfluous check; now guaranteed by grammar
-//	@Check(FAST)
-//	def checkReaction(Reaction reaction) {
-//		for (trigger: reaction.triggers) {
-//			if (!inputs.contains(trigger.name)
-//				&& !timers.contains(trigger.name)
-//				&& !actions.contains(trigger.name)
-//			) {
-//				error("Reaction trigger is not an input, timer, or action: "
-//					+ trigger.name,
-//					Literals.REACTION__TRIGGERS
-//				)
-//			}
-//		}
-//	}
-
-//	@Check(FAST)
-//	def checkSets(Produces produces) {
-//		for (port: produces.produces) {
-//			// If the port has the form of name.name, then skip the check.
-//			// We don't have enough information here to check it.
-//			if (port.split('\\.').length != 2 && !outputs.contains(port) && !actions.contains(port)) {
-//					error("Reaction declares that it produces something that is not an output,"
-//						+ " an action, nor an input port: "
-//					+ port,
-//					Literals.PRODUCES__PRODUCES
-//				)
-//			}
-//		}
-//	}
 	
 	@Check(FAST)
 	def checkTarget(Target target) {
@@ -177,21 +147,21 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 					+ target.name,
 					Literals.TARGET__NAME)
 		}
-		if (target.parameters !== null) {
-			for (parameter: target.parameters.assignments) {
-   				if (!TARGET_PARAMETERS.contains(parameter.name)) {
+		if (target.properties !== null) {
+			for (property: target.properties) {
+   				if (!TARGET_PARAMETERS.contains(property.name)) {
 					warning("Unrecognized target parameter: "
-						+ parameter.name,
-						Literals.TARGET__PARAMETERS
+						+ property.name,
+						Literals.TARGET__PROPERTIES
 					)
 				}
 				// Make sure the value of the parameter is a string or a parsable integer.
-				if (!parameter.value.startsWith('"') || !parameter.value.endsWith('"')) {
+				if (!property.value.startsWith('"') || !property.value.endsWith('"')) {
 					try {
-						Integer.decode(parameter.value)
+						Integer.decode(property.value)
 					} catch (NumberFormatException ex) {
 						error("Target parameter value is required to be an integer or a string surrounded by quotation marks.",
-							Literals.TARGET__PARAMETERS
+							Literals.TARGET__PROPERTIES
 						)
 					}
 				}
@@ -200,27 +170,20 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	}
 
 	@Check(FAST)
-	def checkTime(Time time) {
-		if (time.time !== null) {
-			if (time.unit === null) {
-				// No time unit is given.
-				if (time.time.startsWith('-')) {
-					error("Time cannot be negative", Literals.TIME__TIME)
-				} else if (time.time.matches('[0123456789]')) {
-					// Time is a literal number (only checked the first character)
-					if (!time.time.equals('0')) {
-						error("Missing time units. Should be one of "
-								+ GeneratorBase.timeUnitsToNs.keySet,
-								Literals.TIME__TIME)
-					}
-				}
-			} else if (GeneratorBase.timeUnitsToNs.get(time.unit) === null) {
-				error("Invalid time units: " + time.unit
-						+ ". Should be one of "
-						+ GeneratorBase.timeUnitsToNs.keySet,
-						Literals.TIME__UNIT)
+	def checkTime(TimeOrValue timeOrValue) {
+		if (timeOrValue.value === null && timeOrValue.unit == TimeUnit.NONE) {
+			// No time unit is given.
+			if (!timeOrValue.time.equals(0)) {
+				error("Missing time units. Should be one of " + GeneratorBase.timeUnitsToNs.keySet,
+					Literals.TIME_OR_VALUE__VALUE)
 			}
 		}
+//			else if (GeneratorBase.timeUnitsToNs.get(time.unit) === null) {
+//				error("Invalid time units: " + time.unit
+//						+ ". Should be one of "
+//						+ GeneratorBase.timeUnitsToNs.keySet,
+//						Literals.TIME__UNIT)
+//			}
 	}
 	
 	@Check(FAST)

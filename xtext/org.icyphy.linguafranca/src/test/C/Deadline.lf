@@ -21,6 +21,7 @@ reactor Source(period:time(1 sec)) {
         (self->count)++;
     =}
 }
+
 reactor Destination(timeout:time(1 sec)) {
     input x:int;
     state count:int(0);

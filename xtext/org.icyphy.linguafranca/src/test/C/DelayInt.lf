@@ -12,6 +12,7 @@ reactor Delay(delay:time(100 msec)) {
         *payload = in;
         schedule(d, self->delay, payload);
     =}
+    
     reaction(d) -> out {=
         // This will pass the value, so the lf_malloc can be freed.
         if (d_has_payload) {

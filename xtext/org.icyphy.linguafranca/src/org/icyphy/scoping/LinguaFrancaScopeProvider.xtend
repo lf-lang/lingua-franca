@@ -8,9 +8,13 @@ import org.eclipse.xtext.naming.SimpleNameProvider
 import org.eclipse.xtext.scoping.Scopes
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
+import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Assignment
+import org.icyphy.linguaFranca.Instantiation
 
 /**
  * This class enforces custom rules. In particular, it resolves references to 
@@ -32,15 +36,27 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 		EFFECT,
 		DEADLINE,
 		CLEFT,
-		CRIGHT,
-		PARM
+		CRIGHT
 	}
 
 	override getScope(EObject context, EReference reference) {
 		switch (context) {
 			VarRef: return getScopeForVarRef(context, reference)
+			Assignment: return getScopeForAssignment(context, reference)
 		}
 		return super.getScope(context, reference);
+	}
+
+	protected def getScopeForAssignment(Assignment assignment, EReference reference) {
+		
+		val candidates = new ArrayList<EObject>()
+		if (reference.name === "lhs") {
+			return Scopes.scopeFor((assignment.eContainer as Instantiation).reactorClass.parameters)	
+		}
+		if (reference.name === "rhs") {
+			return Scopes.scopeFor((assignment.eContainer.eContainer as Reactor).parameters)
+		}
+		return Scopes.scopeFor(candidates)
 	}
 
 	protected def getScopeForVarRef(VarRef variable, EReference reference) {

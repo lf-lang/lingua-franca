@@ -18,6 +18,9 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.TimeUnit
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -38,8 +41,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         this.generator = generator
         
         // Instantiate parameters for this reactor instance.
-        for (parameter: definition.reactorClass.parameters) {
-            parameters.add(new ParameterInstance(parameter, this))
+		 for (parameter: definition.reactorClass.parameters) {
+		 	parameters.add(resolveParameter(parameter))
         }
         
         // Instantiate children for this reactor instance
@@ -208,6 +211,20 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     override String getName() {
         this.definition.name    
+    }
+    
+    /** Return the parameter instance within this reactor 
+     *  instance corresponding to the specified parameter definition.
+     *  @param parameter The parameter as an AST node.
+     *  @return The corresponding parameter instance or null if the
+     *   action does not belong to this reactor.
+     */
+    def getParameterInstance(Parameter parameter) {
+        for (paramInstance : parameters) {
+            if (paramInstance.definition === parameter) { // FIXME: this isn't working as expected. Do a string match?
+                return paramInstance
+            }
+        }
     }
 
     /** Given a reference to a port either belongs to this reactor
@@ -582,4 +599,54 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         result
     }
+    
+    def ParameterInstance resolveParameter(Parameter parameter) {
+		// Check for an override.
+		for (assignment : this.definition.parameters ?: emptyList) {
+			var rhs = assignment.rhs
+			if (assignment.lhs === parameter) {
+				// Parameter is overridden using a reference to another parameter.
+				if (rhs.parameter !== null) {
+					// Find the reactor that has the parameter that the assignment refers to.
+					var reactor = rhs.parameter.eContainer as Reactor
+					// Look the up the container of the parameter (in the instance hierarchy)
+					// to find the matching instance
+					var instance = this
+					var found = false
+					while (instance.parent !== null && !found) {
+						instance = instance.parent
+						if (instance.definition.reactorClass === reactor) {
+							found = true
+						}
+					}
+					if (!found) {
+						throw new InternalError("Incorrect reference to parameter :" + parameter.name);
+					}
+					var referencedParameter = instance.getParameterInstance(rhs.parameter)
+					if (referencedParameter instanceof TimeParameter) {
+						var timeParm = referencedParameter as TimeParameter
+						return new TimeParameter(parameter, parent, timeParm.value, timeParm.unit)
+					} else {
+						var valParm = referencedParameter as ValueParameter
+						return new ValueParameter(parameter, parent, valParm.value, valParm.type)
+					}
+				} else {
+					// Parameter is overridden by a type of value
+					if (parameter.isOfTimeType) {
+						return new TimeParameter(parameter, this, rhs.time, rhs.unit)
+					} else {
+						return new ValueParameter(parameter, this, rhs.value, parameter.type)
+					}
+				}
+			}
+		}
+        // If we reached here, the parameter was not overridden. Use its default value.
+       	if (parameter.isOfTimeType) {
+       		return new TimeParameter(parameter, this, parameter.time, parameter.unit)
+       	} else {
+       		return new ValueParameter(parameter, this, GeneratorBase.removeCodeDelimiter(parameter.value),
+				GeneratorBase.removeCodeDelimiter(parameter.type))
+       	}
+	}
+    
 }

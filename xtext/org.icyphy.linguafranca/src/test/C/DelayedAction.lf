@@ -8,6 +8,7 @@ main reactor DelayedAction {
     reaction(t) -> a {=
         schedule(a, MSEC(100), NULL);
     =}
+    
     reaction(a) {=
         interval_t elapsed = get_elapsed_logical_time();
         printf("Nanoseconds since start: %lld.\n", elapsed);

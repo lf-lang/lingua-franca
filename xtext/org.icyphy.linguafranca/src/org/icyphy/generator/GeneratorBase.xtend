@@ -8,8 +8,6 @@ package org.icyphy.generator
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
-import java.text.NumberFormat
-import java.text.ParseException
 import java.util.HashMap
 import java.util.Hashtable
 import org.eclipse.emf.common.util.URI
@@ -23,7 +21,9 @@ import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.TimeOrValue
+import org.icyphy.linguaFranca.TimeUnit
+import java.util.LinkedList
 
 /**
  * Generator base class for shared code between code generators.
@@ -43,19 +43,26 @@ class GeneratorBase {
     // to have a suffix like 'LL' or 'L' appended to it, depending on the
     // target language, to ensure that the result is a 64-bit long.
     static public var timeUnitsToNs = #{
-            'nsec' -> 1L,
-             'usec' -> 1000L,
-            'msec'->1000000L,
-            'sec'->1000000000L,
-            'secs'->1000000000L,
-            'minute'->60000000000L,
-            'minutes'->60000000000L,
-            'hour'->3600000000000L,
-            'hours'->3600000000000L,
-            'day'->86400000000000L,
-            'days'->86400000000000L,
-            'week'->604800000000000L, 
-            'weeks'->604800000000000L}
+            TimeUnit.NSEC->1L,
+            TimeUnit.NSECS->1L,
+            TimeUnit.USEC->1000L,
+            TimeUnit.USECS->1000L,
+            TimeUnit.MSEC->1000000L,
+            TimeUnit.MSECS->1000000L,
+            TimeUnit.SEC->1000000000L,
+            TimeUnit.SECS->1000000000L,
+            TimeUnit.SECOND->1000000000L,
+            TimeUnit.SECONDS->1000000000L,
+            TimeUnit.MIN->60000000000L,
+            TimeUnit.MINS->60000000000L,
+            TimeUnit.MINUTE->60000000000L, // FIXME: Why not have MIN? Why not have SECONDS? Etc...
+            TimeUnit.MINUTES->60000000000L,
+            TimeUnit.HOUR->3600000000000L,
+            TimeUnit.HOURS->3600000000000L,
+            TimeUnit.DAY->86400000000000L,
+            TimeUnit.DAYS->86400000000000L,
+            TimeUnit.WEEK->604800000000000L, 
+            TimeUnit.WEEKS->604800000000000L}
     
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -139,6 +146,27 @@ class GeneratorBase {
         }
     }
 
+	// FIXME: comments
+	def resolveTime(TimeOrValue timeOrValue, ReactorInstance instance) {
+		var timeLiteral = '0'
+		var unit = TimeUnit.NONE
+		if (timeOrValue !== null) {
+			if (timeOrValue.parameter !== null) {
+				var resolved = instance.resolveParameter(timeOrValue.parameter)
+				if (resolved === null) {
+					throw new InternalError("Incorrect reference to parameter :" + timeOrValue.parameter.name);
+				} else {
+					timeLiteral = resolved.literalValue
+					unit = TimeUnit.NONE
+				}
+			} else {
+				timeLiteral = timeOrValue.time.toString
+				unit = timeOrValue.unit
+			}
+		}
+		return timeInTargetLanguage(timeLiteral, unit)
+	}
+
     /** Given a representation of time that may possibly include units,
      *  return a string that the target language can recognize as a value.
      *  In this base class, if units are given, e.g. "msec", then
@@ -147,18 +175,16 @@ class GeneratorBase {
      *  to either define functions or macros for each possible time unit
      *  or override this method to return something acceptable to the
      *  target language.
-     *  @param time The time to convert.
+     *  @param time Literal that represents a time value.
+     *  @param unit Enum that denotes units
      *  @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
-    def timeInTargetLanguage(Time time) {
-        if (time === null || time.time === null) {
-            '0LL'
-        } else if (time.unit === null) {
-            // Assume the literal is correct.
-            time.time
-        } else {
-            time.unit.toUpperCase + '(' + time.time + ')'
-        }
+    def timeInTargetLanguage(String timeLiteral, TimeUnit unit) { // FIXME: make this static?
+    	if (unit != TimeUnit.NONE) {
+    		unit.name() + '(' + timeLiteral + ')'
+    	} else {
+    		timeLiteral
+    	}       
     }
     
     /** Return a string that the target language can recognize as a type
@@ -440,45 +466,32 @@ class GeneratorBase {
      *  @param time The source time.
      *  @param baseUnit The target unit.
      */
-    protected def unitAdjustment(Time time, String baseUnit) {
-        if (time === null || time.time === null) {
+    protected def unitAdjustment(TimeOrValue timeOrValue, TimeUnit baseUnit) { // FIXME: likelt needs revision
+        if (timeOrValue === null) {
             return '0'
         }
-        if (time.unit === null || baseUnit.equals(time.unit)) {
-            return time.time
+        var timeValue = timeOrValue.time
+        var timeUnit = timeOrValue.unit
+        
+        if (timeOrValue.parameter !== null) {
+        	timeUnit = timeOrValue.parameter.unit
+        	if (timeOrValue.parameter.unit != TimeUnit.NONE) {
+        		timeValue = timeOrValue.parameter.time
+        	} else {
+        		try {
+        			timeValue = Integer.parseInt(timeOrValue.parameter.value)
+        		} catch (NumberFormatException e) {
+        			reportError(timeOrValue, "Invalid time value: " + timeOrValue)
+        		}
+        	}
         }
-        try {
-            var nf = NumberFormat.getInstance();
-            // The following will try to return a Long, and if that fails, will return a Double.
-            var parsed = nf.parse(time.time)
-            var unitScale = timeUnitsToNs.get(time.unit)
-            if (unitScale === null) {
-                // Invalid unit specification.
-                return reportError(time, "Invalid unit '" + time.unit + "'. Should be one of: " + timeUnitsToNs.keySet)
-            }
-            var baseScale = timeUnitsToNs.get(baseUnit)
-            if (baseScale === null) {
-                // This is an error in the target code generator, not in the source code.
-                throw new Exception("Invalid target base unit: " + baseUnit + ". Should be one of: " + timeUnitsToNs.keySet)                
-            }
-            // Handle Double and Long separately.
-            if (parsed instanceof Long) {
-                // First convert the number to units of nanoseconds.
-                var numberInNs = parsed.longValue() * unitScale
-                // Then convert to baseUnits.
-                var result = numberInNs / baseScale
-                return result.toString()
-            } else {
-                // Assume its is a Double.
-                // First convert the number to units of nanoseconds.
-                var numberInNs = parsed.doubleValue() * unitScale
-                // Then convert to baseUnits.
-                var result = numberInNs / baseScale
-                return result.toString()
-            }
-        } catch (ParseException ex) {
-            return reportError(time, "Failed to parse number '" + time.time + "'. " + ex)
-        }
+        
+        if (timeUnit === TimeUnit.NONE || baseUnit.equals(timeUnit)) {
+        	return timeValue
+       	}
+        // Convert time to nanoseconds, then divide by base scale.
+        return ((timeValue * timeUnitsToNs.get(timeUnit)) / timeUnitsToNs.get(baseUnit)).toString
+        
     }
     
     ////////////////////////////////////////////////////
