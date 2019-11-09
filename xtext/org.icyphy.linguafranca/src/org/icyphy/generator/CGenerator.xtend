@@ -21,25 +21,24 @@ import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.FileLocator
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
-import org.eclipse.emf.ecore.EObject
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 
 /**
  * Generator for C target.
@@ -1077,22 +1076,10 @@ class CGenerator extends GeneratorBase {
 
         // Generate code to initialize the "self" struct in the
         // __initialize_trigger_objects function.
-        // Create a scope for the parameters in case the names collide with other instances.
-        //pr(initializeTriggerObjects, "{ // Scope for " + fullName)
         pr(initializeTriggerObjects, "//***** Start initializing " + fullName)
-        //indent(initializeTriggerObjects)
+
         // Start with parameters.
         for (parameter : instance.parameters) {
-            // In case the parameter value refers to a container parameter with the same name,
-            // we have to first store the value in a temporary variable, then in the
-            // parameter variable.
-            //var tmpVariableName = '__tmp' + tmpVariableCount++
-//            pr(initializeTriggerObjects,
-//                parameter.type + ' ' + tmpVariableName + ' = ' + parameter.literalValue + ';' // This is the only place where the value of the parameter instance is requested
-//            )
-//            pr(initializeTriggerObjects, // FIXME: not sure what is going on here
-//                parameter.type + ' ' + parameter.name + ' = ' +  parameter.literalValue + ';'
-//            )
             pr(initializeTriggerObjects,
                 nameOfSelfStruct + "." + parameter.name + " = " + parameter.literalValue + ";"
             )
@@ -1175,8 +1162,6 @@ class CGenerator extends GeneratorBase {
         for (child : instance.children) {
             generateReactorInstance(child)
         }
-//        unindent(initializeTriggerObjects)
-//        pr(initializeTriggerObjects, "} // End of scope for " + instance.fullName)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
