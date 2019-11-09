@@ -31,6 +31,7 @@ reactor Pass {
         set(y, x);
     =}
 }
+
 main reactor Determinism {
     s = new Source();
     d = new Destination();

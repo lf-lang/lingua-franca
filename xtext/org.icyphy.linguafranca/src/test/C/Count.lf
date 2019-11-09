@@ -1,4 +1,5 @@
 target C;
+
 reactor Count {
     output c:int;
     timer t(0, 1 sec);

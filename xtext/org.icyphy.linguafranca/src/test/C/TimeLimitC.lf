@@ -32,6 +32,7 @@ reactor Destination {
 		self->s++;
 	=}
 }
+
 main reactor Main(period:time(1 usec)) {
 	timer stop(10 secs);
 	reaction(stop) {=

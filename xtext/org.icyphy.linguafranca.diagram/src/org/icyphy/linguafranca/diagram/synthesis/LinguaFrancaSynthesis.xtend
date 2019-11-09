@@ -46,6 +46,7 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import org.icyphy.linguaFranca.TimeUnit
 
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
@@ -255,8 +256,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				//.addHeadArrowDecorator() // added by connect
 				lineStyle = LineStyle.DASH
 			]
-			if (!action?.delay.nullOrEmpty) {
-				addCenterEdgeLabel(action.delay).applyOnEdgeStyle()
+			if (action?.delay.unit == TimeUnit.NONE) {
+				addCenterEdgeLabel(action.delay.value).applyOnEdgeStyle()
 			}
 		]
 	}
@@ -388,10 +389,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		if (timer.timing !== null) {
 			val timing = newArrayList
 			if (timer.timing.offset !== null) {
-				timing += timer.timing.offset.time + timer.timing.offset.unit
+				timing += timer.timing.offset.time + timer.timing.offset.unit.name()
 			}
 			if (timer.timing.period !== null) {
-				timing += timer.timing.period.time + timer.timing.period.unit
+				timing += timer.timing.period.time + timer.timing.period.unit.name()
 			}
 			if (!timing.empty) {
 				node.addOutsideBottomCenteredNodeLabel(timing.join("(", ", ", ")")[it])

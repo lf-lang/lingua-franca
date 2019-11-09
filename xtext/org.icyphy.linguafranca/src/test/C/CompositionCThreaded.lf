@@ -4,6 +4,7 @@ target C(
 	threads = 1,
 	run = "bin/CompositionC -fast -timeout 10 sec"
 );
+
 reactor Source(period:time(2 sec)) {
 	output y:int;
 	timer t(1 sec, period);
@@ -25,6 +26,7 @@ reactor Test {
 		}
 	=}
 }
+
 main reactor CompositionCThreaded {
 	s = new Source();
 	d = new Test();

@@ -8,6 +8,7 @@ reactor Source {
         set(out, 1);
     =}
 }
+
 reactor Gain {
     input in:int;
     output out:int;
@@ -16,6 +17,7 @@ reactor Gain {
         set(out, in * 2);
     =}
 }
+
 main reactor DanglingOutput {
     source = new Source();
     container = new Gain();

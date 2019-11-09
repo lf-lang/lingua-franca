@@ -3,47 +3,33 @@
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
-import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.TimeUnit
 
 /** Representation of a runtime instance of a port.
  */
-class ParameterInstance extends NamedInstance<Param> {
+abstract class ParameterInstance extends NamedInstance<Parameter> {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent.
      */
-    new(Param definition, ReactorInstance parent) {
+    new(Parameter definition, ReactorInstance parent) {
         super(definition, parent)
         
         if (parent === null) {
             throw new Exception('Cannot create a ParameterInstance with no parent.')
-        }
-        
-        type = GeneratorBase.removeCodeDelimiter(definition.type)
-        if (type.equals("time")) {
-            type = parent.generator.timeTypeInTargetLanguage()
         }
     }
 
     /////////////////////////////////////////////
     //// Public Fields
     
-    /** The type of the parameter, stripped of the code delimiters
-     *  {= ... =} if they were provided.
-     */
+//    /** The type of the parameter, stripped of the code delimiters
+//     *  {= ... =} if they were provided.
+//     */
     public var type = "UNTYPED"
-    
-    /** The value of the parameter. This defaults to the value given
-     *  in the reactor class definition, but if the parameter is
-     *  overridden in instantiation, then that value is returned.
-     *  In both cases, the value is stripped of the code delimiters
-     *  {= ... =} if they were provided.
-     */
-    var value = null as String
-
     /////////////////////////////////////////////
     //// Public Methods
 
@@ -54,39 +40,8 @@ class ParameterInstance extends NamedInstance<Param> {
         this.definition.name
     }
 
-    /** Get the value of the parameter, stripped of the code delimiters
-     *  {= ... =} if they were provided.
-     */
-    def getValue() {
-        // If value has been previously determined, just return it.
-        if (value !== null) {
-            value
-        } else {
-            // Check for an override.
-            if (parent.definition.parameters !== null) {
-                for (assignment : parent.definition.parameters.assignments ?: emptyList) {
-                    if (assignment.name == this.name) {
-                        // Parameter is overridden.
-                        var value = assignment.value;
-                        if (assignment.unit !== null) {
-                            var time = LinguaFrancaFactory.eINSTANCE.createTime()
-                            time.setTime(value)
-                            time.setUnit(assignment.unit)
-                            value = parent.generator.timeInTargetLanguage(time)
-                        }
-                        return GeneratorBase.removeCodeDelimiter(value)
-                    }
-                }
-            }
-            // If we get here, then the parameter is not overridden.
-            var value = definition.value
-            if (definition.time !== null) {
-                value = parent.generator.timeInTargetLanguage(definition.time)
-            }
-            GeneratorBase.removeCodeDelimiter(value)
-        }
-    }
-
+	abstract def String getLiteralValue();
+	
     /** Return the main reactor, which is the top-level parent.
      *  @return The top-level parent.
      */
@@ -98,4 +53,45 @@ class ParameterInstance extends NamedInstance<Param> {
     override toString() {
         "ParameterInstance " + getFullName
     }
+}
+
+class ValueParameter extends ParameterInstance {
+	new(Parameter definition, ReactorInstance parent, String value, String type) {
+		super(definition, parent)
+		this.type = type
+		this.value = value
+	}
+	//    /** The value of the parameter. This defaults to the value given
+//     *  in the reactor class definition, but if the parameter is
+//     *  overridden in instantiation, then that value is returned.
+//     *  In both cases, the value is stripped of the code delimiters
+//     *  {= ... =} if they were provided.
+//     */
+	public var value = ""
+	
+	override getLiteralValue() {
+		return this.value
+	}
+}
+
+class TimeParameter extends ParameterInstance {
+	new(Parameter definition, ReactorInstance parent, int value, TimeUnit unit) {
+		super(definition, parent)
+		this.value = value
+		this.unit = unit
+		this.type = parent.generator.timeTypeInTargetLanguage()
+	}
+	//    /** The value of the parameter. This defaults to the value given
+//     *  in the reactor class definition, but if the parameter is
+//     *  overridden in instantiation, then that value is returned.
+//     *  In both cases, the value is stripped of the code delimiters
+//     *  {= ... =} if they were provided.
+//     */
+	public var value = 0
+	
+	public var unit = TimeUnit.NONE
+	
+	override getLiteralValue() {
+		return parent.generator.timeInTargetLanguage(this.value.toString, this.unit)
+	}
 }
