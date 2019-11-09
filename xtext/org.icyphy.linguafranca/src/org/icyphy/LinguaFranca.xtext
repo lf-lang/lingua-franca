@@ -6,8 +6,6 @@ grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
 
 generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 
-import "http://www.eclipse.org/emf/2002/Ecore" as ecore
-
 /////////// Overall file
 Model:
 	target=Target 
@@ -65,7 +63,7 @@ Reaction:
 	(localDeadline=LocalDeadline)?;
 
 LocalDeadline:
-    'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE; // FIXME: rename time to interval
+    'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE;
     
 Mutation:
 	('mutation')
@@ -111,9 +109,6 @@ Effect:
 
 VarRef: variable=[Variable] | container=[Instantiation] '.' variable=[Variable];
 
-//Assignments:
-	//assignments+=Assignment (',' assignments+=Assignment)*; // FIXME: factor this out 
-
 Assignment:
 	(lhs=[Parameter] '=' rhs=TimeOrValue);
 	
@@ -137,9 +132,6 @@ Timing:
 // a number followed by a unit specification (unless the value is zero). 
 // If it is a constant, the validator should check that if the value
 // is non-zero, it is accompanied by a unit.
-//TimeOrValue:
-//    (parameter=[Parameter] | value=Literal | (time=INT unit=TimeUnit)); // Backtracking is disabled by default. We probably don't want to do backtracking. We need backtracking, or else this won't work.
-
 TimeOrValue:
     (parameter=[Parameter] | value=Literal | (time=INT unit=TimeUnit));
     

@@ -13,14 +13,13 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.TimeUnit
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -40,7 +39,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         super(definition, parent)
         this.generator = generator
         
-        // Instantiate parameters for this reactor instance.
+        // Apply overrides and instantiate parameters for this reactor instance.
 		 for (parameter: definition.reactorClass.parameters) {
 		 	parameters.add(resolveParameter(parameter))
         }
