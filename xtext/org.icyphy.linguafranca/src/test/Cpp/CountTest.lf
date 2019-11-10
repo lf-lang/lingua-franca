@@ -1,0 +1,23 @@
+target Cpp (
+    run = "bin/CountTest -timeout 3 sec -fast"
+);
+import Count.lf;
+reactor Test {
+    preamble {=
+        #include <iostream>
+    =}
+    input c:int;
+    state i:int(0);
+    reaction(c) {=
+        i++;
+        if (*c.get() != i) {
+            std::cerr << "ERROR: Expected " << i << " but got " << *c.get() << std::endl;
+            exit(1);
+        }
+    =}
+}
+main reactor CountTest {
+    count = new Count();
+    test = new Test();
+    count.c -> test.c;
+}

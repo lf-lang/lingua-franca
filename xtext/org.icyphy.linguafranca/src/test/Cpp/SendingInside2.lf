@@ -1,0 +1,17 @@
+target Cpp;
+reactor Printer {
+    preamble {=
+        #include <iostream>
+    =}
+    input x:int;
+    reaction(x) {=
+        std::cout << "Inside reactor received: " << *x.get() << std::endl;
+    =}
+}
+main reactor Main {
+    timer t;
+    p = new Printer();
+    reaction(t) -> p.x {=
+        p.x.set(1);
+    =}
+}
