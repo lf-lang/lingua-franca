@@ -6,15 +6,14 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.xtext.naming.SimpleNameProvider
 import org.eclipse.xtext.scoping.Scopes
+import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
-import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Assignment
-import org.icyphy.linguaFranca.Instantiation
 
 /**
  * This class enforces custom rules. In particular, it resolves references to 
@@ -50,17 +49,18 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 	protected def getScopeForAssignment(Assignment assignment, EReference reference) {
 		
 		val candidates = new ArrayList<EObject>()
-		if (reference.name === "lhs") {
+		if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__LHS) {
 			return Scopes.scopeFor((assignment.eContainer as Instantiation).reactorClass.parameters)	
 		}
-		if (reference.name === "rhs") {
+		if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__RHS) {
 			return Scopes.scopeFor((assignment.eContainer.eContainer as Reactor).parameters)
 		}
 		return Scopes.scopeFor(candidates)
 	}
 
 	protected def getScopeForVarRef(VarRef variable, EReference reference) {
-		if (reference.name.equals("variable")) { // Resolve hierarchical reference
+		if (reference == LinguaFrancaPackage.Literals.VAR_REF__VARIABLE) {
+			// Resolve hierarchical reference
 			val candidates = new ArrayList<EObject>()
 			var type = RefType.NULL
 			var Reactor reactor = null
