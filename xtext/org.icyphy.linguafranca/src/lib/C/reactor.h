@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2019, Industrial Cyberphysical Systems (iCyPhy). 
+ * Copyright (c) 2019, Industrial Cyberphysical Systems Center (iCyPhy)
+ * University of California at Berkeley
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,41 +102,41 @@ typedef struct trigger_t trigger_t;
 /** Reaction activation record to push onto the reaction queue. */
 typedef struct reaction_t reaction_t;
 struct reaction_t {
-  reaction_function_t function;
-  void* self;    // Pointer to a struct with the reactor's state.
-  index_t index; // Inverse priority determined by dependency analysis.
-  size_t pos;    // Current position in the priority queue.
-  int num_outputs;  // Number of outputs that may possibly be produced by this function.
-  bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced.
-  int* triggered_sizes;     // Pointer to array of ints with number of triggers per output.
-  trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output.
-  bool running;             // Indicator that this reaction has already started executing.
-  interval_t local_deadline;// Local deadline relative to the time stamp for invocation of the reaction.
-  reaction_function_t deadline_violation_handler; // Local deadline violation handler.
-  // NOTE: The next three items are for deadlines set in the container. These may go away.
-  interval_t deadline;      // Container deadline relative to the time stamp for invocation of the reaction.
-  trigger_t* deadline_violation; // Trigger to fire in the event of a container deadline violation.
-  time_t violation_handled; // The time at which the most recent deadline violation has been handled
-                            // (to prevent it from being handled again).
+    reaction_function_t function;
+    void* self;    // Pointer to a struct with the reactor's state.
+    index_t index; // Inverse priority determined by dependency analysis.
+    size_t pos;    // Current position in the priority queue.
+    int num_outputs;  // Number of outputs that may possibly be produced by this function.
+    bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced.
+    int* triggered_sizes;     // Pointer to array of ints with number of triggers per output.
+    trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output.
+    bool running;             // Indicator that this reaction has already started executing.
+    interval_t local_deadline;// Local deadline relative to the time stamp for invocation of the reaction.
+    reaction_function_t deadline_violation_handler; // Local deadline violation handler.
+    // NOTE: The next three items are for deadlines set in the container. These may go away.
+    interval_t deadline;      // Container deadline relative to the time stamp for invocation of the reaction.
+    trigger_t* deadline_violation; // Trigger to fire in the event of a container deadline violation.
+    time_t violation_handled; // The time at which the most recent deadline violation has been handled
+                              // (to prevent it from being handled again).
 };
 
 /** Reaction activation record to push onto the reaction queue. */
 struct trigger_t {
-	reaction_t** reactions;   // Reactions sensitive to this trigger.
-	int number_of_reactions;  // Number of reactions sensitive to this trigger.
+    reaction_t** reactions;   // Reactions sensitive to this trigger.
+    int number_of_reactions;  // Number of reactions sensitive to this trigger.
 	interval_t offset;        // For an action, this will be a minimum delay.
 	interval_t period;        // For periodic timers (not for actions).
-  void* payload;            // Pointer to malloc'd payload (or NULL).
-  bool is_physical;         // Indicator that this denotes a physical action 
-                            // (i.e., to be scheduled relative to physical time)
+    void* value;              // Pointer to malloc'd value (or NULL).
+    bool is_physical;         // Indicator that this denotes a physical action 
+                              // (i.e., to be scheduled relative to physical time)
 };
 
 /** Event activation record to push onto the event queue. */
 typedef struct event_t {
-  instant_t time;     // Time of release.
-  trigger_t* trigger; // Associated trigger.
-  size_t pos;         // Position in the priority queue.
-  void* payload;      // Pointer to malloc'd payload (or NULL).
+    instant_t time;     // Time of release.
+    trigger_t* trigger; // Associated trigger.
+    size_t pos;         // Position in the priority queue.
+    void* value;      // Pointer to malloc'd value (or NULL).
 } event_t;
 
 //  ======== Function Declarations ========  //
@@ -183,14 +184,22 @@ void __initialize_trigger_objects();
  * __start_timers() function. 
  * @param trigger The action or timer to be triggered.
  * @param delay Offset of the event release.
- * @param payload The malloc'd payload.
+ * @param value The malloc'd value.
  */
-handle_t __schedule(trigger_t* trigger, interval_t delay, void* payload);
+handle_t __schedule(trigger_t* trigger, interval_t delay, void* value);
 
 /**
  * Function (to be code generated) to start timers.
  */
 void __start_timers();
+
+/**
+ * Function (to be code generated) to wrap up execution.
+ * If this returns true, then one more invocation of next()
+ * be executed in order to invoke reactions that are triggered
+ * by shutdown.
+ */
+bool __wrapup();
 
 /** Global constants. */
 bool False;
@@ -203,12 +212,12 @@ int number_of_threads;
  * External version of schedule, callable from within reactors.
  * @param trigger The action or timer to be triggered.
  * @param delay Extra offset of the event release.
- * @param payload The malloc'd payload.
+ * @param value The malloc'd value.
 */
-handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload);
+handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value);
 
 /**
- * Specialized version of malloc used by Lingua Franca for action payloads
+ * Specialized version of malloc used by Lingua Franca for action values
  * and messages contained in dynamically allocated memory.
  * @param size The size of the memory block to allocate.
  * @return A pointer to the allocated memory block.

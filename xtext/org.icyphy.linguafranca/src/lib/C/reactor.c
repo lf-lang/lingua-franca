@@ -8,7 +8,7 @@
 // offset declared in the trigger plus the extra_delay.
 // If the offset of the trigger and the extra_delay are both zero,
 // then schedule the trigger to occur one microstep later in superdense time.
-// The payload is required to be a pointer returned by malloc
+// The value is required to be a pointer returned by malloc
 // because it will be freed after having been delivered to
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
@@ -16,8 +16,8 @@
 // asynchronous calls to this function should not be made. The calls
 // should only be made within reactions.
 // If you need asynchronous calls, then use reactor_threaded.c.
-handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* payload) {
-    return __schedule(trigger, trigger->offset + extra_delay, payload);
+handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
+    return __schedule(trigger, trigger->offset + extra_delay, value);
 }
 
 // Advance logical time to the lesser of the specified time or the
@@ -150,19 +150,19 @@ int next() {
             // Reschedule the trigger.
             // Note that the delay here may be negative because the __schedule
             // function will add the trigger->offset, which we don't want at this point.
-            // NULL argument indicates that there is no payload.
+            // NULL argument indicates that there is no value.
             __schedule(event->trigger, event->trigger->period - event->trigger->offset, NULL);
         }
-        // Copy the payload pointer into the trigger struct so that the
+        // Copy the value pointer into the trigger struct so that the
         // reactions can access it.
-        event->trigger->payload = event->payload;
+        event->trigger->value = event->value;
         
-        // If the payload is non-null, record the event to free the payload
+        // If the value is non-null, record the event to free the value
         // at the end of the current logical time. Otherwise, recycle the event.
         // In either case, so that sorting doesn't cost anything,
         // give all recycled events the same zero time stamp.
         event->time = 0LL;
-        if (event->payload == NULL) {
+        if (event->value == NULL) {
        		pqueue_insert(recycle_q, event);
        	} else {
        		pqueue_insert(free_q, event);
@@ -244,16 +244,16 @@ int next() {
             schedule_output_reactions(reaction);
         }
     }
-    // Free any payloads that need to be freed and recycle the event
+    // Free any values that need to be freed and recycle the event
     // carrying them.
     event_t* free_event = pqueue_pop(free_q);
     while (free_event != NULL) {
-        if (free_event->payload != NULL) {
-    	    free(free_event->payload);
+        if (free_event->value != NULL) {
+    	    free(free_event->value);
     	}
     	if (free_event->trigger != NULL) {
     	    // Make sure the trigger is not pointing to freed memory.
-    	    free_event->trigger->payload = NULL;
+    	    free_event->trigger->value = NULL;
     	}
     	pqueue_insert(recycle_q, free_event);
     	free_event = pqueue_pop(free_q);
@@ -268,6 +268,12 @@ int next() {
 
 // Print elapsed logical and physical times.
 void wrapup() {
+    // Invoke any code generated wrapup. If this returns true,
+    // then actions have been scheduled at the next microstep.
+    // Invoke next() one more time to react to those actions.
+    if (__wrapup()) {
+        next();
+    }
     interval_t elapsed_logical_time
         = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
     printf("Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);

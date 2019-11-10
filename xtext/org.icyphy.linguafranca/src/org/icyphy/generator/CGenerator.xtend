@@ -57,7 +57,10 @@ class CGenerator extends GeneratorBase {
     var initializeTriggerObjects = new StringBuilder()
 
     // List of deferred assignments to perform in initialize_trigger_objects.
-    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>();
+    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
+    
+    // Place to collect shutdown action instances.
+    var shutdownActionInstances = new LinkedList<ActionInstance>()
 
     // Place to collect code to execute at the start of a time step.
     var startTimeStep = new StringBuilder()
@@ -171,6 +174,21 @@ class CGenerator extends GeneratorBase {
             pr('void __start_time_step() {\n')
             indent()
             pr(startTimeStep.toString)
+            unindent()
+            pr('}\n')
+            
+            // Generate function to schedule shutdown actions if any
+            // reactors have reactions to shutdown.
+            pr('bool __wrapup() {\n')
+            indent()
+            for (instance : shutdownActionInstances) {
+                pr('schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
+            }
+            if (shutdownActionInstances.length === 0) {
+                pr('return false;')
+            } else {
+                pr('return true;')
+            }
             unindent()
             pr('}\n')
         }
@@ -490,17 +508,17 @@ class CGenerator extends GeneratorBase {
                             "trigger_t* " + trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
                         );
                         actionsAsTriggers.add(trigger.variable as Action);
-                        // If the action has a type, create variables for accessing the payload.
+                        // If the action has a type, create variables for accessing the value.
                         val type = (trigger.variable as Action).type
-                        val payloadPointer = trigger.variable.name + '->payload'
-                        // Create the _has_payload variable.
-                        pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_payload = (' + payloadPointer + ' != NULL);')
-                        // Create the _payload variable if there is a type.
+                        val valuePointer = trigger.variable.name + '->value'
+                        // Create the _has_value variable.
+                        pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_value = (' + valuePointer + ' != NULL);')
+                        // Create the _value variable if there is a type.
                         if (type !== null) {
                             // Create the value variable, but initialize it only if the pointer is not null.
-                            pr(reactionInitialization, type + ' ' + trigger.variable.name + '_payload;')
-                            pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_payload) '
-                                + trigger.variable.name + '_payload = *(' + '(' + type + '*)' + payloadPointer + ');'
+                            pr(reactionInitialization, type + ' ' + trigger.variable.name + '_value;')
+                            pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_value) '
+                                + trigger.variable.name + '_value = *(' + '(' + type + '*)' + valuePointer + ');'
                             );
                         }
                     } else if (trigger.variable instanceof Output) {
@@ -596,7 +614,7 @@ class CGenerator extends GeneratorBase {
             var presentPredicates = new LinkedList<String>()
             var triggeredSizesContents = new LinkedList<String>()
             var triggersContents = new LinkedList<String>()
-            var destinations = null as Collection<PortInstance>
+            var Collection<PortInstance> destinations = null 
 
             // Generate entries for the reaction_t struct that specify how
             // to handle outputs.
@@ -803,7 +821,7 @@ class CGenerator extends GeneratorBase {
                 // Figure out how many inputs are connected to the output.
                 // This is obtained via the container.
                 var parent = reactorInstance.parent
-                var destinations = null as Collection<PortInstance>
+                var Collection<PortInstance> destinations = null
                 if (parent !== null) {
                     destinations = parent.transitiveClosure(output)
                 } else {
@@ -965,13 +983,20 @@ class CGenerator extends GeneratorBase {
 	                	delay = (trigger as Action).delay.value // FIXME: revise this
 	                }
                 }
-               	if ((trigger as Action).origin == ActionOrigin.LOGICAL) {
-	                    isPhysical = "false";
-	                }
-	                pr(result,
-	                    triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' +
-	                        delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
-	                )
+
+                if ((trigger as Action).origin == ActionOrigin.LOGICAL) {
+                    isPhysical = "false";
+                }
+                pr(result,
+                    triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' +
+                        delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
+                )
+                // If this is a shutdown action, add it to the list of shutdown actions.
+                // FIXME: Is there a better way to check than name matching here?
+                if (trigger.name.equals("shutdown")) {
+                    shutdownActionInstances.add(triggerInstance as ActionInstance)
+                }
+
             } else {
                 reportError(reactorInstance.definition, "Internal error: Seems to not be an input, timer, or action: "
                     + trigger.name
@@ -1432,10 +1457,11 @@ class CGenerator extends GeneratorBase {
 
     // Print the #line compiler directive with the line number of
     // the most recently used node.
-    private def prSourceLineNumber(EObject reaction) {
-        var node = NodeModelUtils.getNode(reaction)
-        pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
-
+    private def prSourceLineNumber(EObject eObject) {
+        var node = NodeModelUtils.getNode(eObject)
+        if (node !== null) {
+            pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
+        }
     }
 
     // Set inputs _is_present variables to the default to point to False.

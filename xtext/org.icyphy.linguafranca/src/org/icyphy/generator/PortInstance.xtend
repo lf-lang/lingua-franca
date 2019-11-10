@@ -3,7 +3,6 @@
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
-import java.util.HashMap
 import java.util.HashSet
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
@@ -35,11 +34,6 @@ class PortInstance extends TriggerInstance<Variable> {
         
     /** Port that sends messages to this port, if there is one. */
     public PortInstance dependsOnPort = null;
-    
-    /** Properties associated with this instance.
-     *  This may be used by particular code generators.
-     */
-    public var HashMap<String,Object> properties = new HashMap<String,Object>()
     
     /////////////////////////////////////////////
     //// Public Methods

@@ -162,6 +162,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     
     /** List of reaction instances for this reactor instance. */
     public var reactions = new LinkedList<ReactionInstance>();
+    
+    /** If non-null, then this reactor has a shutdown action that
+     *  needs to be scheduled prior to shutting down the program.
+     */
+    public var ActionInstance shutdownActionInstance = null 
 
     /** The timer instances belonging to this reactor instance. */
     public var timers = new LinkedList<TimerInstance>
@@ -285,7 +290,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def lookupLocalPort(Port port) {
         // Search one of the inputs and outputs sets.
-        var ports = null as LinkedList<PortInstance>
+        var LinkedList<PortInstance> ports = null 
         if (port instanceof Input) {
             ports = this.inputs
         } else if (port instanceof Output) {
@@ -476,7 +481,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (this.definition.reactorClass.reactions !== null) {
             var ReactionInstance previousReaction = null
             var count = 0
+            
             for (Reaction reaction : reactions) {
+                
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this, count++)
                 // If there is an earlier reaction in this same reactor, then
@@ -516,15 +523,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                             port.dependentReactions.add(reactionInstance)
                             reactionInstance.dependsOnPorts.add(port)
                         } else if (variable instanceof Action) {
-                            var action = this.getActionInstance(variable)
-                            triggers.add(action)
-                            action.dependentReactions.add(reactionInstance)
-                            reactionInstance.dependsOnActions.add(action)
+                            var actionInstance = this.getActionInstance(variable)
+                            triggers.add(actionInstance)
+                            actionInstance.dependentReactions.add(reactionInstance)
+                            reactionInstance.dependsOnActions.add(actionInstance)
                         } else if (variable instanceof Timer) {
-                            var timer = this.getTimerInstance(variable)
-                            triggers.add(timer)
-                            timer.dependentReactions.add(reactionInstance)
-                            reactionInstance.dependsOnTimers.add(timer)
+                            var timerInstance = this.getTimerInstance(variable)
+                            triggers.add(timerInstance)
+                            timerInstance.dependentReactions.add(reactionInstance)
+                            reactionInstance.dependsOnTimers.add(timerInstance)
                         }
                     }
                 }

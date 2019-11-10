@@ -63,7 +63,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 		if (reference.name.equals("variable")) { // Resolve hierarchical reference
 			val candidates = new ArrayList<EObject>()
 			var type = RefType.NULL
-			var reactor = null as Reactor
+			var Reactor reactor = null
 			
 			if (variable.eContainer.eContainer instanceof Reactor) {
 				reactor = variable.eContainer.eContainer as Reactor	
