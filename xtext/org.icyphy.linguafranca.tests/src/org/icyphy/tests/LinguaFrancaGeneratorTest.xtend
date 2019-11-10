@@ -186,8 +186,8 @@ class LinguaFrancaGeneratorTest {
        	var runCommand = newArrayList("bin/" + outputFile, "-timeout", "10", "secs")
        	var runCommandOverridden = false;
        	var threads = ""
-   		if (parsed.target.parameters !== null) {
-   			for (parameter: parsed.target.parameters.assignments) {
+   		if (parsed.target.properties !== null) {
+   			for (parameter: parsed.target.properties) {
    				if (parameter.name.equals("run")) {
     				// Strip off enclosing quotation marks and split at spaces.
    					val command = parameter.value.substring(1, parameter.value.length - 1).split(' ')
