@@ -1,0 +1,19 @@
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target Cpp;
+reactor ImportedAgain {
+    preamble {=
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    input x:int;
+    reaction(x) {=
+        auto value = *x.get();
+        if (value != 42) {
+            std::cerr << "ERROR: Expected input to be 42. Got: " << value << std::endl;
+            exit(1);
+        } else {
+            std::cout << "Received " << value << std::endl;
+        }
+    =}
+}
