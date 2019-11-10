@@ -1080,6 +1080,8 @@ class CGenerator extends GeneratorBase {
 
         // Start with parameters.
         for (parameter : instance.parameters) {
+        	// FIXME: we now use the resolved literal value. For better efficiency, we could
+        	// store constants in a global array and refer to its elements to avoid duplicates
             pr(initializeTriggerObjects,
                 nameOfSelfStruct + "." + parameter.name + " = " + parameter.literalValue + ";"
             )

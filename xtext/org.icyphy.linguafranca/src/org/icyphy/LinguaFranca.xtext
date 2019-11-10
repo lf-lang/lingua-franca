@@ -80,9 +80,8 @@ Initialization: // FIXME: startup/shutdown
 
 Preamble:
 	'preamble' code=CODE;
-	
-// NOTE: Insert dummy object for foreign imports in scope provider?
-Instantiation:                             //  ('(' parameters+=Parameter  (',' parameters+=Parameter)* ')')?
+
+Instantiation:
 	name=ID '=' 'new' reactorClass=[Reactor] '(' (parameters+=Assignment (',' parameters+=Assignment)*)? ')' ';' ;
 
 Connection:
