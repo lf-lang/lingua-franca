@@ -599,6 +599,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         result
     }
     
+    /** Return a parameter instance given a parameter definition.
+     *  FIXME: ....
+     * @param parameter AST node that describes the parameter
+     */
     def ParameterInstance resolveParameter(Parameter parameter) {
 		// Check for an override.
 		for (assignment : this.definition.parameters ?: emptyList) {
@@ -630,7 +634,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 						return new ValueParameter(parameter, parent, valParm.value, valParm.type)
 					}
 				} else {
-					// Parameter is overridden by a type of value
+					// Parameter is overridden by a type or value 
 					if (parameter.isOfTimeType) {
 						return new TimeParameter(parameter, this, rhs.time, rhs.unit)
 					} else {
@@ -647,5 +651,4 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 				GeneratorBase.removeCodeDelimiter(parameter.type))
        	}
 	}
-    
 }

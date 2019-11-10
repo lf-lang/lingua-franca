@@ -84,26 +84,26 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
 	@Check(FAST)
 	def checkAssignment(Assignment assignment) {
-//		if (assignment.rhs.unit != TimeUnit.NONE
-//				&& GeneratorBase.timeUnitsToNs.get(assignment.rhs.unit) === null) {
-//			error("Invalid time units: " + assignment.rhs.unit
-//					+ ". Should be one of "
-//					+ GeneratorBase.timeUnitsToNs.keySet,
-//					Literals.ASSIGNMENT__RHS)
-//		}
+		// If the left-hand side is a time parameter, make sure the assignment has units
+		if (assignment.lhs.isOfTimeType) {
+			if (assignment.rhs.parameter === null) {
+				// This is a value. Check that units are present
+				if (assignment.rhs.unit == TimeUnit.NONE) {
+					error("Invalid time units: " + assignment.rhs.unit
+					+ ". Should be one of "
+					+ TimeUnit.VALUES.filter[it != TimeUnit.NONE],
+					Literals.ASSIGNMENT__RHS)						
+				}
+			} else {
+				// This is a reference to another parameter.
+				// Check that types match.
+				if (!assignment.rhs.parameter.isOfTimeType) {
+					error("Cannot assign parameter: " + assignment.rhs.parameter.name + " to " + assignment.lhs.name +
+						". The latter is a time parameter, but the former is not.", Literals.ASSIGNMENT__RHS)
+				}
+			}
+		}
 	}
-
-//	@Check(FAST)
-//	def checkGets(Uses uses) {
-//		for (get: uses.uses) {
-//			if (!inputs.contains(get)) {
-//					error("Reaction declares that it reads something that is not an input: "
-//					+ get,
-//					Literals.USES__USES
-//				)
-//			}
-//		}
-//	}
 
 	@Check(FAST)
 	def checkInput(Input input) {
@@ -171,19 +171,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
 	@Check(FAST)
 	def checkTime(TimeOrValue timeOrValue) {
-		if (timeOrValue.value === null && timeOrValue.unit == TimeUnit.NONE) {
-			// No time unit is given.
-			if (!timeOrValue.time.equals(0)) {
-				error("Missing time units. Should be one of " + GeneratorBase.timeUnitsToNs.keySet,
-					Literals.TIME_OR_VALUE__VALUE)
+		// Only parameter assignments are allowed to be target types.
+		// Time parameters can go without units only if they are 0.
+		if (!(timeOrValue.eContainer instanceof Assignment) && timeOrValue.time != 0) {
+			if (timeOrValue.unit == TimeUnit.NONE) {
+				error("Missing time units. Should be one of " + TimeUnit.VALUES.filter[it != TimeUnit.NONE],
+					Literals.TIME_OR_VALUE__UNIT)
 			}
 		}
-//			else if (GeneratorBase.timeUnitsToNs.get(time.unit) === null) {
-//				error("Invalid time units: " + time.unit
-//						+ ". Should be one of "
-//						+ GeneratorBase.timeUnitsToNs.keySet,
-//						Literals.TIME__UNIT)
-//			}
 	}
 	
 	@Check(FAST)
