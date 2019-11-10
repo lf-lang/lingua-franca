@@ -20,7 +20,6 @@ import java.nio.file.Paths
 import org.icyphy.linguaFranca.Reactor
 import java.text.SimpleDateFormat
 import java.util.Date
-import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Import
@@ -29,16 +28,27 @@ import org.icyphy.linguaFranca.State
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import java.util.List
-import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.TimeOrValue
 
 class CppGenerator extends GeneratorBase {
-	static public var timeUnitsToEnactorUnits = #{'nsec' -> '_ns', 'usec' -> '_us', 'msec' -> '_ms', 'sec' -> '_s',
-		'secs' -> '_s', 'minute' -> '_min', 'minutes' -> '_min', 'hour' -> '_h', 'hours' -> '_h', 'day' -> '_d',
-		'days' -> '_d', 'week' -> '_weeks', 'weeks' -> '_weeks'}
+
+	static public var timeUnitsToEnactorUnits = #{
+		TimeUnit.NSEC -> '_ns', TimeUnit.NSECS -> '_ns', 
+		TimeUnit.USEC -> '_us', TimeUnit.USECS -> '_us',
+		TimeUnit.MSEC -> '_ms', TimeUnit.MSECS -> '_ms',
+		TimeUnit.SEC -> '_secs', TimeUnit.SECS -> '_secs',
+		TimeUnit.MIN -> '_min', TimeUnit.MINS -> '_min',
+		TimeUnit.HOUR -> '_h', TimeUnit.HOURS -> '_h',
+		TimeUnit.DAY -> '_d', TimeUnit.DAYS -> '_d',
+		TimeUnit.WEEK -> '_weeks', TimeUnit.WEEKS -> '_weeks'
+	}
 
 	private def validateTarget(Resource resource) {
 		var targetOK = false
@@ -203,8 +213,8 @@ class CppGenerator extends GeneratorBase {
 		target
 	}
 
-	def getParam(Target t, String s) {
-		for (p : t.parameters.assignments) {
+	def getProperty(Target t, String s) {
+		for (p : t.properties) {
 			if (p.name == s) {
 				return p.value
 			}
@@ -212,8 +222,8 @@ class CppGenerator extends GeneratorBase {
 		null
 	}
 
-	def hasParam(Target t, String s) {
-		for (p : t.parameters.assignments) {
+	def hasProperty(Target t, String s) {
+		for (p : t.properties) {
 			if (p.name == s) {
 				return true
 			}
@@ -266,7 +276,7 @@ class CppGenerator extends GeneratorBase {
 
 	def declareActions(Reactor r) '''
 		«FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
-			«IF a.modifier.literal == 'logical'»
+			«IF a.origin == ActionOrigin.LOGICAL»
 				enactor::LogicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
 			«ELSE»
 				enactor::PhysicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
@@ -370,8 +380,8 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
-	def trimmedType(Param p) {
-		val const = p.const ? "const " : ""
+	def trimmedType(Parameter p) {
+		val const = "const " // All parameters must be constants
 		if (p.type !== null) {
 			if (p.type == "time") {
 				'''«const»enactor::time_t'''
@@ -415,30 +425,30 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
-	def trimmedValue(Param p) {
+	def trimmedValue(Parameter p) {
 		if (p.value !== null) {
 			'''«p.value.removeCodeDelimiter»'''
 		} else {
 			// if its not a value it must be a time
-			'''«p.time.trimmedValue»'''
+			'''«p.time»'''
 		}
 	}
 
-	def trimmedValue(Time t) {
-		if (t.unit !== null) {
-			'''«t.time»«timeUnitsToEnactorUnits.get(t.unit)»'''
+	def trimmedValue(TimeOrValue tv) {
+		if (tv.unit != TimeUnit.NONE) {
+			'''«tv.time»«timeUnitsToEnactorUnits.get(tv.unit)»'''
 		} else {
 			// time refers to a parameter or is a number without a unit
-			'''«t.time»'''
+			'''«tv.time»''' // FIXME: this is incorrect. 
 		}
 	}
 
 	def trimmedValue(Assignment a) {
-		if (a.unit !== null) {
+		if (a.rhs.unit == TimeUnit.NONE) {
 			// assume we have a time
-			'''«a.value.removeCodeDelimiter»«timeUnitsToEnactorUnits.get(a.unit)»'''
+			'''«a.rhs.time»«timeUnitsToEnactorUnits.get(a.rhs.unit)»'''
 		} else {
-			'''«a.value.removeCodeDelimiter»'''
+			'''«a.rhs.value.removeCodeDelimiter»'''
 		}
 	}
 
@@ -504,11 +514,9 @@ class CppGenerator extends GeneratorBase {
 		var List<String> values = newArrayList
 		for (p : i.reactorClass.parameters) {
 			var String value = null
-			if (i.parameters !== null) {
-				for (a : i.parameters.assignments) {
-					if (a.name == p.name) {
-						value = '''«a.trimmedValue»'''
-					}
+			for (a : i.parameters ?: emptyList) {
+				if (a.lhs.name == p.name) {
+					value = '''«a.trimmedValue»'''
 				}
 			}
 			if (value === null) {
@@ -612,7 +620,7 @@ class CppGenerator extends GeneratorBase {
 		int main(int argc, char **argv) {
 		  CLI::App app("«filename» Reactor Program");
 		  
-		  unsigned threads = «IF t.hasParam('threads')»«t.getParam('threads')»«ELSE»4«ENDIF»;
+		  unsigned threads = «IF t.hasProperty('threads')»«t.getProperty('threads')»«ELSE»4«ENDIF»;
 		  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
 		  unsigned timeout;
 		  auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
@@ -688,8 +696,8 @@ class CppGenerator extends GeneratorBase {
 		
 		install(TARGETS «filename»)
 		
-		«IF target.hasParam("cmake_include")»
-			include(«resource.URI.toFileString.extractDir»«File.separator»«target.getParam("cmake_include").withoutQuotes»)
+		«IF target.hasProperty("cmake_include")»
+			include(«resource.URI.toFileString.extractDir»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
 		«ENDIF»
 	'''
 
