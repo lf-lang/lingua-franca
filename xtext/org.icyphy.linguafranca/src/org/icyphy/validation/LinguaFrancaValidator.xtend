@@ -25,8 +25,8 @@ import org.icyphy.linguaFranca.Timer
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
-	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C', 'SCL'}
-	public static val TARGET_PARAMETERS = #{'compile', 'run', 'threads'}
+	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C', 'Cpp', 'SCL'}
+	public static val TARGET_PARAMETERS = #{'compile', 'run', 'threads', 'cmake_include'}
 	
 	var reactorClasses = newHashSet()
 	var parameters = newHashSet()

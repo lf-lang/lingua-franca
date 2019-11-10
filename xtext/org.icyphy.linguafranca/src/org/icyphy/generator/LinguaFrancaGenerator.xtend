@@ -47,7 +47,12 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 				targetFound = true
 				val generator = new CGenerator()
 				generator.doGenerate(resource, fsa, context, importTable)
-                generatorErrorsOccurred = generator.errorsOccurred()
+				generatorErrorsOccurred = generator.errorsOccurred()
+			} else if (target.name.equalsIgnoreCase("Cpp")) {
+				targetFound = true
+				val generator = new CppGenerator()
+				generator.doGenerate(resource, fsa, context, importTable)
+				generatorErrorsOccurred = generator.errorsOccurred()
 			} else if (target.name.equalsIgnoreCase("SCL")) {
 				targetFound = true
 				val generator = new SCLGenerator()

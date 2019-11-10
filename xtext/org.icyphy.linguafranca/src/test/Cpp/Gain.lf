@@ -1,0 +1,32 @@
+// Example in the Wiki.
+target Cpp;
+reactor Gain(scale:int(2)) {
+    input x:int;
+    output y:int;
+    reaction(x) -> y {=
+        y.set(*x.get() * scale);
+    =}
+}
+reactor Test {
+    preamble {=
+        #include <iostream>
+    =}
+    input x:int;
+    reaction(x) {=
+        auto value = *x.get();
+        std::cout << "Received " << value << std::endl;
+        if (value != 2) {
+            std::cerr << "Expected 2!" << std::endl;
+            exit(1);
+        }
+    =}
+}
+main reactor Main {
+    g = new Gain();
+    t = new Test();
+    g.y -> t.x;
+    timer tim;
+    reaction(tim) -> g.x {=
+        g.x.set(1);
+    =}
+}

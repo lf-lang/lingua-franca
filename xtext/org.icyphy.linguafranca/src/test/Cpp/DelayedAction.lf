@@ -1,0 +1,26 @@
+target Cpp(
+    run = "bin/DelayedAction -fast -timeout 5 sec"
+);
+main reactor DelayedAction {
+    preamble {=
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    timer t(0, 1 sec);
+    logical action a:void;
+    state count:int(0);
+    reaction(t) -> a {=
+        a.schedule(100_ms);
+    =}
+    reaction(a) {=
+        auto elapsed = get_elapsed_logical_time();
+        std::cout << "Nanoseconds since start: " << elapsed << std::endl;
+        auto expected = ((long long) count) * 1000000000LL + 100000000LL;
+        count++;
+        if (elapsed != expected) {
+            std::cerr << "Expected " << expected << " but got "
+                      << elapsed << std::endl;
+            exit(1);
+        }
+    =}
+}
