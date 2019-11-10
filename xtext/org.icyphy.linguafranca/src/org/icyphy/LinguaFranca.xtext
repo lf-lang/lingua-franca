@@ -23,8 +23,7 @@ Reactor:
 	(main?='main'? & realtime?='realtime'?) 'reactor' name=ID
    	('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
    	(preamble = Preamble)?
-   	((inits += Initialization) // TODO: code-gen for init
-	| (states += State)
+   	((states += State)
    	| (inputs += Input)
    	| (outputs += Output)
    	| (timers += Timer)
@@ -72,12 +71,6 @@ Mutation:
 	('->' effects+=[Effect] (',' effects+=[Effect])*)?
 	code=CODE;
 
-Initialization: // FIXME: startup/shutdown
-	('initialize')
-	(sources+=[Input] (',' sources+=[Input])*)?
-	('->' effects+=[Effect] (',' effects+=[Effect])*)?
-	code=CODE;
-
 Preamble:
 	'preamble' code=CODE;
 
@@ -106,7 +99,11 @@ Effect:
 	Action | Output
 ;
 
-VarRef: variable=[Variable] | container=[Instantiation] '.' variable=[Variable];
+VarRef: variable=[Variable] 
+    | container=[Instantiation] '.' variable=[Variable]
+    | startup='startup'
+    | shutdown='shutdown'
+;
 
 Assignment:
 	(lhs=[Parameter] '=' rhs=TimeOrValue);
