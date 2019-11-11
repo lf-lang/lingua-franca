@@ -1,0 +1,52 @@
+// This test checks that logical time is incremented an appropriate
+// amount as a result of an invocation of the schedule() function at
+// runtime. It also performs various smoke tests of timing aligned
+// reactions. The first instance has a period of 4 seconds, the second
+// of 2 seconds, and the third (composite) or 1 second.
+target Cpp( 
+	run = "bin/HelloC -fast -timeout 10 sec"
+);
+reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
+    preamble {=
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    state count:int(0);
+    state previous_time:{=long long=}(0);
+    timer t(1 secs, period);
+    logical action a:void;
+    reaction(t) -> a {=
+        std::cout << message << std::endl;
+        a.schedule(200_ms); // No payload.
+        // Print the current time.
+        previous_time = get_logical_time();
+        time_t secs = previous_time / 1'000'000'000;
+        long long ns = previous_time % 1'000'000'000;
+        std::cout << "Current time is " << previous_time << std::endl;
+        std::cout << "Which is " << ctime(&secs);
+        std::cout << "Plus " << ns << " nanoseconds" << std::endl;
+     =}
+     reaction(a) {=
+         count++;
+	 std::cout << "***** action " << count << " at time " 
+                   << get_logical_time() << std::endl;
+         // Check if a has a value
+         auto time = get_logical_time();
+         if (time - previous_time != 200000000ull) {
+             std::cerr << "FAILURE: Expected 200ms of logical time to elapse "
+                       << "but got " << time - previous_time << " nanoseconds"
+                       << std::endl;
+             exit(1);
+        }
+    =}
+} 
+reactor Inside(period:time(1 sec), 
+               message:{=std::string=}("Composite default message.")) {
+    third_instance = new HelloCpp(period = period, message = message);
+}
+main reactor Main { 
+    first_instance = new HelloCpp(period = 4 sec, 
+                                  message = "Hello from first_instance.");
+    second_instance = new HelloCpp(message = "Hello from second_instance.");
+    composite_instance = new Inside(message = "Hello from composite_instance.");
+} 

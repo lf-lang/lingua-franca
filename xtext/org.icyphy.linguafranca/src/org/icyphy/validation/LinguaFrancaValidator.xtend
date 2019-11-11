@@ -12,11 +12,12 @@ import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
-import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.TimeUnit
 
 /**
  * This class contains custom validation rules. 
@@ -25,8 +26,8 @@ import org.icyphy.linguaFranca.Timer
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	
-	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C', 'SCL'}
-	public static val TARGET_PARAMETERS = #{'compile', 'run', 'threads'}
+	public static val KNOWN_TARGETS = #{'Accessor', 'Accessors', 'C', 'Cpp', 'SCL'}
+	public static val TARGET_PARAMETERS = #{'compile', 'run', 'threads', 'cmake_include'}
 	
 	var reactorClasses = newHashSet()
 	var parameters = newHashSet()
@@ -61,7 +62,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	}	
 	
 	@Check(FAST)
-	def recordParameter(Param param) {
+	def recordParameter(Parameter param) {
 		parameters.add(param.name)
 		allNames.add(param.name)
 	}
@@ -83,26 +84,26 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
 	@Check(FAST)
 	def checkAssignment(Assignment assignment) {
-		if (assignment.unit !== null
-				&& GeneratorBase.timeUnitsToNs.get(assignment.unit) === null) {
-			error("Invalid time units: " + assignment.unit
+		// If the left-hand side is a time parameter, make sure the assignment has units
+		if (assignment.lhs.isOfTimeType) {
+			if (assignment.rhs.parameter === null) {
+				// This is a value. Check that units are present
+				if (assignment.rhs.unit == TimeUnit.NONE) {
+					error("Invalid time units: " + assignment.rhs.unit
 					+ ". Should be one of "
-					+ GeneratorBase.timeUnitsToNs.keySet,
-					Literals.ASSIGNMENT__UNIT)
+					+ TimeUnit.VALUES.filter[it != TimeUnit.NONE],
+					Literals.ASSIGNMENT__RHS)						
+				}
+			} else {
+				// This is a reference to another parameter.
+				// Check that types match.
+				if (!assignment.rhs.parameter.isOfTimeType) {
+					error("Cannot assign parameter: " + assignment.rhs.parameter.name + " to " + assignment.lhs.name +
+						". The latter is a time parameter, but the former is not.", Literals.ASSIGNMENT__RHS)
+				}
+			}
 		}
 	}
-
-//	@Check(FAST)
-//	def checkGets(Uses uses) {
-//		for (get: uses.uses) {
-//			if (!inputs.contains(get)) {
-//					error("Reaction declares that it reads something that is not an input: "
-//					+ get,
-//					Literals.USES__USES
-//				)
-//			}
-//		}
-//	}
 
 	@Check(FAST)
 	def checkInput(Input input) {
@@ -138,37 +139,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		outputs.add(output.name);
 		allNames.add(output.name)
 	}
-
-// Superfluous check; now guaranteed by grammar
-//	@Check(FAST)
-//	def checkReaction(Reaction reaction) {
-//		for (trigger: reaction.triggers) {
-//			if (!inputs.contains(trigger.name)
-//				&& !timers.contains(trigger.name)
-//				&& !actions.contains(trigger.name)
-//			) {
-//				error("Reaction trigger is not an input, timer, or action: "
-//					+ trigger.name,
-//					Literals.REACTION__TRIGGERS
-//				)
-//			}
-//		}
-//	}
-
-//	@Check(FAST)
-//	def checkSets(Produces produces) {
-//		for (port: produces.produces) {
-//			// If the port has the form of name.name, then skip the check.
-//			// We don't have enough information here to check it.
-//			if (port.split('\\.').length != 2 && !outputs.contains(port) && !actions.contains(port)) {
-//					error("Reaction declares that it produces something that is not an output,"
-//						+ " an action, nor an input port: "
-//					+ port,
-//					Literals.PRODUCES__PRODUCES
-//				)
-//			}
-//		}
-//	}
 	
 	@Check(FAST)
 	def checkTarget(Target target) {
@@ -177,21 +147,21 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 					+ target.name,
 					Literals.TARGET__NAME)
 		}
-		if (target.parameters !== null) {
-			for (parameter: target.parameters.assignments) {
-   				if (!TARGET_PARAMETERS.contains(parameter.name)) {
+		if (target.properties !== null) {
+			for (property: target.properties) {
+   				if (!TARGET_PARAMETERS.contains(property.name)) {
 					warning("Unrecognized target parameter: "
-						+ parameter.name,
-						Literals.TARGET__PARAMETERS
+						+ property.name,
+						Literals.TARGET__PROPERTIES
 					)
 				}
 				// Make sure the value of the parameter is a string or a parsable integer.
-				if (!parameter.value.startsWith('"') || !parameter.value.endsWith('"')) {
+				if (!property.value.startsWith('"') || !property.value.endsWith('"')) {
 					try {
-						Integer.decode(parameter.value)
+						Integer.decode(property.value)
 					} catch (NumberFormatException ex) {
 						error("Target parameter value is required to be an integer or a string surrounded by quotation marks.",
-							Literals.TARGET__PARAMETERS
+							Literals.TARGET__PROPERTIES
 						)
 					}
 				}
@@ -200,25 +170,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	}
 
 	@Check(FAST)
-	def checkTime(Time time) {
-		if (time.time !== null) {
-			if (time.unit === null) {
-				// No time unit is given.
-				if (time.time.startsWith('-')) {
-					error("Time cannot be negative", Literals.TIME__TIME)
-				} else if (time.time.matches('[0123456789]')) {
-					// Time is a literal number (only checked the first character)
-					if (!time.time.equals('0')) {
-						error("Missing time units. Should be one of "
-								+ GeneratorBase.timeUnitsToNs.keySet,
-								Literals.TIME__TIME)
-					}
-				}
-			} else if (GeneratorBase.timeUnitsToNs.get(time.unit) === null) {
-				error("Invalid time units: " + time.unit
-						+ ". Should be one of "
-						+ GeneratorBase.timeUnitsToNs.keySet,
-						Literals.TIME__UNIT)
+	def checkTime(TimeOrValue timeOrValue) {
+		// Only parameter assignments are allowed to be target types.
+		// Time parameters can go without units only if they are 0.
+		if (!(timeOrValue.eContainer instanceof Assignment) && timeOrValue.time != 0) {
+			if (timeOrValue.unit == TimeUnit.NONE) {
+				error("Missing time units. Should be one of " + TimeUnit.VALUES.filter[it != TimeUnit.NONE],
+					Literals.TIME_OR_VALUE__UNIT)
 			}
 		}
 	}

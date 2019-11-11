@@ -18,7 +18,7 @@ if [ "$1" == '' ]; then
 else
 	ext=$(echo "$1" | awk '{print tolower($0)}')
 	test_dir="$base""org.icyphy.linguafranca/src/test/""$1";
-	manifest="$test_dir""/testFiles.txt";
+	manifest="$base""org.icyphy.linguafranca/src/test/test-manifest";
     	offset="../../../../../";
 	total=0;
 	correct=0;	
@@ -30,13 +30,16 @@ else
 		pushd $test_dir;
         eval $offset"bin/lfc"; # trigger fresh build if necessary
 		while read p; do
+			if [ ! -f "$p" ]; then
+    				echo "[WARNING] $p does not exist.";
+				continue
+			fi
 			echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
 			total=$((total + 1))
 			name=$(echo $p | rev | cut -d. -f2 | rev)
 			echo $p;
 			echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
 			echo "================================================================================";
-			#eval "rm src-gen/$name"".""${1,,}";
 			eval "$offset""bin/lfc ""$p";
 			echo "================================================================================";
 			command="bin/$name -timeout 1 sec"
@@ -47,7 +50,7 @@ else
 				correct=$((correct + 1))
 			fi
 			echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-		done <testFiles.txt
+		done <"../test-manifest"
 		echo "--------------------------------------------------------------------------------";		
 		echo "Number of tests passed: ("$correct"/"$total")";
 		echo "--------------------------------------------------------------------------------";

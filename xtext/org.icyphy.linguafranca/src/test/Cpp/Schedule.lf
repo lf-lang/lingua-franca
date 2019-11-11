@@ -1,0 +1,30 @@
+// Example from Schedule section of the C++ Reactor Target wiki page.
+target Cpp;
+reactor Schedule {
+    preamble {=
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    input x:int;
+    logical action a:void;
+    reaction(x) -> a {=
+        a.schedule(200_ms);
+    =}
+    reaction(a) {=
+        auto elapsed_time = get_elapsed_logical_time();
+        std::cout << "Action triggered at logical time " << elapsed_time
+                  << " after start" << std::endl;
+        if (elapsed_time != 200000000ULL) {
+            std::cerr << "Expected action time to be 200 msec. It was "
+                      << elapsed_time << "nsec!" << std::endl;
+            exit(1);
+        }
+    =}
+}
+main reactor Main {
+    a = new Schedule();
+    timer t;
+    reaction(t) -> a.x {=
+        a.x.set(1);
+    =}
+}

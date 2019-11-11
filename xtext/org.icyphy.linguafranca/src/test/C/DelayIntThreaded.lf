@@ -13,6 +13,7 @@ reactor DelayInt(delay:time(100 msec)) {
         *value = in;
         schedule(d, self->delay, value);
     =}
+    
     reaction(d) -> out {=
         // This will pass the value, so the malloc can be freed.
         if (d_has_value) {

@@ -1,0 +1,64 @@
+// Test data transport across hierarchy.
+target Cpp(
+    run = "bin/Hierarchy2 -fast -timeout 5 sec"
+);
+reactor Source {
+    output out:int;
+    timer t(0, 1 sec);
+    reaction(t) -> out {=
+        out.set(1);
+    =}
+}
+reactor Count {
+    output out:int;
+    timer t(0, 1 sec);
+    state i:int(0);
+    reaction(t) -> out {=
+        i++;
+        out.set(i);
+    =}
+}
+reactor Add {
+    input in1:int;
+    input in2:int;
+    output out:int;
+    reaction(in1, in2) -> out {=
+        int result = 0;
+        if (in1.is_present()) result += *in1.get();
+        if (in2.is_present()) result += *in2.get();
+        out.set(result);
+    =}
+}
+reactor Print {
+    preamble {=
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    input in:int;
+    state expected:int(2);
+    reaction(in) {=
+        auto value = *in.get();
+        std::cout << "Received: " << value << std::endl;
+        if (value != expected) {
+            std::cerr << "Expected " << expected << std::endl;
+            exit(1);
+        }
+        expected++;
+    =}
+}
+reactor AddCount {
+    input in:int;
+    output out:int;
+    count = new Count();
+    add = new Add();
+    in -> add.in1;
+    count.out -> add.in2;
+    add.out -> out;
+}
+main reactor Hierarchy2 {
+    source = new Source();
+    addCount = new AddCount();
+    print = new Print();
+    source.out -> addCount.in;
+    addCount.out -> print.in;
+}

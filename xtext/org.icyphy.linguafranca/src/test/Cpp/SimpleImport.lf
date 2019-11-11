@@ -1,0 +1,6 @@
+target Cpp;
+import HelloWorld.lf;
+main reactor Main {
+    a = new HelloWorld();
+    b = new HelloWorld();
+}

@@ -27,14 +27,15 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.ActionModifier
+import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
@@ -56,7 +57,10 @@ class CGenerator extends GeneratorBase {
     var initializeTriggerObjects = new StringBuilder()
 
     // List of deferred assignments to perform in initialize_trigger_objects.
-    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>();
+    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
+    
+    // Place to collect shutdown action instances.
+    var shutdownActionInstances = new LinkedList<ActionInstance>()
 
     // Place to collect code to execute at the start of a time step.
     var startTimeStep = new StringBuilder()
@@ -85,11 +89,11 @@ class CGenerator extends GeneratorBase {
         var compileCommand = newArrayList()
 
         for (target : resource.allContents.toIterable.filter(Target)) {
-            if (target.parameters !== null) {
-                for (parameter : target.parameters.assignments) {
-                    if (parameter.name.equals("threads")) {
+            if (target.properties !== null) {
+                for (assignment : target.properties) {
+                    if (assignment.name.equals("threads")) {
                         // This has been checked by the validator.
-                        numberOfThreads = Integer.decode(parameter.value)
+                        numberOfThreads = Integer.decode(assignment.value)
                         // Set this as the default in the generated code,
                         // but only if it has not been overridden on the command line.
                         pr(startTimers, "if (number_of_threads == 0) {")
@@ -97,15 +101,15 @@ class CGenerator extends GeneratorBase {
                         pr(startTimers, "number_of_threads = " + numberOfThreads + ";")
                         unindent(startTimers)
                         pr(startTimers, "}")
-                    } else if (parameter.name.equals("run")) {
+                    } else if (assignment.name.equals("run")) {
                         // Strip off enclosing quotation marks and split at spaces.
-                        val command = parameter.value.substring(1, parameter.value.length - 1).split(' ')
+                        val command = assignment.value.substring(1, assignment.value.length - 1).split(' ')
                         runCommand.clear
                         runCommand.addAll(command)
                         runCommandOverridden = true
-                    } else if (parameter.name.equals("compile")) {
+                    } else if (assignment.name.equals("compile")) {
                         // Strip off enclosing quotation marks and split at spaces.
-                        val command = parameter.value.substring(1, parameter.value.length - 1).split(' ')
+                        val command = assignment.value.substring(1, assignment.value.length - 1).split(' ')
                         compileCommand.clear
                         compileCommand.addAll(command)
                     }
@@ -170,6 +174,21 @@ class CGenerator extends GeneratorBase {
             pr('void __start_time_step() {\n')
             indent()
             pr(startTimeStep.toString)
+            unindent()
+            pr('}\n')
+            
+            // Generate function to schedule shutdown actions if any
+            // reactors have reactions to shutdown.
+            pr('bool __wrapup() {\n')
+            indent()
+            for (instance : shutdownActionInstances) {
+                pr('schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
+            }
+            if (shutdownActionInstances.length === 0) {
+                pr('return false;')
+            } else {
+                pr('return true;')
+            }
             unindent()
             pr('}\n')
         }
@@ -337,7 +356,7 @@ class CGenerator extends GeneratorBase {
         // Start with parameters.
         for (parameter : reactor.parameters) {
             prSourceLineNumber(parameter)
-            if (parameter.type === null) {
+            if (getParameterType(parameter).equals("")) {
                 reportError(parameter, "Parameter is required to have a type: " + parameter.name)
             } else {
                 pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
@@ -347,7 +366,7 @@ class CGenerator extends GeneratorBase {
         for (state : reactor.states) {
             prSourceLineNumber(state)
             if (state.type === null) {
-                reportError(state, "State is required to have a type: " + state.name)
+                reportError(state, "State is required to have a type: " + state.name) // FIXME: do these checks in the validator. 
             } else {
                 pr(body, removeCodeDelimiter(state.type) + ' ' + state.name + ';');
             }
@@ -595,7 +614,7 @@ class CGenerator extends GeneratorBase {
             var presentPredicates = new LinkedList<String>()
             var triggeredSizesContents = new LinkedList<String>()
             var triggersContents = new LinkedList<String>()
-            var destinations = null as Collection<PortInstance>
+            var Collection<PortInstance> destinations = null 
 
             // Generate entries for the reaction_t struct that specify how
             // to handle outputs.
@@ -802,7 +821,7 @@ class CGenerator extends GeneratorBase {
                 // Figure out how many inputs are connected to the output.
                 // This is obtained via the container.
                 var parent = reactorInstance.parent
-                var destinations = null as Collection<PortInstance>
+                var Collection<PortInstance> destinations = null
                 if (parent !== null) {
                     destinations = parent.transitiveClosure(output)
                 } else {
@@ -955,17 +974,29 @@ class CGenerator extends GeneratorBase {
                 )
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
-                var delay = (trigger as Action).delay
-                if (delay === null) {
-                    delay = "0LL"
+                var delay = "0LL"
+                if ((trigger as Action).delay !== null) {
+                	val parm = (trigger as Action).delay.parameter
+	                if (parm !== null) {
+	                	delay = parm.value.toString + "LL" 
+	                } else {
+	                	delay = (trigger as Action).delay.value // FIXME: revise this
+	                }
                 }
-                if ((trigger as Action).modifier == ActionModifier.LOGICAL) {
+
+                if ((trigger as Action).origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
                 }
                 pr(result,
                     triggerStructName + '_reactions, ' + numberOfReactionsTriggered + ', ' +
                         delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
                 )
+                // If this is a shutdown action, add it to the list of shutdown actions.
+                // FIXME: Is there a better way to check than name matching here?
+                if (trigger.name.equals("shutdown")) {
+                    shutdownActionInstances.add(triggerInstance as ActionInstance)
+                }
+
             } else {
                 reportError(reactorInstance.definition, "Internal error: Seems to not be an input, timer, or action: "
                     + trigger.name
@@ -976,12 +1007,22 @@ class CGenerator extends GeneratorBase {
             // Assignment of the offset and period have to occur after creating
             // the struct because the value assigned may not be a compile-time constant.
             if (trigger instanceof Timer) {
+                
                 val timing = (trigger as Timer).timing
-                var offset = if (timing === null) { null } else {timing.offset}
-                var period = if (timing === null) { null } else {timing.period}
+                
+                var offset = if (timing === null) {
+						timeInTargetLanguage('0LL', TimeUnit.NONE)
+					} else {
+						resolveTime(timing.offset, reactorInstance)
+					}
+				var period = if (timing === null) {
+						timeInTargetLanguage('0LL', TimeUnit.NONE)
+					} else {
+						resolveTime(timing.period, reactorInstance)
+					}
 
-                pr(initializeTriggerObjects, triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
-                pr(initializeTriggerObjects, triggerStructName + '.period = ' + timeInTargetLanguage(period) + ';')
+                pr(initializeTriggerObjects, triggerStructName + '.offset = ' + offset + ';')
+                pr(initializeTriggerObjects, triggerStructName + '.period = ' + period + ';')
 
                 // Generate a line to go into the __start_timers() function.
                 // Note that the delay, the second argument, is zero because the
@@ -1060,23 +1101,14 @@ class CGenerator extends GeneratorBase {
 
         // Generate code to initialize the "self" struct in the
         // __initialize_trigger_objects function.
-        // Create a scope for the parameters in case the names collide with other instances.
-        pr(initializeTriggerObjects, "{ // Scope for " + fullName)
-        indent(initializeTriggerObjects)
+        pr(initializeTriggerObjects, "//***** Start initializing " + fullName)
+
         // Start with parameters.
         for (parameter : instance.parameters) {
-            // In case the parameter value refers to a container parameter with the same name,
-            // we have to first store the value in a temporary variable, then in the
-            // parameter variable.
-            var tmpVariableName = '__tmp' + tmpVariableCount++
+        	// FIXME: we now use the resolved literal value. For better efficiency, we could
+        	// store constants in a global array and refer to its elements to avoid duplicates
             pr(initializeTriggerObjects,
-                parameter.type + ' ' + tmpVariableName + ' = ' + parameter.value + ';'
-            )
-            pr(initializeTriggerObjects,
-                parameter.type + ' ' + parameter.name + ' = ' + tmpVariableName + ';'
-            )
-            pr(initializeTriggerObjects,
-                nameOfSelfStruct + "." + parameter.name + " = " + parameter.value + ";"
+                nameOfSelfStruct + "." + parameter.name + " = " + parameter.literalValue + ";"
             )
         }
         
@@ -1113,9 +1145,9 @@ class CGenerator extends GeneratorBase {
         }
         // Handle reaction local deadlines.
         for (reaction: instance.reactions) {
-            if (reaction.definition.localDeadline !== null) {
-                pr(initializeTriggerObjects, reactionStructName(reaction) + '.local_deadline
-                    = ' + timeInTargetLanguage(reaction.definition.localDeadline.time) + ';')
+        	if (reaction.definition.localDeadline !== null) {
+            	var deadline = resolveTime(reaction.definition.localDeadline.time, instance)
+                pr(initializeTriggerObjects, reactionStructName(reaction) + '.local_deadline = ' + deadline + ';')
             }
         }
 
@@ -1157,8 +1189,8 @@ class CGenerator extends GeneratorBase {
         for (child : instance.children) {
             generateReactorInstance(child)
         }
-        unindent(initializeTriggerObjects)
-        pr(initializeTriggerObjects, "} // End of scope for " + instance.fullName)
+
+        pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
 
     /** Set the reaction priorities based on dependency analysis.
@@ -1380,9 +1412,9 @@ class CGenerator extends GeneratorBase {
      *  @param parameter The parameter.
      *  @return The C type.
      */
-    private def getParameterType(Param parameter) {
+    private def getParameterType(Parameter parameter) {
         var type = removeCodeDelimiter(parameter.type)
-        if (parameter.type.equals('time')) {
+        if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
             type = 'interval_t'
         }
         type
@@ -1425,11 +1457,11 @@ class CGenerator extends GeneratorBase {
 
     // Print the #line compiler directive with the line number of
     // the most recently used node.
-    private def prSourceLineNumber(EObject reaction) {
-        var node = NodeModelUtils.getNode(reaction)
+
+    private def prSourceLineNumber(EObject eObject) {
+        var node = NodeModelUtils.getNode(eObject)
         if (node !== null) {
-          pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
-        	
+            pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
         }
 
     }

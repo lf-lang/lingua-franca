@@ -21,6 +21,7 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 		printf("Current time is %lld\n", self->previous_time);
 		printf("Which is %sPlus %lld nanoseconds.\n", ctime(&secs), self->previous_time % BILLION);
 	=}
+	
 	reaction(a) {=
 		(self->count)++;
 		printf("***** action %d at time %lld\n", self->count, get_logical_time());
@@ -39,8 +40,9 @@ reactor HelloC(period:time(2 secs), message:{=char*=}("Hello C")) {
 	=}
 }
 reactor Inside(period:time(1 sec), message:{=char*=}("Composite default message.")) {
-	third_instance = new HelloC(period = period, message = message);
+	third_instance = new HelloC(period = period, message = message, message= 1 sec);
 }
+
 main reactor HelloCThreaded {
 	first_instance = new HelloC(period = 4 sec, message = "Hello from first_instance.");
 	second_instance = new HelloC(message = "Hello from second_instance.");

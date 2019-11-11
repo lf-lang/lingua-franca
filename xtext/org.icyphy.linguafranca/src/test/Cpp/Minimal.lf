@@ -1,0 +1,8 @@
+// This is a smoke test of a minimal reactor.
+target Cpp;
+main reactor Minimal {
+    timer t;
+    reaction(t) {=
+        printf("Hello World.\n");
+    =}
+}

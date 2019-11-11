@@ -1,0 +1,44 @@
+target Cpp;
+reactor Destination {
+    preamble {=
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    input x:int;
+    input y:int;
+    reaction(x, y) {=
+        auto elapsed = get_elapsed_logical_time();
+        std::cout << "Time since start: " << elapsed << std::endl;
+        if (elapsed != 0LL) {
+            std::cerr << "Expected elapsed time to be 0, but it was " <<
+                         elapsed << std::endl;
+            exit(1);
+        }
+        int count{0};
+        if (x.is_present()) {
+            std::cout << "  x is present." << std::endl;
+            count++;
+        }
+        if (y.is_present()) {
+            std::cout << "  y is present." << std::endl;
+            count++;
+        }
+        if (count != 1) {
+            std::cerr << "Expected exactly one input to be present but got "
+                      << count << std::endl;
+            exit(1);
+        }
+    =}
+}
+main reactor Microsteps {
+    timer start;
+    logical action repeat:void;
+    d = new Destination();
+    reaction(start) -> d.x, repeat {=
+        d.x.set(1);
+        repeat.schedule();
+    =}
+    reaction(repeat) -> d.y {=
+        d.y.set(1);
+    =}
+}
