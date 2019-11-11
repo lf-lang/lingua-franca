@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/icyphy/lingua-franca.svg?branch=master)](https://travis-ci.org/icyphy/lingua-franca)
+
 # Lingua Franca
 
 See the main [wiki](https://github.com/icyphy/lingua-franca/wiki) for documentation.
