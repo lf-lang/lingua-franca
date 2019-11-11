@@ -30,13 +30,13 @@ main reactor AsyncCallback {
 		}
 		pthread_t threadId;
 	=}
-	
 	timer t(0, 200 msec);
-	state thread_id:pthread_t(NULL);
+	state thread_id:pthread_t(0);
 	state expected_time:{=long long=}({=100000000LL=});
 	state toggle:bool(false);
     physical action a:int;
     state i:int(0);
+  
 	reaction(t) -> a {=
 		// start new thread, provide callback
 		pthread_create(&self->thread_id, NULL, &take_time, a);

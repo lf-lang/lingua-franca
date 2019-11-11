@@ -268,6 +268,12 @@ int next() {
 
 // Print elapsed logical and physical times.
 void wrapup() {
+    // Invoke any code generated wrapup. If this returns true,
+    // then actions have been scheduled at the next microstep.
+    // Invoke next() one more time to react to those actions.
+    if (__wrapup()) {
+        next();
+    }
     interval_t elapsed_logical_time
         = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
     printf("Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);

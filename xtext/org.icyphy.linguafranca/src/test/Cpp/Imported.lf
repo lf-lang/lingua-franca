@@ -1,0 +1,11 @@
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target Cpp;
+import ImportedAgain.lf;
+reactor Imported {
+    input x:int;
+    a = new ImportedAgain();
+    reaction(x) -> a.x {=
+        a.x.set(x.get());
+    =} 
+}

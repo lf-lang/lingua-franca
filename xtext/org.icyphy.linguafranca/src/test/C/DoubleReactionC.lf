@@ -13,6 +13,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 		set(y, self->count);
 	=}
 }
+
 reactor Destination {
 	input x:int;
 	input w:int;

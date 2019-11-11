@@ -15,3 +15,4 @@ cache:
 # - sh -e /etc/init.d/xvfb start - sleep 10  
 script:    
  - bin/run-lf-tests C
+ - bin/run-lf-tests Cpp

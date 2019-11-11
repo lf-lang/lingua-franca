@@ -14,17 +14,16 @@ Model:
 
 /////////// Top level elements
 Target:
-	'target' name=ID ( '(' parameters=Assignments? ')' )? ';';
+	'target' name=ID ( '(' properties+=Property (',' properties+=Property)* ')' )? ';';
 	
 Import:
 	'import' name=Path ';';
 
 Reactor:
 	(main?='main'? & realtime?='realtime'?) 'reactor' name=ID
-   	('(' parameters+=Param (',' parameters+=Param)* ')')? '{'
+   	('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
    	(preamble = Preamble)?
-   	((inits += Initialization) // TODO: code-gen for init
-	| (states += State)
+   	((states += State)
    	| (inputs += Input)
    	| (outputs += Output)
    	| (timers += Timer)
@@ -40,7 +39,7 @@ Reactor:
 
 // Types are optional for use in untyped languages.
 State:
-	'state' name=ID (':' type=Type)? ('(' value=Value ')') ';';
+	'state' name=ID (':' type=Type)? ('(' value=(Literal | ID) ')') ';';
 
 Input:
 	'input' name=ID (':' type=Type)? ';';
@@ -52,10 +51,10 @@ Timer:
 	'timer' name=ID timing=Timing?';';
 
 Action:
-	modifier=ActionModifier 'action' name=ID ('(' delay=(ID | NUMBER) ')')? (':' type=Type)? ';'; // FIXME: Link to referenced parameter
-	// delay=VarRef | NUMBER
+	origin=ActionOrigin 'action' name=ID ('(' delay=TimeOrValue ')')? (':' type=Type)? ';';
+	
 Reaction:
-	('reaction' | 'react')
+	('reaction')
 	('(' (triggers+=VarRef (',' triggers+=VarRef)*)? ')')?
 	(sources+=VarRef (',' sources+=VarRef)*)?
 	('->' effects+=VarRef (',' effects+=VarRef)* (delay=Delay)?)?
@@ -63,36 +62,29 @@ Reaction:
 	(localDeadline=LocalDeadline)?;
 	
 Delay:
-	'after' time=Time;
+	'after' time=TimeOrValue;
 
 LocalDeadline:
-    'deadline' '(' time=Time ')' deadlineCode=CODE;
+    'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE;
     
 Mutation:
-	('mutation' | 'mutate')
+	('mutation')
 	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
-	(sources+=[Input] (',' sources+=[Input])*)?
-	('->' effects+=[Effect] (',' effects+=[Effect])*)?
-	code=CODE;
-
-Initialization:
-	('initialize' | 'init')
 	(sources+=[Input] (',' sources+=[Input])*)?
 	('->' effects+=[Effect] (',' effects+=[Effect])*)?
 	code=CODE;
 
 Preamble:
 	'preamble' code=CODE;
-	
-// NOTE: Insert dummy object for foreign imports in scope provider?
+
 Instantiation:
-	name=ID '=' 'new' reactorClass=[Reactor] ('(' parameters=Assignments? ')')? ';' ;
+	name=ID '=' 'new' reactorClass=[Reactor] '(' (parameters+=Assignment (',' parameters+=Assignment)*)? ')' ';' ;
 
 Connection:
     leftPort=VarRef '->' rightPort=VarRef ';';
 
 Deadline:
-    'deadline' '(' port=VarRef ',' delay=Time ',' action=[Action] ')' ';';
+    'deadline' '(' port=VarRef ',' delay=TimeOrValue ',' action=[Action] ')' ';';
 
 KEYWORD:
 	'input' | 'state' | 'output' | 'timer' | 'action';
@@ -110,53 +102,53 @@ Effect:
 	Action | Output
 ;
 
-VarRef: variable=[Variable] | container=[Instantiation] '.' variable=[Variable];
+VarRef: variable=[Variable] 
+    | container=[Instantiation] '.' variable=[Variable]
+    | startup='startup'
+    | shutdown='shutdown'
+;
 
-Assignments:
-	assignments+=Assignment (',' assignments+=Assignment)*;
-	
 Assignment:
-	name=ID '=' value=Value (unit=ID)?; // FIXME: Cross-referencing
-	//name=[Param] '=' value=Value (unit=ID)?;
+	(lhs=[Parameter] '=' rhs=TimeOrValue);
+	
+Property:
+	name=ID '=' value=Literal;
 
 // Single parameter.
-Param:
-    const?='const'? name=ID ((':' type='time' '(' time=Time ')')
-    		| (':' type=Type)? ('(' value=Value ')')
-    		)?;
+Parameter:
+    name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
+           | ((':' type=Type)? '(' value=Literal ')')
+            )?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timing:
-	'(' offset=Time (',' period=Time)?')';
+	'(' offset=TimeOrValue (',' period=TimeOrValue)?')';
 
-// Time is either an ID (a reference to a parameter) or
-// a constant, a number followed by a unit specification.
-// Time unit here is any ID. The validator should check for valid units.
-Time:
-	time=ID | time=NUMBER (unit=ID)?;
-
-// 'input' and 'output' are allowed port names despite being keywords.
+// Time is either a reference to a parameter or an integer value, 
+// a number followed by a unit specification (unless the value is zero). 
+// If it is a constant, the validator should check that if the value
+// is non-zero, it is accompanied by a unit.
+TimeOrValue:
+    (parameter=[Parameter] | value=Literal | (time=INT unit=TimeUnit));
+    
 Port:
     Input | Output;
-
-//PortRef: SinkRef | SourceRef;
 
 // A type is in the target language, hence either an ID or target code.
 Type:
     ID | CODE ;
-    
-Value:
-    ID | NUMBER | STRING | CODE;
+
+Literal: STRING | CODE | FLOAT | INT | NEGINT;
 
 /////////// Elementary components
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
 
-// FIXME: Can we replace this with something more general? E.g., scientific notation, hex, etc.?
-terminal NUMBER:
-    ('-'? INT ('.' INT)?) ;
+terminal NEGINT: '-'('0'..'9')+;
+
+terminal FLOAT: '-'?('0'..'9')+'.'('0'..'9')+;
 
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
@@ -169,5 +161,17 @@ Path:
 	ID ('.' ID)* ;
 	
 /////////// Enums
-enum ActionModifier:
+enum ActionOrigin:
     LOGICAL = 'logical' | PHYSICAL = 'physical';
+    
+enum TimeUnit:
+	NONE='empty' |
+	NSEC='nsec' | NSECS='nsecs' | 
+	USEC='usec' | USECS='usecs' | 
+	MSEC='msec' | MSECS='msecs' | 
+	SEC='sec' | SECS='secs' | SECOND='second' | SECONDS='seconds' | 
+	MIN='min' | MINS='mins' | MINUTE='minute' | MINUTES='minutes' | 
+	HOUR='hour' | HOURS='hours' | 
+	DAY='day' | DAYS='days' | 
+	WEEK='week' | WEEKS='weeks';
+    

@@ -3,6 +3,7 @@
 target C(
 	run = "bin/DeadlineC -timeout 2 sec"
 );
+
 reactor Source(period:time(1 sec)) {
 	output y:int;
 	timer t(0, period);
@@ -20,7 +21,7 @@ reactor Destination {
 	input x:int;
 	input e:int;
 	
-	react(x,e) {=
+	reaction(x,e) {=
 		if (e_is_present) {
 			printf("**** Handle deadline miss.\n");
 		} else {

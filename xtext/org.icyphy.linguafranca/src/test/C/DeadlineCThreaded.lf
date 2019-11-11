@@ -4,6 +4,7 @@ target C(
 	threads = 1,
 	run = "bin/DeadlineC -timeout 2 sec"
 );
+
 reactor Source(period:time(1 sec)) {
 	output y:int;
 	timer t(0, period);
@@ -44,6 +45,7 @@ main reactor DeadlineCThreaded {
 		printf("**** Deadline miss detected.\n");
 		set(d.e, 1);
 	=}
+	
 	s = new Source(period=1 sec);
 	d = new Destination();
 	s.y -> d.x; 

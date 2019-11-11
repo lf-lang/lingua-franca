@@ -1,0 +1,55 @@
+// This tests actions with payloads by delaying an input by a fixed amount.
+target Cpp;
+reactor Delay(delay:time(100 msec)) {
+    input in:int;
+    output out:int;
+    logical action d:int;
+    reaction(in) -> d {=
+        d.schedule(in.get(), delay);
+    =}
+    reaction(d) -> out {=
+        if (d.is_present()) {
+            out.set(d.get());
+        }
+    =}
+}
+reactor Test {
+    preamble {=
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    input in:int;
+    state start_time:{=enactor::time_t=}(0);
+    timer start;
+    reaction(start) {=
+        // Record the logical time at the start.
+        start_time = get_logical_time();
+    =} 
+    reaction(in) {=
+        std::cout << "Received: " << *in.get() << std::endl;
+        // Check the time of the input.
+        auto current_time = get_logical_time();
+        auto elapsed = current_time - start_time;
+        std::cout << "After " << elapsed << " nsec of logical time." << std::endl;
+        if (elapsed != 100000000LL) {
+            std::cerr << "ERROR: Expected elapsed time to be 100000000. "
+                      << "It was " << elapsed << std::endl;
+            exit(1);
+        }
+        if (*in.get() != 42) {
+            std::cerr << "ERROR: Expected input value to be 42. "
+                      << "It was " << *in.get() << std::endl;
+            exit(2);            
+        }
+    =}
+}
+
+main reactor DelayInt { 
+    timer t;
+    d = new Delay();
+    test = new Test();
+    d.out -> test.in; 
+    reaction(t) -> d.in {=
+        d.in.set(42);
+    =}
+}

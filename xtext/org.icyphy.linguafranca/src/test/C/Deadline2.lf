@@ -20,10 +20,10 @@ reactor Destination {
     input x:int;
     input e:int;
     
-    react(e) {=
+    reaction(e) {=
         printf("**** Handle deadline miss.\n");
     =}
-    react(x) {=
+    reaction(x) {=
         printf("FAILURE: Deadline miss should have blocked delivery of x: %d.\n", x);
         exit(2);
     =}

@@ -4,31 +4,32 @@ target C;
 reactor Delay(delay:time(100 msec)) {
     input in:int;
     output out:int;
-    logical action d:int;
-    reaction(in) -> d {=
+    logical action a:int;
+    reaction(in) -> a {=
         // Allocate memory for a copy of the input. Use lf_malloc(),
         // the Lingua Franca specialized version of malloc().
         int* value = lf_malloc(sizeof(int));
         *value = in;
-        schedule(d, self->delay, value);
+        schedule(a, self->delay, value);
     =}
-    reaction(d) -> out {=
+    reaction(a) -> out {=
         // This will pass the value, so the lf_malloc can be freed.
-        if (d_has_value) {
-            set(out, d_value);
+        if (a_has_value) {
+            set(out, a_value);
         }
     =}
 }
 reactor Test {
     input in:int;
     state start_time:instant_t(0);
-    timer start;
-    reaction(start) {=
+    state received_value:bool(false);
+    reaction(startup) {=
         // Record the logical time at the start.
         self->start_time = get_logical_time();
     =} 
     reaction(in) {=
         printf("Received: %d.\n", in);
+        self->received_value = true;
         // Check the time of the input.
         instant_t current_time = get_logical_time();
         interval_t elapsed = current_time - self->start_time;
@@ -42,14 +43,20 @@ reactor Test {
             exit(2);            
         }
     =}
+    reaction(shutdown) {=
+        printf("Checking that communication occurred.\n");
+        if (!self->received_value) {
+            printf("ERROR: No communication occurred!\n");
+            exit(3);            
+        }
+    =}
 }
 
 main reactor DelayInt { 
-    timer t;
     d = new Delay();
     t = new Test();
     d.out -> t.in; 
-    reaction(t) -> d.in {=
+    reaction(startup) -> d.in {=
         set(d.in, 42);
     =}
 }

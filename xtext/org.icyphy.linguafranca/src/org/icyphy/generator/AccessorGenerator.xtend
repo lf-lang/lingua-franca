@@ -16,9 +16,10 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Param
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.TimeUnit
 
 /**
  * Generator for Accessors.
@@ -163,7 +164,7 @@ class AccessorGenerator extends GeneratorBase {
 		pr('''this.output("«output.name»"«IF output.type !== null», { 'type': '«removeCodeDelimiter(output.type)»'}«ENDIF»);''')
 	}
 	
-	def generateParameter(Param param) {
+	def generateParameter(Parameter param) {
 		var options = new StringJoiner(", ", "{", "}")
 		var foundOptions = false
 		if (param.type !== null) {
@@ -200,8 +201,8 @@ class AccessorGenerator extends GeneratorBase {
 			for (handler: timerReactions.get(timer)) {
 				var offset = if (timing === null) { null } else {timing.offset}
 				var period = if (timing === null) { null } else {timing.period}
-				var offsetStr = unitAdjustment(offset, "msec")
-				var periodStr = unitAdjustment(period, "msec")
+				var offsetStr = unitAdjustment(offset, TimeUnit.MSEC)
+				var periodStr = unitAdjustment(period, TimeUnit.MSEC)
 				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offsetStr», «periodStr»);''')
 			}
 		}
@@ -319,8 +320,8 @@ class AccessorGenerator extends GeneratorBase {
 		}
 		pr('''var «instance.definition.name» = this.instantiate('«instance.definition.name»', '«className»');''')
 		if (instance.definition.parameters !== null) {
-			for (param: instance.definition.parameters.assignments) {
-				pr('''«instance.definition.name».setParameter('«param.name»', «removeCodeDelimiter(param.value)»);''')
+			for (param: instance.definition.parameters) {
+				pr('''«instance.definition.name».setParameter('«param.lhs.name»', «removeCodeDelimiter(param.rhs.value)»);''')
 			}
 		}
 	}

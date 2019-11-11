@@ -6,8 +6,11 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.xtext.naming.SimpleNameProvider
 import org.eclipse.xtext.scoping.Scopes
+import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
+import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
@@ -32,22 +35,35 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 		EFFECT,
 		DEADLINE,
 		CLEFT,
-		CRIGHT,
-		PARM
+		CRIGHT
 	}
 
 	override getScope(EObject context, EReference reference) {
 		switch (context) {
 			VarRef: return getScopeForVarRef(context, reference)
+			Assignment: return getScopeForAssignment(context, reference)
 		}
 		return super.getScope(context, reference);
 	}
 
+	protected def getScopeForAssignment(Assignment assignment, EReference reference) {
+		
+		val candidates = new ArrayList<EObject>()
+		if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__LHS) {
+			return Scopes.scopeFor((assignment.eContainer as Instantiation).reactorClass.parameters)	
+		}
+		if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__RHS) {
+			return Scopes.scopeFor((assignment.eContainer.eContainer as Reactor).parameters)
+		}
+		return Scopes.scopeFor(candidates)
+	}
+
 	protected def getScopeForVarRef(VarRef variable, EReference reference) {
-		if (reference.name.equals("variable")) { // Resolve hierarchical reference
+		if (reference == LinguaFrancaPackage.Literals.VAR_REF__VARIABLE) {
+			// Resolve hierarchical reference
 			val candidates = new ArrayList<EObject>()
 			var type = RefType.NULL
-			var reactor = null as Reactor
+			var Reactor reactor = null
 			
 			if (variable.eContainer.eContainer instanceof Reactor) {
 				reactor = variable.eContainer.eContainer as Reactor	

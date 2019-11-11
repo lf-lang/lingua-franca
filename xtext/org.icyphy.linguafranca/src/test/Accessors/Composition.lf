@@ -25,7 +25,7 @@ import utilities.Stop;
 import utilities.TextDisplay;
 
 reactor Main {
-    a = new Clock(interval = 100.0);
+    a = new Clock(interval = 100 msec);
     b = new TrainableTest(correctValues = {= [0,1,2,3,4,5,6,7,8,9,10] =});
     c = new Stop();
     d = new TextDisplay();

@@ -13,8 +13,10 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
@@ -37,9 +39,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         super(definition, parent)
         this.generator = generator
         
-        // Instantiate parameters for this reactor instance.
-        for (parameter: definition.reactorClass.parameters) {
-            parameters.add(new ParameterInstance(parameter, this))
+        // Apply overrides and instantiate parameters for this reactor instance.
+		 for (parameter: definition.reactorClass.parameters) {
+		 	parameters.add(resolveParameter(parameter))
         }
         
         // Instantiate children for this reactor instance
@@ -160,6 +162,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     
     /** List of reaction instances for this reactor instance. */
     public var reactions = new LinkedList<ReactionInstance>();
+    
+    /** If non-null, then this reactor has a shutdown action that
+     *  needs to be scheduled prior to shutting down the program.
+     */
+    public var ActionInstance shutdownActionInstance = null 
 
     /** The timer instances belonging to this reactor instance. */
     public var timers = new LinkedList<TimerInstance>
@@ -208,6 +215,20 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     override String getName() {
         this.definition.name    
+    }
+    
+    /** Return the parameter instance within this reactor 
+     *  instance corresponding to the specified parameter definition.
+     *  @param parameter The parameter as an AST node.
+     *  @return The corresponding parameter instance or null if the
+     *   action does not belong to this reactor.
+     */
+    def getParameterInstance(Parameter parameter) {
+        for (paramInstance : parameters) {
+            if (paramInstance.definition === parameter) { // FIXME: this isn't working as expected. Do a string match?
+                return paramInstance
+            }
+        }
     }
 
     /** Given a reference to a port either belongs to this reactor
@@ -269,7 +290,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def lookupLocalPort(Port port) {
         // Search one of the inputs and outputs sets.
-        var ports = null as LinkedList<PortInstance>
+        var LinkedList<PortInstance> ports = null 
         if (port instanceof Input) {
             ports = this.inputs
         } else if (port instanceof Output) {
@@ -460,7 +481,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (this.definition.reactorClass.reactions !== null) {
             var ReactionInstance previousReaction = null
             var count = 0
+            
             for (Reaction reaction : reactions) {
+                
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this, count++)
                 // If there is an earlier reaction in this same reactor, then
@@ -500,15 +523,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                             port.dependentReactions.add(reactionInstance)
                             reactionInstance.dependsOnPorts.add(port)
                         } else if (variable instanceof Action) {
-                            var action = this.getActionInstance(variable)
-                            triggers.add(action)
-                            action.dependentReactions.add(reactionInstance)
-                            reactionInstance.dependsOnActions.add(action)
+                            var actionInstance = this.getActionInstance(variable)
+                            triggers.add(actionInstance)
+                            actionInstance.dependentReactions.add(reactionInstance)
+                            reactionInstance.dependsOnActions.add(actionInstance)
                         } else if (variable instanceof Timer) {
-                            var timer = this.getTimerInstance(variable)
-                            triggers.add(timer)
-                            timer.dependentReactions.add(reactionInstance)
-                            reactionInstance.dependsOnTimers.add(timer)
+                            var timerInstance = this.getTimerInstance(variable)
+                            triggers.add(timerInstance)
+                            timerInstance.dependentReactions.add(reactionInstance)
+                            reactionInstance.dependsOnTimers.add(timerInstance)
                         }
                     }
                 }
@@ -582,4 +605,57 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         result
     }
+    
+    /** Return a parameter instance given a parameter definition.
+     *  FIXME: ....
+     * @param parameter AST node that describes the parameter
+     */
+    def ParameterInstance resolveParameter(Parameter parameter) {
+		// Check for an override.
+		for (assignment : this.definition.parameters ?: emptyList) {
+			var rhs = assignment.rhs
+			if (assignment.lhs === parameter) {
+				// Parameter is overridden using a reference to another parameter.
+				if (rhs.parameter !== null) {
+					// Find the reactor that has the parameter that the assignment refers to.
+					var reactor = rhs.parameter.eContainer as Reactor
+					// Look the up the container of the parameter (in the instance hierarchy)
+					// to find the matching instance
+					var instance = this
+					var found = false
+					while (instance.parent !== null && !found) {
+						instance = instance.parent
+						if (instance.definition.reactorClass === reactor) {
+							found = true
+						}
+					}
+					if (!found) {
+						throw new InternalError("Incorrect reference to parameter :" + parameter.name);
+					}
+					var referencedParameter = instance.getParameterInstance(rhs.parameter)
+					if (referencedParameter instanceof TimeParameter) {
+						var timeParm = referencedParameter as TimeParameter
+						return new TimeParameter(parameter, parent, timeParm.value, timeParm.unit)
+					} else {
+						var valParm = referencedParameter as ValueParameter
+						return new ValueParameter(parameter, parent, valParm.value, valParm.type)
+					}
+				} else {
+					// Parameter is overridden by a type or value 
+					if (parameter.isOfTimeType) {
+						return new TimeParameter(parameter, this, rhs.time, rhs.unit)
+					} else {
+						return new ValueParameter(parameter, this, rhs.value, parameter.type)
+					}
+				}
+			}
+		}
+        // If we reached here, the parameter was not overridden. Use its default value.
+       	if (parameter.isOfTimeType) {
+       		return new TimeParameter(parameter, this, parameter.time, parameter.unit)
+       	} else {
+       		return new ValueParameter(parameter, this, GeneratorBase.removeCodeDelimiter(parameter.value),
+				GeneratorBase.removeCodeDelimiter(parameter.type))
+       	}
+	}
 }
