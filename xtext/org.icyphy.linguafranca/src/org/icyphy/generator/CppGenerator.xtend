@@ -720,7 +720,7 @@ class CppGenerator extends GeneratorBase {
 		var buildDir = new File(buildPath)
 		if(!buildDir.exists()) buildDir.mkdirs()
 
-		println("--- Running: " + cmakeCmd)
+		println("--- Running: " + cmakeCmd.join(' '))
 		var cmakeBuilder = new ProcessBuilder(cmakeCmd)
 		cmakeBuilder.directory(buildDir)
 		var cmakeProcess = cmakeBuilder.inheritIO().start()
