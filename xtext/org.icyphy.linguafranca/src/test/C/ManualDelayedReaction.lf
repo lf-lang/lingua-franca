@@ -1,0 +1,50 @@
+target C;
+
+// That's the stuff that shall be generated for the after
+reactor GeneratedDelay {
+	
+  input y_in:int;
+  output y_out:int;
+  state y_state:int(0);
+  
+  // TODO: delay in act or the schedule call?
+  physical action act;
+
+  reaction(y_in) -> act {=
+    self->y_state = y_in;
+    schedule(act, MSEC(100), NULL);
+    printf("schedule action\n");
+=}
+
+  reaction(act) -> y_out {=
+    set(y_out, self->y_state);
+  =}
+}
+
+reactor Source {
+    output out:int;
+    timer t;
+    // reaction(t) -> out after 100 msec {=
+    reaction(t) -> out {=
+        set(out, 1);
+    =} 
+}
+reactor Sink {
+	input in:int;
+	reaction(in) {=
+        interval_t elapsed = get_elapsed_logical_time();
+        printf("Nanoseconds since start: %lld.\n", elapsed);		
+	=} deadline(200 msec) {= =}
+}
+main reactor ManualDelayedReaction {
+    
+    source = new Source();
+    sink = new Sink();
+    g = new GeneratedDelay();
+    
+    // source.out -> sink.in;
+    // rewritten above
+    source.out -> g.y_in;
+    g.y_out -> sink.in;
+    
+}
