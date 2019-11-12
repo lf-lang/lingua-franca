@@ -975,11 +975,9 @@ class CGenerator extends GeneratorBase {
                 var isPhysical = "true";
                 var delay = "0LL"
                 if ((trigger as Action).delay !== null) {
-                	val parm = (trigger as Action).delay.parameter
-	                if (parm !== null) {
-	                	delay = parm.value.toString + "LL" 
-	                } else {
-	                	delay = (trigger as Action).delay.value // FIXME: revise this
+                	val timeOrValue = (trigger as Action).delay
+	                if (timeOrValue !== null) {
+	                	delay = resolveTime(timeOrValue, reactorInstance)
 	                }
                 }
 
