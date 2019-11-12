@@ -1,0 +1,51 @@
+target C;
+
+// That's the stuff that shall be generated for the after
+reactor GeneratedDelay {
+	
+  input y_in:int;
+  output y_out:int;
+  state y_state:int(0);
+  
+  physical action act(100 msec);
+
+  reaction(y_in) -> act {=
+    self->y_state = y_in;
+    schedule(act, MSEC(0), NULL);
+=}
+
+  reaction(act) -> y_out {=
+    set(y_out, self->y_state);
+  =}
+}
+
+reactor Source {
+    output out:int;
+    timer t;
+    reaction(t) -> out {=
+        set(out, 1);
+    =} 
+}
+reactor Sink {
+	input in:int;
+	reaction(in) {=
+        interval_t elapsed_logical = get_elapsed_logical_time();
+        interval_t logical = get_logical_time();
+        interval_t physical = get_physical_time();
+        printf("Nanoseconds since start: %lld %lld %lld.\n", logical, physical, elapsed_logical);
+        if (elapsed_logical != MSEC(100)) {
+        	printf("Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
+            exit(1);
+        }		
+	=}
+}
+main reactor ActionDelay {
+    
+    source = new Source();
+    sink = new Sink();
+    g = new GeneratedDelay();
+    
+    source.out -> g.y_in;
+    g.y_out -> sink.in;
+    
+}
