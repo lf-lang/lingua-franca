@@ -11,7 +11,9 @@ main reactor DelayedAction {
     
     reaction(a) {=
         interval_t elapsed = get_elapsed_logical_time();
+        interval_t elapsed_physical = get_elapsed_physical_time();
         printf("Nanoseconds since start: %lld.\n", elapsed);
+        printf("Physical nanoseconds since start: %lld.\n", elapsed_physical);
         interval_t expected = self->count * 1000000000LL + 100000000LL;
         self->count++;
         if (elapsed != expected) {
