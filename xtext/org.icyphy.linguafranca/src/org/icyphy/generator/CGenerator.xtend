@@ -39,6 +39,7 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 
 /**
  * Generator for C target.
@@ -990,6 +991,8 @@ class CGenerator extends GeneratorBase {
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 // FIXME: Is there a better way to check than name matching here?
+                // Yes, there is: LinguaFrancaPackage.Literals.VAR_REF__SHUTDOWN
+                // However, this feature was added to the grammar in the wrong place and has to be moved first...
                 if (trigger.name.equals("shutdown")) {
                     shutdownActionInstances.add(triggerInstance as ActionInstance)
                 }
