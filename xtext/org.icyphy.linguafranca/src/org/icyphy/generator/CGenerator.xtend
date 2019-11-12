@@ -48,7 +48,6 @@ class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
-    var tmpVariableCount = 0
 
     // Indicator of whether to generate multithreaded code and how many by default.
     var numberOfThreads = 0
