@@ -48,7 +48,6 @@ class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
-    var tmpVariableCount = 0
 
     // Indicator of whether to generate multithreaded code and how many by default.
     var numberOfThreads = 0
@@ -583,7 +582,7 @@ class CGenerator extends GeneratorBase {
             pr("}")
             
             // Now generate code for the deadline violation function, if there is one.
-            if (reaction.localDeadline !== null) {
+            if (reaction.deadline !== null) {
                 // The following name has to match the choice in generateReactionStructs
                 val deadlineFunctionName = reactor.name.toLowerCase + '_deadline_function' + reactionIndex
 
@@ -591,8 +590,8 @@ class CGenerator extends GeneratorBase {
                 indent();
                 pr(reactionInitialization.toString)
                 // Code verbatim from 'deadline'
-                prSourceLineNumber(reaction.localDeadline.time)
-                pr(removeCodeDelimiter(reaction.localDeadline.deadlineCode))
+                prSourceLineNumber(reaction.deadline.time)
+                pr(removeCodeDelimiter(reaction.deadline.deadlineCode))
                 unindent()
                 pr("}")
             }
@@ -713,7 +712,7 @@ class CGenerator extends GeneratorBase {
                 selfStructArgument = ", NULL"
             }
             var deadlineFunctionPointer = ", NULL"
-            if (reaction.definition.localDeadline !== null) {
+            if (reaction.definition.deadline !== null) {
                 // The following has to match the name chosen in generateReactions
                 val deadlineFunctionName = reactorInstance.definition.reactorClass.name.toLowerCase
                     + '_deadline_function' + reaction.reactionIndex
@@ -976,11 +975,9 @@ class CGenerator extends GeneratorBase {
                 var isPhysical = "true";
                 var delay = "0LL"
                 if ((trigger as Action).delay !== null) {
-                	val parm = (trigger as Action).delay.parameter
-	                if (parm !== null) {
-	                	delay = parm.value.toString + "LL" 
-	                } else {
-	                	delay = (trigger as Action).delay.value // FIXME: revise this
+                	val timeOrValue = (trigger as Action).delay
+	                if (timeOrValue !== null) {
+	                	delay = resolveTime(timeOrValue, reactorInstance)
 	                }
                 }
 
@@ -1145,8 +1142,8 @@ class CGenerator extends GeneratorBase {
         }
         // Handle reaction local deadlines.
         for (reaction: instance.reactions) {
-        	if (reaction.definition.localDeadline !== null) {
-            	var deadline = resolveTime(reaction.definition.localDeadline.time, instance)
+        	if (reaction.definition.deadline !== null) {
+            	var deadline = resolveTime(reaction.definition.deadline.time, instance)
                 pr(initializeTriggerObjects, reactionStructName(reaction) + '.local_deadline = ' + deadline + ';')
             }
         }
