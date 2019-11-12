@@ -102,7 +102,7 @@ Effect:
 VarRef: variable=[Variable] 
     | container=[Instantiation] '.' variable=[Variable]
     | startup='startup'
-    | shutdown='shutdown'
+    | shutdown='shutdown' // FIXME: this should not be here. It means it could also appear in connections, and other places where it doesn't belong
 ;
 
 Assignment:
