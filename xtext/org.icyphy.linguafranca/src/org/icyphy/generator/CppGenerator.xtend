@@ -697,7 +697,7 @@ class CppGenerator extends GeneratorBase {
 		install(TARGETS «filename»)
 		
 		«IF target.hasProperty("cmake_include")»
-			include(«resource.URI.toFileString.extractDir»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
+			include(«resource.URI.toString.extractDir»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
 		«ENDIF»
 	'''
 
@@ -720,7 +720,7 @@ class CppGenerator extends GeneratorBase {
 		var buildDir = new File(buildPath)
 		if(!buildDir.exists()) buildDir.mkdirs()
 
-		println("--- Running cmake:")
+		println("--- Running: " + cmakeCmd.join(' '))
 		var cmakeBuilder = new ProcessBuilder(cmakeCmd)
 		cmakeBuilder.directory(buildDir)
 		var cmakeProcess = cmakeBuilder.inheritIO().start()
