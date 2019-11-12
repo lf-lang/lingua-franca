@@ -117,7 +117,8 @@ class GeneratorBase {
 		// This is how deadlines are handled, but the compiler
 		// complains about time being a String.
 		
-		// action.delay = resolveTime(reaction.delay.time, delayReactor)
+		action.delay = reaction.delay.time
+
 		action.name = "act"
 		delayReactor.actions.add(action)
 
