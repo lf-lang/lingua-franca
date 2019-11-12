@@ -582,7 +582,7 @@ class CGenerator extends GeneratorBase {
             pr("}")
             
             // Now generate code for the deadline violation function, if there is one.
-            if (reaction.localDeadline !== null) {
+            if (reaction.deadline !== null) {
                 // The following name has to match the choice in generateReactionStructs
                 val deadlineFunctionName = reactor.name.toLowerCase + '_deadline_function' + reactionIndex
 
@@ -590,8 +590,8 @@ class CGenerator extends GeneratorBase {
                 indent();
                 pr(reactionInitialization.toString)
                 // Code verbatim from 'deadline'
-                prSourceLineNumber(reaction.localDeadline.time)
-                pr(removeCodeDelimiter(reaction.localDeadline.deadlineCode))
+                prSourceLineNumber(reaction.deadline.time)
+                pr(removeCodeDelimiter(reaction.deadline.deadlineCode))
                 unindent()
                 pr("}")
             }
@@ -712,7 +712,7 @@ class CGenerator extends GeneratorBase {
                 selfStructArgument = ", NULL"
             }
             var deadlineFunctionPointer = ", NULL"
-            if (reaction.definition.localDeadline !== null) {
+            if (reaction.definition.deadline !== null) {
                 // The following has to match the name chosen in generateReactions
                 val deadlineFunctionName = reactorInstance.definition.reactorClass.name.toLowerCase
                     + '_deadline_function' + reaction.reactionIndex
@@ -1142,8 +1142,8 @@ class CGenerator extends GeneratorBase {
         }
         // Handle reaction local deadlines.
         for (reaction: instance.reactions) {
-        	if (reaction.definition.localDeadline !== null) {
-            	var deadline = resolveTime(reaction.definition.localDeadline.time, instance)
+        	if (reaction.definition.deadline !== null) {
+            	var deadline = resolveTime(reaction.definition.deadline.time, instance)
                 pr(initializeTriggerObjects, reactionStructName(reaction) + '.local_deadline = ' + deadline + ';')
             }
         }
