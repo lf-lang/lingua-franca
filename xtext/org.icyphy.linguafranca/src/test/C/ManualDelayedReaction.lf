@@ -8,12 +8,11 @@ reactor GeneratedDelay {
   state y_state:int(0);
   
   // TODO: delay in act or the schedule call?
-  physical action act;
+  physical action act(0 msec);
 
   reaction(y_in) -> act {=
     self->y_state = y_in;
     schedule(act, MSEC(100), NULL);
-    printf("schedule action\n");
 =}
 
   reaction(act) -> y_out {=
@@ -32,8 +31,14 @@ reactor Source {
 reactor Sink {
 	input in:int;
 	reaction(in) {=
-        interval_t elapsed = get_elapsed_logical_time();
-        printf("Nanoseconds since start: %lld.\n", elapsed);		
+        interval_t elapsed_logical = get_elapsed_logical_time();
+        interval_t logical = get_logical_time();
+        interval_t physical = get_physical_time();
+        printf("Nanoseconds since start: %lld %lld %lld.\n", logical, physical, elapsed_logical);
+        if (elapsed_logical < MSEC(100)) {
+        	printf("Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
+            exit(1);
+        }		
 	=} deadline(200 msec) {= =}
 }
 main reactor ManualDelayedReaction {
