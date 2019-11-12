@@ -1,6 +1,5 @@
-target C(
-    run = "bin/DelayedReaction -fast -timeout 5 sec"
-);
+target C;
+
 reactor Source {
     output out:int;
     timer t;
@@ -8,6 +7,9 @@ reactor Source {
         set(out, 1);
     =} 
 }
+
+
+
 reactor Sink {
 	input in:int;
 	reaction(in) {=
@@ -21,7 +23,9 @@ main reactor DelayedReaction {
     sink = new Sink();
     source.out -> sink.in;
     
-    
+    /*
+     * 
+     * stuff from other example
     timer t(0, 1 sec);
     logical action a;
     state count:int(0);
@@ -41,4 +45,5 @@ main reactor DelayedReaction {
             exit(1);
         }
     =}
+    */
 }
