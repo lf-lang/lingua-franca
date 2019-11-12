@@ -30,7 +30,6 @@ Reactor:
    	| (actions += Action)
    	| (instantiations += Instantiation)
    	| (connections += Connection)
-   	| (deadlines += Deadline)
    	| (reactions += Reaction)
    	| (mutations += Mutation))*
    	'}';
@@ -59,12 +58,12 @@ Reaction:
 	(sources+=VarRef (',' sources+=VarRef)*)?
 	('->' effects+=VarRef (',' effects+=VarRef)* (delay=Delay)?)?
 	code=CODE
-	(localDeadline=LocalDeadline)?;
+	(deadline=Deadline)?;
 	
 Delay:
 	'after' time=TimeOrValue;
 
-LocalDeadline:
+Deadline:
     'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE;
     
 Mutation:
@@ -82,9 +81,6 @@ Instantiation:
 
 Connection:
     leftPort=VarRef '->' rightPort=VarRef ';';
-
-Deadline:
-    'deadline' '(' port=VarRef ',' delay=TimeOrValue ',' action=[Action] ')' ';';
 
 KEYWORD:
 	'input' | 'state' | 'output' | 'timer' | 'action';
@@ -105,7 +101,7 @@ Effect:
 VarRef: variable=[Variable] 
     | container=[Instantiation] '.' variable=[Variable]
     | startup='startup'
-    | shutdown='shutdown'
+    | shutdown='shutdown' // FIXME: this should not be here. It means it could also appear in connections, and other places where it doesn't belong
 ;
 
 Assignment:
