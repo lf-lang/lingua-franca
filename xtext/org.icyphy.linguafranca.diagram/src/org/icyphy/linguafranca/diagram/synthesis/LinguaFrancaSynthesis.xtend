@@ -44,6 +44,7 @@ import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
@@ -421,19 +422,31 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		)
 		
 		if (timer.timing !== null) {
-			val timing = newArrayList
+			val labelParts = newArrayList
 			if (timer.timing.offset !== null) {
-				timing += timer.timing.offset.time + timer.timing.offset.unit.name()
+				labelParts += timer.timing.offset.toText
 			}
 			if (timer.timing.period !== null) {
-				timing += timer.timing.period.time + timer.timing.period.unit.name()
+				labelParts += timer.timing.period.toText
 			}
-			if (!timing.empty) {
-				node.addOutsideBottomCenteredNodeLabel(timing.join("(", ", ", ")")[it])
+			if (!labelParts.empty) {
+				node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it])
 			}
 		}
 
 		return figure
+	}
+	
+	private def toText(TimeOrValue tov) {
+		if (tov.parameter !== null) {
+			return tov.parameter.name
+		} else if (tov.value !== null) {
+			return tov.value
+		} else if (tov.unit === TimeUnit.NONE) {
+			return Integer.toString(tov.time)
+		} else {
+			return tov.time + "" + tov.unit.literal
+		}
 	}
 	
 	private def hasContent(Reactor reactor) {
