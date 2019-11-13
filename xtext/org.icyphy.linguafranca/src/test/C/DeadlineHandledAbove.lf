@@ -1,0 +1,38 @@
+// Test a deadline where the deadline violation produces
+// an output and the container reacts to that output.
+target C;
+reactor Deadline(threshold:time(100 msec)) {
+    input x:int;
+    output deadline_violation:bool;
+    reaction(x) -> deadline_violation {=
+        printf("ERROR: Deadline violation was not detected!\n");
+        exit(1);
+    =} deadline(threshold) {=
+        printf("Deadline violation detected.\n");
+        set(deadline_violation, true);
+    =}
+}
+main reactor DeadlineHandledAbove {
+    state violation_detected:bool(false);
+    d = new Deadline(threshold = 10 msec);
+    reaction(startup) -> d.x {=
+        struct timespec sleep_time = {(time_t) 0, (long)20000000};
+        struct timespec remaining_time;
+        nanosleep(&sleep_time, &remaining_time);
+        set(d.x, 42);
+    =}
+    reaction(d.deadline_violation) {=
+        if (d.deadline_violation) {
+            printf("Output successfully produced by deadline handler.\n");
+            self->violation_detected = true;
+        }
+    =}
+    reaction(shutdown) {=
+        if (self->violation_detected) {
+            printf("SUCCESS. Test passes.\n");
+        } else {
+            printf("FAILURE. Container did not react to deadline violation.\n");
+            exit(2);
+        }
+    =}
+} 
