@@ -76,24 +76,62 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		rootNode.addLayoutParam(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
 		rootNode.addLayoutParam(CoreOptions.DIRECTION, Direction.RIGHT)
-		rootNode.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
-		rootNode.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
-		rootNode.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
-		rootNode.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
+		rootNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
+		rootNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
+		rootNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
+		rootNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
 
-		model.prepareStructureAccess() // FIXME Usually Xtext does this
-		
-		// Find main
-		val main = model.reactors.findFirst["main".equalsIgnoreCase(name)]
-		if (main !== null && main.hasContent) {
-			rootNode.children += main.transformReactorNetwork(emptyMap, emptyMap)
-		} else {
-			val message = createNode()
-			message.addRoundedRectangle(4, 4)
-			message.KContainerRendering.addText("No main reactor with content")
+		try {
+			model.prepareStructureAccess() // FIXME Usually Xtext does this
+			
+			// Find main
+			val main = model.reactors.findFirst[main]
+			if (main !== null && main.hasContent) {
+				rootNode.children += main.transformReactorNetwork(emptyMap, emptyMap)
+			} else {
+				val messageNode = createNode()
+				messageNode.addErrorMessage("No Main", "Cannot find main reactor with content.")
+				rootNode.children += messageNode
+			}
+		} catch (Exception e) {
+			e.printStackTrace
+			
+			val messageNode = createNode()
+			messageNode.addErrorMessage("Error in Diagram Synthesis", e.class.simpleName + " occurred. Could not create diagram.")
+			rootNode.children += messageNode
 		}
 
 		return rootNode
+	}
+	
+	private def addErrorMessage(KNode node, String title, String message) {
+		node.addRectangle() => [
+            invisible = true
+            addRoundedRectangle(7, 7) => [
+                setGridPlacement(1)
+                lineWidth = 2
+                //title
+                if (title !== null) {
+	                addText(title) => [
+	                    fontSize = 12
+	                    setFontBold = true
+	                    foreground = Colors.RED
+	                    setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+	                    suppressSelectability()
+	                ]
+                }
+                //message
+                if (message !== null) {
+	                addText(message) => [
+                        if (title !== null) {
+                            setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0);
+                        } else {
+                            setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0);
+                        }
+	                ]
+	            }
+            ]
+		]
 	}
 
 	private def List<KNode> transformReactorNetwork(Reactor reactor, Map<String, KPort> parentInputPorts,
