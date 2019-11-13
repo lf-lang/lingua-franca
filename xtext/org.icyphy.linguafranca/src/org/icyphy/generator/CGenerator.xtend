@@ -445,22 +445,40 @@ class CGenerator extends GeneratorBase {
             }
         }
         // Finally, handle reactions that are triggered by outputs
-        // of contained reactors.
+        // of contained reactors. Have to be careful to not duplicate
+        // the struct entries if multiple reactions refer to the same
+        // contained output.
+        var included = new HashSet<Output>
         for (reaction : reactor.reactions) {
-            if (reaction.triggers !== null) {
-                for (trigger: reaction.triggers) {
-                    if (trigger.variable instanceof Output) {
-                        // Reaction is triggered by an output of a contained reactor.
-                        val port = trigger.variable as Output
-                        pr(
-                            body,
-                            removeCodeDelimiter(port.type) + '* __' + trigger.container.name + '_' + port.name + ';'
-                        )
-                        pr(
-                            body,
-                            'bool* __' + trigger.container.name + '_' + port.name + '_is_present;'
-                        )
-                    }
+            for (trigger: reaction.triggers ?: emptyList) {
+                if (trigger.variable instanceof Output && !included.contains(trigger.variable)) {
+                    // Reaction is triggered by an output of a contained reactor.
+                    val port = trigger.variable as Output
+                    included.add(port)
+                    pr(
+                        body,
+                        removeCodeDelimiter(port.type) + '* __' + trigger.container.name + '_' + port.name + ';'
+                    )
+                    pr(
+                        body,
+                        'bool* __' + trigger.container.name + '_' + port.name + '_is_present;'
+                    )
+                }
+            }
+            // Handle reading (but not triggered by) outputs of contained reactors.
+            for (source: reaction.sources ?: emptyList) {
+                if (source.variable instanceof Output && !included.contains(source.variable)) {
+                    // Reaction reads an output of a contained reactor.
+                    val port = source.variable as Output
+                    included.add(port)
+                    pr(
+                        body,
+                        removeCodeDelimiter(port.type) + '* __' + source.container.name + '_' + port.name + ';'
+                    )
+                    pr(
+                        body,
+                        'bool* __' + source.container.name + '_' + port.name + '_is_present;'
+                    )
                 }
             }
         }
@@ -524,35 +542,31 @@ class CGenerator extends GeneratorBase {
             // E.g., if the contained reactor is named 'c' and its output
             // port is named 'out', then c.out and c.out_is_present are
             // defined so that they can be used in the verbatim code.
-            if (reaction.triggers !== null && reaction.triggers.length > 0) {
-                for (VarRef trigger : reaction.triggers) {
-                    if (trigger.variable instanceof Port) {
-                        generatePortVariablesInReaction(reactionInitialization, trigger)
-                    } else if (trigger.variable instanceof Action) {
-                        pr(
-                            reactionInitialization,
-                            "trigger_t* " + trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
+            for (VarRef trigger : reaction.triggers ?: emptyList) {
+                if (trigger.variable instanceof Port) {
+                    generatePortVariablesInReaction(reactionInitialization, trigger)
+                } else if (trigger.variable instanceof Action) {
+                    pr(
+                        reactionInitialization,
+                        "trigger_t* " + trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
+                    );
+                    actionsAsTriggers.add(trigger.variable as Action);
+                    // If the action has a type, create variables for accessing the value.
+                    val type = (trigger.variable as Action).type
+                    val valuePointer = trigger.variable.name + '->value'
+                    // Create the _has_value variable.
+                    pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_value = (' + valuePointer + ' != NULL);')
+                    // Create the _value variable if there is a type.
+                    if (type !== null) {
+                        // Create the value variable, but initialize it only if the pointer is not null.
+                        pr(reactionInitialization, type + ' ' + trigger.variable.name + '_value;')
+                        pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_value) '
+                            + trigger.variable.name + '_value = *(' + '(' + type + '*)' + valuePointer + ');'
                         );
-                        actionsAsTriggers.add(trigger.variable as Action);
-                        // If the action has a type, create variables for accessing the value.
-                        val type = (trigger.variable as Action).type
-                        val valuePointer = trigger.variable.name + '->value'
-                        // Create the _has_value variable.
-                        pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_value = (' + valuePointer + ' != NULL);')
-                        // Create the _value variable if there is a type.
-                        if (type !== null) {
-                            // Create the value variable, but initialize it only if the pointer is not null.
-                            pr(reactionInitialization, type + ' ' + trigger.variable.name + '_value;')
-                            pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_value) '
-                                + trigger.variable.name + '_value = *(' + '(' + type + '*)' + valuePointer + ');'
-                            );
-                        }
-                    } else if (trigger.variable instanceof Output) {
-                        // FIXME: triggered by contained output
-                        reportError(trigger, "(FIXME) Failed to handle hierarchical reference: " + trigger)
                     }
                 }
-            } else {
+            }
+            if (reaction.triggers === null || reaction.triggers.size === 0) {
                 // No triggers are given, which means react to any input.
                 // Declare an argument for every input.
                 // NOTE: this does not include contained outputs. 
@@ -562,10 +576,8 @@ class CGenerator extends GeneratorBase {
             }
             // Define argument for non-triggering inputs.
             for (VarRef src : reaction.sources ?: emptyList) {
-                if (src instanceof Port) {
+                if (src.variable  instanceof Port) {
                     generatePortVariablesInReaction(reactionInitialization, src)
-                } else {
-                    reportError(src, "(FIXME) Failed to handle hierarchical reference: " + src)
                 }
             }
 
@@ -1147,6 +1159,18 @@ class CGenerator extends GeneratorBase {
             for (effect : reaction.effects ?: emptyList) {
                 // Sending to input of contained reactor
                 if (effect.variable instanceof Input) {
+                    return false
+                }
+            }
+            for (trigger : reaction.triggers ?: emptyList) {
+                if (trigger.variable instanceof Output) {
+                    // Triggered by the output of a contained reactor.
+                    return false
+                }
+            }
+            for (reading : reaction.sources ?: emptyList) {
+                if (reading.variable instanceof Output) {
+                    // Reading the output of a contained reactor.
                     return false
                 }
             }
