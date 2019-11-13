@@ -225,7 +225,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				if (trigger.variable instanceof Action) {
 					actionDestinations.put(trigger.variable as Action, reaction)		
 				} else {
-					val src = if (parentInputPorts.containsKey(trigger.variable)) {
+					val src = if (trigger.container !== null) {
+						outputPorts.get(trigger.container, trigger.variable)
+					} else if (parentInputPorts.containsKey(trigger.variable)) {
 						parentInputPorts.get(trigger.variable)
 					} else if (timerNodes.containsKey(trigger.variable)) {
 						timerNodes.get(trigger.variable)
