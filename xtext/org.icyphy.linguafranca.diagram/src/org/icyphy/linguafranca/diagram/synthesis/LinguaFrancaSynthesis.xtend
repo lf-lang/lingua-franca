@@ -9,9 +9,12 @@ import de.cau.cs.kieler.klighd.kgraph.KLabel
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Colors
+import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KPolyline
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
+import de.cau.cs.kieler.klighd.krendering.KText
 import de.cau.cs.kieler.klighd.krendering.LineStyle
+import de.cau.cs.kieler.klighd.krendering.Underline
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions
@@ -65,10 +68,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 	
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
+	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
 	
 	override getDisplayedSynthesisOptions() {
 		return #[
-			SHOW_INSTANCE_NAMES
+			SHOW_INSTANCE_NAMES,
+			SHOW_REACTION_CODE
 		]
 	}
 	
@@ -393,12 +398,67 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	 * Creates the visual representation of a reaction node
 	 */
 	private def addReactionFigure(KNode node, Reaction reaction) {
-		node.setMinimalNodeSize(45, 15)
+		val minHeight = 15
+		node.setMinimalNodeSize(45, minHeight)
 
-		val figure = node.addRectangle()
-		figure.lineWidth = 1
-		figure.foreground = Colors.GRAY_45
-		figure.background = Colors.GRAY_65
+		var figure = node.addRectangle() => [
+			// style
+			lineWidth = 1
+			foreground = Colors.GRAY_45
+			background = Colors.GRAY_65
+			
+			// optional code content
+			if (SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty) {
+				addText(reaction.code) => [
+					associateWith(reaction)
+					fontSize = 6
+					setSurroundingSpace(5, 0)
+					horizontalAlignment = HorizontalAlignment.LEFT
+					noSelectionStyle
+				]
+			}
+		]
+		
+		if (reaction.deadline !== null) {
+			val prev = figure
+			figure = node.addRectangle() => [// surround by invisible container
+				invisible = true
+				gridPlacement = 1
+				
+				children += prev // nest current one
+				prev.setGridPlacementData(0, minHeight / 2)
+				addRectangle() => [ // add new one
+					associateWith(reaction.deadline)
+					setGridPlacementData(0, minHeight / 2)
+					gridPlacement = 1
+					
+					// style
+					lineWidth = 1
+					foreground = Colors.GRAY_45
+					background = Colors.BROWN
+					
+					// delay
+					addText(reaction.deadline.time.toText) => [
+						associateWith(reaction.deadline.time)
+						fontBold = true
+						fontSize = 7
+						setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+						underlineSelectionStyle
+					]
+					
+					// optional code content
+					if (SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty) {
+						addText(reaction.code) => [
+							associateWith(reaction.deadline)
+							fontSize = 6
+							setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+							horizontalAlignment = HorizontalAlignment.LEFT
+							noSelectionStyle
+						]
+					}
+				]
+			]
+		}
 
 		return figure
 	}
@@ -451,6 +511,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	private def hasContent(Reactor reactor) {
 		return !reactor.reactions.empty || !reactor.instantiations.empty
+	}
+	
+	private def noSelectionStyle(KText text) {
+		text.selectionTextStrikeout = false // prevents default selection style
+	}
+	
+	private def underlineSelectionStyle(KText text) {
+		text.selectionTextUnderline = Underline.SINGLE
 	}
 	
 	static var LabelDecorationConfigurator _inlineLabelConfigurator; // ONLY for use in applyOnEdgeStyle
