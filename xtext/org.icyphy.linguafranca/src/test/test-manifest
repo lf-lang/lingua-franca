@@ -1,3 +1,4 @@
+ActionDelay.lf
 AsyncCallback.lf
 AsyncCallback2.lf
 CompositionC.lf
@@ -5,6 +6,7 @@ CompositionCThreaded.lf
 CountTest.lf
 DanglingOutput.lf
 Deadline.lf
+DeadlineHandledAbove.lf
 DelayedAction.lf
 DelayInt.lf
 DelayIntThreaded.lf
@@ -24,6 +26,7 @@ ImportCThreaded.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf
+ReadOutputOfContainedReactor.lf
 Schedule.lf
 SendingInsideC.lf
 SendingInside2.lf
