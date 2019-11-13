@@ -25,6 +25,7 @@ ImportCThreaded.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf
+ReadOutputOfContainedReactor.lf
 Schedule.lf
 SendingInsideC.lf
 SendingInside2.lf
