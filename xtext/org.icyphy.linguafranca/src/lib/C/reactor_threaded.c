@@ -52,7 +52,7 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
         	extra_delay += time_adjustment;
         }
  	}
-	int return_value = __schedule(trigger, trigger->offset + extra_delay, value);
+	int return_value = __schedule(trigger, extra_delay, value);
  	pthread_mutex_unlock(&mutex);
 	// Notify the main thread in case it is waiting for physical time to elapse.
 	pthread_cond_signal(&event_q_changed);

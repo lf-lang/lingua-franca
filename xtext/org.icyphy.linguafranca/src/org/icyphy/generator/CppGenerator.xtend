@@ -11,31 +11,31 @@
 
 package org.icyphy.generator
 
+import java.io.File
+import java.nio.file.Paths
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Hashtable
+import java.util.List
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import java.util.Hashtable
-import java.io.File
-import java.nio.file.Paths
-import org.icyphy.linguaFranca.Reactor
-import java.text.SimpleDateFormat
-import java.util.Date
-import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Import
-import org.icyphy.linguaFranca.Target
-import org.icyphy.linguaFranca.State
-import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Output
-import java.util.List
-import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.Assignment
-import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Assignment
+import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.State
+import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
+import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.VarRef
 
 class CppGenerator extends GeneratorBase {
 
@@ -291,7 +291,7 @@ class CppGenerator extends GeneratorBase {
 	'''
 
 	def declareDeadlineHandlers(Reactor r) '''
-		«FOR n : r.reactions.filter([Reaction x | x.localDeadline !== null]) BEFORE '// local deadline handlers\n' AFTER '\n'»
+		«FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '// local deadline handlers\n' AFTER '\n'»
 			void «n.name»_deadline_handler();
 		«ENDFOR»
 	'''
@@ -305,9 +305,9 @@ class CppGenerator extends GeneratorBase {
 	'''
 
 	def implementReactionDeadlineHandlers(Reactor r) '''
-		«FOR n : r.reactions.filter([Reaction x | x.localDeadline !== null]) BEFORE '\n' SEPARATOR '\n'»
+		«FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
 			void «r.name»::«n.name»_deadline_handler() {
-			  «n.localDeadline.deadlineCode.removeCodeDelimiter»
+			  «n.deadline.deadlineCode.removeCodeDelimiter»
 			}
 		«ENDFOR»
 	'''
@@ -532,8 +532,8 @@ class CppGenerator extends GeneratorBase {
 		«n.declareTriggers»
 		«n.declareDependencies»
 		«n.declareAntidependencies»
-		«IF n.localDeadline !== null»
-			«n.name».set_deadline(«n.localDeadline.time.trimmedValue», [this]() { «n.name»_deadline_handler(); });
+		«IF n.deadline !== null»
+			«n.name».set_deadline(«n.deadline.time.trimmedValue», [this]() { «n.name»_deadline_handler(); });
 		«ENDIF»
 	'''
 
