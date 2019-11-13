@@ -23,6 +23,9 @@ instant_t current_time = 0LL;
 // Logical time at the start of execution.
 interval_t start_time = 0LL;
 
+// Physical time at the start of the execution.
+struct timespec physicalStartTime;
+
 // Indicator that the execution should stop after the completion of the
 // current logical time. This can be set to true by calling the stop()
 // function in a reaction.
@@ -57,6 +60,14 @@ instant_t get_physical_time() {
     return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec;
 }
 
+/** Return the elapsed physical time in nanoseconds. */
+instant_t get_elapsed_physical_time() {
+    struct timespec physicalTime;
+    clock_gettime(CLOCK_REALTIME, &physicalTime);
+    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec -
+    (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+}
+
 /**
  * Specialized version of malloc used by Lingua Franca for action values
  * and messages contained in dynamically allocated memory.
@@ -85,7 +96,7 @@ pqueue_t* recycle_q;   // For recycling malloc'd events.
 pqueue_t* free_q;      // For free malloc'd values carried by events.
 
 handle_t __handle = 0;
-struct timespec physicalStartTime;
+
 
 // ********** Priority Queue Support Start
 

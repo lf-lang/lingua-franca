@@ -17,7 +17,7 @@
 // should only be made within reactions.
 // If you need asynchronous calls, then use reactor_threaded.c.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
-    return __schedule(trigger, trigger->offset + extra_delay, value);
+    return __schedule(trigger, extra_delay, value);
 }
 
 // Advance logical time to the lesser of the specified time or the

@@ -8,7 +8,6 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
-import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -499,23 +498,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
                 // Establish (anti-)dependencies based
                 // on what reactions use and produce.
-                // Only consider inputs and outputs, ignore actions and timers.
-                var EList<VarRef> deps = null;
-                // First handle dependencies.
-                // Collect all the triggering ports, actions, and timers
-                // and also all the ports that the reaction reads.
-                if (reaction.getTriggers() !== null) {
-                    deps = reaction.getTriggers();
-                }
-                if (reaction.getSources() !== null) {
-                    if (deps !== null) {
-                        deps.addAll(reaction.getSources());
+                var dependsOn = reaction.triggers;
+                if (reaction.sources !== null) {
+                    if (dependsOn !== null) {
+                        dependsOn.addAll(reaction.sources);
                     } else {
-                        deps = reaction.getSources();
+                        dependsOn = reaction.sources;
                     }
                 }
-                if (deps !== null) {
-                    for (VarRef dep : deps) {
+                // Now, given the AST references for what this reaction depends
+                // on, construct the corresponding instance references.
+                if (dependsOn !== null) {
+                    for (dep : dependsOn) {
                         var variable = dep.getVariable()
                         if (variable instanceof Port) {
                             var port = this.getPortInstance(dep)
@@ -536,14 +530,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     }
                 }
 
-                // Then handle anti-dependencies
-                // If the reaction produces an output from this reactor
-                // instance,
-                // then create a PortInstance for that port (if it does not
-                // already exist)
-                // and establish the dependency on that port.
+                // Then handle anti-dependencies, which are the ports
+                // to which this reaction sends outputs. Actions are not
+                // included because they always incur a microstep delay.
+                // NOTE: Here is where we could include "dotted links"
+                // in the precedence graph to capture dependencies with
+                // logical time delays.
                 if (reaction.effects !== null) {
-                    for (VarRef antidep : reaction.getEffects()) {
+                    for (antidep : reaction.effects) {
                         if (antidep.variable instanceof Port) {
                             var port = this.getPortInstance(antidep);
                             port.dependsOnReactions.add(reactionInstance);
