@@ -38,15 +38,18 @@ import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.TimeOrValue
+import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
-import org.icyphy.linguaFranca.TimeUnit
 
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
@@ -76,40 +79,74 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		rootNode.addLayoutParam(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
 		rootNode.addLayoutParam(CoreOptions.DIRECTION, Direction.RIGHT)
-		rootNode.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
-		rootNode.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
-		rootNode.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
-		rootNode.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
+		rootNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
+		rootNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
+		rootNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
+		rootNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
 
-		model.prepareStructureAccess() // FIXME Usually Xtext does this
-		
-		// Find main
-		val main = model.reactors.findFirst["main".equalsIgnoreCase(name)]
-		if (main !== null && main.hasContent) {
-			rootNode.children += main.transformReactorNetwork(emptyMap, emptyMap)
-		} else {
-			val message = createNode()
-			message.addRoundedRectangle(4, 4)
-			message.KContainerRendering.addText("No main reactor with content")
+		try {
+			// Find main
+			val main = model.reactors.findFirst[main]
+			if (main !== null && main.hasContent) {
+				rootNode.children += main.transformReactorNetwork(emptyMap, emptyMap)
+			} else {
+				val messageNode = createNode()
+				messageNode.addErrorMessage("No Main", "Cannot find main reactor with content.")
+				rootNode.children += messageNode
+			}
+		} catch (Exception e) {
+			e.printStackTrace
+			
+			val messageNode = createNode()
+			messageNode.addErrorMessage("Error in Diagram Synthesis", e.class.simpleName + " occurred. Could not create diagram.")
+			rootNode.children += messageNode
 		}
 
 		return rootNode
 	}
+	
+	private def addErrorMessage(KNode node, String title, String message) {
+		node.addRectangle() => [
+            invisible = true
+            addRoundedRectangle(7, 7) => [
+                setGridPlacement(1)
+                lineWidth = 2
+                // title
+                if (title !== null) {
+	                addText(title) => [
+	                    fontSize = 12
+	                    setFontBold = true
+	                    foreground = Colors.RED
+	                    setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+	                    suppressSelectability()
+	                ]
+                }
+                // message
+                if (message !== null) {
+	                addText(message) => [
+                        if (title !== null) {
+                            setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0);
+                        } else {
+                            setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0);
+                        }
+	                ]
+	            }
+            ]
+		]
+	}
 
-	private def List<KNode> transformReactorNetwork(Reactor reactor, Map<String, KPort> parentInputPorts,
-		Map<String, KPort> parentOutputPorts) {
-		val nodes = newArrayList
-		val inputPorts = HashBasedTable.<String, String, KPort>create // FIXME should be <Reactor, Input, KPort>
-		val outputPorts = HashBasedTable.<String, String, KPort>create // FIXME should be <Reactor, Input, KPort>
-		val reactionNodes = newHashMap
-		val timerNodes = newHashMap
+	private def List<KNode> transformReactorNetwork(Reactor reactor, Map<Input, KPort> parentInputPorts, Map<Output, KPort> parentOutputPorts) {
+		val nodes = <KNode>newArrayList
+		val inputPorts = HashBasedTable.<Instantiation, Input, KPort>create
+		val outputPorts = HashBasedTable.<Instantiation, Output, KPort>create
+		val reactionNodes = <Reaction, KNode>newHashMap
+		val timerNodes = <Timer, KNode>newHashMap
 		
 		// Transform instances
 		for (instance : reactor.instantiations) {
 			val node = createNode()
 			nodes += node
 
-			val name = instance.name
 			val reactorClass = instance.reactorClass
 
 			node.associateWith(reactorClass)
@@ -151,15 +188,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 			// Create ports
 			for (input : reactorClass.inputs.reverseView) {
-				inputPorts.put(name, input.name, node.addIOPort(input.name, true))
+				inputPorts.put(instance, input, node.addIOPort(input.name, true))
 			}
 			for (output : reactorClass.outputs) {
-				outputPorts.put(name, output.name, node.addIOPort(output.name, false))
+				outputPorts.put(instance, output, node.addIOPort(output.name, false))
 			}
 
 			// Add content
 			if (reactorClass.hasContent) {
-				node.children += reactorClass.transformReactorNetwork(inputPorts.row(name), outputPorts.row(name))
+				node.children += reactorClass.transformReactorNetwork(inputPorts.row(instance), outputPorts.row(instance))
 			}
 		}
 		
@@ -167,14 +204,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (Timer timer : reactor.timers?:emptyList) {
 			val node = createNode().associateWith(timer)
 			nodes += node
-			timerNodes.put(timer.name, node)
+			timerNodes.put(timer, node)
 			
 			node.addTimerFigure(timer)
 		}
 
 		// Create reactions
-		val actionDestinations = HashMultimap.create
-		val actionSource = newHashMap
+		val actionDestinations = HashMultimap.<Action, Reaction>create
+		val actionSource = <Action, Reaction>newHashMap
 		for (reaction : reactor.reactions) {
 			val node = createNode().associateWith(reaction)
 			nodes += node
@@ -187,12 +224,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// connect input
 			for (VarRef trigger : reaction.triggers?:emptyList) {
 				if (trigger.variable instanceof Action) {
-					actionDestinations.put(trigger.variable.name, reaction)		
+					actionDestinations.put(trigger.variable as Action, reaction)		
 				} else {
-					val src = if (parentInputPorts.containsKey(trigger.variable.name)) {
-						parentInputPorts.get(trigger.variable.name)
-					} else if (timerNodes.containsKey(trigger.variable.name)) {
-						timerNodes.get(trigger.variable.name)
+					val src = if (trigger.container !== null) {
+						outputPorts.get(trigger.container, trigger.variable)
+					} else if (parentInputPorts.containsKey(trigger.variable)) {
+						parentInputPorts.get(trigger.variable)
+					} else if (timerNodes.containsKey(trigger.variable)) {
+						timerNodes.get(trigger.variable)
 					}
 					if (src !== null) {
 						createDependencyEdge().connect(src, node)
@@ -202,18 +241,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			
 			// connect outputs
 			for (VarRef effect : reaction.effects?:emptyList) {
-				
 				if (effect.variable instanceof Action) {
 					actionSource.put(effect.variable as Action, reaction)
-//				}
-//				if (reactor.actions.exists[name.equals(target)]) {
-//					actionSource.put(target, reaction)
-				} 
-				else  {
+				} else {
 					val dst = if (effect.variable instanceof Output) {
-						parentOutputPorts.get(effect.variable.name)
+						parentOutputPorts.get(effect.variable)
 					} else {
-						inputPorts.get(effect.container.name, effect.variable.name)
+						inputPorts.get(effect.container, effect.variable)
 					}
 					if (dst !== null) {
 						createDependencyEdge().connect(node, dst)
@@ -234,14 +268,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Transform connections
 		for (Connection connection : reactor.connections?:emptyList) {
 			val source = if (connection.leftPort.container !== null) {
-				outputPorts.get(connection.leftPort.container.name, connection.leftPort.variable.name)
-			} else if (parentInputPorts.containsKey(connection.leftPort)) {
-				parentInputPorts.get(connection.leftPort.container.name)
+				outputPorts.get(connection.leftPort.container, connection.leftPort.variable)
+			} else if (parentInputPorts.containsKey(connection.leftPort.variable)) {
+				parentInputPorts.get(connection.leftPort.variable)
 			}
 			val target = if (connection.rightPort.container !== null) {
-				inputPorts.get(connection.leftPort.container.name, connection.leftPort.variable.name)
-			} else if (parentOutputPorts.containsKey(connection.rightPort)) {
-				parentOutputPorts.get(connection.rightPort)
+				inputPorts.get(connection.rightPort.container, connection.rightPort.variable)
+			} else if (parentOutputPorts.containsKey(connection.rightPort.variable)) {
+				parentOutputPorts.get(connection.rightPort.variable)
 			}
 			val edge = createDependencyEdge.associateWith(connection)
 			edge.connect(source, target)
@@ -256,7 +290,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				//.addHeadArrowDecorator() // added by connect
 				lineStyle = LineStyle.DASH
 			]
-			if (action?.delay.unit == TimeUnit.NONE) {
+			if (action.delay?.unit == TimeUnit.NONE) {
 				addCenterEdgeLabel(action.delay.value).applyOnEdgeStyle()
 			}
 		]
@@ -345,7 +379,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		]
 		
 		if (showInstanceName) {
-			figure.addText("(" + instanceName + ")") => [
+			figure.addText(instanceName) => [
+				fontItalic = true
 				setGridPlacementData().from(LEFT, 8, 0, TOP, 2, 0).to(RIGHT, 8, 0, BOTTOM, reactor.hasContent ? 4 : 8, 0)
 				suppressSelectability
 			]
@@ -387,19 +422,31 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		)
 		
 		if (timer.timing !== null) {
-			val timing = newArrayList
+			val labelParts = newArrayList
 			if (timer.timing.offset !== null) {
-				timing += timer.timing.offset.time + timer.timing.offset.unit.name()
+				labelParts += timer.timing.offset.toText
 			}
 			if (timer.timing.period !== null) {
-				timing += timer.timing.period.time + timer.timing.period.unit.name()
+				labelParts += timer.timing.period.toText
 			}
-			if (!timing.empty) {
-				node.addOutsideBottomCenteredNodeLabel(timing.join("(", ", ", ")")[it])
+			if (!labelParts.empty) {
+				node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it])
 			}
 		}
 
 		return figure
+	}
+	
+	private def toText(TimeOrValue tov) {
+		if (tov.parameter !== null) {
+			return tov.parameter.name
+		} else if (tov.value !== null) {
+			return tov.value
+		} else if (tov.unit === TimeUnit.NONE) {
+			return Integer.toString(tov.time)
+		} else {
+			return tov.time + "" + tov.unit.literal
+		}
 	}
 	
 	private def hasContent(Reactor reactor) {
@@ -422,21 +469,4 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		_inlineLabelConfigurator.applyTo(label)
 	}
 
-	// -------------------------
-	// Model Helpers
-	var Map<String, Reactor> reactors
-
-	private def void prepareStructureAccess(Model model) {
-		reactors = model.reactors.toMap[name]
-		// TODO include imported files
-	}
-
-	private def Reactor reactor(String name) {
-		return reactors.get(name)
-	}
-	
-
-	private def Action action(String action, Reactor reactor) {
-		return reactor.actions.findFirst[name.equals(action)]
-	}
 }
