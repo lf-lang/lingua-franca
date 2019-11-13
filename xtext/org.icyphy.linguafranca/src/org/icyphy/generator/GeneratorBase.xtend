@@ -467,9 +467,10 @@ class GeneratorBase {
         // In case we are using a command-line tool, we report the line number.
         // The caller should not throw an exception so compilation can continue.
         var node = NodeModelUtils.getNode(object)
+        val line = (node === null)? "unknown" : node.getStartLine
         System.err.println("ERROR: Line "
-                    + node.getStartLine()
-                       + ": "
+                    + line
+                    + ": "
                     + message)
         // Return a string that can be inserted into the generated code.
         "[[ERROR: " + message + "]]"

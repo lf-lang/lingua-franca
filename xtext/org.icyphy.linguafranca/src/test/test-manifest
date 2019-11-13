@@ -5,6 +5,7 @@ CompositionCThreaded.lf
 CountTest.lf
 DanglingOutput.lf
 Deadline.lf
+DeadlineHandledAbove.lf
 DelayedAction.lf
 DelayInt.lf
 DelayIntThreaded.lf
