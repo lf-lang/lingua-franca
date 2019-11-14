@@ -435,11 +435,14 @@ class CppGenerator extends GeneratorBase {
 	}
 
 	def trimmedValue(Parameter p) {
-		if (p.value !== null) {
-			'''«p.value.removeCodeDelimiter»'''
+		if (p.ofTimeType) {
+			if (p.unit !== null) {
+				'''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
+			} else {
+				'''«p.time»'''
+			}
 		} else {
-			// if its not a value it must be a time
-			'''«p.time»'''
+			'''«p.value.removeCodeDelimiter»'''
 		}
 	}
 
