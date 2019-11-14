@@ -248,7 +248,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	private def createDelayEdge(Action action) {
 		return createEdge => [
 			addPolyline() => [
-				//.addHeadArrowDecorator() // added by connect
 				lineStyle = LineStyle.DASH
 			]
 			if (action.delay?.unit == TimeUnit.NONE) {
@@ -260,12 +259,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	private def createDependencyEdge() {
 		return createEdge => [
-			addPolyline()//.addHeadArrowDecorator() // added by connect
+			addPolyline()
 		]
 	}
 	
 	private def dispatch KEdge connect(KEdge edge, KNode src, KNode dst) {
-		(edge.KContainerRendering as KPolyline).addHeadArrowDecorator()
 		edge.source = src
 		edge.target = dst
 		
@@ -279,7 +277,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return edge
 	}
 	private def dispatch KEdge connect(KEdge edge, KPort src, KNode dst) {
-		(edge.KContainerRendering as KPolyline).addHeadArrowDecorator()
 		edge.sourcePort = src
 		edge.source = src?.node
 		edge.target = dst
