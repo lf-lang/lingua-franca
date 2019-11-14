@@ -11,10 +11,12 @@ import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KPolyline
+import de.cau.cs.kieler.klighd.krendering.KRendering
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
 import de.cau.cs.kieler.klighd.krendering.KText
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.Underline
+import de.cau.cs.kieler.klighd.krendering.VerticalAlignment
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions
@@ -145,6 +147,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val inputPorts = HashBasedTable.<Instantiation, Input, KPort>create
 		val outputPorts = HashBasedTable.<Instantiation, Output, KPort>create
 		val reactionNodes = <Reaction, KNode>newHashMap
+		val reactionInputPort = <Reaction, KPort>newHashMap
+		val actionDestinations = HashMultimap.<Action, Reaction>create
+		val actionSource = <Action, Reaction>newHashMap
 		val timerNodes = <Timer, KNode>newHashMap
 		
 		// Transform instances
@@ -215,12 +220,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Create reactions
-		val actionDestinations = HashMultimap.<Action, Reaction>create
-		val actionSource = <Action, Reaction>newHashMap
 		for (reaction : reactor.reactions) {
 			val node = createNode().associateWith(reaction)
 			nodes += node
 			reactionNodes.put(reaction, node)
+			val inputPort = node.addReactionInputPort
+			reactionInputPort.put(reaction, inputPort)
 			
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FREE)
 			
@@ -239,7 +244,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						timerNodes.get(trigger.variable)
 					}
 					if (src !== null) {
-						createDependencyEdge().connect(src, node)
+						createDependencyEdge().connect(src, node).setTargetPort(inputPort)
 					}
 				}
 			}
@@ -265,8 +270,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (Action action : actionSource.keySet) {
 			val sourceNode = reactionNodes.get(actionSource.get(action))
 			for (target : actionDestinations.get(action)) {
-				val targetNode  = reactionNodes.get(target)
-				createDelayEdge(action).connect(sourceNode, targetNode)
+				val targetNode = reactionNodes.get(target)
+				val targetPort = reactionInputPort.get(target)
+				createDelayEdge(action).connect(sourceNode, targetNode).setTargetPort(targetPort)
 			}
 		}
 
@@ -308,27 +314,35 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		]
 	}
 	
-	private def dispatch connect(KEdge edge, KNode src, KNode dst) {
+	private def dispatch KEdge connect(KEdge edge, KNode src, KNode dst) {
 		(edge.KContainerRendering as KPolyline).addHeadArrowDecorator()
 		edge.source = src
 		edge.target = dst
+		
+		return edge
 	}
-	private def dispatch connect(KEdge edge, KNode src, KPort dst) {
+	private def dispatch KEdge connect(KEdge edge, KNode src, KPort dst) {
 		edge.source = src
 		edge.targetPort = dst
 		edge.target = dst?.node
+		
+		return edge
 	}
-	private def dispatch connect(KEdge edge, KPort src, KNode dst) {
+	private def dispatch KEdge connect(KEdge edge, KPort src, KNode dst) {
 		(edge.KContainerRendering as KPolyline).addHeadArrowDecorator()
 		edge.sourcePort = src
 		edge.source = src?.node
 		edge.target = dst
+		
+		return edge
 	}
-	private def dispatch connect(KEdge edge, KPort src, KPort dst) {
+	private def dispatch KEdge connect(KEdge edge, KPort src, KPort dst) {
 		edge.sourcePort = src
 		edge.source = src?.node
 		edge.targetPort = dst
 		edge.target = dst?.node
+		
+		return edge
 	}
 	
 	/**
@@ -394,73 +408,112 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return figure
 	}
 	
+	private def KPort addReactionInputPort(KNode node) {
+		val port = createPort
+		node.ports += port
+		
+		port.setSize(0, 0) // invisible
+		port.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
+		port.addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -REACTION_POINTINESS as double) // requires offset due to shape
+		
+		return port
+	}
+	
+	static val float REACTION_POINTINESS = 5 // arrow point length 
+	
 	/**
 	 * Creates the visual representation of a reaction node
 	 */
 	private def addReactionFigure(KNode node, Reaction reaction) {
 		val minHeight = 15
 		node.setMinimalNodeSize(45, minHeight)
-
-		var figure = node.addRectangle() => [
+		
+		val baseShape = node.addPolygon() => [
+			associateWith(reaction)
+			
 			// style
 			lineWidth = 1
 			foreground = Colors.GRAY_45
 			background = Colors.GRAY_65
+			boldLineSelectionStyle
 			
+			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0)
+			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0)
+			points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
+			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
+			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+			points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+		]
+		
+		val contentContainer = baseShape.addRectangle() => [
+			associateWith(reaction)
+			invisible = true
+			setLeftTopAlignedPointPlacementData(0, REACTION_POINTINESS, 0, REACTION_POINTINESS)
+			gridPlacement = 1
+		]
+
+		// optional code content
+		if (SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty) {
+			contentContainer.addText(reaction.code) => [
+				associateWith(reaction)
+				fontSize = 6
+				noSelectionStyle
+				horizontalAlignment = HorizontalAlignment.LEFT
+				verticalAlignment = VerticalAlignment.TOP
+				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+			]
+		}
+		
+		if (reaction.deadline !== null) {
+			baseShape.addPolygon() => [
+				associateWith(reaction.deadline)
+				
+				points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+				points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
+				points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
+				points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+				
+				// style
+				lineWidth = 1
+				foreground = Colors.GRAY_45
+				background = Colors.BROWN
+				
+				// ensure content is rendered on top
+				baseShape.children.move(baseShape.children.size - 1, contentContainer)
+			]
+				
+			val deadlineSection = contentContainer.addRectangle() => [
+				associateWith(reaction.deadline)
+				invisible = true
+				verticalAlignment = VerticalAlignment.BOTTOM
+				if (!SHOW_REACTION_CODE.booleanValue || reaction.code.nullOrEmpty) {
+					setGridPlacementData().from(LEFT, 0, 0, TOP, -3, 0.5f).to(RIGHT, 0, 0, BOTTOM, 0, 0)
+				}
+				gridPlacement = 1
+			]
+				
+			// delay
+			deadlineSection.addText(reaction.deadline.time.toText) => [
+				associateWith(reaction.deadline.time)
+				fontBold = true
+				fontSize = 7
+				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+				underlineSelectionStyle
+			]
+				
 			// optional code content
-			if (SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty) {
-				addText(reaction.code) => [
-					associateWith(reaction)
+			if (SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty) {
+				deadlineSection.addText(reaction.code) => [
+					associateWith(reaction.deadline)
 					fontSize = 6
-					setSurroundingSpace(5, 0)
+					setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
 					horizontalAlignment = HorizontalAlignment.LEFT
 					noSelectionStyle
 				]
 			}
-		]
-		
-		if (reaction.deadline !== null) {
-			val prev = figure
-			figure = node.addRectangle() => [// surround by invisible container
-				invisible = true
-				gridPlacement = 1
-				
-				children += prev // nest current one
-				prev.setGridPlacementData(0, minHeight / 2)
-				addRectangle() => [ // add new one
-					associateWith(reaction.deadline)
-					setGridPlacementData(0, minHeight / 2)
-					gridPlacement = 1
-					
-					// style
-					lineWidth = 1
-					foreground = Colors.GRAY_45
-					background = Colors.BROWN
-					
-					// delay
-					addText(reaction.deadline.time.toText) => [
-						associateWith(reaction.deadline.time)
-						fontBold = true
-						fontSize = 7
-						setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
-						underlineSelectionStyle
-					]
-					
-					// optional code content
-					if (SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty) {
-						addText(reaction.code) => [
-							associateWith(reaction.deadline)
-							fontSize = 6
-							setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
-							horizontalAlignment = HorizontalAlignment.LEFT
-							noSelectionStyle
-						]
-					}
-				]
-			]
 		}
 
-		return figure
+		return baseShape
 	}
 	
 	/**
@@ -519,6 +572,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	private def underlineSelectionStyle(KText text) {
 		text.selectionTextUnderline = Underline.SINGLE
+	}
+	
+	private def boldLineSelectionStyle(KRendering r) {
+		r.selectionLineWidth = 2
 	}
 	
 	static var LabelDecorationConfigurator _inlineLabelConfigurator; // ONLY for use in applyOnEdgeStyle
