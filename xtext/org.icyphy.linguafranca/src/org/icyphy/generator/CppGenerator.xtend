@@ -390,14 +390,15 @@ class CppGenerator extends GeneratorBase {
 
 	def trimmedType(Parameter p) {
 		val const = "const " // All parameters must be constants
-		if (p.type !== null) {
-			if (p.type == "time") {
-				'''«const»enactor::time_t'''
-			} else {
-				'''«const»«p.type.removeCodeDelimiter»'''
-			}
+		if (p.ofTimeType) {
+			'''«const»enactor::time_t'''
 		} else {
-			'''/* «p.reportError("Parameter has no type")» */'''
+			if (p.type !== null) {
+
+				'''«const»«p.type.removeCodeDelimiter»'''
+			} else {
+				'''/* «p.reportError("Parameter has no type")» */'''
+			}
 		}
 	}
 
