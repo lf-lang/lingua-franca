@@ -1,10 +1,10 @@
 target C;
-reactor HelloWorld {
+reactor HelloWorldInside {
     timer t;
     reaction(t) {=
         printf("Hello World.\n");
     =}
 }
-main reactor HelloWorldTest {
-    a = new HelloWorld();
+main reactor HelloWorld {
+    a = new HelloWorldInside();
 }

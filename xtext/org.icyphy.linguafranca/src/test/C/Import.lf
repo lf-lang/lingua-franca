@@ -1,10 +1,10 @@
 // This tests the ability to import a reactor definition
 // that itself imports a reactor definition.
 target C;
-import ImportedC.lf;
-main reactor ImportC {
+import Imported.lf;
+main reactor Import {
 	timer t;
-	a = new ImportedC(); 
+	a = new Imported(); 
 	reaction(t) -> a.x {=
 		set(a.x, 42); 
 	=}

@@ -2,7 +2,7 @@
 // has its own reaction that routes inputs to the contained reactor.
 target C(
 	threads = 3,
-	run = "bin/SendingInsideC -fast -timeout 10 sec"
+	run = "bin/SendingInsideThreaded -fast -timeout 10 sec"
 );
 reactor Printer {
 	input x:int;
@@ -16,7 +16,7 @@ reactor Printer {
 		self->count++;
 	=}
 }
-main reactor Main {
+main reactor SendingInsideThreaded {
 	state count:int(0);
 	timer t(0, 1 sec);
 	p = new Printer();
