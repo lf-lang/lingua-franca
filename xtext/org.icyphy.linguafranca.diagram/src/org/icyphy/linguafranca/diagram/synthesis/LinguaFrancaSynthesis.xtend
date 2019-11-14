@@ -170,7 +170,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Create reactions
-		for (reaction : reactor.reactions) {
+		for (reaction : reactor.reactions.reverseView) {
 			val node = createNode().associateWith(reaction)
 			nodes += node
 			reactionNodes.put(reaction, node)

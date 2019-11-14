@@ -78,7 +78,116 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 		return figure
 	}
+	
+	/**
+	 * Creates the visual representation of a reaction node
+	 */
+	def addReactionFigure(KNode node, Reaction reaction) {
+		val minHeight = 22
+		val minWidth = 45
+		val reactor = reaction.eContainer as Reactor
+		node.setMinimalNodeSize(minWidth, minHeight)
+		
+		val baseShape = node.addPolygon() => [
+			associateWith(reaction)
+			
+			// style
+			lineWidth = 1
+			foreground = Colors.GRAY_45
+			background = Colors.GRAY_65
+			boldLineSelectionStyle()
+			
+			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0)
+			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0)
+			points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
+			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
+			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+			points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+		]
+		
+		val order = if (reactor.reactions.size > 1) {
+			baseShape.addText(Integer.toString(reactor.reactions.indexOf(reaction) + 1)) => [
+				fontBold = true
+				noSelectionStyle
+				suppressSelectability
+			]
+		}
+		
+		val contentContainer = baseShape.addRectangle() => [
+			associateWith(reaction)
+			invisible = true
+			//setLeftTopAlignedPointPlacementData(0, REACTION_POINTINESS, 0, REACTION_POINTINESS)
+			setPointPlacementData(LEFT, REACTION_POINTINESS, 0, TOP, 0, 0, H_LEFT, V_TOP, REACTION_POINTINESS, 0, minWidth - REACTION_POINTINESS * 2, minHeight)
+			gridPlacement = 1
+		]
 
+		// optional code content
+		if (SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty) {
+			contentContainer.addText(reaction.code) => [
+				associateWith(reaction)
+				fontSize = 6
+				noSelectionStyle()
+				horizontalAlignment = HorizontalAlignment.LEFT
+				verticalAlignment = VerticalAlignment.TOP
+				setGridPlacementData().from(LEFT, 5, 0, TOP, order !== null ? 15 : 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+			]
+		}
+		
+		if (reaction.deadline !== null) {
+			baseShape.addPolygon() => [
+				associateWith(reaction.deadline)
+				
+				points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+				points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
+				points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
+				points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+				
+				// style
+				lineWidth = 1
+				foreground = Colors.GRAY_45
+				background = Colors.BROWN
+				
+				// ensure content is rendered on top
+				baseShape.children.move(0, it)
+			]
+			
+			// Move order label if present
+			order?.setPointPlacementData(LEFT, 0, 0.5f, TOP, 1, 0, H_CENTRAL, V_TOP, REACTION_POINTINESS, 0, minWidth - REACTION_POINTINESS * 2, 0)
+				
+			val deadlineSection = contentContainer.addRectangle() => [
+				associateWith(reaction.deadline)
+				invisible = true
+				verticalAlignment = VerticalAlignment.BOTTOM
+				if (!SHOW_REACTION_CODE.booleanValue || reaction.code.nullOrEmpty) {
+					setGridPlacementData().from(LEFT, 0, 0, TOP, -3, 0.5f).to(RIGHT, 0, 0, BOTTOM, 0, 0)
+				}
+				gridPlacement = 1
+			]
+				
+			// delay
+			deadlineSection.addText(reaction.deadline.time.toText) => [
+				associateWith(reaction.deadline.time)
+				fontBold = true
+				fontSize = 7
+				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0).setHorizontalAlignment(HorizontalAlignment.CENTER)
+				underlineSelectionStyle()
+			]
+
+			// optional code content
+			if (SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty) {
+				deadlineSection.addText(reaction.deadline.deadlineCode) => [
+					associateWith(reaction.deadline)
+					fontSize = 6
+					setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+					horizontalAlignment = HorizontalAlignment.LEFT
+					noSelectionStyle()
+				]
+			}
+		}
+
+		return baseShape
+	}
+	
 	/**
 	 * Creates the visual representation of a timer node
 	 */
@@ -113,101 +222,6 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		}
 
 		return figure
-	}
-	
-	/**
-	 * Creates the visual representation of a reaction node
-	 */
-	def addReactionFigure(KNode node, Reaction reaction) {
-		val minHeight = 22
-		node.setMinimalNodeSize(45, minHeight)
-		
-		val baseShape = node.addPolygon() => [
-			associateWith(reaction)
-			
-			// style
-			lineWidth = 1
-			foreground = Colors.GRAY_45
-			background = Colors.GRAY_65
-			boldLineSelectionStyle()
-			
-			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0)
-			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0)
-			points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
-			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
-			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
-			points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
-		]
-		
-		val contentContainer = baseShape.addRectangle() => [
-			associateWith(reaction)
-			invisible = true
-			setLeftTopAlignedPointPlacementData(0, REACTION_POINTINESS, 0, REACTION_POINTINESS)
-			gridPlacement = 1
-		]
-
-		// optional code content
-		if (SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty) {
-			contentContainer.addText(reaction.code) => [
-				associateWith(reaction)
-				fontSize = 6
-				noSelectionStyle()
-				horizontalAlignment = HorizontalAlignment.LEFT
-				verticalAlignment = VerticalAlignment.TOP
-				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
-			]
-		}
-		
-		if (reaction.deadline !== null) {
-			baseShape.addPolygon() => [
-				associateWith(reaction.deadline)
-				
-				points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
-				points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
-				points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
-				points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
-				
-				// style
-				lineWidth = 1
-				foreground = Colors.GRAY_45
-				background = Colors.BROWN
-				
-				// ensure content is rendered on top
-				baseShape.children.move(baseShape.children.size - 1, contentContainer)
-			]
-				
-			val deadlineSection = contentContainer.addRectangle() => [
-				associateWith(reaction.deadline)
-				invisible = true
-				verticalAlignment = VerticalAlignment.BOTTOM
-				if (!SHOW_REACTION_CODE.booleanValue || reaction.code.nullOrEmpty) {
-					setGridPlacementData().from(LEFT, 0, 0, TOP, -3, 0.5f).to(RIGHT, 0, 0, BOTTOM, 0, 0)
-				}
-				gridPlacement = 1
-			]
-				
-			// delay
-			deadlineSection.addText(reaction.deadline.time.toText) => [
-				associateWith(reaction.deadline.time)
-				fontBold = true
-				fontSize = 7
-				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
-				underlineSelectionStyle()
-			]
-				
-			// optional code content
-			if (SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty) {
-				deadlineSection.addText(reaction.code) => [
-					associateWith(reaction.deadline)
-					fontSize = 6
-					setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
-					horizontalAlignment = HorizontalAlignment.LEFT
-					noSelectionStyle()
-				]
-			}
-		}
-
-		return baseShape
 	}
 	
 	/**
