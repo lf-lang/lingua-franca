@@ -694,7 +694,7 @@ class CppGenerator extends GeneratorBase {
 		target_include_directories(«filename» PUBLIC ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
 		target_link_libraries(«filename» enactor)
 		
-		install(TARGETS «filename»)
+		install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 		
 		«IF target.hasProperty("cmake_include")»
 			include(«resource.URI.toString.extractDir»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
