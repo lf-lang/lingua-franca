@@ -40,14 +40,22 @@ import org.icyphy.linguaFranca.VarRef
 class CppGenerator extends GeneratorBase {
 
 	static public var timeUnitsToEnactorUnits = #{
-		TimeUnit.NSEC -> '_ns', TimeUnit.NSECS -> '_ns', 
-		TimeUnit.USEC -> '_us', TimeUnit.USECS -> '_us',
-		TimeUnit.MSEC -> '_ms', TimeUnit.MSECS -> '_ms',
-		TimeUnit.SEC -> '_secs', TimeUnit.SECS -> '_secs',
-		TimeUnit.MIN -> '_min', TimeUnit.MINS -> '_min',
-		TimeUnit.HOUR -> '_h', TimeUnit.HOURS -> '_h',
-		TimeUnit.DAY -> '_d', TimeUnit.DAYS -> '_d',
-		TimeUnit.WEEK -> '_weeks', TimeUnit.WEEKS -> '_weeks'
+		TimeUnit.NSEC -> '_ns',
+		TimeUnit.NSECS -> '_ns',
+		TimeUnit.USEC -> '_us',
+		TimeUnit.USECS -> '_us',
+		TimeUnit.MSEC -> '_ms',
+		TimeUnit.MSECS -> '_ms',
+		TimeUnit.SEC -> '_s',
+		TimeUnit.SECS -> '_s',
+		TimeUnit.MIN -> '_min',
+		TimeUnit.MINS -> '_min',
+		TimeUnit.HOUR -> '_h',
+		TimeUnit.HOURS -> '_h',
+		TimeUnit.DAY -> '_d',
+		TimeUnit.DAYS -> '_d',
+		TimeUnit.WEEK -> '_weeks',
+		TimeUnit.WEEKS -> '_weeks'
 	}
 
 	private def validateTarget(Resource resource) {
