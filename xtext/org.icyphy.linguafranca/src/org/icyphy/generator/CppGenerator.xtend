@@ -447,22 +447,16 @@ class CppGenerator extends GeneratorBase {
 	}
 
 	def trimmedValue(TimeOrValue tv) {
-		if (tv.unit != TimeUnit.NONE) {
-			'''«tv.time»«timeUnitsToCppUnits.get(tv.unit)»'''
+		if (tv.parameter !== null) {
+			'''«tv.parameter.name»'''
+		} else if (tv.value !== null) {
+			'''«tv.value.removeCodeDelimiter»'''
 		} else {
-			// time refers to a parameter or is a number without a unit
-			'''«tv.time»''' // FIXME: this is incorrect. 
+			'''«tv.time»«timeUnitsToCppUnits.get(tv.unit)»'''
 		}
 	}
 
-	def trimmedValue(Assignment a) {
-		if (a.rhs.unit == TimeUnit.NONE) {
-			// assume we have a time
-			'''«a.rhs.time»«timeUnitsToCppUnits.get(a.rhs.unit)»'''
-		} else {
-			'''«a.rhs.value.removeCodeDelimiter»'''
-		}
-	}
+	def trimmedValue(Assignment a) '''«a.rhs.trimmedValue»'''
 
 	def trimmedValue(State s) { s.value.removeCodeDelimiter }
 
