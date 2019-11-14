@@ -1,8 +1,10 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
 target C(
-	run = "bin/CompositionC -fast -timeout 10 sec"
+	threads = 1,
+	run = "bin/CompositionThreaded -fast -timeout 10 sec"
 );
+
 reactor Source(period:time(2 sec)) {
 	output y:int;
 	timer t(1 sec, period);
@@ -12,22 +14,21 @@ reactor Source(period:time(2 sec)) {
 		set(y, self->count);
 	=}
 }
-
 reactor Test {
 	input x:int;
 	state count:int(0);
 	reaction(x) {=
 		(self->count)++;
 		printf("Received %d\n", x);
-		if (x != self->count) { 
+		if (x != self->count) {
 			printf("FAILURE: Expected %d\n", self->count);
-			exit(1); 
+			exit(1);
 		}
-	=} 
+	=}
 }
-main reactor CompositionC {
+
+main reactor CompositionThreaded {
 	s = new Source();
-	
 	d = new Test();
 	s.y -> d.x;
 }
