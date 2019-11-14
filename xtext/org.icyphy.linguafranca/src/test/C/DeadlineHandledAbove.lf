@@ -23,7 +23,7 @@ main reactor DeadlineHandledAbove {
     =}
     reaction(d.deadline_violation) {=
         if (d.deadline_violation) {
-            printf("Output successfully produced by deadline handler.\n");
+            printf("Output successfully produced by deadline miss handler.\n");
             self->violation_detected = true;
         }
     =}
