@@ -656,6 +656,11 @@ class CppGenerator extends GeneratorBase {
 		cmake_minimum_required(VERSION 3.5)
 		project(«filename» VERSION 1.0.0 LANGUAGES CXX)
 		
+		# require C++ 14
+		set(CMAKE_CXX_STANDARD 14)
+		set(CMAKE_CXX_STANDARD_REQUIRED ON)
+		set(CMAKE_CXX_EXTENSIONS OFF)
+		
 		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 		include(GNUInstallDirs)
 		
@@ -675,7 +680,7 @@ class CppGenerator extends GeneratorBase {
 		  dep-reactor-cpp
 		  PREFIX "${REACTOR_CPP_BUILD_DIR}"
 		  GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-		  GIT_TAG "190340632c6a414504afeaa4e5fe3be3adf07451"
+		  GIT_TAG "b6abad47a5e861789ba192fa01c67e6ea497d499"
 		  CMAKE_ARGS
 		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
