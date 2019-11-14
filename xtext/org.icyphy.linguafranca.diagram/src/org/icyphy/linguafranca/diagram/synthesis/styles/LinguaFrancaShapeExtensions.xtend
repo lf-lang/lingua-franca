@@ -6,6 +6,7 @@ import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
+import de.cau.cs.kieler.klighd.krendering.KText
 import de.cau.cs.kieler.klighd.krendering.VerticalAlignment
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
@@ -28,12 +29,11 @@ import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesisUtilityExt
 import static org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
-import de.cau.cs.kieler.klighd.krendering.KText
 
 @ViewSynthesisShared
 class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
-	public static val float REACTION_POINTINESS = 5 // arrow point length 
+	public static val float REACTION_POINTINESS = 6 // arrow point length 
 
 	@Inject extension KNodeExtensions
 	@Inject extension KEdgeExtensions
@@ -64,6 +64,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		figure.addText(reactor.name) => [
 			setGridPlacementData().from(LEFT, 8, 0, TOP, 8f, 0).to(RIGHT, 8, 0, BOTTOM, showInstanceName ? 0 : (reactor.hasContent ? 4 : 8), 0)
 			suppressSelectability
+			underlineSelectionStyle
 		]
 		
 		if (showInstanceName) {
@@ -71,6 +72,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				fontItalic = true
 				setGridPlacementData().from(LEFT, 8, 0, TOP, 2, 0).to(RIGHT, 8, 0, BOTTOM, reactor.hasContent ? 4 : 8, 0)
 				suppressSelectability
+				noSelectionStyle
 			]
 		}
 
@@ -81,11 +83,13 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a timer node
 	 */
 	def addTimerFigure(KNode node, Timer timer) {
-		node.setMinimalNodeSize(40, 40)
+		node.setMinimalNodeSize(30, 30)
 		
 		val figure = node.addEllipse
 		figure.lineWidth = 1
 		figure.background = Colors.GRAY_95
+		figure.noSelectionStyle
+		figure.boldLineSelectionStyle
 		
 		figure.addPolyline(1,
 			#[
@@ -93,7 +97,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0.5f),
 				createKPosition(PositionReferenceX.LEFT, 0, 0.7f, PositionReferenceY.TOP, 0 , 0.7f)
 			]
-		)
+		).boldLineSelectionStyle
 		
 		if (timer.timing !== null) {
 			val labelParts = newArrayList
@@ -115,7 +119,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a reaction node
 	 */
 	def addReactionFigure(KNode node, Reaction reaction) {
-		val minHeight = 15
+		val minHeight = 22
 		node.setMinimalNodeSize(45, minHeight)
 		
 		val baseShape = node.addPolygon() => [
@@ -125,7 +129,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			lineWidth = 1
 			foreground = Colors.GRAY_45
 			background = Colors.GRAY_65
-			boldLineSelectionStyle
+			boldLineSelectionStyle()
 			
 			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0)
 			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0)
@@ -147,7 +151,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			contentContainer.addText(reaction.code) => [
 				associateWith(reaction)
 				fontSize = 6
-				noSelectionStyle
+				noSelectionStyle()
 				horizontalAlignment = HorizontalAlignment.LEFT
 				verticalAlignment = VerticalAlignment.TOP
 				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
@@ -188,7 +192,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				fontBold = true
 				fontSize = 7
 				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
-				underlineSelectionStyle
+				underlineSelectionStyle()
 			]
 				
 			// optional code content
@@ -198,7 +202,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 					fontSize = 6
 					setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
 					horizontalAlignment = HorizontalAlignment.LEFT
-					noSelectionStyle
+					noSelectionStyle()
 				]
 			}
 		}
@@ -210,8 +214,10 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a reactor port.
 	 */
 	def addTrianglePort(KPort port) {
+		port.setSize(8, 8)
 		port.addPolygon() => [
 			lineWidth = 1
+			boldLineSelectionStyle()
 			background = Colors.BLACK
 			points += #[
 				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0),
@@ -230,6 +236,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			fontSize = 8
 			addSingleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
 			addDoubleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
+			noSelectionStyle()
 		]
 	}
 	
@@ -242,6 +249,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             addRoundedRectangle(7, 7) => [
                 setGridPlacement(1)
                 lineWidth = 2
+                noSelectionStyle()
+                
                 // title
                 if (title !== null) {
 	                addText(title) => [
@@ -250,8 +259,10 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	                    foreground = Colors.RED
 	                    setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
 	                    suppressSelectability()
+	                    noSelectionStyle()
 	                ]
                 }
+                
                 // message
                 if (message !== null) {
 	                addText(message) => [
@@ -260,6 +271,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                         } else {
                             setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0);
                         }
+                        noSelectionStyle()
 	                ]
 	            }
             ]

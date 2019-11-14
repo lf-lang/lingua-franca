@@ -3,12 +3,8 @@ package org.icyphy.linguafranca.diagram.synthesis.styles
 import de.cau.cs.kieler.klighd.kgraph.KLabel
 import de.cau.cs.kieler.klighd.krendering.KRendering
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
-import de.cau.cs.kieler.klighd.krendering.KText
 import de.cau.cs.kieler.klighd.krendering.Underline
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
-import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
-import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
 import de.cau.cs.kieler.klighd.labels.decoration.LabelDecorationConfigurator
 import javax.inject.Inject
@@ -18,16 +14,13 @@ import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 
 	@Inject extension KRenderingExtensions
-	@Inject extension KContainerRenderingExtensions
-	@Inject extension KPolylineExtensions
-	@Inject extension KColorExtensions
 
-	def noSelectionStyle(KText text) {
-		text.selectionTextStrikeout = false // prevents default selection style
+	def noSelectionStyle(KRendering r) {
+		r.selectionTextStrikeout = false // prevents default selection style
 	}
 	
-	def underlineSelectionStyle(KText text) {
-		text.selectionTextUnderline = Underline.SINGLE
+	def underlineSelectionStyle(KRendering r) {
+		r.selectionTextUnderline = Underline.SINGLE
 	}
 	
 	def boldLineSelectionStyle(KRendering r) {
