@@ -6,7 +6,6 @@ import de.cau.cs.kieler.klighd.SynthesisOption
 import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
-import de.cau.cs.kieler.klighd.krendering.KPolyline
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
@@ -38,9 +37,9 @@ import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
@@ -118,7 +117,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (instance : reactor.instantiations) {
 			val node = createNode()
 			nodes += node
-
 			val reactorClass = instance.reactorClass
 
 			node.associateWith(reactorClass)
@@ -129,6 +127,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// Expanded Rectangle
 			node.addReactorFigure(reactorClass, instance.name) => [
 				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
+				boldLineSelectionStyle
 
 				// Collapse button
 				addCollapseExpandButton("[Hide]").setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
@@ -139,6 +138,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// Collapse Rectangle
 			node.addReactorFigure(reactorClass, instance.name) => [
 				setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
+				boldLineSelectionStyle
 
 				// Expand button
 				if (reactorClass.hasContent) {
@@ -148,10 +148,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 			// Create ports
 			for (input : reactorClass.inputs.reverseView) {
-				inputPorts.put(instance, input, node.addIOPort(input.name, true))
+				inputPorts.put(instance, input, node.addIOPort(input, true))
 			}
 			for (output : reactorClass.outputs) {
-				outputPorts.put(instance, output, node.addIOPort(output.name, false))
+				outputPorts.put(instance, output, node.addIOPort(output, false))
 			}
 
 			// Add content
@@ -194,7 +194,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						timerNodes.get(trigger.variable)
 					}
 					if (src !== null) {
-						createDependencyEdge().connect(src, node).setTargetPort(inputPort)
+						createDependencyEdge(null).connect(src, node).setTargetPort(inputPort)
 					}
 				}
 			}
@@ -210,7 +210,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						inputPorts.get(effect.container, effect.variable)
 					}
 					if (dst !== null) {
-						createDependencyEdge().connect(node, dst)
+						createDependencyEdge(null).connect(node, dst)
 					}
 				}
 			}
@@ -238,7 +238,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			} else if (parentOutputPorts.containsKey(connection.rightPort.variable)) {
 				parentOutputPorts.get(connection.rightPort.variable)
 			}
-			val edge = createDependencyEdge.associateWith(connection)
+			val edge = createDependencyEdge(connection).associateWith(connection)
 			edge.connect(source, target)
 		}
 
@@ -247,19 +247,26 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	private def createDelayEdge(Action action) {
 		return createEdge => [
+			associateWith(action)
 			addPolyline() => [
 				lineStyle = LineStyle.DASH
+				boldLineSelectionStyle
 			]
-			if (action.delay?.unit == TimeUnit.NONE) {
-				addCenterEdgeLabel(action.delay.value).applyOnEdgeStyle()
+			if (action.delay !== null) {
+				addCenterEdgeLabel(action.delay.toText).applyOnEdgeStyle()
 			}
 		]
 	}
 	
 	
-	private def createDependencyEdge() {
+	private def createDependencyEdge(Object associate) {
 		return createEdge => [
-			addPolyline()
+			if (associate !== null) {
+				associateWith(associate)
+			}
+			addPolyline() => [
+				boldLineSelectionStyle
+			]
 		]
 	}
 	
@@ -295,10 +302,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	/**
 	 * Translate an input/output into a port.
 	 */
-	private def addIOPort(KNode node, String label, boolean input) {
+	private def addIOPort(KNode node, Variable variable, boolean input) {
 		val port = createPort
 		node.ports += port
 		
+		port.associateWith(variable)
 		port.setPortSize(6, 6)
 		
 		if (input) {
@@ -310,8 +318,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		
 		port.addTrianglePort()
-		
-		port.addOutsidePortLabel(label, 8)
+		port.addOutsidePortLabel(variable.name, 8).associateWith(variable)
 
 		return port
 	}
