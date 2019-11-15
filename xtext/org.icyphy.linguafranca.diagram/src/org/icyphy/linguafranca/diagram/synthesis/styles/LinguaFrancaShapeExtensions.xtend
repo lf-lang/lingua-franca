@@ -287,12 +287,10 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Added a text as collapse expand button.
 	 */
-	def KText addCollapseExpandButton(KContainerRendering container, String text) {
+	def KText addTextButton(KContainerRendering container, String text) {
 		container.addText(text) => [
 			foreground = Colors.BLUE
 			fontSize = 8
-			addSingleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
-			addDoubleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
 			noSelectionStyle()
 		]
 	}

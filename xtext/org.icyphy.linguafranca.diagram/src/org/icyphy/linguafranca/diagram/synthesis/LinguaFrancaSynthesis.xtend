@@ -2,6 +2,7 @@ package org.icyphy.linguafranca.diagram.synthesis
 
 import com.google.common.collect.HashBasedTable
 import com.google.common.collect.HashMultimap
+import de.cau.cs.kieler.klighd.DisplayedActionData
 import de.cau.cs.kieler.klighd.SynthesisOption
 import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KNode
@@ -30,6 +31,7 @@ import org.eclipse.elk.core.options.Direction
 import org.eclipse.elk.core.options.PortConstraints
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
+import org.eclipse.elk.graph.properties.Property
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
@@ -42,8 +44,12 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction
+import org.icyphy.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
+
+import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 
 @ViewSynthesisShared
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
@@ -59,18 +65,32 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension LinguaFrancaStyleExtensions
 	@Inject extension LinguaFrancaShapeExtensions
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
+	
+	// -------------------------------------------------------------------------
+	
+	public static val REACTOR_INSTANCE = new Property<Instantiation>("org.icyphy.linguafranca.diagram.synthesis.reactor.instantiation")
 
 	// -------------------------------------------------------------------------
 	
+	/** Synthesis options */
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
+	
+    /** Synthesis actions */
+    public static val DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details")
+    public static val DisplayedActionData EXPAND_ALL = DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details")
 	
 	override getDisplayedSynthesisOptions() {
 		return #[
 			SHOW_INSTANCE_NAMES,
-			SHOW_REACTION_CODE
+			SHOW_REACTION_CODE,
+			MEMORIZE_EXPANSION_STATES
 		]
 	}
+	
+    override getDisplayedActions() {
+        return #[COLLAPSE_ALL, EXPAND_ALL]
+    }
 	
 	// -------------------------------------------------------------------------
 	
@@ -128,15 +148,21 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.associateWith(reactorClass)
 			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
-			node.setLayoutOption(KlighdProperties.EXPAND, false)
+			node.setLayoutOption(KlighdProperties.EXPAND, instance.getExpansionState?:false)
+			node.setProperty(REACTOR_INSTANCE, instance) // save to distinguish nodes associated with the same reactor
 
 			// Expanded Rectangle
 			node.addReactorFigure(reactorClass, instance.name) => [
 				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
+				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 				boldLineSelectionStyle
 
 				// Collapse button
-				addCollapseExpandButton("[Hide]").setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
+				addTextButton("[Hide]") => [
+					setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
+					addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+					addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+				]
 
 				addChildArea()
 			]
@@ -144,11 +170,16 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// Collapse Rectangle
 			node.addReactorFigure(reactorClass, instance.name) => [
 				setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
+				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 				boldLineSelectionStyle
 
 				// Expand button
 				if (reactorClass.hasContent) {
-					addCollapseExpandButton("[Details]").setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
+					addTextButton("[Details]") => [
+						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
+						addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+						addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+					]
 				}
 			]
 
