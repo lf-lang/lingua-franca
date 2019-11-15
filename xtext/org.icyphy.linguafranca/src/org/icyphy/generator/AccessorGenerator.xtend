@@ -18,8 +18,8 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 
@@ -47,10 +47,9 @@ class AccessorGenerator extends GeneratorBase {
 	override void doGenerate(
 			Resource resource, 
 			IFileSystemAccess2 fsa, 
-			IGeneratorContext context,
-			Hashtable<String,String> importTable) {
+			IGeneratorContext context) {
 				
-		super.doGenerate(resource, fsa, context, importTable)
+		super.doGenerate(resource, fsa, context)
 		
 		// If there is a main reactor in the file, then the variable main will be non-null.
 		// In this case, create a directory into which to put the reactor definitions
@@ -63,7 +62,7 @@ class AccessorGenerator extends GeneratorBase {
 		// Handle reactors and composites.
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			clearCode()
-			generateReactor(reactor, importTable)
+			generateReactor(reactor)
 			var filename = reactor.name
 			if (filename.equalsIgnoreCase('main')) {
 				filename = filename
@@ -102,10 +101,9 @@ class AccessorGenerator extends GeneratorBase {
 	
 	/** Generate a reactor or composite definition.
 	 *  @param reactor The parsed reactor data structure.
-	 *  @param importTable Substitution table for class names (from import statements).
 	 */	
-	override generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
-		super.generateReactor(reactor, importTable)
+	override generateReactor(Reactor reactor) {
+		super.generateReactor(reactor)
 
 		inputs.clear()      // Reset set of inputs.
 		timerReactions.clear()
@@ -120,7 +118,7 @@ class AccessorGenerator extends GeneratorBase {
 			pr("\n// *********** End of preamble.")
 		}
 		// Reactor setup (inputs, outputs, parameters)
-		reactorSetup(reactor, importTable)
+		reactorSetup(reactor)
 		// Generate reactions
 		generateReactions(reactor)
 		// initialize function (initialize + triggers scheduling + input handlers)
@@ -129,7 +127,7 @@ class AccessorGenerator extends GeneratorBase {
 	
 	/** Generate the setup function definition for a reactor or composite.
 	 */
-	def reactorSetup(Reactor reactor, Hashtable<String,String> importTable) {
+	def reactorSetup(Reactor reactor) {
 		pr("exports.setup = function () {")
 		indent()
 		// Generate Inputs, if any.

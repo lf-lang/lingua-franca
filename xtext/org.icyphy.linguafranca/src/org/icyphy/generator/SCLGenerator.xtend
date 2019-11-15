@@ -1,6 +1,5 @@
 package org.icyphy.generator
 
-import java.util.Hashtable
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
@@ -10,11 +9,11 @@ import org.icyphy.linguaFranca.VarRef
 class SCLGenerator extends GeneratorBase {
 	val MAIN = "main"
 	// http://plc4good.org.ua/files/03_downloads/SCL_table/SCL-cheat-sheet.pdf
-	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context, Hashtable<String,String> importTable) {
-		super.doGenerate(resource, fsa, context, importTable)
+	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+		super.doGenerate(resource, fsa, context)
 		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
 			clearCode()
-			generateReactor(reactor, importTable)
+			generateReactor(reactor)
 			var filename = reactor.name
 			if (filename.equalsIgnoreCase(MAIN)) {
 				filename = filename
@@ -75,8 +74,8 @@ class SCLGenerator extends GeneratorBase {
 		*/
 	}
 
-	override generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
-		super.generateReactor(reactor, importTable)
+	override generateReactor(Reactor reactor) {
+		super.generateReactor(reactor)
 		if (reactor.preamble !== null) {
 			pr(removeCodeDelimiter(reactor.preamble.code))
 		}

@@ -15,7 +15,6 @@ import java.io.File
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Hashtable
 import java.util.List
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -26,6 +25,7 @@ import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reaction
@@ -35,9 +35,8 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.linguaFranca.VarRef
 
 class CppGenerator extends GeneratorBase {
 
@@ -94,14 +93,13 @@ class CppGenerator extends GeneratorBase {
 		reactors
 	}
 
-	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context,
-		Hashtable<String, String> importTable) {
+	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
 		var reactors = resource.collectReactors
 		var mainReactor = resource.findMainReactor
 		var target = resource.findTarget
 
-		super.doGenerate(resource, fsa, context, importTable)
+		super.doGenerate(resource, fsa, context)
 
 		fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
 		fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain(target))
