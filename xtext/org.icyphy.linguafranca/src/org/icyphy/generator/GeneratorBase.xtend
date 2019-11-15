@@ -9,7 +9,7 @@ import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.util.HashMap
-import java.util.Hashtable
+import java.util.LinkedList
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -18,16 +18,16 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.LinguaFrancaPackage
-import org.icyphy.linguaFranca.ActionOrigin
 
 /**
  * Generator base class for shared code between code generators.
@@ -38,39 +38,29 @@ class GeneratorBase {
 
     /** All code goes into this string buffer. */
     var code = new StringBuilder
-    
+
     /** Map from builder to its current indentation. */
     var indentation = new HashMap<StringBuilder, String>()
-    
+
     // Map from time units to an expression that can convert a number in
     // the specified time unit into nanoseconds. This expression may need
     // to have a suffix like 'LL' or 'L' appended to it, depending on the
     // target language, to ensure that the result is a 64-bit long.
-    static public var timeUnitsToNs = #{
-            TimeUnit.NSEC->1L,
-            TimeUnit.NSECS->1L,
-            TimeUnit.USEC->1000L,
-            TimeUnit.USECS->1000L,
-            TimeUnit.MSEC->1000000L,
-            TimeUnit.MSECS->1000000L,
-            TimeUnit.SEC->1000000000L,
-            TimeUnit.SECS->1000000000L,
-            TimeUnit.SECOND->1000000000L,
-            TimeUnit.SECONDS->1000000000L,
-            TimeUnit.MIN->60000000000L,
-            TimeUnit.MINS->60000000000L,
-            TimeUnit.MINUTE->60000000000L,
-            TimeUnit.MINUTES->60000000000L,
-            TimeUnit.HOUR->3600000000000L,
-            TimeUnit.HOURS->3600000000000L,
-            TimeUnit.DAY->86400000000000L,
-            TimeUnit.DAYS->86400000000000L,
-            TimeUnit.WEEK->604800000000000L, 
-            TimeUnit.WEEKS->604800000000000L}
-                
-    ////////////////////////////////////////////
-    //// Code generation functions to override for a concrete code generator.
-    
+    static public var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+        TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
+        TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
+        TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
+        TimeUnit.SECOND -> 1000000000L, TimeUnit.SECONDS -> 1000000000L,
+        TimeUnit.MIN -> 60000000000L, TimeUnit.MINS -> 60000000000L,
+        TimeUnit.MINUTE -> 60000000000L, TimeUnit.MINUTES -> 60000000000L,
+        TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
+        TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
+        TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
+
+    static public var imports = new LinkedList()
+
+    // //////////////////////////////////////////
+    // // Code generation functions to override for a concrete code generator.
     /** Generate code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation. This base class invokes generateReactor()
@@ -79,26 +69,22 @@ class GeneratorBase {
      *  @param resource The resource containing the source code.
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: What is this?
-     *  @param importTable The mapping given by import statements.
      */
-    def void doGenerate(
-            Resource resource, 
-            IFileSystemAccess2 fsa,
-            IGeneratorContext context,
-            Hashtable<String,String> importTable) {
+    def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
+        IGeneratorContext context) {
 
         generatorErrorsOccurred = false
-        
+
         this.resource = resource
 
         // Figure out the file name for the target code from the source file name.
         filename = extractFilename(resource.getURI.toString)
 
         var Instantiation mainDef = null
-        
+
         // Recursively instantiate reactors from their definitions
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            generateReactor(reactor, importTable)
+            generateReactor(reactor)
             if (reactor.isMain) {
                 // Creating an definition for the main reactor because there isn't one.
                 mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
@@ -108,7 +94,7 @@ class GeneratorBase {
             }
         }
     }
-    
+
     /** Return true if errors occurred in the last call to doGenerate().
      *  This will return true if any of the reportError methods was called.
      *  @return True if errors occurred.
@@ -116,25 +102,23 @@ class GeneratorBase {
     def errorsOccurred() {
         return generatorErrorsOccurred;
     }
-    
+
     /** Collect data in a reactor or composite definition.
      *  Subclasses should override this and be sure to call
      *  super.generateReactor(reactor, importTable).
      *  @param reactor The parsed reactor AST data structure.
-     *  @param importTable Substitution table for class names (from import statements).
-     */    
-    def void generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
-                
+     */
+    def void generateReactor(Reactor reactor) {
+
         // Reset indentation, in case it has gotten messed up.
         indentation.put(code, "")
-        
+
         // Print a comment identifying the generated code.
-        prComment("Code generated by the Lingua Franca compiler for reactor " 
-            + reactor.name
-            + " in "
-            + filename
+        prComment(
+            "Code generated by the Lingua Franca compiler for reactor " +
+                reactor.name + " in " + filename
         )
-        
+
         // Special Timer and Action for startup and shutdown, if they occur.
         // Only one of each of these should be created even if multiple
         // reactions are triggered by them.
@@ -160,35 +144,39 @@ class GeneratorBase {
                         hasStartupTrigger = true
                         if (timer === null) {
                             timer = factory.createTimer
-							timer.name = LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name
-							timer.timing = factory.createTiming
-							timer.timing.offset = factory.createTimeOrValue
-							timer.timing.offset.time = 0
-							timer.timing.period = factory.createTimeOrValue
-							timer.timing.period.time = 0
+                            timer.name = LinguaFrancaPackage.Literals.
+                                TRIGGER_REF__STARTUP.name
+                            timer.timing = factory.createTiming
+                            timer.timing.offset = factory.createTimeOrValue
+                            timer.timing.offset.time = 0
+                            timer.timing.period = factory.createTimeOrValue
+                            timer.timing.period.time = 0
                             reactor.timers.add(timer)
                         }
                     } else if (trigger.isShutdown) {
                         hasShutdownTrigger = true
                         if (action === null) {
-							action = factory.createAction 
-							action.name = LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name
-							action.origin = ActionOrigin.LOGICAL
-							action.delay = factory.createTimeOrValue
-							action.delay.time = 0
-							reactor.actions.add(action)
+                            action = factory.createAction
+                            action.name = LinguaFrancaPackage.Literals.
+                                TRIGGER_REF__SHUTDOWN.name
+                            action.origin = ActionOrigin.LOGICAL
+                            action.delay = factory.createTimeOrValue
+                            action.delay.time = 0
+                            reactor.actions.add(action)
                         }
                     }
                 }
                 // If appropriate, add a VarRef to the triggers list of this
                 // reaction for the startup timer or shutdown action.
                 if (hasStartupTrigger) {
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
+                    var variableReference = LinguaFrancaFactory.eINSTANCE.
+                        createVarRef()
                     variableReference.setVariable(timer)
                     reaction.triggers.add(variableReference)
                 }
                 if (hasShutdownTrigger) {
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
+                    var variableReference = LinguaFrancaFactory.eINSTANCE.
+                        createVarRef()
                     variableReference.setVariable(action)
                     reaction.triggers.add(variableReference)
                 }
@@ -210,26 +198,28 @@ class GeneratorBase {
         }
     }
 
-	// FIXME: comments
-	def resolveTime(TimeOrValue timeOrValue, ReactorInstance instance) {
-		var timeLiteral = '0LL'
-		var unit = TimeUnit.NONE
-		if (timeOrValue !== null) {
-			if (timeOrValue.parameter !== null) {
-				var resolved = instance.resolveParameter(timeOrValue.parameter)
-				if (resolved === null) {
-					throw new InternalError("Incorrect reference to parameter :" + timeOrValue.parameter.name);
-				} else {
-					timeLiteral = resolved.literalValue
-					unit = TimeUnit.NONE
-				}
-			} else {
-				timeLiteral = timeOrValue.time.toString
-				unit = timeOrValue.unit
-			}
-		}
-		return timeInTargetLanguage(timeLiteral, unit)
-	}
+    // FIXME: comments
+    def resolveTime(TimeOrValue timeOrValue, ReactorInstance instance) {
+        var timeLiteral = '0LL'
+        var unit = TimeUnit.NONE
+        if (timeOrValue !== null) {
+            if (timeOrValue.parameter !== null) {
+                var resolved = instance.resolveParameter(timeOrValue.parameter)
+                if (resolved === null) {
+                    throw new InternalError(
+                        "Incorrect reference to parameter :" +
+                            timeOrValue.parameter.name);
+                } else {
+                    timeLiteral = resolved.literalValue
+                    unit = TimeUnit.NONE
+                }
+            } else {
+                timeLiteral = timeOrValue.time.toString
+                unit = timeOrValue.unit
+            }
+        }
+        return timeInTargetLanguage(timeLiteral, unit)
+    }
 
     /** Given a representation of time that may possibly include units,
      *  return a string that the target language can recognize as a value.
@@ -244,13 +234,13 @@ class GeneratorBase {
      *  @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
     def timeInTargetLanguage(String timeLiteral, TimeUnit unit) { // FIXME: make this static?
-    	if (unit != TimeUnit.NONE) {
-    		unit.name() + '(' + timeLiteral + ')'
-    	} else {
-    		timeLiteral
-    	}       
+        if (unit != TimeUnit.NONE) {
+            unit.name() + '(' + timeLiteral + ')'
+        } else {
+            timeLiteral
+        }
     }
-    
+
     /** Return a string that the target language can recognize as a type
      *  for a time value. This base class returns "instant_t".
      *  Particular target generators will likely need to override
@@ -261,43 +251,41 @@ class GeneratorBase {
         "instant_t"
     }
 
-    ////////////////////////////////////////////
-    //// Protected fields.
-
+    // //////////////////////////////////////////
+    // // Protected fields.
     /** The main (top-level) reactor instance. */
-    protected ReactorInstance main 
-    
+    protected ReactorInstance main
+
     // The root filename for the main file containing the source code, without the .lf.
     protected var String filename
-    
+
     // The file containing the main source code.
     protected var Resource resource
-    
+
     // Indicator of whether generator errors occurred.
     protected var generatorErrorsOccurred = false
 
-    ////////////////////////////////////////////
-    //// Protected methods.
-    
+    // //////////////////////////////////////////
+    // // Protected methods.
     /** Clear the buffer of generated code.
      */
     protected def clearCode() {
         code = new StringBuilder
     }
-    
+
     /** Get the code produced so far.
      *  @return The code produced so far as a String.
      */
     protected def getCode() {
         code.toString()
     }
-        
+
     /** Increase the indentation of the output code produced.
      */
     protected def indent() {
         indent(code)
     }
-    
+
     /** Increase the indentation of the output code produced
      *  on the specified builder.
      *  @param The builder to indent.
@@ -313,7 +301,7 @@ class GeneratorBase {
         }
         indentation.put(builder, buffer.toString)
     }
-    
+
     /** Open and parse an import given a URI relative to currentResource.
      *  @param currentResource The current resource.
      *  @param importedURIAsString The URI to import as a string.
@@ -326,15 +314,18 @@ class GeneratorBase {
         val URI importedURI = URI?.createFileURI(importedURIAsString);
         val URI resolvedURI = importedURI?.resolve(currentURI);
         if (resolvedURI.equals(currentURI)) {
-            reportError(importSpec, "Recursive imports are not permitted: " + importSpec.name)
+            reportError(importSpec,
+                "Recursive imports are not permitted: " + importSpec.name)
             return currentResource
         } else {
             val ResourceSet currentResourceSet = currentResource?.resourceSet;
             try {
                 return currentResourceSet?.getResource(resolvedURI, true);
             } catch (Exception ex) {
-                reportError(importSpec, "Import not found: " + importSpec.name 
-                    + ". Exception message: " + ex.message
+                reportError(
+                    importSpec,
+                    "Import not found: " + importSpec.name +
+                        ". Exception message: " + ex.message
                 )
                 return null
             }
@@ -346,9 +337,11 @@ class GeneratorBase {
      *  @param text The text to append.
      */
     protected def pr(String format, Object... args) {
-        pr(code, if (args !== null && args.length > 0) String.format(format, args) else format)
+        pr(code,
+            if (args !== null && args.length > 0) String.format(format,
+                args) else format)
     }
-    
+
     /** Append the specified text plus a final newline to the specified
      *  code buffer.
      *  @param builder The code buffer.
@@ -400,7 +393,7 @@ class GeneratorBase {
             builder.append("\n")
         }
     }
-    
+
     /** Prints an indented block of text with the given begin and end markers,
      *  but only if the actions print any text at all.
      *  This is helpful to avoid the production of empty blocks.
@@ -439,7 +432,7 @@ class GeneratorBase {
      */
     protected def readFileInClasspath(String filename) throws IOException {
         var inputStream = this.class.getResourceAsStream(filename)
-        
+
         if (inputStream === null) {
             return null
         }
@@ -464,7 +457,7 @@ class GeneratorBase {
     protected def reportError(String message) {
         System.err.println("ERROR: " + message)
     }
-    
+
     /** Report an error on the specified parse tree object.
      *  @param object The parse tree object.
      *  @param message The error message.
@@ -475,11 +468,8 @@ class GeneratorBase {
         // In case we are using a command-line tool, we report the line number.
         // The caller should not throw an exception so compilation can continue.
         var node = NodeModelUtils.getNode(object)
-        val line = (node === null)? "unknown" : node.getStartLine
-        System.err.println("ERROR: Line "
-                    + line
-                    + ": "
-                    + message)
+        val line = (node === null) ? "unknown" : node.getStartLine
+        System.err.println("ERROR: Line " + line + ": " + message)
         // Return a string that can be inserted into the generated code.
         "[[ERROR: " + message + "]]"
     }
@@ -493,10 +483,8 @@ class GeneratorBase {
         // In case we are using a command-line tool, we report the line number.
         // The caller should not throw an exception so compilation can continue.
         var node = NodeModelUtils.getNode(object)
-        System.err.println("WARNING: Line "
-                    + node.getStartLine()
-                       + ": "
-                    + message)
+        System.err.println("WARNING: Line " + node.getStartLine() + ": " +
+            message)
         // Return an empty string that can be inserted into the generated code.
         ""
     }
@@ -507,7 +495,7 @@ class GeneratorBase {
     protected def unindent() {
         unindent(code)
     }
-    
+
     /** Reduce the indentation by one level for generated code
      *  in the specified code buffer.
      */
@@ -523,7 +511,7 @@ class GeneratorBase {
             indentation.put(builder, indent)
         }
     }
-    
+
     /** Given a representation of time that may possibly include units,
      *  return a string for the same amount of time
      *  in terms of the specified baseUnit. If the two units are the
@@ -537,31 +525,32 @@ class GeneratorBase {
         }
         var timeValue = timeOrValue.time
         var timeUnit = timeOrValue.unit
-        
+
         if (timeOrValue.parameter !== null) {
-        	timeUnit = timeOrValue.parameter.unit
-        	if (timeOrValue.parameter.unit != TimeUnit.NONE) {
-        		timeValue = timeOrValue.parameter.time
-        	} else {
-        		try {
-        			timeValue = Integer.parseInt(timeOrValue.parameter.value)
-        		} catch (NumberFormatException e) {
-        			reportError(timeOrValue, "Invalid time value: " + timeOrValue)
-        		}
-        	}
+            timeUnit = timeOrValue.parameter.unit
+            if (timeOrValue.parameter.unit != TimeUnit.NONE) {
+                timeValue = timeOrValue.parameter.time
+            } else {
+                try {
+                    timeValue = Integer.parseInt(timeOrValue.parameter.value)
+                } catch (NumberFormatException e) {
+                    reportError(timeOrValue,
+                        "Invalid time value: " + timeOrValue)
+                }
+            }
         }
-        
+
         if (timeUnit === TimeUnit.NONE || baseUnit.equals(timeUnit)) {
-        	return timeValue
-       	}
+            return timeValue
+        }
         // Convert time to nanoseconds, then divide by base scale.
-        return ((timeValue * timeUnitsToNs.get(timeUnit)) / timeUnitsToNs.get(baseUnit)).toString
-        
+        return ((timeValue * timeUnitsToNs.get(timeUnit)) /
+            timeUnitsToNs.get(baseUnit)).toString
+
     }
-    
-    ////////////////////////////////////////////////////
-    //// Private functions
-    
+
+    // //////////////////////////////////////////////////
+    // // Private functions
     /** Extract a filename from a path. */
     private def extractFilename(String path) {
         var result = path
@@ -577,12 +566,10 @@ class GeneratorBase {
         }
         return result
     }
-    
+
     enum Mode {
-          STANDALONE,
-          INTEGRATED,
-          UNDEFINED
+        STANDALONE,
+        INTEGRATED,
+        UNDEFINED
     }
 }
-
-

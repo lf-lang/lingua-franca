@@ -15,7 +15,6 @@ import java.nio.file.Paths
 import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
-import java.util.Hashtable
 import java.util.LinkedList
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
@@ -75,11 +74,10 @@ class CGenerator extends GeneratorBase {
      *  @param resource The resource containing the source code.
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: Undocumented argument. No idea what this is.
-     *  @param importTable The mapping given by import statements.
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-        IGeneratorContext context, Hashtable<String, String> importTable) {
-
+        IGeneratorContext context) {
+        
         pr(includes)
         this.resource = resource
 
@@ -132,9 +130,9 @@ class CGenerator extends GeneratorBase {
         }
 
         // First process all the imports.
-        processImports(importTable)
+        processImports()
 
-        super.doGenerate(resource, fsa, context, importTable)
+        super.doGenerate(resource, fsa, context)
 
         // Generate main instance, if there is one.
         if (this.main !== null) {
@@ -350,11 +348,9 @@ class CGenerator extends GeneratorBase {
     // // Code generators.
     /** Generate a reactor class definition.
      *  @param reactor The parsed reactor data structure.
-     *  @param importTable Substitution table for class names (from import statements).
      */
-    override generateReactor(Reactor reactor,
-        Hashtable<String, String> importTable) {
-        super.generateReactor(reactor, importTable)
+    override generateReactor(Reactor reactor) {
+        super.generateReactor(reactor)
 
         pr("// =============== START reactor class " + reactor.name)
 
@@ -1707,9 +1703,8 @@ class CGenerator extends GeneratorBase {
     }
 
     /** Process any imports included in the resource defined by _resource.
-     *  @param importTable The import table.
      */
-    private def void processImports(Hashtable<String, String> importTable) {
+    private def void processImports() {
         for (import : resource.allContents.toIterable.filter(Import)) {
             val importResource = openImport(resource, import)
             if (importResource !== null) {
@@ -1727,13 +1722,13 @@ class CGenerator extends GeneratorBase {
                     val oldResource = resource
                     resource = importResource
                     // Process any imports that the import has.
-                    processImports(importTable)
+                    processImports()
                     for (reactor : importResource.allContents.toIterable.filter(
                         Reactor)) {
                         if (!reactor.isMain) {
                             println("Including imported reactor: " +
                                 reactor.name)
-                            generateReactor(reactor, importTable)
+                            generateReactor(reactor)
                         }
                     }
                     resource = oldResource
