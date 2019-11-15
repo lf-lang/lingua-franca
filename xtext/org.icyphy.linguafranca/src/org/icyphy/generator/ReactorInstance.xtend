@@ -19,6 +19,7 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -66,7 +67,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         
         // Instantiate actions for this reactor instance
         for (actionDecl : definition.reactorClass.actions) {
-            this.actions.add(new ActionInstance(actionDecl, this))
+        	this.actions.add(new ActionInstance(actionDecl, this))
         }
         
         // Populate destinations map and the connectivity information
@@ -170,11 +171,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** The timer instances belonging to this reactor instance. */
     public var timers = new LinkedList<TimerInstance>
     
-    /** The trigger instances (input ports, timers, and actions
-     *  that trigger reactions) belonging to this reactor instance.
-     */
-    public var triggers = new HashSet<TriggerInstance<Variable>>
-    
     //////////////////////////////////////////////////////
     //// Public methods.
 
@@ -191,6 +187,23 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
     }
+    
+    def getShutdownAction() {
+    	for (actionInstance : actions) {
+            if (actionInstance.isShutdown) {
+                return actionInstance
+            }
+        }
+    }
+    
+    def getStartupTimer() {
+    	for (timerInstance : timers) {
+            if (timerInstance.isStartup) {
+                return timerInstance
+            }
+        }
+    }
+    
     
     /** Return the instance of a child rector created by the specified
      *  definition or null if there is none.
@@ -279,6 +292,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 return timerInstance
             }
         }
+    }
+    
+    /** Return the trigger instances (input ports, timers, and actions
+     *  that trigger reactions) belonging to this reactor instance.
+     *  @return The trigger instances belonging to this reactor instance.
+     */
+    def getTriggers() {
+    	var triggers = new HashSet<TriggerInstance<Variable>>
+    	for (reaction : this.reactions) {
+    		triggers.addAll(reaction.triggers)
+    	}
+    	return triggers
     }
     
     /** Given a port definition, return the port instance
@@ -485,6 +510,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this, count++)
+                
                 // If there is an earlier reaction in this same reactor, then
                 // create a link in the dependence graph.
                 if (previousReaction !== null) {
@@ -495,56 +521,59 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
                 this.reactions.add(reactionInstance);
+                
+                
+//                triggers.add(actionInstance)
 
                 // Establish (anti-)dependencies based
                 // on what reactions use and produce.
-                var dependsOn = reaction.triggers;
-                if (reaction.sources !== null) {
-                    if (dependsOn !== null) {
-                        dependsOn.addAll(reaction.sources);
-                    } else {
-                        dependsOn = reaction.sources;
-                    }
-                }
+//                var dependsOn = reaction.triggers.filter[(it as VarRef).variable instanceof Port];
+//                if (reaction.sources !== null) {
+//                    if (dependsOn !== null) {
+//                        dependsOn.addAll(reaction.sources);
+//                    } else {
+//                        dependsOn = reaction.sources;
+//                    }
+//                }
                 // Now, given the AST references for what this reaction depends
                 // on, construct the corresponding instance references.
-                if (dependsOn !== null) {
-                    for (dep : dependsOn) {
-                        var variable = dep.getVariable()
-                        if (variable instanceof Port) {
-                            var port = this.getPortInstance(dep)
-                            triggers.add(port)
-                            port.dependentReactions.add(reactionInstance)
-                            reactionInstance.dependsOnPorts.add(port)
-                        } else if (variable instanceof Action) {
-                            var actionInstance = this.getActionInstance(variable)
-                            triggers.add(actionInstance)
-                            actionInstance.dependentReactions.add(reactionInstance)
-                            reactionInstance.dependsOnActions.add(actionInstance)
-                        } else if (variable instanceof Timer) {
-                            var timerInstance = this.getTimerInstance(variable)
-                            triggers.add(timerInstance)
-                            timerInstance.dependentReactions.add(reactionInstance)
-                            reactionInstance.dependsOnTimers.add(timerInstance)
-                        }
-                    }
-                }
+//                if (dependsOn !== null) {
+//                    for (dep : dependsOn) {
+//                        var variable = dep.getVariable()
+//                        if (variable instanceof Port) {
+//                            var port = this.getPortInstance(dep)
+//                            triggers.add(port)
+//                            port.dependentReactions.add(reactionInstance)
+//                            reactionInstance.dependsOnPorts.add(port)
+//                        } else if (variable instanceof Action) {
+//                            var actionInstance = this.getActionInstance(variable)
+//                            triggers.add(actionInstance)
+//                            actionInstance.dependentReactions.add(reactionInstance)
+//                            reactionInstance.dependsOnActions.add(actionInstance)
+//                        } else if (variable instanceof Timer) {
+//                            var timerInstance = this.getTimerInstance(variable)
+//                            triggers.add(timerInstance)
+//                            timerInstance.dependentReactions.add(reactionInstance)
+//                            reactionInstance.dependsOnTimers.add(timerInstance)
+//                        }
+//                    }
+//                }
 
-                // Then handle anti-dependencies, which are the ports
-                // to which this reaction sends outputs. Actions are not
-                // included because they always incur a microstep delay.
-                // NOTE: Here is where we could include "dotted links"
-                // in the precedence graph to capture dependencies with
-                // logical time delays.
-                if (reaction.effects !== null) {
-                    for (antidep : reaction.effects) {
-                        if (antidep.variable instanceof Port) {
-                            var port = this.getPortInstance(antidep);
-                            port.dependsOnReactions.add(reactionInstance);
-                            reactionInstance.dependentPorts.add(port);
-                        }
-                    }
-                }
+//                // Then handle anti-dependencies, which are the ports
+//                // to which this reaction sends outputs. Actions are not
+//                // included because they always incur a microstep delay.
+//                // NOTE: Here is where we could include "dotted links"
+//                // in the precedence graph to capture dependencies with
+//                // logical time delays.
+//                if (reaction.effects !== null) {
+//                    for (antidep : reaction.effects) {
+//                        if (antidep.variable instanceof Port) {
+//                            var port = this.getPortInstance(antidep);
+//                            port.dependsOnReactions.add(reactionInstance);
+//                            reactionInstance.dependentPorts.add(port);
+//                        }
+//                    }
+//                }
             }
         }
     }

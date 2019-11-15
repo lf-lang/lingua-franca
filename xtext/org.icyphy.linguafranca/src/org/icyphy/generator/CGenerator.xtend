@@ -38,9 +38,9 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.LinguaFrancaPackage
 
 /**
  * Generator for C target.
@@ -451,19 +451,21 @@ class CGenerator extends GeneratorBase {
         // contained output.
         var included = new HashSet<Output>
         for (reaction : reactor.reactions) {
-            for (trigger: reaction.triggers ?: emptyList) {
-                if (trigger.variable instanceof Output && !included.contains(trigger.variable)) {
-                    // Reaction is triggered by an output of a contained reactor.
-                    val port = trigger.variable as Output
-                    included.add(port)
-                    pr(
-                        body,
-                        removeCodeDelimiter(port.type) + '* __' + trigger.container.name + '_' + port.name + ';'
-                    )
-                    pr(
-                        body,
-                        'bool* __' + trigger.container.name + '_' + port.name + '_is_present;'
-                    )
+        	for (TriggerRef trigger: reaction.triggers ?: emptyList) {
+                if (trigger instanceof VarRef) {
+	                if (trigger.variable instanceof Output && !included.contains(trigger.variable)) {
+	                    // Reaction is triggered by an output of a contained reactor.
+	                    val port = trigger.variable as Output
+	                    included.add(port)
+	                    pr(
+	                        body,
+	                        removeCodeDelimiter(port.type) + '* __' + trigger.container.name + '_' + port.name + ';'
+	                    )
+	                    pr(
+	                        body,
+	                        'bool* __' + trigger.container.name + '_' + port.name + '_is_present;'
+	                    )
+	                }
                 }
             }
             // Handle reading (but not triggered by) outputs of contained reactors.
@@ -537,36 +539,41 @@ class CGenerator extends GeneratorBase {
             // (not an action), then it also defines a local variable whose
             // name is the input name with suffix "_is_present", a boolean
             // that indicates whether the input is present.
+
             // If the trigger is an output, then it is an output of a
             // contained reactor. In this case, a struct with the name
             // of the contained reactor is created with two fields.
             // E.g., if the contained reactor is named 'c' and its output
             // port is named 'out', then c.out and c.out_is_present are
             // defined so that they can be used in the verbatim code.
-            for (VarRef trigger : reaction.triggers ?: emptyList) {
-                if (trigger.variable instanceof Port) {
-                    generatePortVariablesInReaction(reactionInitialization, trigger)
-                } else if (trigger.variable instanceof Action) {
-                    pr(
-                        reactionInitialization,
-                        "trigger_t* " + trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
-                    );
-                    actionsAsTriggers.add(trigger.variable as Action);
-                    // If the action has a type, create variables for accessing the value.
-                    val type = (trigger.variable as Action).type
-                    val valuePointer = trigger.variable.name + '->value'
-                    // Create the _has_value variable.
-                    pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_value = (' + valuePointer + ' != NULL);')
-                    // Create the _value variable if there is a type.
-                    if (type !== null) {
-                        // Create the value variable, but initialize it only if the pointer is not null.
-                        pr(reactionInitialization, type + ' ' + trigger.variable.name + '_value;')
-                        pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_value) '
-                            + trigger.variable.name + '_value = *(' + '(' + type + '*)' + valuePointer + ');'
-                        );
+            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
+                if (trigger instanceof VarRef) {
+                	if (trigger.variable instanceof Port) {
+                    	generatePortVariablesInReaction(reactionInitialization, trigger)
+                	} else if (trigger.variable instanceof Action) {
+                    	pr(
+                        	reactionInitialization,
+                        	"trigger_t* " + trigger.variable.name + ' = self->__' + trigger.variable.name + ';'
+                    	);
+                    	actionsAsTriggers.add(trigger.variable as Action);
+                    	// If the action has a type, create variables for accessing the value.
+                    	val type = (trigger.variable as Action).type
+                    	val valuePointer = trigger.variable.name + '->value'
+                    	// Create the _has_value variable.
+                    	pr(reactionInitialization, 'bool ' + trigger.variable.name + '_has_value = (' + valuePointer + ' != NULL);')
+                    	// Create the _value variable if there is a type.
+                    	if (type !== null) {
+                        	// Create the value variable, but initialize it only if the pointer is not null.
+                        	pr(reactionInitialization, type + ' ' + trigger.variable.name + '_value;')
+                        	pr(reactionInitialization, 'if (' + trigger.variable.name + '_has_value) '
+                            	+ trigger.variable.name + '_value = *(' + '(' + type + '*)' + valuePointer + ');'
+                        	);
+                        }
                     }
-                }
-            }
+				} else {
+					// FIXME: should we generate code for the shutdown action?
+				}
+			}
             if (reaction.triggers === null || reaction.triggers.size === 0) {
                 // No triggers are given, which means react to any input.
                 // Declare an argument for every input.
@@ -1077,17 +1084,12 @@ class CGenerator extends GeneratorBase {
                         delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
-                // FIXME: Is there a better way to check than name matching here?
-                // Yes, there is: LinguaFrancaPackage.Literals.VAR_REF__SHUTDOWN
-                // However, this feature was added to the grammar in the wrong place and has to be moved first...
-                if (trigger.name.equals("shutdown")) {
+                if ((triggerInstance as ActionInstance).isShutdown) {
                     shutdownActionInstances.add(triggerInstance as ActionInstance)
                 }
-
+                
             } else {
-                reportError(trigger, "Internal error: Seems to not be a port, timer, or action: "
-                    + trigger.name
-                )
+            	reportError(trigger, "Internal error: Seems to not be a port, timer, or action: " + trigger.name)
             }
             unindent(result)
             pr(result, '};')
@@ -1165,8 +1167,8 @@ class CGenerator extends GeneratorBase {
                     return false
                 }
             }
-            for (trigger : reaction.triggers ?: emptyList) {
-                if (trigger.variable instanceof Output) {
+            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
+                if (trigger instanceof VarRef && (trigger as VarRef).variable instanceof Output) {
                     // Triggered by the output of a contained reactor.
                     return false
                 }

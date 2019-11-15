@@ -4,6 +4,10 @@ import java.util.HashSet
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Variable
 
 /** Instance of a reaction. */
 class ReactionInstance extends NamedInstance<Reaction> {
@@ -22,12 +26,35 @@ class ReactionInstance extends NamedInstance<Reaction> {
         
         // Identify the dependencies for this reaction.
         // First handle the triggers.
-        for (trigger : definition.triggers) {
-            if (trigger instanceof Port) {
-                var portInstance = parent.getPortInstance(trigger)
-                this.dependsOnPorts.add(portInstance)
-                portInstance.dependentReactions.add(this)
-            }
+        for (TriggerRef trigger : definition.triggers) {
+        	if (trigger instanceof VarRef) {
+        		val ref = trigger as VarRef
+        		if (ref.variable instanceof Port) {
+        			var portInstance = parent.getPortInstance(trigger as VarRef)
+               		this.dependsOnPorts.add(portInstance)
+                	portInstance.dependentReactions.add(this)
+                	this.triggers.add(portInstance)
+            	} else if (ref.variable instanceof Action) {
+					var actionInstance = parent.getActionInstance(ref.variable as Action)
+                    this.triggers.add(actionInstance)
+                    actionInstance.dependentReactions.add(this)
+                    this.dependsOnActions.add(actionInstance)
+               } else if (ref.variable instanceof Timer) {
+					var timerInstance = parent.getTimerInstance(ref.variable as Timer)
+                    this.triggers.add(timerInstance)
+                    timerInstance.dependentReactions.add(this)
+               }
+        	} else if (trigger.isShutdown) {
+        		var actionInstance = parent.shutdownAction
+                this.triggers.add(actionInstance)
+                actionInstance.dependentReactions.add(this)
+                this.dependsOnActions.add(actionInstance)
+        	} else if (trigger.isStartup) {
+        		var timerInstance = parent.startupTimer
+                this.triggers.add(timerInstance)
+                timerInstance.dependentReactions.add(this)
+                this.dependsOnTimers.add(timerInstance)
+        	}
         }
         // Next handle the ports that this reaction reads.
         for (source : definition.sources) {
@@ -37,6 +64,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                 portInstance.dependentReactions.add(this)
             }
         }
+        
         // Finally, handle the effects.
         for (effect : definition.effects) {
             if (effect.variable instanceof Port) {
@@ -82,6 +110,11 @@ class ReactionInstance extends NamedInstance<Reaction> {
      *  The first reaction has index 0, the second index 1, etc.
      */
     public int reactionIndex = -1;
+
+    /** The trigger instances (input ports, timers, and actions
+     *  that trigger reactions) that trigger this reaction.
+     */
+    public var triggers = new HashSet<TriggerInstance<Variable>>
 
     /** Return the name of this reaction, which is 'reaction_n',
      *  where n is replaced by the reactionIndex. 

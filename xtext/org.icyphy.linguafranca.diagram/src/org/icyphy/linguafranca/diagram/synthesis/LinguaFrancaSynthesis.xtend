@@ -50,6 +50,7 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import org.icyphy.linguaFranca.TriggerRef
 
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
@@ -222,20 +223,24 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.addReactionFigure(reaction)
 
 			// connect input
-			for (VarRef trigger : reaction.triggers?:emptyList) {
-				if (trigger.variable instanceof Action) {
-					actionDestinations.put(trigger.variable as Action, reaction)		
+			for (TriggerRef trigger : reaction.triggers?:emptyList) {
+				if (trigger instanceof VarRef) {
+					if (trigger.variable instanceof Action) {
+						actionDestinations.put(trigger.variable as Action, reaction)		
+					} else {
+						val src = if (trigger.container !== null) {
+							outputPorts.get(trigger.container, trigger.variable)
+						} else if (parentInputPorts.containsKey(trigger.variable)) {
+							parentInputPorts.get(trigger.variable)
+						} else if (timerNodes.containsKey(trigger.variable)) {
+							timerNodes.get(trigger.variable)
+						}
+						if (src !== null) {
+							createDependencyEdge().connect(src, node)
+						}
+					}
 				} else {
-					val src = if (trigger.container !== null) {
-						outputPorts.get(trigger.container, trigger.variable)
-					} else if (parentInputPorts.containsKey(trigger.variable)) {
-						parentInputPorts.get(trigger.variable)
-					} else if (timerNodes.containsKey(trigger.variable)) {
-						timerNodes.get(trigger.variable)
-					}
-					if (src !== null) {
-						createDependencyEdge().connect(src, node)
-					}
+					// FIXME: startup/shutdown
 				}
 			}
 			

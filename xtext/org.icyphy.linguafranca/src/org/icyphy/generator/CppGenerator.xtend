@@ -36,6 +36,8 @@ import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 
 class CppGenerator extends GeneratorBase {
 
@@ -328,7 +330,7 @@ class CppGenerator extends GeneratorBase {
 
 	def declareTriggers(Reaction n) '''
 		«FOR t : n.triggers»
-			«n.name».declare_trigger(&«t.fullName»);
+			«n.name».declare_trigger(&«t.triggerName»);
 		«ENDFOR»
 	'''
 
@@ -340,6 +342,18 @@ class CppGenerator extends GeneratorBase {
 		}
 	}
 
+	def triggerName(TriggerRef t) {
+		if (t instanceof VarRef) {
+			fullName(t)
+		} else {
+			if (t.isShutdown) {
+				'''«LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name»'''
+			} else if (t.isStartup) {
+				'''«LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name»'''
+			}
+			
+		}
+	}
 	def declareDependencies(Reaction n) '''
 		«FOR t : n.sources»
 			«IF t.container !== null»
