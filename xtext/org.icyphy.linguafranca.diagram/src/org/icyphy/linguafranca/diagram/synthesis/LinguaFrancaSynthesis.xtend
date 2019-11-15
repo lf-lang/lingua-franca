@@ -34,6 +34,7 @@ import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -322,7 +323,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return createEdge => [
 			associateWith(action)
 			addPolyline() => [
-				lineStyle = LineStyle.DASH
+				if (action.origin == ActionOrigin.PHYSICAL) {
+					lineStyle = LineStyle.DASHDOT
+				} else {
+					lineStyle = LineStyle.DASH
+				}
 				boldLineSelectionStyle()
 			]
 			if (action.delay !== null) {
