@@ -8,7 +8,7 @@ reactor Printer {
         std::cout << "Inside reactor received: " << *x.get() << std::endl;
     =}
 }
-main reactor Main {
+main reactor SendingInside2 {
     timer t;
     p = new Printer();
     reaction(t) -> p.x {=
