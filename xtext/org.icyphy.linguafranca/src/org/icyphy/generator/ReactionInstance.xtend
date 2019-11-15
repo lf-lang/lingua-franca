@@ -9,7 +9,11 @@ import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Variable
 
-/** Instance of a reaction. */
+/** Representation of a runtime instance of a reaction.
+ *  A ReactionInstance object stores all dependency information necessary
+ *  for constructing a directed acyclic precedece graph.
+ *  @author Edward A. Lee, Marten Lohstroh
+ */
 class ReactionInstance extends NamedInstance<Reaction> {
 
     /** Create a new reaction instance from the specified definition
@@ -20,41 +24,42 @@ class ReactionInstance extends NamedInstance<Reaction> {
      *  @param index The index of the reaction within the reactor (0 for the
      *   first reaction, 1 for the second, etc.).
      */
-    protected new (Reaction definition, ReactorInstance parent, int index) {
+    protected new(Reaction definition, ReactorInstance parent, int index) {
         super(definition, parent);
         this.reactionIndex = index
-        
+
         // Identify the dependencies for this reaction.
         // First handle the triggers.
         for (TriggerRef trigger : definition.triggers) {
-        	if (trigger instanceof VarRef) {
-        		val ref = trigger as VarRef
-        		if (ref.variable instanceof Port) {
-        			var portInstance = parent.getPortInstance(trigger as VarRef)
-               		this.dependsOnPorts.add(portInstance)
-                	portInstance.dependentReactions.add(this)
-                	this.triggers.add(portInstance)
-            	} else if (ref.variable instanceof Action) {
-					var actionInstance = parent.getActionInstance(ref.variable as Action)
+            if (trigger instanceof VarRef) {
+                if (trigger.variable instanceof Port) {
+                    var portInstance = parent.getPortInstance(trigger as VarRef)
+                    this.dependsOnPorts.add(portInstance)
+                    portInstance.dependentReactions.add(this)
+                    this.triggers.add(portInstance)
+                } else if (trigger.variable instanceof Action) {
+                    var actionInstance = parent.getActionInstance(
+                        trigger.variable as Action)
                     this.triggers.add(actionInstance)
                     actionInstance.dependentReactions.add(this)
                     this.dependsOnActions.add(actionInstance)
-               } else if (ref.variable instanceof Timer) {
-					var timerInstance = parent.getTimerInstance(ref.variable as Timer)
+                } else if (trigger.variable instanceof Timer) {
+                    var timerInstance = parent.getTimerInstance(
+                        trigger.variable as Timer)
                     this.triggers.add(timerInstance)
                     timerInstance.dependentReactions.add(this)
-               }
-        	} else if (trigger.isShutdown) {
-        		var actionInstance = parent.shutdownAction
+                }
+            } else if (trigger.isShutdown) {
+                var actionInstance = parent.shutdownAction
                 this.triggers.add(actionInstance)
                 actionInstance.dependentReactions.add(this)
                 this.dependsOnActions.add(actionInstance)
-        	} else if (trigger.isStartup) {
-        		var timerInstance = parent.startupTimer
+            } else if (trigger.isStartup) {
+                var timerInstance = parent.startupTimer
                 this.triggers.add(timerInstance)
                 timerInstance.dependentReactions.add(this)
                 this.dependsOnTimers.add(timerInstance)
-        	}
+            }
         }
         // Next handle the ports that this reaction reads.
         for (source : definition.sources) {
@@ -64,7 +69,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                 portInstance.dependentReactions.add(this)
             }
         }
-        
+
         // Finally, handle the effects.
         for (effect : definition.effects) {
             if (effect.variable instanceof Port) {
@@ -73,7 +78,8 @@ class ReactionInstance extends NamedInstance<Reaction> {
                 portInstance.dependsOnReactions.add(this)
             } else {
                 // Effect must be an Action.
-                var actionInstance = parent.getActionInstance(effect.variable as Action)
+                var actionInstance = parent.getActionInstance(
+                    effect.variable as Action)
                 this.dependentActions.add(actionInstance)
                 actionInstance.dependsOnReactions.add(this)
             }
@@ -82,7 +88,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
 
     /** The actions that this reaction triggers. */
     public var dependentActions = new HashSet<ActionInstance>();
-        
+
     /** The ports that this reaction may write to. */
     public var dependentPorts = new HashSet<PortInstance>();
 
@@ -123,14 +129,14 @@ class ReactionInstance extends NamedInstance<Reaction> {
     override String getName() {
         return "reaction_" + this.reactionIndex;
     }
-    
+
     /** Return the main reactor, which is the top-level parent.
      *  @return The top-level parent.
      */
     override ReactorInstance main() {
         parent.main
     }
-    
+
     /** Return a descriptive string. */
     override toString() {
         getName + " of " + parent.getFullName
