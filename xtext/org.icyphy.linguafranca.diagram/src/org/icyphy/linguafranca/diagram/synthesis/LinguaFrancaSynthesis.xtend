@@ -77,6 +77,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	/** Synthesis options */
 	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
+	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Reaction Dependencies", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
 	
     /** Synthesis actions */
@@ -87,6 +88,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return #[
 			SHOW_MAIN_REACTOR,
 			SHOW_INSTANCE_NAMES,
+			REACTIONS_USE_HYPEREDGES,
 			SHOW_REACTION_CODE,
 			MEMORIZE_EXPANSION_STATES
 		]
@@ -108,8 +110,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			if (main !== null && main.hasContent) {
 				val nodes = main.transformReactorNetwork(emptyMap, emptyMap)
 				if (SHOW_MAIN_REACTOR.booleanValue) {
-					mainNode = createNode(main).associateWith(main)
+					mainNode = createNode(main)
+					mainNode.associateWith(main)
+					mainNode.ID = "main"
 					mainNode.addMainReactorFigure(main) => [
+						associateWith(main)
 						addChildArea()
 					]
 					mainNode.children += nodes
@@ -148,9 +153,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val inputPorts = HashBasedTable.<Instantiation, Input, KPort>create
 		val outputPorts = HashBasedTable.<Instantiation, Output, KPort>create
 		val reactionNodes = <Reaction, KNode>newHashMap
-		val reactionInputPort = <Reaction, KPort>newHashMap
-		val actionDestinations = HashMultimap.<Action, Reaction>create
-		val actionSource = <Action, Reaction>newHashMap
+		val actionDestinations = HashMultimap.<Action, KPort>create
+		val actionSource = <Action, KPort>newHashMap
 		val timerNodes = <Timer, KNode>newHashMap
 		val startupNode = createNode
 		var startupUsed = false
@@ -229,18 +233,24 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val node = createNode().associateWith(reaction)
 			nodes += node
 			reactionNodes.put(reaction, node)
-			val inputPort = node.addReactionInputPort
-			reactionInputPort.put(reaction, inputPort)
 			
-			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FREE)
-			
+			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			node.addReactionFigure(reaction)
 		
 			// connect input
+			var KPort port
 			for (TriggerRef trigger : reaction.triggers?:emptyList) {
+				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
+					port
+				} else {
+					node.addInvisiblePort() => [
+						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
+						addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
+					]
+				}
 				if (trigger instanceof VarRef) {
 					if (trigger.variable instanceof Action) {
-						actionDestinations.put(trigger.variable as Action, reaction)		
+						actionDestinations.put(trigger.variable as Action, port)
 					} else {
 						val src = if (trigger.container !== null) {
 							outputPorts.get(trigger.container, trigger.variable)
@@ -250,22 +260,56 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 							timerNodes.get(trigger.variable)
 						}
 						if (src !== null) {
-							createDependencyEdge(trigger).connect(src, node).setTargetPort(inputPort)
+							createIODependencyEdge(trigger).connect(src, port)
 						}
 					}
 				} else if (trigger.startup) {
-					createDependencyEdge(trigger).connect(startupNode, node).setTargetPort(inputPort)
+					createIODependencyEdge(trigger).connect(startupNode, port)
 					startupUsed = true
 				} else if (trigger.shutdown) {
-					createDependencyEdge(trigger).connect(shutdownNode, node).setTargetPort(inputPort)
+					createIODependencyEdge(trigger).connect(shutdownNode, port)
 					shutdownUsed = true
 				}
 			}
 			
+			// connect dependencies
+			port = null
+			for (VarRef dep : reaction.sources?:emptyList) {
+				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
+					port
+				} else {
+					node.addInvisiblePort() => [
+						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.NORTH)
+					]
+				}
+				if (dep.variable instanceof Action) { // TODO I think this case is forbidden
+					actionDestinations.put(dep.variable as Action, port)
+				} else {
+					val src = if (dep.container !== null) {
+						outputPorts.get(dep.container, dep.variable)
+					} else if (parentInputPorts.containsKey(dep.variable)) {
+						parentInputPorts.get(dep.variable)
+					} else if (timerNodes.containsKey(dep.variable)) { // TODO I think this is forbidden
+						timerNodes.get(dep.variable)
+					}
+					if (src !== null) {
+						createDependencyEdge(dep).connect(src, port)
+					}
+				}
+			}
+			
 			// connect outputs
+			port = null
 			for (VarRef effect : reaction.effects?:emptyList) {
+				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
+					port
+				} else {
+					node.addInvisiblePort() => [
+						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.EAST)
+					]
+				}
 				if (effect.variable instanceof Action) {
-					actionSource.put(effect.variable as Action, reaction)
+					actionSource.put(effect.variable as Action, port)
 				} else {
 					val dst = if (effect.variable instanceof Output) {
 						parentOutputPorts.get(effect.variable)
@@ -273,7 +317,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						inputPorts.get(effect.container, effect.variable)
 					}
 					if (dst !== null) {
-						createDependencyEdge(effect).connect(node, dst)
+						createIODependencyEdge(effect).connect(port, dst)
 					}
 				}
 			}
@@ -281,11 +325,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		
 		// Connect actions
 		for (Action action : actionSource.keySet) {
-			val sourceNode = reactionNodes.get(actionSource.get(action))
+			val sourcePort = actionSource.get(action)
 			for (target : actionDestinations.get(action)) {
-				val targetNode = reactionNodes.get(target)
-				val targetPort = reactionInputPort.get(target)
-				createDelayEdge(action).connect(sourceNode, targetNode).setTargetPort(targetPort)
+				createDelayEdge(action).connect(sourcePort, target)
 			}
 		}
 
@@ -301,21 +343,37 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			} else if (parentOutputPorts.containsKey(connection.rightPort.variable)) {
 				parentOutputPorts.get(connection.rightPort.variable)
 			}
-			val edge = createDependencyEdge(connection).associateWith(connection)
+			val edge = createIODependencyEdge(connection).associateWith(connection)
 			edge.connect(source, target)
 		}
 		
-		// Add startupd/shutdown
+		// Add startup/shutdown
 		if (startupUsed) {
 			startupNode.addStartupFigure
 			nodes.add(0, startupNode)
-			node.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST)
+			startupNode.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST)
+			if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
+				val port = startupNode.addInvisiblePort
+				startupNode.outgoingEdges.forEach[sourcePort = port]
+			}
 		}
 		if (shutdownUsed) {
 			shutdownNode.addShutdownFigure
-			nodes += shutdownNode
+			nodes.add(0, shutdownNode)
+			if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
+				val port = shutdownNode.addInvisiblePort
+				shutdownNode.outgoingEdges.forEach[sourcePort = port]
+			}
 		}
-
+		
+		// Postprocess timer nodes
+		if (REACTIONS_USE_HYPEREDGES.booleanValue) { // connect all edges to one port
+			for (timerNode : timerNodes.values) {
+				val port = timerNode.addInvisiblePort
+				timerNode.outgoingEdges.forEach[sourcePort = port]
+			}
+		}
+		
 		return nodes
 	}
 	
@@ -336,6 +394,16 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		]
 	}
 	
+	private def createIODependencyEdge(Object associate) {
+		return createEdge => [
+			if (associate !== null) {
+				associateWith(associate)
+			}
+			addPolyline() => [
+				boldLineSelectionStyle()
+			]
+		]
+	}
 	
 	private def createDependencyEdge(Object associate) {
 		return createEdge => [
@@ -343,6 +411,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
+				lineStyle = LineStyle.DOT
 				boldLineSelectionStyle()
 			]
 		]
@@ -401,14 +470,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return port
 	}
 
-	private def KPort addReactionInputPort(KNode node) {
+	private def KPort addInvisiblePort(KNode node) {
 		val port = createPort
 		node.ports += port
 		
 		port.setSize(0, 0) // invisible
-		port.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
-		port.addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
-		
+
 		return port
 	}
 
