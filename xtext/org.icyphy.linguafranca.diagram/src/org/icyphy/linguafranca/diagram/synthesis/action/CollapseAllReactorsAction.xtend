@@ -15,7 +15,9 @@ class CollapseAllReactorsAction implements IAction {
     override execute(ActionContext context) {
         val vc = context.viewContext
         for (node : vc.viewModel.eAllContentsOfType(KNode).filter[vc.getSourceElement(it) instanceof Reactor].toIterable) {
-            node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE), vc.viewer, false)
+        	if (!(vc.getSourceElement(node) as Reactor).main) { // Do not collapse main reactor
+            	node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE), vc.viewer, false)
+            }
         }
         return IAction.ActionResult.createResult(true);
     }
