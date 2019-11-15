@@ -93,10 +93,12 @@ class CppGenerator extends GeneratorBase {
 		reactors
 	}
 
+	Reactor mainReactor
+
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
 		var reactors = resource.collectReactors
-		var mainReactor = resource.findMainReactor
+		mainReactor = resource.findMainReactor
 		var target = resource.findTarget
 
 		super.doGenerate(resource, fsa, context)
@@ -357,9 +359,9 @@ class CppGenerator extends GeneratorBase {
 			} else if (t.isStartup) {
 				'''«LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name»'''
 			}
-			
 		}
 	}
+
 	def declareDependencies(Reaction n) '''
 		«FOR t : n.sources»
 			«IF t.container !== null»
@@ -388,11 +390,11 @@ class CppGenerator extends GeneratorBase {
 		if (r.parameters.length > 0) {
 			'''
 				«r.name»(const std::string& name,
-				    «IF r.main»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+				    «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
 				    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «p.trimmedValue»«ENDFOR»
 			'''
 		} else {
-			if (r.main) {
+			if (r == mainReactor) {
 				'''«r.name»(const std::string& name, reactor::Environment* environment);'''
 			} else {
 				'''«r.name»(const std::string& name, reactor::Reactor* container);'''
@@ -475,16 +477,16 @@ class CppGenerator extends GeneratorBase {
 	def defineConstructor(Reactor r) '''
 		«IF r.parameters.length > 0»
 			«r.name»::«r.name»(const std::string& name,
-			    «IF r.isMain()»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+			    «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
 			    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
 		«ELSE»
-			«IF r.main»
+			«IF r == mainReactor»
 				«r.name»::«r.name»(const std::string& name, reactor::Environment* environment)
 			«ELSE»
 				«r.name»::«r.name»(const std::string& name, reactor::Reactor* container)
 			«ENDIF»
 		«ENDIF»
-		  : reactor::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
+		  : reactor::Reactor(name, «IF r == mainReactor»environment«ELSE»container«ENDIF»)
 		  «r.initializeParameters»
 		  «r.initializeStateVariables»
 		  «r.initializeInstances»
