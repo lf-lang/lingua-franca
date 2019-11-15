@@ -1,6 +1,5 @@
 package org.icyphy.linguafranca.diagram.synthesis.styles
 
-import de.cau.cs.kieler.klighd.KlighdConstants
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Colors
@@ -47,14 +46,34 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
 
 	/**
+	 * Creates the main reactor frame.
+	 */
+	def addMainReactorFigure(KNode node, Reactor reactor) {
+		val figure = node.addRoundedRectangle(8, 8, 1) => [
+			setGridPlacement(1)
+			lineWidth = 1
+			foreground = Colors.GRAY
+		]
+		
+		figure.addText(reactor.name) => [
+			setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+			suppressSelectability
+			underlineSelectionStyle
+		]
+		
+		return figure
+	}
+
+	/**
 	 * Creates the visual representation of a reactor node
 	 */
 	def addReactorFigure(KNode node, Reactor reactor, String instanceName) {
-		val figure = node.addRoundedRectangle(8, 8, 1)
-		figure.setGridPlacement(1)
-		figure.lineWidth = 1
-		figure.foreground = Colors.GRAY
-		figure.background = Colors.GRAY_95
+		val figure = node.addRoundedRectangle(8, 8, 1) => [
+			setGridPlacement(1)
+			lineWidth = 1
+			foreground = Colors.GRAY
+			background = Colors.GRAY_95
+		]
 
 		// minimal node size is necessary if no text will be added
 		node.setMinimalNodeSize(2 * figure.cornerWidth, 2 * figure.cornerHeight)

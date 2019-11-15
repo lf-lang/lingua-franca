@@ -19,6 +19,7 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
 import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis
 import de.cau.cs.kieler.klighd.util.KlighdProperties
+import java.util.EnumSet
 import java.util.List
 import java.util.Map
 import javax.inject.Inject
@@ -73,6 +74,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 	
 	/** Synthesis options */
+	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
 	
@@ -82,6 +84,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	override getDisplayedSynthesisOptions() {
 		return #[
+			SHOW_MAIN_REACTOR,
 			SHOW_INSTANCE_NAMES,
 			SHOW_REACTION_CODE,
 			MEMORIZE_EXPANSION_STATES
@@ -96,19 +99,33 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	override KNode transform(Model model) {
 		val rootNode = createNode()
-
-		rootNode.addLayoutParam(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
-		rootNode.addLayoutParam(CoreOptions.DIRECTION, Direction.RIGHT)
-		rootNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
-		rootNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
-		rootNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
-		rootNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
+		var mainNode = rootNode
 
 		try {
 			// Find main
 			val main = model.reactors.findFirst[main]
 			if (main !== null && main.hasContent) {
-				rootNode.children += main.transformReactorNetwork(emptyMap, emptyMap)
+				val nodes = main.transformReactorNetwork(emptyMap, emptyMap)
+				if (SHOW_MAIN_REACTOR.booleanValue) {
+					mainNode = createNode(main).associateWith(main)
+					mainNode.addMainReactorFigure(main) => [
+						addChildArea()
+					]
+					mainNode.children += nodes
+					rootNode.children += mainNode
+					
+					// only for main reactor node
+					mainNode.setLayoutOption(CoreOptions::NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE))
+				} else {
+					rootNode.children += nodes
+				}
+				
+				mainNode.addLayoutParam(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
+				mainNode.addLayoutParam(CoreOptions.DIRECTION, Direction.RIGHT)
+				mainNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
+				mainNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
+				mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
+				mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
 			} else {
 				val messageNode = createNode()
 				messageNode.addErrorMessage("No Main", "Cannot find main reactor with content.")
