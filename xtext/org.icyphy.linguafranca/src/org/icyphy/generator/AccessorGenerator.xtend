@@ -20,6 +20,8 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.VarRef
 
 /**
  * Generator for Accessors.
@@ -221,8 +223,9 @@ class AccessorGenerator extends GeneratorBase {
 			// Add variable declarations for inputs and actions.
 			// Meanwhile, record the mapping from triggers to handlers.
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
-				for (trigger: reaction.triggers) {
-					if (inputs.contains(trigger)) {
+				for (TriggerRef trigger: reaction.triggers) {
+					if (trigger instanceof VarRef) {
+						if (inputs.contains(trigger.variable)) {
 						// The trigger is an input.
 						// Declare a variable in the generated code.
 						// NOTE: Here we are not using get() because null works
@@ -232,16 +235,16 @@ class AccessorGenerator extends GeneratorBase {
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
 				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
-					} else if (trigger instanceof Timer) {
+					} else if (trigger.variable instanceof Timer) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
 						var list = timerReactions.get(trigger)
 						if (list === null) {
 							list = new LinkedList<String>()
-							timerReactions.put(trigger, list)
+							timerReactions.put(trigger.variable as Timer, list)
 						}
 						list.add(functionName)
-					} else if (trigger instanceof Action) {
+					} else if (trigger.variable instanceof Action) {
 					    // The trigger is an action.
 					    args.add(trigger.variable.name)
 					    // Make sure there is an entry for this action in the action table.
@@ -259,6 +262,7 @@ class AccessorGenerator extends GeneratorBase {
 						System.err.println("Line "
 							+ node.getStartLine()
 							+ ": Trigger '" + trigger + "' is neither an input, a timer, nor an action.")
+					}
 					}
 				}
 				if (!args.isEmpty()) {

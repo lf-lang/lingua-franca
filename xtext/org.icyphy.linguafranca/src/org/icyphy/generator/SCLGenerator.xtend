@@ -5,6 +5,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.VarRef
 
 class SCLGenerator extends GeneratorBase {
 	val MAIN = "main"
@@ -103,8 +104,19 @@ class SCLGenerator extends GeneratorBase {
 				]
 				prBlock("VAR_INPUT", "END_VAR")[
 					reaction.triggers?.forEach[
-						pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))
-						pr("%s_present: %s;", it.variable.name, "BOOL")
+						// FIXME
+						if (it.isShutdown) {
+//							pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))
+//							pr("%s_present: %s;", it.variable.name, "BOOL")	
+						}
+						if (it.isStartup) {
+//							pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))
+//							pr("%s_present: %s;", it.variable.name, "BOOL")	
+						} else {
+							val variable = (it as VarRef).variable
+							pr("%s: %s;", variable.name, inputs.get(variable.name))
+							pr("%s_present: %s;", variable.name, "BOOL")	
+						}
 					]
 					reaction.sources?.forEach[
 						pr("%s: %s;", it.variable.name, inputs.get(it.variable.name))

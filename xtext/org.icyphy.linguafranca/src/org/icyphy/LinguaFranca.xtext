@@ -54,11 +54,13 @@ Action:
 	
 Reaction:
 	('reaction')
-	('(' (triggers+=VarRef (',' triggers+=VarRef)*)? ')')?
+	('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
 	(sources+=VarRef (',' sources+=VarRef)*)?
 	('->' effects+=VarRef (',' effects+=VarRef)*)?
 	code=CODE
 	(deadline=Deadline)?;
+
+TriggerRef: VarRef | startup?='startup' | shutdown?='shutdown';
 
 Deadline:
     'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE;
@@ -97,8 +99,8 @@ Effect:
 
 VarRef: variable=[Variable] 
     | container=[Instantiation] '.' variable=[Variable]
-    | startup='startup'
-    | shutdown='shutdown' // FIXME: this should not be here. It means it could also appear in connections, and other places where it doesn't belong
+//    | startup='startup'
+//    | shutdown='shutdown' // FIXME: this should not be here. It means it could also appear in connections, and other places where it doesn't belong
 ;
 
 Assignment:

@@ -26,6 +26,8 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.linguaFranca.ActionOrigin
 
 /**
  * Generator base class for shared code between code generators.
@@ -138,7 +140,7 @@ class GeneratorBase {
         // reactions are triggered by them.
         var Timer timer = null
         var Action action = null
-        
+        var factory = LinguaFrancaFactory.eINSTANCE
         if (reactor.reactions !== null) {
             for (Reaction reaction : reactor.reactions) {
                 // If the reaction triggers include 'startup' or 'shutdown',
@@ -154,21 +156,27 @@ class GeneratorBase {
                 var hasStartupTrigger = false;
                 var hasShutdownTrigger = false;
                 for (trigger : reaction.triggers) {
-                    if (trigger.startup !== null) {
+                    if (trigger.isStartup) {
                         hasStartupTrigger = true
                         if (timer === null) {
-                            // FIXME: Creating here a pretty incomplete EObject. Is that OK?
-                            timer = LinguaFrancaFactory.eINSTANCE.createTimer()
-                            timer.setName('startup')
+                            timer = factory.createTimer
+							timer.name = LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name
+							timer.timing = factory.createTiming
+							timer.timing.offset = factory.createTimeOrValue
+							timer.timing.offset.time = 0
+							timer.timing.period = factory.createTimeOrValue
+							timer.timing.period.time = 0
                             reactor.timers.add(timer)
                         }
-                    } else if (trigger.shutdown !== null) {
+                    } else if (trigger.isShutdown) {
                         hasShutdownTrigger = true
                         if (action === null) {
-                            // FIXME: Creating here a pretty incomplete EObject. Is that OK?
-                            action = LinguaFrancaFactory.eINSTANCE.createAction()
-                            action.setName('shutdown')
-                            reactor.actions.add(action)
+							action = factory.createAction 
+							action.name = LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name
+							action.origin = ActionOrigin.LOGICAL
+							action.delay = factory.createTimeOrValue
+							action.delay.time = 0
+							reactor.actions.add(action)
                         }
                     }
                 }
@@ -204,7 +212,7 @@ class GeneratorBase {
 
 	// FIXME: comments
 	def resolveTime(TimeOrValue timeOrValue, ReactorInstance instance) {
-		var timeLiteral = '0'
+		var timeLiteral = '0LL'
 		var unit = TimeUnit.NONE
 		if (timeOrValue !== null) {
 			if (timeOrValue.parameter !== null) {
