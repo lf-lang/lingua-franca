@@ -22,6 +22,7 @@ import java.util.List
 import java.util.Map
 import javax.inject.Inject
 import org.eclipse.elk.alg.layered.options.FixedAlignment
+import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
 import org.eclipse.elk.alg.layered.p4nodes.bk.EdgeStraighteningStrategy
 import org.eclipse.elk.core.options.CoreOptions
@@ -113,6 +114,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val actionDestinations = HashMultimap.<Action, Reaction>create
 		val actionSource = <Action, Reaction>newHashMap
 		val timerNodes = <Timer, KNode>newHashMap
+		val startupNode = createNode
+		var startupUsed = false
+		val shutdownNode = createNode
+		var shutdownUsed = false
 		
 		// Transform instances
 		for (instance : reactor.instantiations) {
@@ -196,11 +201,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 							timerNodes.get(trigger.variable)
 						}
 						if (src !== null) {
-							createDependencyEdge(null).connect(src, node).setTargetPort(inputPort)
+							createDependencyEdge(trigger).connect(src, node).setTargetPort(inputPort)
 						}
-					} 
-				} else {
-					// FIXME: startup/shutdown
+					}
+				} else if (trigger.startup) {
+					createDependencyEdge(trigger).connect(startupNode, node).setTargetPort(inputPort)
+					startupUsed = true
+				} else if (trigger.shutdown) {
+					createDependencyEdge(trigger).connect(shutdownNode, node).setTargetPort(inputPort)
+					shutdownUsed = true
 				}
 			}
 			
@@ -215,7 +224,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						inputPorts.get(effect.container, effect.variable)
 					}
 					if (dst !== null) {
-						createDependencyEdge(null).connect(node, dst)
+						createDependencyEdge(effect).connect(node, dst)
 					}
 				}
 			}
@@ -246,6 +255,17 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val edge = createDependencyEdge(connection).associateWith(connection)
 			edge.connect(source, target)
 		}
+		
+		// Add startupd/shutdown
+		if (startupUsed) {
+			startupNode.addStartupFigure
+			nodes.add(0, startupNode)
+			node.setLayoutOption(LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST)
+		}
+		if (shutdownUsed) {
+			shutdownNode.addShutdownFigure
+			nodes += shutdownNode
+		}
 
 		return nodes
 	}
@@ -255,7 +275,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			associateWith(action)
 			addPolyline() => [
 				lineStyle = LineStyle.DASH
-				boldLineSelectionStyle
+				boldLineSelectionStyle()
 			]
 			if (action.delay !== null) {
 				addCenterEdgeLabel(action.delay.toText).applyOnEdgeStyle()
@@ -270,7 +290,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
-				boldLineSelectionStyle
+				boldLineSelectionStyle()
 			]
 		]
 	}
