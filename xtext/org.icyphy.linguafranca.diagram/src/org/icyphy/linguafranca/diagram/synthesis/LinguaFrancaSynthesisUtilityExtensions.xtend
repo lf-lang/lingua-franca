@@ -1,5 +1,7 @@
 package org.icyphy.linguafranca.diagram.synthesis
 
+import de.cau.cs.kieler.klighd.kgraph.KGraphElement
+import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeOrValue
@@ -7,6 +9,8 @@ import org.icyphy.linguaFranca.TimeUnit
 
 @ViewSynthesisShared
 class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions {
+	
+	extension KGraphFactory = KGraphFactory.eINSTANCE
 	
 	/**
 	 * Converts a timing value into readable text
@@ -88,6 +92,10 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 			e.printStackTrace
 			return code
 		}
+	}
+	
+	def setID(KGraphElement kge, String id) {
+		kge.data.add(createKIdentifier => [it.setId(id)])
 	}
 
 }
