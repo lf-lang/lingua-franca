@@ -8,7 +8,7 @@
 // NOTE: This is the non-threaded version, showing that without threads, this takes more
 // than 800 msec to complete 200 msec of logical time.
 target C(
-	run = "bin/ThreadedC -timeout 2 sec"
+	run = "bin/Threaded -timeout 2 sec"
 );
 
 reactor Source {
@@ -46,7 +46,7 @@ reactor Destination {
 		self->s += 4;
 	=}
 }
-main reactor Main {
+main reactor Threaded {
 	a = new Source();
 	t1 = new TakeTime();
 	t2 = new TakeTime();

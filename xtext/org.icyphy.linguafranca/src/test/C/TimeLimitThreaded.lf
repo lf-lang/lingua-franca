@@ -4,7 +4,7 @@
 // Failure for this test is failing to halt.
 target C(
 	threads = 1,
-	run = "bin/TimeLimitC -fast"
+	run = "bin/TimeLimitThreaded -fast"
 );
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
@@ -21,7 +21,7 @@ reactor Destination {
 		printf("%d\n", x);
 	=}
 }
-main reactor Main(period:time(2 secs)) {
+main reactor TimeLimitThreaded(period:time(2 secs)) {
 	timer stop(6 secs);
 	reaction(stop) {=
 		stop();

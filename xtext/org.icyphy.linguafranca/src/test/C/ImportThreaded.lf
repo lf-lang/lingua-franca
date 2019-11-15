@@ -3,10 +3,10 @@
 target C(
 	threads = 2	
 );
-import ImportedC.lf;
-main reactor ImportCThreaded {
+import Imported.lf;
+main reactor ImportThreaded {
 	timer t;
-	a = new ImportedC();
+	a = new Imported();
 	reaction(t) -> a.x {=
 		set(a.x, 42); 
 	=}
