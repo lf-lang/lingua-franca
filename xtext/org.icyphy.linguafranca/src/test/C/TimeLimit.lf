@@ -8,8 +8,8 @@
 // for over 23 million reactions per second.
 // This translates to 43 nanoseconds per reaction invocation.
 target C(
-    compile = "gcc -O2 src-gen/TimeLimitC.c -o bin/TimeLimitC",
-	run = "bin/TimeLimitC -fast"
+    compile = "gcc -O2 src-gen/TimeLimit.c -o bin/TimeLimit",
+	run = "bin/TimeLimit -fast"
 );
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
@@ -33,7 +33,7 @@ reactor Destination {
 	=}
 }
 
-main reactor Main(period:time(1 usec)) {
+main reactor TimeLimit(period:time(1 usec)) {
 	timer stop(10 secs);
 	reaction(stop) {=
 		stop();

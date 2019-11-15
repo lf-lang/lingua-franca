@@ -41,15 +41,23 @@ import org.icyphy.linguaFranca.LinguaFrancaPackage
 
 class CppGenerator extends GeneratorBase {
 
-	static public var timeUnitsToEnactorUnits = #{
-		TimeUnit.NSEC -> '_ns', TimeUnit.NSECS -> '_ns', 
-		TimeUnit.USEC -> '_us', TimeUnit.USECS -> '_us',
-		TimeUnit.MSEC -> '_ms', TimeUnit.MSECS -> '_ms',
-		TimeUnit.SEC -> '_secs', TimeUnit.SECS -> '_secs',
-		TimeUnit.MIN -> '_min', TimeUnit.MINS -> '_min',
-		TimeUnit.HOUR -> '_h', TimeUnit.HOURS -> '_h',
-		TimeUnit.DAY -> '_d', TimeUnit.DAYS -> '_d',
-		TimeUnit.WEEK -> '_weeks', TimeUnit.WEEKS -> '_weeks'
+	static public var timeUnitsToCppUnits = #{
+		TimeUnit.NSEC -> '_ns',
+		TimeUnit.NSECS -> '_ns',
+		TimeUnit.USEC -> '_us',
+		TimeUnit.USECS -> '_us',
+		TimeUnit.MSEC -> '_ms',
+		TimeUnit.MSECS -> '_ms',
+		TimeUnit.SEC -> '_s',
+		TimeUnit.SECS -> '_s',
+		TimeUnit.MIN -> '_min',
+		TimeUnit.MINS -> '_min',
+		TimeUnit.HOUR -> '_h',
+		TimeUnit.HOURS -> '_h',
+		TimeUnit.DAY -> '_d',
+		TimeUnit.DAYS -> '_d',
+		TimeUnit.WEEK -> '_weeks',
+		TimeUnit.WEEKS -> '_weeks'
 	}
 
 	private def validateTarget(Resource resource) {
@@ -234,7 +242,7 @@ class CppGenerator extends GeneratorBase {
 	}
 
 	def declare(Reaction n) '''
-		enactor::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};
+		reactor::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};
 	'''
 
 	def declareStateVariables(Reactor r) '''
@@ -257,7 +265,7 @@ class CppGenerator extends GeneratorBase {
 
 	def declareTimers(Reactor r) '''
 		«FOR t : r.timers BEFORE '// timers\n' AFTER '\n'»
-			enactor::Timer «t.name»;
+			reactor::Timer «t.name»;
 		«ENDFOR»
 	'''
 
@@ -269,19 +277,19 @@ class CppGenerator extends GeneratorBase {
 
 	def declarePorts(Reactor r) '''
 		«FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-			enactor::Input<«i.trimmedType»> «i.name»{"«i.name»", this};
+			reactor::Input<«i.trimmedType»> «i.name»{"«i.name»", this};
 		«ENDFOR»
 		«FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-			enactor::Output<«o.trimmedType»> «o.name»{"«o.name»", this};
+			reactor::Output<«o.trimmedType»> «o.name»{"«o.name»", this};
 		«ENDFOR»
 	'''
 
 	def declareActions(Reactor r) '''
 		«FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
 			«IF a.origin == ActionOrigin.LOGICAL»
-				enactor::LogicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
+				reactor::LogicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
 			«ELSE»
-				enactor::PhysicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
+				reactor::PhysicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
 			«ENDIF»
 		«ENDFOR»
 	'''
@@ -382,28 +390,29 @@ class CppGenerator extends GeneratorBase {
 		if (r.parameters.length > 0) {
 			'''
 				«r.name»(const std::string& name,
-				    «IF r.main»enactor::Environment* environment,«ELSE»enactor::Reactor* container«ENDIF»,
+				    «IF r.main»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
 				    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «p.trimmedValue»«ENDFOR»
 			'''
 		} else {
 			if (r.main) {
-				'''«r.name»(const std::string& name, enactor::Environment* environment);'''
+				'''«r.name»(const std::string& name, reactor::Environment* environment);'''
 			} else {
-				'''«r.name»(const std::string& name, enactor::Reactor* container);'''
+				'''«r.name»(const std::string& name, reactor::Reactor* container);'''
 			}
 		}
 	}
 
 	def trimmedType(Parameter p) {
 		val const = "const " // All parameters must be constants
-		if (p.type !== null) {
-			if (p.type == "time") {
-				'''«const»enactor::time_t'''
-			} else {
-				'''«const»«p.type.removeCodeDelimiter»'''
-			}
+		if (p.ofTimeType) {
+			'''«const»reactor::time_t'''
 		} else {
-			'''/* «p.reportError("Parameter has no type")» */'''
+			if (p.type !== null) {
+
+				'''«const»«p.type.removeCodeDelimiter»'''
+			} else {
+				'''/* «p.reportError("Parameter has no type")» */'''
+			}
 		}
 	}
 
@@ -440,47 +449,44 @@ class CppGenerator extends GeneratorBase {
 	}
 
 	def trimmedValue(Parameter p) {
-		if (p.value !== null) {
-			'''«p.value.removeCodeDelimiter»'''
+		if (p.ofTimeType) {
+			if (p.unit !== null) {
+				'''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
+			} else {
+				'''«p.time»'''
+			}
 		} else {
-			// if its not a value it must be a time
-			'''«p.time»'''
+			'''«p.value.removeCodeDelimiter»'''
 		}
 	}
 
 	def trimmedValue(TimeOrValue tv) {
-		if (tv.unit != TimeUnit.NONE) {
-			'''«tv.time»«timeUnitsToEnactorUnits.get(tv.unit)»'''
+		if (tv.parameter !== null) {
+			'''«tv.parameter.name»'''
+		} else if (tv.value !== null) {
+			'''«tv.value.removeCodeDelimiter»'''
 		} else {
-			// time refers to a parameter or is a number without a unit
-			'''«tv.time»''' // FIXME: this is incorrect. 
+			'''«tv.time»«timeUnitsToCppUnits.get(tv.unit)»'''
 		}
 	}
 
-	def trimmedValue(Assignment a) {
-		if (a.rhs.unit == TimeUnit.NONE) {
-			// assume we have a time
-			'''«a.rhs.time»«timeUnitsToEnactorUnits.get(a.rhs.unit)»'''
-		} else {
-			'''«a.rhs.value.removeCodeDelimiter»'''
-		}
-	}
+	def trimmedValue(Assignment a) '''«a.rhs.trimmedValue»'''
 
 	def trimmedValue(State s) { s.value.removeCodeDelimiter }
 
 	def defineConstructor(Reactor r) '''
 		«IF r.parameters.length > 0»
 			«r.name»::«r.name»(const std::string& name,
-			    «IF r.isMain()»enactor::Environment* environment,«ELSE»enactor::Reactor* container«ENDIF»,
+			    «IF r.isMain()»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
 			    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
 		«ELSE»
 			«IF r.main»
-				«r.name»::«r.name»(const std::string& name, enactor::Environment* environment)
+				«r.name»::«r.name»(const std::string& name, reactor::Environment* environment)
 			«ELSE»
-				«r.name»::«r.name»(const std::string& name, enactor::Reactor* container)
+				«r.name»::«r.name»(const std::string& name, reactor::Reactor* container)
 			«ENDIF»
 		«ENDIF»
-		  : enactor::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
+		  : reactor::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
 		  «r.initializeParameters»
 		  «r.initializeStateVariables»
 		  «r.initializeInstances»
@@ -556,13 +562,13 @@ class CppGenerator extends GeneratorBase {
 		
 		#pragma once
 		
-		#include "enactor/enactor.hh"
+		#include "reactor-cpp/reactor-cpp.hh"
 		
 		«r.includeInstances»
 		«r.generatePreamble»
-		using namespace enactor::literals;
+		using namespace reactor::literals;
 		
-		class «r.getName()» : public enactor::Reactor {
+		class «r.getName()» : public reactor::Reactor {
 		 private:
 		  «r.declareParameters»
 		  «r.declareStateVariables»
@@ -625,7 +631,7 @@ class CppGenerator extends GeneratorBase {
 		#include <thread>
 		#include <chrono>
 		
-		#include "enactor/enactor.hh"
+		#include "reactor-cpp/reactor-cpp.hh"
 		
 		#include "CLI/CLI11.hpp"
 		
@@ -638,10 +644,12 @@ class CppGenerator extends GeneratorBase {
 		  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
 		  unsigned timeout;
 		  auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
+		  bool fast{false};
+		  app.add_flag("-f,--fast", fast, "allow logical time to run faster than physical time"); 
 		  
 		  CLI11_PARSE(app, argc, argv);
 		  
-		  enactor::Environment e{threads};
+		  reactor::Environment e{threads, fast};
 		
 		  «main.name» main{"main", &e};
 		  e.assemble();
@@ -662,6 +670,11 @@ class CppGenerator extends GeneratorBase {
 		cmake_minimum_required(VERSION 3.5)
 		project(«filename» VERSION 1.0.0 LANGUAGES CXX)
 		
+		# require C++ 14
+		set(CMAKE_CXX_STANDARD 14)
+		set(CMAKE_CXX_STANDARD_REQUIRED ON)
+		set(CMAKE_CXX_EXTENSIONS OFF)
+		
 		include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 		include(GNUInstallDirs)
 		
@@ -673,14 +686,15 @@ class CppGenerator extends GeneratorBase {
 		  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 		endif()
 		
-		if(NOT ENACTOR_BUILD_DIR)
-		  set(ENACTOR_BUILD_DIR "" CACHE STRING "Choose the directory to build enactor in." FORCE)
+		if(NOT REACTOR_CPP_BUILD_DIR)
+		  set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
 		endif()
 		
 		ExternalProject_Add(
-		  dep-enactor
-		  PREFIX "${ENACTOR_BUILD_DIR}"
-		  GIT_REPOSITORY "https://github.com/tud-ccc/enactor.git"
+		  dep-reactor-cpp
+		  PREFIX "${REACTOR_CPP_BUILD_DIR}"
+		  GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
+		  GIT_TAG "20a35a92f99e26e2088bfee08268cf11eebd8a1a"
 		  CMAKE_ARGS
 		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
@@ -689,14 +703,14 @@ class CppGenerator extends GeneratorBase {
 		set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
 		file(DOWNLOAD "https://github.com/CLIUtils/CLI11/releases/download/v1.8.0/CLI11.hpp" "${CLI11_PATH}")
 		
-		set(ENACTOR_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}enactor${CMAKE_SHARED_LIBRARY_SUFFIX}")
-		set(ENACTOR_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+		set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
+		set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 		
-		add_library(enactor SHARED IMPORTED)
-		add_dependencies(enactor dep-enactor "${CLI11_PATH}")
-		set_target_properties(enactor PROPERTIES IMPORTED_LOCATION "${ENACTOR_LIB_DIR}/${ENACTOR_LIB_NAME}")
+		add_library(reactor-cpp SHARED IMPORTED)
+		add_dependencies(reactor-cpp dep-reactor-cpp "${CLI11_PATH}")
+		set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
 		
-		set(CMAKE_INSTALL_RPATH "${ENACTOR_LIB_DIR}")
+		set(CMAKE_INSTALL_RPATH "${REACTOR_CPP_LIB_DIR}")
 		set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 		
 		add_executable(«filename»
@@ -706,9 +720,9 @@ class CppGenerator extends GeneratorBase {
 		  «ENDFOR»
 		)
 		target_include_directories(«filename» PUBLIC ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
-		target_link_libraries(«filename» enactor)
+		target_link_libraries(«filename» reactor-cpp)
 		
-		install(TARGETS «filename»)
+		install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 		
 		«IF target.hasProperty("cmake_include")»
 			include(«resource.URI.toString.extractDir»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
@@ -726,10 +740,10 @@ class CppGenerator extends GeneratorBase {
 		var cwd = Paths.get("").toAbsolutePath().toString()
 		var srcPath = cwd + File.separator + "src-gen" + File.separator + filename
 		var buildPath = cwd + File.separator + "build" + File.separator + filename
-		var enactorPath = cwd + File.separator + "build" + File.separator + "enactor"
+		var reactorCppPath = cwd + File.separator + "build" + File.separator + "reactor-cpp"
 
 		makeCmd.addAll("make", "-j" + Runtime.getRuntime().availableProcessors(), "install")
-		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + cwd, "-DENACTOR_BUILD_DIR=" + enactorPath, srcPath)
+		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + cwd, "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
 
 		var buildDir = new File(buildPath)
 		if(!buildDir.exists()) buildDir.mkdirs()
