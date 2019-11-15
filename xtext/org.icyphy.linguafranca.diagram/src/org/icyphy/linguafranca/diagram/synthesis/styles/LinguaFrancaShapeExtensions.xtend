@@ -1,5 +1,6 @@
 package org.icyphy.linguafranca.diagram.synthesis.styles
 
+import de.cau.cs.kieler.klighd.KlighdConstants
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Colors
@@ -131,6 +132,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				fontBold = true
 				noSelectionStyle
 				suppressSelectability
+				setPointPlacementData(LEFT, 0, 0.5f, TOP, 0, 0, H_CENTRAL, V_TOP, REACTION_POINTINESS, 0, minWidth - REACTION_POINTINESS * 2, minHeight)
 			]
 		}
 		
@@ -144,13 +146,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 		// optional code content
 		if (SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty) {
-			contentContainer.addText(reaction.code) => [
+			contentContainer.addText(reaction.code.trimCode) => [
 				associateWith(reaction)
 				fontSize = 6
+				fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
 				noSelectionStyle()
 				horizontalAlignment = HorizontalAlignment.LEFT
 				verticalAlignment = VerticalAlignment.TOP
-				setGridPlacementData().from(LEFT, 5, 0, TOP, order !== null ? 15 : 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+				setGridPlacementData().from(LEFT, 5, 0, TOP, order !== null ? 18 : 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
 			]
 		}
 		
@@ -198,9 +201,10 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 			// optional code content
 			if (SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty) {
-				deadlineSection.addText(reaction.deadline.deadlineCode) => [
+				deadlineSection.addText(reaction.deadline.deadlineCode.trimCode) => [
 					associateWith(reaction.deadline)
 					fontSize = 6
+					fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
 					setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
 					horizontalAlignment = HorizontalAlignment.LEFT
 					noSelectionStyle()
