@@ -18,7 +18,6 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.LinguaFrancaPackage
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -246,7 +245,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def getParameterInstance(Parameter parameter) {
         for (paramInstance : parameters) {
-            if (paramInstance.definition === parameter) { // FIXME: this isn't working as expected. Do a string match?
+            if (paramInstance.definition === parameter) {
                 return paramInstance
             }
         }
@@ -623,7 +622,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     var referencedParameter = instance.
                         getParameterInstance(rhs.parameter)
                     if (referencedParameter instanceof TimeParameter) {
-                        var timeParm = referencedParameter as TimeParameter
+                        var timeParm = referencedParameter
                         return new TimeParameter(parameter, parent,
                             timeParm.value, timeParm.unit)
                     } else {
