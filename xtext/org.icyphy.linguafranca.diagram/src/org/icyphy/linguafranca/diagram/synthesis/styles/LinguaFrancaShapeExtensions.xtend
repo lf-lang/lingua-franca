@@ -97,12 +97,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			background = Colors.GRAY_65
 			boldLineSelectionStyle()
 			
-			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0)
-			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0)
-			points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
-			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
-			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
-			points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+			points += #[
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0),
+				createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0),
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
+				createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0),
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
+				createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+			]
 		]
 		
 		val order = if (reactor.reactions.size > 1) {
@@ -137,10 +139,12 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			baseShape.addPolygon() => [
 				associateWith(reaction.deadline)
 				
-				points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
-				points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
-				points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
-				points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+				points += #[
+					createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f),
+					createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
+					createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0),
+					createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+				]
 				
 				// style
 				lineWidth = 1
@@ -194,11 +198,12 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	def addTimerFigure(KNode node, Timer timer) {
 		node.setMinimalNodeSize(30, 30)
 		
-		val figure = node.addEllipse
-		figure.lineWidth = 1
-		figure.background = Colors.GRAY_95
-		figure.noSelectionStyle
-		figure.boldLineSelectionStyle
+		val figure = node.addEllipse => [
+			lineWidth = 1
+			background = Colors.GRAY_95
+			noSelectionStyle()
+			boldLineSelectionStyle()
+		]
 		
 		figure.addPolyline(1,
 			#[
@@ -217,9 +222,47 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				labelParts += timer.timing.period.toText
 			}
 			if (!labelParts.empty) {
-				node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it])
+				node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it], 8)
 			}
 		}
+
+		return figure
+	}
+	
+	/**
+	 * Creates the visual representation of a startup trigger.
+	 */
+	def addStartupFigure(KNode node) {
+		node.setMinimalNodeSize(25, 25)
+		
+		val figure = node.addEllipse => [
+			lineWidth = 1
+			background = Colors.GRAY_65
+			noSelectionStyle()
+			boldLineSelectionStyle()
+		]
+
+		return figure
+	}
+	
+	/**
+	 * Creates the visual representation of a shutdown trigger.
+	 */
+	def addShutdownFigure(KNode node) {
+		node.setMinimalNodeSize(25, 25)
+		
+		val figure = node.addPolygon => [
+			lineWidth = 1
+			background = Colors.WHITE
+			noSelectionStyle
+			boldLineSelectionStyle
+		]
+		figure.points += #[
+			createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0),
+			createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
+			createKPosition(PositionReferenceX.RIGHT, 0, 0.5f, PositionReferenceY.BOTTOM, 0 , 0),
+			createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0.5f)
+		]
 
 		return figure
 	}
