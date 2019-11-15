@@ -33,7 +33,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
         for (TriggerRef trigger : definition.triggers) {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
-                    var portInstance = parent.getPortInstance(trigger as VarRef)
+                    var portInstance = parent.getPortInstance(trigger)
                     this.dependsOnPorts.add(portInstance)
                     portInstance.dependentReactions.add(this)
                     this.triggers.add(portInstance)
