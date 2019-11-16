@@ -387,17 +387,15 @@ class CGenerator extends GeneratorBase {
                 pr(body,
                 removeCodeDelimiter(state.parameter.type) + ' ' + state.name + ';');
             } else {
-                if (state.type === null) {
-                reportError(state,
-                    "State is required to have a type: " + state.name) // FIXME: do these checks in the validator. 
+                if (state.ofTimeType) {
+                    pr(body,
+                        timeTypeInTargetLanguage + ' ' + state.name + ';');
                 } else {
-                    if (state.ofTimeType) {
-                        pr(body, state.time + ' ' + state.name + ';');
-                    } else {
-                        pr(body,
-                        removeCodeDelimiter(state.type) + ' ' + state.name + ';');
-                    }
+                    pr(body,
+                        removeCodeDelimiter(state.type) + ' ' + state.name +
+                            ';');
                 }
+
             }
         }
         // Next handle actions.
@@ -1335,15 +1333,18 @@ class CGenerator extends GeneratorBase {
         // These values may be expressions that refer to the parameter values defined above.
         for (state : reactorClass.states) {
             var time = state.time
+            var unit = state.unit
             var value = state.value
 
             if (state.parameter !== null) {
                 time = state.parameter.time
+                unit = state.parameter.unit
                 value = state.parameter.value
             }
             if (state.ofTimeType) {
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "." + state.name + " = " + time + ";")
+                    nameOfSelfStruct + "." + state.name + " = " +
+                        timeInTargetLanguage(time.toString, unit) + ";")
             } else {
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + state.name + " = " +
