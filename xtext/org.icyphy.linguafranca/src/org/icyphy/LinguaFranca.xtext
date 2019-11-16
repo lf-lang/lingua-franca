@@ -42,7 +42,9 @@ Reactor:
 //
 State:
     'state' name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-                    | ((':' type=Type)? '(' value=Literal ')') | ('(' parameter=[Parameter] ')')
+                | ((':' type=Type) '(' value=(Literal | ID) ')') 
+                | ('(' (value=(Literal)) ')')
+                | ('(' parameter=[Parameter] ')')
                     )? ';';
 
 Input:
