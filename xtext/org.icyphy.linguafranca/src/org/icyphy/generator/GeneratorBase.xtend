@@ -198,29 +198,6 @@ class GeneratorBase {
         }
     }
 
-    // FIXME: comments
-    def resolveTime(TimeOrValue timeOrValue, ReactorInstance instance) {
-        var timeLiteral = '0LL'
-        var unit = TimeUnit.NONE
-        if (timeOrValue !== null) {
-            if (timeOrValue.parameter !== null) {
-                var resolved = instance.resolveParameter(timeOrValue.parameter)
-                if (resolved === null) {
-                    throw new InternalError(
-                        "Incorrect reference to parameter :" +
-                            timeOrValue.parameter.name);
-                } else {
-                    timeLiteral = resolved.literalValue
-                    unit = TimeUnit.NONE
-                }
-            } else {
-                timeLiteral = timeOrValue.time.toString
-                unit = timeOrValue.unit
-            }
-        }
-        return timeInTargetLanguage(timeLiteral, unit)
-    }
-
     /** Given a representation of time that may possibly include units,
      *  return a string that the target language can recognize as a value.
      *  In this base class, if units are given, e.g. "msec", then

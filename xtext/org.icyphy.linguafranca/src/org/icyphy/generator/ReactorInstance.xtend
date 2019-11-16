@@ -18,6 +18,8 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguaFranca.TimeOrValue
+import org.icyphy.linguaFranca.TimeUnit
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -651,5 +653,27 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 GeneratorBase.removeCodeDelimiter(parameter.value),
                 GeneratorBase.removeCodeDelimiter(parameter.type))
         }
+    }
+    
+    def resolveTime(TimeOrValue timeOrValue) {
+        var timeLiteral = '0LL'
+        var unit = TimeUnit.NONE
+        if (timeOrValue !== null) {
+            if (timeOrValue.parameter !== null) {
+                var resolved = this.resolveParameter(timeOrValue.parameter)
+                if (resolved === null) {
+                    throw new InternalError(
+                        "Incorrect reference to parameter :" +
+                            timeOrValue.parameter.name);
+                } else {
+                    timeLiteral = resolved.literalValue
+                    unit = TimeUnit.NONE
+                }
+            } else {
+                timeLiteral = timeOrValue.time.toString
+                unit = timeOrValue.unit
+            }
+        }
+        return this.generator.timeInTargetLanguage(timeLiteral, unit)
     }
 }

@@ -5,7 +5,6 @@ reactor GeneratedDelay {
     input y_in:int;
     output y_out:int;
     state y_state:int(0);
-  
     logical action act(100 msec);
 
     reaction(y_in) -> act {=
