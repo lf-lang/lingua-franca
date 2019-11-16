@@ -37,8 +37,13 @@ Reactor:
 /////////// Statements
 
 // Types are optional for use in untyped languages.
+//State:
+//	'state' name=ID (':' type=Type)? ('(' value=TimeOrValue ')') ';';
+//
 State:
-	'state' name=ID (':' type=Type)? ('(' value=(Literal | ID) ')') ';';
+    'state' name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
+                    | ((':' type=Type)? '(' value=Literal ')') | ('(' parameter=[Parameter] ')')
+                    )? ';';
 
 Input:
 	'input' name=ID (':' type=Type)? ';';
