@@ -13,7 +13,7 @@ reactor Deadline(threshold:time(100 msec)) {
     =}
 }
 main reactor DeadlineHandledAbove {
-    state violation_detected:bool(false);
+    state violation_detected:bool({=false=});
     d = new Deadline(threshold = 10 msec);
     reaction(startup) -> d.x {=
         struct timespec sleep_time = {(time_t) 0, (long)20000000};
