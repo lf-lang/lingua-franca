@@ -1,133 +1,124 @@
 // Grammar for Lingua Franca
 // The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License.
 // See LICENSE.md file in the top repository directory.
-
+// @author Edward A. Lee, Marten Lohstroh
 grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
 
 generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 
 /////////// Overall file
 Model:
-	target=Target 
-	(imports += Import)*
-	(reactors += Reactor)+;
+    target=Target
+    (imports+=Import)*
+    (reactors+=Reactor)+;
 
 /////////// Top level elements
 Target:
-	'target' name=ID ( '(' properties+=Property (',' properties+=Property)* ')' )? ';';
-	
+    'target' name=ID ('(' properties+=Property (',' properties+=Property)* ')')? ';';
+
 Import:
-	'import' name=Path ';';
+    'import' name=Path ';';
 
 Reactor:
-	(main?='main'? & realtime?='realtime'?) 'reactor' name=ID
-   	('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
-   	(preamble = Preamble)?
-   	((states += State)
-   	| (inputs += Input)
-   	| (outputs += Output)
-   	| (timers += Timer)
-   	| (actions += Action)
-   	| (instantiations += Instantiation)
-   	| (connections += Connection)
-   	| (reactions += Reaction)
-   	| (mutations += Mutation))*
-   	'}';
-	
+    (main?='main'? & realtime?='realtime'?) 'reactor' name=ID
+    ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
+    (preamble=Preamble)?
+    ((states+=State)
+    | (inputs+=Input)
+    | (outputs+=Output)
+    | (timers+=Timer)
+    | (actions+=Action)
+    | (instantiations+=Instantiation)
+    | (connections+=Connection)
+    | (reactions+=Reaction)
+    | (mutations+=Mutation))*
+    '}';
+
 /////////// Statements
 
 // Types are optional for use in untyped languages.
-//State:
-//	'state' name=ID (':' type=Type)? ('(' value=TimeOrValue ')') ';';
-//
 State:
     'state' name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-                | ((':' type=Type) '(' value=(Literal | ID) ')') 
-                | ('(' (value=(Literal)) ')')
-                | ('(' parameter=[Parameter] ')')
-                    )? ';';
+    | ((':' type=Type) '(' value=(Literal | ID) ')')
+    | ('(' (value=(Literal)) ')')
+    | ('(' parameter=[Parameter] ')'))? ';';
 
 Input:
-	'input' name=ID (':' type=Type)? ';';
+    'input' name=ID (':' type=Type)? ';';
 
 Output:
-	'output' name=ID (':' type=Type)? ';';
+    'output' name=ID (':' type=Type)? ';';
 
 Timer:
-	'timer' name=ID timing=Timing?';';
+    'timer' name=ID timing=Timing? ';';
 
 Action:
-	origin=ActionOrigin 'action' name=ID ('(' delay=TimeOrValue ')')? (':' type=Type)? ';';
-	
-Reaction:
-	('reaction')
-	('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
-	(sources+=VarRef (',' sources+=VarRef)*)?
-	('->' effects+=VarRef (',' effects+=VarRef)*)?
-	code=CODE
-	(deadline=Deadline)?;
+    origin=ActionOrigin 'action' name=ID ('(' delay=TimeOrValue ')')? (':' type=Type)? ';';
 
-TriggerRef: VarRef | startup?='startup' | shutdown?='shutdown';
+Reaction:
+    ('reaction')
+    ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+    (sources+=VarRef (',' sources+=VarRef)*)?
+    ('->' effects+=VarRef (',' effects+=VarRef)*)?
+    code=CODE
+    (deadline=Deadline)?;
+
+TriggerRef:
+    VarRef | startup?='startup' | shutdown?='shutdown';
 
 Deadline:
     'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE;
-    
+
 Mutation:
-	('mutation')
-	('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
-	(sources+=[Input] (',' sources+=[Input])*)?
-	('->' effects+=[Effect] (',' effects+=[Effect])*)?
-	code=CODE;
+    ('mutation')
+    ('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
+    (sources+=[Input] (',' sources+=[Input])*)?
+    ('->' effects+=[Effect] (',' effects+=[Effect])*)?
+    code=CODE;
 
 Preamble:
-	'preamble' code=CODE;
+    'preamble' code=CODE;
 
 Instantiation:
-	name=ID '=' 'new' reactorClass=[Reactor] '(' (parameters+=Assignment (',' parameters+=Assignment)*)? ')' ';' ;
+    name=ID '=' 'new' reactorClass=[Reactor] '(' (parameters+=Assignment (',' parameters+=Assignment)*)? ')' ';';
 
 Connection:
     leftPort=VarRef '->' rightPort=VarRef ';';
 
 KEYWORD:
-	'input' | 'state' | 'output' | 'timer' | 'action';
+    'input' | 'state' | 'output' | 'timer' | 'action';
 
 /////////// Pieces
-
 Variable:
-	Port | Action | Timer;
+    Port | Action | Timer;
 
 Trigger:
-	Action | Input
-;
+    Action | Input;
 
 Effect:
-	Action | Output
-;
+    Action | Output;
 
-VarRef: variable=[Variable] 
-    | container=[Instantiation] '.' variable=[Variable]
-//    | startup='startup'
-//    | shutdown='shutdown' // FIXME: this should not be here. It means it could also appear in connections, and other places where it doesn't belong
-;
+VarRef:
+    variable=[Variable]
+    | container=[Instantiation] '.' variable=[Variable];
 
 Assignment:
-	(lhs=[Parameter] '=' rhs=TimeOrValue);
-	
+    (lhs=[Parameter] '=' rhs=TimeOrValue);
+
 Property:
-	name=ID '=' value=Literal;
+    name=ID '=' value=Literal;
 
 // Single parameter.
 Parameter:
     name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-           | ((':' type=Type)? '(' value=Literal ')')
-            )?;
+    | ((':' type=Type)? '(' value=Literal ')'))?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timing:
-	'(' offset=TimeOrValue (',' period=TimeOrValue)?')';
+    '(' offset=TimeOrValue (',' period=TimeOrValue)? ')';
 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
@@ -135,45 +126,47 @@ Timing:
 // is non-zero, it is accompanied by a unit.
 TimeOrValue:
     (parameter=[Parameter] | value=Literal | (time=INT unit=TimeUnit));
-    
+
 Port:
     Input | Output;
 
-// A type is in the target language, hence either an ID or target code.
+    // A type is in the target language, hence either an ID or target code.
 Type:
-    ID | CODE ;
+    ID | CODE;
 
-Literal: STRING | CODE | FLOAT | INT | NEGINT;
+Literal:
+    STRING | CODE | FLOAT | INT | NEGINT;
 
 /////////// Elementary components
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
+terminal NEGINT:
+    '-' ('0'..'9')+;
 
-terminal NEGINT: '-'('0'..'9')+;
-
-terminal FLOAT: '-'?('0'..'9')+'.'('0'..'9')+;
+terminal FLOAT:
+    '-'? ('0'..'9')+ '.' ('0'..'9')+;
 
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
 terminal CODE:
-    '{=' .* '=}' ;
+    '{=' .* '=}';
 
 // The following cannot be terminal because it overlaps ID.
 Path:
-	ID ('.' ID)* ;
-	
+    ID ('.' ID)*;
+
 /////////// Enums
 enum ActionOrigin:
-    LOGICAL = 'logical' | PHYSICAL = 'physical';
-    
+    LOGICAL='logical' | PHYSICAL='physical';
+
 enum TimeUnit:
-	NONE='empty' |
-	NSEC='nsec' | NSECS='nsecs' | 
-	USEC='usec' | USECS='usecs' | 
-	MSEC='msec' | MSECS='msecs' | 
-	SEC='sec' | SECS='secs' | SECOND='second' | SECONDS='seconds' | 
-	MIN='min' | MINS='mins' | MINUTE='minute' | MINUTES='minutes' | 
-	HOUR='hour' | HOURS='hours' | 
-	DAY='day' | DAYS='days' | 
-	WEEK='week' | WEEKS='weeks';
+    NONE='empty' |
+    NSEC='nsec' | NSECS='nsecs' |
+    USEC='usec' | USECS='usecs' |
+    MSEC='msec' | MSECS='msecs' |
+    SEC='sec' | SECS='secs' | SECOND='second' | SECONDS='seconds' |
+    MIN='min' | MINS='mins' | MINUTE='minute' | MINUTES='minutes' |
+    HOUR='hour' | HOURS='hours' |
+    DAY='day' | DAYS='days' |
+    WEEK='week' | WEEKS='weeks';
     
