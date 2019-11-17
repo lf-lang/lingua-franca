@@ -146,11 +146,10 @@ class GeneratorBase {
                             timer = factory.createTimer
                             timer.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__STARTUP.name
-                            timer.timing = factory.createTiming
-                            timer.timing.offset = factory.createTimeOrValue
-                            timer.timing.offset.time = 0
-                            timer.timing.period = factory.createTimeOrValue
-                            timer.timing.period.time = 0
+                            timer.offset = factory.createTimeOrValue
+                            timer.offset.time = 0
+                            timer.period = factory.createTimeOrValue
+                            timer.period.time = 0
                             reactor.timers.add(timer)
                         }
                     } else if (trigger.isShutdown) {

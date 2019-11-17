@@ -519,11 +519,9 @@ class CppGenerator extends GeneratorBase {
 	def initialize(Timer t) {
 		var String period = "0"
 		var String offset = "0"
-		if (t.timing !== null) {
-			offset = '''«t.timing.offset.trimmedValue»'''
-			if (t.timing.period !== null) {
-				period = '''«t.timing.period.trimmedValue»'''
-			}
+		offset = '''«t.offset.trimmedValue»'''
+		if (t.period !== null) {
+			period = '''«t.period.trimmedValue»'''
 		}
 		''', «t.name»{"«t.name»", this, «period», «offset»}'''
 	}
