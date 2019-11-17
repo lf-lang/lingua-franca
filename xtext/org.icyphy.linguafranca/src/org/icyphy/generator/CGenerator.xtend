@@ -1204,18 +1204,8 @@ class CGenerator extends GeneratorBase {
             // the struct because the value assigned may not be a compile-time constant.
             if (trigger instanceof Timer) {
 
-                val timing = trigger.timing
-
-                var offset = if (timing === null) {
-                        timeInTargetLanguage('0LL', TimeUnit.NONE)
-                    } else {
-                        reactorInstance.resolveTime(timing.offset)
-                    }
-                var period = if (timing === null) {
-                        timeInTargetLanguage('0LL', TimeUnit.NONE)
-                    } else {
-                        reactorInstance.resolveTime(timing.period)
-                    }
+                val offset = reactorInstance.resolveTime(trigger.offset)
+                val period = reactorInstance.resolveTime(trigger.period)
 
                 pr(initializeTriggerObjects,
                     triggerStructName + '.offset = ' + offset + ';')

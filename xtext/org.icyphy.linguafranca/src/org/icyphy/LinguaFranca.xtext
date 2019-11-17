@@ -49,8 +49,12 @@ Input:
 Output:
     'output' name=ID (':' type=Type)? ';';
 
+// Timing specification for a timer: (offset, period)
+// Can be empty, which means (0,0) = (NOW, ONCE).
+// E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
+// The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID timing=Timing? ';';
+    'timer' name=ID ('(' offset=TimeOrValue (',' period=TimeOrValue)? ')')? ';';
 
 Action:
     origin=ActionOrigin 'action' name=ID ('(' delay=TimeOrValue ')')? (':' type=Type)? ';';
@@ -112,13 +116,6 @@ Property:
 Parameter:
     name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
     | ((':' type=Type)? '(' value=Literal ')'))?;
-
-// Timing specification for a timer: (offset, period)
-// Can be empty, which means (0,0) = (NOW, ONCE).
-// E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
-// The latter means fire with period 1000, offset 100.
-Timing:
-    '(' offset=TimeOrValue (',' period=TimeOrValue)? ')';
 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
