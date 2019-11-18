@@ -146,11 +146,10 @@ class GeneratorBase {
                             timer = factory.createTimer
                             timer.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__STARTUP.name
-                            timer.timing = factory.createTiming
-                            timer.timing.offset = factory.createTimeOrValue
-                            timer.timing.offset.time = 0
-                            timer.timing.period = factory.createTimeOrValue
-                            timer.timing.period.time = 0
+                            timer.offset = factory.createTimeOrValue
+                            timer.offset.time = 0
+                            timer.period = factory.createTimeOrValue
+                            timer.period.time = 0
                             reactor.timers.add(timer)
                         }
                     } else if (trigger.isShutdown) {
@@ -196,29 +195,6 @@ class GeneratorBase {
         } else {
             code
         }
-    }
-
-    // FIXME: comments
-    def resolveTime(TimeOrValue timeOrValue, ReactorInstance instance) {
-        var timeLiteral = '0LL'
-        var unit = TimeUnit.NONE
-        if (timeOrValue !== null) {
-            if (timeOrValue.parameter !== null) {
-                var resolved = instance.resolveParameter(timeOrValue.parameter)
-                if (resolved === null) {
-                    throw new InternalError(
-                        "Incorrect reference to parameter :" +
-                            timeOrValue.parameter.name);
-                } else {
-                    timeLiteral = resolved.literalValue
-                    unit = TimeUnit.NONE
-                }
-            } else {
-                timeLiteral = timeOrValue.time.toString
-                unit = timeOrValue.unit
-            }
-        }
-        return timeInTargetLanguage(timeLiteral, unit)
     }
 
     /** Given a representation of time that may possibly include units,

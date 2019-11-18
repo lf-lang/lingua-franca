@@ -382,12 +382,20 @@ class CGenerator extends GeneratorBase {
         // Next handle states.
         for (state : reactor.states) {
             prSourceLineNumber(state)
-            if (state.type === null) {
-                reportError(state,
-                    "State is required to have a type: " + state.name) // FIXME: do these checks in the validator. 
-            } else {
+            
+            if (state.parameter !== null) {
                 pr(body,
-                    removeCodeDelimiter(state.type) + ' ' + state.name + ';');
+                removeCodeDelimiter(state.parameter.type) + ' ' + state.name + ';');
+            } else {
+                if (state.ofTimeType) {
+                    pr(body,
+                        timeTypeInTargetLanguage + ' ' + state.name + ';');
+                } else {
+                    pr(body,
+                        removeCodeDelimiter(state.type) + ' ' + state.name +
+                            ';');
+                }
+
             }
         }
         // Next handle actions.
@@ -1166,7 +1174,7 @@ class CGenerator extends GeneratorBase {
                 if (trigger.delay !== null) {
                     val timeOrValue = trigger.delay
                     if (timeOrValue !== null) {
-                        delay = resolveTime(timeOrValue, reactorInstance)
+                        delay = reactorInstance.resolveTime(timeOrValue)
                     }
                 }
 
@@ -1196,18 +1204,8 @@ class CGenerator extends GeneratorBase {
             // the struct because the value assigned may not be a compile-time constant.
             if (trigger instanceof Timer) {
 
-                val timing = trigger.timing
-
-                var offset = if (timing === null) {
-                        timeInTargetLanguage('0LL', TimeUnit.NONE)
-                    } else {
-                        resolveTime(timing.offset, reactorInstance)
-                    }
-                var period = if (timing === null) {
-                        timeInTargetLanguage('0LL', TimeUnit.NONE)
-                    } else {
-                        resolveTime(timing.period, reactorInstance)
-                    }
+                val offset = reactorInstance.resolveTime(trigger.offset)
+                val period = reactorInstance.resolveTime(trigger.period)
 
                 pr(initializeTriggerObjects,
                     triggerStructName + '.offset = ' + offset + ';')
@@ -1312,7 +1310,8 @@ class CGenerator extends GeneratorBase {
         // Start with parameters.
         for (parameter : instance.parameters) {
             // FIXME: we now use the resolved literal value. For better efficiency, we could
-            // store constants in a global array and refer to its elements to avoid duplicates
+            // store constants in a global array and refer to its elements to avoid duplicate
+            // memory allocations.
             pr(
                 initializeTriggerObjects,
                 nameOfSelfStruct + "." + parameter.name + " = " +
@@ -1323,9 +1322,25 @@ class CGenerator extends GeneratorBase {
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
         for (state : reactorClass.states) {
-            var value = removeCodeDelimiter(state.value)
-            pr(initializeTriggerObjects,
-                nameOfSelfStruct + "." + state.name + " = " + value + ";")
+            var time = state.time
+            var unit = state.unit
+            var value = state.value
+
+            if (state.parameter !== null) {
+                time = state.parameter.time
+                unit = state.parameter.unit
+                value = state.parameter.value
+            }
+            if (state.ofTimeType) {
+                pr(initializeTriggerObjects,
+                    nameOfSelfStruct + "." + state.name + " = " +
+                        timeInTargetLanguage(time.toString, unit) + ";")
+            } else {
+                pr(initializeTriggerObjects,
+                    nameOfSelfStruct + "." + state.name + " = " +
+                        removeCodeDelimiter(value) + ";")
+            }
+
         }
 
         // Generate reaction structs for the instance.
@@ -1357,8 +1372,7 @@ class CGenerator extends GeneratorBase {
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
             if (reaction.definition.deadline !== null) {
-                var deadline = resolveTime(reaction.definition.deadline.time,
-                    instance)
+                var deadline = instance.resolveTime(reaction.definition.deadline.time)
                 pr(initializeTriggerObjects,
                     reactionStructName(reaction) + '.local_deadline = ' +
                         deadline + ';')
