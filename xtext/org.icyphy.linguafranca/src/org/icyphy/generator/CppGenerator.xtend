@@ -627,15 +627,31 @@ class CppGenerator extends GeneratorBase {
 
 	def generateMain(Reactor main, Target t) '''
 		«header()»
-		
+
+		#include <chrono>		
 		#include <thread>
-		#include <chrono>
+		#include <memory>
 		
 		#include "reactor-cpp/reactor-cpp.hh"
 		
 		#include "CLI/CLI11.hpp"
 		
 		#include "«main.name».hh"
+		
+		class Timeout : public reactor::Reactor {
+		 private:
+		  reactor::Timer timer;
+		
+		  reactor::Reaction r_timer{"r_timer", 1, this,
+		                            [this]() { environment()->sync_shutdown(); }};
+		
+		 public:
+		  Timeout(const std::string& name, reactor::Environment* env, reactor::time_t timeout)
+		      : reactor::Reactor(name, env)
+		      , timer{"timer", this, 0, timeout} {}
+		
+		  void assemble() override { r_timer.declare_trigger(&timer); }
+		};
 		
 		int main(int argc, char **argv) {
 		  CLI::App app("«filename» Reactor Program");
@@ -651,16 +667,20 @@ class CppGenerator extends GeneratorBase {
 		  
 		  reactor::Environment e{threads, fast};
 		
-		  «main.name» main{"main", &e};
-		  e.assemble();
-		  e.init();
-		
-		  auto t = e.start();
+		  // instantiate the main reactor
+		  «main.name» main{"«main.name»", &e};
+		  
+		  // optionally instantiate the timeout reactor
+		  std::unique_ptr<Timeout> t{nullptr};
 		  if (opt_timeout->count() > 0) {
-		    std::this_thread::sleep_for(std::chrono::seconds(timeout));
-		    e.stop();
+		  	std::cout << "timeout: " << timeout << std::endl;
+		  	t = std::make_unique<Timeout>("Timeout", &e, timeout * 1'000'000'000ULL);
 		  }
-		  t.join();
+
+		  // execute the reactor program
+		  e.assemble();
+		  auto thread = e.startup();
+		  thread.join();
 		
 		  return 0;
 		}
@@ -694,7 +714,7 @@ class CppGenerator extends GeneratorBase {
 		  dep-reactor-cpp
 		  PREFIX "${REACTOR_CPP_BUILD_DIR}"
 		  GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-		  GIT_TAG "20a35a92f99e26e2088bfee08268cf11eebd8a1a"
+		  GIT_TAG "6e4f9a02b3047eb2ddcc85a701775122ece8564e"
 		  CMAKE_ARGS
 		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
