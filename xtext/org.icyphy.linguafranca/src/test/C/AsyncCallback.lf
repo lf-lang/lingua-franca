@@ -33,7 +33,8 @@ main reactor AsyncCallback {
 	timer t(0, 200 msec);
 	state thread_id:pthread_t(0);
 	state expected_time:{=long long=}({=100000000LL=});
-	state toggle:bool(false);
+	state toggle:bool({=false=});
+	
     physical action a:int;
     state i:int(0);
   
