@@ -1,7 +1,7 @@
 // This tests a reactor that contains another reactor and also
 // has its own reaction that routes inputs to the contained reactor.
 target Cpp(
-	run = "bin/SendingInside -fast -timeout 10 sec"
+	run = "bin/SendingInside --fast --timeout 10"
 );
 reactor Printer {
     preamble {=
@@ -19,7 +19,7 @@ reactor Printer {
         count++;
     =}
 }
-main reactor Main {
+main reactor SendingInside {
     state count:int(0);
     timer t(0, 1 sec);
     p = new Printer();

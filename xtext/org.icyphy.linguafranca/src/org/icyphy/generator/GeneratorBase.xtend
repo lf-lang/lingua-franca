@@ -28,6 +28,7 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.TriggerRef
 
 /**
  * Generator base class for shared code between code generators.
@@ -137,11 +138,11 @@ class GeneratorBase {
                 // and schedule that action before shutting down the program.
                 // These get inserted into both the ECore model and the
                 // instance model.
-                var hasStartupTrigger = false;
-                var hasShutdownTrigger = false;
+                var TriggerRef startupTrigger = null;
+                var TriggerRef shutdownTrigger = null;
                 for (trigger : reaction.triggers) {
                     if (trigger.isStartup) {
-                        hasStartupTrigger = true
+                        startupTrigger = trigger
                         if (timer === null) {
                             timer = factory.createTimer
                             timer.name = LinguaFrancaPackage.Literals.
@@ -153,7 +154,7 @@ class GeneratorBase {
                             reactor.timers.add(timer)
                         }
                     } else if (trigger.isShutdown) {
-                        hasShutdownTrigger = true
+                        shutdownTrigger = trigger
                         if (action === null) {
                             action = factory.createAction
                             action.name = LinguaFrancaPackage.Literals.
@@ -167,13 +168,15 @@ class GeneratorBase {
                 }
                 // If appropriate, add a VarRef to the triggers list of this
                 // reaction for the startup timer or shutdown action.
-                if (hasStartupTrigger) {
+                if (startupTrigger !== null) {
+                	reaction.triggers.remove(startupTrigger)
                     var variableReference = LinguaFrancaFactory.eINSTANCE.
                         createVarRef()
                     variableReference.setVariable(timer)
                     reaction.triggers.add(variableReference)
                 }
-                if (hasShutdownTrigger) {
+                if (shutdownTrigger !== null) {
+                	reaction.triggers.remove(shutdownTrigger)
                     var variableReference = LinguaFrancaFactory.eINSTANCE.
                         createVarRef()
                     variableReference.setVariable(action)

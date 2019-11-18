@@ -21,7 +21,8 @@ else
 	manifest="$base""org.icyphy.linguafranca/src/test/test-manifest";
     	offset="../../../../../";
 	total=0;
-	correct=0;	
+	correct=0;
+	failed="";
 
 	if [ ! -f "$manifest" ]; then
 		echo "Unable to locate manifest.";
@@ -52,6 +53,8 @@ else
 			eval $command;
 			if (($? == 0)); then
 				correct=$((correct + 1))
+			else
+				failed="$name $failed"
 			fi
 			echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
 		done <"../test-manifest"
@@ -59,6 +62,7 @@ else
 		echo "Number of tests passed: ("$correct"/"$total")";
 		echo "--------------------------------------------------------------------------------";
 		if (($correct != $total)); then
+			echo "Failed tests: $failed"
 			exit 1;
 		fi
 	fi
