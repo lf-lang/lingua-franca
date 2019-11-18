@@ -194,15 +194,10 @@ class AccessorGenerator extends GeneratorBase {
 
 		// Add the timer reactions.
 		for (timer: timerReactions.keySet) {
-			val timing = timer.timing
-			
-			
 			//val timerParams = getTiming(reactor, timer)
 			for (handler: timerReactions.get(timer)) {
-				var offset = if (timing === null) { null } else {timing.offset}
-				var period = if (timing === null) { null } else {timing.period}
-				var offsetStr = unitAdjustment(offset, TimeUnit.MSEC)
-				var periodStr = unitAdjustment(period, TimeUnit.MSEC)
+				var offsetStr = unitAdjustment(timer.offset, TimeUnit.MSEC)
+				var periodStr = unitAdjustment(timer.period, TimeUnit.MSEC)
 				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offsetStr», «periodStr»);''')
 			}
 		}
