@@ -47,14 +47,34 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
 
 	/**
+	 * Creates the main reactor frame.
+	 */
+	def addMainReactorFigure(KNode node, Reactor reactor) {
+		val figure = node.addRoundedRectangle(8, 8, 1) => [
+			setGridPlacement(1)
+			lineWidth = 1
+			foreground = Colors.GRAY
+		]
+		
+		figure.addText(reactor.name) => [
+			setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+			suppressSelectability
+			underlineSelectionStyle
+		]
+		
+		return figure
+	}
+
+	/**
 	 * Creates the visual representation of a reactor node
 	 */
 	def addReactorFigure(KNode node, Reactor reactor, String instanceName) {
-		val figure = node.addRoundedRectangle(8, 8, 1)
-		figure.setGridPlacement(1)
-		figure.lineWidth = 1
-		figure.foreground = Colors.GRAY
-		figure.background = Colors.GRAY_95
+		val figure = node.addRoundedRectangle(8, 8, 1) => [
+			setGridPlacement(1)
+			lineWidth = 1
+			foreground = Colors.GRAY
+			background = Colors.GRAY_95
+		]
 
 		// minimal node size is necessary if no text will be added
 		node.setMinimalNodeSize(2 * figure.cornerWidth, 2 * figure.cornerHeight)
@@ -97,12 +117,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			background = Colors.GRAY_65
 			boldLineSelectionStyle()
 			
-			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0)
-			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0)
-			points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
-			points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
-			points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
-			points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+			points += #[
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0, 0),
+				createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.TOP, 0, 0),
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
+				createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0),
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
+				createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+			]
 		]
 		
 		val order = if (reactor.reactions.size > 1) {
@@ -110,6 +132,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				fontBold = true
 				noSelectionStyle
 				suppressSelectability
+				setPointPlacementData(LEFT, 0, 0.5f, TOP, 0, 0, H_CENTRAL, V_TOP, REACTION_POINTINESS, 0, minWidth - REACTION_POINTINESS * 2, minHeight)
 			]
 		}
 		
@@ -123,13 +146,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 		// optional code content
 		if (SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty) {
-			contentContainer.addText(reaction.code) => [
+			contentContainer.addText(reaction.code.trimCode) => [
 				associateWith(reaction)
 				fontSize = 6
+				fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
 				noSelectionStyle()
 				horizontalAlignment = HorizontalAlignment.LEFT
 				verticalAlignment = VerticalAlignment.TOP
-				setGridPlacementData().from(LEFT, 5, 0, TOP, order !== null ? 15 : 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+				setGridPlacementData().from(LEFT, 5, 0, TOP, order !== null ? 18 : 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
 			]
 		}
 		
@@ -137,10 +161,12 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			baseShape.addPolygon() => [
 				associateWith(reaction.deadline)
 				
-				points += createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
-				points += createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f)
-				points += createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0)
-				points += createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+				points += #[
+					createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f),
+					createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
+					createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0),
+					createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+				]
 				
 				// style
 				lineWidth = 1
@@ -175,9 +201,10 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 			// optional code content
 			if (SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty) {
-				deadlineSection.addText(reaction.deadline.deadlineCode) => [
+				deadlineSection.addText(reaction.deadline.deadlineCode.trimCode) => [
 					associateWith(reaction.deadline)
 					fontSize = 6
+					fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
 					setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
 					horizontalAlignment = HorizontalAlignment.LEFT
 					noSelectionStyle()
@@ -194,11 +221,12 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	def addTimerFigure(KNode node, Timer timer) {
 		node.setMinimalNodeSize(30, 30)
 		
-		val figure = node.addEllipse
-		figure.lineWidth = 1
-		figure.background = Colors.GRAY_95
-		figure.noSelectionStyle
-		figure.boldLineSelectionStyle
+		val figure = node.addEllipse => [
+			lineWidth = 1
+			background = Colors.GRAY_95
+			noSelectionStyle()
+			boldLineSelectionStyle()
+		]
 		
 		figure.addPolyline(1,
 			#[
@@ -208,18 +236,54 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			]
 		).boldLineSelectionStyle
 		
-		if (timer.timing !== null) {
-			val labelParts = newArrayList
-			if (timer.timing.offset !== null) {
-				labelParts += timer.timing.offset.toText
-			}
-			if (timer.timing.period !== null) {
-				labelParts += timer.timing.period.toText
-			}
-			if (!labelParts.empty) {
-				node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it])
-			}
+		val labelParts = newArrayList
+		if (timer.offset !== null) {
+			labelParts += timer.offset.toText
 		}
+		if (timer.period !== null) {
+			labelParts += timer.period.toText
+		}
+		if (!labelParts.empty) {
+			node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it], 8)
+		}
+
+		return figure
+	}
+	
+	/**
+	 * Creates the visual representation of a startup trigger.
+	 */
+	def addStartupFigure(KNode node) {
+		node.setMinimalNodeSize(25, 25)
+		
+		val figure = node.addEllipse => [
+			lineWidth = 1
+			background = Colors.GRAY_65
+			noSelectionStyle()
+			boldLineSelectionStyle()
+		]
+
+		return figure
+	}
+	
+	/**
+	 * Creates the visual representation of a shutdown trigger.
+	 */
+	def addShutdownFigure(KNode node) {
+		node.setMinimalNodeSize(25, 25)
+		
+		val figure = node.addPolygon => [
+			lineWidth = 1
+			background = Colors.WHITE
+			noSelectionStyle
+			boldLineSelectionStyle
+		]
+		figure.points += #[
+			createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0),
+			createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
+			createKPosition(PositionReferenceX.RIGHT, 0, 0.5f, PositionReferenceY.BOTTOM, 0 , 0),
+			createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0.5f)
+		]
 
 		return figure
 	}
@@ -244,12 +308,10 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Added a text as collapse expand button.
 	 */
-	def KText addCollapseExpandButton(KContainerRendering container, String text) {
+	def KText addTextButton(KContainerRendering container, String text) {
 		container.addText(text) => [
 			foreground = Colors.BLUE
 			fontSize = 8
-			addSingleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
-			addDoubleClickAction(KlighdConstants.ACTION_COLLAPSE_EXPAND)
 			noSelectionStyle()
 		]
 	}

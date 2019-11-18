@@ -8,5 +8,19 @@
             id="org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis">
       </diagramSynthesis>
    </extension>
-
+   <extension
+         point="de.cau.cs.kieler.klighd.extensions">
+      <action
+            class="org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction"
+            id="org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction">
+      </action>
+      <action
+            class="org.icyphy.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction"
+            id="org.icyphy.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction">
+      </action>
+      <action
+            class="org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction"
+            id="org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction">
+      </action>
+   </extension>
 </plugin>
