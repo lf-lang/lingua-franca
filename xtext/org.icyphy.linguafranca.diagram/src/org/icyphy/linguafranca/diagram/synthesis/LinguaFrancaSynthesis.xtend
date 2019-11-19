@@ -78,7 +78,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	/** Synthesis options */
 	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
-	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Reaction Dependencies", false)
+	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
 	
     /** Synthesis actions */
@@ -246,7 +246,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				} else {
 					node.addInvisiblePort() => [
 						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
-						addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
+						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
+							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
+						} else {
+							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, (-LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) * 0.33) // requires offset due to shape
+						}
 					]
 				}
 				if (trigger instanceof VarRef) {
@@ -261,11 +265,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 							timerNodes.get(trigger.variable)
 						}
 						if (src !== null) {
-							createIODependencyEdge(trigger).connect(src, port)
+							createDependencyEdge(trigger).connect(src, port)
 						}
 					}
 				} else if (trigger.startup) {
-					createIODependencyEdge(trigger).connect(startupNode, port)
+					createDependencyEdge(trigger).connect(startupNode, port)
 					startupUsed = true
 				} else if (trigger.shutdown) {
 					createDelayEdge(trigger).connect(shutdownNode, port)
@@ -274,13 +278,19 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			
 			// connect dependencies
-			port = null
+			//port = null
 			for (VarRef dep : reaction.sources?:emptyList) {
 				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
 					port
 				} else {
 					node.addInvisiblePort() => [
-						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.NORTH)
+						//addLayoutParam(CoreOptions.PORT_SIDE, PortSide.NORTH)
+						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
+						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
+							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
+						} else {
+							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, (-LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) * 0.33) // requires offset due to shape
+						}
 					]
 				}
 				if (dep.variable instanceof Action) { // TODO I think this case is forbidden
@@ -318,7 +328,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						inputPorts.get(effect.container, effect.variable)
 					}
 					if (dst !== null) {
-						createIODependencyEdge(effect).connect(port, dst)
+						createDependencyEdge(effect).connect(port, dst)
 					}
 				}
 			}
@@ -427,7 +437,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
-				lineStyle = LineStyle.DOT
+				lineStyle = LineStyle.DASH
 				boldLineSelectionStyle()
 			]
 		]
