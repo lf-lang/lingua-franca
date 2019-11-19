@@ -3,6 +3,7 @@ package org.icyphy.linguafranca.diagram.synthesis.styles
 import de.cau.cs.kieler.klighd.KlighdConstants
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
+import de.cau.cs.kieler.klighd.krendering.Arc
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
@@ -133,25 +134,24 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			]
 		]
 		
-		val order = if (reactor.reactions.size > 1) {
-			baseShape.addText(Integer.toString(reactor.reactions.indexOf(reaction) + 1)) => [
-				fontBold = true
-				noSelectionStyle
-				suppressSelectability
-				setPointPlacementData(LEFT, 0, 0.5f, TOP, 0, 0, H_CENTRAL, V_TOP, REACTION_POINTINESS, 0, minWidth - REACTION_POINTINESS * 2, minHeight)
-			]
-		}
-		
 		val contentContainer = baseShape.addRectangle() => [
 			associateWith(reaction)
 			invisible = true
-			//setLeftTopAlignedPointPlacementData(0, REACTION_POINTINESS, 0, REACTION_POINTINESS)
 			setPointPlacementData(LEFT, REACTION_POINTINESS, 0, TOP, 0, 0, H_LEFT, V_TOP, REACTION_POINTINESS, 0, minWidth - REACTION_POINTINESS * 2, minHeight)
 			gridPlacement = 1
 		]
+		
+		if (reactor.reactions.size > 1) {
+			contentContainer.addText(Integer.toString(reactor.reactions.indexOf(reaction) + 1)) => [
+				fontBold = true
+				noSelectionStyle
+				suppressSelectability
+			]
+		}
 
 		// optional code content
-		if (SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty) {
+		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty
+		if (hasCode) {
 			contentContainer.addText(reaction.code.trimCode) => [
 				associateWith(reaction)
 				fontSize = 6
@@ -159,56 +159,40 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				noSelectionStyle()
 				horizontalAlignment = HorizontalAlignment.LEFT
 				verticalAlignment = VerticalAlignment.TOP
-				setGridPlacementData().from(LEFT, 5, 0, TOP, order !== null ? 18 : 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
+				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
 			]
 		}
 		
 		if (reaction.deadline !== null) {
-			baseShape.addPolygon() => [
-				associateWith(reaction.deadline)
-				
-				points += #[
-					createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f),
-					createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0, 0.5f),
-					createKPosition(PositionReferenceX.RIGHT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0),
-					createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty
+			if (hasCode || hasDeadlineCode) {
+				contentContainer.addHorizontalLine(0) => [
+					setGridPlacementData().from(LEFT, 5, 0, TOP, 3, 0).to(RIGHT, 5, 0, BOTTOM, 6, 0)
 				]
+			}
 				
-				// style
-				lineWidth = 1
-				foreground = Colors.GRAY_45
-				background = Colors.BROWN
-				
-				// ensure content is rendered on top
-				baseShape.children.move(0, it)
-			]
-			
-			// Move order label if present
-			order?.setPointPlacementData(LEFT, 0, 0.5f, TOP, 1, 0, H_CENTRAL, V_TOP, REACTION_POINTINESS, 0, minWidth - REACTION_POINTINESS * 2, 0)
-				
-			val deadlineSection = contentContainer.addRectangle() => [
-				associateWith(reaction.deadline)
+			// delay with stopwatch
+			val labelContainer = contentContainer.addRectangle() => [
 				invisible = true
-				verticalAlignment = VerticalAlignment.BOTTOM
-				if (!SHOW_REACTION_CODE.booleanValue || reaction.code.nullOrEmpty) {
-					setGridPlacementData().from(LEFT, 0, 0, TOP, -3, 0.5f).to(RIGHT, 0, 0, BOTTOM, 0, 0)
-				}
-				gridPlacement = 1
+				setGridPlacementData().from(LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0).setHorizontalAlignment(HorizontalAlignment.LEFT)
 			]
-				
-			// delay
-			deadlineSection.addText(reaction.deadline.time.toText) => [
+			labelContainer.addStopwatchFigure() => [
+				setLeftTopAlignedPointPlacementData(0, 0, 0, 0)
+			]
+			labelContainer.addText(reaction.deadline.time.toText) => [
 				associateWith(reaction.deadline.time)
+				foreground = Colors.BROWN
 				fontBold = true
 				fontSize = 7
-				setGridPlacementData().from(LEFT, 5, 0, TOP, 5, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0).setHorizontalAlignment(HorizontalAlignment.CENTER)
 				underlineSelectionStyle()
+				setLeftTopAlignedPointPlacementData(15, 0, 0, 0)
 			]
 
 			// optional code content
-			if (SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty) {
-				deadlineSection.addText(reaction.deadline.deadlineCode.trimCode) => [
+			if (hasDeadlineCode) {
+				contentContainer.addText(reaction.deadline.deadlineCode.trimCode) => [
 					associateWith(reaction.deadline)
+					foreground = Colors.BROWN
 					fontSize = 6
 					fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
 					setGridPlacementData().from(LEFT, 5, 0, TOP, 0, 0).to(RIGHT, 5, 0, BOTTOM, 5, 0)
@@ -219,6 +203,50 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		}
 
 		return baseShape
+	}
+	
+	/**
+	 * Stopwatch figure for deadlines.
+	 */
+	def addStopwatchFigure(KContainerRendering parent) {
+		val size = 12
+		val container = parent.addRectangle() => [
+			invisible = true
+			setPointPlacementData(LEFT, 0, 0, TOP, 0, 0, H_LEFT, V_TOP, 0, 0, size, size)
+		]
+		container.addPolyline(2,
+			#[
+				createKPosition(PositionReferenceX.LEFT, 3, 0.5f, PositionReferenceY.TOP, -2, 0),
+				createKPosition(PositionReferenceX.LEFT, -3, 0.5f, PositionReferenceY.TOP, -2, 0)
+			]
+		) => [
+			foreground = Colors.BROWN
+		]
+		container.addPolyline(2,
+			#[
+				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, -2, 0),
+				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 1, 0)
+			]
+		) => [
+			foreground = Colors.BROWN
+		]
+		val body = container.addEllipse() => [
+			lineWidth = 1
+			foreground = Colors.BROWN
+			setPointPlacementData(LEFT, 0, 0, TOP, 0, 0, H_LEFT, V_TOP, 0, 0, size, size)
+			noSelectionStyle()
+		]
+		body.addArc() => [
+			startAngle = -20
+			arcAngle = 110
+			arcType = Arc.PIE
+			lineWidth = 0
+			background = Colors.BROWN
+			setPointPlacementData(LEFT, 2, 0, TOP, 2, 0, H_LEFT, V_TOP, 2, 2, size - 4, size - 4)
+			noSelectionStyle()
+		]
+		
+		return container
 	}
 	
 	/**
