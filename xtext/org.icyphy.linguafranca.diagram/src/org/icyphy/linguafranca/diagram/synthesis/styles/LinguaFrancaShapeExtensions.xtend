@@ -258,7 +258,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		
 		val figure = node.addEllipse => [
 			lineWidth = 1
-			background = Colors.GRAY_65
+			background = Colors.WHITE
 			noSelectionStyle()
 			boldLineSelectionStyle()
 		]
@@ -275,8 +275,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		val figure = node.addPolygon => [
 			lineWidth = 1
 			background = Colors.WHITE
-			noSelectionStyle
-			boldLineSelectionStyle
+			noSelectionStyle()
+			boldLineSelectionStyle()
 		]
 		figure.points += #[
 			createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0 , 0),
