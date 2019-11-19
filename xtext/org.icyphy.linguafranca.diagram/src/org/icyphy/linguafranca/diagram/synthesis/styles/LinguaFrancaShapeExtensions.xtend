@@ -6,6 +6,8 @@ import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
+import de.cau.cs.kieler.klighd.krendering.KPolyline
+import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
 import de.cau.cs.kieler.klighd.krendering.KText
 import de.cau.cs.kieler.klighd.krendering.VerticalAlignment
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
@@ -20,6 +22,8 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY
 import javax.inject.Inject
+import org.eclipse.elk.core.options.CoreOptions
+import org.eclipse.elk.core.options.PortSide
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
@@ -45,6 +49,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	@Inject extension KColorExtensions
 	@Inject extension LinguaFrancaStyleExtensions
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
+	
+    extension KRenderingFactory = KRenderingFactory::eINSTANCE
 
 	/**
 	 * Creates the main reactor frame.
@@ -314,6 +320,80 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			fontSize = 8
 			noSelectionStyle()
 		]
+	}
+	
+	/** 
+	 * Creates the triangular line decorator with text.
+	 */
+	def addActionDecorator(KPolyline line, String text) {
+		val float size = 18
+        line.addPolygon() => [
+            background = Colors.WHITE
+            
+            points += #[
+				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0),
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+			]
+            
+            placementData = createKDecoratorPlacementData => [
+                relative = 0.5f
+                absolute = -size / 2
+                width = size
+                height = size
+                setYOffset(-size * 0.66f)
+                rotateWithLine = true
+            ]
+            
+            addText(text) => [
+				fontSize = 8
+				noSelectionStyle()
+				suppressSelectability()
+				
+				setPointPlacementData(LEFT, 0, 0.5f, TOP, size * 0.15f, 0.5f, H_CENTRAL, V_CENTRAL, 0, 0, size, size)
+			]
+        ]
+	}
+	
+	/**
+	 * Creates the triangular action node with text and ports.
+	 */
+	def Pair<KPort, KPort> addActionFigureAndPorts(KNode node, String text) {
+		val float size = 18
+		node.setMinimalNodeSize(size, size)
+		
+		val figure = node.addPolygon() => [
+            background = Colors.WHITE
+            boldLineSelectionStyle
+            
+            points += #[
+				createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0),
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0)
+			]
+            
+            addText(text) => [
+				fontSize = 8
+				noSelectionStyle()
+				suppressSelectability()
+				
+				setPointPlacementData(LEFT, 0, 0.5f, TOP, size * 0.15f, 0.5f, H_CENTRAL, V_CENTRAL, 0, 0, size, size)
+			]
+		]
+		
+		val in = createPort
+		node.ports += in
+		in.setSize(0, 0) // invisible
+		in.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
+		in.addLayoutParam(CoreOptions.PORT_BORDER_OFFSET, - size / 4 as double)
+		
+		val out = createPort
+		node.ports += out
+		out.setSize(0, 0) // invisible
+		out.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.EAST)
+		out.addLayoutParam(CoreOptions.PORT_BORDER_OFFSET, - size / 4 as double)
+
+		return new Pair(in, out)
 	}
 	
 	/**
