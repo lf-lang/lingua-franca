@@ -1,6 +1,6 @@
 // Example in the Wiki.
 target Cpp;
-reactor Gain(scale:int(2)) {
+reactor Scale(scale:int(2)) {
     input x:int;
     output y:int;
     reaction(x) -> y {=
@@ -21,8 +21,8 @@ reactor Test {
         }
     =}
 }
-main reactor Main {
-    g = new Gain();
+main reactor Gain {
+    g = new Scale();
     t = new Test();
     g.y -> t.x;
     timer tim;
