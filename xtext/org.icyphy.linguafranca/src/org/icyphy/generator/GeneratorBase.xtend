@@ -7,6 +7,7 @@ package org.icyphy.generator
 
 import java.io.BufferedReader
 import java.io.IOException
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.HashMap
 import java.util.LinkedList
@@ -428,6 +429,24 @@ class GeneratorBase {
         } finally {
             inputStream.close
         }
+    }
+
+    /** Read the specified input stream until an end of file is encountered
+     *  and return the result as a StringBuilder.
+     *  @param stream The stream to read.
+     *  @return The result as a string.
+     */
+    protected def readStream(InputStream stream) {
+        var reader = new BufferedReader(new InputStreamReader(stream))
+        var result = new StringBuilder();
+        var line = "";
+        while ((line = reader.readLine()) !== null) {
+            result.append(line);
+            result.append(System.getProperty("line.separator"));
+        }
+        stream.close()
+        reader.close()
+        result
     }
 
     /** Report an error.

@@ -1,0 +1,10 @@
+target TypeScript;
+reactor HelloWorldInside {
+    timer t;
+    reaction(t) {=
+        console.log("Hello World.");
+    =}
+}
+main reactor HelloWorld {
+    a = new HelloWorldInside();
+}
