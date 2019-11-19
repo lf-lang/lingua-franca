@@ -71,13 +71,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 	
 	public static val REACTOR_INSTANCE = new Property<Instantiation>("org.icyphy.linguafranca.diagram.synthesis.reactor.instantiation")
+	static val ACTION_NODES = true // just for toggling internal modes
 
 	// -------------------------------------------------------------------------
 	
 	/** Synthesis options */
 	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
-	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Reaction Dependencies", false)
+	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
 	
     /** Synthesis actions */
@@ -245,7 +246,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				} else {
 					node.addInvisiblePort() => [
 						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
-						addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
+						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
+							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
+						} else {
+							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, (-LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) * 0.33) // requires offset due to shape
+						}
 					]
 				}
 				if (trigger instanceof VarRef) {
@@ -260,26 +265,32 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 							timerNodes.get(trigger.variable)
 						}
 						if (src !== null) {
-							createIODependencyEdge(trigger).connect(src, port)
+							createDependencyEdge(trigger).connect(src, port)
 						}
 					}
 				} else if (trigger.startup) {
-					createIODependencyEdge(trigger).connect(startupNode, port)
+					createDependencyEdge(trigger).connect(startupNode, port)
 					startupUsed = true
 				} else if (trigger.shutdown) {
-					createIODependencyEdge(trigger).connect(shutdownNode, port)
+					createDelayEdge(trigger).connect(shutdownNode, port)
 					shutdownUsed = true
 				}
 			}
 			
 			// connect dependencies
-			port = null
+			//port = null
 			for (VarRef dep : reaction.sources?:emptyList) {
 				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
 					port
 				} else {
 					node.addInvisiblePort() => [
-						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.NORTH)
+						//addLayoutParam(CoreOptions.PORT_SIDE, PortSide.NORTH)
+						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
+						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
+							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
+						} else {
+							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, (-LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) * 0.33) // requires offset due to shape
+						}
 					]
 				}
 				if (dep.variable instanceof Action) { // TODO I think this case is forbidden
@@ -317,7 +328,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						inputPorts.get(effect.container, effect.variable)
 					}
 					if (dst !== null) {
-						createIODependencyEdge(effect).connect(port, dst)
+						createDependencyEdge(effect).connect(port, dst)
 					}
 				}
 			}
@@ -326,8 +337,23 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Connect actions
 		for (Action action : actionSource.keySet) {
 			val sourcePort = actionSource.get(action)
-			for (target : actionDestinations.get(action)) {
-				createDelayEdge(action).connect(sourcePort, target)
+			if (ACTION_NODES) {
+				val node = createNode().associateWith(action)
+				nodes += node
+				node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
+				val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
+				if (action.delay !== null) {
+					node.addOutsideBottomCenteredNodeLabel(action.delay.toText, 7)
+				}
+				
+				createDelayEdge(action).connect(sourcePort, ports.key)
+				for (target : actionDestinations.get(action)) {
+					createDelayEdge(action).connect(ports.value, target)
+				}
+			} else {
+				for (target : actionDestinations.get(action)) {
+					createDelayEdge(action).connect(sourcePort, target)
+				}
 			}
 		}
 
@@ -377,19 +403,19 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return nodes
 	}
 	
-	private def createDelayEdge(Action action) {
+	private def createDelayEdge(Object associate) {
 		return createEdge => [
-			associateWith(action)
-			addPolyline() => [
-				if (action.origin == ActionOrigin.PHYSICAL) {
-					lineStyle = LineStyle.DASHDOT
-				} else {
-					lineStyle = LineStyle.DASH
-				}
+			associateWith(associate)
+			val line = addPolyline() => [
+				lineStyle = LineStyle.DASH
 				boldLineSelectionStyle()
 			]
-			if (action.delay !== null) {
-				addCenterEdgeLabel(action.delay.toText).applyOnEdgeStyle()
+			if (associate instanceof Action && !ACTION_NODES) {
+				val action = associate as Action
+				line.addActionDecorator(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
+				if (action.delay !== null) {
+					addCenterEdgeLabel(action.delay.toText)//.applyOnEdgeStyle()
+				}
 			}
 		]
 	}
@@ -411,7 +437,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
-				lineStyle = LineStyle.DOT
+				lineStyle = LineStyle.DASH
 				boldLineSelectionStyle()
 			]
 		]

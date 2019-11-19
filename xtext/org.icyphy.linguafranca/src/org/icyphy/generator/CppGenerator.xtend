@@ -93,10 +93,12 @@ class CppGenerator extends GeneratorBase {
 		reactors
 	}
 
+	Reactor mainReactor
+
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
 		var reactors = resource.collectReactors
-		var mainReactor = resource.findMainReactor
+		mainReactor = resource.findMainReactor
 		var target = resource.findTarget
 
 		super.doGenerate(resource, fsa, context)
@@ -284,13 +286,21 @@ class CppGenerator extends GeneratorBase {
 
 	def declareActions(Reactor r) '''
 		«FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
-			«IF a.origin == ActionOrigin.LOGICAL»
-				reactor::LogicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
-			«ELSE»
-				reactor::PhysicalAction<«a.trimmedType»> «a.name»{"«a.name»", this};
-			«ENDIF»
+			«a.implementationType» «a.name»{"«a.name»", this};
 		«ENDFOR»
 	'''
+
+	def implementationType(Action a) {
+		if (a.name == 'startup') {
+			'''reactor::StartupAction'''
+		} else if (a.name == 'shutdown') {
+			'''reactor::ShutdownAction'''
+		} else if (a.origin == ActionOrigin.LOGICAL) {
+			'''reactor::LogicalAction<«a.trimmedType»>'''
+		} else {
+			'''reactor::PhysicalAction<«a.trimmedType»>'''
+		}
+	}
 
 	def declareReactionBodies(Reactor r) '''
 		«FOR n : r.reactions BEFORE '// reactions bodies\n' AFTER '\n'»
@@ -357,9 +367,9 @@ class CppGenerator extends GeneratorBase {
 			} else if (t.isStartup) {
 				'''«LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name»'''
 			}
-			
 		}
 	}
+
 	def declareDependencies(Reaction n) '''
 		«FOR t : n.sources»
 			«IF t.container !== null»
@@ -388,11 +398,11 @@ class CppGenerator extends GeneratorBase {
 		if (r.parameters.length > 0) {
 			'''
 				«r.name»(const std::string& name,
-				    «IF r.main»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+				    «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
 				    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «p.trimmedValue»«ENDFOR»
 			'''
 		} else {
-			if (r.main) {
+			if (r == mainReactor) {
 				'''«r.name»(const std::string& name, reactor::Environment* environment);'''
 			} else {
 				'''«r.name»(const std::string& name, reactor::Reactor* container);'''
@@ -475,16 +485,16 @@ class CppGenerator extends GeneratorBase {
 	def defineConstructor(Reactor r) '''
 		«IF r.parameters.length > 0»
 			«r.name»::«r.name»(const std::string& name,
-			    «IF r.isMain()»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+			    «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
 			    «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
 		«ELSE»
-			«IF r.main»
+			«IF r == mainReactor»
 				«r.name»::«r.name»(const std::string& name, reactor::Environment* environment)
 			«ELSE»
 				«r.name»::«r.name»(const std::string& name, reactor::Reactor* container)
 			«ENDIF»
 		«ENDIF»
-		  : reactor::Reactor(name, «IF r.isMain()»environment«ELSE»container«ENDIF»)
+		  : reactor::Reactor(name, «IF r == mainReactor»environment«ELSE»container«ENDIF»)
 		  «r.initializeParameters»
 		  «r.initializeStateVariables»
 		  «r.initializeInstances»
@@ -625,15 +635,31 @@ class CppGenerator extends GeneratorBase {
 
 	def generateMain(Reactor main, Target t) '''
 		«header()»
-		
+
+		#include <chrono>		
 		#include <thread>
-		#include <chrono>
+		#include <memory>
 		
 		#include "reactor-cpp/reactor-cpp.hh"
 		
 		#include "CLI/CLI11.hpp"
 		
 		#include "«main.name».hh"
+		
+		class Timeout : public reactor::Reactor {
+		 private:
+		  reactor::Timer timer;
+		
+		  reactor::Reaction r_timer{"r_timer", 1, this,
+		                            [this]() { environment()->sync_shutdown(); }};
+		
+		 public:
+		  Timeout(const std::string& name, reactor::Environment* env, reactor::time_t timeout)
+		      : reactor::Reactor(name, env)
+		      , timer{"timer", this, 0, timeout} {}
+		
+		  void assemble() override { r_timer.declare_trigger(&timer); }
+		};
 		
 		int main(int argc, char **argv) {
 		  CLI::App app("«filename» Reactor Program");
@@ -649,16 +675,20 @@ class CppGenerator extends GeneratorBase {
 		  
 		  reactor::Environment e{threads, fast};
 		
-		  «main.name» main{"main", &e};
-		  e.assemble();
-		  e.init();
-		
-		  auto t = e.start();
+		  // instantiate the main reactor
+		  «main.name» main{"«main.name»", &e};
+		  
+		  // optionally instantiate the timeout reactor
+		  std::unique_ptr<Timeout> t{nullptr};
 		  if (opt_timeout->count() > 0) {
-		    std::this_thread::sleep_for(std::chrono::seconds(timeout));
-		    e.stop();
+		  	std::cout << "timeout: " << timeout << std::endl;
+		  	t = std::make_unique<Timeout>("Timeout", &e, timeout * 1'000'000'000ULL);
 		  }
-		  t.join();
+
+		  // execute the reactor program
+		  e.assemble();
+		  auto thread = e.startup();
+		  thread.join();
 		
 		  return 0;
 		}
@@ -692,7 +722,7 @@ class CppGenerator extends GeneratorBase {
 		  dep-reactor-cpp
 		  PREFIX "${REACTOR_CPP_BUILD_DIR}"
 		  GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-		  GIT_TAG "20a35a92f99e26e2088bfee08268cf11eebd8a1a"
+		  GIT_TAG "cdff6711b68cd06f6970845fd99cf146aac16986"
 		  CMAKE_ARGS
 		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
