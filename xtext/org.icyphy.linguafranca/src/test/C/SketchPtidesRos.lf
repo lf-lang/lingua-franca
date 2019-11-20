@@ -1,0 +1,137 @@
+target C;
+ 
+reactor ROSReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
+	
+	preamble {=
+		#include <pthread.h>
+		#include <string.h>
+		#define BUFF_SIZE 100
+		char buf[BUFF_SIZE];
+		char str[BUFF_SIZE];		
+		void wait_for_message(void* a) {
+		    // put event loop for receiving ROS messages here 
+            schedule(a, 0, &str);
+		}	
+	=}
+	
+	input in:{=char*=};
+	output out:{=char*=};
+	physical action interrupt;
+	logical action safe_to_process;
+	
+	state thread_id:pthread_t(0);
+	
+	reaction(startup) -> interrupt {=
+		// start new thread to wait for ROS messages.
+		pthread_create(&self->thread_id, NULL, &wait_for_message, interrupt);
+	=}
+	
+	reaction(interrupt) -> safe_to_process {=
+		// delay should be message_time_stamp + E (clock sync error) + L (latency) + D (deadline of the sender) - current_logical_time
+		schedule(safe_to_process, 0, interrupt->value);
+	=}
+	
+	reaction(safe_to_process) -> out {=
+		set(out, safe_to_process->value);
+	=}
+}
+
+
+reactor ROSSender(d:time(10 msec)) {
+	
+	preamble {=
+		void send_message(char* message) {
+		    // send ROS message 
+		}	
+	=}
+	
+	input in:{=char*=};
+	
+	reaction(startup) {=
+		// start new thread to wait for ROS messages?
+	=}
+	
+	reaction(in)  {=
+		send_message(in);
+	=} deadline(d) {=
+		// missed deadline	
+	=}
+}
+
+
+reactor Emergency {
+	physical action sporadic;
+	output out:bool;
+	
+	reaction(sporadic) -> out {=
+		set(out, true);
+	=}
+}
+
+reactor DisarmAndOpen {
+	preamble {=
+		#define DISARM "disarm";
+		#define OPEN "open";
+	=}
+	
+	physical action button;
+	logical action microstep;
+	output message:{=char*=};
+	
+	reaction(button) -> message, microstep {=
+		set(message, DISARM);
+		schedule(microstep, 0, NULL);
+	=}
+	
+	reaction(microstep) -> message {=
+		set(message, OPEN);
+	=}
+}
+
+reactor Sender(d:time(10 msec)) {
+	sensor = new DisarmAndOpen();
+	ros = new ROSSender();
+	sensor.message -> ros.in;
+}
+
+reactor AircraftDoor {
+	input open:bool;
+	input emergency:bool;
+	input disarm:bool;
+	
+	reaction(emergency, disarm) {=
+		if (!emergency_is_present) {
+			// disarm door
+		} else {
+			// open door (with slide)
+		}
+				
+	=}
+	
+	reaction(open) {=
+		// open door
+	=} 
+}
+
+reactor Receiver {
+	
+	ros = new ROSReceiver();
+	sensor = new Emergency();
+	actuator = new AircraftDoor();
+	
+	reaction(ros.out) -> actuator.open, actuator.disarm {=
+		if (strcmp(ros.out, "disarm")) {
+			set(actuator.disarm, true);
+		} else if (strcmp(ros.out, "open")) {
+			set(actuator.open, true);
+		}
+	=}
+	
+	sensor.out -> actuator.emergency;
+}
+
+main reactor DistributedReactors(d:time(10 msec)) {
+	s = new Sender(d=5 msec);
+	r = new Receiver();
+		
+} 
