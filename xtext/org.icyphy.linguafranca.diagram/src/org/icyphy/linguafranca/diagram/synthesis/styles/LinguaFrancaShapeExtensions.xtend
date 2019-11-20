@@ -30,6 +30,7 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesisUtilityExtensions
+import org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjustment
 
 import static org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis.*
 
@@ -132,6 +133,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0),
 				createKPosition(PositionReferenceX.LEFT, REACTION_POINTINESS, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
 			]
+			
+			styles.head.modifierId = ReactionPortAdjustment.ID // This hack will adjust the port position after layout
 		]
 		
 		val contentContainer = baseShape.addRectangle() => [
