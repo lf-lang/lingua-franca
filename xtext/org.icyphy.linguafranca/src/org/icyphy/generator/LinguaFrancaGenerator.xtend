@@ -34,34 +34,26 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 			importTable.put(root, filename)
 		}
 		// Determine which target is desired.
-		var targetFound = false;
 		for (target : resource.allContents.toIterable.filter(Target)) {
+		    var generator = null as GeneratorBase;
 			// FIXME: Use reflection here?
 			if (target.name.equalsIgnoreCase("Accessor")
 					|| target.name.equalsIgnoreCase("Accessors")) {
-				val generator = new AccessorGenerator()
-				targetFound = true
-				generator.doGenerate(resource, fsa, context)
-				generatorErrorsOccurred = generator.errorsOccurred()
+				generator = new AccessorGenerator()
 			} else if (target.name.equalsIgnoreCase("C")) {
-				targetFound = true
-				val generator = new CGenerator()
-				generator.doGenerate(resource, fsa, context)
-				generatorErrorsOccurred = generator.errorsOccurred()
+				generator = new CGenerator()
 			} else if (target.name.equalsIgnoreCase("Cpp")) {
-				targetFound = true
-				val generator = new CppGenerator()
-				generator.doGenerate(resource, fsa, context)
-				generatorErrorsOccurred = generator.errorsOccurred()
+				generator = new CppGenerator()
 			} else if (target.name.equalsIgnoreCase("SCL")) {
-				targetFound = true
-				val generator = new SCLGenerator()
-				generator.doGenerate(resource, fsa, context)
-                generatorErrorsOccurred = generator.errorsOccurred()
+				generator = new SCLGenerator()
+            } else if (target.name.equalsIgnoreCase("TypeScript")) {
+                generator = new TypeScriptGenerator()
+			} else {
+                System.err.println("Warning: No recognized target.")
+			    throw new Exception("No recognized target.")
 			}
-		}
-		if (!targetFound) {
-			System.err.println("Warning: No recognized target.")
+            generator.doGenerate(resource, fsa, context)
+            generatorErrorsOccurred = generator.errorsOccurred()
 		}
 	}
 	

@@ -5,11 +5,8 @@
 // See LICENSE.md file in the top repository directory.
 package org.icyphy.generator
 
-import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
-import java.io.InputStreamReader
 import java.net.URL
 import java.nio.file.Paths
 import java.util.Collection
@@ -324,24 +321,6 @@ class CGenerator extends GeneratorBase {
         } else {
             println("SUCCESS (compiling generated C code)")
         }
-    }
-
-    /** Read the specified input stream until an end of file is encountered
-     *  and return the result as a StringBuilder.
-     *  @param stream The stream to read.
-     *  @return The result as a string.
-     */
-    private def readStream(InputStream stream) {
-        var reader = new BufferedReader(new InputStreamReader(stream))
-        var result = new StringBuilder();
-        var line = "";
-        while ((line = reader.readLine()) !== null) {
-            result.append(line);
-            result.append(System.getProperty("line.separator"));
-        }
-        stream.close()
-        reader.close()
-        result
     }
 
     // //////////////////////////////////////////
