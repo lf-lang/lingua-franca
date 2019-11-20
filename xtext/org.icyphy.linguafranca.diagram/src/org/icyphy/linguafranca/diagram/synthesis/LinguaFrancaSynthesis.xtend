@@ -246,11 +246,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				} else {
 					node.addInvisiblePort() => [
 						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
-						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
-							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
-						} else {
-							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, (-LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) * 0.33) // requires offset due to shape
-						}
 					]
 				}
 				if (trigger instanceof VarRef) {
@@ -286,11 +281,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					node.addInvisiblePort() => [
 						//addLayoutParam(CoreOptions.PORT_SIDE, PortSide.NORTH)
 						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
-						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
-							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // requires offset due to shape
-						} else {
-							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, (-LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) * 0.33) // requires offset due to shape
-						}
 					]
 				}
 				if (dep.variable instanceof Action) { // TODO I think this case is forbidden

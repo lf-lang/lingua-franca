@@ -22,5 +22,9 @@
             class="org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction"
             id="org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction">
       </action>
+      <styleModifier
+            class="org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjustment"
+            id="org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjustment">
+      </styleModifier>
    </extension>
 </plugin>
