@@ -1,0 +1,204 @@
+target C;
+ 
+reactor NetworkReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
+	
+	preamble {=
+		#include <pthread.h>
+
+		#include <unistd.h> 
+		#include <stdio.h> 
+		#include <sys/socket.h> 
+		#include <stdlib.h> 
+		#include <netinet/in.h> 
+		#include <string.h> 
+		#define PORT 8080
+		
+		pthread_t thread_id;
+		int server_fd, new_socket, valread; 
+    	struct sockaddr_in address; 
+    	int opt = 1; 
+    	int addrlen = sizeof(address); 
+    	char buffer[1024] = {0}; 
+    	char *hello = "Hello from server"; 
+    	
+    	int init_server() {
+	    	// Creating socket file descriptor 
+		    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
+		    { 
+		        perror("socket failed"); 
+		        exit(EXIT_FAILURE); 
+		    } 
+		       
+		    // Forcefully attaching socket to the port 8080 
+		    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+		                                                  &opt, sizeof(opt))) 
+		    { 
+		        perror("setsockopt"); 
+		        exit(EXIT_FAILURE); 
+		    } 
+		    address.sin_family = AF_INET; 
+		    address.sin_addr.s_addr = INADDR_ANY; 
+		    address.sin_port = htons( PORT ); 
+		       
+		    // Forcefully attaching socket to the port 8080 
+		    if (bind(server_fd, (struct sockaddr *)&address,  
+		                                 sizeof(address))<0) 
+		    { 
+		        perror("bind failed"); 
+		        exit(EXIT_FAILURE); 
+		    } 
+		    if (listen(server_fd, 3) < 0) 
+		    { 
+		        perror("listen"); 
+		        exit(EXIT_FAILURE); 
+		    } 
+		    if ((new_socket = accept(server_fd, (struct sockaddr *)&address,  
+		                       (socklen_t*)&addrlen))<0) 
+		    { 
+		        perror("accept"); 
+		        exit(EXIT_FAILURE); 
+		    } 
+	    }
+		
+		void wait_for_message(void* a) {
+		    valread = read(sock , buffer, 1024); // FIXME: is this blocking or not?
+            schedule(a, 0, &buffer);
+		}	
+	=}
+	
+	output out:{=char*=};
+	physical action interrupt;
+	logical action safe_to_process;
+	
+	reaction(startup) -> interrupt {=
+		init_server();
+		pthread_create(&thread_id, NULL, &wait_for_message, interrupt);
+	=}
+	
+	reaction(interrupt) -> safe_to_process {=
+		// delay should be message_time_stamp + E (clock sync error) + L (latency) + D (deadline of the sender) - current_logical_time
+		schedule(safe_to_process, 0, interrupt->value);
+	=}
+	
+	reaction(safe_to_process) -> out {=
+		set(out, safe_to_process->value);
+	=}
+}
+
+
+reactor NetworkSender(d:time(10 msec)) {
+	
+	preamble {=
+		#include <stdio.h> 
+		#include <sys/socket.h> 
+		#include <arpa/inet.h> 
+		#include <unistd.h> 
+		#include <string.h> 
+		#define PORT 8080 
+		
+		int init_client() {
+			int sock = 0, valread; 
+		    struct sockaddr_in serv_addr; 
+		    char *hello = "Hello from client"; 
+		    char buffer[1024] = {0}; 
+		    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
+		    { 
+		        printf("\n Socket creation error \n"); 
+		        return -1; 
+		    } 
+		   
+		    serv_addr.sin_family = AF_INET; 
+		    serv_addr.sin_port = htons(PORT); 
+		       
+		    // Convert IPv4 and IPv6 addresses from text to binary form 
+		    if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)  
+		    { 
+		 		printf("\nInvalid address/ Address not supported \n"); 
+		        return -1; 
+		    } 
+		   
+		    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
+		    { 
+		        printf("\nConnection Failed \n"); 
+		        return -1; 
+		    } 
+    } 	
+	    
+		void send_message(char* message) {
+			send(new_socket, message, strlen(hello), 0); 
+		}
+	=}
+	
+	input in:{=char*=};
+	
+	reaction(startup) {=
+		init_client();
+	=}
+	
+	reaction(in)  {=
+		send_message(in);
+	=} deadline(d) {=
+		// missed deadline
+	=}
+}
+
+reactor DisarmAndOpen {
+	
+	physical action button;
+	output message:{=char*=};
+	
+	reaction(button) -> message {=
+		set(message, "disarm_and_open");
+	=}
+}
+
+reactor Cockpit(d:time(10 msec)) {
+	sensor = new DisarmAndOpen();
+	ros = new NetworkSender();
+	sensor.message -> ros.in;
+}
+
+reactor Door {
+	
+	input open:bool;
+	input disarm:bool;
+	
+	reaction(disarm) {=
+		if (disarm_is_present && disarm == true) {
+			// disarm
+		}
+	=}
+	
+	reaction(open) {=
+		if (open_is_present && open == true) {
+			// open door
+		}	
+	=}
+	
+}
+
+reactor Cabin {
+	
+	physical action button_disarm;
+	physical action button_open;
+	
+	reaction(button_disarm) -> d.disarm {=
+		set(d.disarm, true);
+	=}
+	
+	reaction(button_open) -> d.open {=
+		set(d.open, true);
+	=}
+	
+	reaction(r.out) -> d.open, d.disarm {=
+		// open door
+	=}
+	 
+	 d = new Door();
+	 r = new NetworkReceiver();
+}
+
+main reactor AirCraft(d:time(10 msec)) {
+	s = new Cockpit(d=5 msec);
+	c = new Cabin();
+} 
