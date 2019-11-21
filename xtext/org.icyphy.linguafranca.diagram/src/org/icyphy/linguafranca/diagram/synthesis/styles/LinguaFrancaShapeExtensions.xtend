@@ -282,7 +282,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a startup trigger.
 	 */
 	def addStartupFigure(KNode node) {
-		node.setMinimalNodeSize(25, 25)
+		node.setMinimalNodeSize(18, 18)
 		
 		val figure = node.addEllipse => [
 			lineWidth = 1
@@ -298,7 +298,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a shutdown trigger.
 	 */
 	def addShutdownFigure(KNode node) {
-		node.setMinimalNodeSize(25, 25)
+		node.setMinimalNodeSize(18, 18)
 		
 		val figure = node.addPolygon => [
 			lineWidth = 1
