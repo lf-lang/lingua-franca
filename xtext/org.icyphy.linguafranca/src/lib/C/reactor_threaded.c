@@ -36,22 +36,6 @@ pthread_cond_t end_logical_time = PTHREAD_COND_INITIALIZER;
 // it will be ignored.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     pthread_mutex_lock(&mutex); 	
-	// If we are between logical times, this is an asynchronous callback
-	// and we need to use physical time to adjust the delay.
- 	//if (between_logical_times) {
-	if (trigger->is_physical) {
-	 	// Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
-    
-        interval_t time_adjustment =
-                current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec
-                - current_time;
-        if (time_adjustment > 0LL) {
-        	extra_delay += time_adjustment;
-        }
- 	}
 	int return_value = __schedule(trigger, extra_delay, value);
  	pthread_mutex_unlock(&mutex);
 	// Notify the main thread in case it is waiting for physical time to elapse.
