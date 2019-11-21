@@ -58,6 +58,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the main reactor frame.
 	 */
 	def addMainReactorFigure(KNode node, Reactor reactor) {
+		val padding = PAPER_MODE.booleanValue ? 6 : 8
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
 			lineWidth = 1
@@ -65,7 +66,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		]
 		
 		figure.addText(reactor.name) => [
-			setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, 4, 0)
 			suppressSelectability
 			underlineSelectionStyle
 		]
@@ -77,6 +78,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a reactor node
 	 */
 	def addReactorFigure(KNode node, Reactor reactor, String instanceName) {
+		val padding = PAPER_MODE.booleanValue ? 6 : 8
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
 			lineWidth = 1
@@ -90,7 +92,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		val showInstanceName = SHOW_INSTANCE_NAMES.booleanValue && !instanceName.nullOrEmpty
 		
 		figure.addText(reactor.name) => [
-			setGridPlacementData().from(LEFT, 8, 0, TOP, 8f, 0).to(RIGHT, 8, 0, BOTTOM, showInstanceName ? 0 : (reactor.hasContent ? 4 : 8), 0)
+			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, showInstanceName ? 0 : (reactor.hasContent ? 4 : padding), 0)
 			suppressSelectability
 			underlineSelectionStyle
 		]
