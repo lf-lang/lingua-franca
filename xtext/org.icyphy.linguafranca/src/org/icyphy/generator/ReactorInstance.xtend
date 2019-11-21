@@ -114,7 +114,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // reaction instances that it depends on indirectly through ports or
             // that depend on this reaction. Collect all the reactions that
             // depend on no other reactions into the _independentReactions set.
-            collapseDependencies(this)
+            if (!collapseDependencies(this)) {
+                throw new Exception(
+                    "Model has no reactions at all. Nothing to do."
+                )
+            }
 
             // Analyze the dependency graph for reactions and assign
             // levels to each reaction.
@@ -478,10 +482,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  If there are ultimately no reactions that that
      *  reaction depends on, then add that reaction to the list of
      *  independent reactions at the top level (the main reactor).
+     *  If there are no reactions at all, then return false.
+     *  Otherwise, return true.
      *  @param reactionInstance The reaction instance (must not be null).
+     *  @return True if at least one reaction exists inside the reactor.
      */
-    protected def void collapseDependencies(ReactorInstance reactor) {
+    protected def boolean collapseDependencies(ReactorInstance reactor) {
+        var result = false
         for (ReactionInstance reactionInstance : reactor.reactions) {
+            result = true
             // Handle the ports that this reaction writes to.
             for (PortInstance port : reactionInstance.dependentPorts) {
                 // Reactions that depend on a port that this reaction writes to
@@ -504,8 +513,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         // Repeat for all children.
         for (child : reactor.children) {
-            collapseDependencies(child)
+            result = result || collapseDependencies(child)
         }
+        return result
     }
 
     /** Create all the reaction instances of this reactor instance
