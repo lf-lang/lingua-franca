@@ -88,7 +88,7 @@ reactor DisarmAndOpen {
 	=}
 }
 
-reactor Sender(d:time(10 msec)) {
+reactor Cockpit(d:time(10 msec)) {
 	sensor = new DisarmAndOpen();
 	ros = new ROSSender();
 	sensor.message -> ros.in;
@@ -113,25 +113,31 @@ reactor AircraftDoor {
 	=} 
 }
 
-reactor Receiver {
+reactor Door {
 	
 	ros = new ROSReceiver();
-	sensor = new Emergency();
 	actuator = new AircraftDoor();
 	
-	reaction(ros.out) -> actuator.open, actuator.disarm {=
+	reaction(ros.out) -> actuator.open, actuator.disarm, actuator.emergency {=
 		if (strcmp(ros.out, "disarm")) {
 			set(actuator.disarm, true);
 		} else if (strcmp(ros.out, "open")) {
 			set(actuator.open, true);
+		} else if (strcmp(ros.out, "emergency")) {
+			set(actuator.emergency, true);
 		}
 	=}
 	
-	sensor.out -> actuator.emergency;
 }
 
-main reactor DistributedReactors(d:time(10 msec)) {
-	s = new Sender(d=5 msec);
-	r = new Receiver();
-		
+reactor Cabin {
+	sensor = new Emergency();
+	ros = new ROSSender();	
+	sensor.out -> ros.in;
+}
+
+main reactor AirCraft(d:time(10 msec)) {
+	s = new Cockpit(d=5 msec);
+	r = new Door();
+	f = new Cabin();
 } 
