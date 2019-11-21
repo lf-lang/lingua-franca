@@ -163,13 +163,28 @@ static void prt_evt(FILE *out, void *a) {
 // because it will be freed after having been delivered to
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
-handle_t __schedule(trigger_t* trigger, interval_t delay, void* value) {
+handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
+    // If the trigger is physical, then we need to use
+    // physical time to adjust the delay.
+    if (trigger->is_physical) {
+        // Get the current physical time.
+        struct timespec current_physical_time;
+        clock_gettime(CLOCK_REALTIME, &current_physical_time);
+    
+        interval_t time_adjustment =
+                current_physical_time.tv_sec * BILLION
+                + current_physical_time.tv_nsec
+                - current_time;
+        if (time_adjustment > 0LL) {
+            extra_delay += time_adjustment;
+        }
+    }
     // Recycle event_t structs, if possible.
     event_t* e = pqueue_pop(recycle_q);
     if (e == NULL) {
         e = malloc(sizeof(struct event_t));
     }
-    e->time = current_time + trigger->offset + delay;
+    e->time = current_time + trigger->offset + extra_delay;
     e->trigger = trigger;
     e->value = value;
     
