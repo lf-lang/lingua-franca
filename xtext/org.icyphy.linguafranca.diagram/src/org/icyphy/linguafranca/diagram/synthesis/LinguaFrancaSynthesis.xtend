@@ -77,7 +77,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	/** Synthesis options */
 	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
-	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
+	public static val SynthesisOption SHOW_REACTOR_PARAMETERS = SynthesisOption.createCheckOption("Reactor Parameters", false)
+	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
 	public static val SynthesisOption PAPER_MODE = SynthesisOption.createCheckOption("Paper Mode", false)
@@ -89,6 +90,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	override getDisplayedSynthesisOptions() {
 		return #[
 			SHOW_MAIN_REACTOR,
+			SHOW_REACTOR_PARAMETERS,
 			SHOW_INSTANCE_NAMES,
 			REACTIONS_USE_HYPEREDGES,
 			SHOW_REACTION_CODE,
@@ -116,7 +118,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					mainNode = createNode(main)
 					mainNode.associateWith(main)
 					mainNode.ID = "main"
-					mainNode.addMainReactorFigure(main) => [
+					mainNode.addMainReactorFigure(main.createReactorLabel(null)) => [
 						associateWith(main)
 						addChildArea()
 					]
@@ -193,9 +195,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			
 			node.setLayoutOption(KlighdProperties.EXPAND, instance.getExpansionState?:false)
 			node.setProperty(REACTOR_INSTANCE, instance) // save to distinguish nodes associated with the same reactor
+			
+			var label = reactorClass.createReactorLabel(instance)
 
 			// Expanded Rectangle
-			node.addReactorFigure(reactorClass, instance.name) => [
+			node.addReactorFigure(reactorClass, label) => [
 				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
 				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 				boldLineSelectionStyle
@@ -213,7 +217,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			]
 
 			// Collapse Rectangle
-			node.addReactorFigure(reactorClass, instance.name) => [
+			node.addReactorFigure(reactorClass, label) => [
 				setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
 				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 				boldLineSelectionStyle
@@ -416,6 +420,30 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		
 		return nodes
+	}
+	
+	private def String createReactorLabel(Reactor reactor, Instantiation instance) {
+		val b = new StringBuilder
+		if (SHOW_INSTANCE_NAMES.booleanValue && instance !== null) {
+			b.append(instance.name).append(" : ")
+		}
+		b.append(reactor.name?:"Unknown")
+		if (SHOW_REACTOR_PARAMETERS.booleanValue) {
+			if (reactor.parameters.empty) {
+				b.append("()")
+			} else {
+				b.append(reactor.parameters.join("(", ", ", ")")[
+					name + if (!type.nullOrEmpty) {
+						":" + type
+					} else if (ofTimeType) {
+						":time"
+					} else {
+						""
+					}
+				])
+			}
+		}
+		return b.toString()
 	}
 	
 	private def createDelayEdge(Object associate) {

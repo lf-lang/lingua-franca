@@ -57,7 +57,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the main reactor frame.
 	 */
-	def addMainReactorFigure(KNode node, Reactor reactor) {
+	def addMainReactorFigure(KNode node, String text) {
 		val padding = PAPER_MODE.booleanValue ? 6 : 8
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
@@ -65,7 +65,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			foreground = Colors.GRAY
 		]
 		
-		figure.addText(reactor.name) => [
+		figure.addText(text) => [
 			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, 4, 0)
 			suppressSelectability
 			underlineSelectionStyle
@@ -77,7 +77,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a reactor node
 	 */
-	def addReactorFigure(KNode node, Reactor reactor, String instanceName) {
+	def addReactorFigure(KNode node, Reactor reactor, String text) {
 		val padding = PAPER_MODE.booleanValue ? 6 : 8
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
@@ -89,23 +89,12 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		// minimal node size is necessary if no text will be added
 		node.setMinimalNodeSize(2 * figure.cornerWidth, 2 * figure.cornerHeight)
 
-		val showInstanceName = SHOW_INSTANCE_NAMES.booleanValue && !instanceName.nullOrEmpty
-		
-		figure.addText(reactor.name) => [
-			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, showInstanceName ? 0 : (reactor.hasContent ? 4 : padding), 0)
+		figure.addText(text) => [
+			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, reactor.hasContent ? 4 : padding, 0)
 			suppressSelectability
 			underlineSelectionStyle
 		]
 		
-		if (showInstanceName) {
-			figure.addText(instanceName) => [
-				fontItalic = true
-				setGridPlacementData().from(LEFT, 8, 0, TOP, 2, 0).to(RIGHT, 8, 0, BOTTOM, reactor.hasContent ? 4 : 8, 0)
-				suppressSelectability
-				noSelectionStyle
-			]
-		}
-
 		return figure
 	}
 	
