@@ -198,7 +198,7 @@ reactor Cabin {
 	 r = new NetworkReceiver();
 }
 
-main reactor AirCraft(d:time(10 msec)) {
+main reactor Aircraft(d:time(10 msec)) {
 	s = new Cockpit(d=5 msec);
 	c = new Cabin();
 } 
