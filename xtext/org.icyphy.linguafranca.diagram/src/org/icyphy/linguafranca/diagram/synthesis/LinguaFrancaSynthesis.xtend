@@ -7,6 +7,7 @@ import de.cau.cs.kieler.klighd.SynthesisOption
 import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
+import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
@@ -41,6 +42,7 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
@@ -78,6 +80,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	/** Synthesis options */
 	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
 	public static val SynthesisOption SHOW_REACTOR_PARAMETERS = SynthesisOption.createCheckOption("Reactor Parameters", false)
+	public static val SynthesisOption SHOW_REACTOR_PARAMETERS_STACKED = SynthesisOption.createCheckOption("Reactor Parameters (stacked)", false)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
@@ -91,6 +94,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return #[
 			SHOW_MAIN_REACTOR,
 			SHOW_REACTOR_PARAMETERS,
+			SHOW_REACTOR_PARAMETERS_STACKED,
 			SHOW_INSTANCE_NAMES,
 			REACTIONS_USE_HYPEREDGES,
 			SHOW_REACTION_CODE,
@@ -120,6 +124,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					mainNode.ID = "main"
 					mainNode.addMainReactorFigure(main.createReactorLabel(null)) => [
 						associateWith(main)
+						if (SHOW_REACTOR_PARAMETERS_STACKED.booleanValue) {
+							for (param : main.parameters) {
+								addText(param.createParameterLabel(true)) => [
+									fontSize = 8
+									horizontalAlignment = HorizontalAlignment.LEFT
+									setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+								]
+							}
+						}
 						addChildArea()
 					]
 					mainNode.children += nodes
@@ -211,6 +224,20 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 						addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 					]
+				}
+				
+				if (SHOW_REACTOR_PARAMETERS_STACKED.booleanValue) {
+					for (param : reactorClass.parameters) {
+						addText(param.createParameterLabel(true)) => [
+							fontSize = 8
+							horizontalAlignment = HorizontalAlignment.LEFT
+							if (PAPER_MODE.booleanValue) {
+								setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+							} else {
+								setGridPlacementData().from(LEFT, 8, 0, TOP, 4, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
+							}
+						]
+					}
 				}
 
 				addChildArea()
@@ -432,16 +459,22 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			if (reactor.parameters.empty) {
 				b.append("()")
 			} else {
-				b.append(reactor.parameters.join("(", ", ", ")")[
-					name + if (!type.nullOrEmpty) {
-						":" + type
-					} else if (ofTimeType) {
-						":time"
-					} else {
-						""
-					}
-				])
+				b.append(reactor.parameters.join("(", ", ", ")")[createParameterLabel(false)])
 			}
+		}
+		return b.toString()
+	}
+	
+	private def String createParameterLabel(Parameter param, boolean bullet) {
+		val b = new StringBuilder
+		if (bullet) {
+			b.append("\u2022 ")
+		}
+		b.append(param.name)
+		if (!param.type.nullOrEmpty) {
+			b.append(":").append(param.type)
+		} else if (param.ofTimeType) {
+			b.append(":time")
 		}
 		return b.toString()
 	}
