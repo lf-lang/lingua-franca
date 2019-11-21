@@ -72,7 +72,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 	
 	public static val REACTOR_INSTANCE = new Property<Instantiation>("org.icyphy.linguafranca.diagram.synthesis.reactor.instantiation")
-	static val ACTION_NODES = true // just for toggling internal modes
 
 	// -------------------------------------------------------------------------
 	
@@ -168,7 +167,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val outputPorts = HashBasedTable.<Instantiation, Output, KPort>create
 		val reactionNodes = <Reaction, KNode>newHashMap
 		val actionDestinations = HashMultimap.<Action, KPort>create
-		val actionSource = <Action, KPort>newHashMap
+		val actionSources = HashMultimap.<Action, KPort>create
 		val timerNodes = <Timer, KNode>newHashMap
 		val startupNode = createNode
 		var startupUsed = false
@@ -335,7 +334,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					]
 				}
 				if (effect.variable instanceof Action) {
-					actionSource.put(effect.variable as Action, port)
+					actionSources.put(effect.variable as Action, port)
 				} else {
 					val dst = if (effect.variable instanceof Output) {
 						parentOutputPorts.get(effect.variable)
@@ -350,25 +349,26 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		
 		// Connect actions
-		for (Action action : actionSource.keySet) {
-			val sourcePort = actionSource.get(action)
-			if (ACTION_NODES) {
-				val node = createNode().associateWith(action)
-				nodes += node
-				node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
-				val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
-				if (action.delay !== null) {
-					node.addOutsideBottomCenteredNodeLabel(action.delay.toText, 7)
-				}
-				
-				createDelayEdge(action).connect(sourcePort, ports.key)
-				for (target : actionDestinations.get(action)) {
-					createDelayEdge(action).connect(ports.value, target)
-				}
-			} else {
-				for (target : actionDestinations.get(action)) {
-					createDelayEdge(action).connect(sourcePort, target)
-				}
+		val actions = newHashSet
+		actions += actionSources.keySet
+		actions += actionDestinations.keySet
+		for (Action action : actions) {
+			val node = createNode().associateWith(action)
+			nodes += node
+			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
+			val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
+			if (action.delay !== null) {
+				node.addOutsideBottomCenteredNodeLabel(action.delay.toText, 7)
+			}
+			
+			// connect source
+			for (source : actionSources.get(action)) {
+				createDelayEdge(action).connect(source, ports.key)
+			}
+			
+			// connect targets
+			for (target : actionDestinations.get(action)) {
+				createDelayEdge(action).connect(ports.value, target)
 			}
 		}
 
@@ -421,17 +421,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	private def createDelayEdge(Object associate) {
 		return createEdge => [
 			associateWith(associate)
-			val line = addPolyline() => [
+			addPolyline() => [
 				lineStyle = LineStyle.DASH
 				boldLineSelectionStyle()
 			]
-			if (associate instanceof Action && !ACTION_NODES) {
-				val action = associate as Action
-				line.addActionDecorator(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
-				if (action.delay !== null) {
-					addCenterEdgeLabel(action.delay.toText)//.applyOnEdgeStyle()
-				}
-			}
 		]
 	}
 	
