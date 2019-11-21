@@ -27,6 +27,7 @@ import org.eclipse.elk.alg.layered.options.FixedAlignment
 import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
 import org.eclipse.elk.alg.layered.p4nodes.bk.EdgeStraighteningStrategy
+import org.eclipse.elk.core.math.ElkPadding
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.Direction
 import org.eclipse.elk.core.options.PortConstraints
@@ -80,6 +81,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Instance Names", false)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
+	public static val SynthesisOption PAPER_MODE = SynthesisOption.createCheckOption("Paper Mode", false)
 	
     /** Synthesis actions */
     public static val DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details")
@@ -91,7 +93,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_INSTANCE_NAMES,
 			REACTIONS_USE_HYPEREDGES,
 			SHOW_REACTION_CODE,
-			MEMORIZE_EXPANSION_STATES
+			MEMORIZE_EXPANSION_STATES,
+			PAPER_MODE
 		]
 	}
 	
@@ -122,7 +125,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					rootNode.children += mainNode
 					
 					// only for main reactor node
-					mainNode.setLayoutOption(CoreOptions::NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE))
+					mainNode.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE))
+					if (PAPER_MODE.booleanValue) {
+						node.addLayoutParam(CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6))
+					}
 				} else {
 					rootNode.children += nodes
 				}
@@ -131,8 +137,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				mainNode.addLayoutParam(CoreOptions.DIRECTION, Direction.RIGHT)
 				mainNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
 				mainNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
-				mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
-				mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE.^default * 1.1f)
+				mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 1.1f)
+				mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 1.1f)
+				if (PAPER_MODE.booleanValue) {
+					mainNode.addLayoutParam(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
+					mainNode.addLayoutParam(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
+					mainNode.addLayoutParam(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+					mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 0.75f)
+					mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+				}
 			} else {
 				val messageNode = createNode()
 				messageNode.addErrorMessage("No Main", "Cannot find main reactor with content.")
@@ -171,6 +184,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.associateWith(reactorClass)
 			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
+			if (PAPER_MODE.booleanValue) {
+				node.addLayoutParam(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
+				node.addLayoutParam(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+				node.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 0.75f)
+				node.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+				node.addLayoutParam(CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6))
+			}
+			
 			node.setLayoutOption(KlighdProperties.EXPAND, instance.getExpansionState?:false)
 			node.setProperty(REACTOR_INSTANCE, instance) // save to distinguish nodes associated with the same reactor
 
@@ -180,12 +201,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 				boldLineSelectionStyle
 
-				// Collapse button
-				addTextButton("[Hide]") => [
-					setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
-					addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-					addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-				]
+				if (!PAPER_MODE.booleanValue) {
+					// Collapse button
+					addTextButton("[Hide]") => [
+						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
+						addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+						addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+					]
+				}
 
 				addChildArea()
 			]
@@ -196,13 +219,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 				boldLineSelectionStyle
 
-				// Expand button
-				if (reactorClass.hasContent) {
-					addTextButton("[Details]") => [
-						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
-						addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-						addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-					]
+				if (!PAPER_MODE.booleanValue) {
+					// Expand button
+					if (reactorClass.hasContent) {
+						addTextButton("[Details]") => [
+							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
+							addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+							addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+						]
+					}
 				}
 			]
 
