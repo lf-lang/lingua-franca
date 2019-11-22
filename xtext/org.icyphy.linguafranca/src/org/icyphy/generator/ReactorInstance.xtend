@@ -513,7 +513,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         // Repeat for all children.
         for (child : reactor.children) {
-            result = result || collapseDependencies(child)
+            result = collapseDependencies(child) || result
         }
         return result
     }
