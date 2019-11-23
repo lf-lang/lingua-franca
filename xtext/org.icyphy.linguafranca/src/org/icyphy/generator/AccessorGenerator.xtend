@@ -1,7 +1,7 @@
 /* Generator for Accessors, JavaScript code runnable in Node, CapeCode, and Ptolemy II. */
 
 /*************
-Copyright (c) 2020, The University of California at Berkeley.
+Copyright (c) 2019, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
