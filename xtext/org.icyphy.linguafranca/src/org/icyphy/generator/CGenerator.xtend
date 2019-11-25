@@ -33,9 +33,6 @@ import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
-import java.util.regex.Pattern
-import org.eclipse.core.resources.IResource
-import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -114,16 +111,64 @@ class CGenerator extends GeneratorBase {
         
         super.doGenerate(resource, fsa, context)
 
-        // Generate main instance, if there is one.
-        if (this.main !== null) {
-            generateReactorInstance(this.main)
-        }
-
         // Derive target filename from the .lf filename.
         val cFilename = filename + ".c";
 
-        // Any main reactors in imported files are ignored.        
-        if (main !== null) {
+        var srcGenPath = directory + File.separator + "src-gen"
+        var outPath = directory + File.separator + "bin"
+
+        // Create the output directories if they don't yet exist.
+        var dir = new File(srcGenPath)
+        if (!dir.exists()) dir.mkdirs()
+        dir = new File(outPath)
+        if (!dir.exists()) dir.mkdirs()
+
+        // Delete source previously produced by the LF compiler.
+        var file = new File(srcGenPath + File.separator + cFilename)
+        if (file.exists) {
+            file.delete
+        }
+
+        // Delete binary previously produced by the C compiler.
+        file = new File(outPath + File.separator + filename)
+        if (file.exists) {
+            file.delete
+        }
+
+        // Copy the required library files into the target filesystem.
+        // This will overwrite previous versions.
+        var fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "reactor_common.c"));
+        fOut.write(readFileInClasspath("/lib/C/reactor_common.c").getBytes())
+
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "reactor.h"));
+        fOut.write(readFileInClasspath("/lib/C/reactor.h").getBytes())
+
+        if (numberOfThreads === 0) {
+            fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + "reactor.c"));
+            fOut.write(readFileInClasspath("/lib/C/reactor.c").getBytes())
+        } else {
+            fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + "reactor_threaded.c"));
+            fOut.write(
+                readFileInClasspath("/lib/C/reactor_threaded.c").getBytes())
+        }
+
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "pqueue.c"));
+        fOut.write(readFileInClasspath("/lib/C/pqueue.c").getBytes())
+
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "pqueue.h"));
+        fOut.write(readFileInClasspath("/lib/C/pqueue.h").getBytes())
+
+        // Generate main instance, if there is one.
+        // Note that any main reactors in imported files are ignored.        
+        if (this.main !== null) {
+            generateReactorInstance(this.main)
+
             // Generate function to initialize the trigger objects for all reactors.
             pr('void __initialize_trigger_objects() {\n')
             indent()
@@ -163,87 +208,13 @@ class CGenerator extends GeneratorBase {
             pr('}\n')
         }
 
-        var srcGenPath = directory + File.separator + "src-gen"
-        var outPath = directory + File.separator + "bin"
-
-        // Create output directories if they don't yet exist
-        var dir = new File(srcGenPath)
-        if (!dir.exists()) dir.mkdirs()
-        dir = new File(outPath)
-        if (!dir.exists()) dir.mkdirs()
-
-        // Delete source previous output the LF compiler
-        var file = new File(srcGenPath + File.separator + cFilename)
-        if (file.exists) {
-            file.delete
-        }
-
-        // Delete binary previously output by C compiler
-        file = new File(outPath + File.separator + filename)
-        if (file.exists) {
-            file.delete
-        }
-
-        // Copy the required library files into the target filesystem.
-        var fOut = new FileOutputStream(
+        // Write the generated code to the output file.
+        fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + cFilename));
         fOut.write(getCode().getBytes())
 
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "reactor_common.c"));
-        fOut.write(readFileInClasspath("/lib/C/reactor_common.c").getBytes())
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "reactor.h"));
-        fOut.write(readFileInClasspath("/lib/C/reactor.h").getBytes())
-
-        if (numberOfThreads === 0) {
-            fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + "reactor.c"));
-            fOut.write(readFileInClasspath("/lib/C/reactor.c").getBytes())
-        } else {
-            fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + "reactor_threaded.c"));
-            fOut.write(
-                readFileInClasspath("/lib/C/reactor_threaded.c").getBytes())
-        }
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "pqueue.c"));
-        fOut.write(readFileInClasspath("/lib/C/pqueue.c").getBytes())
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "pqueue.h"));
-        fOut.write(readFileInClasspath("/lib/C/pqueue.h").getBytes())
-
-        // Trigger a refresh so Eclipse also sees the generated files in the package explorer.
-        if (mode == Mode.INTEGRATED) {
-            // Find name of current project
-            val id = "((:?[a-z]|[A-Z]|_\\w)*)";
-            val pattern = Pattern.compile(
-                "platform:" + File.separator + "resource" + File.separator +
-                    id + File.separator);
-            val matcher = pattern.matcher(code);
-            var projName = ""
-            if (matcher.find()) {
-                projName = matcher.group(1)
-            }
-            try {
-                val members = ResourcesPlugin.getWorkspace().root.members
-                for (member : members) {
-                    // Refresh current project, or simply entire workspace if project name was not found
-                    if (projName == "" ||
-                        projName.equals(
-                            member.fullPath.toString.substring(1))) {
-                        member.refreshLocal(IResource.DEPTH_INFINITE, null)
-                        println("Refreshed " + member.fullPath.toString)
-                    }
-                }
-            } catch (IllegalStateException e) {
-                println("Unable to refresh workspace: " + e)
-            }
-        }
-
+        refreshProject()
+        
         // Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
         val relativeBinFilename = "bin" + File.separator + filename;
@@ -275,15 +246,15 @@ class CGenerator extends GeneratorBase {
         var process = builder.start()
         // FIXME: The following doesn't work. Somehow, the command to
         // run the generated code gets executed before the following is printed!
-        val code = process.waitFor()
+        val returnCode = process.waitFor()
         var stdout = readStream(process.getInputStream())
         var stderr = readStream(process.getErrorStream())
         if (stdout.length() > 0) {
             println("--- Standard output from C compiler:")
             println(stdout)
         }
-        if (code !== 0) {
-            reportError("Compiler returns error code " + code)
+        if (returnCode !== 0) {
+            reportError("Compiler returns error code " + returnCode)
         }
         if (stderr.length() > 0) {
             reportError("Compiler reports errors:\n" + stderr.toString)

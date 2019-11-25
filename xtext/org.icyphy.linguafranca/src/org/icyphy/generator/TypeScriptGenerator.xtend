@@ -116,34 +116,7 @@ class TypeScriptGenerator extends GeneratorBase {
         * 
         */
 
-        // Trigger a refresh so Eclipse also sees the generated files in the package explorer.
-        // FIXME: Move to the base class!
-        if (mode == Mode.INTEGRATED) {
-            // Find name of current project
-            val id = "((:?[a-z]|[A-Z]|_\\w)*)";
-            val pattern = Pattern.compile(
-                "platform:" + File.separator + "resource" + File.separator +
-                    id + File.separator);
-            val matcher = pattern.matcher(code);
-            var projName = ""
-            if (matcher.find()) {
-                projName = matcher.group(1)
-            }
-            try {
-                val members = ResourcesPlugin.getWorkspace().root.members
-                for (member : members) {
-                    // Refresh current project, or simply entire workspace if project name was not found
-                    if (projName == "" ||
-                        projName.equals(
-                            member.fullPath.toString.substring(1))) {
-                        member.refreshLocal(IResource.DEPTH_INFINITE, null)
-                        println("Refreshed " + member.fullPath.toString)
-                    }
-                }
-            } catch (IllegalStateException e) {
-                println("Unable to refresh workspace: " + e)
-            }
-        }
+        refreshProject()
 
         // Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + tsFilename;
