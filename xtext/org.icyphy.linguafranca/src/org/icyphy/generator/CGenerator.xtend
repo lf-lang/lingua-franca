@@ -28,8 +28,6 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.net.URL
-import java.nio.file.Paths
 import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
@@ -37,7 +35,6 @@ import java.util.LinkedList
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -45,7 +42,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
@@ -67,6 +63,9 @@ import org.icyphy.linguaFranca.Variable
  *  @author{Chris Gill, <cdgill@wustl.edu>}
  */
 class CGenerator extends GeneratorBase {
+    
+    // Set of acceptable import targets includes only C.
+    val acceptableTargetSet = newHashSet('C')
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
@@ -151,6 +150,7 @@ class CGenerator extends GeneratorBase {
         }
 
         // First process all the imports.
+        // FIXME: Put this in super.doGenerate. Requires modifying all generators.
         processImports()
 
         super.doGenerate(resource, fsa, context)
@@ -162,20 +162,7 @@ class CGenerator extends GeneratorBase {
 
         // Determine path to generated code
         val cFilename = filename + ".c";
-        var srcFile = resource.getURI.toString;
-        var mode = Mode.UNDEFINED;
-
-        if (srcFile.startsWith("file:")) { // Called from command line
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-            mode = Mode.STANDALONE;
-        } else if (srcFile.startsWith("platform:")) { // Called from Eclipse
-            srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-            mode = Mode.INTEGRATED;
-        } else {
-            System.err.println(
-                "ERROR: Source file protocol is not recognized: " + srcFile);
-        }
+        var mode = getMode();
 
         // Any main reactors in imported files are ignored.        
         if (main !== null) {
@@ -217,6 +204,8 @@ class CGenerator extends GeneratorBase {
             unindent()
             pr('}\n')
         }
+
+        var srcFile = getSourceFile();
 
         val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
         var srcGenPath = srcPath + File.separator + "src-gen"
@@ -1407,6 +1396,17 @@ class CGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Protected methods.
+
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set is a set of case-insensitive
+     *  strings specifying target names.
+     */
+    override acceptableTargets() {
+        acceptableTargetSet
+    }
+
     /** Return a unique name for the reaction_t struct for the
      *  specified reaction instance.
      *  @param reaction The reaction instance.
@@ -1717,43 +1717,6 @@ class CGenerator extends GeneratorBase {
             type = 'interval_t'
         }
         type
-    }
-
-    /** Process any imports included in the resource defined by _resource.
-     */
-    private def void processImports() {
-        for (import : resource.allContents.toIterable.filter(Import)) {
-            val importResource = openImport(resource, import)
-            if (importResource !== null) {
-                // Make sure the target of the import is C.
-                var targetOK = false
-                for (target : importResource.allContents.toIterable.filter(
-                    Target)) {
-                    if ("C".equalsIgnoreCase(target.name)) {
-                        targetOK = true
-                    }
-                }
-                if (!targetOK) {
-                    reportError(import, "Import does not have a C target.")
-                } else {
-                    val oldResource = resource
-                    resource = importResource
-                    // Process any imports that the import has.
-                    processImports()
-                    for (reactor : importResource.allContents.toIterable.filter(
-                        Reactor)) {
-                        if (!reactor.isMain) {
-                            println("Including imported reactor: " +
-                                reactor.name)
-                            generateReactor(reactor)
-                        }
-                    }
-                    resource = oldResource
-                }
-            } else {
-                pr("Unable to open import: " + import.name)
-            }
-        }
     }
 
     // Print the #line compiler directive with the line number of

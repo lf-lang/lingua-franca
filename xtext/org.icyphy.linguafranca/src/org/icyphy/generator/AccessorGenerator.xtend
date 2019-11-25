@@ -57,6 +57,9 @@ import org.icyphy.linguaFranca.VarRef
  */
 class AccessorGenerator extends GeneratorBase {
 	
+    // Set of acceptable import targets includes only Accessor.
+    val acceptableTargetSet = newHashSet('Accessor')
+
 	// For each accessor, we collect a set of input and parameter names.
 	var inputs = newHashSet()
 	var reactionCount = 0
@@ -365,6 +368,19 @@ class AccessorGenerator extends GeneratorBase {
         }
     }
 	
+    ////////////////////////////////////////////////
+    //// Protected methods
+    
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set is a set of case-insensitive
+     *  strings specifying target names.
+     */
+    override acceptableTargets() {
+        acceptableTargetSet
+    }
+
 	val static boilerplate = '''
 		// ********* Boilerplate included for all actors.
 		// Unbound version of set() function (will be bound below).
