@@ -28,6 +28,7 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
+import java.util.ArrayList
 import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
@@ -64,20 +65,27 @@ import org.icyphy.linguaFranca.Variable
  */
 class CGenerator extends GeneratorBase {
     
+    ////////////////////////////////////////////
+    //// Private variables
+    
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newHashSet('C')
 
-    // For each reactor, we collect a set of input and parameter names.
-    var triggerCount = 0
+    // The command to compile the generated code if specified in the target directive.
+    var compileCommand = null as ArrayList<String>
+
+    // List of deferred assignments to perform in initialize_trigger_objects.
+    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
+    
+    // Place to collect code to initialize the trigger objects for all reactors.
+    var initializeTriggerObjects = new StringBuilder()
 
     // Indicator of whether to generate multithreaded code and how many by default.
     var numberOfThreads = 0
 
-    // Place to collect code to initialize the trigger objects for all reactors.
-    var initializeTriggerObjects = new StringBuilder()
-
-    // List of deferred assignments to perform in initialize_trigger_objects.
-    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
+    // The command to run the generated code if specified in the target directive.
+    // FIXME: The runCommand is not currently used anywhere.
+    var runCommand = null as ArrayList<String>
 
     // Place to collect shutdown action instances.
     var shutdownActionInstances = new LinkedList<ActionInstance>()
@@ -88,6 +96,12 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to initialize timers for all reactors.
     var startTimers = new StringBuilder()
 
+    // For each reactor, we collect a set of input and parameter names.
+    var triggerCount = 0
+
+    ////////////////////////////////////////////
+    //// Public methods
+
     /** Generate C code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -96,63 +110,8 @@ class CGenerator extends GeneratorBase {
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-        IGeneratorContext context) {
+            IGeneratorContext context) {
         
-        pr(includes)
-        this.resource = resource
-
-        println("Generating code for: " + resource.getURI.toString)
-
-        var runCommand = newArrayList("bin/" + filename, "-timeout", "3",
-            "secs")
-        var runCommandOverridden = false
-        var compileCommand = newArrayList()
-
-        for (target : resource.allContents.toIterable.filter(Target)) {
-            if (target.properties !== null) {
-                for (assignment : target.properties) {
-                    if (assignment.name.equals("threads")) {
-                        // This has been checked by the validator.
-                        numberOfThreads = Integer.decode(assignment.value)
-                        // Set this as the default in the generated code,
-                        // but only if it has not been overridden on the command line.
-                        pr(startTimers, "if (number_of_threads == 0) {")
-                        indent(startTimers)
-                        pr(startTimers,
-                            "number_of_threads = " + numberOfThreads + ";")
-                        unindent(startTimers)
-                        pr(startTimers, "}")
-                    } else if (assignment.name.equals("run")) {
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = assignment.value.substring(1,
-                            assignment.value.length - 1).split(' ')
-                        runCommand.clear
-                        runCommand.addAll(command)
-                        runCommandOverridden = true
-                    } else if (assignment.name.equals("compile")) {
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = assignment.value.substring(1,
-                            assignment.value.length - 1).split(' ')
-                        compileCommand.clear
-                        compileCommand.addAll(command)
-                    }
-                }
-            }
-        }
-        if (numberOfThreads === 0) {
-            pr("#include \"reactor.c\"")
-        } else {
-            pr("#include \"reactor_threaded.c\"")
-            if (!runCommandOverridden) {
-                runCommand.add("-threads")
-                runCommand.add(numberOfThreads.toString())
-            }
-        }
-
-        // First process all the imports.
-        // FIXME: Put this in super.doGenerate. Requires modifying all generators.
-        processImports()
-
         super.doGenerate(resource, fsa, context)
 
         // Generate main instance, if there is one.
@@ -160,9 +119,8 @@ class CGenerator extends GeneratorBase {
             generateReactorInstance(this.main)
         }
 
-        // Determine path to generated code
+        // Derive target filename from the .lf filename.
         val cFilename = filename + ".c";
-        var mode = getMode();
 
         // Any main reactors in imported files are ignored.        
         if (main !== null) {
@@ -205,11 +163,8 @@ class CGenerator extends GeneratorBase {
             pr('}\n')
         }
 
-        var srcFile = getSourceFile();
-
-        val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
-        var srcGenPath = srcPath + File.separator + "src-gen"
-        var outPath = srcPath + File.separator + "bin"
+        var srcGenPath = directory + File.separator + "src-gen"
+        var outPath = directory + File.separator + "bin"
 
         // Create output directories if they don't yet exist
         var dir = new File(srcGenPath)
@@ -218,7 +173,7 @@ class CGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
 
         // Delete source previous output the LF compiler
-        var file = new File(srcPath + File.separator + cFilename)
+        var file = new File(srcGenPath + File.separator + cFilename)
         if (file.exists) {
             file.delete
         }
@@ -293,7 +248,8 @@ class CGenerator extends GeneratorBase {
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
         val relativeBinFilename = "bin" + File.separator + filename;
         // FIXME: Do we want to keep the compileCommand option?
-        if (compileCommand.isEmpty()) {
+        if (compileCommand === null) {
+            compileCommand = newArrayList
             compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o",
                 relativeBinFilename)
             // If threaded computation is requested, add a -pthread option.
@@ -312,10 +268,10 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        println("In directory: " + srcPath)
+        println("In directory: " + directory)
         println("Compiling with command: " + compileCommand.join(" "))
         var builder = new ProcessBuilder(compileCommand);
-        builder.directory(new File(srcPath));
+        builder.directory(new File(directory));
         var process = builder.start()
         // FIXME: The following doesn't work. Somehow, the command to
         // run the generated code gets executed before the following is printed!
@@ -1400,11 +1356,66 @@ class CGenerator extends GeneratorBase {
     /** Return a set of targets that are acceptable to this generator.
      *  Imported files that are Lingua Franca files must specify targets
      *  in this set or an error message will be reported and the import
-     *  will be ignored. The returned set is a set of case-insensitive
-     *  strings specifying target names.
+     *  will be ignored. The returned set contains only "C".
      */
     override acceptableTargets() {
         acceptableTargetSet
+    }
+
+    /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
+     *  depending on whether threads are specified in target directive.
+     *  As a side effect, this populates the runCommand and compileCommand
+     *  private variables if such commands are specified in the target directive.
+     */
+    override generatePreamble() {
+        super.generatePreamble()
+        
+        pr('#include "pqueue.c"')
+        
+        for (target : resource.allContents.toIterable.filter(Target)) {
+            if (target.properties !== null) {
+                for (assignment : target.properties) {
+                    if (assignment.name.equals("threads")) {
+                        // This has been checked by the validator.
+                        numberOfThreads = Integer.decode(assignment.value)
+                        // Set this as the default in the generated code,
+                        // but only if it has not been overridden on the command line.
+                        pr(startTimers, "if (number_of_threads == 0) {")
+                        indent(startTimers)
+                        pr(startTimers,
+                            "number_of_threads = " + numberOfThreads + ";")
+                        unindent(startTimers)
+                        pr(startTimers, "}")
+                    } else if (assignment.name.equals("run")) {
+                        // Strip off enclosing quotation marks and split at spaces.
+                        val command = assignment.value.substring(1,
+                            assignment.value.length - 1).split(' ')
+                        runCommand = newArrayList
+                        runCommand.addAll(command)
+                    } else if (assignment.name.equals("compile")) {
+                        // Strip off enclosing quotation marks and split at spaces.
+                        val command = assignment.value.substring(1,
+                            assignment.value.length - 1).split(' ')
+                        compileCommand = newArrayList
+                        compileCommand.addAll(command)
+                    }
+                }
+            }
+        }
+        // If no run command was given, give a default.
+        if (runCommand === null) {
+            runCommand = newArrayList("bin/" + filename, "-timeout", "3", "secs")
+            if (numberOfThreads > 0) {
+                runCommand.add("-threads")
+                runCommand.add(numberOfThreads.toString())
+            }
+        }
+        
+        if (numberOfThreads === 0) {
+            pr("#include \"reactor.c\"")
+        } else {
+            pr("#include \"reactor_threaded.c\"")
+        }
     }
 
     /** Return a unique name for the reaction_t struct for the
@@ -1745,9 +1756,4 @@ class CGenerator extends GeneratorBase {
             setInputsAbsentByDefault(containedReactor)
         }
     }
-
-    val static includes = '''
-        #include "pqueue.c"
-    '''
-
 }

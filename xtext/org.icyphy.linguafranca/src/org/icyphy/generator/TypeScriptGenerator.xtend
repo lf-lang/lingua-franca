@@ -28,14 +28,11 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.net.URL
-import java.nio.file.Paths
 import java.util.HashMap
 import java.util.HashSet
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -48,7 +45,6 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
-
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -74,10 +70,6 @@ class TypeScriptGenerator extends GeneratorBase {
         IFileSystemAccess2 fsa,
         IGeneratorContext context
     ) {
-        pr(includes)
-
-        println("Generating code for: " + resource.getURI.toString)
-
         super.doGenerate(resource, fsa, context)
 
         // Generate main instance, if there is one.
@@ -85,31 +77,13 @@ class TypeScriptGenerator extends GeneratorBase {
             generateReactorInstance(this.main)
         }
 
-        // FIXME: Perhaps the following should be moved to a base class function that
-        // takes an argument the filename extension.
-        
-        // Determine path to generated code
+        // Target filename.
         val tsFilename = filename + ".ts";
-        var srcFile = resource.getURI.toString;
-        var mode = Mode.UNDEFINED;
 
-        if (srcFile.startsWith("file:")) { // Called from command line
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-            mode = Mode.STANDALONE;
-        } else if (srcFile.startsWith("platform:")) { // Called from Eclipse
-            srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-            mode = Mode.INTEGRATED;
-        } else {
-            System.err.println(
-                "ERROR: Source file protocol is not recognized: " + srcFile);
-        }
-
-        val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
-        var srcGenPath = srcPath + File.separator + "src-gen"
+        var srcGenPath = directory + File.separator + "src-gen"
         // FIXME: Perhaps bin is not the best name, but we need a place to put
         // the result of compiling the .ts file to .js.
-        var outPath = srcPath + File.separator + "bin"
+        var outPath = directory + File.separator + "bin"
 
         // Create output directories if they don't yet exist
         var dir = new File(srcGenPath)
@@ -118,7 +92,7 @@ class TypeScriptGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
 
         // Delete source previous output the LF compiler
-        var file = new File(srcPath + File.separator + tsFilename)
+        var file = new File(srcGenPath + File.separator + tsFilename)
         if (file.exists) {
             file.delete
         }
@@ -200,10 +174,10 @@ class TypeScriptGenerator extends GeneratorBase {
 //        val path = System.getenv("PATH");
 //        println("path is: " + path); 
 //        compileCommand.addAll("tsc","--version");
-        println("In directory: " + srcPath)
+        println("In directory: " + directory)
         println("Compiling with command: " + compileCommand.join(" "))
         var builder = new ProcessBuilder(compileCommand);
-        builder.directory(new File(srcPath));
+        builder.directory(new File(directory));
         var process = builder.start()
         // FIXME: The following doesn't work. Somehow, the command to
         // run the generated code gets executed before the following is printed!
@@ -507,6 +481,14 @@ class TypeScriptGenerator extends GeneratorBase {
         acceptableTargetSet
     }
 
+    /** Generate preamble code that appears in the code generated
+     *  file before anything else.
+     */
+    override generatePreamble() {
+        super.generatePreamble
+        pr(preamble)
+    }
+
     /** Return a unique name for the reaction_t struct for the
      *  specified reaction instance.
      *  @param reaction The reaction instance.
@@ -542,7 +524,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     }
 
-    val static includes = '''
+    val static preamble = '''
 'use strict';
 
 import {Reactor, Trigger, Reaction, Timer, Action,  App} from '../reactor';

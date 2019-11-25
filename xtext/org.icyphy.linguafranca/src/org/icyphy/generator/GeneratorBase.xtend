@@ -33,7 +33,6 @@ import java.io.InputStreamReader
 import java.net.URL
 import java.nio.file.Paths
 import java.util.HashMap
-import java.util.LinkedList
 import java.util.Set
 import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.common.util.URI
@@ -65,11 +64,8 @@ import org.icyphy.linguaFranca.TriggerRef
  */
 abstract class GeneratorBase {
 
-    /** All code goes into this string buffer. */
-    var code = new StringBuilder
-
-    /** Map from builder to its current indentation. */
-    var indentation = new HashMap<StringBuilder, String>()
+    ////////////////////////////////////////////
+    //// Public fields.
 
     // Map from time units to an expression that can convert a number in
     // the specified time unit into nanoseconds. This expression may need
@@ -85,11 +81,50 @@ abstract class GeneratorBase {
         TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
+        
+    ////////////////////////////////////////////
+    //// Protected fields.
+    
+    /** Path to the directory containing the .lf file. */
+    protected var String directory
 
-    static public var imports = new LinkedList()
+    /** The root filename for the main file containing the source code,
+     *  without the .lf extension.
+     */
+    protected var String filename
 
-    // //////////////////////////////////////////
-    // // Code generation functions to override for a concrete code generator.
+    /** Indicator of whether generator errors occurred. */
+    protected var generatorErrorsOccurred = false
+
+    /** The main (top-level) reactor instance. */
+    protected ReactorInstance main
+    
+    /** Mode.STANDALONE if the code generator is being called
+     *  from the command line, Mode.INTEGRATED if it is being called
+     *  from the Eclipse IDE, and Mode.UNDEFINED otherwise.
+     */
+    protected var mode = Mode.UNDEFINED
+    
+    /** The file containing the main source code. */
+    protected var Resource resource
+    
+    /** The full path to the file containing the .lf file including the
+     *  full filename with the .lf extension.
+     */
+    protected var String sourceFile
+
+    ////////////////////////////////////////////
+    //// Private fields.
+
+    /** All code goes into this string buffer. */
+    var code = new StringBuilder
+
+    /** Map from builder to its current indentation. */
+    var indentation = new HashMap<StringBuilder, String>()
+
+    ////////////////////////////////////////////
+    //// Code generation functions to override for a concrete code generator.
+    
     /** Generate code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation. This base class invokes generateReactor()
@@ -100,14 +135,24 @@ abstract class GeneratorBase {
      *  @param context FIXME: What is this?
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-        IGeneratorContext context) {
+            IGeneratorContext context) {
+
+        println("Generating code for: " + resource.getURI.toString)
 
         generatorErrorsOccurred = false
 
         this.resource = resource
 
         // Figure out the file name for the target code from the source file name.
-        filename = extractFilename(resource.getURI.toString)
+        analyzeResource(resource)
+        
+        // First, produce any preamble code that the code generator needs
+        // to produce before anything else goes into the code generated files.
+        generatePreamble()
+
+        // Next process all the imports and call generateReactor on any
+        // reactors defined in the imports.
+        processImports(resource)
 
         var Instantiation mainDef = null
 
@@ -259,21 +304,6 @@ abstract class GeneratorBase {
     }
 
     // //////////////////////////////////////////
-    // // Protected fields.
-    
-    // The root filename for the main file containing the source code, without the .lf.
-    protected var String filename
-
-    /** The main (top-level) reactor instance. */
-    protected ReactorInstance main
-
-    // The file containing the main source code.
-    protected var Resource resource
-
-    // Indicator of whether generator errors occurred.
-    protected var generatorErrorsOccurred = false
-
-    // //////////////////////////////////////////
     // // Protected methods.
 
     /** Return a set of targets that are acceptable to this generator.
@@ -291,6 +321,13 @@ abstract class GeneratorBase {
     protected def clearCode() {
         code = new StringBuilder
     }
+    
+    /** Generate any preamble code that appears in the code generated
+     *  file before anything else.
+     */
+    protected def generatePreamble() {
+        // FIXME: Header information
+    }
 
     /** Get the code produced so far.
      *  @return The code produced so far as a String.
@@ -298,41 +335,7 @@ abstract class GeneratorBase {
     protected def getCode() {
         code.toString()
     }
-    
-    /** Return Mode.STANDALONE if the code generator is being called
-     *  from the command line, Mode.INTEGRATED if it is being called
-     *  from the Eclipse IDE, and Mode.UNDEFINED otherwise.
-     */
-    protected def getMode() {
-        var srcFile = resource.getURI.toString;
-        if (srcFile.startsWith("file:")) { // Called from command line
-            return Mode.STANDALONE;
-        } else if (srcFile.startsWith("platform:")) { // Called from Eclipse
-            return Mode.INTEGRATED;
-        } else {
-            return Mode.UNDEFINED;
-        }
-    }
-    
-    /** Return the source .lf file from which code is being generated.
-     *  The returned value is a string representing the normalized
-     *  path to the file.
-     *  @return The source file.
-     */
-    protected def getSourceFile() {
-        var srcFile = resource.getURI.toString;
-        if (srcFile.startsWith("file:")) { // Called from command line
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-        } else if (srcFile.startsWith("platform:")) { // Called from Eclipse
-            srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-        } else {
-            System.err.println(
-                "ERROR: Source file protocol is not recognized: " + srcFile);
-        }
-        return srcFile
-    }
-
+        
     /** Increase the indentation of the output code produced.
      */
     protected def indent() {
@@ -479,13 +482,17 @@ abstract class GeneratorBase {
         pr(code, '// ' + comment);
     }
 
-    /** Process any imports included in the resource defined by _resource.
-     *  If the target is not acceptable, report an error, ignore the import,
-     *  and continue.
-     *  @param acceptableTargets If non-null, a set of acceptable targets,
-     *   case-insensitive strings specifying target names.
+    /** Process any imports included in the resource defined by the
+     *  specified resource. This will open the import, check for
+     *  compatibility, and call generateReactor on any reactors the
+     *  import defines that are not main reactors.
+     *  If the target is not acceptable to this
+     *  generator, as reported by acceptableTargets, report an error,
+     *  ignore the import, and continue.
+     *  @param resource The resource (file) that may contain import
+     *   statements.
      */
-    protected def void processImports() {
+    protected def void processImports(Resource resource) {
         for (import : resource.allContents.toIterable.filter(Import)) {
             val importResource = openImport(resource, import)
             if (importResource !== null) {
@@ -508,17 +515,16 @@ abstract class GeneratorBase {
                         + acceptableTargets.join(", ")
                     )
                 } else {
-                    val oldResource = resource
-                    resource = importResource
                     // Process any imports that the import has.
-                    processImports()
+                    processImports(importResource)
+                    // Call generateReactor for each reactor contained by the import
+                    // that is not a main reactor.
                     for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
                         if (!reactor.isMain) {
                             println("Including imported reactor: " + reactor.name)
                             generateReactor(reactor)
                         }
                     }
-                    resource = oldResource
                 }
             } else {
                 pr("Unable to open import: " + import.name)
@@ -667,22 +673,39 @@ abstract class GeneratorBase {
 
     }
 
-    // //////////////////////////////////////////////////
-    // // Private functions
-    /** Extract a filename from a path. */
-    private def extractFilename(String path) {
-        var result = path
+    ////////////////////////////////////////////////////
+    //// Private functions
+    
+    /** Analyze the resource (the .lf file) that is being parsed
+     *  to generate code to set the following variables:
+     *  directory, filename, mode, sourceFile.
+     */
+    private def analyzeResource(Resource resource) {
+        var path = resource.getURI.toString
         if (path.startsWith('platform:')) {
-            result = result.substring(9)
+            mode = Mode.INTEGRATED
+            var fileURL = FileLocator.toFileURL(new URL(path)).toString
+            sourceFile = Paths.get(fileURL.substring(5)).normalize.toString
+        } else if (path.startsWith('file:')) {
+            mode = Mode.STANDALONE
+            sourceFile = Paths.get(path.substring(5)).normalize.toString
+        } else {
+            System.err.println(
+                "ERROR: Source file protocol is not recognized: " + path);
         }
-        var lastSlash = result.lastIndexOf('/')
+        var lastSlash = sourceFile.lastIndexOf('/')
         if (lastSlash >= 0) {
-            result = result.substring(lastSlash + 1)
+            filename = sourceFile.substring(lastSlash + 1)
+            directory = sourceFile.substring(0, lastSlash)
         }
-        if (result.endsWith('.lf')) {
-            result = result.substring(0, result.length - 3)
+        // Strip the filename of the extension.
+        if (filename.endsWith('.lf')) {
+            filename = filename.substring(0, filename.length - 3)
         }
-        return result
+        println('******** filename: ' + filename)
+        println('******** sourceFile: ' + sourceFile)
+        println('******** directory: ' + directory)
+        println('******** mode: ' + mode)
     }
 
     enum Mode {
