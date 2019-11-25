@@ -44,9 +44,9 @@ else
 			eval "$offset""bin/lfc ""$p";
 			echo "================================================================================";
 			if [ $1 == "Cpp" ]; then
-				command="bin/$name --timeout 1"
+				command="bin/$name --timeout 5"
 			else
-				command="bin/$name -timeout 1 sec"
+				command="bin/$name -timeout 5 sec"
 			fi
 			echo "Executing command:"$command;
 			echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";

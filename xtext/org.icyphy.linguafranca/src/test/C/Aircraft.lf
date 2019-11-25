@@ -86,7 +86,7 @@ reactor NetworkReceiver(D:time(10 msec), E:time(1 msec), L:time(10 msec)) {
 }
 
 
-reactor NetworkSender(d:time(10 msec)) {
+reactor NetworkSender(D:time(10 msec)) {
 	
 	preamble {=
 		#include <stdio.h> 
@@ -137,7 +137,7 @@ reactor NetworkSender(d:time(10 msec)) {
 	
 	reaction(in)  {=
 		send_message(in);
-	=} deadline(d) {=
+	=} deadline(D) {=
 		// missed deadline
 	=}
 }
@@ -221,10 +221,10 @@ reactor CockpitPanel {
     =}
 }
 
-reactor Cockpit(d:time(10 msec)) {
+reactor Cockpit {
     c = new CockpitPanel();
-    n1 = new NetworkSender(d = d);
-    n2 = new NetworkSender(d = d);
+    n1 = new NetworkSender(D = 10 msec);
+    n2 = new NetworkSender(D = 10 msec);
     c.disarm -> n1.in;
     c.open -> n2.in;
 }
@@ -252,7 +252,7 @@ reactor Cabin {
 	 r2.out -> d.open;
 }
 
-main reactor Aircraft(d:time(10 msec)) {
-	s = new Cockpit(d=5 msec);
+main reactor Aircraft {
+	s = new Cockpit();
 	c = new Cabin();
 }
