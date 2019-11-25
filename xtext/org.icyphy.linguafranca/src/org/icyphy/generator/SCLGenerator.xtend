@@ -169,6 +169,18 @@ class SCLGenerator extends GeneratorBase {
 		]
 	}
 
+    // Set of acceptable import targets includes only C.
+    val acceptableTargetSet = newHashSet('SCL')
+
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set contains only "C".
+     */
+    override acceptableTargets() {
+        acceptableTargetSet
+    }
+
     /* FIXME: Removed to get it to compile.
 	override instantiate(
 		Instance instance,

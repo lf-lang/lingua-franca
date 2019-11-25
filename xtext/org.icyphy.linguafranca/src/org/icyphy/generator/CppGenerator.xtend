@@ -795,10 +795,10 @@ class CppGenerator extends GeneratorBase {
 			if (makeProcess.exitValue() == 0) {
 				println("SUCCESS (compiling generated C++ code)")
 			} else {
-				println("ERRROR (while compiling generated C++ code)")
+				println("ERROR (while compiling generated C++ code)")
 			}
 		} else {
-			println("ERRROR (while executing cmake)")
+			println("ERROR (while executing cmake)")
 		}
 	}
 	
@@ -813,5 +813,15 @@ class CppGenerator extends GeneratorBase {
      */
     override acceptableTargets() {
         acceptableTargetSet
+    }
+
+    /** Override to do nothing because this generator handles imports
+     *  another way.
+     *  @param resource The resource (file) that may contain import
+     *   statements.
+     */
+    override void processImports(Resource resource) {
+        // FIXME: The code that processes imports in this file could
+        // in fact use the base class mechanism.
     }
 }
