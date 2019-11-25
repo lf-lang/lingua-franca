@@ -31,6 +31,10 @@ else
 		pushd $test_dir;
         eval $offset"bin/lfc"; # trigger fresh build if necessary
 		while read p; do
+			if [[ "$p" =~ ^[[:space:]]*#.* ]]; then
+    			#echo "Ignoring commented out test: $p";
+				continue;
+			fi
 			if [ ! -f "$p" ]; then
     				echo "[WARNING] $p does not exist.";
 				continue
@@ -44,9 +48,9 @@ else
 			eval "$offset""bin/lfc ""$p";
 			echo "================================================================================";
 			if [ $1 == "Cpp" ]; then
-				command="bin/$name --timeout 5"
+				command="bin/$name --timeout 1"
 			else
-				command="bin/$name -timeout 5 sec"
+				command="bin/$name -timeout 1 sec"
 			fi
 			echo "Executing command:"$command;
 			echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
