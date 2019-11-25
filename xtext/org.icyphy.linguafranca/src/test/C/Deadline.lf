@@ -4,6 +4,7 @@
 target C(
     run = "bin/Deadline -timeout 2 sec"
 );
+
 reactor Source(period:time(1 sec)) {
     output y:int;
     timer t(0, period);
