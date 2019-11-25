@@ -189,6 +189,49 @@ class TypeScriptGenerator extends GeneratorBase {
             pr("\n// *********** End of preamble.")
         }
 
+        pr("class " + reactor.name + " extends App {")
+        indent()
+        
+        // Next handle timers.
+        for (timer : reactor.timers) {
+            var String period;
+            var String offset; 
+            if(timer.getPeriod() === null){
+                period = "0";
+            } else {
+                var periodUnit = timer.getPeriod().getUnit();
+                var periodTime = timer.getPeriod().getTime();
+                if(periodUnit === TimeUnit.NONE){
+                    // The default time unit for TypeScript is msec.
+                    period = "[" + periodTime + ",TimeUnit.msec]"
+                }
+                else{
+                    period = "[" + periodTime + ",TimeUnit." + periodUnit +"]"
+                }
+            }
+            
+            if(timer.getOffset() === null){
+                offset = "0";
+            } else {
+                var offsetUnit = timer.getOffset().getUnit();
+                var offsetTime = timer.getOffset().getTime();
+                if(offsetUnit === TimeUnit.NONE){
+                    // The default time unit for TypeScript is msec.
+                    offset = "[" + offsetTime + ",TimeUnit.msec]"
+                }
+                else{
+                    offset = "[" + offsetTime + ",TimeUnit." + offsetUnit +"]"
+                }
+            }
+
+            // NOTE: Slightly obfuscate output name to help prevent accidental use.
+            pr(timer.getName() + ": Timer = new Timer("
+                + period+ ","+ offset + ");")
+        }
+        
+        // FIXME: for TS, parameters should be arguments of
+        // the class constructor.
+        
         // Put parameters into a struct and construct the code to go
         // into the preamble of any reaction function to extract the
         // parameters from the struct.
@@ -367,6 +410,8 @@ class TypeScriptGenerator extends GeneratorBase {
             unindent()
             pr("} " + argType + ";")
         }
+        unindent()
+        pr("}")
 
         // Generate reactions
         generateReactions(reactor)
