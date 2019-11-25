@@ -1,5 +1,29 @@
-/** A data structure for a reactor instance. */ // The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License.
-// See LICENSE.md file in the top repository directory.
+/** A data structure for a reactor instance. */
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
+
 package org.icyphy.generator
 
 import java.util.HashSet
@@ -26,7 +50,9 @@ import org.icyphy.linguaFranca.TimeUnit
  *  this object represents the entire Lingua Franca program.
  *  The constructor analyzes the graph of dependencies between
  *  reactions and throws exception if this graph is cyclic.
- *  @author Edward A. Lee, Marten Lohstroh
+ *
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
 
@@ -114,7 +140,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // reaction instances that it depends on indirectly through ports or
             // that depend on this reaction. Collect all the reactions that
             // depend on no other reactions into the _independentReactions set.
-            collapseDependencies(this)
+            if (!collapseDependencies(this)) {
+                throw new Exception(
+                    "Model has no reactions at all. Nothing to do."
+                )
+            }
 
             // Analyze the dependency graph for reactions and assign
             // levels to each reaction.
@@ -478,10 +508,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  If there are ultimately no reactions that that
      *  reaction depends on, then add that reaction to the list of
      *  independent reactions at the top level (the main reactor).
+     *  If there are no reactions at all, then return false.
+     *  Otherwise, return true.
      *  @param reactionInstance The reaction instance (must not be null).
+     *  @return True if at least one reaction exists inside the reactor.
      */
-    protected def void collapseDependencies(ReactorInstance reactor) {
+    protected def boolean collapseDependencies(ReactorInstance reactor) {
+        var result = false
         for (ReactionInstance reactionInstance : reactor.reactions) {
+            result = true
             // Handle the ports that this reaction writes to.
             for (PortInstance port : reactionInstance.dependentPorts) {
                 // Reactions that depend on a port that this reaction writes to
@@ -504,8 +539,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         // Repeat for all children.
         for (child : reactor.children) {
-            collapseDependencies(child)
+            result = collapseDependencies(child) || result
         }
+        return result
     }
 
     /** Create all the reaction instances of this reactor instance

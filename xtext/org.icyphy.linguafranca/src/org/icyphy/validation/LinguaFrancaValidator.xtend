@@ -27,7 +27,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'Accessors', 
         'C', 
         'Cpp',
-        'SCL'
+        'SCL',
+        'TypeScript'
     }
     public static val TARGET_PARAMETERS = #{
         'compile', 

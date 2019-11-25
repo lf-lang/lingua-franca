@@ -1,22 +1,38 @@
-/*
- * Generator for C target.
- */
-// The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License.
-// See LICENSE.md file in the top repository directory.
+/* Generator for C target. */
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
+
 package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.net.URL
-import java.nio.file.Paths
+import java.util.ArrayList
 import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
-import java.util.regex.Pattern
-import org.eclipse.core.resources.IResource
-import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -24,7 +40,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
@@ -38,23 +53,36 @@ import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
-/**
- * Generator for C target.
- * @author Edward A. Lee, Marten Lohstroh, Chris Gill, Mehrdad Niknami
+/** Generator for C target.
+ * 
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author{Mehrdad Niknami <mniknami@berkeley.edu>}
+ *  @author{Chris Gill, <cdgill@wustl.edu>}
  */
 class CGenerator extends GeneratorBase {
+    
+    ////////////////////////////////////////////
+    //// Private variables
+    
+    // Set of acceptable import targets includes only C.
+    val acceptableTargetSet = newHashSet('C')
 
-    // For each reactor, we collect a set of input and parameter names.
-    var triggerCount = 0
+    // The command to compile the generated code if specified in the target directive.
+    var compileCommand = null as ArrayList<String>
+
+    // List of deferred assignments to perform in initialize_trigger_objects.
+    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
+    
+    // Place to collect code to initialize the trigger objects for all reactors.
+    var initializeTriggerObjects = new StringBuilder()
 
     // Indicator of whether to generate multithreaded code and how many by default.
     var numberOfThreads = 0
 
-    // Place to collect code to initialize the trigger objects for all reactors.
-    var initializeTriggerObjects = new StringBuilder()
-
-    // List of deferred assignments to perform in initialize_trigger_objects.
-    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
+    // The command to run the generated code if specified in the target directive.
+    // FIXME: The runCommand is not currently used anywhere.
+    var runCommand = null as ArrayList<String>
 
     // Place to collect shutdown action instances.
     var shutdownActionInstances = new LinkedList<ActionInstance>()
@@ -65,6 +93,12 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to initialize timers for all reactors.
     var startTimers = new StringBuilder()
 
+    // For each reactor, we collect a set of input and parameter names.
+    var triggerCount = 0
+
+    ////////////////////////////////////////////
+    //// Public methods
+
     /** Generate C code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -73,88 +107,68 @@ class CGenerator extends GeneratorBase {
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-        IGeneratorContext context) {
+            IGeneratorContext context) {
         
-        pr(includes)
-        this.resource = resource
-
-        println("Generating code for: " + resource.getURI.toString)
-
-        var runCommand = newArrayList("bin/" + filename, "-timeout", "3",
-            "secs")
-        var runCommandOverridden = false
-        var compileCommand = newArrayList()
-
-        for (target : resource.allContents.toIterable.filter(Target)) {
-            if (target.properties !== null) {
-                for (assignment : target.properties) {
-                    if (assignment.name.equals("threads")) {
-                        // This has been checked by the validator.
-                        numberOfThreads = Integer.decode(assignment.value)
-                        // Set this as the default in the generated code,
-                        // but only if it has not been overridden on the command line.
-                        pr(startTimers, "if (number_of_threads == 0) {")
-                        indent(startTimers)
-                        pr(startTimers,
-                            "number_of_threads = " + numberOfThreads + ";")
-                        unindent(startTimers)
-                        pr(startTimers, "}")
-                    } else if (assignment.name.equals("run")) {
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = assignment.value.substring(1,
-                            assignment.value.length - 1).split(' ')
-                        runCommand.clear
-                        runCommand.addAll(command)
-                        runCommandOverridden = true
-                    } else if (assignment.name.equals("compile")) {
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = assignment.value.substring(1,
-                            assignment.value.length - 1).split(' ')
-                        compileCommand.clear
-                        compileCommand.addAll(command)
-                    }
-                }
-            }
-        }
-        if (numberOfThreads === 0) {
-            pr("#include \"reactor.c\"")
-        } else {
-            pr("#include \"reactor_threaded.c\"")
-            if (!runCommandOverridden) {
-                runCommand.add("-threads")
-                runCommand.add(numberOfThreads.toString())
-            }
-        }
-
-        // First process all the imports.
-        processImports()
-
         super.doGenerate(resource, fsa, context)
 
+        // Derive target filename from the .lf filename.
+        val cFilename = filename + ".c";
+
+        var srcGenPath = directory + File.separator + "src-gen"
+        var outPath = directory + File.separator + "bin"
+
+        // Create the output directories if they don't yet exist.
+        var dir = new File(srcGenPath)
+        if (!dir.exists()) dir.mkdirs()
+        dir = new File(outPath)
+        if (!dir.exists()) dir.mkdirs()
+
+        // Delete source previously produced by the LF compiler.
+        var file = new File(srcGenPath + File.separator + cFilename)
+        if (file.exists) {
+            file.delete
+        }
+
+        // Delete binary previously produced by the C compiler.
+        file = new File(outPath + File.separator + filename)
+        if (file.exists) {
+            file.delete
+        }
+
+        // Copy the required library files into the target filesystem.
+        // This will overwrite previous versions.
+        var fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "reactor_common.c"));
+        fOut.write(readFileInClasspath("/lib/C/reactor_common.c").getBytes())
+
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "reactor.h"));
+        fOut.write(readFileInClasspath("/lib/C/reactor.h").getBytes())
+
+        if (numberOfThreads === 0) {
+            fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + "reactor.c"));
+            fOut.write(readFileInClasspath("/lib/C/reactor.c").getBytes())
+        } else {
+            fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + "reactor_threaded.c"));
+            fOut.write(
+                readFileInClasspath("/lib/C/reactor_threaded.c").getBytes())
+        }
+
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "pqueue.c"));
+        fOut.write(readFileInClasspath("/lib/C/pqueue.c").getBytes())
+
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "pqueue.h"));
+        fOut.write(readFileInClasspath("/lib/C/pqueue.h").getBytes())
+
         // Generate main instance, if there is one.
+        // Note that any main reactors in imported files are ignored.        
         if (this.main !== null) {
             generateReactorInstance(this.main)
-        }
 
-        // Determine path to generated code
-        val cFilename = filename + ".c";
-        var srcFile = resource.getURI.toString;
-        var mode = Mode.UNDEFINED;
-
-        if (srcFile.startsWith("file:")) { // Called from command line
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-            mode = Mode.STANDALONE;
-        } else if (srcFile.startsWith("platform:")) { // Called from Eclipse
-            srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-            mode = Mode.INTEGRATED;
-        } else {
-            System.err.println(
-                "ERROR: Source file protocol is not recognized: " + srcFile);
-        }
-
-        // Any main reactors in imported files are ignored.        
-        if (main !== null) {
             // Generate function to initialize the trigger objects for all reactors.
             pr('void __initialize_trigger_objects() {\n')
             indent()
@@ -194,93 +208,19 @@ class CGenerator extends GeneratorBase {
             pr('}\n')
         }
 
-        val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
-        var srcGenPath = srcPath + File.separator + "src-gen"
-        var outPath = srcPath + File.separator + "bin"
-
-        // Create output directories if they don't yet exist
-        var dir = new File(srcGenPath)
-        if (!dir.exists()) dir.mkdirs()
-        dir = new File(outPath)
-        if (!dir.exists()) dir.mkdirs()
-
-        // Delete source previous output the LF compiler
-        var file = new File(srcPath + File.separator + cFilename)
-        if (file.exists) {
-            file.delete
-        }
-
-        // Delete binary previously output by C compiler
-        file = new File(outPath + File.separator + filename)
-        if (file.exists) {
-            file.delete
-        }
-
-        // Copy the required library files into the target filesystem.
-        var fOut = new FileOutputStream(
+        // Write the generated code to the output file.
+        fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + cFilename));
         fOut.write(getCode().getBytes())
 
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "reactor_common.c"));
-        fOut.write(readFileInClasspath("/lib/C/reactor_common.c").getBytes())
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "reactor.h"));
-        fOut.write(readFileInClasspath("/lib/C/reactor.h").getBytes())
-
-        if (numberOfThreads === 0) {
-            fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + "reactor.c"));
-            fOut.write(readFileInClasspath("/lib/C/reactor.c").getBytes())
-        } else {
-            fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + "reactor_threaded.c"));
-            fOut.write(
-                readFileInClasspath("/lib/C/reactor_threaded.c").getBytes())
-        }
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "pqueue.c"));
-        fOut.write(readFileInClasspath("/lib/C/pqueue.c").getBytes())
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "pqueue.h"));
-        fOut.write(readFileInClasspath("/lib/C/pqueue.h").getBytes())
-
-        // Trigger a refresh so Eclipse also sees the generated files in the package explorer.
-        if (mode == Mode.INTEGRATED) {
-            // Find name of current project
-            val id = "((:?[a-z]|[A-Z]|_\\w)*)";
-            val pattern = Pattern.compile(
-                "platform:" + File.separator + "resource" + File.separator +
-                    id + File.separator);
-            val matcher = pattern.matcher(code);
-            var projName = ""
-            if (matcher.find()) {
-                projName = matcher.group(1)
-            }
-            try {
-                val members = ResourcesPlugin.getWorkspace().root.members
-                for (member : members) {
-                    // Refresh current project, or simply entire workspace if project name was not found
-                    if (projName == "" ||
-                        projName.equals(
-                            member.fullPath.toString.substring(1))) {
-                        member.refreshLocal(IResource.DEPTH_INFINITE, null)
-                        println("Refreshed " + member.fullPath.toString)
-                    }
-                }
-            } catch (IllegalStateException e) {
-                println("Unable to refresh workspace: " + e)
-            }
-        }
-
+        refreshProject()
+        
         // Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
         val relativeBinFilename = "bin" + File.separator + filename;
         // FIXME: Do we want to keep the compileCommand option?
-        if (compileCommand.isEmpty()) {
+        if (compileCommand === null) {
+            compileCommand = newArrayList
             compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o",
                 relativeBinFilename)
             // If threaded computation is requested, add a -pthread option.
@@ -299,22 +239,22 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        println("In directory: " + srcPath)
+        println("In directory: " + directory)
         println("Compiling with command: " + compileCommand.join(" "))
         var builder = new ProcessBuilder(compileCommand);
-        builder.directory(new File(srcPath));
+        builder.directory(new File(directory));
         var process = builder.start()
         // FIXME: The following doesn't work. Somehow, the command to
         // run the generated code gets executed before the following is printed!
-        val code = process.waitFor()
+        val returnCode = process.waitFor()
         var stdout = readStream(process.getInputStream())
         var stderr = readStream(process.getErrorStream())
         if (stdout.length() > 0) {
             println("--- Standard output from C compiler:")
             println(stdout)
         }
-        if (code !== 0) {
-            reportError("Compiler returns error code " + code)
+        if (returnCode !== 0) {
+            reportError("Compiler returns error code " + returnCode)
         }
         if (stderr.length() > 0) {
             reportError("Compiler reports errors:\n" + stderr.toString)
@@ -1383,6 +1323,72 @@ class CGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Protected methods.
+
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set contains only "C".
+     */
+    override acceptableTargets() {
+        acceptableTargetSet
+    }
+
+    /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
+     *  depending on whether threads are specified in target directive.
+     *  As a side effect, this populates the runCommand and compileCommand
+     *  private variables if such commands are specified in the target directive.
+     */
+    override generatePreamble() {
+        super.generatePreamble()
+        
+        pr('#include "pqueue.c"')
+        
+        for (target : resource.allContents.toIterable.filter(Target)) {
+            if (target.properties !== null) {
+                for (assignment : target.properties) {
+                    if (assignment.name.equals("threads")) {
+                        // This has been checked by the validator.
+                        numberOfThreads = Integer.decode(assignment.value)
+                        // Set this as the default in the generated code,
+                        // but only if it has not been overridden on the command line.
+                        pr(startTimers, "if (number_of_threads == 0) {")
+                        indent(startTimers)
+                        pr(startTimers,
+                            "number_of_threads = " + numberOfThreads + ";")
+                        unindent(startTimers)
+                        pr(startTimers, "}")
+                    } else if (assignment.name.equals("run")) {
+                        // Strip off enclosing quotation marks and split at spaces.
+                        val command = assignment.value.substring(1,
+                            assignment.value.length - 1).split(' ')
+                        runCommand = newArrayList
+                        runCommand.addAll(command)
+                    } else if (assignment.name.equals("compile")) {
+                        // Strip off enclosing quotation marks and split at spaces.
+                        val command = assignment.value.substring(1,
+                            assignment.value.length - 1).split(' ')
+                        compileCommand = newArrayList
+                        compileCommand.addAll(command)
+                    }
+                }
+            }
+        }
+        // If no run command was given, give a default.
+        if (runCommand === null) {
+            runCommand = newArrayList("bin/" + filename, "-timeout", "3", "secs")
+            if (numberOfThreads > 0) {
+                runCommand.add("-threads")
+                runCommand.add(numberOfThreads.toString())
+            }
+        }
+        
+        if (numberOfThreads === 0) {
+            pr("#include \"reactor.c\"")
+        } else {
+            pr("#include \"reactor_threaded.c\"")
+        }
+    }
+
     /** Return a unique name for the reaction_t struct for the
      *  specified reaction instance.
      *  @param reaction The reaction instance.
@@ -1695,43 +1701,6 @@ class CGenerator extends GeneratorBase {
         type
     }
 
-    /** Process any imports included in the resource defined by _resource.
-     */
-    private def void processImports() {
-        for (import : resource.allContents.toIterable.filter(Import)) {
-            val importResource = openImport(resource, import)
-            if (importResource !== null) {
-                // Make sure the target of the import is C.
-                var targetOK = false
-                for (target : importResource.allContents.toIterable.filter(
-                    Target)) {
-                    if ("C".equalsIgnoreCase(target.name)) {
-                        targetOK = true
-                    }
-                }
-                if (!targetOK) {
-                    reportError(import, "Import does not have a C target.")
-                } else {
-                    val oldResource = resource
-                    resource = importResource
-                    // Process any imports that the import has.
-                    processImports()
-                    for (reactor : importResource.allContents.toIterable.filter(
-                        Reactor)) {
-                        if (!reactor.isMain) {
-                            println("Including imported reactor: " +
-                                reactor.name)
-                            generateReactor(reactor)
-                        }
-                    }
-                    resource = oldResource
-                }
-            } else {
-                pr("Unable to open import: " + import.name)
-            }
-        }
-    }
-
     // Print the #line compiler directive with the line number of
     // the most recently used node.
     private def prSourceLineNumber(EObject eObject) {
@@ -1758,9 +1727,4 @@ class CGenerator extends GeneratorBase {
             setInputsAbsentByDefault(containedReactor)
         }
     }
-
-    val static includes = '''
-        #include "pqueue.c"
-    '''
-
 }

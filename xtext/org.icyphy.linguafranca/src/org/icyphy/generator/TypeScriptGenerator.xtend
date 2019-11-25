@@ -1,18 +1,38 @@
 /* Generator for TypeScript target. */
-// The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License.
-// See LICENSE.md file in the top repository directory.
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
+
 package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.net.URL
-import java.nio.file.Paths
 import java.util.HashMap
 import java.util.HashSet
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -26,14 +46,17 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 
-
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
-/**
- * Generator for TypeScript target.
- * @author Matt Weber, Edward A. Lee
+/** Generator for TypeScript target.
+ *
+ *  @author{Matt Weber <matt.weber@berkeley.edu>}
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class TypeScriptGenerator extends GeneratorBase {
+
+    // Set of acceptable import targets includes only TypeScript.
+    val acceptableTargetSet = newHashSet('TypeScript')
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -47,10 +70,6 @@ class TypeScriptGenerator extends GeneratorBase {
         IFileSystemAccess2 fsa,
         IGeneratorContext context
     ) {
-        pr(includes)
-
-        println("Generating code for: " + resource.getURI.toString)
-
         super.doGenerate(resource, fsa, context)
 
         // Generate main instance, if there is one.
@@ -58,31 +77,13 @@ class TypeScriptGenerator extends GeneratorBase {
             generateReactorInstance(this.main)
         }
 
-        // FIXME: Perhaps the following should be moved to a base class function that
-        // takes an argument the filename extension.
-        
-        // Determine path to generated code
+        // Target filename.
         val tsFilename = filename + ".ts";
-        var srcFile = resource.getURI.toString;
-        var mode = Mode.UNDEFINED;
 
-        if (srcFile.startsWith("file:")) { // Called from command line
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-            mode = Mode.STANDALONE;
-        } else if (srcFile.startsWith("platform:")) { // Called from Eclipse
-            srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
-            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
-            mode = Mode.INTEGRATED;
-        } else {
-            System.err.println(
-                "ERROR: Source file protocol is not recognized: " + srcFile);
-        }
-
-        val srcPath = srcFile.substring(0, srcFile.lastIndexOf(File.separator))
-        var srcGenPath = srcPath + File.separator + "src-gen"
+        var srcGenPath = directory + File.separator + "src-gen"
         // FIXME: Perhaps bin is not the best name, but we need a place to put
         // the result of compiling the .ts file to .js.
-        var outPath = srcPath + File.separator + "bin"
+        var outPath = directory + File.separator + "bin"
 
         // Create output directories if they don't yet exist
         var dir = new File(srcGenPath)
@@ -91,7 +92,7 @@ class TypeScriptGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
 
         // Delete source previous output the LF compiler
-        var file = new File(srcPath + File.separator + tsFilename)
+        var file = new File(srcGenPath + File.separator + tsFilename)
         if (file.exists) {
             file.delete
         }
@@ -115,34 +116,7 @@ class TypeScriptGenerator extends GeneratorBase {
         * 
         */
 
-        // Trigger a refresh so Eclipse also sees the generated files in the package explorer.
-        // FIXME: Move to the base class!
-        if (mode == Mode.INTEGRATED) {
-            // Find name of current project
-            val id = "((:?[a-z]|[A-Z]|_\\w)*)";
-            val pattern = Pattern.compile(
-                "platform:" + File.separator + "resource" + File.separator +
-                    id + File.separator);
-            val matcher = pattern.matcher(code);
-            var projName = ""
-            if (matcher.find()) {
-                projName = matcher.group(1)
-            }
-            try {
-                val members = ResourcesPlugin.getWorkspace().root.members
-                for (member : members) {
-                    // Refresh current project, or simply entire workspace if project name was not found
-                    if (projName == "" ||
-                        projName.equals(
-                            member.fullPath.toString.substring(1))) {
-                        member.refreshLocal(IResource.DEPTH_INFINITE, null)
-                        println("Refreshed " + member.fullPath.toString)
-                    }
-                }
-            } catch (IllegalStateException e) {
-                println("Unable to refresh workspace: " + e)
-            }
-        }
+        refreshProject()
 
         // Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + tsFilename;
@@ -150,12 +124,33 @@ class TypeScriptGenerator extends GeneratorBase {
         // FIXME: Perhaps add a compileCommand option to the target directive, as in C.
         // Here, we just use a generic compile command.
         var compileCommand = newArrayList()
+         
+        // FIXME: The following example command has some problems. First, it creates an
+        // entire project structure inside the bin directory. Second, it is probably better
+        // to directly expose a tsconfig.json to the programmer so they can choose how their
+        // reactors are generated. Third, the user must have Reactor.ts, time.ts, and util.ts in
+        // the src-gen directory. Fourth, the user must have already run $npm install microtimer and nanotimer
+        // in the src-gen directory. Fifth, the name of generated file's name isn't controlled
+        // by this command -- it's just automatically the original tsFilename with a .js extension.
+        // Sixth (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
+        // the complete PATH variable needed to find the command tsc from /usr/local/bin/. I had
+        // to start my eclipse instance from a terminal so eclipse would have the correct environment
+        // variables to run this command.
+
+        // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
+        // Must compile to ES2015 or later and include the dom library.
+        compileCommand.addAll("tsc",  relativeSrcFilename, 
+            "--outDir", "bin", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
+             "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
+             "--strictNullChecks", "true"); //, relativeBinFilename, "--lib DOM")
         
-        compileCommand.addAll("tsc", relativeSrcFilename, "--outFile", relativeBinFilename)
-        println("In directory: " + srcPath)
+//        val path = System.getenv("PATH");
+//        println("path is: " + path); 
+//        compileCommand.addAll("tsc","--version");
+        println("In directory: " + directory)
         println("Compiling with command: " + compileCommand.join(" "))
         var builder = new ProcessBuilder(compileCommand);
-        builder.directory(new File(srcPath));
+        builder.directory(new File(directory));
         var process = builder.start()
         // FIXME: The following doesn't work. Somehow, the command to
         // run the generated code gets executed before the following is printed!
@@ -448,6 +443,25 @@ class TypeScriptGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Protected methods.
+
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set is a set of case-insensitive
+     *  strings specifying target names.
+     */
+    override acceptableTargets() {
+        acceptableTargetSet
+    }
+
+    /** Generate preamble code that appears in the code generated
+     *  file before anything else.
+     */
+    override generatePreamble() {
+        super.generatePreamble
+        pr(preamble)
+    }
+
     /** Return a unique name for the reaction_t struct for the
      *  specified reaction instance.
      *  @param reaction The reaction instance.
@@ -483,7 +497,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     }
 
-    val static includes = '''
+    val static preamble = '''
 'use strict';
 
 import {Reactor, Trigger, Reaction, Timer, Action,  App} from '../reactor';

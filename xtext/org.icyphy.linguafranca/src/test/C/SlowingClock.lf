@@ -8,7 +8,7 @@ main reactor SlowingClock {
     reaction(startup) -> a {=
         schedule(a, 0, NULL);
     =}
-    reaction(a) {=
+    reaction(a) -> a {=
         instant_t elapsed_logical_time = get_elapsed_logical_time();
         printf("Logical time since start: \%lld nsec.\n",
             elapsed_logical_time

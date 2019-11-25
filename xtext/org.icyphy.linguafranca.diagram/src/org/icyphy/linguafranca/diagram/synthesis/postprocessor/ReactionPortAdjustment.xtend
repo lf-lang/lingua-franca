@@ -40,8 +40,8 @@ class ReactionPortAdjustment implements IStyleModifier {
 					if (node.ports.head.ypos !== 0 && !node.getProperty(PROCESSED)) { // Only adjust if layout is already applied
 						recorder?.startRecording // important for incremental update animation
 						
-						val in = node.ports.filter[getProperty(CoreOptions.PORT_SIDE) === PortSide.WEST].sortBy[ypos].toList
-						val out = node.ports.filter[getProperty(CoreOptions.PORT_SIDE) === PortSide.EAST].sortBy[ypos].toList
+						val in = node.ports.filter[getProperty(CoreOptions.PORT_SIDE) === PortSide.WEST && !hasProperty(CoreOptions::PORT_BORDER_OFFSET)].sortBy[ypos].toList
+						val out = node.ports.filter[getProperty(CoreOptions.PORT_SIDE) === PortSide.EAST && !hasProperty(CoreOptions::PORT_BORDER_OFFSET)].sortBy[ypos].toList
 	
 						// Adjust
 						in.indexed.adjustPositions(in.size, true)
