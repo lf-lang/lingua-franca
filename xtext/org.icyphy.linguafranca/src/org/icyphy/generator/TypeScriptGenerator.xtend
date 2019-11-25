@@ -59,6 +59,9 @@ import org.icyphy.linguaFranca.VarRef
  */
 class TypeScriptGenerator extends GeneratorBase {
 
+    // Set of acceptable import targets includes only TypeScript.
+    val acceptableTargetSet = newHashSet('TypeScript')
+
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -472,6 +475,17 @@ class TypeScriptGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Protected methods.
+
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set is a set of case-insensitive
+     *  strings specifying target names.
+     */
+    override acceptableTargets() {
+        acceptableTargetSet
+    }
+
     /** Return a unique name for the reaction_t struct for the
      *  specified reaction instance.
      *  @param reaction The reaction instance.

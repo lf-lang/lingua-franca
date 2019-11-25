@@ -30,8 +30,12 @@ import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.net.URL
+import java.nio.file.Paths
 import java.util.HashMap
 import java.util.LinkedList
+import java.util.Set
+import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -47,6 +51,7 @@ import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
@@ -58,7 +63,7 @@ import org.icyphy.linguaFranca.TriggerRef
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  *  @author{Chris Gill, <cdgill@wustl.edu>}
  */
-class GeneratorBase {
+abstract class GeneratorBase {
 
     /** All code goes into this string buffer. */
     var code = new StringBuilder
@@ -255,11 +260,12 @@ class GeneratorBase {
 
     // //////////////////////////////////////////
     // // Protected fields.
-    /** The main (top-level) reactor instance. */
-    protected ReactorInstance main
-
+    
     // The root filename for the main file containing the source code, without the .lf.
     protected var String filename
+
+    /** The main (top-level) reactor instance. */
+    protected ReactorInstance main
 
     // The file containing the main source code.
     protected var Resource resource
@@ -269,6 +275,17 @@ class GeneratorBase {
 
     // //////////////////////////////////////////
     // // Protected methods.
+
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set is a set of case-insensitive
+     *  strings specifying target names. If any target is acceptable,
+     *  return null.
+     * 
+     */
+    protected abstract def Set<String> acceptableTargets()
+    
     /** Clear the buffer of generated code.
      */
     protected def clearCode() {
@@ -280,6 +297,40 @@ class GeneratorBase {
      */
     protected def getCode() {
         code.toString()
+    }
+    
+    /** Return Mode.STANDALONE if the code generator is being called
+     *  from the command line, Mode.INTEGRATED if it is being called
+     *  from the Eclipse IDE, and Mode.UNDEFINED otherwise.
+     */
+    protected def getMode() {
+        var srcFile = resource.getURI.toString;
+        if (srcFile.startsWith("file:")) { // Called from command line
+            return Mode.STANDALONE;
+        } else if (srcFile.startsWith("platform:")) { // Called from Eclipse
+            return Mode.INTEGRATED;
+        } else {
+            return Mode.UNDEFINED;
+        }
+    }
+    
+    /** Return the source .lf file from which code is being generated.
+     *  The returned value is a string representing the normalized
+     *  path to the file.
+     *  @return The source file.
+     */
+    protected def getSourceFile() {
+        var srcFile = resource.getURI.toString;
+        if (srcFile.startsWith("file:")) { // Called from command line
+            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
+        } else if (srcFile.startsWith("platform:")) { // Called from Eclipse
+            srcFile = FileLocator.toFileURL(new URL(srcFile)).toString
+            srcFile = Paths.get(srcFile.substring(5)).normalize.toString
+        } else {
+            System.err.println(
+                "ERROR: Source file protocol is not recognized: " + srcFile);
+        }
+        return srcFile
     }
 
     /** Increase the indentation of the output code produced.
@@ -426,6 +477,53 @@ class GeneratorBase {
      */
     protected def prComment(String comment) {
         pr(code, '// ' + comment);
+    }
+
+    /** Process any imports included in the resource defined by _resource.
+     *  If the target is not acceptable, report an error, ignore the import,
+     *  and continue.
+     *  @param acceptableTargets If non-null, a set of acceptable targets,
+     *   case-insensitive strings specifying target names.
+     */
+    protected def void processImports() {
+        for (import : resource.allContents.toIterable.filter(Import)) {
+            val importResource = openImport(resource, import)
+            if (importResource !== null) {
+                // Make sure the target of the import is acceptable.
+                var targetOK = (acceptableTargets === null)
+                var offendingTarget = ""
+                for (target : importResource.allContents.toIterable.filter(Target)) {
+                    for (acceptableTarget : acceptableTargets ?: emptyList()) {
+                        if (acceptableTarget.equalsIgnoreCase(target.name)) {
+                            targetOK = true
+                        }
+                    }
+                    if (!targetOK) offendingTarget = target.name
+                }
+                if (!targetOK) {
+                    reportError(import, "Import target " + offendingTarget
+                        + " is not an acceptable target in import "
+                        + importResource.getURI
+                        + ". Acceptable targets are: "
+                        + acceptableTargets.join(", ")
+                    )
+                } else {
+                    val oldResource = resource
+                    resource = importResource
+                    // Process any imports that the import has.
+                    processImports()
+                    for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
+                        if (!reactor.isMain) {
+                            println("Including imported reactor: " + reactor.name)
+                            generateReactor(reactor)
+                        }
+                    }
+                    resource = oldResource
+                }
+            } else {
+                pr("Unable to open import: " + import.name)
+            }
+        }
     }
 
     /** Read a text file in the classpath and return its contents as a string.

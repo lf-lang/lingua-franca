@@ -40,6 +40,9 @@ import org.icyphy.linguaFranca.VarRef
 
 class CppGenerator extends GeneratorBase {
 
+    // Set of acceptable import targets includes only Cpp.
+    val acceptableTargetSet = newHashSet('Cpp')
+
 	static public var timeUnitsToCppUnits = #{
 		TimeUnit.NSEC -> '_ns',
 		TimeUnit.NSECS -> '_ns',
@@ -798,4 +801,17 @@ class CppGenerator extends GeneratorBase {
 			println("ERRROR (while executing cmake)")
 		}
 	}
+	
+	////////////////////////////////////////////////
+	//// Protected methods
+	
+	/** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set is a set of case-insensitive
+     *  strings specifying target names.
+     */
+    override acceptableTargets() {
+        acceptableTargetSet
+    }
 }
