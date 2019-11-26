@@ -1,18 +1,31 @@
-/*
- * Copyright (C) 2019 TU Dresden
- * All rights reserved.
- * 
- * The Lingua-Franca toolkit is is licensed under the BSD 2-Clause License.
- * See LICENSE.md file in the top repository directory.
- * 
- * Authors:
- *   Christian Menard
- */
+/* Generator for C target. */
 
+/*************
+ * Copyright (c) 2019, TU Dresden.
+
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.icyphy.generator
 
 import java.io.File
-import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.List
@@ -38,6 +51,12 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 
+/** Generator for C++ target.
+ *
+ *  @author{Christian Menard <christian.menard@tu-dresden.de}
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ */
 class CppGenerator extends GeneratorBase {
 
     // Set of acceptable import targets includes only Cpp.
@@ -725,7 +744,7 @@ class CppGenerator extends GeneratorBase {
 		  dep-reactor-cpp
 		  PREFIX "${REACTOR_CPP_BUILD_DIR}"
 		  GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-		  GIT_TAG "cdff6711b68cd06f6970845fd99cf146aac16986"
+		  GIT_TAG "90bb6e4e24e4f6dc3cf0844072fb72cc28b4eaca"
 		  CMAKE_ARGS
 		    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 		    -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
@@ -756,7 +775,7 @@ class CppGenerator extends GeneratorBase {
 		install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 		
 		«IF target.hasProperty("cmake_include")»
-			include(«resource.URI.toString.extractDir»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
+			include(«directory»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
 		«ENDIF»
 	'''
 
@@ -768,17 +787,17 @@ class CppGenerator extends GeneratorBase {
 		var makeCmd = newArrayList()
 		var cmakeCmd = newArrayList()
 
-		var cwd = Paths.get("").toAbsolutePath().toString()
-		var srcPath = cwd + File.separator + "src-gen" + File.separator + filename
-		var buildPath = cwd + File.separator + "build" + File.separator + filename
-		var reactorCppPath = cwd + File.separator + "build" + File.separator + "reactor-cpp"
+		var srcPath = directory + File.separator + "src-gen" + File.separator + filename
+		var buildPath = directory + File.separator + "build" + File.separator + filename
+		var reactorCppPath = directory + File.separator + "build" + File.separator + "reactor-cpp"
 
 		makeCmd.addAll("make", "-j" + Runtime.getRuntime().availableProcessors(), "install")
-		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + cwd, "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
+		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + directory, "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
 
 		var buildDir = new File(buildPath)
 		if(!buildDir.exists()) buildDir.mkdirs()
 
+        println("--- In directory: " + buildDir)
 		println("--- Running: " + cmakeCmd.join(' '))
 		var cmakeBuilder = new ProcessBuilder(cmakeCmd)
 		cmakeBuilder.directory(buildDir)
