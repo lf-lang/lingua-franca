@@ -75,6 +75,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Generate main instance, if there is one.
         if (this.main !== null) {
             generateReactorInstance(this.main)
+            generateRuntimeStart(this.main)
         }
 
         // Target filename.
@@ -178,11 +179,12 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     override generateReactor(Reactor reactor) {
         super.generateReactor(reactor)
+        
+            
+        var reactorConstructor = new StringBuilder()
 
         pr("// =============== START reactor class " + reactor.name)
 
-        // Scan reactions.
-        // Preamble code contains state declarations with static initializers.
         if (reactor.preamble !== null) {
             pr("// *********** From the preamble, verbatim:")
             pr(removeCodeDelimiter(reactor.preamble.code))
@@ -192,6 +194,27 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("class " + reactor.name + " extends App {")
         indent()
         
+        // Perhaps leverage TypeScript's mechanism for default
+        // parameter values? For now it's simpler to just create
+        // the reactor instance with the default argument value.
+        var arguments = "";  
+        for (parameter : reactor.parameters) {
+            if (getParameterType(parameter).equals("")) {
+                reportError(parameter,
+                    "Parameter is required to have a type: " + parameter.name)
+            } else {
+                arguments +=
+                    parameter.name + ": " + getParameterType(parameter) + ", ";
+            }
+        }
+        // For TS, parameters are arguments of the class constructor.
+        pr(reactorConstructor, "constructor(" + arguments 
+            + "timeout: TimeInterval | null, name?: string) {"
+        )
+        
+        reactorConstructor.indent()
+        pr(reactorConstructor, "super(timeout, name);");
+          
         // Next handle timers.
         for (timer : reactor.timers) {
             var String period;
@@ -224,49 +247,46 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
             }
 
-            // NOTE: Slightly obfuscate output name to help prevent accidental use.
-            pr(timer.getName() + ": Timer = new Timer("
-                + period+ ","+ offset + ");")
+            pr(timer.getName() + ": Timer;")
+            pr(reactorConstructor, "this." + timer.getName()
+                + " = new Timer(this, " + period + ","+ offset + ");")
         }
         
-        // FIXME: for TS, parameters should be arguments of
-        // the class constructor.
-        
-        // Put parameters into a struct and construct the code to go
-        // into the preamble of any reaction function to extract the
-        // parameters from the struct.
+        // FIXME: delete this section. I uncommented parts to keep the rest compiling.
+//        // Put parameters into a struct and construct the code to go
+//        // into the preamble of any reaction function to extract the
+//        // parameters from the struct.
         val argType = reactor.name.toLowerCase + "_self_t"
-        // Construct the typedef for the "self" struct.
+//        // Construct the typedef for the "self" struct.
         var body = new StringBuilder()
-        // Start with parameters.
-        for (parameter : reactor.parameters) {
-            prSourceLineNumber(parameter)
-            if (getParameterType(parameter).equals("")) {
-                reportError(parameter,
-                    "Parameter is required to have a type: " + parameter.name)
-            } else {
-                pr(body,
-                    getParameterType(parameter) + ' ' + parameter.name + ';');
-            }
-        }
+//        // Start with parameters.
+//        for (parameter : reactor.parameters) {
+//            prSourceLineNumber(parameter)
+//            if (getParameterType(parameter).equals("")) {
+//                reportError(parameter,
+//                    "Parameter is required to have a type: " + parameter.name)
+//            } else {
+//                pr(body,
+//                    getParameterType(parameter) + ' ' + parameter.name + ';');
+//            }
+//        }
+
         // Next handle states.
         for (state : reactor.states) {
-            prSourceLineNumber(state)
-            
             if (state.parameter !== null) {
-                pr(body,
-                removeCodeDelimiter(state.parameter.type) + ' ' + state.name + ';');
+                pr( state.name + ': ' +
+                removeCodeDelimiter(state.parameter.type) +  ';');
             } else {
                 if (state.ofTimeType) {
-                    pr(body,
-                        timeTypeInTargetLanguage + ' ' + state.name + ';');
+                    pr(state.name + ': ' +
+                        timeTypeInTargetLanguage + ';');
                 } else {
-                    pr(body,
-                        removeCodeDelimiter(state.type) + ' ' + state.name +
-                            ';');
+                    pr(state.name + ': ' +
+                        removeCodeDelimiter(state.type) + ';');
                 }
-
             }
+            pr(reactorConstructor, "this." + state.name + " = "
+                + state.value + ";" )
         }
         // Next handle actions.
         for (action : reactor.actions) {
@@ -334,73 +354,121 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
             }
         }
-        // Next, handle reactions that produce outputs sent to inputs
-        // of contained reactions.
+        
+        // FIXME: Handle startup and shutdown triggers
+        // Next handle reaction instances
+        var reactionArray = "this._reactions = [ "
+        var reactionIndex = 0;
         for (reaction : reactor.reactions) {
-            if (reaction.effects !== null) {
-                for (effect : reaction.effects) {
-                    if (effect.variable instanceof Input) {
-                        val port = effect.variable as Input
-                        pr(
-                            body,
-                            removeCodeDelimiter(port.type) + ' __' +
-                                effect.container.name + '_' + port.name + ';'
-                        )
-                        pr(
-                            body,
-                            'bool __' + effect.container.name + '_' +
-                                port.name + '_is_present;'
-                        )
+            val reactionName = 'r' + reactionIndex;
+            val reactionClassName = reactor.name + "_" + reactionName;
+            pr(reactionName + ": " + reactionClassName + ";")
+            
+            var reactionArguments = "this, [ ";
+            for(trigger : reaction.triggers ){
+                if(trigger instanceof VarRef){
+                    var triggerContainerName = ""
+                    if(trigger.container === null){
+                        triggerContainerName = "this";
+                    } else {
+                        // FIXME: No idea if this line actually works,
+                        // I don't have a way to test it at the moment.
+                        triggerContainerName = trigger.container.name;
                     }
-                }
+                    
+                    reactionArguments += triggerContainerName + "." + trigger.variable.name + ", "
+                } else {
+                    reportError("TypeScript code generator does not yet handle startup and shutdown triggers")
+                }      
             }
+            reactionArguments += "], ["
+            
+            for(source : reaction.sources ){
+                reactionArguments += "this." + source.variable.name + ", "
+            }
+            reactionArguments += "], ["
+            
+            for(effect : reaction.effects ){
+                reactionArguments += "this." + effect.variable.name + ", "
+            }
+            reactionArguments +="]"
+            
+            pr(reactorConstructor, "this." + reactionName + " =  new "
+                + reactionClassName + "(" + reactionArguments + ");"
+            )
+            reactionArray += "this." + reactionName + ", "
+            reactionIndex++
         }
-        // Finally, handle reactions that are triggered by outputs
-        // of contained reactors. Have to be careful to not duplicate
-        // the struct entries if multiple reactions refer to the same
-        // contained output.
-        var included = new HashSet<Output>
-        for (reaction : reactor.reactions) {
-            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-                if (trigger instanceof VarRef) {
-                    if (trigger.variable instanceof Output &&
-                        !included.contains(trigger.variable)) {
-                        // Reaction is triggered by an output of a contained reactor.
-                        val port = trigger.variable as Output
-                        included.add(port)
-                        pr(
-                            body,
-                            removeCodeDelimiter(port.type) + '* __' +
-                                trigger.container.name + '_' + port.name + ';'
-                        )
-                        pr(
-                            body,
-                            'bool* __' + trigger.container.name + '_' +
-                                port.name + '_is_present;'
-                        )
-                    }
-                }
-            }
-            // Handle reading (but not triggered by) outputs of contained reactors.
-            for (source : reaction.sources ?: emptyList) {
-                if (source.variable instanceof Output &&
-                    !included.contains(source.variable)) {
-                    // Reaction reads an output of a contained reactor.
-                    val port = source.variable as Output
-                    included.add(port)
-                    pr(
-                        body,
-                        removeCodeDelimiter(port.type) + '* __' +
-                            source.container.name + '_' + port.name + ';'
-                    )
-                    pr(
-                        body,
-                        'bool* __' + source.container.name + '_' + port.name +
-                            '_is_present;'
-                    )
-                }
-            }
-        }
+        reactionArray += "];"
+        pr(reactorConstructor, reactionArray );
+        
+//        // Next, handle reactions that produce outputs sent to inputs
+//        // of contained reactions.
+//        for (reaction : reactor.reactions) {
+//            if (reaction.effects !== null) {
+//                for (effect : reaction.effects) {
+//                    if (effect.variable instanceof Input) {
+//                        val port = effect.variable as Input
+//                        pr(
+//                            body,
+//                            removeCodeDelimiter(port.type) + ' __' +
+//                                effect.container.name + '_' + port.name + ';'
+//                        )
+//                        pr(
+//                            body,
+//                            'bool __' + effect.container.name + '_' +
+//                                port.name + '_is_present;'
+//                        )
+//                    }
+//                }
+//            }
+//        }
+//        // Finally, handle reactions that are triggered by outputs
+//        // of contained reactors. Have to be careful to not duplicate
+//        // the struct entries if multiple reactions refer to the same
+//        // contained output.
+//        var included = new HashSet<Output>
+//        for (reaction : reactor.reactions) {
+//            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
+//                if (trigger instanceof VarRef) {
+//                    if (trigger.variable instanceof Output &&
+//                        !included.contains(trigger.variable)) {
+//                        // Reaction is triggered by an output of a contained reactor.
+//                        val port = trigger.variable as Output
+//                        included.add(port)
+//                        pr(
+//                            body,
+//                            removeCodeDelimiter(port.type) + '* __' +
+//                                trigger.container.name + '_' + port.name + ';'
+//                        )
+//                        pr(
+//                            body,
+//                            'bool* __' + trigger.container.name + '_' +
+//                                port.name + '_is_present;'
+//                        )
+//                    }
+//                }
+//            }
+//            // Handle reading (but not triggered by) outputs of contained reactors.
+//            for (source : reaction.sources ?: emptyList) {
+//                if (source.variable instanceof Output &&
+//                    !included.contains(source.variable)) {
+//                    // Reaction reads an output of a contained reactor.
+//                    val port = source.variable as Output
+//                    included.add(port)
+//                    pr(
+//                        body,
+//                        removeCodeDelimiter(port.type) + '* __' +
+//                            source.container.name + '_' + port.name + ';'
+//                    )
+//                    pr(
+//                        body,
+//                        'bool* __' + source.container.name + '_' + port.name +
+//                            '_is_present;'
+//                    )
+//                }
+//            }
+//        }
 
         if (body.length > 0) {
             selfStructType(reactor)
@@ -410,13 +478,22 @@ class TypeScriptGenerator extends GeneratorBase {
             unindent()
             pr("} " + argType + ";")
         }
+        
+        
+        reactorConstructor.unindent()
+        pr(reactorConstructor, "}")
+        pr(reactorConstructor.toString())
         unindent()
         pr("}")
-
-        // Generate reactions
-        generateReactions(reactor)
         pr("// =============== END reactor class " + reactor.name)
         pr("")
+
+        // Generate reactions
+        pr("// =============== START reaction classes " + reactor.name)
+        generateReactions(reactor)
+        pr("// =============== END reaction classes " + reactor.name)
+        pr("")
+
     }
 
     /** Generate reaction functions definition for a reactor.
@@ -468,6 +545,29 @@ class TypeScriptGenerator extends GeneratorBase {
         var fullName = instance.fullName
         pr('// ************* Instance ' + fullName + ' of class ' +
             reactorClass.name)
+            
+        var arguments = "";
+        for (parameter : instance.parameters) {
+            arguments += parameter.literalValue + ", "
+        }
+        // FIXME: hardcoding a 3 second timeout because
+        // I don't know how to get this dynamically right now.
+        arguments += "[3, TimeUnit.secs], '" + fullName + "'" 
+        pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
+    }
+    
+    /** Generate code to call the _start function on the main App
+     *  instance to start the runtime
+     *  @param instance A reactor instance.
+     */
+    def void generateRuntimeStart(ReactorInstance instance) {
+        var reactorClass = instance.definition.reactorClass
+        var fullName = instance.fullName
+        pr('// ************* Starting Runtime for ' + fullName + ' of class ' +
+            reactorClass.name)
+        // FIXME: hardcoding success and failure callbacks that do nothing
+        // because I haven't yet figured out how to get these yet
+        pr("_app._start(() => null, ()=> null);")
     }
 
     /** Set the reaction priorities based on dependency analysis.
