@@ -369,13 +369,13 @@ abstract class GeneratorBase {
      *   the resource cannot be found or it is the same as the currentResource.
      */
     protected def openImport(Resource currentResource, Import importSpec) {
-        val importedURIAsString = importSpec.name;
+        val importedURIAsString = importSpec.importURI;
         val URI currentURI = currentResource?.getURI;
         val URI importedURI = URI?.createFileURI(importedURIAsString);
         val URI resolvedURI = importedURI?.resolve(currentURI);
         if (resolvedURI.equals(currentURI)) {
             reportError(importSpec,
-                "Recursive imports are not permitted: " + importSpec.name)
+                "Recursive imports are not permitted: " + importSpec.importURI)
             return currentResource
         } else {
             val ResourceSet currentResourceSet = currentResource?.resourceSet;
@@ -384,7 +384,7 @@ abstract class GeneratorBase {
             } catch (Exception ex) {
                 reportError(
                     importSpec,
-                    "Import not found: " + importSpec.name +
+                    "Import not found: " + importSpec.importURI +
                         ". Exception message: " + ex.message
                 )
                 return null
@@ -531,7 +531,7 @@ abstract class GeneratorBase {
                     }
                 }
             } else {
-                pr("Unable to open import: " + import.name)
+                pr("Unable to open import: " + import.importURI)
             }
         }
     }
