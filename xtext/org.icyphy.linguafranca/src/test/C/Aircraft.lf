@@ -1,6 +1,6 @@
 target C;
  
-reactor NetworkReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
+reactor NetworkReceiver(D:time(10 msec), E:time(1 msec), L:time(10 msec)) {
 	
 	preamble {=
 		#include <pthread.h>
@@ -86,7 +86,7 @@ reactor NetworkReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
 }
 
 
-reactor NetworkSender(d:time(10 msec)) {
+reactor NetworkSender(D:time(10 msec)) {
 	
 	preamble {=
 		#include <stdio.h> 
@@ -137,7 +137,7 @@ reactor NetworkSender(d:time(10 msec)) {
 	
 	reaction(in)  {=
 		send_message(in);
-	=} deadline(d) {=
+	=} deadline(D) {=
 		// missed deadline
 	=}
 }
@@ -152,53 +152,107 @@ reactor DisarmAndOpen {
 	=}
 }
 
-reactor Cockpit(d:time(10 msec)) {
-	sensor = new DisarmAndOpen();
-	ros = new NetworkSender();
-	sensor.message -> ros.in;
+//reactor Cockpit(d:time(10 msec)) {
+//	sensor = new DisarmAndOpen();
+//	ros = new NetworkSender();
+//	sensor.message -> ros.in;
+//}
+
+//reactor Door {
+//	
+//	input open:bool;
+//	input disarm:bool;
+//	
+//	reaction(disarm) {=
+//		if (disarm_is_present && disarm == true) {
+//			// disarm
+//		}
+//	=}
+//	
+//	reaction(open) {=
+//		if (open_is_present && open == true) {
+//			// open door
+//		}	
+//	=}
+//	
+//}
+
+//reactor Cabin {
+//	
+//	physical action button_disarm;
+//	physical action button_open;
+//	
+//	reaction(button_disarm) -> d.disarm {=
+//		set(d.disarm, true);
+//	=}
+//	
+//	reaction(button_open) -> d.open {=
+//		set(d.open, true);
+//	=}
+//	
+//	reaction(r.out) -> d.open, d.disarm {=
+//		// open door
+//	=}
+//	 
+//	 d = new Door();
+//	 r = new NetworkReceiver();
+//}
+
+//main reactor Aircraft(d:time(10 msec)) {
+//	s = new Cockpit(d=5 msec);
+//	c = new Cabin();
+//} 
+
+
+
+reactor CockpitPanel {
+    physical action disarm_button;
+    physical action open_button;
+    output disarm:bool;
+    output open:bool;
+    reaction(startup) -> disarm_button, open_button {=
+        // Set up interrupts that call schedule().
+    =}
+    reaction(disarm_button) -> disarm {=
+        set(disarm, true);
+    =}
+    reaction(open_button) -> open {=
+        
+    =}
+}
+
+reactor Cockpit {
+    c = new CockpitPanel();
+    n1 = new NetworkSender(D = 10 msec);
+    n2 = new NetworkSender(D = 10 msec);
+    c.disarm -> n1.in;
+    c.open -> n2.in;
 }
 
 reactor Door {
-	
 	input open:bool;
 	input disarm:bool;
-	
 	reaction(disarm) {=
 		if (disarm_is_present && disarm == true) {
 			// disarm
 		}
 	=}
-	
 	reaction(open) {=
 		if (open_is_present && open == true) {
 			// open door
 		}	
 	=}
-	
 }
 
 reactor Cabin {
-	
-	physical action button_disarm;
-	physical action button_open;
-	
-	reaction(button_disarm) -> d.disarm {=
-		set(d.disarm, true);
-	=}
-	
-	reaction(button_open) -> d.open {=
-		set(d.open, true);
-	=}
-	
-	reaction(r.out) -> d.open, d.disarm {=
-		// open door
-	=}
-	 
 	 d = new Door();
-	 r = new NetworkReceiver();
+	 r1 = new NetworkReceiver();
+	 r2 = new NetworkReceiver();
+	 r1.out -> d.disarm;
+	 r2.out -> d.open;
 }
 
-main reactor Aircraft(d:time(10 msec)) {
-	s = new Cockpit(d=5 msec);
+main reactor Aircraft {
+	s = new Cockpit();
 	c = new Cabin();
-} 
+}

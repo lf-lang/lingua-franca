@@ -2,8 +2,8 @@
 
 #==========================================================
 # Description: 	Run the lfc compiler.
-# Author:	Marten Lohstroh, Mehrdad Niknami
-# Usage:	lfc [FILE]
+# Authors:		Marten Lohstroh, Mehrdad Niknami
+# Usage:		lfc [FILE]
 #==========================================================
 
 set -euo pipefail
