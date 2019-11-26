@@ -81,7 +81,6 @@ class CGenerator extends GeneratorBase {
     var numberOfThreads = 0
 
     // The command to run the generated code if specified in the target directive.
-    // FIXME: The runCommand is not currently used anywhere.
     var runCommand = null as ArrayList<String>
 
     // Place to collect shutdown action instances.
@@ -168,6 +167,21 @@ class CGenerator extends GeneratorBase {
         // Note that any main reactors in imported files are ignored.        
         if (this.main !== null) {
             generateReactorInstance(this.main)
+
+            // Generate function to set default command-line options.
+            // A literal array needs to be given outside any function definition,
+            // so start with that.
+            if (runCommand !== null && runCommand.length > 0) {
+                pr('char* __default_argv[] = {"' + runCommand.join('", "') + '"};')
+            }
+            pr('void __set_default_command_line_options() {\n')
+            indent()
+            if (runCommand !== null && runCommand.length > 0) {
+                pr('default_argc = ' + runCommand.length + ';')
+                pr('default_argv = __default_argv;')
+            }
+            unindent()
+            pr('}\n')
 
             // Generate function to initialize the trigger objects for all reactors.
             pr('void __initialize_trigger_objects() {\n')
@@ -1371,14 +1385,6 @@ class CGenerator extends GeneratorBase {
                         compileCommand.addAll(command)
                     }
                 }
-            }
-        }
-        // If no run command was given, give a default.
-        if (runCommand === null) {
-            runCommand = newArrayList("bin/" + filename, "-timeout", "3", "secs")
-            if (numberOfThreads > 0) {
-                runCommand.add("-threads")
-                runCommand.add(numberOfThreads.toString())
             }
         }
         
