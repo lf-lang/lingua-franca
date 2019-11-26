@@ -47,7 +47,7 @@ Target:
     'target' name=ID ('(' properties+=Property (',' properties+=Property)* ')')? ';';
 
 Import:
-    'import' name=Path ';';
+    'import' importURI=Path ';';
 
 Reactor:
     (main?='main'? & realtime?='realtime'?) 'reactor' name=ID
@@ -179,7 +179,7 @@ terminal CODE:
     '{=' .* '=}';
 
 // The following cannot be terminal because it overlaps ID.
-Path:
+Path: 
     ID ('.' ID)*;
 
 /////////// Enums

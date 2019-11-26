@@ -60,22 +60,22 @@ class Main {
 			System::err.println('Aborting. Unable to read file: ' + fileName);
 		}
 
-		// Parse out imports and add them to a list
-		// RegEx based on org.eclipse.xtext.common.Terminals
-		val id = "(?:([a-z]|[A-Z]|_)\\w*)";
-		// RegEx based on LinguaFranca.xtext
-		val pattern = Pattern.compile("import(?:\\s)*(" + id + "(?:." + id + ")*)\\s*;");
-		val matcher = pattern.matcher(code);
-
-		val imports = newArrayList();
-		while (matcher.find) {
-			imports.add(matcher.group(1));
-		}
+//		// Parse out imports and add them to a list
+//		// RegEx based on org.eclipse.xtext.common.Terminals
+//		val id = "(?:([a-z]|[A-Z]|_)\\w*)";
+//		// RegEx based on LinguaFranca.xtext
+//		val pattern = Pattern.compile("import(?:\\s)*(" + id + "(?:." + id + ")*)\\s*;");
+//		val matcher = pattern.matcher(code);
+//
+//		val imports = newArrayList();
+//		while (matcher.find) {
+//			imports.add(matcher.group(1));
+//		}
 
 		// Add the listed imports to the resource
-		for (import : imports) {
-			set.getResource(URI.createFileURI(fileRoot + File.separator + import), true)
-		}
+		//for (import : imports) {
+		//	set.getResource(URI.createFileURI(fileRoot + File.separator + import), true)
+		//}
 
 		// Validate the resource
 		val issues = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl)
