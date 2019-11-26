@@ -168,6 +168,11 @@ instant_t get_physical_time();
 void stop();
 
 /** 
+ * Generated function that optionally sets default command-line options.
+ */
+void __set_default_command_line_options();
+
+/** 
  * Generated function that resets outputs to be absent at the
  * start of a new time step.
  */

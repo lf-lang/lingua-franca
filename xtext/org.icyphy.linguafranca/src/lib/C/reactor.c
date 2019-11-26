@@ -316,7 +316,11 @@ void wrapup() {
 }
 
 int main(int argc, char* argv[]) {
-    if (process_args(argc, argv)) {
+    // Invoke the function that optionally provides default command-line options.
+    __set_default_command_line_options();
+
+    if (process_args(default_argc, default_argv)
+            && process_args(argc, argv)) {
         initialize();
         __start_timers();
         while (next() != 0 && !stop_requested);

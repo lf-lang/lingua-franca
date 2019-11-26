@@ -268,6 +268,11 @@ void usage(char* command) {
     printf("   Executed in <n> threads if possible (optional feature).\n\n");
 }
 
+// If a run option is given in the target directive, then the code
+// generator will overwrite these with default command-line options.
+int default_argc = 0;
+char** default_argv = NULL;
+
 // Process the command-line arguments.
 // If the command line arguments are not understood, then
 // print a usage message and return 0.
