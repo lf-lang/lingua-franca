@@ -12,7 +12,6 @@
 package org.icyphy.generator
 
 import java.io.File
-import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.List
@@ -756,7 +755,7 @@ class CppGenerator extends GeneratorBase {
 		install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 		
 		«IF target.hasProperty("cmake_include")»
-			include(«resource.URI.toString.extractDir»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
+			include(«directory»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
 		«ENDIF»
 	'''
 
@@ -768,17 +767,17 @@ class CppGenerator extends GeneratorBase {
 		var makeCmd = newArrayList()
 		var cmakeCmd = newArrayList()
 
-		var cwd = Paths.get("").toAbsolutePath().toString()
-		var srcPath = cwd + File.separator + "src-gen" + File.separator + filename
-		var buildPath = cwd + File.separator + "build" + File.separator + filename
-		var reactorCppPath = cwd + File.separator + "build" + File.separator + "reactor-cpp"
+		var srcPath = directory + File.separator + "src-gen" + File.separator + filename
+		var buildPath = directory + File.separator + "build" + File.separator + filename
+		var reactorCppPath = directory + File.separator + "build" + File.separator + "reactor-cpp"
 
 		makeCmd.addAll("make", "-j" + Runtime.getRuntime().availableProcessors(), "install")
-		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + cwd, "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
+		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + directory, "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
 
 		var buildDir = new File(buildPath)
 		if(!buildDir.exists()) buildDir.mkdirs()
 
+        println("--- In directory: " + buildDir)
 		println("--- Running: " + cmakeCmd.join(' '))
 		var cmakeBuilder = new ProcessBuilder(cmakeCmd)
 		cmakeBuilder.directory(buildDir)
