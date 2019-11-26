@@ -532,15 +532,10 @@ class CGenerator extends GeneratorBase {
                         generatePortVariablesInReaction(reactionInitialization,
                             trigger)
                     } else if (trigger.variable instanceof Action) {
-                        pr(
-                            reactionInitialization,
-                            "trigger_t* " + trigger.variable.name +
-                                ' = self->__' + trigger.variable.name + ';'
-                        );
                         actionsAsTriggers.add(trigger.variable as Action);
                         // If the action has a type, create variables for accessing the value.
                         val type = (trigger.variable as Action).type
-                        val valuePointer = trigger.variable.name + '->value'
+                        val valuePointer = 'self->__' + trigger.variable.name + '->value'
                         // Create the _has_value variable.
                         pr(reactionInitialization,
                             'bool ' + trigger.variable.name + '_has_value = (' +
@@ -559,8 +554,6 @@ class CGenerator extends GeneratorBase {
                             );
                         }
                     }
-                } else {
-                    // FIXME: should we generate code for the shutdown action?
                 }
             }
             if (reaction.triggers === null || reaction.triggers.size === 0) {
