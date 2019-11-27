@@ -760,8 +760,12 @@ class CppGenerator extends GeneratorBase {
 		add_dependencies(reactor-cpp dep-reactor-cpp "${CLI11_PATH}")
 		set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
 		
-		set(CMAKE_INSTALL_RPATH "${REACTOR_CPP_LIB_DIR}")
-		set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+		if (APPLE)
+		  set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
+		else ()
+		  set(CMAKE_INSTALL_RPATH "${REACTOR_CPP_LIB_DIR}")
+		endif ()
+		set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 		
 		add_executable(«filename»
 		  main.cc
