@@ -84,7 +84,7 @@ class TypeScriptGenerator extends GeneratorBase {
         var srcGenPath = directory + File.separator + "src-gen"
         // FIXME: Perhaps bin is not the best name, but we need a place to put
         // the result of compiling the .ts file to .js.
-        var outPath = directory + File.separator + "bin"
+        var outPath = directory + File.separator + "js"
 
         // Create output directories if they don't yet exist
         var dir = new File(srcGenPath)
@@ -109,19 +109,26 @@ class TypeScriptGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + tsFilename));
         fOut.write(getCode().getBytes())
 
-        // Copy the required library files into the target filesystem.
-        /* FIXME: This is what it looks like in the CGenerator:
+        // Copy the required library files into the src-gen directory
+        // so they may be compiled as part of the TypeScript project
         fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "reactor_common.c"));
-        fOut.write(readFileInClasspath("/lib/C/reactor_common.c").getBytes())
-        * 
-        */
+            new File(srcGenPath + File.separator + "reactor.ts"));
+        fOut.write(readFileInClasspath("/lib/TS/reactor.ts").getBytes())
+
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "time.ts"));
+        fOut.write(readFileInClasspath("/lib/TS/time.ts").getBytes())
+
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "util.ts"));
+        fOut.write(readFileInClasspath("/lib/TS/util.ts").getBytes())
+
 
         refreshProject()
 
         // Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + tsFilename;
-        val relativeBinFilename = "bin" + File.separator + filename + '.js';
+        val relativeTSFilename = "ts" + File.separator + filename + '.js';
         // FIXME: Perhaps add a compileCommand option to the target directive, as in C.
         // Here, we just use a generic compile command.
         var compileCommand = newArrayList()
@@ -141,7 +148,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
         // Must compile to ES2015 or later and include the dom library.
         compileCommand.addAll("tsc",  relativeSrcFilename, 
-            "--outDir", "bin", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
+            "--outDir", "ts", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
              "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
              "--strictNullChecks", "true"); //, relativeBinFilename, "--lib DOM")
         
@@ -552,6 +559,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         // FIXME: hardcoding a 3 second timeout because
         // I don't know how to get this dynamically right now.
+        // Get this from a command line argument?
         arguments += "[3, TimeUnit.secs], '" + fullName + "'" 
         pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
     }
@@ -642,11 +650,13 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     }
 
+    static val reactorLibPath = "." + File.separator + "reactor"
+    static val timeLibPath =  "." + File.separator + "time"
     val static preamble = '''
 'use strict';
 
-import {Reactor, Trigger, Reaction, Timer, Action,  App} from '../reactor';
-import {TimeInterval, TimeUnit, numericTimeSum } from "../time"
+import {Reactor, Trigger, Reaction, Timer, Action,  App} from "''' + reactorLibPath + '''";
+import {TimeInterval, TimeUnit, numericTimeSum } from "''' + timeLibPath + '''"
 
     '''
 
