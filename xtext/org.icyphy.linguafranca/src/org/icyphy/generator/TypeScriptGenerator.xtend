@@ -343,22 +343,32 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         // Next handle actions.
         for (action : reactor.actions) {
-            prSourceLineNumber(action)
+//            prSourceLineNumber(action)
             // NOTE: Slightly obfuscate output name to help prevent accidental use.
             pr(body, "trigger_t* __" + action.name + ";")
         }
+        
         // Next handle inputs.
         for (input : reactor.inputs) {
-            prSourceLineNumber(input)
             if (input.type === null) {
                 reportError(input,
                     "Input is required to have a type: " + input.name)
             } else {
-                // NOTE: Slightly obfuscate input name to help prevent accidental use.
-                pr(body,
-                    removeCodeDelimiter(input.type) + '* __' + input.name +
-                        ';');
-                pr(body, 'bool* __' + input.name + '_is_present;');
+                pr(input.name + ": " + "InPort<" + input.type + ">;")
+                pr(reactorConstructor, "this." + input.name + " = new InPort<"
+                    + input.type + ">(this);")
+            }
+        }
+        
+        // Next handle outputs.
+        for (output : reactor.outputs) {
+            if (output.type === null) {
+                reportError(output,
+                    "Output is required to have a type: " + output.name)
+            } else {
+                pr(output.name + ": " + "OutPort<" + output.type + ">;")
+                pr(reactorConstructor, "this." + output.name + " = new OutPort<"
+                    + output.type + ">(this);")
             }
         }
 
@@ -386,7 +396,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Next handle outputs.
         for (output : reactor.outputs) {
-            prSourceLineNumber(output)
+//            prSourceLineNumber(output)
             if (output.type === null) {
                 reportError(output,
                     "Output is required to have a type: " + output.name)
@@ -523,14 +533,14 @@ class TypeScriptGenerator extends GeneratorBase {
 //            }
 //        }
 
-        if (body.length > 0) {
-            selfStructType(reactor)
-            pr("typedef struct {")
-            indent()
-            pr(body.toString)
-            unindent()
-            pr("} " + argType + ";")
-        }
+//        if (body.length > 0) {
+//            selfStructType(reactor)
+//            pr("typedef struct {")
+//            indent()
+//            pr(body.toString)
+//            unindent()
+//            pr("} " + argType + ";")
+//        }
         
         
         reactorConstructor.unindent()
@@ -701,7 +711,7 @@ class TypeScriptGenerator extends GeneratorBase {
     val static preamble = '''
 'use strict';
 
-import {Reactor, Trigger, Reaction, Timer, Action,  App} from "''' + reactorLibPath + '''";
+import {Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
 import {TimeInterval, TimeUnit, numericTimeSum } from "''' + timeLibPath + '''"
 
     '''
