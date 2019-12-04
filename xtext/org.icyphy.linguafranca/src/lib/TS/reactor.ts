@@ -104,7 +104,7 @@ export abstract class Reaction{
     // The dependencies for this reaction.
     uses: Array<InPort<any>>;
     // The antidependencies for this reaction.
-    effects: Array<OutPort<any> | Action<any>> 
+    effects: Array<Port<any> | Action<any>> 
 
     //A reaction defaults to not having a deadline  
     deadline: null| Deadline = null;
@@ -145,7 +145,7 @@ export abstract class Reaction{
      * @param priority 
      */
     constructor(state: Reactor, triggers: Array<Trigger>,
-                 uses: Array<InPort<any>> , effects: Array<OutPort<any> | Action<any>> ){
+                 uses: Array<InPort<any>> , effects: Array<Port<any> | Action<any>> ){
         this.triggers = triggers;
         this.state = state;
         this.uses = uses;
@@ -972,6 +972,10 @@ export abstract class Port<T> implements Named {
     // This attribute is set by the parent reactor's constructor.
     protected parent: Reactor;
 
+    // Port values are obtained set push semantics.
+    // I.e. when set() is called on a port, connected downstream ports
+    // are recursively traversed from source to sink, and for each this _value
+    // property is updated with the set value.
     protected _value: TimestampedValue<T> | null = null;
     
     /**
@@ -989,7 +993,6 @@ export abstract class Port<T> implements Named {
 
     public abstract connect(source: Port<T>): void;
     public abstract canConnect(source: Port<T>): boolean;
-    public abstract get():T | null;
     // public abstract set(value: T): void;
 
     _connectedSinkPorts: Set<Port<T>> = new Set<Port<T>>();
@@ -1052,10 +1055,11 @@ export abstract class Port<T> implements Named {
      * Note: It is considered incorrect for a reaction to directly call this
      * function on a port. Instead, reactions should call the "set()" function on 
      * an OutPort. InPorts should not be set().
-     * @param value The value to assign to this output port.
+     * @param value The value to assign to this port.
      */
     _writeValue(value: T):void {
         // console.log("calling _writeValue on: " + this);
+        this._value = [this.parent._app._getcurrentlogicaltime(), value];
         if(this instanceof InPort){
             // Input ports can trigger reactions for the reactor
             // they are attached to.
@@ -1069,7 +1073,6 @@ export abstract class Port<T> implements Named {
         } else {
             // Output ports can trigger reactions for a reactor containing the
             // reactor they are attached to.
-            this._value = [this.parent._app._getcurrentlogicaltime(), value];
             if(this._hasGrandparent() && this.parent._getParent()){
                 for (let r of (this.parent._getParent() as Reactor)._reactions) {
                     if (r.triggers.includes(this)) {
@@ -1083,6 +1086,44 @@ export abstract class Port<T> implements Named {
 
         for(const port of this._connectedSinkPorts){
             port._writeValue(value);
+        }
+    }
+
+    /**
+     * Returns true if the connected port's value has been set.
+     * an output port or an input port with a value set at the current logical time
+     * Returns false otherwise
+     */
+    public isPresent(){
+        if(this._value && timeInstantsAreEqual(this._value[0],this.parent._app._getcurrentlogicaltime() )){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+    * Write a value to this Port and recursively transmit the value to connected
+    * ports while triggering reactions triggered by that port. Uses push semantics,
+    * so the value of a downstream port is determined by the last call to set on an
+    * upstream port.
+    * @param value The value to be written to this port.
+    */
+    public set(value: T):void {
+        this._writeValue(value);
+    }
+
+    /**
+     * Obtains the value set to this port. Values are either set directly by calling set()
+     * on this port, or indirectly by calling set() on a connected upstream port.
+     * Will return null if the connected output did not have its value set at the current
+     * logical time.
+     */
+    public get(): T | null {
+        if(this._value && this.isPresent()){
+            return this._value[1];
+        } else {
+            return null;
         }
     }
 
@@ -1108,22 +1149,6 @@ export class OutPort<T> extends Port<T> implements Port<T>, Writable<T> {
     // _connectedSourcePort: Port<T> | null = null;
 
     /***** Priviledged functions *****/
-
-    public isPresent(){
-        if(this._value && timeInstantsAreEqual(this._value[0],this.parent._app._getcurrentlogicaltime() )){
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public get(): T | null {
-        if(this._value && this.isPresent()){
-            return this._value[1];
-        } else {
-            return null;
-        }
-    }
 
     /**
      * Return the set of all InPorts connected to this OutPort
@@ -1174,15 +1199,6 @@ export class OutPort<T> extends Port<T> implements Port<T>, Writable<T> {
                 return false;
             }
         }
-    }
-
-    /**
-    * Write a value to this OutPort and recursively transmit the value to connected
-    * ports while triggering reactions triggered by that port. 
-    * @param value The value to be written to this port.
-    */
-    public set(value: T):void {
-        this._writeValue(value);
     }
 
     // NOTE: Due to assymmetry (subtyping) we cannot allow connecting 
@@ -1254,58 +1270,6 @@ export class InPort<T> extends Port<T> implements Readable<T> {
     /***** Priviledged functions *****/      
     //send: (value: ?$Subtype<T>, delay?:number) => void;
     //writeValue: (value: T ) => void;
-
-    /**
-     * Returns true if the connected port is directly or indirectly connected to
-     * an output port with a value set at the current logical time. Returns false otherwise
-     * Throws an error if not connected directly or indirectly to an output port.
-     */
-    public isPresent():boolean {
-        if(this._connectedSourcePort){
-            if(this._connectedSourcePort instanceof OutPort){
-                let portValue = this._connectedSourcePort._getValue();
-                if( portValue === null ||
-                    ! timeInstantsAreEqual(portValue[0], this.parent._app._getcurrentlogicaltime() )){
-                        return false;
-                    } else {
-                        return true;
-                    }
-            } else if(this._connectedSourcePort instanceof InPort) {
-                return this._connectedSourcePort.isPresent();
-            } else {
-                throw new Error("Can only call isPresent() on an InPort or an OutPort");
-            }
-        } else {
-            throw new Error("Cannot test a disconnected input port for a present value.")
-        }
-    }
-
-    /**
-     * Obtains a value from the connected port. If connected to an output port, this
-     * can be done directly. If connected to an input port, recursively call get on that.
-     * Throws an error if this port is not connected to anything
-     * or is connected to a chain of input ports which is not terminated by a connection
-     * to an output port.
-     * Will return null if the connected output did not have its value set at the current
-     * logical time.
-     */
-    get():T | null {
-        // console.log("calling get on " + this);
-        if(this._connectedSourcePort){
-            if(this._connectedSourcePort instanceof OutPort){
-                let portValue = this._connectedSourcePort._getValue();
-                if(portValue && this.isPresent()){
-                    return portValue[1];
-                } else {
-                    return null;
-                }
-            } else {
-                return this._connectedSourcePort.get();
-            }
-        } else {
-            throw new Error("Cannot get value from a disconnected port.")
-        }
-    }
 
     /**
      * Returns true if this port can be connected to source. False otherwise. 
