@@ -447,12 +447,22 @@ class TypeScriptGenerator extends GeneratorBase {
             reactionArguments += "], ["
             
             for(source : reaction.sources ){
-                reactionArguments += "this." + source.variable.name + ", "
+                if(source.container === null ){
+                    reactionArguments += "this." + source.variable.name + ", "    
+                } else {
+                    reactionArguments += "this." + source.container.name + "." + source.variable.name + ", "
+                }
+                
             }
             reactionArguments += "], ["
             
             for(effect : reaction.effects ){
-                reactionArguments += "this." + effect.variable.name + ", "
+                if(effect.container === null){
+                    reactionArguments += "this." + effect.variable.name + ", "    
+                } else {
+                    reactionArguments += "this." + effect.container.name + "." + effect.variable.name + ", "
+                }
+                
             }
             reactionArguments +="]"
             
