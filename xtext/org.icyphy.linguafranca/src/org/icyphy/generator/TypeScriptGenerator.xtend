@@ -198,7 +198,12 @@ class TypeScriptGenerator extends GeneratorBase {
             pr("\n// *********** End of preamble.")
         }
 
-        pr("class " + reactor.name + " extends App {")
+        if(reactor.isMain()){
+            pr("class " + reactor.name + " extends App {")
+        } else {
+            pr("class " + reactor.name + " extends Reactor {")
+        }
+        
         indent()
         
         // Perhaps leverage TypeScript's mechanism for default
@@ -214,14 +219,54 @@ class TypeScriptGenerator extends GeneratorBase {
                     parameter.name + ": " + getParameterType(parameter) + ", ";
             }
         }
-        // For TS, parameters are arguments of the class constructor.
-        pr(reactorConstructor, "constructor(" + arguments 
-            + "timeout: TimeInterval | null, name?: string) {"
-        )
         
-        reactorConstructor.indent()
-        pr(reactorConstructor, "super(timeout, name);");
-          
+        
+        // For TS, parameters are arguments of the class constructor.
+        if(reactor.isMain()){
+            pr(reactorConstructor, "constructor(" + arguments 
+                + "timeout: TimeInterval | null, name?: string) {"
+            )
+           
+            reactorConstructor.indent()
+            pr(reactorConstructor, "super(timeout, name);");
+            
+        } else {
+            pr(reactorConstructor, "constructor(" + arguments 
+                + "parent:Reactor, name?: string) {"
+            )
+           
+            reactorConstructor.indent()
+            pr(reactorConstructor, "super(parent, name);");
+        }
+        
+        // Next handle child reactors instantiations
+        for (childReactor : reactor.instantiations ) {
+            pr(childReactor.getName() + ": " + childReactor.reactorClass.name )
+            
+            var childReactorArguments = new StringBuffer();
+        
+            // Iterate through parameters in the order they appear in the
+            // reactor class, find the matching parameter assignments in
+            // the reactor instance, and write the corresponding parameter
+            // value as an argument for the TypeScript constructor 
+            for (parameter : childReactor.reactorClass.parameters ){
+                for (parameterAssignment : childReactor.parameters){
+                    if(parameterAssignment.lhs.equals(parameter) ){
+                        childReactorArguments.append(parameterAssignment.rhs)
+                        childReactorArguments.append(", ")
+                    }
+                }
+            }
+            
+            // These arguments are always the last of a TypeScript reactor constructor
+            childReactorArguments.append("this, " +  "'" + reactor.name + "/" + childReactor.name + "'");
+            
+            pr(reactorConstructor, "this." + childReactor.getName()
+                + " = new " + childReactor.reactorClass.name + "("
+                + childReactorArguments.toString() + ")" )
+        }
+       
+        
         // Next handle timers.
         for (timer : reactor.timers) {
             var String period;
@@ -258,6 +303,7 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactorConstructor, "this." + timer.getName()
                 + " = new Timer(this, " + period + ","+ offset + ");")
         }
+        
         
         // FIXME: delete this section. I uncommented parts to keep the rest compiling.
 //        // Put parameters into a struct and construct the code to go
