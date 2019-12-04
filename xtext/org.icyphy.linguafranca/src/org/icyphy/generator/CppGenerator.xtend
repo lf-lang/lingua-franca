@@ -795,33 +795,74 @@ class CppGenerator extends GeneratorBase {
 		var buildPath = directory + File.separator + "build" + File.separator + filename
 		var reactorCppPath = directory + File.separator + "build" + File.separator + "reactor-cpp"
 
-		makeCmd.addAll("make", "-j" + Runtime.getRuntime().availableProcessors(), "install")
-		cmakeCmd.addAll("cmake", "-DCMAKE_INSTALL_PREFIX=" + directory, "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
-
+        // Make sure cmake is found in the PATH.
+        var cmakeTest = newArrayList()
+        var cmake = "cmake"
+        cmakeTest.addAll("which", cmake)
+        var cmakeTestBuilder = new ProcessBuilder(cmakeTest)
+        var cmakeTestReturn = cmakeTestBuilder.start().waitFor()
+        if (cmakeTestReturn != 0) {
+            println("WARNING: cmake not found on PATH: " + cmakeTestBuilder.environment.get("PATH"))
+            cmake = "/opt/local/bin/cmake"
+            println("Trying " + cmake)
+            cmakeTest.clear
+            cmakeTest.addAll("which", cmake)
+            cmakeTestReturn = cmakeTestBuilder.start().waitFor()
+            if (cmakeTestReturn != 0) {
+                reportError("cmake not found on PATH nor in /opt/local/bin.\n"
+                    + "See https://cmake.org/install to install cmake "
+                    + "or adjust the global PATH variable on your platform (e.g. /etc/paths).")
+                return
+            }
+        }
 		var buildDir = new File(buildPath)
 		if(!buildDir.exists()) buildDir.mkdirs()
+
+        makeCmd.addAll("make", "-j" + Runtime.getRuntime().availableProcessors(), "install")
+        cmakeCmd.addAll(cmake, "-DCMAKE_INSTALL_PREFIX=" + directory, "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
 
         println("--- In directory: " + buildDir)
 		println("--- Running: " + cmakeCmd.join(' '))
 		var cmakeBuilder = new ProcessBuilder(cmakeCmd)
 		cmakeBuilder.directory(buildDir)
-		var cmakeProcess = cmakeBuilder.inheritIO().start()
-		cmakeProcess.waitFor()
+		var cmakeProcess = cmakeBuilder.start()
+        val returnCode = cmakeProcess.waitFor()
 
-		if (cmakeProcess.exitValue() == 0) {
-			println("--- Running make:")
+        var stdout = readStream(cmakeProcess.getInputStream())
+        var stderr = readStream(cmakeProcess.getErrorStream())
+        if (stdout.length() > 0) {
+            println("------ Standard output from cmake command:")
+            println(stdout)
+            println("------ End of standard output from cmake command.")
+        }
+        if (returnCode != 0) {
+            reportError("cmake returns error code " + returnCode)
+        }
+        if (stderr.length() > 0) {
+            reportError("ERROR: cmake reports errors:\n" + stderr.toString)
+        }
+        // If cmake succeeded, run make.
+		if (returnCode == 0) {
+		    println("--- In directory: " + buildDir)
+			println("--- Running: " + makeCmd.join(" "))
 			var makeBuilder = new ProcessBuilder(makeCmd)
 			makeBuilder.directory(buildDir)
-			var makeProcess = makeBuilder.inheritIO().start()
-			makeProcess.waitFor()
+			var makeProcess = makeBuilder.start()
+			var makeReturnCode = makeProcess.waitFor()
+            stdout = readStream(makeProcess.getInputStream())
+            stderr = readStream(makeProcess.getErrorStream())
 
-			if (makeProcess.exitValue() == 0) {
+			if (makeReturnCode == 0) {
 				println("SUCCESS (compiling generated C++ code)")
+				println("Generated code is in "
+				    + directory + File.separator + "bin" + File.separator + filename
+				)
 			} else {
-				println("ERROR (while compiling generated C++ code)")
+                reportError("make returns error code " + makeReturnCode)
 			}
-		} else {
-			println("ERROR (while executing cmake)")
+			if (stderr.length() > 0) {
+                reportError("make reports errors:\n" + stderr.toString)
+            }			
 		}
 	}
 	
