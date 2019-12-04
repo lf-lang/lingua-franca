@@ -1,0 +1,62 @@
+target C;
+// Source produces a dynamically allocated array, which is passes
+// to Print. Reference counting ensures that the array is freed.
+reactor Source {
+    preamble{=
+        // Included code below should be generated or in a library.
+        // So we should not need this.
+        #include "../arrays.c"
+    =}
+    output out:token_t; // FIXME: Type should be declared array(int)?
+    reaction(startup) {=
+        // The following should be generated in __initialize_trigger_objects
+        // (or perhaps as the first startup reaction here.)
+        // Initialize element_size and initial_ref_count fields for each array-type output.
+        self->__out.element_size = sizeof(int);
+        self->__out.initial_ref_count = 1; // Number of destination connections.
+    =}
+    reaction(startup) -> out {=
+        // Specify that the output will be an array of length 3.
+        // Note that this also sets the output to the new array.
+        int* out_value = new_array(out, 3);
+        
+        // Above returns the array, which then must be populated.
+        out_value[0] = 0;
+        out_value[1] = 1;
+        out_value[2] = 2;
+    =}
+}
+reactor Print {
+    input in:token_t; // FIXME: Type should be declared array(int)?
+    reaction(in) {=
+        // FIXME: "in" should be bound to the token->value
+        // pointer cast appropriately, and in_length to token->length.
+        // Currently, "in" is a copy of the token_t struct, which is not what we want.
+        // So here, we bind "in_" to what we want.
+        int* in_ = (int*) self->__in->value;
+        int in_length = self->__in->length;
+        
+        // Begin verbatim code (using "in_" instead of "in") because code
+        // generator generates incorrect binding for "in".
+        //----------------
+        printf("Received: [");
+        for (int i = 0; i < in_length; i++) {
+            if (i > 0) printf(", ");
+            printf("%d", in_[i]);
+        }
+        printf("]\n");
+        //----------------
+    =}
+    // Generated reaction is triggered by any input, reads any input.
+    // FIXME: Should be able to have empty trigger clause. Doesn't work!
+    reaction(in) {=
+        if (in_is_present) {
+            __done_using(self->__in);
+        }
+    =}
+}
+main reactor ArrayPrint {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}
