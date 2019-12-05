@@ -1,0 +1,24 @@
+// TypeScript translated example from Schedule section of the C Reactor Target wiki page.
+target TypeScript;
+reactor Schedule {
+    input x:number;
+    logical action a;
+    reaction(x) -> a {=
+        (this.state as any).a.schedule( [200, TimeUnit.msec], null)
+    =}
+    reaction(a) {=
+        let elapsedTime = numericTimeDifference(this._getCurrentLogicalTime()[0], this.state._app._getStartingWallTime());
+        console.log("Action triggered at logical time " + elapsedTime + " (sec, nsec) after start.");
+        if ( numericTimeEquals(elapsed elapsedTime[0] != 0 || elapsedTime[1] != 200000000) {
+            console.log("Expected action time to be 200 msec. It was " + elapsedTime + " (sec, nsec).")
+            //exit(1);
+        }
+    =}
+}
+main reactor Main {
+    a = new Schedule();
+    timer t;
+    reaction(t) -> a.x {=
+        (this.state as any).a.x.set(1);
+    =}
+}

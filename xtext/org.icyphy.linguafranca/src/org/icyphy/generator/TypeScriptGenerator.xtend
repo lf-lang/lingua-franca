@@ -82,8 +82,6 @@ class TypeScriptGenerator extends GeneratorBase {
         val tsFilename = filename + ".ts";
 
         var srcGenPath = directory + File.separator + "src-gen"
-        // FIXME: Perhaps bin is not the best name, but we need a place to put
-        // the result of compiling the .ts file to .js.
         var outPath = directory + File.separator + "js"
 
         // Create output directories if they don't yet exist
@@ -148,7 +146,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
         // Must compile to ES2015 or later and include the dom library.
         compileCommand.addAll("tsc",  relativeSrcFilename, 
-            "--outDir", "ts", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
+            "--outDir", "js", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
              "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
              "--strictNullChecks", "true"); //, relativeBinFilename, "--lib DOM")
         
@@ -343,9 +341,15 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         // Next handle actions.
         for (action : reactor.actions) {
-//            prSourceLineNumber(action)
-            // NOTE: Slightly obfuscate output name to help prevent accidental use.
-            pr(body, "trigger_t* __" + action.name + ";")
+            pr(action.name + ": Action<" + action.type + ">;")
+            var actionArgs = "this, TimelineClass." + action.origin 
+            
+            if(action.delay !== null){
+                // Actions in the TypeScript target are constructed
+                // with an optional minDelay argument which defaults to 0.
+                actionArgs+= ", " + action.delay
+            }
+            pr(reactorConstructor, "this." + action.name + " = new Action<" + action.type +">(" + actionArgs  + ");")
         }
         
         // Next handle inputs.
@@ -722,7 +726,7 @@ class TypeScriptGenerator extends GeneratorBase {
 'use strict';
 
 import {Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
-import {TimeInterval, TimeUnit, numericTimeSum } from "''' + timeLibPath + '''"
+import {TimeInterval, TimeUnit, TimelineClass, numericTimeSum, numericTimeDifference } from "''' + timeLibPath + '''"
 
     '''
 
