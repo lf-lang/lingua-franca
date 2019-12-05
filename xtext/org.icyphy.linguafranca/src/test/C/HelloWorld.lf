@@ -6,5 +6,5 @@ reactor HelloWorld {
     =}
 }
 main reactor HelloWorldTest {
-    a = new HelloWorldInside();
+    a = new HelloWorld();
 }
