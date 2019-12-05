@@ -1,0 +1,6 @@
+target TypeScript;
+import HelloWorld.lf;
+main reactor SimpleImport {
+    a = new HelloWorldInside();
+    b = new HelloWorldInside();
+}
