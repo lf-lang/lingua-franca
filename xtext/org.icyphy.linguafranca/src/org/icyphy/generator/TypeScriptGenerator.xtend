@@ -302,6 +302,11 @@ class TypeScriptGenerator extends GeneratorBase {
                 + " = new Timer(this, " + period + ","+ offset + ");")
         }
         
+        // FIXME Handle shutdown triggers
+        // The startup trigger is a special timer named _startup
+//        pr("_startupTimer: Timer;");
+//        pr(reactorConstructor, "this._startupTimer = new Timer(this, 0, 0);");
+//        
         
         // FIXME: delete this section. I uncommented parts to keep the rest compiling.
 //        // Put parameters into a struct and construct the code to go
@@ -331,13 +336,15 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (state.ofTimeType) {
                     pr(state.name + ': ' +
                         timeTypeInTargetLanguage + ';');
+                    pr(reactorConstructor, "this." + state.name + " = "
+                        + timeInTargetLanguage( state.time.toString, state.unit) + ";" )
                 } else {
                     pr(state.name + ': ' +
                         removeCodeDelimiter(state.type) + ';');
+                    pr(reactorConstructor, "this." + state.name + " = "
+                        + state.value + ";" )
                 }
             }
-            pr(reactorConstructor, "this." + state.name + " = "
-                + state.value + ";" )
         }
         // Next handle actions.
         for (action : reactor.actions) {
@@ -440,7 +447,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         
         
-        // FIXME: Handle startup and shutdown triggers
+        
         // Next handle reaction instances
         var reactionArray = "this._reactions = [ "
         var reactionIndex = 0;
@@ -456,15 +463,16 @@ class TypeScriptGenerator extends GeneratorBase {
                     if(trigger.container === null){
                         triggerContainerName = "this";
                     } else {
-                        // FIXME: No idea if this line actually works,
-                        // I don't have a way to test it at the moment.
                         triggerContainerName = trigger.container.name;
                     }
                     
                     reactionArguments += triggerContainerName + "." + trigger.variable.name + ", "
-                } else {
-                    reportError("TypeScript code generator does not yet handle startup and shutdown triggers")
-                }      
+                } 
+//                else {
+//                    if( trigger.startup){
+//                        reactionArguments += "this._startupTimer, "
+//                    }
+//                }      
             }
             reactionArguments += "], ["
             
@@ -641,14 +649,15 @@ class TypeScriptGenerator extends GeneratorBase {
         pr('// ************* Instance ' + fullName + ' of class ' +
             reactorClass.name)
             
-        var arguments = "";
-        for (parameter : instance.parameters) {
-            arguments += parameter.literalValue + ", "
-        }
+//        var arguments = "";
+//        for (parameter : instance.parameters) {
+//            arguments += parameter.literalValue + ", "
+//        }
+
         // FIXME: hardcoding a 3 second timeout because
         // I don't know how to get this dynamically right now.
         // Get this from a command line argument?
-        arguments += "[3, TimeUnit.secs], '" + fullName + "'" 
+        var arguments = "[3, TimeUnit.secs], '" + fullName + "'" 
         pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
     }
     
@@ -694,6 +703,7 @@ class TypeScriptGenerator extends GeneratorBase {
     override acceptableTargets() {
         acceptableTargetSet
     }
+    
 
     /** Generate preamble code that appears in the code generated
      *  file before anything else.
@@ -710,6 +720,29 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     protected def reactionStructName(ReactionInstance reaction) {
         reaction.uniqueID
+    }
+    
+     /** Return a string that the target language can recognize as a type
+     *  for a time value. In TypeScript this is a TimeInterval.
+     *  @return The string "TimeInterval"
+     */
+    override timeTypeInTargetLanguage() {
+        "TimeInterval"
+    }
+
+    /** Given a representation of time that may possibly include units,
+     *  return a string that TypeScript can recognize as a value.
+     *  @param time Literal that represents a time value.
+     *  @param unit Enum that denotes units
+     *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
+     */
+    override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
+        if (unit != TimeUnit.NONE){
+            "[" + timeLiteral + ", " + "TimeUnit." + unit + "]"
+        } else {
+            "[" + timeLiteral + ", " + "TimeUnit.msec]"
+        }
+        
     }
 
     // //////////////////////////////////////////
@@ -744,7 +777,7 @@ class TypeScriptGenerator extends GeneratorBase {
 'use strict';
 
 import {Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
-import {TimeInterval, TimeUnit, TimelineClass, numericTimeSum, numericTimeDifference } from "''' + timeLibPath + '''"
+import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeSum, numericTimeDifference } from "''' + timeLibPath + '''"
 
     '''
 
