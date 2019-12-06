@@ -2,6 +2,7 @@ package org.icyphy.linguafranca.diagram.synthesis
 
 import com.google.common.collect.HashBasedTable
 import com.google.common.collect.HashMultimap
+import com.google.common.collect.Table
 import de.cau.cs.kieler.klighd.DisplayedActionData
 import de.cau.cs.kieler.klighd.SynthesisOption
 import de.cau.cs.kieler.klighd.kgraph.KEdge
@@ -29,6 +30,7 @@ import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
 import org.eclipse.elk.alg.layered.p4nodes.bk.EdgeStraighteningStrategy
 import org.eclipse.elk.core.math.ElkPadding
+import org.eclipse.elk.core.options.BoxLayouterOptions
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.Direction
 import org.eclipse.elk.core.options.PortConstraints
@@ -78,7 +80,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 	
 	/** Synthesis options */
-	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
+//	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
+	public static val SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false)
 	public static val SynthesisOption SHOW_REACTOR_PARAMETERS = SynthesisOption.createCheckOption("Reactor Parameters", false)
 	public static val SynthesisOption SHOW_REACTOR_PARAMETERS_STACKED = SynthesisOption.createCheckOption("Reactor Parameters (stacked)", false)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false)
@@ -92,7 +95,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	override getDisplayedSynthesisOptions() {
 		return #[
-			SHOW_MAIN_REACTOR,
+			SHOW_ALL_REACTORS,
 			SHOW_REACTOR_PARAMETERS,
 			SHOW_REACTOR_PARAMETERS_STACKED,
 			SHOW_INSTANCE_NAMES,
@@ -111,59 +114,41 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	override KNode transform(Model model) {
 		val rootNode = createNode()
-		var mainNode = rootNode
 
 		try {
 			// Find main
 			val main = model.reactors.findFirst[main]
-			if (main !== null && main.hasContent) {
-				val nodes = main.transformReactorNetwork(emptyMap, emptyMap)
-				if (SHOW_MAIN_REACTOR.booleanValue) {
-					mainNode = createNode(main)
-					mainNode.associateWith(main)
-					mainNode.ID = "main"
-					mainNode.addMainReactorFigure(main.createReactorLabel(null)) => [
-						associateWith(main)
-						if (SHOW_REACTOR_PARAMETERS_STACKED.booleanValue) {
-							for (param : main.parameters) {
-								addText(param.createParameterLabel(true)) => [
-									fontSize = 8
-									horizontalAlignment = HorizontalAlignment.LEFT
-									setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
-								]
-							}
-						}
-						addChildArea()
-					]
-					mainNode.children += nodes
-					rootNode.children += mainNode
-					
-					// only for main reactor node
-					mainNode.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE))
-					if (PAPER_MODE.booleanValue) {
-						node.addLayoutParam(CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6))
-					}
-				} else {
-					rootNode.children += nodes
-				}
-				
-				mainNode.addLayoutParam(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
-				mainNode.addLayoutParam(CoreOptions.DIRECTION, Direction.RIGHT)
-				mainNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
-				mainNode.addLayoutParam(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
-				mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 1.1f)
-				mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 1.1f)
-				if (PAPER_MODE.booleanValue) {
-					mainNode.addLayoutParam(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
-					mainNode.addLayoutParam(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
-					mainNode.addLayoutParam(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
-					mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 0.75f)
-					mainNode.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 0.75f)
-				}
+			if (main !== null) {
+				rootNode.children += main.createReactorNode(true, true, null, null, null)
 			} else {
 				val messageNode = createNode()
-				messageNode.addErrorMessage("No Main", "Cannot find main reactor with content.")
+				messageNode.addErrorMessage("No Main Reactor", null)
 				rootNode.children += messageNode
+			}
+			
+			// Show all reactors
+			if (main === null || SHOW_ALL_REACTORS.booleanValue) {
+				val reactorNodes = newArrayList()
+				for (reactor : model.reactors.filter[it !== main]) {
+					reactorNodes += reactor.createReactorNode(false, main === null, null, HashBasedTable.<Instantiation, Input, KPort>create, HashBasedTable.<Instantiation, Output, KPort>create)
+				}
+				if (!reactorNodes.empty) {
+					// To allow ordering, we need box layout but we also need layered layout for ports thus wrap all node
+					reactorNodes.add(0, rootNode.children.head)
+					for (entry : reactorNodes.indexed) {
+						rootNode.children += createNode() => [
+							children += entry.value
+							addInvisibleContainerRendering
+							setLayoutOption(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
+					        setLayoutOption(CoreOptions.PADDING, new ElkPadding(0))
+					        setLayoutOption(CoreOptions.SPACING_NODE_NODE, 0.0)
+					        setLayoutOption(CoreOptions.PRIORITY, reactorNodes.size - entry.key) // Order!
+						]
+					}
+					
+					rootNode.setLayoutOption(CoreOptions.ALGORITHM, BoxLayouterOptions.ALGORITHM_ID)
+			        rootNode.setLayoutOption(CoreOptions.SPACING_NODE_NODE, 25.0)
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace
@@ -175,47 +160,53 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		return rootNode
 	}
-
-	private def List<KNode> transformReactorNetwork(Reactor reactor, Map<Input, KPort> parentInputPorts, Map<Output, KPort> parentOutputPorts) {
-		val nodes = <KNode>newArrayList
-		val inputPorts = HashBasedTable.<Instantiation, Input, KPort>create
-		val outputPorts = HashBasedTable.<Instantiation, Output, KPort>create
-		val reactionNodes = <Reaction, KNode>newHashMap
-		val actionDestinations = HashMultimap.<Action, KPort>create
-		val actionSources = HashMultimap.<Action, KPort>create
-		val timerNodes = <Timer, KNode>newHashMap
-		val startupNode = createNode
-		var startupUsed = false
-		val shutdownNode = createNode
-		var shutdownUsed = false
+	
+	private def KNode createReactorNode(Reactor reactor, boolean main, boolean expandDefault, Instantiation instance, Table<Instantiation, Input, KPort> inputPortsReg, Table<Instantiation, Output, KPort> outputPortsReg) {
+		val node = createNode()
+		node.associateWith(reactor)
+		node.ID = main ? "main" : reactor?.name
 		
-		// Transform instances
-		for (instance : reactor.instantiations) {
-			val node = createNode()
-			nodes += node
-			val reactorClass = instance.reactorClass
-
-			node.associateWith(reactorClass)
-			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
-			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
-			if (PAPER_MODE.booleanValue) {
-				node.addLayoutParam(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
-				node.addLayoutParam(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
-				node.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 0.75f)
-				node.addLayoutParam(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 0.75f)
-				node.addLayoutParam(CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6))
+		val label = reactor.createReactorLabel(instance)
+		
+		if (reactor === null) {
+			node.addErrorMessage("Reactor is null", null)
+		} else if (main) {
+			val figure = node.addMainReactorFigure(label)
+			
+			if (SHOW_REACTOR_PARAMETERS_STACKED.booleanValue) {
+				for (param : reactor.parameters) {
+					figure.addText(param.createParameterLabel(true)) => [
+						fontSize = 8
+						horizontalAlignment = HorizontalAlignment.LEFT
+						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+					]
+				}
 			}
+		
+			figure.addChildArea()
+			node.children += reactor.transformReactorNetwork(emptyMap, emptyMap)
 			
-			node.setLayoutOption(KlighdProperties.EXPAND, instance.getExpansionState?:false)
-			node.setProperty(REACTOR_INSTANCE, instance) // save to distinguish nodes associated with the same reactor
-			
-			var label = reactorClass.createReactorLabel(instance)
-
+			node.setLayoutOption(CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID)
+			node.setLayoutOption(CoreOptions.DIRECTION, Direction.RIGHT)
+			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE))
+			node.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED)
+			node.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
+			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 1.1f)
+			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 1.1f)
+			if (PAPER_MODE.booleanValue) {
+				node.setLayoutOption(CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6))
+				node.setLayoutOption(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
+				node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
+				node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+				node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 0.75f)
+				node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+			}
+		} else {
 			// Expanded Rectangle
-			node.addReactorFigure(reactorClass, label) => [
+			node.addReactorFigure(reactor, label) => [
+				associateWith(reactor)
 				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
 				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-				boldLineSelectionStyle
 
 				if (!PAPER_MODE.booleanValue) {
 					// Collapse button
@@ -227,7 +218,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				}
 				
 				if (SHOW_REACTOR_PARAMETERS_STACKED.booleanValue) {
-					for (param : reactorClass.parameters) {
+					for (param : reactor.parameters) {
 						addText(param.createParameterLabel(true)) => [
 							fontSize = 8
 							horizontalAlignment = HorizontalAlignment.LEFT
@@ -244,14 +235,16 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			]
 
 			// Collapse Rectangle
-			node.addReactorFigure(reactorClass, label) => [
+			node.addReactorFigure(reactor, label) => [
+				associateWith(reactor)
 				setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
-				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
-				boldLineSelectionStyle
+				if (reactor.hasContent) {
+					addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+				}
 
 				if (!PAPER_MODE.booleanValue) {
 					// Expand button
-					if (reactorClass.hasContent) {
+					if (reactor.hasContent) {
 						addTextButton("[Details]") => [
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
 							addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
@@ -260,19 +253,72 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					}
 				}
 			]
-
+			
 			// Create ports
-			for (input : reactorClass.inputs.reverseView) {
-				inputPorts.put(instance, input, node.addIOPort(input, true))
+			val inputPorts = <Input, KPort>newHashMap
+			val outputPorts = <Output, KPort>newHashMap
+			for (input : reactor.inputs.reverseView) {
+				inputPorts.put(input, node.addIOPort(input, true))
 			}
-			for (output : reactorClass.outputs) {
-				outputPorts.put(instance, output, node.addIOPort(output, false))
+			for (output : reactor.outputs) {
+				outputPorts.put(output, node.addIOPort(output, false))
 			}
 
 			// Add content
-			if (reactorClass.hasContent) {
-				node.children += reactorClass.transformReactorNetwork(inputPorts.row(instance), outputPorts.row(instance))
+			if (reactor.hasContent) {
+				node.children += reactor.transformReactorNetwork(inputPorts, outputPorts)
 			}
+			
+			// Pass port to given tables
+			if (instance !== null) {
+				if (inputPortsReg !== null) {
+					for (entry : inputPorts.entrySet) {
+						inputPortsReg.put(instance, entry.key, entry.value)
+					}
+				}
+				if (outputPortsReg !== null) {
+					for (entry : outputPorts.entrySet) {
+						outputPortsReg.put(instance, entry.key, entry.value)
+					}
+				}
+			}
+			
+			node.setLayoutOption(KlighdProperties.EXPAND, expandDefault)
+			node.setProperty(REACTOR_INSTANCE, instance) // save to distinguish nodes associated with the same reactor
+			
+			node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
+			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
+			if (PAPER_MODE.booleanValue) {
+				node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
+				node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+				node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 0.75f)
+				node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 0.75f)
+				node.setLayoutOption(CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6))
+			}
+		}		
+		
+		return node
+	}
+
+	private def List<KNode> transformReactorNetwork(Reactor reactor, Map<Input, KPort> parentInputPorts, Map<Output, KPort> parentOutputPorts) {
+		val nodes = <KNode>newArrayList
+		val inputPorts = HashBasedTable.<Instantiation, Input, KPort>create
+		val outputPorts = HashBasedTable.<Instantiation, Output, KPort>create
+		val reactionNodes = <Reaction, KNode>newHashMap
+		val actionDestinations = HashMultimap.<Action, KPort>create
+		val actionSources = HashMultimap.<Action, KPort>create
+		val timerNodes = <Timer, KNode>newHashMap
+		val startupNode = createNode
+		var startupUsed = false
+		val shutdownNode = createNode
+		var shutdownUsed = false
+		
+		// Transform instances
+		for (entry : reactor.instantiations.indexed) {
+			val instance = entry.value
+			val node = instance.reactorClass.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts)
+			node.setLayoutOption(CoreOptions.PRIORITY, reactor.instantiations.size - entry.key)
+			nodes += node
 		}
 		
 		// Create timers
@@ -290,6 +336,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			nodes += node
 			reactionNodes.put(reaction, node)
 			
+			node.setLayoutOption(CoreOptions.PRIORITY, (reactor.reactions.size - reactor.reactions.indexOf(reaction)) * 10 ) // always place with higher priority than reactor nodes
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			node.addReactionFigure(reaction)
 		
@@ -300,9 +347,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					port
 				} else {
 					node.addInvisiblePort() => [
-						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
+						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
 						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
-							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double) // manual adjustment disabling automatic one
+							setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions.REACTION_POINTINESS as double) // manual adjustment disabling automatic one
 						}
 					]
 				}
@@ -331,16 +378,16 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			
 			// connect dependencies
-			//port = null
+			//port = null // create new ports
 			for (VarRef dep : reaction.sources?:emptyList) {
 				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
 					port
 				} else {
 					node.addInvisiblePort() => [
-						//addLayoutParam(CoreOptions.PORT_SIDE, PortSide.NORTH)
-						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
+						//setLayoutOption(CoreOptions.PORT_SIDE, PortSide.NORTH)
+						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
 						if (REACTIONS_USE_HYPEREDGES.booleanValue || ((reaction.triggers?:emptyList).size + (reaction.sources?:emptyList).size) == 1) {
-							addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions::REACTION_POINTINESS as double)  // manual adjustment disabling automatic one
+							setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -LinguaFrancaShapeExtensions.REACTION_POINTINESS as double)  // manual adjustment disabling automatic one
 						}
 					]
 				}
@@ -361,13 +408,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			
 			// connect outputs
-			port = null
+			port = null // create new ports
 			for (VarRef effect : reaction.effects?:emptyList) {
 				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
 					port
 				} else {
 					node.addInvisiblePort() => [
-						addLayoutParam(CoreOptions.PORT_SIDE, PortSide.EAST)
+						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
 					]
 				}
 				if (effect.variable instanceof Action) {
@@ -422,7 +469,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				parentOutputPorts.get(connection.rightPort.variable)
 			}
 			val edge = createIODependencyEdge(connection).associateWith(connection)
-			edge.connect(source, target)
+			if (source !== null && target !== null) {
+				edge.connect(source, target)
+			}
 		}
 		
 		// Add startup/shutdown
@@ -460,8 +509,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		if (SHOW_INSTANCE_NAMES.booleanValue && instance !== null) {
 			b.append(instance.name).append(" : ")
 		}
-		b.append(reactor.name?:"Unknown")
-		if (SHOW_REACTOR_PARAMETERS.booleanValue) {
+		b.append(reactor === null ? "<NULL>" : reactor.name?:"<Unresolved Reactor>")
+		if (SHOW_REACTOR_PARAMETERS.booleanValue && reactor !== null) {
 			if (reactor.parameters.empty) {
 				b.append("()")
 			} else {
@@ -558,11 +607,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		port.setPortSize(6, 6)
 		
 		if (input) {
-			port.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
-			port.addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -3.0)
+			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
+			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -3.0)
 		} else {
-			port.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.EAST)
-			port.addLayoutParam(CoreOptions::PORT_BORDER_OFFSET, -3.0)
+			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
+			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -3.0)
 		}
 		
 		port.addTrianglePort()
