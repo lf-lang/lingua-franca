@@ -9,6 +9,7 @@ import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
+import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
@@ -90,8 +91,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
-	public static val SynthesisOption SHOW_REACTOR_PARAMETERS = SynthesisOption.createCheckOption("Reactor Parameters", false).setCategory(APPEARANCE)
-	public static val SynthesisOption SHOW_REACTOR_PARAMETERS_STACKED = SynthesisOption.createCheckOption("Reactor Parameters (stacked)", false).setCategory(APPEARANCE)
+	public static val SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ReactorParameterDisplayModes.values, ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE)
+	public static val SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE)
 	
     /** Synthesis actions */
     public static val DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details")
@@ -106,8 +107,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
 			SHOW_INSTANCE_NAMES,
-			SHOW_REACTOR_PARAMETERS,
-			SHOW_REACTOR_PARAMETERS_STACKED
+			REACTOR_PARAMETER_MODE,
+			REACTOR_PARAMETER_TABLE_COLS
 		]
 	}
 	
@@ -178,14 +179,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		} else if (main) {
 			val figure = node.addMainReactorFigure(label)
 			
-			if (SHOW_REACTOR_PARAMETERS_STACKED.booleanValue) {
-				for (param : reactor.parameters) {
-					figure.addText(param.createParameterLabel(true)) => [
-						fontSize = 8
-						horizontalAlignment = HorizontalAlignment.LEFT
-						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
-					]
-				}
+			if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactor.parameters.empty) {
+				figure.addRectangle() => [
+					invisible = true
+					setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+					horizontalAlignment = HorizontalAlignment.LEFT
+					
+					addParameterList(reactor.parameters)
+				]
 			}
 		
 			figure.addChildArea()
@@ -222,18 +223,18 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					]
 				}
 				
-				if (SHOW_REACTOR_PARAMETERS_STACKED.booleanValue) {
-					for (param : reactor.parameters) {
-						addText(param.createParameterLabel(true)) => [
-							fontSize = 8
-							horizontalAlignment = HorizontalAlignment.LEFT
-							if (PAPER_MODE.booleanValue) {
-								setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
-							} else {
-								setGridPlacementData().from(LEFT, 8, 0, TOP, 4, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
-							}
-						]
-					}
+				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactor.parameters.empty) {
+					addRectangle() => [
+						invisible = true
+						if (PAPER_MODE.booleanValue) {
+							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
+						} else {
+							setGridPlacementData().from(LEFT, 8, 0, TOP, 4, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
+						}
+						horizontalAlignment = HorizontalAlignment.LEFT
+						
+						addParameterList(reactor.parameters)
+					]
 				}
 
 				addChildArea()
@@ -515,7 +516,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			b.append(instance.name).append(" : ")
 		}
 		b.append(reactor === null ? "<NULL>" : reactor.name?:"<Unresolved Reactor>")
-		if (SHOW_REACTOR_PARAMETERS.booleanValue && reactor !== null) {
+		if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE && reactor !== null) {
 			if (reactor.parameters.empty) {
 				b.append("()")
 			} else {
@@ -523,6 +524,23 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 		}
 		return b.toString()
+	}
+	
+	private def addParameterList(KContainerRendering container, List<Parameter> parameters) {
+		var cols = 1
+		try {
+			cols = REACTOR_PARAMETER_TABLE_COLS.intValue
+		} catch (Exception e) {} // ignore
+		if (cols > parameters.size) {
+			cols = parameters.size
+		}
+		container.gridPlacement = cols
+		for (param : parameters) {
+			container.addText(param.createParameterLabel(true)) => [
+				fontSize = 8
+				horizontalAlignment = HorizontalAlignment.LEFT
+			]
+		}
 	}
 	
 	private def String createParameterLabel(Parameter param, boolean bullet) {
