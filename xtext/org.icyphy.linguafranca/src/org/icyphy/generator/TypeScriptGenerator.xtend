@@ -208,15 +208,15 @@ class TypeScriptGenerator extends GeneratorBase {
         // parameter values? For now it's simpler to just create
         // the reactor instance with the default argument value.
         var arguments = "";  
-//        for (parameter : reactor.parameters) {
-//            if (getParameterType(parameter).equals("")) {
-//                reportError(parameter,
-//                    "Parameter is required to have a type: " + parameter.name)
-//            } else {
-//                arguments +=
-//                    parameter.name + ": " + getParameterType(parameter) + ", ";
-//            }
-//        }
+        for (parameter : reactor.parameters) {
+            if (getParameterType(parameter).equals("")) {
+                reportError(parameter,
+                    "Parameter is required to have a type: " + parameter.name)
+            } else {
+                arguments +=
+                    parameter.name + ": " + getParameterType(parameter) + ", ";
+            }
+        }
         
         
         // For TS, parameters are arguments of the class constructor.
@@ -246,15 +246,37 @@ class TypeScriptGenerator extends GeneratorBase {
             // Iterate through parameters in the order they appear in the
             // reactor class, find the matching parameter assignments in
             // the reactor instance, and write the corresponding parameter
-            // value as an argument for the TypeScript constructor 
-//            for (parameter : childReactor.reactorClass.parameters ){
-//                for (parameterAssignment : childReactor.parameters){
-//                    if(parameterAssignment.lhs.equals(parameter) ){
-//                        childReactorArguments.append(parameterAssignment.rhs)
-//                        childReactorArguments.append(", ")
-//                    }
-//                }
-//            }
+            // value as an argument for the TypeScript constructor
+            for (parameter : childReactor.reactorClass.parameters ){
+                var boolean defaultParameter = true
+                
+                // Attempt to find a non-default parameter value
+                for (parameterAssignment : childReactor.parameters){
+                    if(parameterAssignment.lhs.name.equals(parameter.name) ){
+                        defaultParameter = false;
+                        if( parameterAssignment.rhs instanceof Parameter){
+                            childReactorArguments.append("this." + parameterAssignment.rhs.parameter.name)
+                        } else if( parameterAssignment.rhs.value !== null ){
+                            childReactorArguments.append(parameterAssignment.rhs.value)
+                        } else {
+                            childReactorArguments.append(
+                                timeInTargetLanguage(parameterAssignment.rhs.time.toString
+                                   , parameterAssignment.rhs.unit))
+                        }   
+                    }
+                }
+                // This reactor instance did not have a value for this
+                // parameter set, so use the default parameter value.
+                if(defaultParameter){
+                    if(parameter.ofTimeType ){
+                        childReactorArguments.append(
+                            timeInTargetLanguage(parameter.time.toString ,parameter.unit))
+                    } else{
+                        childReactorArguments.append(parameter.value)
+                    }
+                }
+                childReactorArguments.append(", ")
+            }
             
             // These arguments are always the last of a TypeScript reactor constructor
             childReactorArguments.append("this, " +  "'" + reactor.name + "/" + childReactor.name + "'");
@@ -315,7 +337,7 @@ class TypeScriptGenerator extends GeneratorBase {
         val argType = reactor.name.toLowerCase + "_self_t"
 //        // Construct the typedef for the "self" struct.
         var body = new StringBuilder()
-//        // Start with parameters.
+        // Start with parameters.
 //        for (parameter : reactor.parameters) {
 //            prSourceLineNumber(parameter)
 //            if (getParameterType(parameter).equals("")) {
@@ -326,6 +348,18 @@ class TypeScriptGenerator extends GeneratorBase {
 //                    getParameterType(parameter) + ' ' + parameter.name + ';');
 //            }
 //        }
+
+        // Create properties for parameters
+        for( param : reactor.parameters){
+            var String paramType;
+            if(param.ofTimeType){
+                paramType = "TimeInterval"
+            } else {
+                paramType = param.type
+            }
+            pr(param.name + ": " + paramType + "; // Parameter")
+            pr(reactorConstructor, "this." + param.name + " = " + param.name + ";" )
+        }
 
         // Next handle states.
         for (state : reactor.states) {
@@ -342,7 +376,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     pr(state.name + ': ' +
                         removeCodeDelimiter(state.type) + ';');
                     pr(reactorConstructor, "this." + state.name + " = "
-                        + state.value + ";" )
+                        + state.value + "; // State" )
                 }
             }
         }
@@ -354,7 +388,7 @@ class TypeScriptGenerator extends GeneratorBase {
             if(action.delay !== null){
                 // Actions in the TypeScript target are constructed
                 // with an optional minDelay argument which defaults to 0.
-                actionArgs+= ", " + action.delay
+                actionArgs+= ", " + timeInTargetLanguage(action.delay.time.toString, action.delay.unit)
             }
             pr(reactorConstructor, "this." + action.name + " = new Action<" + action.type +">(" + actionArgs  + ");")
         }
@@ -649,15 +683,15 @@ class TypeScriptGenerator extends GeneratorBase {
         pr('// ************* Instance ' + fullName + ' of class ' +
             reactorClass.name)
             
-//        var arguments = "";
-//        for (parameter : instance.parameters) {
-//            arguments += parameter.literalValue + ", "
-//        }
+        var arguments = "";
+        for (parameter : instance.parameters) {
+            arguments += parameter.literalValue + ", "
+        }
 
         // FIXME: hardcoding a 3 second timeout because
         // I don't know how to get this dynamically right now.
         // Get this from a command line argument?
-        var arguments = "[3, TimeUnit.secs], '" + fullName + "'" 
+        arguments += "[3, TimeUnit.secs], '" + fullName + "'" 
         pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
     }
     
