@@ -208,15 +208,15 @@ class TypeScriptGenerator extends GeneratorBase {
         // parameter values? For now it's simpler to just create
         // the reactor instance with the default argument value.
         var arguments = "";  
-        for (parameter : reactor.parameters) {
-            if (getParameterType(parameter).equals("")) {
-                reportError(parameter,
-                    "Parameter is required to have a type: " + parameter.name)
-            } else {
-                arguments +=
-                    parameter.name + ": " + getParameterType(parameter) + ", ";
-            }
-        }
+//        for (parameter : reactor.parameters) {
+//            if (getParameterType(parameter).equals("")) {
+//                reportError(parameter,
+//                    "Parameter is required to have a type: " + parameter.name)
+//            } else {
+//                arguments +=
+//                    parameter.name + ": " + getParameterType(parameter) + ", ";
+//            }
+//        }
         
         
         // For TS, parameters are arguments of the class constructor.
@@ -247,14 +247,14 @@ class TypeScriptGenerator extends GeneratorBase {
             // reactor class, find the matching parameter assignments in
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor 
-            for (parameter : childReactor.reactorClass.parameters ){
-                for (parameterAssignment : childReactor.parameters){
-                    if(parameterAssignment.lhs.equals(parameter) ){
-                        childReactorArguments.append(parameterAssignment.rhs)
-                        childReactorArguments.append(", ")
-                    }
-                }
-            }
+//            for (parameter : childReactor.reactorClass.parameters ){
+//                for (parameterAssignment : childReactor.parameters){
+//                    if(parameterAssignment.lhs.equals(parameter) ){
+//                        childReactorArguments.append(parameterAssignment.rhs)
+//                        childReactorArguments.append(", ")
+//                    }
+//                }
+//            }
             
             // These arguments are always the last of a TypeScript reactor constructor
             childReactorArguments.append("this, " +  "'" + reactor.name + "/" + childReactor.name + "'");
@@ -375,6 +375,23 @@ class TypeScriptGenerator extends GeneratorBase {
                     + output.type + ">(this);")
             }
         }
+        
+        // Next handle connections
+        for (connection : reactor.connections) {
+            var leftPortName = ""
+            if(connection.leftPort.container !== null ){
+                leftPortName += connection.leftPort.container.name + "."
+            }
+            leftPortName += connection.leftPort.variable.name 
+            
+            var rightPortName = ""
+            if(connection.rightPort.container !== null ){
+                rightPortName += connection.rightPort.container.name + "."
+            }
+            rightPortName += connection.rightPort.variable.name 
+            
+            pr(reactorConstructor, "this." + leftPortName + ".connect(this." + rightPortName + ");")
+        }
 
         // Find output ports that receive data from inside reactors
         // and put them into a HashMap for future use.
@@ -421,6 +438,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
             }
         }
+        
         
         // FIXME: Handle startup and shutdown triggers
         // Next handle reaction instances
@@ -697,16 +715,16 @@ class TypeScriptGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Private methods.
 
-    /** Return a C type for the type of the specified parameter.
+    /** Return a TS type for the type of the specified parameter.
      *  If there are code delimiters around it, those are removed.
-     *  If the type is "time", then it is converted to "interval_t".
+     *  If the type is "time", then it is converted to "TimeInterval".
      *  @param parameter The parameter.
-     *  @return The C type.
+     *  @return The TS type.
      */
     private def getParameterType(Parameter parameter) {
         var type = removeCodeDelimiter(parameter.type)
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
-            type = 'interval_t'
+            type = 'TimeInterval'
         }
         type
     }
