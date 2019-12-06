@@ -76,18 +76,22 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 	
 	public static val REACTOR_INSTANCE = new Property<Instantiation>("org.icyphy.linguafranca.diagram.synthesis.reactor.instantiation")
+	public static val ALTERNATIVE_DASH_PATTERN = #[3.0f]
 
 	// -------------------------------------------------------------------------
 	
+	/** Synthesis category */
+	public static val SynthesisOption APPEARANCE = SynthesisOption.createCategory("Appearance", true)
+	
 	/** Synthesis options */
-//	public static val SynthesisOption SHOW_MAIN_REACTOR = SynthesisOption.createCheckOption("Main Reactor Frame", true)
 	public static val SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false)
-	public static val SynthesisOption SHOW_REACTOR_PARAMETERS = SynthesisOption.createCheckOption("Reactor Parameters", false)
-	public static val SynthesisOption SHOW_REACTOR_PARAMETERS_STACKED = SynthesisOption.createCheckOption("Reactor Parameters (stacked)", false)
-	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false)
-	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
-	public static val SynthesisOption PAPER_MODE = SynthesisOption.createCheckOption("Paper Mode", false)
+	public static val SynthesisOption PAPER_MODE = SynthesisOption.createCheckOption("Paper Mode", false).setCategory(APPEARANCE)
+	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
+	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
+	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
+	public static val SynthesisOption SHOW_REACTOR_PARAMETERS = SynthesisOption.createCheckOption("Reactor Parameters", false).setCategory(APPEARANCE)
+	public static val SynthesisOption SHOW_REACTOR_PARAMETERS_STACKED = SynthesisOption.createCheckOption("Reactor Parameters (stacked)", false).setCategory(APPEARANCE)
 	
     /** Synthesis actions */
     public static val DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details")
@@ -96,13 +100,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	override getDisplayedSynthesisOptions() {
 		return #[
 			SHOW_ALL_REACTORS,
-			SHOW_REACTOR_PARAMETERS,
-			SHOW_REACTOR_PARAMETERS_STACKED,
-			SHOW_INSTANCE_NAMES,
-			REACTIONS_USE_HYPEREDGES,
 			SHOW_REACTION_CODE,
 			MEMORIZE_EXPANSION_STATES,
-			PAPER_MODE
+			PAPER_MODE,
+			REACTIONS_USE_HYPEREDGES,
+			USE_ALTERNATIVE_DASH_PATTERN,
+			SHOW_INSTANCE_NAMES,
+			SHOW_REACTOR_PARAMETERS,
+			SHOW_REACTOR_PARAMETERS_STACKED
 		]
 	}
 	
@@ -538,7 +543,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return createEdge => [
 			associateWith(associate)
 			addPolyline() => [
-				lineStyle = LineStyle.DASH
+				if (USE_ALTERNATIVE_DASH_PATTERN.booleanValue) {
+					lineStyle = LineStyle.CUSTOM
+					lineStyle.dashPattern += ALTERNATIVE_DASH_PATTERN
+				} else {
+					lineStyle = LineStyle.DASH
+				}
 				boldLineSelectionStyle()
 			]
 		]
@@ -561,7 +571,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
-				lineStyle = LineStyle.DASH
+				if (USE_ALTERNATIVE_DASH_PATTERN.booleanValue) {
+					lineStyle = LineStyle.CUSTOM
+					lineStyle.dashPattern += ALTERNATIVE_DASH_PATTERN
+				} else {
+					lineStyle = LineStyle.DASH
+				}
 				boldLineSelectionStyle()
 			]
 		]
