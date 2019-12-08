@@ -1634,14 +1634,17 @@ class CGenerator extends GeneratorBase {
         var present = input.name + '_is_present'
         pr(builder,
             'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
-        pr(builder, rootType(input.type) + '* ' + input.name + ';')
-        pr(builder, 'if(' + present + ') {')
-        indent(builder)
         if (isTokenType(input.type)) {
+            pr(builder, rootType(input.type) + '* ' + input.name + ';')
+            pr(builder, 'if(' + present + ') {')
+            indent(builder)
             pr(builder, input.name + ' = ('
                 + rootType(input.type)
                 + '*)(self->__' + input.name + '->value);')
         } else {
+            pr(builder, input.type + ' ' + input.name + ';')
+            pr(builder, 'if(' + present + ') {')
+            indent(builder)
             pr(builder, input.name + ' = *(self->__' + input.name + ');')
         }
         unindent(builder)
