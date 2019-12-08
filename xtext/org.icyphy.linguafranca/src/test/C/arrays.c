@@ -1,16 +1,5 @@
 
 
-// Library function to decrement the reference count and free
-// the memory, if appropriate.
-void __done_using(token_t* token) {
-    token->ref_count--;
-    printf("****** After reacting, ref_count = %d.\n", token->ref_count);
-    if (token->ref_count == 0) {
-        printf("****** Freeing allocated memory.\n");
-        free(token->value);
-    }
-}
-
 // Library function for returning a writable copy of a token.
 // If the reference count is 1, it returns the original rather than a copy.
 void* __writable_copy_impl(token_t* token) {

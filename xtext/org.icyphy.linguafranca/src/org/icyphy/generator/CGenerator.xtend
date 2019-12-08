@@ -42,6 +42,7 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
@@ -279,11 +280,49 @@ class CGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Code generators.
+    
+    /** If any input is conveyed using the token_t struct,
+     *  then add a reaction at the end of the list of reactions
+     *  that is triggered by that input that decrements the
+     *  reference count and frees allocated memory when the
+     *  reference count hits zero.
+     */
+    def addReferenceCountReaction(Reactor reactor) {
+        var triggers = newArrayList
+        var body = new StringBuilder
+        for(input : reactor.inputs) {
+            if (isTokenType(input.type)) {
+                triggers.add(input)
+                pr(body, 'if(' + input.name 
+                    + '_is_present) {__done_using(self->__' + input.name
+                    + ');}'
+                )
+            }
+        }
+        if (!triggers.isEmpty) {
+            var reaction = LinguaFrancaFactory.eINSTANCE.createReaction
+            // Populate the triggers for the reaction.
+            for(input: triggers) {
+                var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
+                variableReference.setVariable(input)
+                reaction.triggers.add(variableReference)
+            }
+            reaction.setCode(body.toString)
+            reactor.reactions.add(reaction)
+        }
+    }
+    
     /** Generate a reactor class definition.
      *  @param reactor The parsed reactor data structure.
      */
     override generateReactor(Reactor reactor) {
         super.generateReactor(reactor)
+
+        // Add a reaction, if necessary, to decrement the reference
+        // count for any input that is conveyed using the token_t struct.
+        // This will also free malloc'd memory when the reference count
+        // hits zero.
+        addReferenceCountReaction(reactor)
 
         pr("// =============== START reactor class " + reactor.name)
 
