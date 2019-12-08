@@ -1,0 +1,48 @@
+// Test logical action with delay.
+target TypeScript;
+
+reactor GeneratedDelay {
+    input y_in:number;
+    output y_out:number;
+    state y_state:number(0);
+    logical action act(100 msec);
+
+    reaction(y_in) -> act {=
+        (this.state as any).y_state = (this.state as any).y_in.get();
+        (this.state as any).act.schedule(0);
+    =}
+
+    reaction(act) -> y_out {=
+        (this.state as any).y_out.set( (this.state as any).y_state);
+    =}
+}
+
+reactor Source {
+    output out:number;
+    reaction(startup) -> out {=
+        (this.state as any).out.set(1);
+    =} 
+}
+reactor Sink {
+	input in:number;
+	reaction(in) {=
+        var elapsed_logical = this._getElapsedLogicalTime();
+        var logical = this._getCurrentLogicalTime();
+        var physical = this._getCurrentPhysicalTime();
+        console.log("Logical, physical, and elapsed logical: " + logical + physical + elapsed_logical); 
+        if (elapsed_logical[0] != 0 || elapsed_logical[1] != 100000000) {
+            console.log("FAILURE: Expected [0, 100000000] but got " + elapsed_logical);
+            //exit(1);
+        } else {
+            console.log("SUCCESS. Elapsed logical time is 100 msec.");
+        }
+	=}
+}
+main reactor ActionDelay {
+    source = new Source();
+    sink = new Sink();
+    g = new GeneratedDelay();
+    
+    source.out -> g.y_in;
+    g.y_out -> sink.in;
+} 
