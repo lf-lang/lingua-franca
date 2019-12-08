@@ -7,20 +7,19 @@ target C;
 import ArrayPrint.lf;
 
 reactor Scale(scale:int(2)) {
-    input in:int[];
+    mutable input in:int[];
     output out:int[];
     reaction(in) -> out {=
-        int* modified = writable_copy(in);
         for(int i = 0; i < in_length; i++) {
-            modified[i] = in[i] * self->scale;
+            in[i] = in[i] * self->scale;
         }
-        set_array(out, modified, in_length);
+        set_array(out, in, in_length);
     =}
 }
 main reactor ArrayScale {
     s = new Source();
     c = new Scale();
-    p = new Print();
+    p = new Print(scale=2);
     s.out -> c.in;
     c.out -> p.in;
 }
