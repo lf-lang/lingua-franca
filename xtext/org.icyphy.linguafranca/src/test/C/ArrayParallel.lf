@@ -1,5 +1,7 @@
-// Source2 allocates an array dynamically and then sends it to two reactors,
-// each of which want to modify it. One copy is made.
+// Source allocates an array dynamically and then sends it to two reactors,
+// each of which want to modify it.
+// NOTE: Ideally, only one copy would be made, but this requires
+// modifying the precedence graph between reactions.
 target C;
 import ArrayScale.lf;
 
