@@ -187,6 +187,18 @@ static void prt_evt(FILE *out, void *a) {
 
 // ********** Priority Queue Support End
 
+// Library function to decrement the reference count and free
+// the memory, if appropriate, for messages carried by a token_t struct.
+void __done_using(token_t* token) {
+    token->ref_count--;
+    // printf("****** After reacting, ref_count = %d.\n", token->ref_count);
+    if (token->ref_count == 0) {
+        // FIXME: Remove this.
+        printf("****** Freeing allocated memory.\n");
+        free(token->value);
+    }
+}
+
 // Schedule the specified trigger at current_time plus the
 // offset of the specified trigger plus the delay.
 // The value is required to be a pointer returned by lf_malloc

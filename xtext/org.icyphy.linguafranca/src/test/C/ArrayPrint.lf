@@ -2,11 +2,6 @@ target C;
 // Source produces a dynamically allocated array, which is passes
 // to Print. Reference counting ensures that the array is freed.
 reactor Source {
-    preamble{=
-        // Included code below should be generated or in a library.
-        // So we should not need this.
-        #include "../arrays.c"
-    =}
     output out:int[];
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
@@ -27,13 +22,6 @@ reactor Print {
             printf("%d", in[i]);
         }
         printf("]\n");
-    =}
-    // Generated reaction is triggered by any input, reads any input.
-    // FIXME: Should be able to have empty trigger clause. Doesn't work!
-    reaction(in) {=
-        if (in_is_present) {
-            __done_using(self->__in);
-        }
     =}
 }
 main reactor ArrayPrint {
