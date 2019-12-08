@@ -6,47 +6,17 @@
 target C;
 import ArrayPrint.lf;
 reactor Scale(scale:int(2)) {
-    input in:token_t; // FIXME: Type should be declared array(int)?
-    output out:token_t; // FIXME: Type should be declared array(int)?
-    reaction(startup) {=
-        // The following should be generated in __initialize_trigger_objects
-        // Initialize element_size and initial_ref_count fields for each array-type output.
-        self->__out.element_size = sizeof(int);
-        self->__out.initial_ref_count = 1; // Number of destination connections.
+    preamble {=
+        #include "../arrays.c"
     =}
+    input in:int[];
+    output out:int[];
     reaction(in) -> out {=
-        // FIXME: "in" should be bound to the token->value
-        // pointer cast appropriately, and in_length to token->length.
-        // Currently, "in" is a copy of the token_t struct, which is not what we want.
-        // So here, we bind "in_" to what we want.
-        int* in_ = (int*) self->__in->value;
-        int in_length = self->__in->length;
-        
-        // Begin verbatim code (using "in_" instead of "in") because code
-        // generator generates incorrect binding for "in".
-        //----------------
         int* modified = writable_copy(in);
         for(int i = 0; i < in_length; i++) {
-            modified[i] = in_[i] * self->scale;
+            modified[i] = in[i] * self->scale;
         }
         set_array(out, modified, in_length);
-        //----------------
-        
-        // Epilog generated to run immediately after the last reaction
-        // that is triggered by or uses in. It needs to run unconditionally,
-        // even if the user-written code above includes a return statement!
-        // Having it in a separate reaction doesn't solve the problem
-        // because parallel reactor's reactions may execute before the
-        // separate reaction, resulting in extra copying.
-        __done_using(self->__in);
-    =}
-    // Generated reaction is triggered by any input, reads any input.
-    // NOTE: This declares the output out to ensure that this reaction is
-    // triggered before downstream ones so as to minimize the copying.
-    reaction(in) {=
-        if (in_is_present) {
-            // __done_using(self->__in);
-        }
     =}
 }
 main reactor ArrayScale {
