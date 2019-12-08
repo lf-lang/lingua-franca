@@ -165,6 +165,27 @@ export abstract class Reaction{
     }
 
     /**
+     * More concise way to get physical time in a reaction.
+     */
+    public _getCurrentPhysicalTime(){
+        return this.state._app._getCurrentPhysicalTime();
+    }
+
+    /**
+     * More concise way to get elapsed logical time in a reaction.
+     */
+    public _getElapsedLogicalTime(){
+        return this.state._app._getElapsedLogicalTime();
+    }
+
+    /**
+     * More concise way to get elapsed physical time in a reaction.
+     */
+    public _getElapsedPhysicalTime(){
+        return this.state._app._getElapsedPhysicalTime();
+    }
+
+    /**
      * Getter function for dependencies (uses)
      */
     public getUses(){
@@ -1709,6 +1730,27 @@ export class App extends Reactor{
      */
     public _getCurrentLogicalTime(){
         return this._currentLogicalTime;
+    }
+
+    /**
+     * Public getter for physical (wall) time. 
+     */
+    public _getCurrentPhysicalTime(){
+        return microtimeToNumeric(microtime.now());
+    }
+
+    /**
+     * Public getter for elapsed logical time from the start of execution. 
+     */
+    public _getElapsedLogicalTime(){
+        return numericTimeDifference(this._currentLogicalTime[0], this._startingWallTime);
+    }
+
+    /**
+     * Public getter for elapsed physical time from the start of execution. 
+     */
+    public _getElapsedPhysicalTime(){
+        return numericTimeDifference(microtimeToNumeric(microtime.now()), this._startingWallTime);
     }
     
     /**

@@ -52,7 +52,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	@Inject extension LinguaFrancaStyleExtensions
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
 	
-    extension KRenderingFactory = KRenderingFactory::eINSTANCE
+    extension KRenderingFactory = KRenderingFactory.eINSTANCE
 
 	/**
 	 * Creates the main reactor frame.
@@ -63,6 +63,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			setGridPlacement(1)
 			lineWidth = 1
 			foreground = Colors.GRAY
+			boldLineSelectionStyle
 		]
 		
 		figure.addText(text) => [
@@ -84,6 +85,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			lineWidth = 1
 			foreground = Colors.GRAY
 			background = Colors.GRAY_95
+			boldLineSelectionStyle
 		]
 
 		// minimal node size is necessary if no text will be added
@@ -168,7 +170,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			// delay with stopwatch
 			val labelContainer = contentContainer.addRectangle() => [
 				invisible = true
-				setGridPlacementData().from(LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0).setHorizontalAlignment(HorizontalAlignment.LEFT)
+				setGridPlacementData().from(LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0, TOP, 0, reactor.reactions.size > 1 || hasCode || hasDeadlineCode ? 0 : 0.5f).to(RIGHT, 0, 0, BOTTOM, 0, 0).setHorizontalAlignment(HorizontalAlignment.LEFT)
 			]
 			labelContainer.addStopwatchFigure() => [
 				setLeftTopAlignedPointPlacementData(0, 0, 0, 0)
@@ -406,14 +408,14 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		val in = createPort
 		node.ports += in
 		in.setSize(0, 0) // invisible
-		in.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.WEST)
-		in.addLayoutParam(CoreOptions.PORT_BORDER_OFFSET, - size / 4 as double)
+		in.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
+		in.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, - size / 4 as double)
 		
 		val out = createPort
 		node.ports += out
 		out.setSize(0, 0) // invisible
-		out.addLayoutParam(CoreOptions.PORT_SIDE, PortSide.EAST)
-		out.addLayoutParam(CoreOptions.PORT_BORDER_OFFSET, - size / 4 as double)
+		out.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
+		out.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, - size / 4 as double)
 
 		return new Pair(in, out)
 	}
@@ -445,9 +447,9 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 if (message !== null) {
 	                addText(message) => [
                         if (title !== null) {
-                            setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0);
+                            setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
                         } else {
-                            setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0);
+                            setGridPlacementData().from(LEFT, 8, 0, TOP, 8, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
                         }
                         noSelectionStyle()
 	                ]
