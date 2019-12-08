@@ -290,10 +290,15 @@ class CGenerator extends GeneratorBase {
     def addReferenceCountReaction(Reactor reactor) {
         var triggers = newArrayList
         var body = new StringBuilder
+        // This is a bit of a hack, but preface the body with
+        // a comment that the preamble should not not be included.
+        // Including the preamble could result in multiple writable
+        // copies being made if an input is mutable.
+        pr(body, org.icyphy.generator.CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
         for(input : reactor.inputs) {
             if (isTokenType(input.type)) {
                 triggers.add(input)
-                pr(body, 'if(' + input.name 
+                pr(body, 'if(self->__' + input.name 
                     + '_is_present) {__done_using(self->__' + input.name
                     + ');}'
                 )
@@ -535,14 +540,14 @@ class CGenerator extends GeneratorBase {
 
             // Construct the reactionInitialization code to go into
             // the body of the function before the verbatim code.
-            // This defines the "self" struct.
             var StringBuilder reactionInitialization = new StringBuilder()
-            var structType = selfStructType(reactor)
+
+            // Define the "self" struct.
             if (!hasEmptySelfStruct(reactor)) {
+                var structType = selfStructType(reactor)
                 // A null structType means there are no inputs, state,
                 // or anything else. No need to declare it.
-                pr(reactionInitialization,
-                    structType + "* self = (" + structType + "*)instance_args;")
+                pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
             }
 
             // Actions may appear twice, first as a trigger, then with the outputs.
@@ -647,10 +652,24 @@ class CGenerator extends GeneratorBase {
             }
             pr('void ' + functionName + '(void* instance_args) {')
             indent()
-            pr(reactionInitialization.toString)
+            var body = removeCodeDelimiter(reaction.code)
+                        
+            // Do not generate the initialization code if the body is marked
+            // to not generate it.
+            if (!body.startsWith(org.icyphy.generator.CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
+                pr(reactionInitialization.toString)
+            } else {
+                // Define the "self" struct.
+                if (!hasEmptySelfStruct(reactor)) {
+                    var structType = selfStructType(reactor)
+                    // A null structType means there are no inputs, state,
+                    // or anything else. No need to declare it.
+                    pr(structType + "* self = (" + structType + "*)instance_args;")
+                }
+            }
             // Code verbatim from 'reaction'
             prSourceLineNumber(reaction)
-            pr(removeCodeDelimiter(reaction.code))
+            pr(body)
             unindent()
             pr("}")
 
@@ -1641,6 +1660,11 @@ class CGenerator extends GeneratorBase {
             pr(builder, input.name + ' = ('
                 + rootType(input.type)
                 + '*)(self->__' + input.name + '->value);')
+            // If the input is declared mutable, create a writable copy.
+            // Note that this will not copy if the reference count is exactly one.
+            if (input.isMutable) {
+                pr(builder, input.name + ' = writable_copy(' + input.name + ');')
+            }
         } else {
             pr(builder, input.type + ' ' + input.name + ';')
             pr(builder, 'if(' + present + ') {')
@@ -1783,18 +1807,16 @@ class CGenerator extends GeneratorBase {
     /** If the type specification of the form type[] or
      *  type*, return the type. Otherwise remove the code delimiter,
      *  if there is one, and otherwise just return the argument
-     *  unmodified.
+     *  unmodified. This should only be called on token types.
      */
     private def rootType(String type) {
-        if (isTokenType(type)) {
-            if(type.endsWith(']')) {
-                val root = type.indexOf('[')
-                type.substring(0, root)
-            } else if (type.endsWith('*')) {
-                type.substring(0, type.length - 1)
-            } else {
-                removeCodeDelimiter(type)
-            }
+        if(type.endsWith(']')) {
+            val root = type.indexOf('[')
+            type.substring(0, root)
+        } else if (type.endsWith('*')) {
+            type.substring(0, type.length - 1)
+        } else {
+            removeCodeDelimiter(type)
         }
     }
 
@@ -1837,4 +1859,7 @@ class CGenerator extends GeneratorBase {
             setInputsAbsentByDefault(containedReactor)
         }
     }
+    
+    static var DISABLE_REACTION_INITIALIZATION_MARKER
+        = '// **** Do not include initialization code in this reaction.'
 }
