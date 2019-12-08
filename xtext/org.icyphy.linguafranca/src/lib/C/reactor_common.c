@@ -278,6 +278,24 @@ void* __set_new_array_impl(token_t* token, int length) {
     return token->value;
 }
 
+// Library function for returning a writable copy of a token.
+// If the reference count is 1, it returns the original rather than a copy.
+void* __writable_copy_impl(token_t* token) {
+    printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
+    if (token->ref_count == 1) {
+        printf("****** Avoided copy because reference count is exactly one.\n");
+        // Decrement the reference count to avoid the automatic free().
+        token->ref_count--;
+        return token->value;
+    } else {
+        printf("****** Copying array because reference count is not one.\n");
+        int size = token->element_size * token->length;
+        void* copy = malloc(size);
+        memcpy(copy, token->value, size);
+        return copy;
+    }
+}
+
 // Print a usage message.
 void usage(char* command) {
     printf("\nCommand-line arguments: \n\n");
