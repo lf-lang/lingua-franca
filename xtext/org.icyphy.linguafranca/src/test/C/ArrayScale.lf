@@ -5,10 +5,8 @@
 // Print is done with it.
 target C;
 import ArrayPrint.lf;
+
 reactor Scale(scale:int(2)) {
-    preamble {=
-        #include "../arrays.c"
-    =}
     input in:int[];
     output out:int[];
     reaction(in) -> out {=
