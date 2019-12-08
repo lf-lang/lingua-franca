@@ -254,6 +254,18 @@ void schedule_output_reactions(reaction_t* reaction) {
 	}
 }
 
+// Library function for allocating memory for an array output.
+// This turns over "ownership" of the allocated memory to the output.
+void* __set_new_array_impl(token_t* token, int length) {
+    // FIXME: Error checking needed.
+    token->value = malloc(token->element_size * length);
+    token->ref_count = token->initial_ref_count;
+    // FIXME: Remove the following.
+    printf("****** Allocated array with starting ref_count = %d.\n", token->ref_count);
+    token->length = length;
+    return token->value;
+}
+
 // Print a usage message.
 void usage(char* command) {
     printf("\nCommand-line arguments: \n\n");

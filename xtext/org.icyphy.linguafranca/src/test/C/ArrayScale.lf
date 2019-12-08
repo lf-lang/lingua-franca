@@ -25,13 +25,6 @@ reactor Scale(scale:int(2)) {
         // Begin verbatim code (using "in_" instead of "in") because code
         // generator generates incorrect binding for "in".
         //----------------
-        printf("Scale received: [");
-        for (int i = 0; i < in_length; i++) {
-            if (i > 0) printf(", ");
-            printf("%d", in_[i]);
-        }
-        printf("]\n");
-        
         int* modified = writable_copy(in);
         for(int i = 0; i < in_length; i++) {
             modified[i] = in_[i] * self->scale;
