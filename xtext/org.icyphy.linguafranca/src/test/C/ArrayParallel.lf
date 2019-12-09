@@ -1,36 +1,16 @@
-// Source2 allocates an array dynamically and then sends it to two reactors,
-// each of which want to modify it. One copy is made.
+// Source allocates an array dynamically and then sends it to two reactors,
+// each of which want to modify it.
+// NOTE: Ideally, only one copy would be made, but this requires
+// modifying the precedence graph between reactions.
 target C;
 import ArrayScale.lf;
 
-// Can't use imported Source because it has hardwired into it the
-// fact that it has only one destination reactor.
-reactor Source2 {
-    output out:token_t; // FIXME: Type should be declared array(int)?
-    reaction(startup) {=
-        // The following should be generated in __initialize_trigger_objects
-        // (or perhaps as the first startup reaction here.)
-        // Initialize element_size and initial_ref_count fields for each array-type output.
-        self->__out.element_size = sizeof(int);
-        self->__out.initial_ref_count = 2; // Number of destination connections.
-    =}
-    reaction(startup) -> out {=
-        // Specify that the output will be an array of length 3.
-        // Note that this also sets the output to the new array.
-        int* out_value = new_array(out, 3);
-        
-        // Above returns the array, which then must be populated.
-        out_value[0] = 0;
-        out_value[1] = 1;
-        out_value[2] = 2;
-    =}
-}
 main reactor ArrayParallel {
-    s = new Source2();
+    s = new Source();
     c1 = new Scale();
     c2 = new Scale(scale = 3);
-    p1 = new Print();
-    p2 = new Print();
+    p1 = new Print(scale = 2);
+    p2 = new Print(scale = 3);
     s.out -> c1.in;
     s.out -> c2.in;
     c1.out -> p1.in;

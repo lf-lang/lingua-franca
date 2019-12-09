@@ -138,6 +138,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
         containedNames.add(instance.name)
+        if (instance.reactorClass.isMain) {
+            error(
+                "Cannot instantiate a main reactor: " 
+                + instance.reactorClass.name,
+                Literals.INSTANTIATION__REACTOR_CLASS
+            )
+        }
     }
 
     @Check(FAST)

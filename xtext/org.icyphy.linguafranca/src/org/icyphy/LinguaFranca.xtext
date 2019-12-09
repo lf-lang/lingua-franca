@@ -74,7 +74,7 @@ State:
     | ('(' parameter=[Parameter] ')'))? ';';
 
 Input:
-    'input' name=ID (':' type=Type)? ';';
+    (mutable?='mutable')? 'input' name=ID (':' type=Type)? ';';
 
 Output:
     'output' name=ID (':' type=Type)? ';';
@@ -157,10 +157,14 @@ TimeOrValue:
 Port:
     Input | Output;
 
-    // A type is in the target language, hence either an ID or target code.
+// A type is in the target language, hence either an ID or target code.
 Type:
-    ID | CODE;
+    ID '*'* ARRAYSIZE? | CODE;
 
+// Either [] or [number], where number cannot begin with 0 and is positive.
+terminal ARRAYSIZE:
+    '[' (('1'..'9')('0'..'9')*)? ']';
+    
 Literal:
     STRING | CODE | FLOAT | INT | NEGINT;
 
