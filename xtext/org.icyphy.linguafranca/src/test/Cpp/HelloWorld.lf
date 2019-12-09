@@ -1,5 +1,5 @@
 target Cpp;
-reactor HelloWorldInside {
+reactor HelloWorld {
     preamble {=
         #include <iostream>
     =}
@@ -8,6 +8,6 @@ reactor HelloWorldInside {
         std::cout << "Hello World." << std::endl;
     =}
 }
-main reactor HelloWorld {
-    a = new HelloWorldInside();
+main reactor HelloWorldTest {
+    a = new HelloWorld();
 }
