@@ -1,6 +1,9 @@
 ActionDelay.lf
 AsyncCallback.lf
 AsyncCallback2.lf
+ArrayParallel.lf
+ArrayPrint.lf
+ArrayScale.lf
 Composition.lf
 CompositionThreaded.lf
 CountTest.lf
