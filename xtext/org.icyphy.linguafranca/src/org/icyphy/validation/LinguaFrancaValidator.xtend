@@ -34,6 +34,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'compile', 
         'run', 
         'threads',
+        'timeout',
         'cmake_include'
     }
 
@@ -167,16 +168,27 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         Literals.TARGET__PROPERTIES
                     )
                 }
-                // Make sure the value of the parameter is a string or a parsable integer.
-                if (!property.value.startsWith('"') ||
-                    !property.value.endsWith('"')) {
-                    try {
-                        Integer.decode(property.value)
-                    } catch (NumberFormatException ex) {
-                        error(
-                            "Target parameter value is required to be an integer or a string surrounded by quotation marks.",
-                            Literals.TARGET__PROPERTIES
-                        )
+                // Make sure the value of the parameter is a string,
+                // a parsable integer, or a time.
+                if(property.value.value !== null){
+                    // This is a Literal
+                    if (!property.value.value.startsWith('"') ||
+                        !property.value.value.endsWith('"')) {
+                        try {
+                            Integer.decode(property.value.value)
+                        } catch (NumberFormatException ex) {
+                            error(
+                                "Target property literal is required to be an integer or a string surrounded by quotation marks.",
+                                Literals.TARGET__PROPERTIES
+                            )
+                        }
+                    }
+                } else {
+                    // This is a Time
+                    if (property.value.unit == TimeUnit.NONE) {
+                        error("Missing time units. Should be one of " +
+                        TimeUnit.VALUES.filter[it != TimeUnit.NONE],
+                        Literals.TIME_OR_VALUE__UNIT)
                     }
                 }
             }

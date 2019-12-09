@@ -42,6 +42,7 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
@@ -688,10 +689,26 @@ class TypeScriptGenerator extends GeneratorBase {
             arguments += parameter.literalValue + ", "
         }
 
-        // FIXME: hardcoding a 3 second timeout because
-        // I don't know how to get this dynamically right now.
-        // Get this from a command line argument?
-        arguments += "[3, TimeUnit.secs], '" + fullName + "'" 
+        var String timeoutArg = "null";
+        
+        for (target : resource.allContents.toIterable.filter(Target)) {
+            if (target.properties !== null) {
+                for (property : target.properties) {
+                    if (property.name.equals("timeout")){
+                        // A timeout must be a Time, it can't be a literal
+                        // (except 0 which will match as a literal).
+                        // Since 0 is the only literal that corresponds to a time
+                        // any other literal is an error
+                        if( property.value.value !== null && property.value.value !=0){
+                            reportError("The timeout property only accepts time assignments.")
+                        }
+                        timeoutArg = timeInTargetLanguage(property.value.time.toString(), property.value.unit)
+                    }
+                }
+            }   
+        }
+        
+        arguments += timeoutArg + ", '" + fullName + "'" 
         pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
     }
     

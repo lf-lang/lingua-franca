@@ -779,7 +779,7 @@ class CppGenerator extends GeneratorBase {
 		install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 		
 		«IF target.hasProperty("cmake_include")»
-			include(«directory»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
+			include(«directory»«File.separator»«target.getProperty("cmake_include").value.withoutQuotes»)
 		«ENDIF»
 	'''
 

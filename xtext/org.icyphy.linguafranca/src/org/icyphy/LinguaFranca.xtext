@@ -140,7 +140,7 @@ Assignment:
     (lhs=[Parameter] '=' rhs=TimeOrValue);
 
 Property:
-    name=ID '=' value=Literal;
+    name=ID '=' value=TimeOrLiteral;
 
 // Single parameter.
 Parameter:
@@ -153,6 +153,9 @@ Parameter:
 // is non-zero, it is accompanied by a unit.
 TimeOrValue:
     (parameter=[Parameter] | value=Literal | (time=INT unit=TimeUnit));
+
+TimeOrLiteral:
+    (value=Literal | (time=INT unit=TimeUnit));
 
 Port:
     Input | Output;
