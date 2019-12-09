@@ -42,6 +42,7 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
@@ -279,11 +280,54 @@ class CGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Code generators.
+    
+    /** If any input is conveyed using the token_t struct,
+     *  then add a reaction at the end of the list of reactions
+     *  that is triggered by that input that decrements the
+     *  reference count and frees allocated memory when the
+     *  reference count hits zero.
+     */
+    def addReferenceCountReaction(Reactor reactor) {
+        var triggers = newArrayList
+        var body = new StringBuilder
+        // This is a bit of a hack, but preface the body with
+        // a comment that the preamble should not not be included.
+        // Including the preamble could result in multiple writable
+        // copies being made if an input is mutable.
+        pr(body, org.icyphy.generator.CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
+        for(input : reactor.inputs) {
+            if (isTokenType(input.type)) {
+                triggers.add(input)
+                pr(body, 'if(self->__' + input.name 
+                    + '_is_present) {__done_using(self->__' + input.name
+                    + ');}'
+                )
+            }
+        }
+        if (!triggers.isEmpty) {
+            var reaction = LinguaFrancaFactory.eINSTANCE.createReaction
+            // Populate the triggers for the reaction.
+            for(input: triggers) {
+                var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
+                variableReference.setVariable(input)
+                reaction.triggers.add(variableReference)
+            }
+            reaction.setCode(body.toString)
+            reactor.reactions.add(reaction)
+        }
+    }
+    
     /** Generate a reactor class definition.
      *  @param reactor The parsed reactor data structure.
      */
     override generateReactor(Reactor reactor) {
         super.generateReactor(reactor)
+
+        // Add a reaction, if necessary, to decrement the reference
+        // count for any input that is conveyed using the token_t struct.
+        // This will also free malloc'd memory when the reference count
+        // hits zero.
+        addReferenceCountReaction(reactor)
 
         pr("// =============== START reactor class " + reactor.name)
 
@@ -346,8 +390,7 @@ class CGenerator extends GeneratorBase {
             } else {
                 // NOTE: Slightly obfuscate input name to help prevent accidental use.
                 pr(body,
-                    removeCodeDelimiter(input.type) + '* __' + input.name +
-                        ';');
+                    lfTypeToTokenType(input.type) + '* __' + input.name + ';');
                 pr(body, 'bool* __' + input.name + '_is_present;');
             }
         }
@@ -381,18 +424,16 @@ class CGenerator extends GeneratorBase {
                 reportError(output,
                     "Output is required to have a type: " + output.name)
             } else {
+                // If the output type has the form type[], then change it to token_t.
+                val outputType = lfTypeToTokenType(output.type)
                 // NOTE: Slightly obfuscate output name to help prevent accidental use.
-                pr(body,
-                    removeCodeDelimiter(output.type) + ' __' + output.name +
-                        ';')
+                pr(body, outputType + ' __' + output.name +';')
                 pr(body, 'bool __' + output.name + '_is_present;')
                 // If there are contained reactors that send data via this output,
                 // then create a place to put the pointers to the sources of that data.
                 var containedSource = outputToContainedOutput.get(output)
                 if (containedSource !== null) {
-                    pr(body,
-                        removeCodeDelimiter(output.type) + '* __' +
-                            output.name + '_inside;')
+                    pr(body, outputType + '* __' + output.name + '_inside;')
                     pr(body, 'bool* __' + output.name + '_inside_is_present;')
                 }
             }
@@ -406,7 +447,7 @@ class CGenerator extends GeneratorBase {
                         val port = effect.variable as Input
                         pr(
                             body,
-                            removeCodeDelimiter(port.type) + ' __' +
+                            lfTypeToTokenType(port.type) + ' __' +
                                 effect.container.name + '_' + port.name + ';'
                         )
                         pr(
@@ -430,10 +471,11 @@ class CGenerator extends GeneratorBase {
                         !included.contains(trigger.variable)) {
                         // Reaction is triggered by an output of a contained reactor.
                         val port = trigger.variable as Output
+                        val portType = lfTypeToTokenType(port.type)
                         included.add(port)
                         pr(
                             body,
-                            removeCodeDelimiter(port.type) + '* __' +
+                            portType + '* __' +
                                 trigger.container.name + '_' + port.name + ';'
                         )
                         pr(
@@ -450,10 +492,11 @@ class CGenerator extends GeneratorBase {
                     !included.contains(source.variable)) {
                     // Reaction reads an output of a contained reactor.
                     val port = source.variable as Output
+                    val portType = lfTypeToTokenType(port.type)
                     included.add(port)
                     pr(
                         body,
-                        removeCodeDelimiter(port.type) + '* __' +
+                        portType + '* __' +
                             source.container.name + '_' + port.name + ';'
                     )
                     pr(
@@ -497,14 +540,14 @@ class CGenerator extends GeneratorBase {
 
             // Construct the reactionInitialization code to go into
             // the body of the function before the verbatim code.
-            // This defines the "self" struct.
             var StringBuilder reactionInitialization = new StringBuilder()
-            var structType = selfStructType(reactor)
+
+            // Define the "self" struct.
             if (!hasEmptySelfStruct(reactor)) {
+                var structType = selfStructType(reactor)
                 // A null structType means there are no inputs, state,
                 // or anything else. No need to declare it.
-                pr(reactionInitialization,
-                    structType + "* self = (" + structType + "*)instance_args;")
+                pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
             }
 
             // Actions may appear twice, first as a trigger, then with the outputs.
@@ -609,10 +652,24 @@ class CGenerator extends GeneratorBase {
             }
             pr('void ' + functionName + '(void* instance_args) {')
             indent()
-            pr(reactionInitialization.toString)
+            var body = removeCodeDelimiter(reaction.code)
+                        
+            // Do not generate the initialization code if the body is marked
+            // to not generate it.
+            if (!body.startsWith(org.icyphy.generator.CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
+                pr(reactionInitialization.toString)
+            } else {
+                // Define the "self" struct.
+                if (!hasEmptySelfStruct(reactor)) {
+                    var structType = selfStructType(reactor)
+                    // A null structType means there are no inputs, state,
+                    // or anything else. No need to declare it.
+                    pr(structType + "* self = (" + structType + "*)instance_args;")
+                }
+            }
             // Code verbatim from 'reaction'
             prSourceLineNumber(reaction)
-            pr(removeCodeDelimiter(reaction.code))
+            pr(body)
             unindent()
             pr("}")
 
@@ -1288,12 +1345,25 @@ class CGenerator extends GeneratorBase {
             )
         }
         // Next, generate the code to initialize outputs and inputs at the start
-        // of a time step to be absent.
-        for (output : reactorClass.outputs) {
+        // of a time step to be absent. This will also set the element_size
+        // and initial_reference_count fields of any outputs that are carried
+        // by a token_t struct.
+        for (output : instance.outputs) {
             pr(
                 startTimeStep,
                 nameOfSelfStruct + '.__' + output.name + '_is_present = false;'
             )
+            if (isTokenType((output.definition as Port).type)) {
+                pr(initializeTriggerObjects,
+                    nameOfSelfStruct + ".__" + output.name + ".element_size = sizeof(" +
+                    rootType((output.definition as Port).type) + ");"
+                )
+                // Set the initial reference count equal to the number of destinations.
+                pr(initializeTriggerObjects,
+                    nameOfSelfStruct + ".__" + output.name + ".initial_ref_count = "
+                    + output.dependentPorts.size + ";"
+                )
+            }
         }
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
@@ -1583,12 +1653,29 @@ class CGenerator extends GeneratorBase {
         var present = input.name + '_is_present'
         pr(builder,
             'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
-        pr(builder, removeCodeDelimiter(input.type) + ' ' + input.name + ';')
-        pr(builder, 'if(' + present + ') {')
-        indent(builder)
-        pr(builder, input.name + ' = *(self->__' + input.name + ');')
+        if (isTokenType(input.type)) {
+            pr(builder, rootType(input.type) + '* ' + input.name + ';')
+            pr(builder, 'if(' + present + ') {')
+            indent(builder)
+            pr(builder, input.name + ' = ('
+                + rootType(input.type)
+                + '*)(self->__' + input.name + '->value);')
+            // If the input is declared mutable, create a writable copy.
+            // Note that this will not copy if the reference count is exactly one.
+            if (input.isMutable) {
+                pr(builder, input.name + ' = writable_copy(' + input.name + ');')
+            }
+        } else {
+            pr(builder, input.type + ' ' + input.name + ';')
+            pr(builder, 'if(' + present + ') {')
+            indent(builder)
+            pr(builder, input.name + ' = *(self->__' + input.name + ');')
+        }
         unindent(builder)
         pr(builder, '}')
+        if (isTokenType(input.type)) {
+            pr(builder, 'int ' + input.name + '_length = self->__' + input.name + '->length;')
+        }
     }
 
     /** Generate into the specified string builder the code to
@@ -1608,13 +1695,14 @@ class CGenerator extends GeneratorBase {
             // port is an output of a contained reactor.
             val output = port.variable as Output
             val portName = output.name
+            val portType = lfTypeToTokenType(output.type)
             val reactorName = port.container.name
             // First define the struct containing the output value and indicator
             // of its presence.
             pr(
                 builder,
                 'struct ' + reactorName + ' {' +
-                    removeCodeDelimiter(output.type) + ' ' + portName + '; ' +
+                    portType + ' ' + portName + '; ' +
                     'bool ' + portName + '_is_present;} ' + reactorName + ';'
             )
             // Next, initialize the struct with the current values.
@@ -1644,18 +1732,20 @@ class CGenerator extends GeneratorBase {
         if (output.type === null) {
             reportError(output,
                 "Output is required to have a type: " + output.name)
+        } else {
+            val outputType = lfTypeToTokenType(output.type)
+            // Slightly obfuscate the name to help prevent accidental use.
+            pr(
+                builder,
+                outputType + '* ' + output.name +
+                    ' = &(self->__' + output.name + ');'
+            )
+            pr(
+                builder,
+                'bool* ' + output.name + '_is_present = &(self->__' + output.name +
+                    '_is_present);'
+            )
         }
-        // Slightly obfuscate the name to help prevent accidental use.
-        pr(
-            builder,
-            removeCodeDelimiter(output.type) + '* ' + output.name +
-                ' = &(self->__' + output.name + ');'
-        )
-        pr(
-            builder,
-            'bool* ' + output.name + '_is_present = &(self->__' + output.name +
-                '_is_present);'
-        )
     }
 
     /** Generate into the specified string builder the code to
@@ -1674,7 +1764,7 @@ class CGenerator extends GeneratorBase {
         pr(
             builder,
             'struct ' + definition.name + ' {' +
-                removeCodeDelimiter(input.type) + '* ' + input.name + '; ' +
+                lfTypeToTokenType(input.type) + '* ' + input.name + '; ' +
                 'bool* ' + input.name + '_is_present;} ' + definition.name + ';'
         )
         pr(builder,
@@ -1698,6 +1788,49 @@ class CGenerator extends GeneratorBase {
             type = 'interval_t'
         }
         type
+    }
+    
+    /** Given a type for an input or output, return true if it should be
+     *  carried by a token_t struct rather than the type itself.
+     *  It should be carried by such a struct if the type ends with *
+     *  (it is a pointer) or [] (it is a array with unspecified length).
+     *  @param type The type specification.
+     */
+    private def isTokenType(String type) {
+        if(type.endsWith('[]') || type.endsWith('*')) {
+            true
+        } else {
+            false
+        }
+    }
+    
+    /** If the type specification of the form type[] or
+     *  type*, return the type. Otherwise remove the code delimiter,
+     *  if there is one, and otherwise just return the argument
+     *  unmodified. This should only be called on token types.
+     */
+    private def rootType(String type) {
+        if(type.endsWith(']')) {
+            val root = type.indexOf('[')
+            type.substring(0, root)
+        } else if (type.endsWith('*')) {
+            type.substring(0, type.length - 1)
+        } else {
+            removeCodeDelimiter(type)
+        }
+    }
+
+    /** Convert a type specification of the form type[], type[num]
+     *  or type* to token_t. Otherwise, remove the code delimiter,
+     *  if there is one, and otherwise just return the argument
+     *  unmodified.
+     */
+    private def lfTypeToTokenType(String type) {
+        var result = removeCodeDelimiter(type)
+        if(isTokenType(type)) {
+            result = 'token_t'
+        }
+        result
     }
 
     // Print the #line compiler directive with the line number of
@@ -1726,4 +1859,7 @@ class CGenerator extends GeneratorBase {
             setInputsAbsentByDefault(containedReactor)
         }
     }
+    
+    static var DISABLE_REACTION_INITIALIZATION_MARKER
+        = '// **** Do not include initialization code in this reaction.'
 }

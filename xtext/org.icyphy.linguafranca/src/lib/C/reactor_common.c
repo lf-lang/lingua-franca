@@ -187,6 +187,18 @@ static void prt_evt(FILE *out, void *a) {
 
 // ********** Priority Queue Support End
 
+// Library function to decrement the reference count and free
+// the memory, if appropriate, for messages carried by a token_t struct.
+void __done_using(token_t* token) {
+    token->ref_count--;
+    // printf("****** After reacting, ref_count = %d.\n", token->ref_count);
+    if (token->ref_count == 0) {
+        // FIXME: Remove this.
+        printf("****** Freeing allocated memory.\n");
+        free(token->value);
+    }
+}
+
 // Schedule the specified trigger at current_time plus the
 // offset of the specified trigger plus the delay.
 // The value is required to be a pointer returned by lf_malloc
@@ -252,6 +264,36 @@ void schedule_output_reactions(reaction_t* reaction) {
             }
         }
 	}
+}
+
+// Library function for allocating memory for an array output.
+// This turns over "ownership" of the allocated memory to the output.
+void* __set_new_array_impl(token_t* token, int length) {
+    // FIXME: Error checking needed.
+    token->value = malloc(token->element_size * length);
+    token->ref_count = token->initial_ref_count;
+    // FIXME: Remove the following.
+    printf("****** Allocated array with starting ref_count = %d.\n", token->ref_count);
+    token->length = length;
+    return token->value;
+}
+
+// Library function for returning a writable copy of a token.
+// If the reference count is 1, it returns the original rather than a copy.
+void* __writable_copy_impl(token_t* token) {
+    printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
+    if (token->ref_count == 1) {
+        printf("****** Avoided copy because reference count is exactly one.\n");
+        // Decrement the reference count to avoid the automatic free().
+        token->ref_count--;
+        return token->value;
+    } else {
+        printf("****** Copying array because reference count is not one.\n");
+        int size = token->element_size * token->length;
+        void* copy = malloc(size);
+        memcpy(copy, token->value, size);
+        return copy;
+    }
 }
 
 // Print a usage message.

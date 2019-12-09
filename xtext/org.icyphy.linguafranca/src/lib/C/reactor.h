@@ -71,8 +71,47 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WEEK(t)  (t * 604800000000000LL)
 #define WEEKS(t) (t * 604800000000000LL)
 
-/** set() is a macro that handles pointers and the _is_present variable. */
+/** Set the specified output to the specified value.
+ *  This copies the value into the field in the self struct designated
+ *  for this outputs value. This also sets the _is_present variable
+ *  in the self struct to true.
+ *  This is a macro terminated with a semicolon.
+ *  @param out A pointer to the output in the self struct.
+ *  @param value The value to insert into the self struct.
+ */
 #define set(out, value) (*out) = value; (*out ## _is_present) = true;
+
+/** Version of set() that allocates a new array of the specified length,
+ *  sets the specified output to send that array, and sets the corresponding
+ *  _is_present variable in the self struct to true. This returns the
+ *  array that has been allocated so that the user code can populate the array.
+ *  The freeing of the dynamically allocated array will be handled automatically
+ *  when the last downstream reader of the message has finished.
+ *  This is a macro terminated with a semicolon.
+ *  @param out A pointer to the output in the self struct.
+ *  @param length The length of the array to be sent.
+ */
+#define set_new_array(out, length) __set_new_array_impl(out, length); (*out ## _is_present) = true;
+
+/** Version of set that hands to an output a dynamically allocated array.
+ *  This will only work with an output that declared with an array type,
+ *  type[]. The deallocation is delegated to downstream reactors, which
+ *  automatically deallocate when the reference count drops to zero.
+ *  This is a macro terminated with a semicolon.
+ *  @param out A pointer to the output in the self struct.
+ *  @param val A pointer to the array to send.
+ *  @param length The length of the array to send.
+ */
+#define set_array(out, val, len) out->value = val; out->length = len; out->ref_count = out->initial_ref_count; (*out ## _is_present) = true;
+
+/** Return a writable copy of the specified input, which must be
+ *  a message carried by a token_t struct. If the reference count
+ *  is exactly one, this returns the message itself without copying.
+ *  Otherwise, it returns a copy.
+ *  This is a macro that converts an input name into a reference
+ *  in the self struct.
+ */
+#define writable_copy(input) __writable_copy_impl(self->__ ## input)
 
 //  ======== Type definitions ========  //
 
@@ -95,6 +134,16 @@ typedef pqueue_pri_t index_t;
 
 /** Reaction function type. */
 typedef void(*reaction_function_t)(void*);
+
+/** Token type for dynamically allocated arrays and structs sent as messages. */
+typedef struct token_t token_t;
+struct token_t {
+    void* value;
+    int element_size;
+    int length;
+    int initial_ref_count;
+    int ref_count;
+};
 
 /** Reaction activation record to push onto the reaction queue. */
 typedef struct trigger_t trigger_t;
