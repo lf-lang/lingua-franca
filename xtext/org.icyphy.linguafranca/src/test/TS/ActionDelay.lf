@@ -32,7 +32,7 @@ reactor Sink {
         console.log("Logical, physical, and elapsed logical: " + logical + physical + elapsed_logical); 
         if (elapsed_logical[0] != 0 || elapsed_logical[1] != 100000000) {
             console.log("FAILURE: Expected [0, 100000000] but got " + elapsed_logical);
-            //exit(1);
+            throw new Error("FAILURE: Expected [0, 100000000] but got " + elapsed_logical);
         } else {
             console.log("SUCCESS. Elapsed logical time is 100 msec.");
         }

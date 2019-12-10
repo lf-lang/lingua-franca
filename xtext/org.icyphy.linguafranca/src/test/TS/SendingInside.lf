@@ -15,7 +15,7 @@ reactor Printer {
 		  + (this.state as any).x.get());
 		if ((this.state as any).x.get() != (this.state as any).count) {
 			console.log("FAILURE: Expected " + (this.state as any).count);
-			//exit(1);
+			throw new Error("FAILURE: Expected " + (this.state as any).count);
 		}
 		(this.state as any).count++;
 	=}

@@ -844,7 +844,7 @@ class TypeScriptGenerator extends GeneratorBase {
 'use strict';
 
 import {Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
-import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeSum, numericTimeDifference } from "''' + timeLibPath + '''"
+import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeEquals, numericTimeSum, numericTimeDifference } from "''' + timeLibPath + '''"
 
     '''
 

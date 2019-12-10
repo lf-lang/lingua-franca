@@ -1,34 +1,36 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
-target TypeScript;
+target TypeScript(
+    timeout = 10 sec
+);
 //(
-//	run = "bin/Composition -fast -timeout 10 sec"
+//  run = "bin/Composition -fast -timeout 10 sec"
 //);
 reactor Source(period:time(2 sec)) {
-	output y:number;
-	timer t(1 sec, period);
-	state count:number(0);
-	reaction(t) -> y {=
-	    (this.state as any).count++;
+    output y:number;
+    timer t(1 sec, period);
+    state count:number(0);
+    reaction(t) -> y {=
+        (this.state as any).count++;
         (this.state as any).y.set( (this.state as any).count);
-	=}
+    =}
 }
 
 reactor Test {
-	input x:number;
-	state count:number(0);
-	reaction(x) {=
-		(this.state as any).count++;
-		console.log("Received " + (this.state as any).x.get());
-		if ((this.state as any).x.get() != (this.state as any).count) { 
-			console.log("FAILURE: Expected " + (this.state as any).count);
-			//exit(1); 
-		}
-	=} 
+    input x:number;
+    state count:number(0);
+    reaction(x) {=
+        (this.state as any).count++;
+        console.log("Received " + (this.state as any).x.get());
+        if ((this.state as any).x.get() != (this.state as any).count) { 
+            console.log("FAILURE: Expected " + (this.state as any).count);
+            throw new Error("FAILURE: Expected " + (this.state as any).count);
+        }
+    =} 
 }
 main reactor Composition {
-	s = new Source();
-	
-	d = new Test();
-	s.y -> d.x;
+    s = new Source();
+    
+    d = new Test();
+    s.y -> d.x;
 }
