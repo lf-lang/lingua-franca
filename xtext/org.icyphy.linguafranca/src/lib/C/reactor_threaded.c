@@ -407,17 +407,6 @@ void wrapup() {
 		printf("Worker thread exited.\n");
 	}
 	free(__thread_ids);
-	
-    interval_t elapsed_logical_time
-        = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
-    printf("Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
-    
-    struct timespec physicalEndTime;
-    clock_gettime(CLOCK_REALTIME, &physicalEndTime);
-    interval_t elapsed_physical_time
-        = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
-        - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
-    printf("Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
 }
 
 int main(int argc, char* argv[]) {
@@ -446,8 +435,10 @@ int main(int argc, char* argv[]) {
  		pthread_mutex_unlock(&mutex);
         while (next() != 0 && !stop_requested);
         wrapup();
+        termination();
     	return 0;
     } else {
+        termination();
     	return -1;
     }
 }

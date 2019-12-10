@@ -81,6 +81,29 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define set(out, value) (*out) = value; (*out ## _is_present) = true;
 
+/** Version of set that hands to an output a dynamically allocated array.
+ *  This will only work with an output that declared with an array type,
+ *  type[]. The deallocation is delegated to downstream reactors, which
+ *  automatically deallocate when the reference count drops to zero.
+ *  This is a macro terminated with a semicolon.
+ *  @param out A pointer to the output in the self struct.
+ *  @param val A pointer to the array to send.
+ *  @param length The length of the array to send.
+ */
+#define set_array(out, val, len) out->value = val; out->length = len; out->ref_count = out->initial_ref_count; (*out ## _is_present) = true;
+
+/** Version of set() that allocates a new object of the type of a
+ *  specified output port, sets the specified output to send that object,
+ *  and sets the corresponding _is_present variable in the self struct to true.
+ *  This returns a pointer to the
+ *  object that has been allocated so that the user code can populate it.
+ *  The freeing of the dynamically allocated object will be handled automatically
+ *  when the last downstream reader of the message has finished.
+ *  This is a macro terminated with a semicolon.
+ *  @param out A pointer to the output in the self struct.
+ */
+#define set_new(out) __set_new_array_impl(out, 1); (*out ## _is_present) = true;
+
 /** Version of set() that allocates a new array of the specified length,
  *  sets the specified output to send that array, and sets the corresponding
  *  _is_present variable in the self struct to true. This returns the
@@ -93,16 +116,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define set_new_array(out, length) __set_new_array_impl(out, length); (*out ## _is_present) = true;
 
-/** Version of set that hands to an output a dynamically allocated array.
- *  This will only work with an output that declared with an array type,
- *  type[]. The deallocation is delegated to downstream reactors, which
+/** Version of set that hands to an output a dynamically allocated object.
+ *  This will only work with an output that declared with a pointer type,
+ *  type*. The deallocation is delegated to downstream reactors, which
  *  automatically deallocate when the reference count drops to zero.
  *  This is a macro terminated with a semicolon.
  *  @param out A pointer to the output in the self struct.
- *  @param val A pointer to the array to send.
- *  @param length The length of the array to send.
+ *  @param val A pointer to the object to send.
  */
-#define set_array(out, val, len) out->value = val; out->length = len; out->ref_count = out->initial_ref_count; (*out ## _is_present) = true;
+#define set_token(out, val) out->value = val; out->length = 1; out->ref_count = out->initial_ref_count; (*out ## _is_present) = true;
 
 /** Return a writable copy of the specified input, which must be
  *  a message carried by a token_t struct. If the reference count
