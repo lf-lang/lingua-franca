@@ -132,6 +132,11 @@ class TypeScriptGenerator extends GeneratorBase {
             fOut.write(readFileInClasspath("/lib/TS/package.json").getBytes())      
         }
         
+        // FIXME: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
+        // the complete PATH variable needed to find the command npm. I had
+        // to start my eclipse instance from a terminal so eclipse would have the correct environment
+        // variables to run this command.
+        
         // Install npm modules.
         var installCmd = newArrayList();
         installCmd.addAll("npm", "install")
@@ -148,21 +153,14 @@ class TypeScriptGenerator extends GeneratorBase {
         // Here, we just use a generic compile command.
         var compileCommand = newArrayList()
          
-        // FIXME: The following example command has some problems. First, it creates an
-        // entire project structure inside the bin directory. Second, it is probably better
+        // FIXME: It is probably better
         // to directly expose a tsconfig.json to the programmer so they can choose how their
-        // reactors are generated. Third, the user must have Reactor.ts, time.ts, and util.ts in
-        // the src-gen directory. Fourth, the user must have already run $npm install microtimer and nanotimer
-        // in the src-gen directory. Fifth, the name of generated file's name isn't controlled
-        // by this command -- it's just automatically the original tsFilename with a .js extension.
-        // Sixth (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
-        // the complete PATH variable needed to find the command tsc from /usr/local/bin/. I had
-        // to start my eclipse instance from a terminal so eclipse would have the correct environment
-        // variables to run this command.
+        // reactors are generated.
 
         // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
         // Must compile to ES2015 or later and include the dom library.
-        compileCommand.addAll("tsc",  relativeSrcFilename, 
+        var tscPath = directory + File.separator + "node_modules/typescript/bin/tsc"
+        compileCommand.addAll(tscPath,  relativeSrcFilename, 
             "--outDir", "js", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
              "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
              "--strictNullChecks", "true"); //, relativeBinFilename, "--lib DOM")
