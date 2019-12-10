@@ -20,6 +20,6 @@ cache:
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
+ - bin/run-lf-tests TS
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp
- - bin/run-lf-tests TS
