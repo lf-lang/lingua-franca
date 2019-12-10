@@ -177,12 +177,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 }
                 // Make sure the value of the parameter is a string,
                 // a parsable integer, or a time.
-                if(property.value.value !== null){
+                if(property.literal !== null){
                     // This is a Literal
-                    if (!property.value.value.startsWith('"') ||
-                        !property.value.value.endsWith('"')) {
+                    if (!property.literal.startsWith('"') ||
+                        !property.literal.endsWith('"')) {
                         try {
-                            Integer.decode(property.value.value)
+                            Integer.decode(property.literal)
                         } catch (NumberFormatException ex) {
                             error(
                                 "Target property literal is required to be an integer or a string surrounded by quotation marks.",
@@ -192,7 +192,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     }
                 } else {
                     // This is a Time
-                    if (property.value.unit == TimeUnit.NONE) {
+                    if (property.unit == TimeUnit.NONE) {
                         error("Missing time units. Should be one of " +
                         TimeUnit.VALUES.filter[it != TimeUnit.NONE],
                         Literals.TIME_OR_VALUE__UNIT)
