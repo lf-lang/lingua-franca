@@ -7,9 +7,11 @@ sudo: false
 language: java    
 jdk:
  - oraclejdk12
+node_js:
+  - "10"
 cache:  
  directories:  
-  - $HOME/.m2  
+  - $HOME/.m2 
 #env:  
 # global:  
 #  - DISPLAY=:99.0  
@@ -20,3 +22,4 @@ script:
 # - jdk_switcher use oraclejdk11
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp
+ - bin/run-lf-tests TS
