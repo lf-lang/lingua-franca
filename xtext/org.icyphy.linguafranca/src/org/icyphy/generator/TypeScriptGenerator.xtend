@@ -699,10 +699,10 @@ class TypeScriptGenerator extends GeneratorBase {
                         // (except 0 which will match as a literal).
                         // Since 0 is the only literal that corresponds to a time
                         // any other literal is an error
-                        if( property.value.value !== null && property.value.value !=0){
+                        if( property.literal !== null && property.literal !=0){
                             reportError("The timeout property only accepts time assignments.")
                         }
-                        timeoutArg = timeInTargetLanguage(property.value.time.toString(), property.value.unit)
+                        timeoutArg = timeInTargetLanguage(property.time.toString(), property.unit)
                     }
                 }
             }   

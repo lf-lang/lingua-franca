@@ -248,7 +248,7 @@ class CppGenerator extends GeneratorBase {
 	def getProperty(Target t, String s) {
 		for (p : t.properties) {
 			if (p.name == s) {
-				return p.value
+				return p
 			}
 		}
 		null
@@ -686,7 +686,7 @@ class CppGenerator extends GeneratorBase {
 		int main(int argc, char **argv) {
 		  CLI::App app("«filename» Reactor Program");
 		  
-		  unsigned threads = «IF t.hasProperty('threads')»«t.getProperty('threads')»«ELSE»4«ENDIF»;
+		  unsigned threads = «IF t.hasProperty('threads')»«t.getProperty('threads').literal»«ELSE»4«ENDIF»;
 		  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
 		  unsigned timeout;
 		  auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
@@ -779,7 +779,7 @@ class CppGenerator extends GeneratorBase {
 		install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 		
 		«IF target.hasProperty("cmake_include")»
-			include(«directory»«File.separator»«target.getProperty("cmake_include").value.withoutQuotes»)
+			include(«directory»«File.separator»«target.getProperty("cmake_include").literal.withoutQuotes»)
 		«ENDIF»
 	'''
 

@@ -1425,7 +1425,7 @@ class CGenerator extends GeneratorBase {
                 for (assignment : target.properties) {
                     if (assignment.name.equals("threads")) {
                         // This has been checked by the validator.
-                        numberOfThreads = Integer.decode(assignment.value.value)
+                        numberOfThreads = Integer.decode(assignment.literal)
                         // Set this as the default in the generated code,
                         // but only if it has not been overridden on the command line.
                         pr(startTimers, "if (number_of_threads == 0) {")
@@ -1436,14 +1436,14 @@ class CGenerator extends GeneratorBase {
                         pr(startTimers, "}")
                     } else if (assignment.name.equals("run")) {
                         // Strip off enclosing quotation marks and split at spaces.
-                        val command = assignment.value.value.substring(1,
-                            assignment.value.value.length - 1).split(' ')
+                        val command = assignment.literal.substring(1,
+                            assignment.literal.length - 1).split(' ')
                         runCommand = newArrayList
                         runCommand.addAll(command)
                     } else if (assignment.name.equals("compile")) {
                         // Strip off enclosing quotation marks and split at spaces.
-                        val command = assignment.value.value.substring(1,
-                            assignment.value.value.length - 1).split(' ')
+                        val command = assignment.literal.substring(1,
+                            assignment.literal.length - 1).split(' ')
                         compileCommand = newArrayList
                         compileCommand.addAll(command)
                     }
