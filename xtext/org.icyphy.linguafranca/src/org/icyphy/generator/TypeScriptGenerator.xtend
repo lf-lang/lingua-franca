@@ -122,7 +122,23 @@ class TypeScriptGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + "util.ts"));
         fOut.write(readFileInClasspath("/lib/TS/util.ts").getBytes())
 
-
+        // If package.json file doesn't already exist for the project,
+        // create one by copying over the default. We don't want to
+        // overwrite a package.json with additional dependencies. 
+        var File testFile = new File(directory + File.separator + "package.json");
+        if(!testFile.exists()){
+            fOut = new FileOutputStream(
+                new File(directory + File.separator + "package.json"));
+            fOut.write(readFileInClasspath("/lib/TS/package.json").getBytes())      
+        }
+        
+        // Install npm modules.
+        var installCmd = newArrayList();
+        installCmd.addAll("npm", "install")
+        var installBuilder = new ProcessBuilder(installCmd)
+        installBuilder.directory(new File(directory))
+        installBuilder.start()
+        
         refreshProject()
 
         // Invoke the compiler on the generated code.
