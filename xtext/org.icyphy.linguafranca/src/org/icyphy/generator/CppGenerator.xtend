@@ -861,10 +861,10 @@ class CppGenerator extends GeneratorBase {
                 )
             } else {
                 reportError("make returns error code " + makeReturnCode)
+                if (stderr.length() > 0) {
+                	reportError("make reports errors:\n" + stderr.toString)
+            	}
             }
-            if (stderr.length() > 0) {
-                reportError("make reports errors:\n" + stderr.toString)
-            }            
         }
     }
     
