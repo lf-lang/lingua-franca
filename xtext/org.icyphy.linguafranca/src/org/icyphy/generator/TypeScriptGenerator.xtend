@@ -146,7 +146,7 @@ class TypeScriptGenerator extends GeneratorBase {
         installBuilder.directory(new File(directory))
         var Process installProcess = installBuilder.start()
         
-        // Sleep until the requisite modules have installed
+        // Sleep until the modules have installed
         installProcess.waitFor()
         
         //DELETE
