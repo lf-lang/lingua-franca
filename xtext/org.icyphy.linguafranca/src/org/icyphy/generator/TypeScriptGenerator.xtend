@@ -138,6 +138,8 @@ class TypeScriptGenerator extends GeneratorBase {
         // variables to run this command.
         
         // Install npm modules.
+        println("In directory: " + directory)
+        println("Running npm install ...")
         var installCmd = newArrayList();
         installCmd.addAll("npm", "install")
         var installBuilder = new ProcessBuilder(installCmd)
@@ -168,7 +170,6 @@ class TypeScriptGenerator extends GeneratorBase {
 //        val path = System.getenv("PATH");
 //        println("path is: " + path); 
 //        compileCommand.addAll("tsc","--version");
-        println("In directory: " + directory)
         println("Compiling with command: " + compileCommand.join(" "))
         var builder = new ProcessBuilder(compileCommand);
         builder.directory(new File(directory));
