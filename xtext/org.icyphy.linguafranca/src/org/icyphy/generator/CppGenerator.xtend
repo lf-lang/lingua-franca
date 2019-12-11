@@ -752,12 +752,13 @@ class CppGenerator extends GeneratorBase {
 		
 		set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
 		file(DOWNLOAD "https://github.com/CLIUtils/CLI11/releases/download/v1.8.0/CLI11.hpp" "${CLI11_PATH}")
+		add_custom_target(dep-CLI11 DEPENDS "${CLI11_PATH}")
 		
 		set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
 		set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 		
 		add_library(reactor-cpp SHARED IMPORTED)
-		add_dependencies(reactor-cpp dep-reactor-cpp "${CLI11_PATH}")
+		add_dependencies(reactor-cpp dep-reactor-cpp)
 		set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
 		
 		if (APPLE)
@@ -773,9 +774,10 @@ class CppGenerator extends GeneratorBase {
 		  	«r.getName()».cc
 		  «ENDFOR»
 		)
-		target_include_directories(«filename» PUBLIC ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
+		target_include_directories(«filename» PUBLIC "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
 		target_link_libraries(«filename» reactor-cpp)
-		
+		add_dependencies(«filename» dep-CLI11)
+
 		install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 		
 		«IF target.hasProperty("cmake_include")»
