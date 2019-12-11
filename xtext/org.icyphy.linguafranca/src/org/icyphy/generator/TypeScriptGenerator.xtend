@@ -144,7 +144,19 @@ class TypeScriptGenerator extends GeneratorBase {
         installCmd.addAll("npm", "install")
         var installBuilder = new ProcessBuilder(installCmd)
         installBuilder.directory(new File(directory))
-        installBuilder.start()
+        var Process installProcess = installBuilder.start()
+        
+        // Sleep until the requisite modules have installed
+        installProcess.waitFor()
+        
+        //DELETE
+        var lsCmd = newArrayList();
+        lsCmd.addAll("ls")
+        var lsBuilder = new ProcessBuilder(lsCmd)
+        lsBuilder.directory(new File(directory))
+        lsBuilder.redirectOutput(new File(directory + File.separator + "lsdebug.txt"));
+        lsBuilder.start()
+        //END DELETE
         
         refreshProject()
 

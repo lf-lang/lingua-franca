@@ -7,13 +7,12 @@ sudo: false
 language: java    
 jdk:
  - oraclejdk12
-node_js:
-  - "10"
-before_script:
-  - npm install
 cache:  
  directories:  
-  - $HOME/.m2 
+  - $HOME/.m2
+# The node_js property doesn't work if the language is java
+before_install:
+  - nvm install 10.0.0
 #env:  
 # global:  
 #  - DISPLAY=:99.0  
@@ -22,7 +21,6 @@ cache:
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
- - node --version
  - bin/run-lf-tests TS
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp
