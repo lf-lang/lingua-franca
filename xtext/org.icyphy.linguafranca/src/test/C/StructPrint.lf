@@ -1,0 +1,37 @@
+target C;
+// Source produces a dynamically allocated array, which is passes
+// to Print. Reference counting ensures that the array is freed.
+reactor Source {
+    preamble {=
+        typedef struct hello_t hello_t;
+        struct hello_t {
+            char* name;
+            int value;
+        };
+    =}
+    output out:hello_t*;
+    reaction(startup) -> out {=
+        // Dynamically allocate an output struct.
+        hello_t* out_value = set_new(out);
+        
+        // Above returns a pointer to the struct, which then must be populated.
+        out_value->name = "Earth";
+        out_value->value = 42;
+    =}
+}
+// expected parameter is for testing.
+reactor Print(expected:int(42)) {
+    input in:hello_t*;
+    reaction(in) {=
+        printf("Received: name = %s, value = %d\n", in->name, in->value);
+        if (in->value != self->expected) {
+            printf("ERROR: Expected value to be %d.\n", self->expected);
+            exit(1);
+        }
+    =}
+}
+main reactor StructPrint {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}
