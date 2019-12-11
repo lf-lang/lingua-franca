@@ -9,6 +9,8 @@ jdk:
  - oraclejdk12
 node_js:
   - "10"
+before_script:
+  - npm install
 cache:  
  directories:  
   - $HOME/.m2 
@@ -20,6 +22,7 @@ cache:
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
+ - node --version
  - bin/run-lf-tests TS
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp
