@@ -242,3 +242,15 @@ export function numericTimeMultiple(t: NumericTimeInterval, multiple: number): N
     return product;
 }
 
+/**
+ * Return true if timeInterval t1 is equal to timeInterval t2.
+ * @param t1 First time interval.
+ * @param t2 Second time interval
+ */
+export function numericTimeEquals(t1: NumericTimeInterval, t2: NumericTimeInterval): Boolean {
+    if(t1[0] == t2[0] && t2[1] == t2[1]){
+        return true;
+    } else {
+        return false;
+    }
+}
