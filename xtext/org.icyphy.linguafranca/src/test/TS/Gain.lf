@@ -18,7 +18,7 @@
             (this.state as any).received_value = true;
             if ((this.state as any).x.get() != 2) {
                 console.log("ERROR: Expected 2!");
-                //exit(1);
+                throw new Error("ERROR: Expected 2!");
             }
         =}
         reaction(shutdown) {=
