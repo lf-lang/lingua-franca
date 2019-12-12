@@ -149,15 +149,6 @@ class TypeScriptGenerator extends GeneratorBase {
         // Sleep until the modules have installed
         installProcess.waitFor()
         
-        //DELETE
-        var lsCmd = newArrayList();
-        lsCmd.addAll("ls")
-        var lsBuilder = new ProcessBuilder(lsCmd)
-        lsBuilder.directory(new File(directory))
-        lsBuilder.redirectOutput(new File(directory + File.separator + "lsdebug.txt"));
-        lsBuilder.start()
-        //END DELETE
-        
         refreshProject()
 
         // Invoke the compiler on the generated code.
@@ -225,9 +216,9 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         if(reactor.isMain()){
-            pr("class " + reactor.name + " extends App {")
+            pr("class " + reactor.name + "_c" + " extends App {")
         } else {
-            pr("class " + reactor.name + " extends Reactor {")
+            pr("class " + reactor.name + "_c" + " extends Reactor {")
         }
         
         indent()
@@ -267,7 +258,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle child reactors instantiations
         for (childReactor : reactor.instantiations ) {
-            pr(childReactor.getName() + ": " + childReactor.reactorClass.name )
+            pr(childReactor.getName() + ": " + childReactor.reactorClass.name + "_c" )
             
             var childReactorArguments = new StringBuffer();
         
@@ -310,46 +301,38 @@ class TypeScriptGenerator extends GeneratorBase {
             childReactorArguments.append("this, " +  "'" + reactor.name + "/" + childReactor.name + "'");
             
             pr(reactorConstructor, "this." + childReactor.getName()
-                + " = new " + childReactor.reactorClass.name + "("
+                + " = new " + childReactor.reactorClass.name + "_c" + "("
                 + childReactorArguments.toString() + ")" )
         }
        
         
         // Next handle timers.
         for (timer : reactor.timers) {
-            var String period;
-            var String offset; 
-            if(timer.getPeriod() === null){
-                period = "0";
+            var String timerPeriod
+            if(timer.period === null){
+                timerPeriod = "0";
             } else {
-                var periodUnit = timer.getPeriod().getUnit();
-                var periodTime = timer.getPeriod().getTime();
-                if(periodUnit === TimeUnit.NONE){
-                    // The default time unit for TypeScript is msec.
-                    period = "[" + periodTime + ",TimeUnit.msec]"
-                }
-                else{
-                    period = "[" + periodTime + ",TimeUnit." + periodUnit +"]"
+                if(timer.period.parameter !== null){
+                    timerPeriod = timer.period.parameter.name
+                } else {
+                    timerPeriod = timeInTargetLanguage(timer.period.time.toString(), timer.period.unit)
                 }
             }
             
-            if(timer.getOffset() === null){
-                offset = "0";
+            var String timerOffset
+            if(timer.offset === null){
+                timerOffset = "0";
             } else {
-                var offsetUnit = timer.getOffset().getUnit();
-                var offsetTime = timer.getOffset().getTime();
-                if(offsetUnit === TimeUnit.NONE){
-                    // The default time unit for TypeScript is msec.
-                    offset = "[" + offsetTime + ",TimeUnit.msec]"
-                }
-                else{
-                    offset = "[" + offsetTime + ",TimeUnit." + offsetUnit +"]"
+                if(timer.offset.parameter !== null){
+                    timerOffset = timer.offset.parameter.name
+                } else {
+                    timerOffset = timeInTargetLanguage(timer.offset.time.toString(), timer.offset.unit)
                 }
             }
 
             pr(timer.getName() + ": Timer;")
             pr(reactorConstructor, "this." + timer.getName()
-                + " = new Timer(this, " + period + ","+ offset + ");")
+                + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
         }
         
         // FIXME Handle shutdown triggers
@@ -562,11 +545,49 @@ class TypeScriptGenerator extends GeneratorBase {
                 + reactionClassName + "(" + reactionArguments + ");"
             )
             reactionArray += "this." + reactionName + ", "
+
+        
+        
+            // Next, handle deadlines for reaction instances.
+            // This must happen after reactions
+            if(reaction.deadline !== null){
+                var deadlineName = reactor.name + '_d' + reactionIndex
+                var deadlineArgs = "this, "
+                if(reaction.deadline.time.parameter !== null){
+                    deadlineArgs+= "this." + reaction.deadline.time.parameter.name; 
+                } else {
+                    deadlineArgs += timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
+                }
+                pr(reactorConstructor, "this." + reactionName + ".setDeadline( new " + deadlineName + "( " + deadlineArgs + "));")
+            }
+        
             reactionIndex++
         }
         reactionArray += "];"
         pr(reactorConstructor, reactionArray );
         
+        
+
+        
+//        pr( "constructor(state: Reactor, triggers: Trigger[], ")
+//                indent()
+//                pr( "uses: Array<InPort<any>>, effects: Array<OutPort<any> | Action<any>>){")
+//                pr("super(state, triggers, uses, effects);")
+//                
+//                var String deadlineTime
+//                if(reaction.deadline.time.parameter !== null){
+//                    deadlineTime = timeInTargetLanguage(reaction.deadline.time.parameter.time.toString, reaction.deadline.time.parameter.unit)
+//                } else{
+//                    deadlineTime = timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
+//                }
+//                // FIXME: Change LF grammar to avoid time.time style
+//                pr('this.deadline = new ' + deadlineClassName + "( state, " + deadlineTime + " );")
+//                unindent()
+//                pr("}")
+//        
+
+
+
 //        // Next, handle reactions that produce outputs sent to inputs
 //        // of contained reactions.
 //        for (reaction : reactor.reactions) {
@@ -668,11 +689,26 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @param reactor The reactor.
      */
     def generateReactions(Reactor reactor) {
+        var deadlineClass = new StringBuilder();
         var reactions = reactor.reactions
         var reactionIndex = 0;
         for (reaction : reactions) {
             pr('class ' + reactor.name + '_r' + reactionIndex + ' extends Reaction {')
             indent()
+            
+            var deadlineClassName = reactor.name + '_d' + reactionIndex;
+            if(reaction.deadline !== null){
+                pr(deadlineClass, 'class ' + deadlineClassName + ' extends Deadline {')
+                deadlineClass.indent()
+                pr(deadlineClass, "handler(){")
+                deadlineClass.indent()
+                pr(deadlineClass, removeCodeDelimiter(reaction.deadline.deadlineCode))
+                deadlineClass.unindent()
+                pr(deadlineClass, "}")
+                deadlineClass.unindent()
+                pr(deadlineClass, "}")
+      
+            }
             pr('react() {')
             indent()
             pr(removeCodeDelimiter(reaction.code))
@@ -680,6 +716,11 @@ class TypeScriptGenerator extends GeneratorBase {
             pr('}')
             unindent()
             pr('}')
+            
+            if(reaction.deadline !== null){
+                pr(deadlineClass.toString())
+            }
+            
             reactionIndex++
         }
     }
@@ -736,7 +777,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         
         arguments += timeoutArg + ", '" + fullName + "'" 
-        pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
+        pr("let _app" + " = new "+ fullName + "_c" + "(" + arguments + ")")
     }
     
     /** Generate code to call the _start function on the main App
@@ -815,6 +856,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
      */
     override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
+        // The default time unit for TypeScript is msec.
         if (unit != TimeUnit.NONE){
             "[" + timeLiteral + ", " + "TimeUnit." + unit + "]"
         } else {
@@ -854,8 +896,8 @@ class TypeScriptGenerator extends GeneratorBase {
     val static preamble = '''
 'use strict';
 
-import {Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
-import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeEquals, numericTimeSum, numericTimeDifference } from "''' + timeLibPath + '''"
+import {Deadline, Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
+import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeEquals, numericTimeSum, numericTimeDifference, compareNumericTimeIntervals } from "''' + timeLibPath + '''"
 
     '''
 
