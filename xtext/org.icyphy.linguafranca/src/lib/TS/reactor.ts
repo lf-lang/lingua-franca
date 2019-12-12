@@ -1697,6 +1697,15 @@ export class App extends Reactor{
                 while(headReaction){
 
                     currentPhysicalTime = microtimeToNumeric(microtime.now());
+
+                    if(this._executionTimeout){
+                        if(compareNumericTimeIntervals( this._relativeExecutionTimeout, currentPhysicalTime)){
+                            console.log("Execution timeout reached. Terminating runtime with success.");
+                            successCallback();
+                            return;
+                        }
+                    }
+
                     // Explicit type annotation because reactionQ contains PrioritizedReactions.
                     let r = (headReaction as PrioritizedReaction).r
                     
@@ -1709,7 +1718,7 @@ export class App extends Reactor{
                         console.log("handling deadline violation");
                         r.deadline.handler();
                     } else {
-                        console.log("reacting...");
+                        // console.log("reacting...");
                         r.react();
                     }
                     headReaction = this._reactionQ.pop();
