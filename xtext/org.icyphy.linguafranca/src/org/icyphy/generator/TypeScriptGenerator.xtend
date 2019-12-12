@@ -504,14 +504,11 @@ class TypeScriptGenerator extends GeneratorBase {
             var reactionArguments = "this, [ ";
             for(trigger : reaction.triggers ){
                 if(trigger instanceof VarRef){
-                    var triggerContainerName = ""
                     if(trigger.container === null){
-                        triggerContainerName = "this";
+                        reactionArguments += "this." + trigger.variable.name + ", "    
                     } else {
-                        triggerContainerName = trigger.container.name;
+                        reactionArguments += "this." + trigger.container.name + "." + trigger.variable.name + ", ";
                     }
-                    
-                    reactionArguments += triggerContainerName + "." + trigger.variable.name + ", "
                 } 
 //                else {
 //                    if( trigger.startup){
