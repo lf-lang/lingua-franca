@@ -1,0 +1,3 @@
+[submodule "xtext/org.icyphy.linguafranca/src/lib/TS/wirewrap"]
+	path = xtext/org.icyphy.linguafranca/src/lib/TS/wirewrap
+	url = https://github.com/lhstrh/wirewrap.git

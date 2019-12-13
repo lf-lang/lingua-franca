@@ -108,19 +108,35 @@ class TypeScriptGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + tsFilename));
         fOut.write(getCode().getBytes())
 
+
+        // Pull changes from the wirewrap submodule repository
+        // git fetch https://github.com/lhstrh/wirewrap.git
+        println("Running git fetch https://github.com/lhstrh/wirewrap.git ...")
+        var fetchCmd = newArrayList();
+        fetchCmd.addAll("git", "fetch", "https://github.com/lhstrh/wirewrap.git")
+        var fetchBuilder = new ProcessBuilder(fetchCmd)
+        fetchBuilder.directory(new File(directory))
+        var Process fetchProcess = fetchBuilder.start()
+        
+        // Sleep until the changes have been pulled
+        fetchProcess.waitFor()
+
+
         // Copy the required library files into the src-gen directory
         // so they may be compiled as part of the TypeScript project
+        var wireWrapPath = File.separator +"lib" + File.separator +
+            File.separator + "TS" + File.separator + "wirewrap"  + File.separator +"src" + File.separator
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "reactor.ts"));
-        fOut.write(readFileInClasspath("/lib/TS/reactor.ts").getBytes())
+        fOut.write(readFileInClasspath(wireWrapPath + "reactor.ts").getBytes())
 
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "time.ts"));
-        fOut.write(readFileInClasspath("/lib/TS/time.ts").getBytes())
+        fOut.write(readFileInClasspath(wireWrapPath + "time.ts").getBytes())
 
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "util.ts"));
-        fOut.write(readFileInClasspath("/lib/TS/util.ts").getBytes())
+        fOut.write(readFileInClasspath(wireWrapPath + "util.ts").getBytes())
 
         // If package.json file doesn't already exist for the project,
         // create one by copying over the default. We don't want to
@@ -129,7 +145,7 @@ class TypeScriptGenerator extends GeneratorBase {
         if(!testFile.exists()){
             fOut = new FileOutputStream(
                 new File(directory + File.separator + "package.json"));
-            fOut.write(readFileInClasspath("/lib/TS/package.json").getBytes())      
+            fOut.write(readFileInClasspath(File.separator +"lib" + File.separator + "package.json").getBytes())      
         }
         
         // FIXME: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
