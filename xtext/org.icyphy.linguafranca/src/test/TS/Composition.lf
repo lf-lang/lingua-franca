@@ -1,7 +1,7 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
 target TypeScript(
-    timeout = 10 sec
+    timeout = 5 sec
 );
 //(
 //  run = "bin/Composition -fast -timeout 10 sec"
