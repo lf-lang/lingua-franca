@@ -34,6 +34,7 @@ import java.io.InputStreamReader
 import java.net.URL
 import java.nio.file.Paths
 import java.util.HashMap
+import java.util.List
 import java.util.Set
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
@@ -109,6 +110,12 @@ abstract class GeneratorBase {
      */
     protected var mode = Mode.UNDEFINED
     
+    /** A list of Reactor definitions in the main
+     *  resource, including non-main reactors defined
+     *  in imported resources.
+     */
+    protected var List<Reactor> reactors
+    
     /** The file containing the main source code. */
     protected var Resource resource
     
@@ -132,7 +139,9 @@ abstract class GeneratorBase {
     /** Generate code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation. This base class invokes generateReactor()
-     *  for each contained reactor. If errors occur during generation,
+     *  for each contained reactor, including any reactors defined
+     *  in imported .lf files (except any main reactors in those
+     *  imported files). If errors occur during generation,
      *  then a subsequent call to errorsOccurred() will return true.
      *  @param resource The resource containing the source code.
      *  @param fsa The file system access (used to write the result).
@@ -154,6 +163,10 @@ abstract class GeneratorBase {
         // to produce before anything else goes into the code generated files.
         generatePreamble()
 
+        // Collect a list of reactors defined this resource and (non-main)
+        // reactors defined in imported resources.
+        reactors = newLinkedList
+        
         // Next process all the imports and call generateReactor on any
         // reactors defined in the imports.
         processImports(resource)
@@ -187,6 +200,7 @@ abstract class GeneratorBase {
      *  @param reactor The parsed reactor AST data structure.
      */
     def void generateReactor(Reactor reactor) {
+        reactors.add(reactor)
 
         // Reset indentation, in case it has gotten messed up.
         indentation.put(code, "")
@@ -362,32 +376,58 @@ abstract class GeneratorBase {
         indentation.put(builder, buffer.toString)
     }
 
-    /** Open and parse an import given a URI relative to currentResource.
-     *  @param currentResource The current resource.
-     *  @param importedURIAsString The URI to import as a string.
-     *  @return The resource specified by the URI or null if either
-     *   the resource cannot be found or it is the same as the currentResource.
+    /** Open a non-Lingua Franca import file at the specified URI
+     *  in the specified resource set. Throw an exception if the
+     *  file import is not supported. This base class always throws
+     *  an exception because the only supported imports, by default,
+     *  are Lingua Franca files.
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
      */
-    protected def openImport(Resource currentResource, Import importSpec) {
-        val importedURIAsString = importSpec.importURI;
-        val URI currentURI = currentResource?.getURI;
-        val URI importedURI = URI?.createFileURI(importedURIAsString);
-        val URI resolvedURI = importedURI?.resolve(currentURI);
-        if (resolvedURI.equals(currentURI)) {
-            reportError(importSpec,
-                "Recursive imports are not permitted: " + importSpec.importURI)
-            return currentResource
+    protected def openForeignImport(ResourceSet resourceSet, URI resolvedURI) {
+        throw new Exception("Unsupported imported file type: " + resolvedURI)
+    }
+    
+    /** Open an import at the Lingua Franca file at the specified URI
+     *  in the specified resource set and call generateReactor() on
+     *  any non-main reactors given in that file.
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
+     */
+    protected def openLFImport(ResourceSet resourceSet, URI resolvedURI) {
+        val importResource = resourceSet?.getResource(resolvedURI, true);
+        if (importResource === null) {
+            throw new Exception("Failed to load resource.")
         } else {
-            val ResourceSet currentResourceSet = currentResource?.resourceSet;
-            try {
-                return currentResourceSet?.getResource(resolvedURI, true);
-            } catch (Exception ex) {
-                reportError(
-                    importSpec,
-                    "Import not found: " + importSpec.importURI +
-                        ". Exception message: " + ex.message
+            // Make sure the target of the import is acceptable.
+            var targetOK = (acceptableTargets === null)
+            var offendingTarget = ""
+            for (target : importResource.allContents.toIterable.filter(Target)) {
+                for (acceptableTarget : acceptableTargets ?: emptyList()) {
+                    if (acceptableTarget.equalsIgnoreCase(target.name)) {
+                        targetOK = true
+                    }
+                }
+                if (!targetOK) offendingTarget = target.name
+            }
+            if (!targetOK) {
+                throw new Exception("Import target " + offendingTarget
+                    + " is not an acceptable target in import "
+                    + importResource.getURI
+                    + ". Acceptable targets are: "
+                    + acceptableTargets.join(", ")
                 )
-                return null
+            } else {
+                // Process any imports that the import has.
+                processImports(importResource)
+                // Call generateReactor for each reactor contained by the import
+                // that is not a main reactor.
+                for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
+                    if (!reactor.isMain) {
+                        println("Including imported reactor: " + reactor.name)
+                        generateReactor(reactor)
+                    }
+                }
             }
         }
     }
@@ -498,40 +538,32 @@ abstract class GeneratorBase {
      */
     protected def void processImports(Resource resource) {
         for (import : resource.allContents.toIterable.filter(Import)) {
-            val importResource = openImport(resource, import)
-            if (importResource !== null) {
-                // Make sure the target of the import is acceptable.
-                var targetOK = (acceptableTargets === null)
-                var offendingTarget = ""
-                for (target : importResource.allContents.toIterable.filter(Target)) {
-                    for (acceptableTarget : acceptableTargets ?: emptyList()) {
-                        if (acceptableTarget.equalsIgnoreCase(target.name)) {
-                            targetOK = true
-                        }
-                    }
-                    if (!targetOK) offendingTarget = target.name
-                }
-                if (!targetOK) {
-                    reportError(import, "Import target " + offendingTarget
-                        + " is not an acceptable target in import "
-                        + importResource.getURI
-                        + ". Acceptable targets are: "
-                        + acceptableTargets.join(", ")
-                    )
+            // Resolve the import as a URI relative to the current resource's URI.
+            val URI currentURI = resource?.getURI;
+            val URI importedURI = URI?.createFileURI(import.importURI);
+            val URI resolvedURI = importedURI?.resolve(currentURI);
+            val ResourceSet resourceSet = resource?.resourceSet;
+            
+            // Check for self import.
+            if (resolvedURI.equals(currentURI)) {
+                reportError(import,
+                    "Recursive imports are not permitted: " + import.importURI)
+                return
+            }
+            try {
+                if (import.importURI.endsWith(".lf")) {
+                    // Handle Lingua Franca imports.
+                    openLFImport(resourceSet, resolvedURI)
                 } else {
-                    // Process any imports that the import has.
-                    processImports(importResource)
-                    // Call generateReactor for each reactor contained by the import
-                    // that is not a main reactor.
-                    for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-                        if (!reactor.isMain) {
-                            println("Including imported reactor: " + reactor.name)
-                            generateReactor(reactor)
-                        }
-                    }
+                    // Handle other supported imports (if any).
+                    openForeignImport(resourceSet, resolvedURI)
                 }
-            } else {
-                pr("Unable to open import: " + import.importURI)
+            } catch (Exception ex) {
+                reportError(
+                    import,
+                    "Import error: " + import.importURI +
+                    "\nException message: " + ex.message
+                )
             }
         }
     }
