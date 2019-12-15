@@ -35,7 +35,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
-import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
@@ -81,49 +80,15 @@ class CppGenerator extends GeneratorBase {
         TimeUnit.WEEKS -> '_weeks'
     }
 
-    private def validateTarget(Resource resource) {
-        var targetOK = false
-        for (target : resource.allContents.toIterable.filter(Target)) {
-            if ("Cpp".equalsIgnoreCase(target.name)) {
-                targetOK = true
-            }
-        }
-        targetOK
-    }
-
-    private def collectReactors(Resource resource) {
-        val List<Reactor> reactors = newArrayList
-        resource.collectReactors(reactors)
-    }
-
-    private def List<Reactor> collectReactors(Resource resource, List<Reactor> reactors) {
-        reactors.addAll(resource.allContents.toIterable.filter(Reactor))
-
-        for (import : resource.allContents.toIterable.filter(Import)) {
-            val importResource = openImport(resource, import)
-            if (importResource !== null) {
-                var ok = importResource.validateTarget
-                if (ok) {
-                    importResource.collectReactors(reactors)
-                } else {
-                    reportError(import, "Import does not have a Cpp target.")
-                }
-            } else {
-                reportError(import, "Unable to open import")
-            }
-        }
-        reactors
-    }
-
+    /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
-
+    
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
-        var reactors = resource.collectReactors
-        mainReactor = resource.findMainReactor
         var target = resource.findTarget
 
         super.doGenerate(resource, fsa, context)
+        mainReactor = main.definition.reactorClass
 
         fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
         fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain(target))
@@ -213,22 +178,6 @@ class CppGenerator extends GeneratorBase {
     def priority(Reaction n) {
         var r = n.eContainer as Reactor
         r.reactions.lastIndexOf(n) + 1
-    }
-
-    def findMainReactor(Resource resource) {
-        var main = null as Reactor
-        for (r : resource.allContents.toIterable.filter(Reactor)) {
-            if (r.isMain) {
-                if (main !== null) {
-                    throw new RuntimeException("There is more than one main reactor!")
-                }
-                main = r
-            }
-        }
-        if (main === null) {
-            throw new RuntimeException("No main reactor found!")
-        }
-        main
     }
 
     def findTarget(Resource resource) {
@@ -879,15 +828,5 @@ class CppGenerator extends GeneratorBase {
      */
     override acceptableTargets() {
         acceptableTargetSet
-    }
-
-    /** Override to do nothing because this generator handles imports
-     *  another way.
-     *  @param resource The resource (file) that may contain import
-     *   statements.
-     */
-    override void processImports(Resource resource) {
-        // FIXME: The code that processes imports in this file could
-        // in fact use the base class mechanism.
     }
 }
