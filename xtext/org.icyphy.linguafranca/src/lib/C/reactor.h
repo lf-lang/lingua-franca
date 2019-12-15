@@ -1,6 +1,11 @@
-/* Runtime infrastructure for the C target of Lingua Franca. */
-
-/*************
+/**
+ * @file
+ * @author Edward A. Lee (eal@berkeley.edu)
+ * @author Marten Lohstroh (marten@berkeley.edu)
+ * @author Chris Gill (cdgill@wustl.edu)
+ * @author Mehrdad Niknami (mniknami@berkeley.edu)
+ *
+ * @section LICENSE
 Copyright (c) 2019, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -22,16 +27,11 @@ PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR B
 INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
 
-/** Runtime infrastructure for the C target of Lingua Franca.
- *  This file contains header information used by both the threaded and
- *  non-threaded versions of the C runtime.
- *  
- *  @author Edward A. Lee (eal@berkeley.edu)
- *  @author Marten Lohstroh (marten@berkeley.edu)
- *  @author Chris Gill (cdgill@wustl.edu)
- *  @author Mehrdad Niknami (mniknami@berkeley.edu)
+ * @section DESCRIPTION
+ * Runtime infrastructure for the C target of Lingua Franca.
+ * This file contains header information used by both the threaded and
+ * non-threaded versions of the C runtime.
  */
 
 #ifndef REACTOR_H
@@ -53,7 +53,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INITIAL_EVENT_QUEUE_SIZE 10
 #define INITIAL_REACT_QUEUE_SIZE 10
 
-/** Conversion of time to nanoseconds. */
+/* Conversion of time to nanoseconds. */
 #define NSEC(t) (t * 1LL)
 #define NSECS(t) (t * 1LL)
 #define USEC(t) (t * 1000LL)
@@ -158,14 +158,18 @@ typedef pqueue_pri_t index_t;
 typedef void(*reaction_function_t)(void*);
 
 /** Token type for dynamically allocated arrays and structs sent as messages. */
-typedef struct token_t token_t;
-struct token_t {
+typedef struct token_t {
+    /** Pointer to a struct or array to be sent as a message. */
     void* value;
+    /** Size of the struct or array element. */
     int element_size;
+    /** Length of the array or 1 for a struct. */
     int length;
+    /** The number of destination input ports for the message. */
     int initial_ref_count;
+    /** The number of input ports that have not already reacted to the message. */
     int ref_count;
-};
+} token_t;
 
 /** Reaction activation record to push onto the reaction queue. */
 typedef struct trigger_t trigger_t;
