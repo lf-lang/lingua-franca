@@ -33,7 +33,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import java.util.Hashtable
+import java.util.HashMap
 import java.util.LinkedHashMap
 import java.util.LinkedList
 import java.util.StringJoiner
@@ -43,6 +43,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
@@ -74,6 +75,10 @@ class AccessorGenerator extends GeneratorBase {
 	
 	// Text of generated code to add input handlers.
 	var addInputHandlers = new StringBuffer()
+	
+	// FIXME: Handle foreign import. See base class openForeignImport(),
+    // which should be overridden to construct the importTable.
+	var importTable = new HashMap<String,String>();
 		
 	override void doGenerate(
 			Resource resource, 
@@ -175,12 +180,11 @@ class AccessorGenerator extends GeneratorBase {
 		}
 		// Generated instances
 		for (instance: reactor.instantiations) {
-			//generateInstantiate(instance, importTable)
-			// FIXME: this should be done differently now
+			generateInstantiate(instance)
 		}
 		// Generated connections
 		for (connection: reactor.connections) {
-			pr('''this.connect(«portSpec(connection.leftPort.variable.name)», «portSpec(connection.rightPort.variable.name)»);''')
+			pr('''this.connect(«portSpec(connection.leftPort)», «portSpec(connection.rightPort)»);''')
 		}
 		unindent()
 		pr("}")
@@ -229,7 +233,7 @@ class AccessorGenerator extends GeneratorBase {
 			for (handler: timerReactions.get(timer)) {
 				var offsetStr = unitAdjustment(timer.offset, TimeUnit.MSEC)
 				var periodStr = unitAdjustment(timer.period, TimeUnit.MSEC)
-				pr('''__scheduleTimer("«timer»", «handler».bind(this), «offsetStr», «periodStr»);''')
+				pr('''__scheduleTimer("«timer.name»", «handler».bind(this), «offsetStr», «periodStr»);''')
 			}
 		}
 		unindent()
@@ -249,16 +253,16 @@ class AccessorGenerator extends GeneratorBase {
 			if (reaction.triggers !== null && reaction.triggers.length > 0) {
 				for (TriggerRef trigger: reaction.triggers) {
 					if (trigger instanceof VarRef) {
-						if (inputs.contains(trigger.variable)) {
+						if (trigger.variable instanceof Input) {
 						// The trigger is an input.
 						// Declare a variable in the generated code.
 						// NOTE: Here we are not using get() because null works
 						// in JavaScript.
-						pr(body, '''var «trigger» = get("«trigger»");''')
+						pr(body, '''var «trigger.variable.name» = get("«trigger.variable.name»");''')
 
 						// Generate code for the initialize() function here so that input handlers are
 						// added in the same order that they are declared.
-				   		addInputHandlers.append('''this.addInputHandler("«trigger»", «functionName».bind(this));''')
+				   		addInputHandlers.append('''this.addInputHandler("«trigger.variable.name»", «functionName».bind(this));''')
 					} else if (trigger.variable instanceof Timer) {
 						// The trigger is a timer.
 						// Record this so we can schedule this reaction in initialize.
@@ -273,10 +277,10 @@ class AccessorGenerator extends GeneratorBase {
 					    args.add(trigger.variable.name)
 					    // Make sure there is an entry for this action in the action table.
 					    pr('''
-					    if (!actionTable.«trigger.variable») {
-					        actionTable.«trigger.variable» = [];
+					    if (!actionTable.«trigger.variable.name») {
+					        actionTable.«trigger.variable.name» = [];
 					    }
-					    actionTable.«trigger.variable».push(«functionName»);
+					    actionTable.«trigger.variable.name».push(«functionName»);
 					    ''')
 					} else {
 						// This is checked by the validator (See LinguaFrancaValidator.xtend).
@@ -315,7 +319,7 @@ class AccessorGenerator extends GeneratorBase {
 				// FIXME: String name is too easy to cheat!
 				// LF coder could write set('foo', value) to write to
 				// output foo without having declared the write.
-				pr(body, '''var «effect.variable» = "«effect.variable»";''');
+				pr(body, '''var «effect.variable.name» = "«effect.variable.name»";''');
 			}
 						
 			// Define variables for each parameter.
@@ -338,18 +342,17 @@ class AccessorGenerator extends GeneratorBase {
 	 *  assignments. This retrieves the fully-qualified class name from the imports
 	 *  table if appropriate.
 	 *  @param instance The instance declaration.
-	 *  @param importTable Substitution table for class names (from import statements).
 	 */
-	def generateInstantiate(ReactorInstance instance, Hashtable<String,String> importTable) {
-		var className = importTable.get(instance.definition.reactorClass);
+	def generateInstantiate(Instantiation instance) {
+		var className = importTable.get(instance.reactorClass);
 		if (className === null) {
 		    // This is not an imported accessor.
-			className = directory + instance.definition.reactorClass
+			className = directory + instance.reactorClass.name
 		}
-		pr('''var «instance.definition.name» = this.instantiate('«instance.definition.name»', '«className»');''')
-		if (instance.definition.parameters !== null) {
-			for (param: instance.definition.parameters) {
-				pr('''«instance.definition.name».setParameter('«param.lhs.name»', «removeCodeDelimiter(param.rhs.value)»);''')
+		pr('''var «instance.name» = this.instantiate('«instance.name»', '«className»');''')
+		if (instance.parameters !== null) {
+			for (param: instance.parameters) {
+				pr('''«instance.name».setParameter('«param.lhs.name»', «removeCodeDelimiter(param.rhs.value)»);''')
 			}
 		}
 	}
@@ -357,15 +360,12 @@ class AccessorGenerator extends GeneratorBase {
 	/** Given a string of form either "xx" or "xx.yy", return either
 	 *  "'xx'" or "xx, 'yy'".
 	 */
-	def portSpec(String port) {
-        val a = port.split('\\.');
-        if (a.length == 1) {
-            "'" + a.get(0) + "'"
-        } else if (a.length > 1) {
-            a.get(0) + ", '" + a.get(1) + "'"
-        } else {
-            "INVALID_PORT_SPEC:" + port
-        }
+	def portSpec(VarRef port) {
+	    if (port.container !== null) {
+	        port.container.name + ", '" + port.variable.name + "'"
+	    } else {
+	        "'" + port.variable.name + "'"
+	    }
     }
 	
     ////////////////////////////////////////////////
