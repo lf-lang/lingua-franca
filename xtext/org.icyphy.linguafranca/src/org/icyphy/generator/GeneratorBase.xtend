@@ -196,7 +196,7 @@ abstract class GeneratorBase {
 
     /** Collect data in a reactor or composite definition.
      *  Subclasses should override this and be sure to call
-     *  super.generateReactor(reactor, importTable).
+     *  super.generateReactor(reactor).
      *  @param reactor The parsed reactor AST data structure.
      */
     def void generateReactor(Reactor reactor) {
