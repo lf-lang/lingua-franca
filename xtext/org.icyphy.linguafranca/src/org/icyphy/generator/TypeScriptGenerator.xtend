@@ -276,7 +276,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         if( parameterAssignment.rhs instanceof Parameter){
                             childReactorArguments.append("this." + parameterAssignment.rhs.parameter.name)
                         } else if( parameterAssignment.rhs.value !== null ){
-                            childReactorArguments.append(parameterAssignment.rhs.value)
+                            childReactorArguments.append( removeCodeDelimiter(parameterAssignment.rhs.value))
                         } else {
                             childReactorArguments.append(
                                 timeInTargetLanguage(parameterAssignment.rhs.time.toString
@@ -291,7 +291,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         childReactorArguments.append(
                             timeInTargetLanguage(parameter.time.toString ,parameter.unit))
                     } else{
-                        childReactorArguments.append(parameter.value)
+                        childReactorArguments.append(removeCodeDelimiter(parameter.value))
                     }
                 }
                 childReactorArguments.append(", ")
@@ -369,25 +369,31 @@ class TypeScriptGenerator extends GeneratorBase {
                 paramType = param.type
             }
             pr(param.name + ": " + paramType + "; // Parameter")
-            pr(reactorConstructor, "this." + param.name + " = " + param.name + ";" )
+            pr(reactorConstructor, "this." + param.name + " = " + param.name + "; // Parameter" )
         }
 
         // Next handle states.
         for (state : reactor.states) {
             if (state.parameter !== null) {
+                // State is a parameter
                 pr( state.name + ': ' +
-                removeCodeDelimiter(state.parameter.type) +  ';');
-            } else {
+                removeCodeDelimiter(state.parameter.type) +  '; // State');
+                pr(reactorConstructor, "this." + state.name + " = "
+                        + state.parameter.name + "; // State" )
+            } else {  
+                // State is a literal
                 if (state.ofTimeType) {
+                    // State is a time type
                     pr(state.name + ': ' +
-                        timeTypeInTargetLanguage + ';');
+                        timeTypeInTargetLanguage + '; // State');
                     pr(reactorConstructor, "this." + state.name + " = "
-                        + timeInTargetLanguage( state.time.toString, state.unit) + ";" )
+                        + timeInTargetLanguage( state.time.toString, state.unit) + "; // State" )
                 } else {
+                    // State is a literal 
                     pr(state.name + ': ' +
-                        removeCodeDelimiter(state.type) + ';');
+                        removeCodeDelimiter(state.type) + '; // State');
                     pr(reactorConstructor, "this." + state.name + " = "
-                        + state.value + "; // State" )
+                        + removeCodeDelimiter(state.value) + "; // State" )
                 }
             }
         }
@@ -751,7 +757,7 @@ class TypeScriptGenerator extends GeneratorBase {
             
         var arguments = "";
         for (parameter : instance.parameters) {
-            arguments += parameter.literalValue + ", "
+            arguments += removeCodeDelimiter(parameter.literalValue) + ", "
         }
 
         var String timeoutArg = "null";
