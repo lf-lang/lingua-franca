@@ -1,0 +1,18 @@
+target TypeScript(
+    timeout = 2 sec
+);
+main reactor Preamble {
+    preamble {=
+        function add42( i:number) {
+            return i + 42;
+        }
+    =}
+    timer t;
+    reaction(t) {=
+        let s = "42";
+        let radix = 10;
+        let i = parseInt(s, radix);
+        console.log("Converted string " + s + " to number " + i);
+        console.log("42 plus 42 is " + add42(42));
+    =}
+}
