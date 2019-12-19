@@ -8,6 +8,6 @@ reactor Imported {
 	input x:number;
 	a = new ImportedAgain();
 	reaction(x) -> a.x {=
-	   (this.state as any).x.set( (this.state as any).x.get());
+	   (this.state as any).a.x.set( (this.state as any).x.get());
 	=} 
 }
