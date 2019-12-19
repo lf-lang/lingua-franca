@@ -308,31 +308,35 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle timers.
         for (timer : reactor.timers) {
-            var String timerPeriod
-            if(timer.period === null){
-                timerPeriod = "0";
-            } else {
-                if(timer.period.parameter !== null){
-                    timerPeriod = timer.period.parameter.name
+            // The startup timer is handled by default within
+            // the TypeScript reactor framework. 
+            if(timer.name != "startup"){
+                var String timerPeriod
+                if(timer.period === null){
+                    timerPeriod = "0";
                 } else {
-                    timerPeriod = timeInTargetLanguage(timer.period.time.toString(), timer.period.unit)
+                    if(timer.period.parameter !== null){
+                        timerPeriod = timer.period.parameter.name
+                    } else {
+                        timerPeriod = timeInTargetLanguage(timer.period.time.toString(), timer.period.unit)
+                    }
                 }
-            }
-            
-            var String timerOffset
-            if(timer.offset === null){
-                timerOffset = "0";
-            } else {
-                if(timer.offset.parameter !== null){
-                    timerOffset = timer.offset.parameter.name
+                
+                var String timerOffset
+                if(timer.offset === null){
+                    timerOffset = "0";
                 } else {
-                    timerOffset = timeInTargetLanguage(timer.offset.time.toString(), timer.offset.unit)
+                    if(timer.offset.parameter !== null){
+                        timerOffset = timer.offset.parameter.name
+                    } else {
+                        timerOffset = timeInTargetLanguage(timer.offset.time.toString(), timer.offset.unit)
+                    }
                 }
+    
+                pr(timer.getName() + ": Timer;")
+                pr(reactorConstructor, "this." + timer.getName()
+                    + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
             }
-
-            pr(timer.getName() + ": Timer;")
-            pr(reactorConstructor, "this." + timer.getName()
-                + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
         }
         
         // FIXME Handle shutdown triggers
@@ -399,15 +403,19 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         // Next handle actions.
         for (action : reactor.actions) {
-            pr(action.name + ": Action<" + action.type + ">;")
-            var actionArgs = "this, TimelineClass." + action.origin 
-            
-            if(action.delay !== null){
-                // Actions in the TypeScript target are constructed
-                // with an optional minDelay argument which defaults to 0.
-                actionArgs+= ", " + timeInTargetLanguage(action.delay.time.toString, action.delay.unit)
+            // Shutdown actions are handled internally by the
+            // TypeScript reactor framework.
+            if(action.name != "shutdown"){
+                pr(action.name + ": Action<" + action.type + ">;")
+                var actionArgs = "this, TimelineClass." + action.origin 
+                
+                if(action.delay !== null){
+                    // Actions in the TypeScript target are constructed
+                    // with an optional minDelay argument which defaults to 0.
+                    actionArgs+= ", " + timeInTargetLanguage(action.delay.time.toString, action.delay.unit)
+                }
+                pr(reactorConstructor, "this." + action.name + " = new Action<" + action.type +">(" + actionArgs  + ");")
             }
-            pr(reactorConstructor, "this." + action.name + " = new Action<" + action.type +">(" + actionArgs  + ");")
         }
         
         // Next handle inputs.
