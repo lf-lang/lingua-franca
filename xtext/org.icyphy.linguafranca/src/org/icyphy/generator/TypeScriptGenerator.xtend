@@ -168,17 +168,12 @@ class TypeScriptGenerator extends GeneratorBase {
         compileCommand.addAll(tscPath,  relativeSrcFilename, 
             "--outDir", "js", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
              "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
-             "--strictNullChecks", "true"); //, relativeBinFilename, "--lib DOM")
+             "--strictNullChecks", "true");
         
-//        val path = System.getenv("PATH");
-//        println("path is: " + path); 
-//        compileCommand.addAll("tsc","--version");
         println("Compiling with command: " + compileCommand.join(" "))
         var builder = new ProcessBuilder(compileCommand);
         builder.directory(new File(directory));
         var process = builder.start()
-        // FIXME: The following doesn't work. Somehow, the command to
-        // run the generated code gets executed before the following is printed!
         val code = process.waitFor()
         var stdout = readStream(process.getInputStream())
         var stderr = readStream(process.getErrorStream())
@@ -202,9 +197,8 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @param reactor The parsed reactor data structure.
      */
     override generateReactor(Reactor reactor) {
-        super.generateReactor(reactor)
+        super.generateReactor(reactor)   
         
-            
         var reactorConstructor = new StringBuilder()
 
         pr("// =============== START reactor class " + reactor.name)
@@ -236,14 +230,12 @@ class TypeScriptGenerator extends GeneratorBase {
                     parameter.name + ": " + getParameterType(parameter) + ", ";
             }
         }
-        
-        
+            
         // For TS, parameters are arguments of the class constructor.
-        if(reactor.isMain()){
+        if (reactor.isMain()) {
             pr(reactorConstructor, "constructor(" + arguments 
                 + "timeout: TimeInterval | null, name?: string) {"
             )
-           
             reactorConstructor.indent()
             pr(reactorConstructor, "super(timeout, name);");
             
@@ -266,17 +258,17 @@ class TypeScriptGenerator extends GeneratorBase {
             // reactor class, find the matching parameter assignments in
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor
-            for (parameter : childReactor.reactorClass.parameters ){
+            for (parameter : childReactor.reactorClass.parameters) {
                 var boolean defaultParameter = true
                 
                 // Attempt to find a non-default parameter value
-                for (parameterAssignment : childReactor.parameters){
-                    if(parameterAssignment.lhs.name.equals(parameter.name) ){
+                for (parameterAssignment : childReactor.parameters) {
+                    if (parameterAssignment.lhs.name.equals(parameter.name)) {
                         defaultParameter = false;
-                        if( parameterAssignment.rhs instanceof Parameter){
+                        if (parameterAssignment.rhs instanceof Parameter) {
                             childReactorArguments.append("this." + parameterAssignment.rhs.parameter.name)
-                        } else if( parameterAssignment.rhs.value !== null ){
-                            childReactorArguments.append( removeCodeDelimiter(parameterAssignment.rhs.value))
+                        } else if (parameterAssignment.rhs.value !== null) {
+                            childReactorArguments.append(removeCodeDelimiter(parameterAssignment.rhs.value))
                         } else {
                             childReactorArguments.append(
                                 timeInTargetLanguage(parameterAssignment.rhs.time.toString
@@ -286,11 +278,11 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
                 // This reactor instance did not have a value for this
                 // parameter set, so use the default parameter value.
-                if(defaultParameter){
-                    if(parameter.ofTimeType ){
+                if (defaultParameter) {
+                    if (parameter.ofTimeType) {
                         childReactorArguments.append(
                             timeInTargetLanguage(parameter.time.toString ,parameter.unit))
-                    } else{
+                    } else {
                         childReactorArguments.append(removeCodeDelimiter(parameter.value))
                     }
                 }
@@ -309,13 +301,15 @@ class TypeScriptGenerator extends GeneratorBase {
         // Next handle timers.
         for (timer : reactor.timers) {
             // The startup timer is handled by default within
-            // the TypeScript reactor framework. 
-            if(timer.name != "startup"){
+            // the TypeScript reactor framework. There would be a
+            // duplicate startup timer if we also use the one provided
+            // by LF.
+            if (timer.name != "startup") {
                 var String timerPeriod
-                if(timer.period === null){
+                if (timer.period === null) {
                     timerPeriod = "0";
                 } else {
-                    if(timer.period.parameter !== null){
+                    if (timer.period.parameter !== null) {
                         timerPeriod = timer.period.parameter.name
                     } else {
                         timerPeriod = timeInTargetLanguage(timer.period.time.toString(), timer.period.unit)
@@ -323,10 +317,10 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
                 
                 var String timerOffset
-                if(timer.offset === null){
+                if (timer.offset === null) {
                     timerOffset = "0";
                 } else {
-                    if(timer.offset.parameter !== null){
+                    if (timer.offset.parameter !== null) {
                         timerOffset = timer.offset.parameter.name
                     } else {
                         timerOffset = timeInTargetLanguage(timer.offset.time.toString(), timer.offset.unit)
@@ -337,37 +331,12 @@ class TypeScriptGenerator extends GeneratorBase {
                 pr(reactorConstructor, "this." + timer.getName()
                     + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
             }
-        }
-        
-        // FIXME Handle shutdown triggers
-        // The startup trigger is a special timer named _startup
-//        pr("_startupTimer: Timer;");
-//        pr(reactorConstructor, "this._startupTimer = new Timer(this, 0, 0);");
-//        
-        
-        // FIXME: delete this section. I uncommented parts to keep the rest compiling.
-//        // Put parameters into a struct and construct the code to go
-//        // into the preamble of any reaction function to extract the
-//        // parameters from the struct.
-        val argType = reactor.name.toLowerCase + "_self_t"
-//        // Construct the typedef for the "self" struct.
-        var body = new StringBuilder()
-        // Start with parameters.
-//        for (parameter : reactor.parameters) {
-//            prSourceLineNumber(parameter)
-//            if (getParameterType(parameter).equals("")) {
-//                reportError(parameter,
-//                    "Parameter is required to have a type: " + parameter.name)
-//            } else {
-//                pr(body,
-//                    getParameterType(parameter) + ' ' + parameter.name + ';');
-//            }
-//        }
+        }     
 
         // Create properties for parameters
-        for( param : reactor.parameters){
+        for (param : reactor.parameters) {
             var String paramType;
-            if(param.ofTimeType){
+            if (param.ofTimeType) {
                 paramType = "TimeInterval"
             } else {
                 paramType = param.type
@@ -380,7 +349,7 @@ class TypeScriptGenerator extends GeneratorBase {
         for (state : reactor.states) {
             if (state.parameter !== null) {
                 // State is a parameter
-                pr( state.name + ': ' +
+                pr(state.name + ': ' +
                 removeCodeDelimiter(state.parameter.type) +  '; // State');
                 pr(reactorConstructor, "this." + state.name + " = "
                         + state.parameter.name + "; // State" )
@@ -404,12 +373,13 @@ class TypeScriptGenerator extends GeneratorBase {
         // Next handle actions.
         for (action : reactor.actions) {
             // Shutdown actions are handled internally by the
-            // TypeScript reactor framework.
-            if(action.name != "shutdown"){
+            // TypeScript reactor framework. There would be a
+            // duplicate action if we included the one generated
+            // by LF.
+            if (action.name != "shutdown") {
                 pr(action.name + ": Action<" + action.type + ">;")
-                var actionArgs = "this, TimelineClass." + action.origin 
-                
-                if(action.delay !== null){
+                var actionArgs = "this, TimelineClass." + action.origin  
+                if (action.delay !== null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
                     actionArgs+= ", " + timeInTargetLanguage(action.delay.time.toString, action.delay.unit)
@@ -445,13 +415,13 @@ class TypeScriptGenerator extends GeneratorBase {
         // Next handle connections
         for (connection : reactor.connections) {
             var leftPortName = ""
-            if(connection.leftPort.container !== null ){
+            if (connection.leftPort.container !== null) {
                 leftPortName += connection.leftPort.container.name + "."
             }
             leftPortName += connection.leftPort.variable.name 
             
             var rightPortName = ""
-            if(connection.rightPort.container !== null ){
+            if (connection.rightPort.container !== null) {
                 rightPortName += connection.rightPort.container.name + "."
             }
             rightPortName += connection.rightPort.variable.name 
@@ -480,32 +450,6 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
             }
         }
-
-        // Next handle outputs.
-        for (output : reactor.outputs) {
-//            prSourceLineNumber(output)
-            if (output.type === null) {
-                reportError(output,
-                    "Output is required to have a type: " + output.name)
-            } else {
-                // NOTE: Slightly obfuscate output name to help prevent accidental use.
-                pr(body,
-                    removeCodeDelimiter(output.type) + ' __' + output.name +
-                        ';')
-                pr(body, 'bool __' + output.name + '_is_present;')
-                // If there are contained reactors that send data via this output,
-                // then create a place to put the pointers to the sources of that data.
-                var containedSource = outputToContainedOutput.get(output)
-                if (containedSource !== null) {
-                    pr(body,
-                        removeCodeDelimiter(output.type) + '* __' +
-                            output.name + '_inside;')
-                    pr(body, 'bool* __' + output.name + '_inside_is_present;')
-                }
-            }
-        }
-        
-        
         
         // Next handle reaction instances
         var reactionArray = "this._reactions = [ "
@@ -516,24 +460,19 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactionName + ": " + reactionClassName + ";")
             
             var reactionArguments = "this, [ ";
-            for(trigger : reaction.triggers ){
-                if(trigger instanceof VarRef){
-                    if(trigger.container === null){
+            for (trigger : reaction.triggers) {
+                if (trigger instanceof VarRef) {
+                    if (trigger.container === null) {
                         reactionArguments += "this." + trigger.variable.name + ", "    
                     } else {
                         reactionArguments += "this." + trigger.container.name + "." + trigger.variable.name + ", ";
                     }
-                } 
-//                else {
-//                    if( trigger.startup){
-//                        reactionArguments += "this._startupTimer, "
-//                    }
-//                }      
+                }     
             }
             reactionArguments += "], ["
             
-            for(source : reaction.sources ){
-                if(source.container === null ){
+            for (source : reaction.sources) {
+                if (source.container === null) {
                     reactionArguments += "this." + source.variable.name + ", "    
                 } else {
                     reactionArguments += "this." + source.container.name + "." + source.variable.name + ", "
@@ -542,8 +481,8 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             reactionArguments += "], ["
             
-            for(effect : reaction.effects ){
-                if(effect.container === null){
+            for (effect : reaction.effects) {
+                if (effect.container === null) {
                     reactionArguments += "this." + effect.variable.name + ", "    
                 } else {
                     reactionArguments += "this." + effect.container.name + "." + effect.variable.name + ", "
@@ -557,14 +496,12 @@ class TypeScriptGenerator extends GeneratorBase {
             )
             reactionArray += "this." + reactionName + ", "
 
-        
-        
             // Next, handle deadlines for reaction instances.
             // This must happen after reactions
-            if(reaction.deadline !== null){
+            if (reaction.deadline !== null) {
                 var deadlineName = reactor.name + '_d' + reactionIndex
                 var deadlineArgs = "this, "
-                if(reaction.deadline.time.parameter !== null){
+                if (reaction.deadline.time.parameter !== null) {
                     deadlineArgs+= "this." + reaction.deadline.time.parameter.name; 
                 } else {
                     deadlineArgs += timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
@@ -576,107 +513,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         reactionArray += "];"
         pr(reactorConstructor, reactionArray );
-        
-        
-
-        
-//        pr( "constructor(state: Reactor, triggers: Trigger[], ")
-//                indent()
-//                pr( "uses: Array<InPort<any>>, effects: Array<OutPort<any> | Action<any>>){")
-//                pr("super(state, triggers, uses, effects);")
-//                
-//                var String deadlineTime
-//                if(reaction.deadline.time.parameter !== null){
-//                    deadlineTime = timeInTargetLanguage(reaction.deadline.time.parameter.time.toString, reaction.deadline.time.parameter.unit)
-//                } else{
-//                    deadlineTime = timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
-//                }
-//                // FIXME: Change LF grammar to avoid time.time style
-//                pr('this.deadline = new ' + deadlineClassName + "( state, " + deadlineTime + " );")
-//                unindent()
-//                pr("}")
-//        
-
-
-
-//        // Next, handle reactions that produce outputs sent to inputs
-//        // of contained reactions.
-//        for (reaction : reactor.reactions) {
-//            if (reaction.effects !== null) {
-//                for (effect : reaction.effects) {
-//                    if (effect.variable instanceof Input) {
-//                        val port = effect.variable as Input
-//                        pr(
-//                            body,
-//                            removeCodeDelimiter(port.type) + ' __' +
-//                                effect.container.name + '_' + port.name + ';'
-//                        )
-//                        pr(
-//                            body,
-//                            'bool __' + effect.container.name + '_' +
-//                                port.name + '_is_present;'
-//                        )
-//                    }
-//                }
-//            }
-//        }
-//        // Finally, handle reactions that are triggered by outputs
-//        // of contained reactors. Have to be careful to not duplicate
-//        // the struct entries if multiple reactions refer to the same
-//        // contained output.
-//        var included = new HashSet<Output>
-//        for (reaction : reactor.reactions) {
-//            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-//                if (trigger instanceof VarRef) {
-//                    if (trigger.variable instanceof Output &&
-//                        !included.contains(trigger.variable)) {
-//                        // Reaction is triggered by an output of a contained reactor.
-//                        val port = trigger.variable as Output
-//                        included.add(port)
-//                        pr(
-//                            body,
-//                            removeCodeDelimiter(port.type) + '* __' +
-//                                trigger.container.name + '_' + port.name + ';'
-//                        )
-//                        pr(
-//                            body,
-//                            'bool* __' + trigger.container.name + '_' +
-//                                port.name + '_is_present;'
-//                        )
-//                    }
-//                }
-//            }
-//            // Handle reading (but not triggered by) outputs of contained reactors.
-//            for (source : reaction.sources ?: emptyList) {
-//                if (source.variable instanceof Output &&
-//                    !included.contains(source.variable)) {
-//                    // Reaction reads an output of a contained reactor.
-//                    val port = source.variable as Output
-//                    included.add(port)
-//                    pr(
-//                        body,
-//                        removeCodeDelimiter(port.type) + '* __' +
-//                            source.container.name + '_' + port.name + ';'
-//                    )
-//                    pr(
-//                        body,
-//                        'bool* __' + source.container.name + '_' + port.name +
-//                            '_is_present;'
-//                    )
-//                }
-//            }
-//        }
-
-//        if (body.length > 0) {
-//            selfStructType(reactor)
-//            pr("typedef struct {")
-//            indent()
-//            pr(body.toString)
-//            unindent()
-//            pr("} " + argType + ";")
-//        }
-        
-        
+              
         reactorConstructor.unindent()
         pr(reactorConstructor, "}")
         pr(reactorConstructor.toString())
@@ -736,24 +573,6 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     }
 
-    /** Return the unique name for the "self" struct of the specified
-     *  reactor instance from the instance ID.
-     *  @param instance The reactor instance.
-     *  @return The name of the self struct.
-     */
-    static def selfStructName(ReactorInstance instance) {
-        return instance.uniqueID + "_self"
-    }
-
-    /** Construct a unique type for the "self" struct of the specified
-     *  reactor class from the reactor class.
-     *  @param instance The reactor instance.
-     *  @return The name of the self struct.
-     */
-    def selfStructType(Reactor reactor) {
-        return reactor.name.toLowerCase + "_self_t"
-    }
-
     /** Traverse the runtime hierarchy of reaction instances and generate code.
      *  @param instance A reactor instance.
      */
@@ -773,12 +592,12 @@ class TypeScriptGenerator extends GeneratorBase {
         for (target : resource.allContents.toIterable.filter(Target)) {
             if (target.properties !== null) {
                 for (property : target.properties) {
-                    if (property.name.equals("timeout")){
+                    if (property.name.equals("timeout")) {
                         // A timeout must be a Time, it can't be a literal
                         // (except 0 which will match as a literal).
                         // Since 0 is the only literal that corresponds to a time
                         // any other literal is an error
-                        if( property.literal !== null && property.literal !=0){
+                        if (property.literal !== null && property.literal !=0) {
                             reportError("The timeout property only accepts time assignments.")
                         }
                         timeoutArg = timeInTargetLanguage(property.time.toString(), property.unit)
@@ -812,8 +631,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Use "reactionToReactionTName" property of reactionInstance
         // to set the levels.
         for (reactionInstance : reactor.reactions) {
-            pr(
-                reactionStructName(reactionInstance) + ".index = " +
+            pr(reactionStructName(reactionInstance) + ".index = " +
                     reactionInstance.level + ";")
         }
         for (child : reactor.children) {
@@ -843,7 +661,7 @@ class TypeScriptGenerator extends GeneratorBase {
         pr(preamble)
     }
 
-    /** Return a unique name for the reaction_t struct for the
+    /** Return a unique name for the
      *  specified reaction instance.
      *  @param reaction The reaction instance.
      *  @return A name for the reaction_t struct.
@@ -868,12 +686,11 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
         // The default time unit for TypeScript is msec.
-        if (unit != TimeUnit.NONE){
+        if (unit != TimeUnit.NONE) {
             "[" + timeLiteral + ", " + "TimeUnit." + unit + "]"
         } else {
             "[" + timeLiteral + ", " + "TimeUnit.msec]"
         }
-        
     }
 
     // //////////////////////////////////////////
@@ -893,15 +710,6 @@ class TypeScriptGenerator extends GeneratorBase {
         type
     }
 
-    // Print the #line compiler directive with the line number of
-    // the most recently used node.
-    private def prSourceLineNumber(EObject eObject) {
-        var node = NodeModelUtils.getNode(eObject)
-        if (node !== null) {
-            pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
-        }
-    }
-
     static val reactorLibPath = "." + File.separator + "reactor"
     static val timeLibPath =  "." + File.separator + "time"
     val static preamble = '''
@@ -911,5 +719,4 @@ import {Deadline, Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPor
 import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeEquals, numericTimeSum, numericTimeDifference, NumericTimeInterval, numericTimeMultiple, compareNumericTimeIntervals } from "''' + timeLibPath + '''"
 
     '''
-
 }
