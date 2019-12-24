@@ -523,11 +523,12 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("")
 
         // Generate reactions
-        pr("// =============== START reaction classes " + reactor.name)
-        generateReactions(reactor)
-        pr("// =============== END reaction classes " + reactor.name)
-        pr("")
-
+        if (!reactor.reactions.empty) {
+            pr("// =============== START reaction classes for " + reactor.name)
+            generateReactions(reactor)
+            pr("// =============== END reaction classes for " + reactor.name)
+            pr("")   
+        }
     }
 
     /** Generate reaction functions definition for a reactor.
