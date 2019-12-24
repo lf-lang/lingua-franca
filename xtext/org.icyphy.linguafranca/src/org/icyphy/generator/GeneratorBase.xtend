@@ -381,11 +381,16 @@ abstract class GeneratorBase {
      *  file import is not supported. This base class always throws
      *  an exception because the only supported imports, by default,
      *  are Lingua Franca files.
+     *  @param importStatement The original import statement (used for error reporting).
      *  @param resourceSet The resource set in which to find the file.
      *  @param resolvedURI The URI to import.
      */
-    protected def openForeignImport(ResourceSet resourceSet, URI resolvedURI) {
-        throw new Exception("Unsupported imported file type: " + resolvedURI)
+    protected def openForeignImport(
+        Import importStatement, ResourceSet resourceSet, URI resolvedURI
+    ) {
+        reportError(importStatement, "Unsupported imported file type: "
+            + importStatement.importURI
+        )
     }
     
     /** Open an import at the Lingua Franca file at the specified URI
@@ -556,7 +561,7 @@ abstract class GeneratorBase {
                     openLFImport(resourceSet, resolvedURI)
                 } else {
                     // Handle other supported imports (if any).
-                    openForeignImport(resourceSet, resolvedURI)
+                    openForeignImport(import, resourceSet, resolvedURI)
                 }
             } catch (Exception ex) {
                 reportError(

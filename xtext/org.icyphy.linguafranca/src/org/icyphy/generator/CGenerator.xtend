@@ -33,13 +33,16 @@ import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
+import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -294,7 +297,7 @@ class CGenerator extends GeneratorBase {
         // a comment that the preamble should not not be included.
         // Including the preamble could result in multiple writable
         // copies being made if an input is mutable.
-        pr(body, org.icyphy.generator.CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
+        pr(body, CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
         for(input : reactor.inputs) {
             if (isTokenType(input.type)) {
                 triggers.add(input)
@@ -656,7 +659,7 @@ class CGenerator extends GeneratorBase {
                         
             // Do not generate the initialization code if the body is marked
             // to not generate it.
-            if (!body.startsWith(org.icyphy.generator.CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
+            if (!body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
                 pr(reactionInitialization.toString)
             } else {
                 // Define the "self" struct.
@@ -1206,6 +1209,44 @@ class CGenerator extends GeneratorBase {
         }
         // This goes directly out to the generated code.
         pr(result.toString())
+    }
+
+    /** Open a non-Lingua Franca import file at the specified URI
+     *  in the specified resource set. Throw an exception if the
+     *  file import is not supported. This class imports .proto files
+     *  and runs, if possible, the protoc protocol buffer code generator
+     *  to produce the required .h and .c files.
+     *  @param importStatement The original import statement (used for error reporting).
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
+     */
+    override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
+        if (resolvedURI.fileExtension.equals("proto")) {
+            
+            // First, check that protoc is installed.
+            // FIXME: Should we include this as a submodule? If so, how to invoke it?
+            val protocTest = newArrayList
+            var protoc_c = "protoc-c"
+            protocTest.addAll("which", protoc_c)
+            val protocTestBuilder = new ProcessBuilder(protocTest)
+            val protocTestReturn = protocTestBuilder.start().waitFor()
+            if (protocTestReturn != 0) {
+                // On a Mac, if you are running within Eclipse, the PATH variable is extremely
+                // limited (to the default provided in /etc/paths, supposedly, but on my machine,
+                // it does not even include directories in that file for some reason.
+                // One way to add /usr/local/bin to the path once-and-for-all is this:
+                // sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+                
+                reportError(importStatement, "Protocol buffers protoc-c executable not found in the PATH:\n"
+                    + System.getenv("PATH")
+                    + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c")
+                return null
+            }
+        } else {
+            reportError(importStatement, "Unsupported imported file type: "
+                + importStatement.importURI
+            )
+        }
     }
 
     /** Return the unique name for the "self" struct of the specified
