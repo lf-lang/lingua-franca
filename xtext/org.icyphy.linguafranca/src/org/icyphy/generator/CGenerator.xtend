@@ -75,6 +75,12 @@ class CGenerator extends GeneratorBase {
     // The command to compile the generated code if specified in the target directive.
     var compileCommand = null as ArrayList<String>
 
+    // Additional sources to add to the compile command if appropriate.
+    var compileAdditionalSources = null as ArrayList<String>
+
+    // Additional libraries to add to the compile command using the "-l" command-line option.
+    var compileLibraries = null as ArrayList<String>
+
     // List of deferred assignments to perform in initialize_trigger_objects.
     var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
     
@@ -83,6 +89,9 @@ class CGenerator extends GeneratorBase {
 
     // Indicator of whether to generate multithreaded code and how many by default.
     var numberOfThreads = 0
+    
+    // Preamble code, such as #include statements, to be inserted at the top of the file.
+    var preambleCode = new StringBuilder()
 
     // The command to run the generated code if specified in the target directive.
     var runCommand = null as ArrayList<String>
@@ -239,8 +248,14 @@ class CGenerator extends GeneratorBase {
         // FIXME: Do we want to keep the compileCommand option?
         if (compileCommand === null) {
             compileCommand = newArrayList
-            compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o",
-                relativeBinFilename)
+            compileCommand.addAll("gcc", "-O2", relativeSrcFilename)
+            if (compileAdditionalSources !== null) {
+                compileCommand.addAll(compileAdditionalSources)
+            }
+            if (compileLibraries !== null) {
+                compileCommand.addAll(compileLibraries)
+            }
+            compileCommand.addAll("-o", relativeBinFilename)
             // If threaded computation is requested, add a -pthread option.
             if (numberOfThreads !== 0) {
                 compileCommand.add("-pthread")
@@ -257,28 +272,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        println("In directory: " + directory)
-        println("Compiling with command: " + compileCommand.join(" "))
-        var builder = new ProcessBuilder(compileCommand);
-        builder.directory(new File(directory));
-        var process = builder.start()
-        // FIXME: The following doesn't work. Somehow, the command to
-        // run the generated code gets executed before the following is printed!
-        val returnCode = process.waitFor()
-        var stdout = readStream(process.getInputStream())
-        var stderr = readStream(process.getErrorStream())
-        if (stdout.length() > 0) {
-            println("--- Standard output from C compiler:")
-            println(stdout)
-        }
-        if (returnCode !== 0) {
-            reportError("Compiler returns error code " + returnCode)
-        }
-        if (stderr.length() > 0) {
-            reportError("Compiler reports errors:\n" + stderr.toString)
-        } else {
-            println("SUCCESS (compiling generated C code)")
-        }
+        executeCommand(compileCommand)
     }
 
     // //////////////////////////////////////////
@@ -1221,32 +1215,62 @@ class CGenerator extends GeneratorBase {
      *  @param resolvedURI The URI to import.
      */
     override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
-        if (resolvedURI.fileExtension.equals("proto")) {
-            
+        // Unfortunately, the resolvedURI appears to be useless for ordinary files
+        // (non-xtext files). Use the original importStatement.importURI
+        if (importStatement.importURI.endsWith(".proto")) {
             // First, check that protoc is installed.
             // FIXME: Should we include this as a submodule? If so, how to invoke it?
             val protocTest = newArrayList
             var protoc_c = "protoc-c"
             protocTest.addAll("which", protoc_c)
-            val protocTestBuilder = new ProcessBuilder(protocTest)
-            val protocTestReturn = protocTestBuilder.start().waitFor()
-            if (protocTestReturn != 0) {
+            if (executeCommand(protocTest) != 0) {
                 // On a Mac, if you are running within Eclipse, the PATH variable is extremely
                 // limited (to the default provided in /etc/paths, supposedly, but on my machine,
                 // it does not even include directories in that file for some reason.
                 // One way to add /usr/local/bin to the path once-and-for-all is this:
                 // sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
                 
-                reportError(importStatement, "Protocol buffers protoc-c executable not found in the PATH:\n"
-                    + System.getenv("PATH")
-                    + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c")
-                return null
+                // Instead, here, we look for it in /usr/local/bin.
+                protoc_c = "/usr/local/bin/protoc-c"
+                protocTest.clear()
+                protocTest.addAll('which', protoc_c)
+                if (executeCommand(protocTest) != 0) {
+                    return reportError(importStatement, "Protocol buffers protoc-c executable not found in "
+                        + "/usr/local/bin nor on the PATH:\n"
+                        + System.getenv("PATH")
+                        + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c")
+                }
             }
+            // Invoke protoc-c.
+            val protocCommand = newArrayList
+            protocCommand.addAll(protoc_c, "--c_out=src-gen", importStatement.importURI)
+            if (executeCommand(protocCommand) != 0) {
+                return reportError(importStatement, "Protocol buffer compiler failed.")
+            }
+            if (compileAdditionalSources === null) {
+                compileAdditionalSources = newArrayList
+            }
+            // Strip the ".proto" off the file name.
+            // NOTE: This assumes that the filename matches the generated files, which it seems to.
+            val rootFilename = importStatement.importURI.substring(0, importStatement.importURI.length - 6)
+            compileAdditionalSources.add("src-gen" + File.separator + rootFilename + ".pb-c.c")
+            
+            // The -l protobuf-c command-line option should be added only once, even if there
+            // are multiple protobuf imports.
+            if (compileLibraries === null) {
+                compileLibraries = newArrayList
+                compileLibraries.add('-l')
+                compileLibraries.add('protobuf-c')
+            }
+            
+            // Finally, generate the #include for the generated .h file.
+            preambleCode.append('#include "' + rootFilename + '.pb-c.h"')
         } else {
-            reportError(importStatement, "Unsupported imported file type: "
+            return reportError(importStatement, "Unsupported imported file type: "
                 + importStatement.importURI
             )
         }
+        return "OK"
     }
 
     /** Return the unique name for the "self" struct of the specified
@@ -1497,6 +1521,10 @@ class CGenerator extends GeneratorBase {
         } else {
             pr("#include \"reactor_threaded.c\"")
         }
+        
+        // In case there is any application-specific preamble code, generate
+        // it here.
+        pr(preambleCode.toString)
     }
 
     /** Return a unique name for the reaction_t struct for the

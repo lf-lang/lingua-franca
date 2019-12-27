@@ -33,6 +33,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.URL
 import java.nio.file.Paths
+import java.util.ArrayList
 import java.util.HashMap
 import java.util.List
 import java.util.Set
@@ -158,11 +159,7 @@ abstract class GeneratorBase {
 
         // Figure out the file name for the target code from the source file name.
         analyzeResource(resource)
-        
-        // First, produce any preamble code that the code generator needs
-        // to produce before anything else goes into the code generated files.
-        generatePreamble()
-
+       
         // Collect a list of reactors defined this resource and (non-main)
         // reactors defined in imported resources.
         reactors = newLinkedList
@@ -170,6 +167,12 @@ abstract class GeneratorBase {
         // Next process all the imports and call generateReactor on any
         // reactors defined in the imports.
         processImports(resource)
+
+        // First, produce any preamble code that the code generator needs
+        // to produce before anything else goes into the code generated files.
+        // This should occur after processing imports because they may
+        // specify #includes.
+        generatePreamble()
 
         var Instantiation mainDef = null
 
@@ -338,6 +341,37 @@ abstract class GeneratorBase {
      */
     protected def clearCode() {
         code = new StringBuilder
+    }
+    
+    /** Execute the command given by the specified list of strings,
+     *  print the command, its return code, and its output to
+     *  stderr and stdout, and return the return code, which is 0
+     *  if the command succeeds.
+     *  @param command The command.
+     *  @return 0 if the command succeeds, otherwise, an error code.
+     */
+    protected def executeCommand(ArrayList<String> command) {
+        println("In directory: " + directory)
+        println("Executing command: " + command.join(" "))
+        var builder = new ProcessBuilder(command);
+        builder.directory(new File(directory));
+        var process = builder.start()
+        val returnCode = process.waitFor()
+        var stdout = readStream(process.getInputStream())
+        var stderr = readStream(process.getErrorStream())
+        if (returnCode !== 0) {
+            reportError("Command returns error code " + returnCode)
+        }
+        if (stdout.length() > 0) {
+            println("--- Standard output from command:")
+            println(stdout)
+            println("--- End of standard output.")
+        }
+        if (stderr.length() > 0) {
+            reportError("---Command reports errors:\n" + stderr.toString)
+            println("--- End of standard standard error.")
+        }
+        returnCode
     }
     
     /** Generate any preamble code that appears in the code generated
