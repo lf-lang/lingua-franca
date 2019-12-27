@@ -90,9 +90,6 @@ class CGenerator extends GeneratorBase {
     // Indicator of whether to generate multithreaded code and how many by default.
     var numberOfThreads = 0
     
-    // Preamble code, such as #include statements, to be inserted at the top of the file.
-    var preambleCode = new StringBuilder()
-
     // The command to run the generated code if specified in the target directive.
     var runCommand = null as ArrayList<String>
 
@@ -1262,9 +1259,6 @@ class CGenerator extends GeneratorBase {
                 compileLibraries.add('-l')
                 compileLibraries.add('protobuf-c')
             }
-            
-            // Finally, generate the #include for the generated .h file.
-            preambleCode.append('#include "' + rootFilename + '.pb-c.h"')
         } else {
             return reportError(importStatement, "Unsupported imported file type: "
                 + importStatement.importURI
@@ -1522,9 +1516,16 @@ class CGenerator extends GeneratorBase {
             pr("#include \"reactor_threaded.c\"")
         }
         
-        // In case there is any application-specific preamble code, generate
-        // it here.
-        pr(preambleCode.toString)
+        // Generate #include statements for each .proto import.
+        for (import : resource.allContents.toIterable.filter(Import)) {
+            if (import.importURI.endsWith(".proto")) {
+                // Strip the ".proto" off the file name.
+                // NOTE: This assumes that the filename matches the generated files, which it seems to.
+                val rootFilename = import.importURI.substring(0, import.importURI.length - 6)
+                // Finally, generate the #include for the generated .h file.
+                pr('#include "' + rootFilename + '.pb-c.h"')
+            }
+        }
     }
 
     /** Return a unique name for the reaction_t struct for the
