@@ -159,7 +159,11 @@ abstract class GeneratorBase {
 
         // Figure out the file name for the target code from the source file name.
         analyzeResource(resource)
-       
+        
+        // First, produce any preamble code that the code generator needs
+        // to produce before anything else goes into the code generated files.
+        generatePreamble()
+
         // Collect a list of reactors defined this resource and (non-main)
         // reactors defined in imported resources.
         reactors = newLinkedList
@@ -167,12 +171,6 @@ abstract class GeneratorBase {
         // Next process all the imports and call generateReactor on any
         // reactors defined in the imports.
         processImports(resource)
-
-        // First, produce any preamble code that the code generator needs
-        // to produce before anything else goes into the code generated files.
-        // This should occur after processing imports because they may
-        // specify #includes.
-        generatePreamble()
 
         var Instantiation mainDef = null
 
