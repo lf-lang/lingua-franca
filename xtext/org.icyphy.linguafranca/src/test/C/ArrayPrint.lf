@@ -1,6 +1,6 @@
-target C;
 // Source produces a dynamically allocated array, which it passes
 // to Print. Reference counting ensures that the array is freed.
+target C;
 reactor Source {
     output out:int[];
     reaction(startup) -> out {=
