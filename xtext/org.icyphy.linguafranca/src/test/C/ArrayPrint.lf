@@ -1,5 +1,5 @@
 target C;
-// Source produces a dynamically allocated array, which is passes
+// Source produces a dynamically allocated array, which it passes
 // to Print. Reference counting ensures that the array is freed.
 reactor Source {
     output out:int[];
