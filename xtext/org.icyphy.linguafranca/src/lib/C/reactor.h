@@ -116,6 +116,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define set_new_array(out, length) __set_new_array_impl(out, length); (*out ## _is_present) = true;
 
+/** Set the _is_present variable corresponding to the specified output
+ *  to true. This is normally used with array outputs with fixed sizes.
+ *  The value of the output is written directly to the array.
+ *  This is a macro terminated with a semicolon.
+ *  @param out A pointer to the output in the self struct.
+ *  @param value The value to insert into the self struct.
+ */
+#define set_present(out) (*out ## _is_present) = true;
+
 /** Version of set that hands to an output a dynamically allocated object.
  *  This will only work with an output that declared with a pointer type,
  *  type*. The deallocation is delegated to downstream reactors, which
