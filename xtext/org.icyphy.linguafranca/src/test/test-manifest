@@ -1,6 +1,7 @@
 ActionDelay.lf
 AsyncCallback.lf
 AsyncCallback2.lf
+ArrayAsType.lf
 ArrayParallel.lf
 ArrayPrint.lf
 ArrayScale.lf
@@ -41,6 +42,8 @@ SimpleImport.lf
 #SlowingClock.lf
 #SlowingClockPhysical.lf
 Stride.lf
+StructAsType.lf
+StructAsTypeDirect.lf
 StructParallel.lf
 StructPrint.lf
 StructScale.lf

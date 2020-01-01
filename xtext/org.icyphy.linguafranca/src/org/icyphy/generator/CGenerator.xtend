@@ -33,6 +33,8 @@ import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -382,9 +384,17 @@ class CGenerator extends GeneratorBase {
                 reportError(input,
                     "Input is required to have a type: " + input.name)
             } else {
-                // NOTE: Slightly obfuscate input name to help prevent accidental use.
-                pr(body,
-                    lfTypeToTokenType(input.type) + '* __' + input.name + ';');
+                val inputType = lfTypeToTokenType(input.type)
+                // If the output type has the form type[number], then treat it specially
+                // to get a valid C type.
+                val matcher = arrayPattern.matcher(inputType)
+                if (matcher.find()) {
+                    // NOTE: Slightly obfuscate input name to help prevent accidental use.
+                    pr(body, matcher.group(1) + '(* __' + input.name + ')' + matcher.group(2) + ';');
+                } else {
+                    // NOTE: Slightly obfuscate input name to help prevent accidental use.
+                    pr(body, inputType + '* __' + input.name + ';');
+                }
                 pr(body, 'bool* __' + input.name + '_is_present;');
             }
         }
@@ -418,16 +428,35 @@ class CGenerator extends GeneratorBase {
                 reportError(output,
                     "Output is required to have a type: " + output.name)
             } else {
-                // If the output type has the form type[], then change it to token_t.
+                // If the output type has the form type[] or type*, then change it to token_t.
                 val outputType = lfTypeToTokenType(output.type)
-                // NOTE: Slightly obfuscate output name to help prevent accidental use.
-                pr(body, outputType + ' __' + output.name +';')
-                pr(body, 'bool __' + output.name + '_is_present;')
                 // If there are contained reactors that send data via this output,
                 // then create a place to put the pointers to the sources of that data.
                 var containedSource = outputToContainedOutput.get(output)
+                // If the output type has the form type[number], then treat it specially
+                // to get a valid C type.
+                val matcher = arrayPattern.matcher(outputType)
+                if (matcher.find()) {
+                    // Array case.
+                    // NOTE: Slightly obfuscate output name to help prevent accidental use.
+                    pr(body, matcher.group(1) + ' __' + output.name + matcher.group(2) + ';')
+                    if (containedSource !== null) {
+                        // This uses the same pattern as an input.
+                        pr(body, matcher.group(1) + '(* __' + output.name + '_inside)' + matcher.group(2) + ';')
+                    }
+                } else {
+                    // Normal case.
+                    // NOTE: Slightly obfuscate output name to help prevent accidental use.
+                    pr(body, outputType + ' __' + output.name +';')
+                    // If there are contained reactors that send data via this output,
+                    // then create a place to put the pointers to the sources of that data.
+                    if (containedSource !== null) {
+                        pr(body, outputType + '* __' + output.name + '_inside;')
+                    }
+                }
+                // _is_present variables are the same for both cases.
+                pr(body, 'bool __' + output.name + '_is_present;')
                 if (containedSource !== null) {
-                    pr(body, outputType + '* __' + output.name + '_inside;')
                     pr(body, 'bool* __' + output.name + '_inside_is_present;')
                 }
             }
@@ -1723,6 +1752,7 @@ class CGenerator extends GeneratorBase {
         var present = input.name + '_is_present'
         pr(builder,
             'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
+        
         if (isTokenType(input.type)) {
             pr(builder, rootType(input.type) + '* ' + input.name + ';')
             pr(builder, 'if(' + present + ') {')
@@ -1736,7 +1766,13 @@ class CGenerator extends GeneratorBase {
                 pr(builder, input.name + ' = writable_copy(' + input.name + ');')
             }
         } else {
-            pr(builder, input.type + ' ' + input.name + ';')
+            // Look for array type of form type[number].
+            val matcher = arrayPattern.matcher(input.type)
+            if (matcher.find()) {
+                pr(builder, matcher.group(1) + '* ' + input.name + ';')
+            } else {
+                pr(builder, input.type + ' ' + input.name + ';')
+            }
             pr(builder, 'if(' + present + ') {')
             indent(builder)
             pr(builder, input.name + ' = *(self->__' + input.name + ');')
@@ -1804,12 +1840,22 @@ class CGenerator extends GeneratorBase {
                 "Output is required to have a type: " + output.name)
         } else {
             val outputType = lfTypeToTokenType(output.type)
-            // Slightly obfuscate the name to help prevent accidental use.
-            pr(
-                builder,
-                outputType + '* ' + output.name +
-                    ' = &(self->__' + output.name + ');'
-            )
+            // If the output type has the form type[number], handle it specially.
+            // In both cases, slightly obfuscate the name to help prevent accidental use.
+            val matcher = arrayPattern.matcher(outputType)
+            if (matcher.find()) {
+                pr(
+                    builder,
+                    matcher.group(1) + '* ' + output.name +
+                        ' = self->__' + output.name + ';'
+                )
+            } else {
+                pr(
+                    builder,
+                    outputType + '* ' + output.name +
+                        ' = &(self->__' + output.name + ');'
+                )
+            }
             pr(
                 builder,
                 'bool* ' + output.name + '_is_present = &(self->__' + output.name +
@@ -1929,6 +1975,9 @@ class CGenerator extends GeneratorBase {
             setInputsAbsentByDefault(containedReactor)
         }
     }
+    
+    // Regular expression pattern for array types with specified length.
+    private static final Pattern arrayPattern = Pattern.compile("^([a-zA-Z]+)(\\[[0-9]+\\])");
     
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
