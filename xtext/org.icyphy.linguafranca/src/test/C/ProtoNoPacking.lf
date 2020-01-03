@@ -23,7 +23,7 @@ import ProtoHelloWorld.proto;
 
 reactor SourceProto {
     output out:ProtoHelloWorld;
-    reaction(startup) {=
+    reaction(startup) -> out {=
         out->name = "Hello World";
         out->number = 42;
         set_present(out);
