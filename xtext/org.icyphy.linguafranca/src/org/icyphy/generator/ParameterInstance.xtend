@@ -87,16 +87,16 @@ class ValueParameter extends ParameterInstance {
 		this.type = type
 		this.value = value
 	}
-	//    /** The value of the parameter. This defaults to the value given
-//     *  in the reactor class definition, but if the parameter is
-//     *  overridden in instantiation, then that value is returned.
-//     *  In both cases, the value is stripped of the code delimiters
-//     *  {= ... =} if they were provided.
-//     */
 	public var value = ""
 	
+	/** The value of the parameter. This defaults to the value given
+     *  in the reactor class definition, but if the parameter is
+     *  overridden in instantiation, then that value is returned.
+     *  In both cases, the value is stripped of the code delimiters
+     *  {= ... =} if they were provided.
+     */
 	override getLiteralValue() {
-		return this.value
+		return GeneratorBase.removeCodeDelimiter(this.value)
 	}
 }
 
@@ -107,16 +107,11 @@ class TimeParameter extends ParameterInstance {
 		this.unit = unit
 		this.type = parent.generator.timeTypeInTargetLanguage()
 	}
-	//    /** The value of the parameter. This defaults to the value given
-//     *  in the reactor class definition, but if the parameter is
-//     *  overridden in instantiation, then that value is returned.
-//     *  In both cases, the value is stripped of the code delimiters
-//     *  {= ... =} if they were provided.
-//     */
 	public var value = 0
 	
 	public var unit = TimeUnit.NONE
 	
+    /** The time value of the parameter in the target language. */
 	override getLiteralValue() {
 		return parent.generator.timeInTargetLanguage(this.value.toString, this.unit)
 	}
