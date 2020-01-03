@@ -3,11 +3,10 @@
 target C;
 reactor Source {
     preamble {=
-        typedef struct hello_t hello_t;
-        struct hello_t {
+        typedef struct hello_t {
             char* name;
             int value;
-        };
+        } hello_t;
     =}
     output out:hello_t*;
     reaction(startup) -> out {=
