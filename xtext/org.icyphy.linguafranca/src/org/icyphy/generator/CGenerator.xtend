@@ -33,7 +33,6 @@ import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
-import java.util.regex.Matcher
 import java.util.regex.Pattern
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
@@ -387,7 +386,7 @@ class CGenerator extends GeneratorBase {
                 val inputType = lfTypeToTokenType(input.type)
                 // If the output type has the form type[number], then treat it specially
                 // to get a valid C type.
-                val matcher = arrayPattern.matcher(inputType)
+                val matcher = arrayPatternFixed.matcher(inputType)
                 if (matcher.find()) {
                     // NOTE: Slightly obfuscate input name to help prevent accidental use.
                     pr(body, matcher.group(1) + '(* __' + input.name + ')' + matcher.group(2) + ';');
@@ -435,7 +434,7 @@ class CGenerator extends GeneratorBase {
                 var containedSource = outputToContainedOutput.get(output)
                 // If the output type has the form type[number], then treat it specially
                 // to get a valid C type.
-                val matcher = arrayPattern.matcher(outputType)
+                val matcher = arrayPatternFixed.matcher(outputType)
                 if (matcher.find()) {
                     // Array case.
                     // NOTE: Slightly obfuscate output name to help prevent accidental use.
@@ -1380,14 +1379,27 @@ class CGenerator extends GeneratorBase {
 
         // Start with parameters.
         for (parameter : instance.parameters) {
-            // FIXME: we now use the resolved literal value. For better efficiency, we could
+            // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
             // memory allocations.
-            pr(
-                initializeTriggerObjects,
-                nameOfSelfStruct + "." + parameter.name + " = " +
-                    parameter.literalValue + ";"
-            )
+            
+            // Array type parameters have to be handled specially.
+            val matcher = arrayPatternVariable.matcher(parameter.type)
+            if (matcher.find()) {
+                val temporaryVariableName = parameter.uniqueID
+                pr(initializeTriggerObjects,
+                    "static " + matcher.group(1) + " " +
+                    temporaryVariableName + "[] = " + parameter.literalValue + ";"
+                )
+                pr(initializeTriggerObjects,
+                    nameOfSelfStruct + "." + parameter.name + " = " + temporaryVariableName + ";"
+                )
+            } else {
+                pr(initializeTriggerObjects,
+                    nameOfSelfStruct + "." + parameter.name + " = " +
+                        parameter.literalValue + ";"
+                )
+            }
         }
 
         // Next, initialize the "self" struct with state variables.
@@ -1767,7 +1779,7 @@ class CGenerator extends GeneratorBase {
             }
         } else {
             // Look for array type of form type[number].
-            val matcher = arrayPattern.matcher(input.type)
+            val matcher = arrayPatternFixed.matcher(input.type)
             if (matcher.find()) {
                 pr(builder, matcher.group(1) + '* ' + input.name + ';')
             } else {
@@ -1842,7 +1854,7 @@ class CGenerator extends GeneratorBase {
             val outputType = lfTypeToTokenType(output.type)
             // If the output type has the form type[number], handle it specially.
             // In both cases, slightly obfuscate the name to help prevent accidental use.
-            val matcher = arrayPattern.matcher(outputType)
+            val matcher = arrayPatternFixed.matcher(outputType)
             if (matcher.find()) {
                 pr(
                     builder,
@@ -1895,6 +1907,8 @@ class CGenerator extends GeneratorBase {
     /** Return a C type for the type of the specified parameter.
      *  If there are code delimiters around it, those are removed.
      *  If the type is "time", then it is converted to "interval_t".
+     *  If the type is of the form "type[]", then this is converted
+     *  to "type*".
      *  @param parameter The parameter.
      *  @return The C type.
      */
@@ -1902,6 +1916,11 @@ class CGenerator extends GeneratorBase {
         var type = removeCodeDelimiter(parameter.type)
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
             type = 'interval_t'
+        } else {
+            val matcher = arrayPatternVariable.matcher(type)
+            if (matcher.find()) {
+                return matcher.group(1) + '*'
+            }
         }
         type
     }
@@ -1977,7 +1996,12 @@ class CGenerator extends GeneratorBase {
     }
     
     // Regular expression pattern for array types with specified length.
-    private static final Pattern arrayPattern = Pattern.compile("^([a-zA-Z]+)(\\[[0-9]+\\])");
+    // FIXME: ignore white space.
+    static final Pattern arrayPatternFixed = Pattern.compile("^([a-zA-Z]+)(\\[[0-9]+\\])");
+    
+    // Regular expression pattern for array types with unspecified length.
+    // FIXME: ignore white space.
+    static final Pattern arrayPatternVariable = Pattern.compile("^([a-zA-Z]+)\\[\\]");
     
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'

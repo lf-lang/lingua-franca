@@ -1,0 +1,33 @@
+// Source has an array as a parameter, the elements of which it passes
+// to Print. The length of the array has to also be a parameter because
+// C arrays do not encode their own length.
+target C;
+reactor Source(sequence:int[]({= {0, 1, 2} =}), n_sequence:int(3)) {
+    output out:int;
+    state count:int(0);
+    logical action next;
+    reaction(startup, next) -> out, next {=
+        set(out, self->sequence[self->count]);
+        self->count++;
+        if (self->count < self->n_sequence) {
+            schedule(next, 0, NULL);
+        }
+    =}
+}
+reactor Print {
+    input in:int;
+    state count:int(1);
+    reaction(in) {=
+        printf("Received: %d\n", in);
+        if (in != self->count) {
+            printf("ERROR: Expected %d.\n", self->count);
+            exit(1);
+        }
+        self->count++;
+    =}
+}
+main reactor ArrayAsParameter {
+    s = new Source(sequence={= {1, 2, 3, 4} =}, n_sequence=4);
+    p = new Print();
+    s.out -> p.in;
+}
