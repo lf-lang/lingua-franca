@@ -53,7 +53,7 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
                     if(userData !== null) {
                         SPLITTER.split(userData).forEach[uri |
                             var includedUri = URI.createURI(uri)
-                            if (includedUri.fileExtension.equalsIgnoreCase('lf')) {
+                            if (includedUri?.fileExtension?.equalsIgnoreCase('lf')) {
                                 includedUri = includedUri.resolve(resource.URI)
                                 if(uniqueImportURIs.add(includedUri)) {
                                     collectImportUris(resource.getResourceSet().getResource(includedUri, true), uniqueImportURIs)
