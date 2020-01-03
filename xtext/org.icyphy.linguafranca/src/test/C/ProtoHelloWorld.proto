@@ -1,0 +1,8 @@
+// Simple data type used for testing.
+
+syntax = "proto3";
+
+message ProtoHelloWorld {
+    string name = 1;
+    int32 number = 2;
+}
