@@ -33,6 +33,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.URL
 import java.nio.file.Paths
+import java.util.ArrayList
 import java.util.HashMap
 import java.util.List
 import java.util.Set
@@ -340,6 +341,37 @@ abstract class GeneratorBase {
         code = new StringBuilder
     }
     
+    /** Execute the command given by the specified list of strings,
+     *  print the command, its return code, and its output to
+     *  stderr and stdout, and return the return code, which is 0
+     *  if the command succeeds.
+     *  @param command The command.
+     *  @return 0 if the command succeeds, otherwise, an error code.
+     */
+    protected def executeCommand(ArrayList<String> command) {
+        println("In directory: " + directory)
+        println("Executing command: " + command.join(" "))
+        var builder = new ProcessBuilder(command);
+        builder.directory(new File(directory));
+        var process = builder.start()
+        val returnCode = process.waitFor()
+        var stdout = readStream(process.getInputStream())
+        var stderr = readStream(process.getErrorStream())
+        if (returnCode !== 0) {
+            reportError("Command returns error code " + returnCode)
+        }
+        if (stdout.length() > 0) {
+            println("--- Standard output from command:")
+            println(stdout)
+            println("--- End of standard output.")
+        }
+        if (stderr.length() > 0) {
+            reportError("---Command reports errors:\n" + stderr.toString)
+            println("--- End of standard standard error.")
+        }
+        returnCode
+    }
+    
     /** Generate any preamble code that appears in the code generated
      *  file before anything else.
      */
@@ -381,11 +413,16 @@ abstract class GeneratorBase {
      *  file import is not supported. This base class always throws
      *  an exception because the only supported imports, by default,
      *  are Lingua Franca files.
+     *  @param importStatement The original import statement (used for error reporting).
      *  @param resourceSet The resource set in which to find the file.
      *  @param resolvedURI The URI to import.
      */
-    protected def openForeignImport(ResourceSet resourceSet, URI resolvedURI) {
-        throw new Exception("Unsupported imported file type: " + resolvedURI)
+    protected def openForeignImport(
+        Import importStatement, ResourceSet resourceSet, URI resolvedURI
+    ) {
+        reportError(importStatement, "Unsupported imported file type: "
+            + importStatement.importURI
+        )
     }
     
     /** Open an import at the Lingua Franca file at the specified URI
@@ -556,7 +593,7 @@ abstract class GeneratorBase {
                     openLFImport(resourceSet, resolvedURI)
                 } else {
                     // Handle other supported imports (if any).
-                    openForeignImport(resourceSet, resolvedURI)
+                    openForeignImport(import, resourceSet, resolvedURI)
                 }
             } catch (Exception ex) {
                 reportError(

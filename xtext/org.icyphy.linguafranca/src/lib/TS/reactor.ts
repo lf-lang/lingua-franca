@@ -7,7 +7,7 @@
 
 import {PrecedenceGraph, PrecedenceGraphNode, PrioritySetNode, PrioritySet} from './util';
 import "./time";
-import { TimeInterval, TimeInstant, compareTimeInstants, TimelineClass, TimestampedValue, NumericTimeInterval, microtimeToNumeric, compareNumericTimeIntervals, timeIntervalIsZero, timeIntervalToNumeric, timeInstantsAreEqual, numericTimeSum, numericTimeMultiple, numericTimeDifference } from './time';
+import { TimeInterval, TimeInstant, compareTimeInstants, TimelineClass, TimestampedValue, NumericTimeInterval, microtimeToNumeric, compareNumericTimeIntervals, TimeUnit, timeIntervalIsZero, timeIntervalToNumeric, timeInstantsAreEqual, numericTimeSum, numericTimeMultiple, numericTimeDifference } from './time';
 // import * as globals from './globals'
 
 //---------------------------------------------------------------------//
@@ -689,6 +689,8 @@ export abstract class Reactor implements Nameable{
     protected _parent: Reactor|null = null;
     
     public _app:App;
+    public startup: Timer;
+    public shutdown: Action<null>
 
     /**
      * Obtain the set of this reactor's child reactors.
@@ -713,7 +715,24 @@ export abstract class Reactor implements Nameable{
             }
         }
         return children;
+    }
 
+    /**
+     * Obtain the recursive set of this reactor's child reactors,
+     * grandchild reactors, and so on.
+     */
+    public _getAllChildren(): Set<Reactor> {
+        let decendents = new Set<Reactor>();
+        let children = this._getChildren();
+        
+        for(let child of children){
+            decendents.add(child);
+            let childDecendents = child._getAllChildren();
+            for( let decendent of childDecendents){
+                decendents.add(decendent);
+            }
+        }
+        return decendents;
     }
 
     /**
@@ -1000,6 +1019,9 @@ export abstract class Reactor implements Nameable{
         this._parent = parent;    
         this._myName = this.constructor.name; // default
         this._myIndex = null;
+
+        this.startup = new Timer(this, 0, 0);
+        this.shutdown = new Action(this, TimelineClass.logical, 0);
         // var relations: Map<Port<any>, Set<Port<any>>> = new Map();
 
         // Set this component's name if specified.
@@ -1480,6 +1502,9 @@ export class App extends Reactor{
      */
     private _executionTimeout:TimeInterval | null = null;
 
+    private _executionTimeoutCallback: () => void;
+    private _emptyEventQueueCallback: () => void;
+
     /**
      * The numeric time at which execution should be stopped.
      * Determined from _executionTimeout and startingWallTime.
@@ -1514,7 +1539,9 @@ export class App extends Reactor{
      * Track IDs assigned to reactions and events
      */
     private _reactionIDCount = 0;
-    private _eventIDCount = 0;    
+    private _eventIDCount = 0;
+    
+
 
     /**
      * Acquire all the app's timers and call setup on each one.
@@ -1530,13 +1557,160 @@ export class App extends Reactor{
     /**
      * Register all the app's reactions with their triggers.
      */
-    private _registerReactions = function(){
+    private _registerReactions = function() {
         let reactions: Set<Reaction> = this._getAllReactions();
         // console.log("reactions set in _registerReactions is: " + reactions);
-        for(let r of reactions){
+        for (let r of reactions) {
             // console.log("registering: " + r);
             r.register();
         }
+    }
+
+    /**
+     * Wrapup execution by scheduling each reactor's shutdown action,
+     * execute one extra logical time cycle, call the 
+     * executionCallback (success or failure for the runtime),
+     * and terminate. 
+     */
+    private _doShutdown = function(executionCallback: () => void) {
+        console.log("Starting _doShutdown");
+        
+        // Schedule each reactor's shutdown action.
+        let allReactors = this._getAllChildren();
+        allReactors.add(this);
+        for (let r of allReactors) {
+            r.shutdown.schedule(0);
+        }
+
+        // Increment currentLogicalTime's microstep so the
+        // shutdown actions will execute.
+        this._currentLogicalTime[1]++;
+
+        // Begin the final logicaltimestep
+        this._doLogicalTimeStep(true);
+        executionCallback();
+        console.log("Finished shutdown");
+    }
+
+
+    /**
+     * Advance logical time to the priority of
+     * the next head on the event queue. Then 
+     * remove all simultaneous events from the event queue
+     * and handle all reactions. Returns true if execution did
+     * not timeout. If execution did timeout, this function will
+     * call _doShutdown and return false, in which case it's
+     * okay for the runtime to immediately stop.
+     * 
+     * @param final boolean If final, don't check against
+     * the execution timeout to wrapup execution because this
+     * is already the last iteration. During normal execution,
+     * this argument should be false. It should only be true
+     * during wrapup.
+     *   
+     */
+    private _doLogicalTimeStep = function(final: boolean): boolean {
+
+        // Using a Set data structure ensures a reaction triggered by
+        // multiple events at the same logical time will only react once.
+        let triggersNow = new Set<Reaction>();
+
+        // Keep track of actions at this logical time.
+        // If the same action has been scheduled twice
+        // make sure it gets the correct (last assigned) value.
+        this._observedActionEvents.clear();
+
+        let currentHead = this._eventQ.peek();
+        // Remove all simultaneous events from the queue.
+        // Reschedule timers, assign action values, and put the triggered reactions on
+        // the reaction queue.
+        // If this function has been called correctly when there is a next
+        // logical time step to perform, this loop should always execute at least once.
+        while(currentHead && timeInstantsAreEqual(currentHead._priority, this._currentLogicalTime)){
+
+            //An explicit type assertion is needed because we know the
+            //eventQ contains PrioritizedEvents, but the compiler doesn't know that.
+            let trigger: Trigger = (currentHead as Event<any>).cause;
+            
+            if(trigger instanceof Timer){
+                trigger.reschedule();
+            }
+
+            if(trigger instanceof Action){
+                // Check if this action has been seen before at this logical time.
+                if(this._observedActionEvents.has(trigger) ){
+                    // Whichever event for this action has a greater eventID
+                    // occurred later and it determines the value. 
+                    if( currentHead._id > (this._observedActionEvents.get(trigger) as Event<any>)._id ){
+                        trigger.value = (currentHead as Event<any>).value;
+                        trigger.timestamp = this._currentLogicalTime;
+                    }
+                } else {
+                    // Action has not been seen before.
+                    this._observedActionEvents.set(trigger, (currentHead as Event<any>));
+                    trigger.value = (currentHead as Event<any>).value;
+                    trigger.timestamp =  this._currentLogicalTime;
+                }
+            }
+            let toTrigger = this._triggerMap.getReactions(trigger);
+            if(toTrigger){
+                for(let reaction of toTrigger){
+
+                    //Push this reaction to the queue when we are done
+                    //processing events.
+                    triggersNow.add(reaction);
+                }
+            }
+            this._eventQ.pop();
+            currentHead = this._eventQ.peek();
+        }
+        
+        for (let reaction of triggersNow){
+            let prioritizedReaction = new PrioritizedReaction(reaction, this._getReactionID());
+            this._reactionQ.push(prioritizedReaction);
+        }
+        
+        let headReaction = this._reactionQ.pop();
+        while(headReaction){
+
+            // Explicit type annotation because reactionQ contains PrioritizedReactions.
+            let r = (headReaction as PrioritizedReaction).r
+            
+            // Test if this reaction has a deadline which has been violated.
+            // This is the case if the reaction has a registered deadline and
+            // logical time + timeout < physical time.
+            // No need to use a snapshot of physical time here, because a deadline violation
+            // only affects execution logic, it doesn't affect runtime control logic.
+            if(r.deadline && compareNumericTimeIntervals( 
+                    numericTimeSum(this._currentLogicalTime[0], timeIntervalToNumeric(r.deadline.getTimeout())),
+                    this._getCurrentPhysicalTime())){
+                console.log("handling deadline violation");
+                r.deadline.handler();
+            } else {
+                r.react();
+            }
+            headReaction = this._reactionQ.pop();
+        }
+
+        //A new Action event may have been pushed onto the event queue by one of
+        //the reactions at this logical time.
+        currentHead = this._eventQ.peek();
+
+        //The next iteration of the event loop is ready because
+        //currentHead is either null, or a future event
+
+        // If execution has gone on for longer than the execution timeout,
+        // terminate execution. Don't use a physical time snapshot here
+        // because the reaction may have taken considerable physical time.
+        if(!final && this._executionTimeout){
+            //const timeoutInterval: TimeInterval= timeIntervalToNumeric(_executionTimeout);
+            if(compareNumericTimeIntervals( this._relativeExecutionTimeout, this._getCurrentPhysicalTime())){
+                console.log("Execution timeout reached. Starting shutdown from doLogicalTimeStep.");
+                this._doShutdown(this._executionTimeoutCallback)
+                return false;
+            }
+        }
+        return true;
     }
 
 
@@ -1551,39 +1725,46 @@ export class App extends Reactor{
      * outputs, which places additional reactions into the index-ordered
      * priority queue. All of those will also be executed in order of indices.
      * If the execution timeout given to this app in its constructor
-     * has a non-null value, then call successCallback (and end this loop) 
+     * has a non-null value, then call executionTimeoutCallback (and end this loop) 
      * when the logical time from the start of execution matches the
      * specified duration. If execution timeout is null, execution will be
      * allowed to continue indefinately.
-     * Otherwise, call failureCallback when there are no events in the queue.
+     * Otherwise, call emptyEventQueueCallback when there are no events in the queue.
      * 
      * FIXME: Implement a keepalive option so execution may continue if
      * there are no more events in the queue.
-     * @param successCallback Callback to be invoked when execution has terminated
-     * in an expected way.
-     * @param failureCallback Callback to be invoked when execution has terminated
-     * in an unexpected way.
      */
-    private _next(successCallback: ()=> void, failureCallback: () => void){
+    private _next(){
+        // Assume _next is called every time logical time needs
+        // a macro step increase because of the next event or an execution timeout.
+
+        // Some logic in this function depends on having a consistent
+        // view of physical time. So take a snapshot of it here.
+        let physicalTimeAtStartOfNext = this._getCurrentPhysicalTime();
+
+        // First check if the execution timeout has occurred. 
+        if(this._executionTimeout){
+            //const timeoutInterval: TimeInterval= timeIntervalToNumeric(_executionTimeout);
+            if(compareNumericTimeIntervals( this._relativeExecutionTimeout, physicalTimeAtStartOfNext)) {
+                console.log("Execution timeout reached. Starting shutdown.");
+                this._doShutdown(this._executionTimeoutCallback)
+                return;
+            }
+        }
+
+
         // console.log("starting _next");
         let currentHead = this._eventQ.peek();
         while(currentHead){
-            let currentPhysicalTime:NumericTimeInterval = microtimeToNumeric(microtime.now());
-            // console.log("current physical time in next is: " + currentPhysicalTime);
-            
-            //If execution has gone on for longer than the execution timeout,
-            //terminate execution with success.
-            if(this._executionTimeout){
-                //const timeoutInterval: TimeInterval= timeIntervalToNumeric(_executionTimeout);
-                if(compareNumericTimeIntervals( this._relativeExecutionTimeout, currentPhysicalTime)){
-                    console.log("Execution timeout reached. Terminating runtime with success.");
-                    successCallback();
-                    return;
-                }
-            }
-            if(compareNumericTimeIntervals(currentPhysicalTime, currentHead._priority[0] )){
+
+            // Take another snapshot of physical time. Many reactions may
+            // have executed between now and physicalTimeAtStartOfNext
+            // so, the old snapshot may be very inaccurate.
+            let physicalTimeAtStartOfEventIteration = this._getCurrentPhysicalTime();
+
+            if(compareNumericTimeIntervals(physicalTimeAtStartOfEventIteration, currentHead._priority[0] )){
                 //Physical time is behind logical time.
-                let physicalTimeGap = numericTimeDifference(currentHead._priority[0], currentPhysicalTime, );
+                let physicalTimeGap = numericTimeDifference(currentHead._priority[0], physicalTimeAtStartOfEventIteration);
             
                 //Wait until min of (execution timeout and the next event) and try again.
                 let timeout:NumericTimeInterval;
@@ -1592,7 +1773,7 @@ export class App extends Reactor{
                 } else {
                     timeout = physicalTimeGap;
                 }
-                console.log("Runtime set a timeout at physical time: " + currentPhysicalTime +
+                console.log("Runtime set a timeout at physical time: " + physicalTimeAtStartOfEventIteration +
                  " for an event with logical time: " + currentHead._priority[0]);
                 // console.log("Runtime set a timeout with physicalTimeGap: " + physicalTimeGap);
                 // console.log("currentPhysicalTime: " + currentPhysicalTime);
@@ -1619,122 +1800,32 @@ export class App extends Reactor{
                     padding = "0" + padding 
                 }
                 let timeoutString = timeout[0].toString() + padding + nanoSecString + "n"; 
-                nTimer.setTimeout(this._next.bind(this), [successCallback, failureCallback], timeoutString);
+                nTimer.setTimeout(this._next.bind(this), [], timeoutString);
                 
                 return;
             } else {
+
                 //Physical time has caught up, so advance logical time
                 this._currentLogicalTime = currentHead._priority;
                 console.log("At least one event is ready to be processed at logical time: "
-                 + currentHead._priority + " and physical time: " + currentPhysicalTime );
-                // console.log("currentPhysicalTime: " + currentPhysicalTime);
-                //console.log("physicalTimeGap was " + physicalTimeGap);
+                + currentHead._priority + " and physical time: " + physicalTimeAtStartOfEventIteration );
 
-                // Using a Set data structure ensures a reaction triggered by
-                // multiple events at the same logical time will only react once.
-                let triggersNow = new Set<Reaction>();
-
-                // Keep track of actions at this logical time.
-                // If the same action has been scheduled twice
-                // make sure it gets the correct (last assigned) value.
-                this._observedActionEvents.clear();
-
-
-                // Remove all simultaneous events from the queue.
-                // Reschedule timers, assign action values, and put the triggered reactions on
-                // the reaction queue.
-                // This loop should always execute at least once.
-                while(currentHead && timeInstantsAreEqual(currentHead._priority, this._currentLogicalTime)){
-
-                    //An explicit type assertion is needed because we know the
-                    //eventQ contains PrioritizedEvents, but the compiler doesn't know that.
-                    let trigger: Trigger = (currentHead as Event<any>).cause;
-                    
-                    if(trigger instanceof Timer){
-                        trigger.reschedule();
-                    }
-
-                    if(trigger instanceof Action){
-                        // Check if this action has been seen before at this logical time.
-                        if(this._observedActionEvents.has(trigger) ){
-                            // Whichever event for this action has a greater eventID
-                            // occurred later and it determines the value. 
-                            if( currentHead._id > (this._observedActionEvents.get(trigger) as Event<any>)._id ){
-                                trigger.value = (currentHead as Event<any>).value;
-                                trigger.timestamp = this._currentLogicalTime;
-                            }
-                        } else {
-                            // Action has not been seen before.
-                            this._observedActionEvents.set(trigger, (currentHead as Event<any>));
-                            trigger.value = (currentHead as Event<any>).value;
-                            trigger.timestamp =  this._currentLogicalTime;
-                        }
-                    }
-                    // console.log("Before triggermap in next");
-                    let toTrigger = this._triggerMap.getReactions(trigger);
-                    // console.log(toTrigger);
-                    // console.log("after triggermap in next");
-                    if(toTrigger){
-                        for(let reaction of toTrigger){
-
-                            //Push this reaction to the queue when we are done
-                            //processing events.
-                            triggersNow.add(reaction);
-                        }
-                    }
-                    this._eventQ.pop();
-                    currentHead = this._eventQ.peek();
-                }
+                // Do a logical time step.
+                // Note the execution timeout is checked in this function.
+                // after every logical time step. If execution does time out
+                // during the next logical time step. _doLogicalTimeStep will return false
                 
-                for (let reaction of triggersNow){
-                    // console.log("Pushing new reaction onto queue");
-                    // console.log(reaction);
-                    let prioritizedReaction = new PrioritizedReaction(reaction, this._getReactionID());
-                    this._reactionQ.push(prioritizedReaction);
-                }
-                
-                let headReaction = this._reactionQ.pop();
-                while(headReaction){
-
-                    currentPhysicalTime = microtimeToNumeric(microtime.now());
-
-                    if(this._executionTimeout){
-                        if(compareNumericTimeIntervals( this._relativeExecutionTimeout, currentPhysicalTime)){
-                            console.log("Execution timeout reached. Terminating runtime with success.");
-                            successCallback();
-                            return;
-                        }
-                    }
-
-                    // Explicit type annotation because reactionQ contains PrioritizedReactions.
-                    let r = (headReaction as PrioritizedReaction).r
-                    
-                    // Test if this reaction has a deadline which has been violated.
-                    // This is the case if the reaction has a registered deadline and
-                    // logical time + timeout < physical time
-                    if(r.deadline && compareNumericTimeIntervals( 
-                            numericTimeSum(this._currentLogicalTime[0], timeIntervalToNumeric(r.deadline.getTimeout())),
-                            currentPhysicalTime)){
-                        console.log("handling deadline violation");
-                        r.deadline.handler();
-                    } else {
-                        // console.log("reacting...");
-                        r.react();
-                    }
-                    headReaction = this._reactionQ.pop();
-                }
-
-                //A new Action event may have been pushed onto the event queue by one of
-                //the reactions at this logical time.
+                // This is not a shutdown invocation of _doLogicalTimeStep
+                // so final is false
+                let final = false;
+                let notTimedOut = this._doLogicalTimeStep(final);
+                if(! notTimedOut) return;
                 currentHead = this._eventQ.peek();
             }
-
-            //The next iteration of the outer loop is ready because
-            //currentHead is either null, or a future event
         }
         //Falling out of the while loop means the eventQ is empty.
-        console.log("Terminating runtime with failure due to empty event queue.");
-        failureCallback();
+        console.log("Empty event queue. Starting wrapup.");
+        this._doShutdown(this._emptyEventQueueCallback);
         return;
         //FIXME: keep going if the keepalive command-line option has been given
     }
@@ -1950,7 +2041,21 @@ export class App extends Reactor{
         }
     }
 
-    public _start(successCallback: () => void , failureCallback: () => void):void {
+
+    /**
+     * Start the runtime for this app.
+     * 
+     * @param executionTimeoutCallback Callback to be invoked if execution terminates due to
+     * physical time exceeding the execution timeout.
+     * @param emptyEventQueueCallback Callback to be invoked if execution terminates due to
+     * an empty event queue.
+     */
+    public _start(executionTimeoutCallback: () => void , emptyEventQueueCallback: () => void):void {
+        
+        this._executionTimeoutCallback = executionTimeoutCallback;
+        this._emptyEventQueueCallback = emptyEventQueueCallback;
+
+
         // Recursively check the parent attribute for this and all contained reactors and
         // and components, i.e. ports, actions, and timers have been set correctly.
         this._checkAllParents(null);
@@ -1967,8 +2072,7 @@ export class App extends Reactor{
             this._relativeExecutionTimeout = numericTimeSum(this._startingWallTime, timeIntervalToNumeric(this._executionTimeout));
         }
         this._startTimers();
-        this._next(successCallback, failureCallback);
-
+        this._next();
     }
 
 

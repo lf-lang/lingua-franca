@@ -1,13 +1,12 @@
+// Source produces a dynamically allocated struct, which it passes
+// to Print. Reference counting ensures that the struct is freed.
 target C;
-// Source produces a dynamically allocated array, which is passes
-// to Print. Reference counting ensures that the array is freed.
 reactor Source {
     preamble {=
-        typedef struct hello_t hello_t;
-        struct hello_t {
+        typedef struct hello_t {
             char* name;
             int value;
-        };
+        } hello_t;
     =}
     output out:hello_t*;
     reaction(startup) -> out {=

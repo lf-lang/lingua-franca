@@ -753,6 +753,7 @@ class CppGenerator extends GeneratorBase {
         var cmakeTestBuilder = new ProcessBuilder(cmakeTest)
         var cmakeTestReturn = cmakeTestBuilder.start().waitFor()
         if (cmakeTestReturn != 0) {
+            // Info on MaxOSX PATH variable here: https://scriptingosx.com/2017/05/where-paths-come-from/
             println("WARNING: cmake not found on PATH: " + cmakeTestBuilder.environment.get("PATH"))
             cmake = "/opt/local/bin/cmake"
             println("Trying " + cmake)
