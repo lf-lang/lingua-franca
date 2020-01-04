@@ -33,13 +33,17 @@ import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
+import java.util.regex.Pattern
+import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -72,6 +76,12 @@ class CGenerator extends GeneratorBase {
     // The command to compile the generated code if specified in the target directive.
     var compileCommand = null as ArrayList<String>
 
+    // Additional sources to add to the compile command if appropriate.
+    var compileAdditionalSources = null as ArrayList<String>
+
+    // Additional libraries to add to the compile command using the "-l" command-line option.
+    var compileLibraries = null as ArrayList<String>
+
     // List of deferred assignments to perform in initialize_trigger_objects.
     var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
     
@@ -80,7 +90,7 @@ class CGenerator extends GeneratorBase {
 
     // Indicator of whether to generate multithreaded code and how many by default.
     var numberOfThreads = 0
-
+    
     // The command to run the generated code if specified in the target directive.
     var runCommand = null as ArrayList<String>
 
@@ -236,8 +246,14 @@ class CGenerator extends GeneratorBase {
         // FIXME: Do we want to keep the compileCommand option?
         if (compileCommand === null) {
             compileCommand = newArrayList
-            compileCommand.addAll("gcc", "-O2", relativeSrcFilename, "-o",
-                relativeBinFilename)
+            compileCommand.addAll("gcc", "-O2", relativeSrcFilename)
+            if (compileAdditionalSources !== null) {
+                compileCommand.addAll(compileAdditionalSources)
+            }
+            if (compileLibraries !== null) {
+                compileCommand.addAll(compileLibraries)
+            }
+            compileCommand.addAll("-o", relativeBinFilename)
             // If threaded computation is requested, add a -pthread option.
             if (numberOfThreads !== 0) {
                 compileCommand.add("-pthread")
@@ -254,28 +270,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        println("In directory: " + directory)
-        println("Compiling with command: " + compileCommand.join(" "))
-        var builder = new ProcessBuilder(compileCommand);
-        builder.directory(new File(directory));
-        var process = builder.start()
-        // FIXME: The following doesn't work. Somehow, the command to
-        // run the generated code gets executed before the following is printed!
-        val returnCode = process.waitFor()
-        var stdout = readStream(process.getInputStream())
-        var stderr = readStream(process.getErrorStream())
-        if (stdout.length() > 0) {
-            println("--- Standard output from C compiler:")
-            println(stdout)
-        }
-        if (returnCode !== 0) {
-            reportError("Compiler returns error code " + returnCode)
-        }
-        if (stderr.length() > 0) {
-            reportError("Compiler reports errors:\n" + stderr.toString)
-        } else {
-            println("SUCCESS (compiling generated C code)")
-        }
+        executeCommand(compileCommand)
     }
 
     // //////////////////////////////////////////
@@ -294,7 +289,7 @@ class CGenerator extends GeneratorBase {
         // a comment that the preamble should not not be included.
         // Including the preamble could result in multiple writable
         // copies being made if an input is mutable.
-        pr(body, org.icyphy.generator.CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
+        pr(body, CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
         for(input : reactor.inputs) {
             if (isTokenType(input.type)) {
                 triggers.add(input)
@@ -388,9 +383,17 @@ class CGenerator extends GeneratorBase {
                 reportError(input,
                     "Input is required to have a type: " + input.name)
             } else {
-                // NOTE: Slightly obfuscate input name to help prevent accidental use.
-                pr(body,
-                    lfTypeToTokenType(input.type) + '* __' + input.name + ';');
+                val inputType = lfTypeToTokenType(input.type)
+                // If the output type has the form type[number], then treat it specially
+                // to get a valid C type.
+                val matcher = arrayPatternFixed.matcher(inputType)
+                if (matcher.find()) {
+                    // NOTE: Slightly obfuscate input name to help prevent accidental use.
+                    pr(body, matcher.group(1) + '(* __' + input.name + ')' + matcher.group(2) + ';');
+                } else {
+                    // NOTE: Slightly obfuscate input name to help prevent accidental use.
+                    pr(body, inputType + '* __' + input.name + ';');
+                }
                 pr(body, 'bool* __' + input.name + '_is_present;');
             }
         }
@@ -424,16 +427,35 @@ class CGenerator extends GeneratorBase {
                 reportError(output,
                     "Output is required to have a type: " + output.name)
             } else {
-                // If the output type has the form type[], then change it to token_t.
+                // If the output type has the form type[] or type*, then change it to token_t.
                 val outputType = lfTypeToTokenType(output.type)
-                // NOTE: Slightly obfuscate output name to help prevent accidental use.
-                pr(body, outputType + ' __' + output.name +';')
-                pr(body, 'bool __' + output.name + '_is_present;')
                 // If there are contained reactors that send data via this output,
                 // then create a place to put the pointers to the sources of that data.
                 var containedSource = outputToContainedOutput.get(output)
+                // If the output type has the form type[number], then treat it specially
+                // to get a valid C type.
+                val matcher = arrayPatternFixed.matcher(outputType)
+                if (matcher.find()) {
+                    // Array case.
+                    // NOTE: Slightly obfuscate output name to help prevent accidental use.
+                    pr(body, matcher.group(1) + ' __' + output.name + matcher.group(2) + ';')
+                    if (containedSource !== null) {
+                        // This uses the same pattern as an input.
+                        pr(body, matcher.group(1) + '(* __' + output.name + '_inside)' + matcher.group(2) + ';')
+                    }
+                } else {
+                    // Normal case.
+                    // NOTE: Slightly obfuscate output name to help prevent accidental use.
+                    pr(body, outputType + ' __' + output.name +';')
+                    // If there are contained reactors that send data via this output,
+                    // then create a place to put the pointers to the sources of that data.
+                    if (containedSource !== null) {
+                        pr(body, outputType + '* __' + output.name + '_inside;')
+                    }
+                }
+                // _is_present variables are the same for both cases.
+                pr(body, 'bool __' + output.name + '_is_present;')
                 if (containedSource !== null) {
-                    pr(body, outputType + '* __' + output.name + '_inside;')
                     pr(body, 'bool* __' + output.name + '_inside_is_present;')
                 }
             }
@@ -656,7 +678,7 @@ class CGenerator extends GeneratorBase {
                         
             // Do not generate the initialization code if the body is marked
             // to not generate it.
-            if (!body.startsWith(org.icyphy.generator.CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
+            if (!body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
                 pr(reactionInitialization.toString)
             } else {
                 // Define the "self" struct.
@@ -1208,6 +1230,71 @@ class CGenerator extends GeneratorBase {
         pr(result.toString())
     }
 
+    /** Open a non-Lingua Franca import file at the specified URI
+     *  in the specified resource set. Throw an exception if the
+     *  file import is not supported. This class imports .proto files
+     *  and runs, if possible, the protoc protocol buffer code generator
+     *  to produce the required .h and .c files.
+     *  @param importStatement The original import statement (used for error reporting).
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
+     */
+    override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
+        // Unfortunately, the resolvedURI appears to be useless for ordinary files
+        // (non-xtext files). Use the original importStatement.importURI
+        if (importStatement.importURI.endsWith(".proto")) {
+            // First, check that protoc is installed.
+            // FIXME: Should we include this as a submodule? If so, how to invoke it?
+            val protocTest = newArrayList
+            var protoc_c = "protoc-c"
+            protocTest.addAll("which", protoc_c)
+            if (executeCommand(protocTest) != 0) {
+                // On a Mac, if you are running within Eclipse, the PATH variable is extremely
+                // limited (to the default provided in /etc/paths, supposedly, but on my machine,
+                // it does not even include directories in that file for some reason.
+                // One way to add /usr/local/bin to the path once-and-for-all is this:
+                // sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+                
+                // Instead, here, we look for it in /usr/local/bin.
+                protoc_c = "/usr/local/bin/protoc-c"
+                protocTest.clear()
+                protocTest.addAll('which', protoc_c)
+                if (executeCommand(protocTest) != 0) {
+                    return reportError(importStatement, "Protocol buffers protoc-c executable not found in "
+                        + "/usr/local/bin nor on the PATH:\n"
+                        + System.getenv("PATH")
+                        + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c")
+                }
+            }
+            // Invoke protoc-c.
+            val protocCommand = newArrayList
+            protocCommand.addAll(protoc_c, "--c_out=src-gen", importStatement.importURI)
+            if (executeCommand(protocCommand) != 0) {
+                return reportError(importStatement, "Protocol buffer compiler failed.")
+            }
+            if (compileAdditionalSources === null) {
+                compileAdditionalSources = newArrayList
+            }
+            // Strip the ".proto" off the file name.
+            // NOTE: This assumes that the filename matches the generated files, which it seems to.
+            val rootFilename = importStatement.importURI.substring(0, importStatement.importURI.length - 6)
+            compileAdditionalSources.add("src-gen" + File.separator + rootFilename + ".pb-c.c")
+            
+            // The -l protobuf-c command-line option should be added only once, even if there
+            // are multiple protobuf imports.
+            if (compileLibraries === null) {
+                compileLibraries = newArrayList
+                compileLibraries.add('-l')
+                compileLibraries.add('protobuf-c')
+            }
+        } else {
+            return reportError(importStatement, "Unsupported imported file type: "
+                + importStatement.importURI
+            )
+        }
+        return "OK"
+    }
+
     /** Return the unique name for the "self" struct of the specified
      *  reactor instance from the instance ID.
      *  @param instance The reactor instance.
@@ -1292,14 +1379,27 @@ class CGenerator extends GeneratorBase {
 
         // Start with parameters.
         for (parameter : instance.parameters) {
-            // FIXME: we now use the resolved literal value. For better efficiency, we could
+            // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
             // memory allocations.
-            pr(
-                initializeTriggerObjects,
-                nameOfSelfStruct + "." + parameter.name + " = " +
-                    parameter.literalValue + ";"
-            )
+            
+            // Array type parameters have to be handled specially.
+            val matcher = arrayPatternVariable.matcher(parameter.type)
+            if (matcher.find()) {
+                val temporaryVariableName = parameter.uniqueID
+                pr(initializeTriggerObjects,
+                    "static " + matcher.group(1) + " " +
+                    temporaryVariableName + "[] = " + parameter.literalValue + ";"
+                )
+                pr(initializeTriggerObjects,
+                    nameOfSelfStruct + "." + parameter.name + " = " + temporaryVariableName + ";"
+                )
+            } else {
+                pr(initializeTriggerObjects,
+                    nameOfSelfStruct + "." + parameter.name + " = " +
+                        parameter.literalValue + ";"
+                )
+            }
         }
 
         // Next, initialize the "self" struct with state variables.
@@ -1455,6 +1555,17 @@ class CGenerator extends GeneratorBase {
             pr("#include \"reactor.c\"")
         } else {
             pr("#include \"reactor_threaded.c\"")
+        }
+        
+        // Generate #include statements for each .proto import.
+        for (import : resource.allContents.toIterable.filter(Import)) {
+            if (import.importURI.endsWith(".proto")) {
+                // Strip the ".proto" off the file name.
+                // NOTE: This assumes that the filename matches the generated files, which it seems to.
+                val rootFilename = import.importURI.substring(0, import.importURI.length - 6)
+                // Finally, generate the #include for the generated .h file.
+                pr('#include "' + rootFilename + '.pb-c.h"')
+            }
         }
     }
 
@@ -1653,6 +1764,7 @@ class CGenerator extends GeneratorBase {
         var present = input.name + '_is_present'
         pr(builder,
             'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
+        
         if (isTokenType(input.type)) {
             pr(builder, rootType(input.type) + '* ' + input.name + ';')
             pr(builder, 'if(' + present + ') {')
@@ -1666,7 +1778,13 @@ class CGenerator extends GeneratorBase {
                 pr(builder, input.name + ' = writable_copy(' + input.name + ');')
             }
         } else {
-            pr(builder, input.type + ' ' + input.name + ';')
+            // Look for array type of form type[number].
+            val matcher = arrayPatternFixed.matcher(input.type)
+            if (matcher.find()) {
+                pr(builder, matcher.group(1) + '* ' + input.name + ';')
+            } else {
+                pr(builder, input.type + ' ' + input.name + ';')
+            }
             pr(builder, 'if(' + present + ') {')
             indent(builder)
             pr(builder, input.name + ' = *(self->__' + input.name + ');')
@@ -1734,12 +1852,22 @@ class CGenerator extends GeneratorBase {
                 "Output is required to have a type: " + output.name)
         } else {
             val outputType = lfTypeToTokenType(output.type)
-            // Slightly obfuscate the name to help prevent accidental use.
-            pr(
-                builder,
-                outputType + '* ' + output.name +
-                    ' = &(self->__' + output.name + ');'
-            )
+            // If the output type has the form type[number], handle it specially.
+            // In both cases, slightly obfuscate the name to help prevent accidental use.
+            val matcher = arrayPatternFixed.matcher(outputType)
+            if (matcher.find()) {
+                pr(
+                    builder,
+                    matcher.group(1) + '* ' + output.name +
+                        ' = self->__' + output.name + ';'
+                )
+            } else {
+                pr(
+                    builder,
+                    outputType + '* ' + output.name +
+                        ' = &(self->__' + output.name + ');'
+                )
+            }
             pr(
                 builder,
                 'bool* ' + output.name + '_is_present = &(self->__' + output.name +
@@ -1779,6 +1907,8 @@ class CGenerator extends GeneratorBase {
     /** Return a C type for the type of the specified parameter.
      *  If there are code delimiters around it, those are removed.
      *  If the type is "time", then it is converted to "interval_t".
+     *  If the type is of the form "type[]", then this is converted
+     *  to "type*".
      *  @param parameter The parameter.
      *  @return The C type.
      */
@@ -1786,6 +1916,11 @@ class CGenerator extends GeneratorBase {
         var type = removeCodeDelimiter(parameter.type)
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
             type = 'interval_t'
+        } else {
+            val matcher = arrayPatternVariable.matcher(type)
+            if (matcher.find()) {
+                return matcher.group(1) + '*'
+            }
         }
         type
     }
@@ -1859,6 +1994,14 @@ class CGenerator extends GeneratorBase {
             setInputsAbsentByDefault(containedReactor)
         }
     }
+    
+    // Regular expression pattern for array types with specified length.
+    // FIXME: ignore white space.
+    static final Pattern arrayPatternFixed = Pattern.compile("^([a-zA-Z]+)(\\[[0-9]+\\])");
+    
+    // Regular expression pattern for array types with unspecified length.
+    // FIXME: ignore white space.
+    static final Pattern arrayPatternVariable = Pattern.compile("^([a-zA-Z]+)\\[\\]");
     
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'

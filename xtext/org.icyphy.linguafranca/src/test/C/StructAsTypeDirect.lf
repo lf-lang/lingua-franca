@@ -1,0 +1,34 @@
+// Source produces a struct directly, rather than a pointer to
+// a struct.
+target C;
+reactor Source {
+    preamble {=
+        typedef struct hello_t hello_t;
+        struct hello_t {
+            char* name;
+            int value;
+        };
+    =}
+    output out:hello_t;
+    reaction(startup) -> out {=
+        out->name = "Earth";
+        out->value = 42;
+        set_present(out);
+    =}
+}
+// expected parameter is for testing.
+reactor Print(expected:int(42)) {
+    input in:hello_t;
+    reaction(in) {=
+        printf("Received: name = %s, value = %d\n", in.name, in.value);
+        if (in.value != self->expected) {
+            printf("ERROR: Expected value to be %d.\n", self->expected);
+            exit(1);
+        }
+    =}
+}
+main reactor StructPrint {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}

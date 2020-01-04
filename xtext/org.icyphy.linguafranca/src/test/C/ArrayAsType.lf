@@ -1,26 +1,23 @@
-// Source produces a dynamically allocated array, which it passes
-// to Print. Reference counting ensures that the array is freed.
+// Source produces a statically allocated array, which it passes
+// to Print. The destination references the array directly.
 target C;
 reactor Source {
-    output out:int[];
+    output out:int[3];
     reaction(startup) -> out {=
-        // Dynamically allocate an output array of length 3.
-        int* out_value = set_new_array(out, 3);
-        
-        // Above returns the array, which then must be populated.
-        out_value[0] = 0;
-        out_value[1] = 1;
-        out_value[2] = 2;
+        out[0] = 0;
+        out[1] = 1;
+        out[2] = 2;
+        set_present(out);
     =}
 }
 // The scale parameter is just for testing.
 reactor Print(scale:int(1)) {
-    input in:int[];
+    input in:int[3];
     reaction(in) {=
         int count = 0;       // For testing.
         bool failed = false; // For testing.
         printf("Received: [");
-        for (int i = 0; i < in_length; i++) {
+        for (int i = 0; i < 3; i++) {
             if (i > 0) printf(", ");
             printf("%d", in[i]);
             // For testing, check whether values match expectation.
@@ -36,7 +33,7 @@ reactor Print(scale:int(1)) {
         }
     =}
 }
-main reactor ArrayPrint {
+main reactor ArrayAsType {
     s = new Source();
     p = new Print();
     s.out -> p.in;
