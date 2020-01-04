@@ -200,6 +200,18 @@ export abstract class Reaction{
     }
 
     /**
+     * Setter for reaction deadline. Once a deadline has been set
+     * the deadline's timeout will determine whether the reaction's 
+     * react function or the deadline's handle function will be invoked.
+     * If a deadline has not been set the reaction's react function
+     * will always always be invoked. 
+     * @param deadline The deadline to attach to this reaction.
+     */
+    public setDeadline(deadline : Deadline){
+        this.deadline = deadline;
+    }
+
+    /**
      * Setter for reaction priority. This should
      * be determined by topological sort of reactions.
      * @param priority The priority for this reaction.
@@ -224,10 +236,44 @@ export abstract class Deadline{
     private timeout: TimeInterval;
 
     /**
+     * A reference to the reactor this deadline is a part of so it can
+     * access reactor state.
+     */
+    protected state: Reactor;
+
+    /**
      * Getter for timeout.
      */
     public getTimeout(){
         return this.timeout;
+    }
+
+    /**
+     * More concise way to get logical time in a reaction.
+     */
+    public _getCurrentLogicalTime(){
+        return this.state._app._getCurrentLogicalTime();
+    }
+
+    /**
+     * More concise way to get physical time in a reaction.
+     */
+    public _getCurrentPhysicalTime(){
+        return this.state._app._getCurrentPhysicalTime();
+    }
+
+    /**
+     * More concise way to get elapsed logical time in a reaction.
+     */
+    public _getElapsedLogicalTime(){
+        return this.state._app._getElapsedLogicalTime();
+    }
+
+    /**
+     * More concise way to get elapsed physical time in a reaction.
+     */
+    public _getElapsedPhysicalTime(){
+        return this.state._app._getElapsedPhysicalTime();
     }
 
     /**
@@ -239,10 +285,12 @@ export abstract class Deadline{
 
     /**
      * Deadline constructor.
+     * @param state A reference to the state of reactor this deadline is attached to.
      * @param timeout Time after which the deadline has been missed and the deadline
      * miss handler should be invoked.
      */
-    constructor(timeout: TimeInterval){
+    constructor(state: Reactor, timeout: TimeInterval){
+        this.state = state;
         this.timeout = timeout;
     }
 }
@@ -1647,6 +1695,17 @@ export class App extends Reactor{
                 
                 let headReaction = this._reactionQ.pop();
                 while(headReaction){
+
+                    currentPhysicalTime = microtimeToNumeric(microtime.now());
+
+                    if(this._executionTimeout){
+                        if(compareNumericTimeIntervals( this._relativeExecutionTimeout, currentPhysicalTime)){
+                            console.log("Execution timeout reached. Terminating runtime with success.");
+                            successCallback();
+                            return;
+                        }
+                    }
+
                     // Explicit type annotation because reactionQ contains PrioritizedReactions.
                     let r = (headReaction as PrioritizedReaction).r
                     
@@ -1659,7 +1718,7 @@ export class App extends Reactor{
                         console.log("handling deadline violation");
                         r.deadline.handler();
                     } else {
-                        console.log("reacting...");
+                        // console.log("reacting...");
                         r.react();
                     }
                     headReaction = this._reactionQ.pop();

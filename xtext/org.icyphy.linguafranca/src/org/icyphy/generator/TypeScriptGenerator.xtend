@@ -42,6 +42,7 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
@@ -121,7 +122,33 @@ class TypeScriptGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + "util.ts"));
         fOut.write(readFileInClasspath("/lib/TS/util.ts").getBytes())
 
-
+        // If package.json file doesn't already exist for the project,
+        // create one by copying over the default. We don't want to
+        // overwrite a package.json with additional dependencies. 
+        var File testFile = new File(directory + File.separator + "package.json");
+        if(!testFile.exists()){
+            fOut = new FileOutputStream(
+                new File(directory + File.separator + "package.json"));
+            fOut.write(readFileInClasspath("/lib/TS/package.json").getBytes())      
+        }
+        
+        // FIXME: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
+        // the complete PATH variable needed to find the command npm. I had
+        // to start my eclipse instance from a terminal so eclipse would have the correct environment
+        // variables to run this command.
+        
+        // Install npm modules.
+        println("In directory: " + directory)
+        println("Running npm install ...")
+        var installCmd = newArrayList();
+        installCmd.addAll("npm", "install")
+        var installBuilder = new ProcessBuilder(installCmd)
+        installBuilder.directory(new File(directory))
+        var Process installProcess = installBuilder.start()
+        
+        // Sleep until the modules have installed
+        installProcess.waitFor()
+        
         refreshProject()
 
         // Invoke the compiler on the generated code.
@@ -131,21 +158,14 @@ class TypeScriptGenerator extends GeneratorBase {
         // Here, we just use a generic compile command.
         var compileCommand = newArrayList()
          
-        // FIXME: The following example command has some problems. First, it creates an
-        // entire project structure inside the bin directory. Second, it is probably better
+        // FIXME: It is probably better
         // to directly expose a tsconfig.json to the programmer so they can choose how their
-        // reactors are generated. Third, the user must have Reactor.ts, time.ts, and util.ts in
-        // the src-gen directory. Fourth, the user must have already run $npm install microtimer and nanotimer
-        // in the src-gen directory. Fifth, the name of generated file's name isn't controlled
-        // by this command -- it's just automatically the original tsFilename with a .js extension.
-        // Sixth (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
-        // the complete PATH variable needed to find the command tsc from /usr/local/bin/. I had
-        // to start my eclipse instance from a terminal so eclipse would have the correct environment
-        // variables to run this command.
+        // reactors are generated.
 
         // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
         // Must compile to ES2015 or later and include the dom library.
-        compileCommand.addAll("tsc",  relativeSrcFilename, 
+        var tscPath = directory + File.separator + "node_modules/typescript/bin/tsc"
+        compileCommand.addAll(tscPath,  relativeSrcFilename, 
             "--outDir", "js", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
              "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
              "--strictNullChecks", "true"); //, relativeBinFilename, "--lib DOM")
@@ -153,7 +173,6 @@ class TypeScriptGenerator extends GeneratorBase {
 //        val path = System.getenv("PATH");
 //        println("path is: " + path); 
 //        compileCommand.addAll("tsc","--version");
-        println("In directory: " + directory)
         println("Compiling with command: " + compileCommand.join(" "))
         var builder = new ProcessBuilder(compileCommand);
         builder.directory(new File(directory));
@@ -197,9 +216,9 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         if(reactor.isMain()){
-            pr("class " + reactor.name + " extends App {")
+            pr("class " + reactor.name + "_c" + " extends App {")
         } else {
-            pr("class " + reactor.name + " extends Reactor {")
+            pr("class " + reactor.name + "_c" + " extends Reactor {")
         }
         
         indent()
@@ -239,7 +258,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle child reactors instantiations
         for (childReactor : reactor.instantiations ) {
-            pr(childReactor.getName() + ": " + childReactor.reactorClass.name )
+            pr(childReactor.getName() + ": " + childReactor.reactorClass.name + "_c" )
             
             var childReactorArguments = new StringBuffer();
         
@@ -282,46 +301,38 @@ class TypeScriptGenerator extends GeneratorBase {
             childReactorArguments.append("this, " +  "'" + reactor.name + "/" + childReactor.name + "'");
             
             pr(reactorConstructor, "this." + childReactor.getName()
-                + " = new " + childReactor.reactorClass.name + "("
+                + " = new " + childReactor.reactorClass.name + "_c" + "("
                 + childReactorArguments.toString() + ")" )
         }
        
         
         // Next handle timers.
         for (timer : reactor.timers) {
-            var String period;
-            var String offset; 
-            if(timer.getPeriod() === null){
-                period = "0";
+            var String timerPeriod
+            if(timer.period === null){
+                timerPeriod = "0";
             } else {
-                var periodUnit = timer.getPeriod().getUnit();
-                var periodTime = timer.getPeriod().getTime();
-                if(periodUnit === TimeUnit.NONE){
-                    // The default time unit for TypeScript is msec.
-                    period = "[" + periodTime + ",TimeUnit.msec]"
-                }
-                else{
-                    period = "[" + periodTime + ",TimeUnit." + periodUnit +"]"
+                if(timer.period.parameter !== null){
+                    timerPeriod = timer.period.parameter.name
+                } else {
+                    timerPeriod = timeInTargetLanguage(timer.period.time.toString(), timer.period.unit)
                 }
             }
             
-            if(timer.getOffset() === null){
-                offset = "0";
+            var String timerOffset
+            if(timer.offset === null){
+                timerOffset = "0";
             } else {
-                var offsetUnit = timer.getOffset().getUnit();
-                var offsetTime = timer.getOffset().getTime();
-                if(offsetUnit === TimeUnit.NONE){
-                    // The default time unit for TypeScript is msec.
-                    offset = "[" + offsetTime + ",TimeUnit.msec]"
-                }
-                else{
-                    offset = "[" + offsetTime + ",TimeUnit." + offsetUnit +"]"
+                if(timer.offset.parameter !== null){
+                    timerOffset = timer.offset.parameter.name
+                } else {
+                    timerOffset = timeInTargetLanguage(timer.offset.time.toString(), timer.offset.unit)
                 }
             }
 
             pr(timer.getName() + ": Timer;")
             pr(reactorConstructor, "this." + timer.getName()
-                + " = new Timer(this, " + period + ","+ offset + ");")
+                + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
         }
         
         // FIXME Handle shutdown triggers
@@ -493,14 +504,11 @@ class TypeScriptGenerator extends GeneratorBase {
             var reactionArguments = "this, [ ";
             for(trigger : reaction.triggers ){
                 if(trigger instanceof VarRef){
-                    var triggerContainerName = ""
                     if(trigger.container === null){
-                        triggerContainerName = "this";
+                        reactionArguments += "this." + trigger.variable.name + ", "    
                     } else {
-                        triggerContainerName = trigger.container.name;
+                        reactionArguments += "this." + trigger.container.name + "." + trigger.variable.name + ", ";
                     }
-                    
-                    reactionArguments += triggerContainerName + "." + trigger.variable.name + ", "
                 } 
 //                else {
 //                    if( trigger.startup){
@@ -534,11 +542,49 @@ class TypeScriptGenerator extends GeneratorBase {
                 + reactionClassName + "(" + reactionArguments + ");"
             )
             reactionArray += "this." + reactionName + ", "
+
+        
+        
+            // Next, handle deadlines for reaction instances.
+            // This must happen after reactions
+            if(reaction.deadline !== null){
+                var deadlineName = reactor.name + '_d' + reactionIndex
+                var deadlineArgs = "this, "
+                if(reaction.deadline.time.parameter !== null){
+                    deadlineArgs+= "this." + reaction.deadline.time.parameter.name; 
+                } else {
+                    deadlineArgs += timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
+                }
+                pr(reactorConstructor, "this." + reactionName + ".setDeadline( new " + deadlineName + "( " + deadlineArgs + "));")
+            }
+        
             reactionIndex++
         }
         reactionArray += "];"
         pr(reactorConstructor, reactionArray );
         
+        
+
+        
+//        pr( "constructor(state: Reactor, triggers: Trigger[], ")
+//                indent()
+//                pr( "uses: Array<InPort<any>>, effects: Array<OutPort<any> | Action<any>>){")
+//                pr("super(state, triggers, uses, effects);")
+//                
+//                var String deadlineTime
+//                if(reaction.deadline.time.parameter !== null){
+//                    deadlineTime = timeInTargetLanguage(reaction.deadline.time.parameter.time.toString, reaction.deadline.time.parameter.unit)
+//                } else{
+//                    deadlineTime = timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
+//                }
+//                // FIXME: Change LF grammar to avoid time.time style
+//                pr('this.deadline = new ' + deadlineClassName + "( state, " + deadlineTime + " );")
+//                unindent()
+//                pr("}")
+//        
+
+
+
 //        // Next, handle reactions that produce outputs sent to inputs
 //        // of contained reactions.
 //        for (reaction : reactor.reactions) {
@@ -640,11 +686,26 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @param reactor The reactor.
      */
     def generateReactions(Reactor reactor) {
+        var deadlineClass = new StringBuilder();
         var reactions = reactor.reactions
         var reactionIndex = 0;
         for (reaction : reactions) {
             pr('class ' + reactor.name + '_r' + reactionIndex + ' extends Reaction {')
             indent()
+            
+            var deadlineClassName = reactor.name + '_d' + reactionIndex;
+            if(reaction.deadline !== null){
+                pr(deadlineClass, 'class ' + deadlineClassName + ' extends Deadline {')
+                deadlineClass.indent()
+                pr(deadlineClass, "handler(){")
+                deadlineClass.indent()
+                pr(deadlineClass, removeCodeDelimiter(reaction.deadline.deadlineCode))
+                deadlineClass.unindent()
+                pr(deadlineClass, "}")
+                deadlineClass.unindent()
+                pr(deadlineClass, "}")
+      
+            }
             pr('react() {')
             indent()
             pr(removeCodeDelimiter(reaction.code))
@@ -652,6 +713,11 @@ class TypeScriptGenerator extends GeneratorBase {
             pr('}')
             unindent()
             pr('}')
+            
+            if(reaction.deadline !== null){
+                pr(deadlineClass.toString())
+            }
+            
             reactionIndex++
         }
     }
@@ -688,11 +754,27 @@ class TypeScriptGenerator extends GeneratorBase {
             arguments += parameter.literalValue + ", "
         }
 
-        // FIXME: hardcoding a 3 second timeout because
-        // I don't know how to get this dynamically right now.
-        // Get this from a command line argument?
-        arguments += "[3, TimeUnit.secs], '" + fullName + "'" 
-        pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
+        var String timeoutArg = "null";
+        
+        for (target : resource.allContents.toIterable.filter(Target)) {
+            if (target.properties !== null) {
+                for (property : target.properties) {
+                    if (property.name.equals("timeout")){
+                        // A timeout must be a Time, it can't be a literal
+                        // (except 0 which will match as a literal).
+                        // Since 0 is the only literal that corresponds to a time
+                        // any other literal is an error
+                        if( property.literal !== null && property.literal !=0){
+                            reportError("The timeout property only accepts time assignments.")
+                        }
+                        timeoutArg = timeInTargetLanguage(property.time.toString(), property.unit)
+                    }
+                }
+            }   
+        }
+        
+        arguments += timeoutArg + ", '" + fullName + "'" 
+        pr("let _app" + " = new "+ fullName + "_c" + "(" + arguments + ")")
     }
     
     /** Generate code to call the _start function on the main App
@@ -771,6 +853,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
      */
     override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
+        // The default time unit for TypeScript is msec.
         if (unit != TimeUnit.NONE){
             "[" + timeLiteral + ", " + "TimeUnit." + unit + "]"
         } else {
@@ -810,8 +893,8 @@ class TypeScriptGenerator extends GeneratorBase {
     val static preamble = '''
 'use strict';
 
-import {Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
-import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeSum, numericTimeDifference } from "''' + timeLibPath + '''"
+import {Deadline, Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
+import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeEquals, numericTimeSum, numericTimeDifference, numericTimeMultiple, compareNumericTimeIntervals } from "''' + timeLibPath + '''"
 
     '''
 

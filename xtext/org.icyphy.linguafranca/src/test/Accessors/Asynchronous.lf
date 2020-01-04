@@ -31,13 +31,13 @@ reactor URLSource {
         set(url, 'https://icyphy.org');
     =}
 }
-reactor print {
+reactor Print {
     input text;
     reaction(text) {=
         console.log("REPLY: " + text);
     =}
 }
-reactor Main {
+main reactor Asynchronous {
     s = new URLSource();
     a = new Asynch();
     p = new Print();

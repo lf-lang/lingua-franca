@@ -140,7 +140,7 @@ Assignment:
     (lhs=[Parameter] '=' rhs=TimeOrValue);
 
 Property:
-    name=ID '=' value=Literal;
+    name=ID '=' (literal=Literal | (time=INT unit=TimeUnit));
 
 // Single parameter.
 Parameter:

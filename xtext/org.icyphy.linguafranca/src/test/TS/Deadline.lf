@@ -1,0 +1,52 @@
+// This example illustrates local deadline handling.
+// Even numbers are sent by the Source immediately, whereas odd numbers
+// are sent after a big enough delay to violate the deadline.
+target TypeScript(
+    timeout = 2 sec
+);
+
+//run = "bin/Deadline -timeout 2 sec"
+
+reactor Source(period:time(1 sec)) {
+    output y:number;
+    timer t(0, period);
+    state count:number(0);
+    reaction(t) -> y {=
+        if (2 * Math.floor((this.state as any).count / 2) != (this.state as any).count){
+            // The count variable is odd.
+            // Busy wait 0.2 sconds to cause a deadline violation.
+            let initialElapsedTime = this._getElapsedPhysicalTime()
+            while( compareNumericTimeIntervals( this._getElapsedPhysicalTime(), numericTimeSum( initialElapsedTime, [0, 200000000])));
+        }
+        console.log("Source sends: " + (this.state as any).count);
+        (this.state as any).y.set((this.state as any).count);
+        (this.state as any).count++;
+    =}
+}
+
+reactor Destination(timeout:time(1 sec)) {
+    input x:number;
+    state count:number(0);
+    reaction(x) {=
+        console.log("Destination receives: " + (this.state as any).x.get());
+        if (2 * Math.floor((this.state as any).count / 2) != (this.state as any).count) {
+            // The count variable is odd, so the deadline should have been violated.
+            console.log("ERROR: Failed to detect deadline.");
+            throw new Error("ERROR: Failed to detect deadline.");
+        }
+        (this.state as any).count++;
+    =} deadline(timeout) {=
+        console.log("Destination deadline handler receives: " + (this.state as any).x.get());
+        if (2 * Math.floor((this.state as any).count / 2) == (this.state as any).count) {
+            // The count variable is even, so the deadline should not have been violated.
+            console.log("ERROR: Deadline miss handler invoked without deadline violation.");
+            throw new Error("ERROR: Deadline miss handler invoked without deadline violation.");
+        }
+        (this.state as any).count++;
+    =}
+}
+main reactor Deadline {
+    s = new Source();
+    d = new Destination(timeout = 100 msec);
+    s.y -> d.x;
+}

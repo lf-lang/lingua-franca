@@ -2,7 +2,7 @@
 
 #==========================================================
 # Description:  Run all tests for a given LF target.
-# Author:       Marten Lohstroh
+# Author:       Marten Lohstroh, Matt Weber
 # Usage:        run-lf-tests [TARGET]
 #==========================================================
 
@@ -49,8 +49,13 @@ else
 			echo "================================================================================";
 			if [ $1 == "Cpp" ]; then
 				command="bin/$name --timeout 1"
-			else
+			elif [ $1 == "C" ]; then
 				command="bin/$name -timeout 1 sec"
+			elif [ $1 == "TS" ]; then
+				command="node js/$name"
+			else
+				echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";
+				exit 1;
 			fi
 			echo "Executing command:"$command;
 			echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";

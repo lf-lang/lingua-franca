@@ -1,0 +1,24 @@
+target TypeScript(
+    timeout = 5 sec
+);
+main reactor DelayedAction {
+    timer t(0, 1 sec);
+    logical action a;
+    state count:number(0);
+    reaction(t) -> a {=
+        (this.state as any).a.schedule( [ 100, TimeUnit.msec])
+    =}
+    
+    reaction(a) {=
+        let elapsedLogical = (this.state as any)._getElapsedLogicalTime();
+        let elapsedPhysical = (this.state as any)._getElapsedPhysicalTime();
+        console.log("Nanoseconds since start: " + elapsedLogical);
+        console.log("Physical time since start: " + elapsedPhysical);
+        let expected = numericTimeSum(numericTimeMultiple([1,0], (this.state as any).count), [0,100000000]);
+        (this.state as any).count++;
+        if (!numericTimeEquals(elapsedLogical, expected)) {
+            console.log("Expected " + expected + " but got " + elapsedLogical);
+            throw new Error("Expected " + expected + " but got " + elapsedLogical);
+        }
+    =}
+}

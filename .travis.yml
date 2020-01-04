@@ -9,7 +9,10 @@ jdk:
  - oraclejdk12
 cache:  
  directories:  
-  - $HOME/.m2  
+  - $HOME/.m2
+# The node_js property doesn't work if the language is java
+before_install:
+  - nvm install 10.4.0
 #env:  
 # global:  
 #  - DISPLAY=:99.0  
@@ -18,5 +21,6 @@ cache:
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
+ - bin/run-lf-tests TS
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp
