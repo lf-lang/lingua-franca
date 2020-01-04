@@ -37,6 +37,9 @@ ActionDelay.lf
 #SlowingClock.lf
 #SlowingClockPhysical.lf
 #Stride.lf
+#StructParallel.lf
+#StructPrint.lf
+#StructScale.lf
 #Threaded.lf
 #ThreadedThreaded.lf
 #TimeLimit.lf

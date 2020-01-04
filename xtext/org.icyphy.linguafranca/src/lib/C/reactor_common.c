@@ -187,14 +187,18 @@ static void prt_evt(FILE *out, void *a) {
 
 // ********** Priority Queue Support End
 
+// Counter used to issue a warning if memory is allocated and never freed.
+static int __count_allocations;
+
 // Library function to decrement the reference count and free
 // the memory, if appropriate, for messages carried by a token_t struct.
 void __done_using(token_t* token) {
     token->ref_count--;
     // printf("****** After reacting, ref_count = %d.\n", token->ref_count);
     if (token->ref_count == 0) {
-        // FIXME: Remove this.
-        printf("****** Freeing allocated memory.\n");
+        // Count frees to issue a warning if this is never freed.
+        __count_allocations--;
+        // printf("****** Freeing allocated memory.\n");
         free(token->value);
     }
 }
@@ -272,8 +276,9 @@ void* __set_new_array_impl(token_t* token, int length) {
     // FIXME: Error checking needed.
     token->value = malloc(token->element_size * length);
     token->ref_count = token->initial_ref_count;
-    // FIXME: Remove the following.
-    printf("****** Allocated array with starting ref_count = %d.\n", token->ref_count);
+    // Count allocations to issue a warning if this is never freed.
+    __count_allocations++;
+    // printf("****** Allocated object with starting ref_count = %d.\n", token->ref_count);
     token->length = length;
     return token->value;
 }
@@ -281,17 +286,19 @@ void* __set_new_array_impl(token_t* token, int length) {
 // Library function for returning a writable copy of a token.
 // If the reference count is 1, it returns the original rather than a copy.
 void* __writable_copy_impl(token_t* token) {
-    printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
+    // printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
     if (token->ref_count == 1) {
-        printf("****** Avoided copy because reference count is exactly one.\n");
+        // printf("****** Avoided copy because reference count is exactly one.\n");
         // Decrement the reference count to avoid the automatic free().
         token->ref_count--;
         return token->value;
     } else {
-        printf("****** Copying array because reference count is not one.\n");
+        // printf("****** Copying array because reference count is not one.\n");
         int size = token->element_size * token->length;
         void* copy = malloc(size);
         memcpy(copy, token->value, size);
+        // Count allocations to issue a warning if this is never freed.
+        __count_allocations++;
         return copy;
     }
 }
@@ -382,6 +389,7 @@ int process_args(int argc, char* argv[]) {
 // Initialize the priority queues and set logical time to match
 // physical time. This also prints a message reporting the start time.
 void initialize() {
+    __count_allocations = 0;
 #if _WIN32 || WIN32
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (ntdll) {
@@ -408,7 +416,7 @@ void initialize() {
 
     // Initialize logical time to match physical time.
     clock_gettime(CLOCK_REALTIME, &physicalStartTime);
-    printf("Start execution at time %splus %ld nanoseconds.\n",
+    printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
     		ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
     current_time = physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec;
     start_time = current_time;
@@ -417,6 +425,26 @@ void initialize() {
         // A duration has been specified. Calculate the stop time.
         stop_time = current_time + duration;
     }
+}
+
+// Check that memory allocated by set_new, set_new_array, or writable_copy
+// has been freed and print a warning message if not.
+void termination() {
+    if (__count_allocations != 0) {
+        printf("**** WARNING: Memory allocated by set_new, set_new_array, or writable_copy has not been freed!\n");
+        printf("**** Number of unfreed tokens: %d.\n", __count_allocations);
+    }
+    // Print elapsed times.
+    interval_t elapsed_logical_time
+        = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    printf("---- Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
+    
+    struct timespec physicalEndTime;
+    clock_gettime(CLOCK_REALTIME, &physicalEndTime);
+    interval_t elapsed_physical_time
+        = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
+        - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    printf("---- Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
 }
 
 // ********** Start Windows Support
