@@ -129,7 +129,7 @@ reactor NetworkSender(D:time(10 msec)) {
 		}
 	=}
 	
-	input in:{=char*=};
+	input in:string;
 	
 	reaction(startup) {=
 		init_client();
