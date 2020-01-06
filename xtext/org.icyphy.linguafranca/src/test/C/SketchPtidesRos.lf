@@ -14,8 +14,8 @@ reactor ROSReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
 		}	
 	=}
 	
-	input in:{=char*=};
-	output out:{=char*=};
+	input in:string;
+	output out:string;
 	physical action interrupt;
 	logical action safe_to_process;
 	
@@ -45,7 +45,7 @@ reactor ROSSender(d:time(10 msec)) {
 		}	
 	=}
 	
-	input in:{=char*=};
+	input in:string;
 	
 	reaction(startup) {=
 		// start new thread to wait for ROS messages?
@@ -76,7 +76,7 @@ reactor DisarmAndOpen {
 	
 	physical action button;
 	logical action microstep;
-	output message:{=char*=};
+	output message:string;
 	
 	reaction(button) -> message, microstep {=
 		set(message, DISARM);

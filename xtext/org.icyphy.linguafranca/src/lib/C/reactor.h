@@ -160,6 +160,11 @@ typedef long long instant_t;
 /** Intervals of time. */
 typedef long long interval_t;
 
+/** String type so that we don't have use {= char* =}. */
+#ifndef string
+typedef char* string;
+#endif
+
 /** Topological order index for reactions. */
 typedef pqueue_pri_t index_t;
 

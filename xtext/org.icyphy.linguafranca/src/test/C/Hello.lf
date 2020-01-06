@@ -6,7 +6,7 @@
 target C( 
 	run = "bin/Hello -fast -timeout 10 sec"
 );
-reactor Reschedule(period:time(2 secs), message:{=char*=}("Hello C")) {
+reactor Reschedule(period:time(2 secs), message:string("Hello C")) {
 	state count:int(0);
 	state previous_time:time(0);
 	timer t(1 secs, period);
@@ -37,7 +37,7 @@ reactor Reschedule(period:time(2 secs), message:{=char*=}("Hello C")) {
 		}
 	=}
 } 
-reactor Inside(period:time(1 sec), message:{=char*=}("Composite default message.")) {
+reactor Inside(period:time(1 sec), message:string("Composite default message.")) {
 	third_instance = new Reschedule(period = period, message = message);
 }
 main reactor Hello { 
