@@ -51,6 +51,7 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.State
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
@@ -343,32 +344,12 @@ class CGenerator extends GeneratorBase {
         // Start with parameters.
         for (parameter : reactor.parameters) {
             prSourceLineNumber(parameter)
-            if (getParameterType(parameter).equals("")) {
-                reportError(parameter,
-                    "Parameter is required to have a type: " + parameter.name)
-            } else {
-                pr(body,
-                    getParameterType(parameter) + ' ' + parameter.name + ';');
-            }
+            pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
         }
         // Next handle states.
         for (state : reactor.states) {
             prSourceLineNumber(state)
-            
-            if (state.parameter !== null) {
-                pr(body,
-                removeCodeDelimiter(state.parameter.type) + ' ' + state.name + ';');
-            } else {
-                if (state.ofTimeType) {
-                    pr(body,
-                        timeTypeInTargetLanguage + ' ' + state.name + ';');
-                } else {
-                    pr(body,
-                        removeCodeDelimiter(state.type) + ' ' + state.name +
-                            ';');
-                }
-
-            }
+            pr(body, getStateType(state) + ' ' + state.name + ';');
         }
         // Next handle actions.
         for (action : reactor.actions) {
@@ -1913,8 +1894,50 @@ class CGenerator extends GeneratorBase {
      *  @return The C type.
      */
     private def getParameterType(Parameter parameter) {
+        if (parameter.ofTimeType) {
+            return timeTypeInTargetLanguage
+        }
+        if (parameter.type === null || parameter.type.equals("")) {
+            reportError(parameter,
+                "Parameter is required to have a type: " + parameter.name)
+            return "(ERROR: NO TYPE)"
+        }
         var type = removeCodeDelimiter(parameter.type)
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
+            type = 'interval_t'
+        } else {
+            val matcher = arrayPatternVariable.matcher(type)
+            if (matcher.find()) {
+                return matcher.group(1) + '*'
+            }
+        }
+        type
+    }
+    
+    /** Return a C type for the type of the specified state variable.
+     *  If there are code delimiters around it, those are removed.
+     *  If the type is "time", then it is converted to "interval_t".
+     *  If the type is of the form "type[]", then this is converted
+     *  to "type*".
+     *  @param state The state variable.
+     *  @return The C type.
+     */
+    private def getStateType(State state) {
+        // A state variable may directly refer to its initializing parameter,
+        // in which case, it inherits the type from the parameter.
+        if (state.parameter !== null) {
+            return removeCodeDelimiter(state.parameter.type)
+        }
+        if (state.ofTimeType) {
+            return timeTypeInTargetLanguage
+        }
+        if (state.type === null || state.type.equals("")) {
+            reportError(state,
+                "State is required to have a type: " + state.name)
+            return "(ERROR: NO TYPE)"
+        }
+        var type = removeCodeDelimiter(state.type)
+        if (state.unit != TimeUnit.NONE || state.isOfTimeType) {
             type = 'interval_t'
         } else {
             val matcher = arrayPatternVariable.matcher(type)
