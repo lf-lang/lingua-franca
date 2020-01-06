@@ -9,7 +9,7 @@ target C(
 );
 reactor Reschedule(period:time(2 secs), message:{=char*=}("Hello C")) {
 	state count:int(0);
-	state previous_time:{=long long=}(0);
+	state previous_time:time(0);
 	timer t(1 secs, period);
 	logical action a;
 	reaction(t) -> a {=
