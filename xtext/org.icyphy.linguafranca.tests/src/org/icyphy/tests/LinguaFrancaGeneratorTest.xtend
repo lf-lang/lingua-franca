@@ -26,13 +26,31 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.tests
 
+import com.google.inject.Inject
+import com.google.inject.Provider
 import java.io.BufferedReader
+import java.io.File
+import java.io.FileReader
+import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.LinkedList
+import java.util.regex.Pattern
+import org.eclipse.emf.common.util.URI
+import org.eclipse.emf.ecore.resource.ResourceSet
+import org.eclipse.xtext.generator.GeneratorContext
+import org.eclipse.xtext.generator.JavaIoFileSystemAccess
 import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.XtextRunner
 import org.eclipse.xtext.testing.extensions.InjectionExtension
+import org.eclipse.xtext.testing.util.ParseHelper
+import org.eclipse.xtext.util.CancelIndicator
+import org.eclipse.xtext.validation.CheckMode
+import org.eclipse.xtext.validation.IResourceValidator
+import org.icyphy.generator.LinguaFrancaGenerator
+import org.icyphy.linguaFranca.Model
+import org.junit.Test
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.^extension.ExtendWith
 import org.junit.runner.RunWith
 
@@ -41,10 +59,6 @@ import org.junit.runner.RunWith
 @InjectWith(LinguaFrancaInjectorProvider)
 class LinguaFrancaGeneratorTest {
 
-/* NOTE: We are no longer using junit to run regression tests.
- * These are run by the run-lf-tests script.
- * The code below used to run the tests as a single junit test,
- * but this code no longer compiles.    
 	@Inject
 	ParseHelper<Model> parseHelper
 	
@@ -81,7 +95,7 @@ class LinguaFrancaGeneratorTest {
 		Assertions.assertTrue(errors.isEmpty, message)
 		println('''SUCCESS. Number of compile and run tests: «testCount»''')
 	}
- */
+ 
 	
 	/** Compile the specified test file for the specified target
 	 *  and append any encountered errors to the specified list of errors.
@@ -90,10 +104,7 @@ class LinguaFrancaGeneratorTest {
 	 *  @param directory The directory into which to write temporary files.
 	 *  @param errors A list to which to append errors.
 	 */
-/* NOTE: We are no longer using junit to run regression tests.
- * These are run by the run-lf-tests script.
- * The code below used to run the tests as a single junit test,
- * but this code no longer compiles.    
+
 	private def compileAndRun(
 		String target, String file, LinkedList<String> errors
 	) {        
@@ -247,7 +258,7 @@ class LinguaFrancaGeneratorTest {
                 + "Exception:\n" + ex)
         }
    	}
- */
+ 
 
 	/** Read the specified input stream until an end of file is encountered
 	 *  and return the result as a StringBuilder.
