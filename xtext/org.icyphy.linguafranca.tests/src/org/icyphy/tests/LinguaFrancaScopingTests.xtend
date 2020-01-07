@@ -64,7 +64,8 @@ class LinguaFrancaScopingTests {
     
     
     /**
-     * Ensure that invalid references to ports of contained reactors are reported.
+     * Ensure that invalid references to ports
+     * of contained reactors are reported.
      */
     @Test
     def void unresolvedHierarchicalPortReference() {
