@@ -23,7 +23,7 @@ reactor DelayInt(delay:time(100 msec)) {
 }
 reactor Test {
     input in:int;
-    state start_time:instant_t(0);
+    state start_time:time(0);
     timer start;
     reaction(start) {=
         // Record the logical time at the start.
