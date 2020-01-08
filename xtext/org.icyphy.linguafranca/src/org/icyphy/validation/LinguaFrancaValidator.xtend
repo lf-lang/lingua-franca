@@ -23,11 +23,8 @@ import org.icyphy.linguaFranca.Timer
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     public static val KNOWN_TARGETS = #{
-        'Accessor',
-        'Accessors', 
         'C', 
         'Cpp',
-        'SCL',
         'TypeScript'
     }
     public static val TARGET_PARAMETERS = #{
@@ -48,6 +45,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var containedNames = newHashSet() // Names of contained reactor instances.
 
     var target = "";
+    
     // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
     // FAST ensures that these checks run whenever a file is modified.
