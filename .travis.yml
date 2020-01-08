@@ -21,6 +21,9 @@ before_install:
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
- - bin/run-lf-tests TS
+ - pushd xtext
+ - ./gradlew test
+ - popd
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp
+ - bin/run-lf-tests TS
