@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #==========================================================
-# Description: 	Run the lfc compiler.
+# Description: 		Run the lfc compiler.
 # Authors:		Marten Lohstroh, Mehrdad Niknami
 # Usage:		lfc [FILE]
 #==========================================================
@@ -34,4 +34,6 @@ fi
 
 if [ 0 -lt "$#" ]; then
 	java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "$@"
+else
+	echo "lfc: fatal error: no input file"
 fi

@@ -29,7 +29,7 @@ else
 		echo "File not found: ""$manifest";
 	else
 		pushd $test_dir;
-        eval $offset"bin/lfc"; # trigger fresh build if necessary
+        	eval $offset"bin/lfc"; # trigger fresh build if necessary
 		while read p; do
 			if [[ "$p" =~ ^[[:space:]]*#.* ]]; then
     			#echo "Ignoring commented out test: $p";
