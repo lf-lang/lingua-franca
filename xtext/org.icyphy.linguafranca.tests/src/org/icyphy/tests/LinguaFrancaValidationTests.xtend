@@ -5,19 +5,15 @@ package org.icyphy.tests
 
 import com.google.inject.Inject
 import org.eclipse.xtext.testing.InjectWith
-import org.eclipse.xtext.testing.XtextRunner
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.icyphy.linguaFranca.Model
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.^extension.ExtendWith
-import org.junit.runner.RunWith
 import org.eclipse.xtext.testing.validation.ValidationTestHelper
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 
-@RunWith(XtextRunner)
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
 class LinguaFrancaValidationTests {
@@ -37,7 +33,7 @@ class LinguaFrancaValidationTests {
             }
         '''.parse
         
-        Assert.assertNotNull(model)
+        Assertions.assertNotNull(model)
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
@@ -57,7 +53,7 @@ class LinguaFrancaValidationTests {
             }
         '''.parse
         
-        Assert.assertNotNull(model)
+        Assertions.assertNotNull(model)
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
