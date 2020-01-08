@@ -57,16 +57,11 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 		for (target : resource.allContents.toIterable.filter(Target)) {
 		    var generator = null as GeneratorBase;
 			// FIXME: Use reflection here?
-			if (target.name.equalsIgnoreCase("Accessor")
-					|| target.name.equalsIgnoreCase("Accessors")) {
-				generator = new AccessorGenerator()
-			} else if (target.name.equalsIgnoreCase("C")) {
+			if (target.name.equalsIgnoreCase("C")) {
 				generator = new CGenerator()
 			} else if (target.name.equalsIgnoreCase("Cpp")) {
 				generator = new CppGenerator()
-			} else if (target.name.equalsIgnoreCase("SCL")) {
-				generator = new SCLGenerator()
-            } else if (target.name.equalsIgnoreCase("TypeScript")) {
+			} else if (target.name.equalsIgnoreCase("TypeScript")) {
                 generator = new TypeScriptGenerator()
 			} else {
                 System.err.println("Warning: No recognized target.")

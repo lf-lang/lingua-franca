@@ -41,7 +41,6 @@ class LinguaFrancaValidationTests {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        System.out.println(model.eResource.errors)
         model.assertError(LinguaFrancaPackage::eINSTANCE.action,
             null, // FIXME: Maybe report something descriptive here?
             'Names of parameters, inputs, timers, and actions must be unique: bar')
@@ -62,7 +61,6 @@ class LinguaFrancaValidationTests {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        System.out.println(model.eResource.errors)
         model.assertError(LinguaFrancaPackage::eINSTANCE.reactor,
             null,
             "Main reactor cannot be named 'Main'")
