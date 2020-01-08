@@ -22,7 +22,7 @@ import org.eclipse.xtext.linking.impl.XtextLinkingDiagnostic
  * Test harness for ensuring that cross-references are 
  * established correctly and reported when faulty.
  */
-class LinguaFrancaScopingTests {
+class LinguaFrancaScopingTest {
     @Inject extension ParseHelper<Model>
     @Inject extension ValidationTestHelper
     

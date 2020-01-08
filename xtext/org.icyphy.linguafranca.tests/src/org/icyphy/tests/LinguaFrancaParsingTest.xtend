@@ -16,7 +16,7 @@ import org.junit.jupiter.api.^extension.ExtendWith
  * Test harness for ensuring that grammar captures
  * all corner cases.
  */
-class LinguaFrancaParsingTests {
+class LinguaFrancaParsingTest {
     @Inject extension ParseHelper<Model>
 
     @Test
