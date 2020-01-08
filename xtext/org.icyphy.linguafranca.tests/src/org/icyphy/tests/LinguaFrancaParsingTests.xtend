@@ -17,16 +17,15 @@ import org.junit.jupiter.api.^extension.ExtendWith
  * all corner cases.
  */
 class LinguaFrancaParsingTests {
-    @Inject
-    ParseHelper<Model> parseHelper
+    @Inject extension ParseHelper<Model>
 
     @Test
     def void checkForTarget() {
-        val result = parseHelper.parse('''
+        val result = '''
             targett C;
             reactor Foo {
             }
-        ''')
+        '''.parse
         Assertions.assertNotNull(result)
         val errors = result.eResource.errors
         Assertions.assertFalse(errors.isEmpty, "Failed to catch misspelled target keyword.")
