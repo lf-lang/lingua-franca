@@ -33,5 +33,5 @@ if [ ! -f "${jarpath}" ] || ! "${FIND}" "${lfbase}src" -path "${lfbase}src/test"
 fi
 
 if [ 0 -lt "$#" ]; then
-	java -jar "${jarpath}" "$@"
+	java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "$@"
 fi
