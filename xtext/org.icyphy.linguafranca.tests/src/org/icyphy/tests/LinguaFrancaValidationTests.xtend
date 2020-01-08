@@ -46,4 +46,25 @@ class LinguaFrancaValidationTests {
             null, // FIXME: Maybe report something descriptive here?
             'Names of parameters, inputs, timers, and actions must be unique: bar')
     }
+    
+    /**
+     * Ensure that duplicate identifiers for actions reported.
+     */
+    @Test
+    def void disallowCppMainCalledMain() {
+        val model = '''
+            target Cpp;
+            main reactor Main {
+            }
+        '''.parse
+        
+        Assert.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        System.out.println(model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor,
+            null,
+            "Main reactor cannot be named 'Main'")
+    }
 }

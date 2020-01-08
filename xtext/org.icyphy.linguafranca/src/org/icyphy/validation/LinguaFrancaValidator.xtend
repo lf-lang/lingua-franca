@@ -47,6 +47,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var allNames = newHashSet()
     var containedNames = newHashSet() // Names of contained reactor instances.
 
+    var target = "";
     // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
     // FAST ensures that these checks run whenever a file is modified.
@@ -166,6 +167,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (!KNOWN_TARGETS.contains(target.name)) {
             warning("Unrecognized target: " + target.name,
                 Literals.TARGET__NAME)
+        } else {
+            this.target = target.name;
         }
         if (target.properties !== null) {
             for (property : target.properties) {
@@ -234,10 +237,16 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (reactorClasses.contains(reactor.name)) {
             error(
                 "Names of reactor classes must be unique: " + reactor.name,
-                Literals.REACTOR__MAIN
+                Literals.REACTOR__NAME
             )
         }
         reactorClasses.add(reactor.name);
+        if (this.target.equals('Cpp') && reactor.isMain && reactor.name.equalsIgnoreCase("main")) {
+            error(
+                "Main reactor cannot be named '" + reactor.name + "'",
+                Literals.REACTOR__NAME
+            )
+        }
     }
 
 }
