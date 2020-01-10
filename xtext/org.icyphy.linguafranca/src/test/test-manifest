@@ -38,6 +38,7 @@ Schedule.lf
 SendingInside.lf
 SendingInside2.lf
 SendingInsideThreaded.lf
+SendsPointerTest.lf
 SimpleDeadline.lf
 SimpleImport.lf
 #SlowingClock.lf

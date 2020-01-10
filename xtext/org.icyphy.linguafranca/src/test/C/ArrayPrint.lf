@@ -5,12 +5,12 @@ reactor Source {
     output out:int[];
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
-        int* out_value = set_new_array(out, 3);
+        set_new_array(out, 3);
         
-        // Above returns the array, which then must be populated.
-        out_value[0] = 0;
-        out_value[1] = 1;
-        out_value[2] = 2;
+        // Above allocates the array, which then must be populated.
+        out[0] = 0;
+        out[1] = 1;
+        out[2] = 2;
     =}
 }
 // The scale parameter is just for testing.

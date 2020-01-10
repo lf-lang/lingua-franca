@@ -441,74 +441,75 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        // Next, handle reactions that produce outputs sent to inputs
-        // of contained reactions.
+        // If there are contained reactors that either receive inputs
+        // from reactions of this reactor or produce outputs that trigger
+        // reactions of this reactor, then we need to create a struct
+        // inside the self struct for each contained reactor. That
+        // struct has a place to hold the data produced by this reactor's
+        // reactions and a place to put pointers to data produced by
+        // the contained reactors.
+        // The contents of the struct will be collected first so that
+        // we avoid duplicate entries and then the struct will be constructed.
+        val structs = new HashMap<Instantiation,HashSet<Variable>>
+        
         for (reaction : reactor.reactions) {
-            if (reaction.effects !== null) {
-                for (effect : reaction.effects) {
-                    if (effect.variable instanceof Input) {
-                        val port = effect.variable as Input
-                        pr(
-                            body,
-                            lfTypeToTokenType(port.type) + ' __' +
-                                effect.container.name + '_' + port.name + ';'
-                        )
-                        pr(
-                            body,
-                            'bool __' + effect.container.name + '_' +
-                                port.name + '_is_present;'
-                        )
+            // First, handle reactions that produce outputs sent to inputs
+            // of contained reactors.
+            for (effect : reaction.effects ?: emptyList) {
+                if (effect.variable instanceof Input) {
+                    var struct = structs.get(effect.container)
+                    if (struct === null) {
+                        struct = new HashSet<Variable>
+                        structs.put(effect.container, struct)
                     }
+                    struct.add(effect.variable)
+                }
+            }            
+            // Second, handle reactions that are triggered by outputs
+            // of contained reactors.
+            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
+                if (trigger instanceof VarRef) {
+                    if (trigger.variable instanceof Output) {
+                        var struct = structs.get(trigger.container)
+                        if (struct === null) {
+                            struct = new HashSet<Variable>
+                            structs.put(trigger.container, struct)
+                        }
+                        struct.add(trigger.variable)
+                    }
+                }
+            }
+            // Third, handle reading (but not triggered by)
+            // outputs of contained reactors.
+            for (source : reaction.sources ?: emptyList) {
+                if (source.variable instanceof Output) {
+                    var struct = structs.get(source.container)
+                    if (struct === null) {
+                        struct = new HashSet<Variable>
+                        structs.put(source.container, struct)
+                    }
+                    struct.add(source.variable)
                 }
             }
         }
-        // Finally, handle reactions that are triggered by outputs
-        // of contained reactors. Have to be careful to not duplicate
-        // the struct entries if multiple reactions refer to the same
-        // contained output.
-        var included = new HashSet<Output>
-        for (reaction : reactor.reactions) {
-            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-                if (trigger instanceof VarRef) {
-                    if (trigger.variable instanceof Output &&
-                        !included.contains(trigger.variable)) {
-                        // Reaction is triggered by an output of a contained reactor.
-                        val port = trigger.variable as Output
-                        val portType = lfTypeToTokenType(port.type)
-                        included.add(port)
-                        pr(
-                            body,
-                            portType + '* __' +
-                                trigger.container.name + '_' + port.name + ';'
-                        )
-                        pr(
-                            body,
-                            'bool* __' + trigger.container.name + '_' +
-                                port.name + '_is_present;'
-                        )
-                    }
+        for (containedReactor : structs.keySet) {
+            pr(body, "struct {")
+            indent(body)
+            for (variable : structs.get(containedReactor)) {
+                if (variable instanceof Input) {
+                    val port = variable as Input
+                    pr(body, lfTypeToTokenType(port.type) + ' ' + port.name + ';')
+                    pr(body, 'bool ' + port.name + '_is_present;')
+                } else {
+                    // Must be an output entry.
+                    val port = variable as Output
+                    // Outputs are pointers to the source of data.
+                    pr(body, lfTypeToTokenType(port.type) + '* ' + port.name + ';')
+                    pr(body, 'bool* ' + port.name + '_is_present;')
                 }
             }
-            // Handle reading (but not triggered by) outputs of contained reactors.
-            for (source : reaction.sources ?: emptyList) {
-                if (source.variable instanceof Output &&
-                    !included.contains(source.variable)) {
-                    // Reaction reads an output of a contained reactor.
-                    val port = source.variable as Output
-                    val portType = lfTypeToTokenType(port.type)
-                    included.add(port)
-                    pr(
-                        body,
-                        portType + '* __' +
-                            source.container.name + '_' + port.name + ';'
-                    )
-                    pr(
-                        body,
-                        'bool* __' + source.container.name + '_' + port.name +
-                            '_is_present;'
-                    )
-                }
-            }
+            unindent(body)
+            pr(body, "} __" + containedReactor.name + ';')
         }
 
         if (body.length > 0) {
@@ -747,7 +748,7 @@ class CGenerator extends GeneratorBase {
                     // an output is produced.
                     presentPredicates.add(
                         '&' + selfStructName(reactorInstance) + '.__' +
-                            port.parent.name + '_' + port.name + '_is_present')
+                            port.parent.name + '.' + port.name + '_is_present')
 
                     // Since the port is the input port of a contained reactor,
                     // use that reactor instance to compute the transitive closure.
@@ -1627,7 +1628,7 @@ class CGenerator extends GeneratorBase {
                 // If .parent.parent is null, then the source is an input port belonging
                 // the top-level reactor, in which case, it cannot receive any inputs
                 // and there is nothing to do.
-                // FIXME: If the source is an input, we want to use just parent!
+                // NOTE: If the source is an input, we want to use just parent!
                 val destinations = if (source.isInput) {
                         source.parent.destinations.get(source)
                     } else if (source.parent.parent !== null) {
@@ -1690,19 +1691,19 @@ class CGenerator extends GeneratorBase {
                     pr(
                         inputSelfStructName + '.__' + port.definition.name +
                             ' = &' + containerSelfStructName + '.__' +
-                            port.parent.definition.name + '_' +
+                            port.parent.definition.name + '.' +
                             port.definition.name + ';'
                     )
                     pr(
                         inputSelfStructName + '.__' + port.definition.name +
                             '_is_present = &' + containerSelfStructName +
-                            '.__' + port.parent.definition.name + '_' +
+                            '.__' + port.parent.definition.name + '.' +
                             port.definition.name + '_is_present;'
                     )
                     pr(
                         startTimeStep,
                         containerSelfStructName + '.__' +
-                            port.parent.definition.name + '_' +
+                            port.parent.definition.name + '.' +
                             port.definition.name + '_is_present = false;'
                     )
                 }
@@ -1714,14 +1715,14 @@ class CGenerator extends GeneratorBase {
                     var outputSelfStructName = selfStructName(port.parent)
                     pr(
                         containerSelfStructName + '.__' +
-                            port.parent.definition.name + '_' +
+                            port.parent.definition.name + '.' +
                             port.definition.name + ' = &' +
                             outputSelfStructName + '.__' +
                             port.definition.name + ';'
                     )
                     pr(
                         containerSelfStructName + '.__' +
-                            port.parent.definition.name + '_' +
+                            port.parent.definition.name + '.' +
                             port.definition.name + '_is_present' + ' = &' +
                             outputSelfStructName + '.__' +
                             port.definition.name + '_is_present;'
@@ -1808,12 +1809,12 @@ class CGenerator extends GeneratorBase {
             pr(
                 builder,
                 reactorName + '.' + portName + ' = *(self->__' + reactorName +
-                    '_' + portName + ');'
+                    '.' + portName + ');'
             )
             pr(
                 builder,
                 reactorName + '.' + portName + '_is_present' + ' = *(self->__' +
-                    reactorName + '_' + portName + '_is_present);'
+                    reactorName + '.' + portName + '_is_present);'
             )
         }
     }
@@ -1833,15 +1834,26 @@ class CGenerator extends GeneratorBase {
                 "Output is required to have a type: " + output.name)
         } else {
             val outputType = lfTypeToTokenType(output.type)
-            // If the output type has the form type[number], handle it specially.
-            // In both cases, slightly obfuscate the name to help prevent accidental use.
+            // Define a variable of type 'type*' with name matching the output name.
+            // If the output type has the form type[number],
+            // then the variable is set equal to the pointer in the self struct
+            // to the output value. Otherwise, if the output type has the form
+            // type[], or type*, the variable is set to NULL.
+            // Otherwise, it is set to the _address_ of the
+            // entry in the self struct corresponding to the output.  
             val matcher = arrayPatternFixed.matcher(outputType)
             if (matcher.find()) {
                 pr(
                     builder,
-                    matcher.group(1) + '* ' + output.name +
+                    rootType(output.type) + '* ' + output.name +
                         ' = self->__' + output.name + ';'
                 )
+            } else if (isTokenType(output.type)) {
+                pr(
+                    builder,
+                    rootType(output.type) + '* ' + output.name + ' = NULL;'
+                )
+            
             } else {
                 pr(
                     builder,
@@ -1849,11 +1861,6 @@ class CGenerator extends GeneratorBase {
                         ' = &(self->__' + output.name + ');'
                 )
             }
-            pr(
-                builder,
-                'bool* ' + output.name + '_is_present = &(self->__' + output.name +
-                    '_is_present);'
-            )
         }
     }
 
@@ -1867,22 +1874,21 @@ class CGenerator extends GeneratorBase {
     private def generateVariablesForSendingToContainedReactors(
         StringBuilder builder, Instantiation definition, Input input) {
         // Need to create a struct so that the port can be referenced in C code
-        // as reactorName.portName.
+        // as reactorName.portName. Do not need the _is_present variable because
+        // it is not used by the macros.
         // FIXME: This means that the destination instance name cannot match
         // any input port, output port, or action, because we will get a name collision.
+        // It seems that LF should require that all contained objects have distinct names.
+        // FIXME: This will not work if reaction writes to more than one input
+        // of a contained reactor. Need to collect reactions.
         pr(
             builder,
             'struct ' + definition.name + ' {' +
-                lfTypeToTokenType(input.type) + '* ' + input.name + '; ' +
-                'bool* ' + input.name + '_is_present;} ' + definition.name + ';'
+                lfTypeToTokenType(input.type) + '* ' + input.name + ';} ' + definition.name + ';'
         )
         pr(builder,
             definition.name + '.' + input.name + ' = &(self->__' +
-                definition.name + '_' + input.name + ');')
-        pr(builder,
-            definition.name + '.' + input.name + '_is_present' +
-                ' = &(self->__' + definition.name + '_' + input.name +
-                '_is_present);')
+                definition.name + '.' + input.name + ');')
     }
 
     /** Return a C type for the type of the specified parameter.
@@ -1955,7 +1961,8 @@ class CGenerator extends GeneratorBase {
      *  @param type The type specification.
      */
     private def isTokenType(String type) {
-        if(type.endsWith('[]') || type.endsWith('*')) {
+        // FIXME: Ignore white space in [ ].
+        if(type.trim.endsWith('[]') || type.trim.endsWith('*')) {
             true
         } else {
             false
@@ -1970,11 +1977,11 @@ class CGenerator extends GeneratorBase {
     private def rootType(String type) {
         if(type.endsWith(']')) {
             val root = type.indexOf('[')
-            type.substring(0, root)
+            type.substring(0, root).trim
         } else if (type.endsWith('*')) {
-            type.substring(0, type.length - 1)
+            type.substring(0, type.length - 1).trim
         } else {
-            removeCodeDelimiter(type)
+            removeCodeDelimiter(type).trim
         }
     }
 
