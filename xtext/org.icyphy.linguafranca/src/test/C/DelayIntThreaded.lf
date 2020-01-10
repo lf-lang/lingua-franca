@@ -46,11 +46,10 @@ reactor Test {
     =}
 }
 main reactor DelayIntThreaded {
-    timer t;
     d = new DelayInt();
     t = new Test();
     d.out -> t.in;
-    reaction(t) -> d.in{=
+    reaction(startup) -> d.in {=
         set(d.in, 42);
     =}
 }

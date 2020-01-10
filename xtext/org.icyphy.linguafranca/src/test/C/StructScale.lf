@@ -15,7 +15,7 @@ reactor Scale(scale:int(2)) {
         set_token(out, in);
     =}
 }
-main reactor ArrayScale {
+main reactor StructScale {
     s = new Source();
     c = new Scale();
     p = new Print(expected=84);

@@ -11,11 +11,11 @@ reactor Source {
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
-        hello_t* out_value = set_new(out);
+        set_new(out);
         
-        // Above returns a pointer to the struct, which then must be populated.
-        out_value->name = "Earth";
-        out_value->value = 42;
+        // Above allocates a struct, which then must be populated.
+        out->name = "Earth";
+        out->value = 42;
     =}
 }
 // expected parameter is for testing.
