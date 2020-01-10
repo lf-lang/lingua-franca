@@ -1,14 +1,14 @@
 target TypeScript;
 reactor Printer {
     input x:number;
-    reaction(x) {=
-        console.log("Inside reactor received:" + (this.state as any).x.get() );
+    reaction(x) x {=
+        console.log("Inside reactor received:" + x.get() );
     =}
 }
 main reactor SendingInside2 {
     timer t;
     p = new Printer();
     reaction(t) -> p.x {=
-        (this.state as any).p.x.set(1);
+        p.x.set(1);
     =}
 }

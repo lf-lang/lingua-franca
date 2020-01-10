@@ -46,6 +46,12 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Port
+import java.util.StringJoiner
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -78,27 +84,30 @@ class TypeScriptGenerator extends GeneratorBase {
             generateReactorInstance(this.main)
             generateRuntimeStart(this.main)
         }
-
+        
         // Target filename.
         val tsFilename = filename + ".ts";
-
-        var srcGenPath = directory + File.separator + "src-gen"
-        var outPath = directory + File.separator + "js"
-
+        val jsFilename = filename + ".js";
+        val projectPath = directory + File.separator + filename
+        var srcGenPath = projectPath + File.separator + "src-gen"
+        var outPath = projectPath + File.separator + "js"
+        
         // Create output directories if they don't yet exist
-        var dir = new File(srcGenPath)
+        var dir = new File(projectPath)
+        if (!dir.exists()) dir.mkdirs()
+        dir = new File(srcGenPath)
         if (!dir.exists()) dir.mkdirs()
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
 
-        // Delete source previous output the LF compiler
+        // Delete source previously output the LF compiler
         var file = new File(srcGenPath + File.separator + tsFilename)
         if (file.exists) {
             file.delete
         }
 
         // Delete .js previously output by TypeScript compiler
-        file = new File(outPath + File.separator + filename)
+        file = new File(outPath + File.separator + jsFilename)
         if (file.exists) {
             file.delete
         }
@@ -122,15 +131,11 @@ class TypeScriptGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + "util.ts"));
         fOut.write(readFileInClasspath("/lib/TS/util.ts").getBytes())
 
-        // If package.json file doesn't already exist for the project,
-        // create one by copying over the default. We don't want to
-        // overwrite a package.json with additional dependencies. 
-        var File testFile = new File(directory + File.separator + "package.json");
-        if(!testFile.exists()){
-            fOut = new FileOutputStream(
-                new File(directory + File.separator + "package.json"));
-            fOut.write(readFileInClasspath("/lib/TS/package.json").getBytes())      
-        }
+        // Copy default versions of config files into project if
+        // they don't exist.
+        createDefaultConfigFile(projectPath, "package.json")
+        createDefaultConfigFile(projectPath, "tsconfig.json")
+        createDefaultConfigFile(projectPath, "babel.config.js")
         
         // FIXME: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
         // the complete PATH variable needed to find the command npm. I had
@@ -138,12 +143,12 @@ class TypeScriptGenerator extends GeneratorBase {
         // variables to run this command.
         
         // Install npm modules.
-        println("In directory: " + directory)
+        println("In directory: " + projectPath)
         println("Running npm install ...")
         var installCmd = newArrayList();
         installCmd.addAll("npm", "install")
         var installBuilder = new ProcessBuilder(installCmd)
-        installBuilder.directory(new File(directory))
+        installBuilder.directory(new File(projectPath))
         var Process installProcess = installBuilder.start()
         
         // Sleep until the modules have installed
@@ -152,44 +157,102 @@ class TypeScriptGenerator extends GeneratorBase {
         refreshProject()
 
         // Invoke the compiler on the generated code.
-        val relativeSrcFilename = "src-gen" + File.separator + tsFilename;
-        val relativeTSFilename = "ts" + File.separator + filename + '.js';
+//        val relativeSrcFilename = "src-gen" + File.separator + tsFilename;
+//        val relativeTSFilename = "ts" + File.separator + filename + '.js';
+        
         // FIXME: Perhaps add a compileCommand option to the target directive, as in C.
         // Here, we just use a generic compile command.
-        var compileCommand = newArrayList()
+        var typeCheckCommand = newArrayList()
          
-        // FIXME: It is probably better
-        // to directly expose a tsconfig.json to the programmer so they can choose how their
-        // reactors are generated.
 
         // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
         // Must compile to ES2015 or later and include the dom library.
-        var tscPath = directory + File.separator + "node_modules/typescript/bin/tsc"
-        compileCommand.addAll(tscPath,  relativeSrcFilename, 
-            "--outDir", "js", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
-             "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
-             "--strictNullChecks", "true");
+        var tscPath = projectPath + File.separator + "node_modules/typescript/bin/tsc"
+
+
+//        Working command without a tsconfig.json
+//        compileCommand.addAll(tscPath,  relativeSrcFilename, 
+//            "--outDir", "js", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
+//             "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
+//             "--strictNullChecks", "true");
+
+
+        // If $tsc is run with no arguments, it uses the tsconfig file.
+        typeCheckCommand.addAll(tscPath)
         
-        println("Compiling with command: " + compileCommand.join(" "))
-        var builder = new ProcessBuilder(compileCommand);
-        builder.directory(new File(directory));
+        println("Type checking with command: " + typeCheckCommand.join(" "))
+        var builder = new ProcessBuilder(typeCheckCommand);
+        builder.directory(new File(projectPath));
         var process = builder.start()
-        val code = process.waitFor()
+        var code = process.waitFor()
         var stdout = readStream(process.getInputStream())
         var stderr = readStream(process.getErrorStream())
         if (stdout.length() > 0) {
-            println("--- Standard output from TypeScript compiler:")
+            println("--- Standard output from TypeScript type checker:")
             println(stdout)
         }
         if (code !== 0) {
-            reportError("Compiler returns error code " + code)
+            reportError("Type checker returns error code " + code)
         }
         if (stderr.length() > 0) {
-            reportError("Compiler reports errors:\n" + stderr.toString)
-        } else {
-            println("SUCCESS (compiling generated TypeScript code to JavaScript)")
+            reportError("Type checker reports errors:\n" + stderr.toString)
         }
+        
+        // Babel will compile TypeScript to JS even if there are type errors
+        // so only run compilation if tsc found no problems.
+        if (code === 0){
+            var babelPath = projectPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
+            // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
+            var compileCommand = newArrayList(babelPath, "src-gen",
+                "--out-dir", "js", "--extensions", ".ts")
+            println("Compiling with command: " + compileCommand.join(" "))
+            builder = new ProcessBuilder(compileCommand);
+            builder.directory(new File(projectPath));
+            process = builder.start()
+            code = process.waitFor()
+            stdout = readStream(process.getInputStream())
+            stderr = readStream(process.getErrorStream())
+            if (stdout.length() > 0) {
+                println("--- Standard output from Babel compiler:")
+                println(stdout)
+            }
+            if (code !== 0) {
+                reportError("Compiler returns error code " + code)
+            }
+            if (stderr.length() > 0) {
+                reportError("Compiler reports errors:\n" + stderr.toString)
+            } else {
+                println("SUCCESS (compiling generated TypeScript code)")
+            }
+        }
+       
+        
+        
+        
+//        println("Compiling with command: " + compileCommand.join(" "))
+//        var builder = new ProcessBuilder(compileCommand);
+//        builder.directory(new File(projectPath));
+//        var process = builder.start()
+//        val code = process.waitFor()
+//        var stdout = readStream(process.getInputStream())
+//        var stderr = readStream(process.getErrorStream())
+//        if (stdout.length() > 0) {
+//            println("--- Standard output from TypeScript type checker:")
+//            println(stdout)
+//        }
+//        if (code !== 0) {
+//            reportError("Compiler returns error code " + code)
+//        }
+//        if (stderr.length() > 0) {
+//            reportError("Compiler reports errors:\n" + stderr.toString)
+//        } else {
+//            println("SUCCESS (type checking generated TypeScript code)")
+//        }
+//        
+//        
+//        println("SUCCESS (compiling generated TypeScript code to JavaScript)")
     }
+    
 
     // //////////////////////////////////////////
     // // Code generators.
@@ -210,9 +273,9 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         if(reactor.isMain()){
-            pr("class " + reactor.name + "_c" + " extends App {")
+            pr("export class " + reactor.name + " extends App {")
         } else {
-            pr("class " + reactor.name + "_c" + " extends Reactor {")
+            pr("export class " + reactor.name + " extends Reactor {")
         }
         
         indent()
@@ -220,37 +283,36 @@ class TypeScriptGenerator extends GeneratorBase {
         // Perhaps leverage TypeScript's mechanism for default
         // parameter values? For now it's simpler to just create
         // the reactor instance with the default argument value.
-        var arguments = "";  
+        var arguments = new StringJoiner(", ")
         for (parameter : reactor.parameters) {
             if (getParameterType(parameter).equals("")) {
                 reportError(parameter,
                     "Parameter is required to have a type: " + parameter.name)
             } else {
-                arguments +=
-                    parameter.name + ": " + getParameterType(parameter) + ", ";
+                arguments.add(parameter.name + ": " + getParameterType(parameter) + ", ")
             }
         }
             
         // For TS, parameters are arguments of the class constructor.
         if (reactor.isMain()) {
             pr(reactorConstructor, "constructor(" + arguments 
-                + "timeout: TimeInterval | null, name?: string) {"
+                + "name: string, timeout: TimeInterval | null, success?: ()=> void, fail?: ()=>void) {"
             )
             reactorConstructor.indent()
-            pr(reactorConstructor, "super(timeout, name);");
+            pr(reactorConstructor, "super(timeout, success, fail);");
             
         } else {
             pr(reactorConstructor, "constructor(" + arguments 
-                + "parent:Reactor, name?: string) {"
+                + "parent:Reactor) {"
             )
            
             reactorConstructor.indent()
-            pr(reactorConstructor, "super(parent, name);");
+            pr(reactorConstructor, "super(parent);");
         }
         
         // Next handle child reactors instantiations
         for (childReactor : reactor.instantiations ) {
-            pr(childReactor.getName() + ": " + childReactor.reactorClass.name + "_c" )
+            pr(childReactor.getName() + ": " + childReactor.reactorClass.name )
             
             var childReactorArguments = new StringBuffer();
         
@@ -290,10 +352,10 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             
             // These arguments are always the last of a TypeScript reactor constructor
-            childReactorArguments.append("this, " +  "'" + reactor.name + "/" + childReactor.name + "'");
+            childReactorArguments.append("this");
             
             pr(reactorConstructor, "this." + childReactor.getName()
-                + " = new " + childReactor.reactorClass.name + "_c" + "("
+                + " = new " + childReactor.reactorClass.name + "("
                 + childReactorArguments.toString() + ")" )
         }
        
@@ -378,7 +440,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // by LF.
             if (action.name != "shutdown") {
                 pr(action.name + ": Action<" + action.type + ">;")
-                var actionArgs = "this, TimelineClass." + action.origin  
+                var actionArgs = "this, Origin." + action.origin  
                 if (action.delay !== null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
@@ -426,7 +488,7 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             rightPortName += connection.rightPort.variable.name 
             
-            pr(reactorConstructor, "this." + leftPortName + ".connect(this." + rightPortName + ");")
+            pr(reactorConstructor, "this._connect(this." + leftPortName + ", this." + rightPortName + ");")
         }
 
         // Find output ports that receive data from inside reactors
@@ -451,69 +513,138 @@ class TypeScriptGenerator extends GeneratorBase {
             }
         }
         
+        
         // Next handle reaction instances
-        var reactionArray = "this._reactions = [ "
-        var reactionIndex = 0;
         for (reaction : reactor.reactions) {
-            val reactionName = 'r' + reactionIndex;
-            val reactionClassName = reactor.name + "_" + reactionName;
-            pr(reactionName + ": " + reactionClassName + ";")
             
-            var reactionArguments = "this, [ ";
+            // Determine signature of the react function
+            var reactSignature = new StringJoiner(", ")
+            
+            
+            // Assemble react function arguments from sources and effects
+            // Arguments are either elements of this reactor, or an object
+            // representing a contained reactor with properties corresponding
+            // to listed sources and effects.
+            
+            // If a source or effect is an element of this reactor, add it
+            // directly to the reactFunctArgs string. If it isn't, write it 
+            // into the containerToArgs map, and add it to the string later.
+            var reactFunctArgs = new StringJoiner(", ")
+             
+            var containerToArgs = new HashMap<Instantiation, HashSet<Variable>>();
+            for (source : reaction.sources) {
+                if (source.container === null) {
+                    var reactSignatureElement = source.variable.name + ": Readable<"
+                    
+                    if (source.variable instanceof Timer){
+                        reactSignatureElement += "TimeInstant" 
+                    } else if (source.variable instanceof Action){
+                        reactSignatureElement += (source.variable as Action).type 
+                    } else if (source.variable instanceof Port){
+                        reactSignatureElement += (source.variable as Port).type 
+                    }
+                    reactSignatureElement += ">"
+                    reactSignature.add(reactSignatureElement)
+                    
+                    reactFunctArgs.add("this." + source.variable.name + ", ")
+                } else {
+                    var args = containerToArgs.get(source.container)
+                    if (args === null) {
+                       // Create the HashSet for the container
+                       args = new HashSet<Variable>();
+                       containerToArgs.put(source.container, args)
+                    }
+                    args.add(source.variable)
+//                    reactFunctArgs += "this." + source.container.name + "." + source.variable.name + ", "
+                }
+            }
+            for (effect : reaction.effects) {
+                var functArg = ""
+                if (effect.container === null) {
+                    var reactSignatureElement = effect.variable.name
+                    if (effect.variable instanceof Timer){
+                        reportError("A timer cannot be an effect of a reaction")
+                    } else if (effect.variable instanceof Action){
+                        reactSignatureElement += ": Schedulable<" + (effect.variable as Action).type
+                    } else if (effect.variable instanceof Port){
+                        reactSignatureElement += ": Writable<" + (effect.variable as Port).type
+                    }
+                    reactSignatureElement += ">"
+                    reactSignature.add(reactSignatureElement)
+                    
+                    functArg = "this." + effect.variable.name 
+                    if( effect.variable instanceof Action ){
+                        reactFunctArgs.add("this.getSchedulable(" + functArg + ")")
+                    } else if (effect.variable instanceof Port) {
+                        reactFunctArgs.add("this.getWritable(" + functArg + ")")
+                    }  
+                } else {
+                    var args = containerToArgs.get(effect.container)
+                    if (args === null) {
+                       // Create the HashSet for the container
+                       args = new HashSet<Variable>();
+                       containerToArgs.put(effect.container, args)
+                    }
+                    args.add(effect.variable)
+//                    functArg = "this." + effect.container.name + "." + effect.variable.name + ", "
+                }
+            }
+            
+            // Write an object as an argument for each container
+            var containers = containerToArgs.keySet()
+            for (container : containers) {
+                var reactFunctArgsElement = "{ "
+                var reactSignatureElement = container.name + ": { " 
+                var containedVariables = containerToArgs.get(container)
+                for (containedVariable : containedVariables) {
+                    var functArg = "this." + container.name + "." + containedVariable.name
+                     
+                    if (containedVariable instanceof Input) {
+                        reactSignatureElement += containedVariable.name + ": Writable, "
+                        reactFunctArgsElement += containedVariable.name + ": " + "this.getWritable(" + functArg + "), "
+                    } else if(containedVariable instanceof Output) {
+                        reactSignatureElement += containedVariable.name + ": Readable, "
+                        reactFunctArgsElement += containedVariable.name + ": " + functArg + ", "
+                    }
+                    
+                }
+                reactFunctArgsElement += " }"
+                reactFunctArgs.add(reactFunctArgsElement)
+                reactSignatureElement += " }"
+                reactSignature.add(reactSignatureElement)
+            }
+            
+            // Assemble reaction triggers          
+            var reactionTriggers = new StringJoiner(", ") 
             for (trigger : reaction.triggers) {
                 if (trigger instanceof VarRef) {
                     if (trigger.container === null) {
-                        reactionArguments += "this." + trigger.variable.name + ", "    
+                        reactionTriggers.add("this." + trigger.variable.name) 
                     } else {
-                        reactionArguments += "this." + trigger.container.name + "." + trigger.variable.name + ", ";
+                        reactionTriggers.add("this." + trigger.container.name + "." + trigger.variable.name)
                     }
                 }     
             }
-            reactionArguments += "], ["
             
-            for (source : reaction.sources) {
-                if (source.container === null) {
-                    reactionArguments += "this." + source.variable.name + ", "    
-                } else {
-                    reactionArguments += "this." + source.container.name + "." + source.variable.name + ", "
-                }
-                
-            }
-            reactionArguments += "], ["
+            // Combine reaction triggers and react function arguments            
+            var reactionArguments = "this, this.check(" + reactionTriggers
+                + "), this.check(" + reactFunctArgs + ")";
             
-            for (effect : reaction.effects) {
-                if (effect.container === null) {
-                    reactionArguments += "this." + effect.variable.name + ", "    
-                } else {
-                    reactionArguments += "this." + effect.container.name + "." + effect.variable.name + ", "
-                }
-                
-            }
-            reactionArguments +="]"
             
-            pr(reactorConstructor, "this." + reactionName + " =  new "
-                + reactionClassName + "(" + reactionArguments + ");"
-            )
-            reactionArray += "this." + reactionName + ", "
-
-            // Next, handle deadlines for reaction instances.
-            // This must happen after reactions
-            if (reaction.deadline !== null) {
-                var deadlineName = reactor.name + '_d' + reactionIndex
-                var deadlineArgs = "this, "
-                if (reaction.deadline.time.parameter !== null) {
-                    deadlineArgs+= "this." + reaction.deadline.time.parameter.name; 
-                } else {
-                    deadlineArgs += timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
-                }
-                pr(reactorConstructor, "this." + reactionName + ".setDeadline( new " + deadlineName + "( " + deadlineArgs + "));")
-            }
-        
-            reactionIndex++
+            pr(reactorConstructor, "this.addReaction(new class<T> extends Reaction<T> {")
+            reactorConstructor.indent()
+            pr(reactorConstructor, "//@ts-ignore")  
+            pr(reactorConstructor, "react(" + reactSignature + ") {")
+            reactorConstructor.indent()
+            pr(reactorConstructor, "var self = this.parent as " + reactor.name + ";")
+            pr(reactorConstructor, removeCodeDelimiter(reaction.code))
+            reactorConstructor.unindent()
+            pr(reactorConstructor, "}")
+            reactorConstructor.unindent()
+            
+            pr(reactorConstructor, "}(" + reactionArguments + "));")
+            
         }
-        reactionArray += "];"
-        pr(reactorConstructor, reactionArray );
-              
         reactorConstructor.unindent()
         pr(reactorConstructor, "}")
         pr(reactorConstructor.toString())
@@ -521,58 +652,125 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("}")
         pr("// =============== END reactor class " + reactor.name)
         pr("")
-
-        // Generate reactions
-        if (!reactor.reactions.empty) {
-            pr("// =============== START reaction classes for " + reactor.name)
-            generateReactions(reactor)
-            pr("// =============== END reaction classes for " + reactor.name)
-            pr("")   
-        }
+        
+//        var reactionArray = "this._reactions = [ "
+//        var reactionIndex = 0;
+//        for (reaction : reactor.reactions) {
+//            val reactionName = 'r' + reactionIndex;
+//            val reactionClassName = reactor.name + "_" + reactionName;
+//            pr(reactionName + ": " + reactionClassName + ";")
+//            
+//            var reactionArguments = "this, [ ";
+//            for (trigger : reaction.triggers) {
+//                if (trigger instanceof VarRef) {
+//                    if (trigger.container === null) {
+//                        reactionArguments += "this." + trigger.variable.name + ", "    
+//                    } else {
+//                        reactionArguments += "this." + trigger.container.name + "." + trigger.variable.name + ", ";
+//                    }
+//                }     
+//            }
+//            reactionArguments += "], ["
+//            
+//            for (source : reaction.sources) {
+//                if (source.container === null) {
+//                    reactionArguments += "this." + source.variable.name + ", "    
+//                } else {
+//                    reactionArguments += "this." + source.container.name + "." + source.variable.name + ", "
+//                }
+//                
+//            }
+//            reactionArguments += "], ["
+//            
+//            for (effect : reaction.effects) {
+//                if (effect.container === null) {
+//                    reactionArguments += "this." + effect.variable.name + ", "    
+//                } else {
+//                    reactionArguments += "this." + effect.container.name + "." + effect.variable.name + ", "
+//                }
+//                
+//            }
+//            reactionArguments +="]"
+//            
+//            pr(reactorConstructor, "this." + reactionName + " =  new "
+//                + reactionClassName + "(" + reactionArguments + ");"
+//            )
+//            reactionArray += "this." + reactionName + ", "
+//
+//            // Next, handle deadlines for reaction instances.
+//            // This must happen after reactions
+//            if (reaction.deadline !== null) {
+//                var deadlineName = reactor.name + '_d' + reactionIndex
+//                var deadlineArgs = "this, "
+//                if (reaction.deadline.time.parameter !== null) {
+//                    deadlineArgs+= "this." + reaction.deadline.time.parameter.name; 
+//                } else {
+//                    deadlineArgs += timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
+//                }
+//                pr(reactorConstructor, "this." + reactionName + ".setDeadline( new " + deadlineName + "( " + deadlineArgs + "));")
+//            }
+//        
+//            reactionIndex++
+//        }
+//        reactionArray += "];"
+//        pr(reactorConstructor, reactionArray );
+//              
+//        reactorConstructor.unindent()
+//        pr(reactorConstructor, "}")
+//        pr(reactorConstructor.toString())
+//        unindent()
+//        pr("}")
+//        pr("// =============== END reactor class " + reactor.name)
+//        pr("")
+//
+//        // Generate reactions
+//        if (!reactor.reactions.empty) {
+//            pr("// =============== START reaction classes for " + reactor.name)
+//            generateReactions(reactor)
+//            pr("// =============== END reaction classes for " + reactor.name)
+//            pr("")   
+//        }
     }
 
     /** Generate reaction functions definition for a reactor.
-     *  These functions have a single argument that is a void* pointing to
-     *  a struct that contains parameters, state variables, inputs (triggering or not),
-     *  actions (triggering or produced), and outputs.
      *  @param reactor The reactor.
      */
-    def generateReactions(Reactor reactor) {
-        var deadlineClass = new StringBuilder();
-        var reactions = reactor.reactions
-        var reactionIndex = 0;
-        for (reaction : reactions) {
-            pr('class ' + reactor.name + '_r' + reactionIndex + ' extends Reaction {')
-            indent()
-            
-            var deadlineClassName = reactor.name + '_d' + reactionIndex;
-            if(reaction.deadline !== null){
-                pr(deadlineClass, 'class ' + deadlineClassName + ' extends Deadline {')
-                deadlineClass.indent()
-                pr(deadlineClass, "handler(){")
-                deadlineClass.indent()
-                pr(deadlineClass, removeCodeDelimiter(reaction.deadline.deadlineCode))
-                deadlineClass.unindent()
-                pr(deadlineClass, "}")
-                deadlineClass.unindent()
-                pr(deadlineClass, "}")
-      
-            }
-            pr('react() {')
-            indent()
-            pr(removeCodeDelimiter(reaction.code))
-            unindent()
-            pr('}')
-            unindent()
-            pr('}')
-            
-            if(reaction.deadline !== null){
-                pr(deadlineClass.toString())
-            }
-            
-            reactionIndex++
-        }
-    }
+//    def generateReactions(Reactor reactor) {
+//        var deadlineClass = new StringBuilder();
+//        var reactions = reactor.reactions
+//        var reactionIndex = 0;
+//        for (reaction : reactions) {
+//            pr('class ' + reactor.name + '_r' + reactionIndex + ' extends Reaction {')
+//            indent()
+//            
+//            var deadlineClassName = reactor.name + '_d' + reactionIndex;
+//            if(reaction.deadline !== null){
+//                pr(deadlineClass, 'class ' + deadlineClassName + ' extends Deadline {')
+//                deadlineClass.indent()
+//                pr(deadlineClass, "handler(){")
+//                deadlineClass.indent()
+//                pr(deadlineClass, removeCodeDelimiter(reaction.deadline.deadlineCode))
+//                deadlineClass.unindent()
+//                pr(deadlineClass, "}")
+//                deadlineClass.unindent()
+//                pr(deadlineClass, "}")
+//      
+//            }
+//            pr('react() {')
+//            indent()
+//            pr(removeCodeDelimiter(reaction.code))
+//            unindent()
+//            pr('}')
+//            unindent()
+//            pr('}')
+//            
+//            if(reaction.deadline !== null){
+//                pr(deadlineClass.toString())
+//            }
+//            
+//            reactionIndex++
+//        }
+//    }
 
     /** Traverse the runtime hierarchy of reaction instances and generate code.
      *  @param instance A reactor instance.
@@ -607,8 +805,8 @@ class TypeScriptGenerator extends GeneratorBase {
             }   
         }
         
-        arguments += timeoutArg + ", '" + fullName + "'" 
-        pr("let _app" + " = new "+ fullName + "_c" + "(" + arguments + ")")
+        arguments += "'" + fullName + "', " + timeoutArg
+        pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
     }
     
     /** Generate code to call the _start function on the main App
@@ -620,9 +818,7 @@ class TypeScriptGenerator extends GeneratorBase {
         var fullName = instance.fullName
         pr('// ************* Starting Runtime for ' + fullName + ' of class ' +
             reactorClass.name)
-        // FIXME: hardcoding success and failure callbacks that do nothing
-        // because I haven't yet figured out how to get these yet
-        pr("_app._start(() => null, ()=> null);")
+        pr("_app._start();")
     }
 
     /** Set the reaction priorities based on dependency analysis.
@@ -686,16 +882,44 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
      */
     override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
-        // The default time unit for TypeScript is msec.
-        if (unit != TimeUnit.NONE) {
-            "[" + timeLiteral + ", " + "TimeUnit." + unit + "]"
+        if (Integer.parseInt(timeLiteral) === 0 ){
+            "0"
         } else {
-            "[" + timeLiteral + ", " + "TimeUnit.msec]"
+            if (unit != TimeUnit.NONE) {
+                "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit." + unit + ")"
+            } else {
+                // The default time unit for TypeScript is msec.
+                "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit.msec)"
+            }
         }
     }
 
     // //////////////////////////////////////////
     // // Private methods.
+    
+    
+    /** If the given filename doesn't already exist in the project root
+     *  create it by copying over the default from /lib/TS/. Do nothing
+     *  if the file already exists because we don't want to overwrite custom
+     *  user-specified configurations. 
+     *  @param projectPath The path to the project root.
+     *  @param filename The name of the file for which to create a default in
+     *    the root of the project directory
+     *  @return true if the file was created, false otherwise.
+     */
+    private def createDefaultConfigFile(String projectPath, String filename) {
+        var File defaultFile = new File(projectPath + File.separator + filename)
+        val libFile = File.separator + "lib" + File.separator + "TS" + File.separator + filename
+        if(!defaultFile.exists()){
+            println(filename + " does not already exist for this project."
+                + " Copying over default from " + libFile)
+            var fOut = new FileOutputStream(
+                new File(projectPath + File.separator + filename));
+            fOut.write(readFileInClasspath(libFile).getBytes())      
+        } else {
+            println("This project already has " + projectPath + File.separator + filename)
+        }
+    }
 
     /** Return a TS type for the type of the specified parameter.
      *  If there are code delimiters around it, those are removed.
@@ -714,10 +938,8 @@ class TypeScriptGenerator extends GeneratorBase {
     static val reactorLibPath = "." + File.separator + "reactor"
     static val timeLibPath =  "." + File.separator + "time"
     val static preamble = '''
-'use strict';
-
-import {Deadline, Reactor, Trigger, Reaction, Timer, Action, App, InPort, OutPort} from "''' + reactorLibPath + '''";
-import {TimeInterval, TimeInstant, TimeUnit, TimelineClass, numericTimeEquals, numericTimeSum, numericTimeDifference, NumericTimeInterval, numericTimeMultiple, compareNumericTimeIntervals } from "''' + timeLibPath + '''"
+import {Variable, Priority, VarList, Mutations, Util, Readable, Schedulable, Writable, Named, Reaction, Deadline, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
+import {TimeUnit,TimeInterval, UnitBasedTimeInterval, TimeInstant, Origin, getCurrentPhysicalTime } from "''' + timeLibPath + '''"
 
     '''
 }
