@@ -1,5 +1,5 @@
 target C (
-    run = "bin/SlowingClockPhysical -timeout 2 sec"
+    run = "bin/SlowingClockPhysical -timeout 1 sec"
 );
 main reactor SlowingClockPhysical {
     physical action a(100 msec);
@@ -25,8 +25,8 @@ main reactor SlowingClockPhysical {
         self->interval += MSEC(100);
     =}
     reaction(shutdown) {=
-        if (self->expected_time < MSEC(2100)) {
-            printf("ERROR: Expected the next expected time to be at least: 2100000000 nsec.\n");
+        if (self->expected_time < MSEC(1000)) {
+            printf("ERROR: Expected the next expected time to be at least: 1000000000 nsec.\n");
             printf("It was: \%lld nsec.\n", self->expected_time);
             exit(2);            
         }
