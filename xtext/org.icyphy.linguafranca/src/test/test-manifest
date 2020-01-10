@@ -31,6 +31,7 @@ ImportThreaded.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf
+MovingAverage.lf
 MultipleContained.lf
 ParameterizedState.lf
 Preamble.lf
@@ -45,6 +46,7 @@ SimpleImport.lf
 SlowingClock.lf
 SlowingClockPhysical.lf
 Stride.lf
+StructAsState.lf
 StructAsType.lf
 StructAsTypeDirect.lf
 StructParallel.lf
