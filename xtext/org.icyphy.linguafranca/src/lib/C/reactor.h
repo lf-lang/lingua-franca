@@ -37,7 +37,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef REACTOR_H
 #define REACTOR_H
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,12 +77,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // problems with if ... else statements that do not use braces around the
 // two branches.
 
-// NOTE: The assertions that appear in the first line of these macros
-// are there to trigger compile errors if the reaction that uses the macro
-// does not declare that it produces the output. They may also be
-// checking other preconditions necessary for each macro, for example
-// to prevent memory leaks caused by multiple invocations of set_new().
-
 /** Set the specified output (or input of a contained reacor) 
  *  to the specified value.
  *  This copies the value into the field in the self struct designated
@@ -95,7 +88,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define set(out, value) \
 do { \
-    (*out) = value; \
+    out ## _is_present = true; \
+    self->__ ## out = value; \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -104,16 +98,14 @@ do { \
  *  The deallocation is delegated to downstream reactors, which
  *  automatically deallocate when the reference count drops to zero.
  *  It also sets the corresponding _is_present variable in the self
- *  struct to true (which causes the object message to be sent),
- *  An assertion will fail if the output has been previously allocated
- *  or if the reaction does not declare that it produces the output.
+ *  struct to true (which causes the object message to be sent).
  *  @param out The output port (by name).
  *  @param val The array to send (a pointer to the first element).
  *  @param length The length of the array to send.
  */
 #define set_array(out, val, len) \
 do { \
-    assert(out == NULL); \
+    out ## _is_present = true; \
     self->__ ## out.value = val; \
     self->__ ## out.length = len; \
     self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
@@ -128,13 +120,11 @@ do { \
  *  object so that the user code can then populate it.
  *  The freeing of the dynamically allocated object will be handled automatically
  *  when the last downstream reader of the message has finished.
- *  An assertion will fail if the output has been previously allocated
- *  or if the reaction does not declare that it produces the output.
  *  @param out The name of the output.
  */
 #define set_new(out) \
 do { \
-    assert(out == NULL); \
+    out ## _is_present = true; \
     out = __set_new_array_impl(&(self->__ ## out), 1); \
     self->__ ## out ## _is_present = true; \
 } while(0)
@@ -147,14 +137,12 @@ do { \
  *  user code can populate the array. The freeing of the dynamically
  *  allocated array will be handled automatically
  *  when the last downstream reader of the message has finished.
- *  An assertion will fail if the output has been previously allocated
- *  or if the reaction does not declare that it produces the output.
  *  @param out The name of the output.
  *  @param length The length of the array to be sent.
  */
 #define set_new_array(out, length) \
 do { \
-    assert(out == NULL); \
+    out ## _is_present = true; \
     out = __set_new_array_impl(&(self->__ ## out), length); \
     self->__ ## out ## _is_present = true; \
 } while(0)
@@ -163,13 +151,12 @@ do { \
  *  This sets the _is_present variable corresponding to the specified output
  *  to true (which causes the array message to be sent). The values in the 
  *  output are normally written directly to the array or struct before or
- *  after this is called. An assertion will fail if the reaction does
- *  not declare that it produces the output.
+ *  after this is called.
  *  @param out A pointer to the output in the self struct.
  */
 #define set_present(out) \
 do { \
-    assert(out != NULL); \
+    out ## _is_present = true; \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -177,14 +164,12 @@ do { \
  *  to send a previously dynamically object of the specified type.
  *  The deallocation is delegated to downstream reactors, which
  *  automatically deallocate when the reference count drops to zero.
- *  An assertion will fail if the output has been previously allocated
- *  or if the reaction does not declare that it produces the output.
  *  @param out A pointer to the output in the self struct.
  *  @param val A pointer to the object to send.
  */
 #define set_token(out, val) \
 do { \
-    assert(out == NULL); \
+    out ## _is_present = true; \
     self->__ ## out.value = val; \
     self->__ ## out.length = 1; \
     self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \

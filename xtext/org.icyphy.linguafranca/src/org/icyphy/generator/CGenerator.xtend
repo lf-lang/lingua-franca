@@ -620,6 +620,11 @@ class CGenerator extends GeneratorBase {
             }
 
             // Define variables for each declared output or action.
+            // In the case of outputs, the variable is a pointer to where the
+            // output is stored. This gives the reaction code access to any previous
+            // value that may have been written to that output in an earlier reaction.
+            // In addition, the _is_present variable is a boolean that indicates
+            // whether the output has been written.
             if (reaction.effects !== null) {
                 for (effect : reaction.effects) {
                     // val action = getAction(reactor, output)
@@ -1853,7 +1858,6 @@ class CGenerator extends GeneratorBase {
                     builder,
                     rootType(output.type) + '* ' + output.name + ' = NULL;'
                 )
-            
             } else {
                 pr(
                     builder,
@@ -1861,6 +1865,13 @@ class CGenerator extends GeneratorBase {
                         ' = &(self->__' + output.name + ');'
                 )
             }
+            // Also define a boolean variable name_is_present with value
+            // equal to the current value of the corresponding is_present field
+            // in the self struct. This can be used to test whether a previous
+            // reaction has already set an output value at the current logical time.
+            pr(builder, 'bool ' + output.name + '_is_present = self->__'
+                + output.name + '_is_present;'
+            )
         }
     }
 
@@ -1884,11 +1895,18 @@ class CGenerator extends GeneratorBase {
         pr(
             builder,
             'struct ' + definition.name + ' {' +
-                lfTypeToTokenType(input.type) + '* ' + input.name + ';} ' + definition.name + ';'
+                lfTypeToTokenType(input.type) + '* ' + input.name + ';' +
+                ' bool ' + input.name + '_is_present;' +
+                '} ' + definition.name + ';'
         )
         pr(builder,
             definition.name + '.' + input.name + ' = &(self->__' +
-                definition.name + '.' + input.name + ');')
+            definition.name + '.' + input.name + ');'
+        )
+        pr(builder,
+            definition.name + '.' + input.name + '_is_present = self->__' +
+            definition.name + '.' + input.name + '_is_present;'
+        )
     }
 
     /** Return a C type for the type of the specified parameter.
