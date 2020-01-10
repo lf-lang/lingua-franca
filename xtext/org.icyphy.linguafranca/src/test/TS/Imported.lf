@@ -5,9 +5,9 @@ target TypeScript(
 );
 import ImportedAgain.lf;
 reactor Imported {
-	input x:number;
-	a = new ImportedAgain();
-	reaction(x) -> a.x {=
-	   (this.state as any).a.x.set( (this.state as any).x.get());
-	=} 
+    input x:number;
+    a = new ImportedAgain();
+    reaction(x) x -> a.x {=
+       a.x.set(x.get());
+    =} 
 }

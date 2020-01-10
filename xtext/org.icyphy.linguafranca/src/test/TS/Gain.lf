@@ -4,25 +4,27 @@
     reactor Scale(scale:number(2)) {
         input x:number;
         output y:number;
-        reaction(x) -> y {=
-            (this.state as any).y.set( (this.state as any).x.get() * (this.state as any).scale );
+        reaction(x) x -> y {=
+            y.set((x.get() as number) * self.scale);
         =}
     }
     reactor Test {
         input x:number;
         state received_value:boolean(false);
-        reaction(x) {=
-            console.log("Received " + (this.state as any).x.get() + ".");
-            (this.state as any).received_value = true;
-            if ((this.state as any).x.get() != 2) {
+        reaction(x) x {=
+            console.log("Received " + x.get() + ".");
+            self.received_value = true;
+            if ((x.get() as number) != 2) {
                 console.log("ERROR: Expected 2!");
-                throw new Error("ERROR: Expected 2!");
+                self.util.failure();
+                //throw new Error("ERROR: Expected 2!");
             }
         =}
         reaction(shutdown) {=
-            if ( !(this.state as any).received_value){
+            if (!self.received_value){
                 console.log("ERROR: No value received by Test reactor!");
-                throw new Error("No value received by Test reactor!");
+                self.util.failure();
+                //throw new Error("No value received by Test reactor!");
             } else {
                 console.log("Test passes");
             }
@@ -33,6 +35,6 @@
         d = new Test();
         g.y -> d.x;
         reaction(startup) -> g.x {=
-            (this.state as any).g.x.set(1);
+            g.x.set(1);
         =}
     }

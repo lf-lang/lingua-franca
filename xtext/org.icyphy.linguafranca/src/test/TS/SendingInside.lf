@@ -1,33 +1,34 @@
 // This tests a reactor that contains another reactor and also
 // has its own reaction that routes inputs to the contained reactor.
 
-// FIXME: Find a way to terminate with failure and address target attrbitus
+// FIXME: Find a way to terminate with failure and address target attributes
 
 target TypeScript(
     timeout = 2 sec
 );
 //(
-//	run = "bin/SendingInside -fast -timeout 10 sec"
+//  run = "bin/SendingInside -fast -timeout 10 sec"
 //);
 reactor Printer {
-	input x:number;
-	state count:number(1);
-	reaction(x) {=
-		console.log("Inside reactor received: "
-		  + (this.state as any).x.get());
-		if ((this.state as any).x.get() != (this.state as any).count) {
-			console.log("FAILURE: Expected " + (this.state as any).count);
-			throw new Error("FAILURE: Expected " + (this.state as any).count);
-		}
-		(this.state as any).count++;
-	=}
+    input x:number;
+    state count:number(1);
+    reaction(x) x {=
+        console.log("Inside reactor received: "
+          + x.get());
+        if ((x.get() as number) != self.count) {
+            console.log("FAILURE: Expected " + self.count);
+            self.util.failure();
+            //throw new Error("FAILURE: Expected " + (this.state as any).count);
+        }
+        self.count++;
+    =}
 }
 main reactor SendingInside {
-	state count:number(0);
-	timer t(0, 1 sec);
-	p = new Printer();
-	reaction(t) -> p.x {=
-		(this.state as any).count++;
-		(this.state as any).p.x.set( (this.state as any).count);
-	=}
+    state count:number(0);
+    timer t(0, 1 sec);
+    p = new Printer();
+    reaction(t) -> p.x {=
+        self.count++;
+        p.x.set(self.count);
+    =}
 }

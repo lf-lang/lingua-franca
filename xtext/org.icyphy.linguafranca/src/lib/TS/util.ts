@@ -1,113 +1,161 @@
-'use strict'
+/**
+ * Utilities for the reactor runtime.
+ * 
+ * @author Marten Lohstroh (marten@berkeley.edu)
+ */
 
-// import { _schedule } from "./reactor";
+export interface PrioritySetNode<P> {
+    /**
+     * Get a pointer to the next node in this priority set.
+     */
+    getNext(): PrioritySetNode<P> | undefined;
+    
+    /**
+     * Set a pointer to the next node in this priority set.
+     * @param node Next element in the priority set this node is a part of.
+     */
+    setNext(node: PrioritySetNode<P> | undefined): void;
 
-export type Priority = number;
-
-export interface PrioritySetNode<T,S> {
-  _id:T;
-  _priority:S;
-  _next:PrioritySetNode<T,S>|null;
-  hasPrecedenceOver:(node:PrioritySetNode<T,S>) => boolean;
+    /**
+     * Return the priority of this node.
+     */
+    getPriority(): P;
+    
+    /**
+     * Determine whether this node has priority over the given node or not.
+     * @param node A node to compare the priority of this node to.
+     */
+    hasPriorityOver: (node: PrioritySetNode<P> | undefined) => boolean;
+    
+    /**
+     * If the given node is considered a duplicate of this node, then
+     * update this node if needed, and return true. Return false otherwise.
+     * @param node A node that may or may not be a duplicate of this node.
+     */
+    updateIfDuplicateOf: (node: PrioritySetNode<P> | undefined) => boolean;
 }
 
-export interface PrecedenceGraphNode {
-  _priority: number;
+export interface PrecedenceGraphNode<P> {
+    setPriority(priority: P): void;
 }
 
-export class PrioritySet<T,S> {
+/**
+ * A priority queue that overwrites duplicate entries.
+ */
+export class PrioritySet<P> {
 
-  elements: Map<T, PrioritySetNode<T,S>> = new Map();
-  head: PrioritySetNode<T,S>|null;
+  private head: PrioritySetNode<P> | undefined;
+  private count: number = 0;
 
-  push(element: PrioritySetNode<T,S>) {
-    // find duplicate
-    var duplicate = this.elements.get(element._id); // FIXME: maybe not use a map at all?
-    // update map
-    this.elements.set(element._id, element); // overwrites if duplicate
+  push(element: PrioritySetNode<P>) {
     // update linked list
-    if (this.head == null) {
+    if (this.head == undefined) {
       // create head
-      element._next = null;
+      element.setNext(undefined);
       this.head = element;
-    } else if (this.head == duplicate) {
-      // replace head
-      element._next = this.head._next;
-      this.head = element;
-      //duplicate._next = null; // FIXME: not sure why this is problematic
+      this.count++;
+      return;
+    } else if (element.updateIfDuplicateOf(this.head)) {
+      return;
     } else {
       // prepend
-      if (element.hasPrecedenceOver(this.head)) {
-        element._next = this.head;
+      if (element.hasPriorityOver(this.head)) {
+        element.setNext(this.head);
         this.head = element;
+        this.count++;
         return;
-      } 
+      }
       // seek
-      var curr = this.head;
-      while (curr._next != null) {
-        if (duplicate != null && curr._next == duplicate) {
-          // replace duplicate
-          curr._next = element;
-          element._next = duplicate._next;
-          duplicate._next = null;
-          return;
-        } else if (element.hasPrecedenceOver(curr._next)) {
-          break;
+      var curr: PrioritySetNode<P> | undefined = this.head;
+      while (curr) {
+        let next: PrioritySetNode<P> | undefined = curr.getNext();
+        if (next) {
+          if (element.updateIfDuplicateOf(next)) {
+            return;
+          } else if (element.hasPriorityOver(next)) {
+            break;
+          } else {
+            curr = next;
+          }
         } else {
-          curr = curr._next;
+          break;
         }
       }
-      // insert
-      element._next = curr._next; // null if last
-      curr._next = element;
+      if (curr) {
+        // insert
+        element.setNext(curr.getNext()); // undefined if last
+        curr.setNext(element);
+        this.count++;
+        return;
+      }
     }
   }
 
-  pop():PrioritySetNode<T,S>|undefined {
-      if (this.head != null) {
-        let node = this.head;
-        this.elements.delete(this.head._id);
-        this.head = this.head._next;
-        node._next = null; // unhook from linked list
-        return node;
-      }
-
+  pop(): PrioritySetNode<P> | undefined {
+    if (this.head) {
+      let node = this.head;
+      this.head = this.head.getNext();
+      node.setNext(undefined); // unhook from linked list
+      this.count--;
+      return node;
+    }
   }
 
-  peek(): PrioritySetNode<T,S>|undefined {
-    if (this.head != null) {
+  peek(): PrioritySetNode<P> | undefined {
+    if (this.head) {
       return this.head;
     }
   }
+
+  size(): number {
+    return this.count;
+  }
 }
 
-export class PrecedenceGraph<T extends PrecedenceGraphNode> {
+export class PrecedenceGraph<T extends PrecedenceGraphNode<unknown>> {
 
-  private graph:Map<T, Set<T>> = new Map(); // Map vertices to set of dependencies
-  private numberOfEdges = 0;
+  protected graph: Map<T, Set<T>> = new Map(); // Map vertices to set of dependencies
+  protected numberOfEdges = 0;
 
-  addNode(node:T) {
-    if (!this.graph.has(node)){
+  merge(apg: this) {
+    for (const [k, v] of apg.graph) {
+      let nodes = this.graph.get(k);
+      if (nodes) {
+        for (let n of v) {
+          if (!nodes.has(n)) {
+            nodes.add(n);
+            this.numberOfEdges++;
+          }
+        }
+      } else {
+        this.graph.set(k, v);
+        this.numberOfEdges += v.size;
+      }
+    }
+  }
+
+  addNode(node: T) {
+    if (!this.graph.has(node)) {
       this.graph.set(node, new Set());
     }
   }
 
-  removeNode(node:T) {
-    let deps:Set<T>|undefined;
+  removeNode(node: T) {
+    let deps: Set<T> | undefined;
     if (deps = this.graph.get(node)) {
-      this.numberOfEdges -= deps.size;
-      this.graph.delete(node);
-      for (const [v, e] of this.graph) {
-        if (e.has(node)) {
-          e.delete(node);
-          this.numberOfEdges--;
+        this.numberOfEdges -= deps.size;
+        this.graph.delete(node);
+        for (const [v, e] of this.graph) {
+            if (e.has(node)) {
+              e.delete(node);
+              this.numberOfEdges--;
+            }
         }
-      }
     }
   }
 
   // node -> deps
-  addEdge(node:T, dependency:T) {
+  addEdge(node: T, dependency: T) {
     let deps = this.graph.get(node);
     if (!deps) {
       this.graph.set(node, new Set([dependency]));
@@ -123,7 +171,13 @@ export class PrecedenceGraph<T extends PrecedenceGraphNode> {
     }
   }
 
-  addEdges(node:T, dependencies:Set<T>) {
+  addBackEdges(node:T, antidependencies: Set<T>) {
+    for (let a of antidependencies) {
+      this.addEdge(a, node);
+    }
+  }
+  
+  addEdges(node: T, dependencies: Set<T>) {
     let deps = this.graph.get(node);
     if (!deps) {
       this.graph.set(node, new Set(dependencies));
@@ -141,7 +195,7 @@ export class PrecedenceGraph<T extends PrecedenceGraphNode> {
     }
   }
 
-  removeEdge(node:T, dependency:T) {
+  removeEdge(node: T, dependency: T) {
     let deps = this.graph.get(node);
     if (deps && deps.has(dependency)) {
       deps.delete(dependency);
@@ -153,30 +207,30 @@ export class PrecedenceGraph<T extends PrecedenceGraphNode> {
     return [this.graph.size, this.numberOfEdges];
   }
 
-  updatePriorities(spacing:number=100) {
+  updatePriorities(spacing: number = 100) {
     var start: Array<T> = new Array();
     var clone = new Map();
     var count = 0;
-    
+
     /* duplicate the graph */
-    for (const [v,e] of this.graph) {
+    for (const [v, e] of this.graph) {
       clone.set(v, new Set(e));
     }
 
     /* Populate start set */
-    for (const [v,e] of this.graph) {
+    for (const [v, e] of this.graph) {
       if (!e || e.size == 0) {
         start.push(v);
         clone.delete(v);
       }
     }
-  
+
     /* Sort reactions */
-    for (var n:T|undefined; (n = start.shift()) != null; count += spacing) {
-      n._priority = count;
+    for (var n: T | undefined; (n = start.shift()); count += spacing) {
+      n.setPriority(count);
 
       // for each node v with an edge e from n to v do
-      for (const [v,e] of clone) {
+      for (const [v, e] of clone) {
         if (e.has(n)) { // v depends on n
           e.delete(n);
         }

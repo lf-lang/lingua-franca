@@ -8,6 +8,6 @@ main reactor Import {
     timer t;
     a = new Imported(); 
     reaction(t) -> a.x {=
-        (this.state as any).a.x.set(42);
+        a.x.set(42);
     =}
 }

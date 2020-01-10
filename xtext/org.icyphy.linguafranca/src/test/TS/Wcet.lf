@@ -5,28 +5,28 @@ reactor Source {
     output out2:number;
     timer t;
     reaction(t) -> out1, out2 {=
-        (this.state as any).out1.set(5);
-        (this.state as any).out2.set(10);
+        out1.set(5);
+        out2.set(10);
     =}
 }
 reactor Work {
     input in1:number;
     input in2:number;
     output out:number;
-    reaction(in1, in2) -> out {=
-    	let ret:number;
-    	if ((this.state as any).in1.get() > 10) {
-    		ret = (this.state as any).in2.get() * (this.state as any).in1.get();
-    	} else {
-    		ret = (this.state as any).in2.get() + (this.state as any).in1.get();
-    	}
-        (this.state as any).out.set(ret);
+    reaction(in1, in2) in1, in2-> out {=
+        let ret:number;
+        if ((in1.get() as number) > 10) {
+            ret = (in2.get() as number) * (in1.get() as number);
+        } else {
+            ret = (in2.get() as number) + (in1.get() as number);
+        }
+        out.set(ret);
     =}
 }
 reactor Print {
-    input in:number;
-    reaction(in) {=
-        console.log("Received: " + (this.state as any).in.get());
+    input x:number;
+    reaction(x) x {=
+        console.log("Received: " + x.get());
     =}
 }
 
@@ -37,5 +37,5 @@ main reactor Wcet {
     
     source.out1 -> work.in1;
     source.out2 -> work.in2;
-    work.out -> print.in;
+    work.out -> print.x;
 }

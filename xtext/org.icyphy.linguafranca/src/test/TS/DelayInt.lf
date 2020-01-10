@@ -2,48 +2,51 @@
 // This is a start at handling dynamic memory allocation for such actions.
 target TypeScript;
 reactor Delay(delay:time(100 msec)) {
-    input in:number;
+    input x:number;
     output out:number;
     logical action a:number;
-    reaction(in) -> a {=
-        let delay = (this.state as any).delay;
-        (this.state as any).a.schedule( delay, (this.state as any).in.get());
+    reaction(x) x -> a {=
+        let delay = self.delay;
+        a.schedule( delay, x.get() as number);
     =}
-    reaction(a) -> out {=
-        if ( (this.state as any).a.isPresent()){
-            (this.state as any).out.set( (this.state as any).a.get() )
+    reaction(a) a -> out {=
+        if (a.isPresent()){
+            out.set(a.get())
         }
     =}
 }
 reactor Test {
-    input in:number;
+    input x:number;
     state start_time:time(0);
     state received_value:boolean(false);
     reaction(startup) {=
         // Record the logical time at the start.
-        (this.state as any).start_time = this._getCurrentLogicalTime()[0];
+        self.start_time = self.util.getCurrentLogicalTime().time;
     =} 
-    reaction(in) {=
-        console.log("Received: " + (this.state as any).in.get());
-        (this.state as any).received_value = true;
+    reaction(x) x {=
+        console.log("Received: " + x.get());
+        self.received_value = true;
         // Check the time of the input.
-        let current_time = this._getCurrentLogicalTime();
-        let elapsed = numericTimeDifference(current_time[0], (this.state as any).start_time); 
+        let current_time = self.util.getCurrentLogicalTime().time;
+        let elapsed = current_time.subtract(self.start_time); 
         console.log("After " + elapsed + " of logical time.");
-        if ( ! numericTimeEquals(elapsed, [0, 100000000] ) ) {
+        if ( ! elapsed.isEqualTo(new UnitBasedTimeInterval( 100, TimeUnit.msec))) {
             console.log("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
-            throw new Error( "ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
+            self.util.failure();
+            //throw new Error( "ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
         }
-        if ( (this.state as any).in.get() != 42) {
-            console.log("ERROR: Expected input value to be 42. It was " + (this.state as any).in.get());
-            throw new Error("ERROR: Expected input value to be 42. It was " + (this.state as any).in.get());            
+        if ( x.get() != 42) {
+            console.log("ERROR: Expected input value to be 42. It was " + x.get());
+            self.util.failure();
+            //throw new Error("ERROR: Expected input value to be 42. It was " + (this.state as any).x.get());            
         }
     =}
     reaction(shutdown) {=
         console.log("Checking that communication occurred.");
-        if ( ! (this.state as any).received_value) {
+        if (! self.received_value) {
             console.log("ERROR: No communication occurred!");
-            throw new Error("ERROR: No communication occurred!");          
+            self.util.failure();
+            //throw new Error("ERROR: No communication occurred!");          
         }
     =}
 }
@@ -51,8 +54,8 @@ reactor Test {
 main reactor DelayInt { 
     d = new Delay();
     t = new Test();
-    d.out -> t.in; 
-    reaction(startup) -> d.in {=
-        (this.state as any).d.in.set(42);
+    d.out -> t.x; 
+    reaction(startup) -> d.x {=
+        d.x.set(42);
     =}
 }

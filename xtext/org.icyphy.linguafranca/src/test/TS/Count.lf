@@ -5,8 +5,7 @@ reactor Count {
     timer t(0, 1 sec);
     state i:number(0);
     reaction(t) -> c {=
-        (this.state as any).i++;
-        (this.state as any).c.set((this.state as any).i);
+        self.i++;
+        c.set(self.i);
     =}
-} 
-
+}

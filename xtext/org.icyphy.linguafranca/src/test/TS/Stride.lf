@@ -8,14 +8,14 @@ reactor Count(stride:number(1)) {
     output y:number;
     timer t(0, 100 msec);
     reaction(t) -> y {=
-        (this.state as any).y.set( (this.state as any).count);
-        (this.state as any).count += (this.state as any).stride;
+        y.set(self.count);
+        self.count += self.stride;
     =}
 }
 reactor Display {
     input x:number;
-    reaction(x) {=
-        console.log("Received: " + (this.state as any).x.get());
+    reaction(x) x {=
+        console.log("Received: " + x.get());
     =}
 }
 main reactor Stride {

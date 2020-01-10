@@ -6,19 +6,21 @@ main reactor DelayedAction {
     logical action a;
     state count:number(0);
     reaction(t) -> a {=
-        (this.state as any).a.schedule( [ 100, TimeUnit.msec])
+        a.schedule( new UnitBasedTimeInterval(100, TimeUnit.msec));
     =}
     
     reaction(a) {=
-        let elapsedLogical = (this.state as any)._getElapsedLogicalTime();
-        let elapsedPhysical = (this.state as any)._getElapsedPhysicalTime();
-        console.log("Nanoseconds since start: " + elapsedLogical);
+        let elapsedLogical = self.util.getElapsedLogicalTime();
+        let elapsedPhysical = self.util.getElapsedPhysicalTime();
+        console.log("Logical time since start: " + elapsedLogical);
         console.log("Physical time since start: " + elapsedPhysical);
-        let expected = numericTimeSum(numericTimeMultiple([1,0], (this.state as any).count), [0,100000000]);
-        (this.state as any).count++;
-        if (!numericTimeEquals(elapsedLogical, expected)) {
-            console.log("Expected " + expected + " but got " + elapsedLogical);
-            throw new Error("Expected " + expected + " but got " + elapsedLogical);
+        let expected = new UnitBasedTimeInterval( self.count * 1, TimeUnit.sec).add(
+            new UnitBasedTimeInterval(100, TimeUnit.msec));
+        self.count++;
+        if (!elapsedLogical.isEqualTo(expected)) {
+            console.log("Failure: expected " + expected + " but got " + elapsedLogical);
+            self.util.failure();
+            //throw new Error("Expected " + expected + " but got " + elapsedLogical);
         }
     =}
 }
