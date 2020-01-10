@@ -37,6 +37,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef REACTOR_H
 #define REACTOR_H
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,69 +72,124 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WEEK(t)  (t * 604800000000000LL)
 #define WEEKS(t) (t * 604800000000000LL)
 
-/** Set the specified output to the specified value.
+// NOTE: According to the "Swallowing the Semicolon" section on this page:
+//    https://gcc.gnu.org/onlinedocs/gcc-3.0.1/cpp_3.html
+// the following macros should use an odd do-while construct to avoid
+// problems with if ... else statements that do not use braces around the
+// two branches.
+
+// NOTE: The assertions that appear in the first line of these macros
+// are there to trigger compile errors if the reaction that uses the macro
+// does not declare that it produces the output. They may also be
+// checking other preconditions necessary for each macro, for example
+// to prevent memory leaks caused by multiple invocations of set_new().
+
+/** Set the specified output (or input of a contained reacor) 
+ *  to the specified value.
  *  This copies the value into the field in the self struct designated
- *  for this outputs value. This also sets the _is_present variable
- *  in the self struct to true.
- *  This is a macro terminated with a semicolon.
- *  @param out A pointer to the output in the self struct.
+ *  for this produced value. This also sets the _is_present variable
+ *  in the self struct to true (which causes the message to be sent).
+ *  @param port The output port (by name) or input of a contained
+ *   reactor in form input_name.port_name.
  *  @param value The value to insert into the self struct.
  */
-#define set(out, value) (*out) = value; (*out ## _is_present) = true;
+#define set(out, value) \
+do { \
+    (*out) = value; \
+    self->__ ## out ## _is_present = true; \
+} while(0)
 
-/** Version of set that hands to an output a dynamically allocated array.
- *  This will only work with an output that declared with an array type,
- *  type[]. The deallocation is delegated to downstream reactors, which
+/** Version of set for output types given as 'type[]' where you
+ *  want to send a previously dynamically allocated array.
+ *  The deallocation is delegated to downstream reactors, which
  *  automatically deallocate when the reference count drops to zero.
- *  This is a macro terminated with a semicolon.
- *  @param out A pointer to the output in the self struct.
- *  @param val A pointer to the array to send.
+ *  It also sets the corresponding _is_present variable in the self
+ *  struct to true (which causes the object message to be sent),
+ *  An assertion will fail if the output has been previously allocated
+ *  or if the reaction does not declare that it produces the output.
+ *  @param out The output port (by name).
+ *  @param val The array to send (a pointer to the first element).
  *  @param length The length of the array to send.
  */
-#define set_array(out, val, len) out->value = val; out->length = len; out->ref_count = out->initial_ref_count; (*out ## _is_present) = true;
+#define set_array(out, val, len) \
+do { \
+    assert(out == NULL); \
+    self->__ ## out.value = val; \
+    self->__ ## out.length = len; \
+    self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
+    self->__ ## out ## _is_present = true; \
+} while(0)
 
-/** Version of set() that allocates a new object of the type of a
- *  specified output port, sets the specified output to send that object,
- *  and sets the corresponding _is_present variable in the self struct to true.
- *  This returns a pointer to the
- *  object that has been allocated so that the user code can populate it.
+/** Version of set() for output types given as 'type*' that
+ *  allocates a new object of the type of the specified output port.
+ *  It also sets the corresponding _is_present variable in the self
+ *  struct to true (which causes the object message to be sent),
+ *  and sets the variable named by the argument to the newly allocated
+ *  object so that the user code can then populate it.
  *  The freeing of the dynamically allocated object will be handled automatically
  *  when the last downstream reader of the message has finished.
- *  This is a macro terminated with a semicolon.
- *  @param out A pointer to the output in the self struct.
+ *  An assertion will fail if the output has been previously allocated
+ *  or if the reaction does not declare that it produces the output.
+ *  @param out The name of the output.
  */
-#define set_new(out) __set_new_array_impl(out, 1); (*out ## _is_present) = true;
+#define set_new(out) \
+do { \
+    assert(out == NULL); \
+    out = __set_new_array_impl(&(self->__ ## out), 1); \
+    self->__ ## out ## _is_present = true; \
+} while(0)
 
-/** Version of set() that allocates a new array of the specified length,
- *  sets the specified output to send that array, and sets the corresponding
- *  _is_present variable in the self struct to true. This returns the
- *  array that has been allocated so that the user code can populate the array.
- *  The freeing of the dynamically allocated array will be handled automatically
+/** Version of set() for output types given as 'type[]'.
+ *  This allocates a new array of the specified length,
+ *  sets the corresponding _is_present variable in the self struct to true
+ *  (which causes the array message to be sent), and sets the variable
+ *  given by the first argument to point to the new array so that the
+ *  user code can populate the array. The freeing of the dynamically
+ *  allocated array will be handled automatically
  *  when the last downstream reader of the message has finished.
- *  This is a macro terminated with a semicolon.
- *  @param out A pointer to the output in the self struct.
+ *  An assertion will fail if the output has been previously allocated
+ *  or if the reaction does not declare that it produces the output.
+ *  @param out The name of the output.
  *  @param length The length of the array to be sent.
  */
-#define set_new_array(out, length) __set_new_array_impl(out, length); (*out ## _is_present) = true;
+#define set_new_array(out, length) \
+do { \
+    assert(out == NULL); \
+    out = __set_new_array_impl(&(self->__ ## out), length); \
+    self->__ ## out ## _is_present = true; \
+} while(0)
 
-/** Set the _is_present variable corresponding to the specified output
- *  to true. This is normally used with array outputs with fixed sizes
- *  and statically allocated structs. In these cases, the values in the
- *  output are normally written directly to the array or struct.
- *  This is a macro terminated with a semicolon.
+/** Version of set() for output types given as 'type[number]'.
+ *  This sets the _is_present variable corresponding to the specified output
+ *  to true (which causes the array message to be sent). The values in the 
+ *  output are normally written directly to the array or struct before or
+ *  after this is called. An assertion will fail if the reaction does
+ *  not declare that it produces the output.
  *  @param out A pointer to the output in the self struct.
  */
-#define set_present(out) (*out ## _is_present) = true;
+#define set_present(out) \
+do { \
+    assert(out != NULL); \
+    self->__ ## out ## _is_present = true; \
+} while(0)
 
-/** Version of set that hands to an output a dynamically allocated object.
- *  This will only work with an output that declared with a pointer type,
- *  type*. The deallocation is delegated to downstream reactors, which
+/** Version of set() for output types given as 'type*' where you want
+ *  to send a previously dynamically object of the specified type.
+ *  The deallocation is delegated to downstream reactors, which
  *  automatically deallocate when the reference count drops to zero.
- *  This is a macro terminated with a semicolon.
+ *  An assertion will fail if the output has been previously allocated
+ *  or if the reaction does not declare that it produces the output.
  *  @param out A pointer to the output in the self struct.
  *  @param val A pointer to the object to send.
  */
-#define set_token(out, val) out->value = val; out->length = 1; out->ref_count = out->initial_ref_count; (*out ## _is_present) = true;
+#define set_token(out, val) \
+do { \
+    assert(out == NULL); \
+    self->__ ## out.value = val; \
+    self->__ ## out.length = 1; \
+    self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
+    self->__ ## out ## _is_present = true; \
+} while(0)
 
 /** Return a writable copy of the specified input, which must be
  *  a message carried by a token_t struct. If the reference count
@@ -173,7 +229,7 @@ typedef void(*reaction_function_t)(void*);
 
 /** Token type for dynamically allocated arrays and structs sent as messages. */
 typedef struct token_t {
-    /** Pointer to a struct or array to be sent as a message. */
+    /** Pointer to a struct or array to be sent as a message. Must be first. */
     void* value;
     /** Size of the struct or array element. */
     int element_size;
