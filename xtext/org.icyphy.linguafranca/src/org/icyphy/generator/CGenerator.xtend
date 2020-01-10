@@ -1423,11 +1423,38 @@ class CGenerator extends GeneratorBase {
                     nameOfSelfStruct + "." + state.name + " = " +
                         timeInTargetLanguage(time.toString, unit) + ";")
             } else {
-                pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "." + state.name + " = " +
+                // If the state is initialized with a parameter, then do not use
+                // a temporary variable. Otherwise, do, because
+                // static initializers for arrays and structs have to be handled
+                // this way, and there is no way to tell whether the type of the array
+                // is a struct.
+                if (state.parameter !== null) {
+                    pr(initializeTriggerObjects,
+                        nameOfSelfStruct + "." + state.name + " = " +
                         removeCodeDelimiter(value) + ";")
+                } else {
+                    val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
+                    var type = removeCodeDelimiter(state.type);
+                    val matcher = arrayPatternVariable.matcher(type)
+                    if (matcher.find()) {
+                        // If the state type ends in [], then we have to move the []
+                        // because C is very picky about where this goes. It has to go
+                        // after the variable name.
+                        pr(initializeTriggerObjects,
+                            "static " + matcher.group(1) + " " +
+                            temporaryVariableName + "[] = " + removeCodeDelimiter(state.value) + ";"
+                        )
+                    } else {
+                        pr(initializeTriggerObjects,
+                            "static " + type + " " +
+                            temporaryVariableName + " = " + removeCodeDelimiter(state.value) + ";"
+                        )
+                    }
+                    pr(initializeTriggerObjects,
+                        nameOfSelfStruct + "." + state.name + " = " + temporaryVariableName + ";"
+                    )                    
+                }
             }
-
         }
 
         // Generate reaction structs for the instance.
