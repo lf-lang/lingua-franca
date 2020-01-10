@@ -9,7 +9,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
-import java.util.regex.Pattern
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.GeneratorContext
@@ -19,18 +18,29 @@ import org.eclipse.xtext.util.CancelIndicator
 import org.eclipse.xtext.validation.CheckMode
 import org.eclipse.xtext.validation.IResourceValidator
 import org.icyphy.LinguaFrancaStandaloneSetup
+import java.io.FileNotFoundException
 
 class Main {
 
 	def static main(String[] args) {
 		// FIXME: perhaps accept a `-o` flag here
-		if (args.empty) {
-			System::err.println('Aborting: no path to EMF resource provided!')
-			return
-		}
+		
 		val injector = new LinguaFrancaStandaloneSetup().createInjectorAndDoEMFRegistration
 		val main = injector.getInstance(Main)
-		main.runGenerator(args.get(0))
+		try {
+		    main.runGenerator(args.get(0))    
+		} catch(FileNotFoundException e) {
+		    System::err.println('lfc: fatal error: no input file')
+		    System.exit(1);
+		} catch(IOException e) {
+            System::err.println('lfc: error reading input file');
+            System.exit(1);
+        } catch(RuntimeException e) {
+            System::err.println('lfc: unexpected error');
+            System::err.println(e.message);
+            System.exit(1);
+        }
+		
 	}
 
 	@Inject Provider<ResourceSet> resourceSetProvider
@@ -46,36 +56,24 @@ class Main {
 		val set = resourceSetProvider.get
 		val fileRoot = (new File("")).getAbsolutePath()
 		val fileName = fileRoot + File.separator + string;
+
+        val f = new File(fileName)
+        if (!f.exists) {
+            System::err.println('lfc: error: ' + fileName + ': No such file or directory');
+            throw new FileNotFoundException(fileName);
+        }
+        
 		val resource = set.getResource(URI.createFileURI(fileName), true)
 
 		// Read the code
 		val code = new StringBuilder();
-		try {
+		
 			val reader = new BufferedReader(new FileReader(fileName));
 			var String line;
 			while ((line = reader.readLine()) !== null) {
 				code.append(line).append("\n");
 			}
-		} catch (IOException e) {
-			System::err.println('Aborting. Unable to read file: ' + fileName);
-		}
-
-//		// Parse out imports and add them to a list
-//		// RegEx based on org.eclipse.xtext.common.Terminals
-//		val id = "(?:([a-z]|[A-Z]|_)\\w*)";
-//		// RegEx based on LinguaFranca.xtext
-//		val pattern = Pattern.compile("import(?:\\s)*(" + id + "(?:." + id + ")*)\\s*;");
-//		val matcher = pattern.matcher(code);
-//
-//		val imports = newArrayList();
-//		while (matcher.find) {
-//			imports.add(matcher.group(1));
-//		}
-
-		// Add the listed imports to the resource
-		//for (import : imports) {
-		//	set.getResource(URI.createFileURI(fileRoot + File.separator + import), true)
-		//}
+		
 
 		// Validate the resource
 		val issues = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl)
