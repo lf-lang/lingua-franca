@@ -1,0 +1,32 @@
+// Test that a reaction can react to and send two multiple
+// ports of a contained reactor.
+target C;
+reactor Contained {
+    output trigger:int;
+    input in1:int;
+    input in2:int;
+    reaction(startup) -> trigger {=
+        set(trigger, 42);
+    =}
+    reaction(in1) {=
+        printf("in1 received %d.\n", in1);
+        if (in1 != 42) {
+            fprintf(stderr, "FAILED: Expected 42.\n");
+            exit(1);
+        }
+    =}
+    reaction(in2) {=
+        printf("in2 received %d.\n", in2);
+        if (in2 != 42) {
+            fprintf(stderr, "FAILED: Expected 42.\n");
+            exit(1);
+        }
+    =}
+}
+main reactor MultipleContained {
+    c = new Contained();
+    reaction(c.trigger) -> c.in1, c.in2 {=
+        set(c.in1, c.trigger);
+        set(c.in2, c.trigger);
+    =}
+}

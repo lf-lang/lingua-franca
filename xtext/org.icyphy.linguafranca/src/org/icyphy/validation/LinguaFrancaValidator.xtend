@@ -41,8 +41,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var outputs = newHashSet()
     var timers = newHashSet()
     var actions = newHashSet()
-    var allNames = newHashSet()
-    var containedNames = newHashSet() // Names of contained reactor instances.
+    var allNames = newHashSet() // Names of contained objects must be unique.
 
     var target = "";
     
@@ -64,11 +63,16 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         timers.clear()
         actions.clear()
         allNames.clear()
-        containedNames.clear()
     }
 
     @Check(FAST)
     def recordParameter(Parameter param) {
+        if (allNames.contains(param.name)) {
+            error(
+                UNIQUENESS_MESSAGE + param.name,
+                Literals.VARIABLE__NAME
+            )
+        }
         parameters.add(param.name)
         allNames.add(param.name)
     }
@@ -79,8 +83,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkAction(Action action) {
         if (allNames.contains(action.name)) {
             error(
-                "Names of parameters, inputs, timers, and actions must be unique: " +
-                    action.name,
+                UNIQUENESS_MESSAGE + action.name,
                 Literals.VARIABLE__NAME
             )
         }
@@ -120,8 +123,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkInput(Input input) {
         if (allNames.contains(input.name)) {
             error(
-                "Names of parameters, inputs, timers, and actions must be unique: " +
-                    input.name,
+                UNIQUENESS_MESSAGE + input.name,
                 Literals.VARIABLE__NAME
             )
         }
@@ -131,13 +133,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkInstance(Instantiation instance) {
-        if (containedNames.contains(instance.name)) {
+        if (allNames.contains(instance.name)) {
             error(
-                "Names of instances must be unique: " + instance.name,
+                UNIQUENESS_MESSAGE + instance.name,
                 Literals.INSTANTIATION__NAME
             )
         }
-        containedNames.add(instance.name)
+        allNames.add(instance.name)
         if (instance.reactorClass.isMain) {
             error(
                 "Cannot instantiate a main reactor: " 
@@ -151,8 +153,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkOutput(Output output) {
         if (allNames.contains(output.name)) {
             error(
-                "Names of parameters, inputs, timers, and actions must be unique: " +
-                    output.name,
+                UNIQUENESS_MESSAGE + output.name,
                 Literals.VARIABLE__NAME
             )
         }
@@ -221,8 +222,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkTimer(Timer timer) {
         if (allNames.contains(timer.name)) {
             error(
-                "Names of parameters, inputs, timers, and actions must be unique: " +
-                    timer.name,
+                UNIQUENESS_MESSAGE + timer.name,
                 Literals.VARIABLE__NAME
             )
         }
@@ -246,5 +246,5 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
     }
-
+    static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, and reactors) must be unique: "
 }
