@@ -284,28 +284,32 @@ class TypeScriptGenerator extends GeneratorBase {
         // parameter values? For now it's simpler to just create
         // the reactor instance with the default argument value.
         var arguments = new StringJoiner(", ")
+        if (reactor.isMain()) {
+            arguments.add("name: string")
+            arguments.add("timeout: TimeInterval | null")
+        } else {
+            arguments.add("parent:Reactor")
+        }
+        
         for (parameter : reactor.parameters) {
             if (getParameterType(parameter).equals("")) {
                 reportError(parameter,
                     "Parameter is required to have a type: " + parameter.name)
             } else {
-                arguments.add(parameter.name + ": " + getParameterType(parameter) + ", ")
+                arguments.add(parameter.name + ": " + getParameterType(parameter)
+                    +" = " + removeCodeDelimiter(parameter.value))
             }
         }
             
         // For TS, parameters are arguments of the class constructor.
         if (reactor.isMain()) {
-            pr(reactorConstructor, "constructor(" + arguments 
-                + "name: string, timeout: TimeInterval | null, success?: ()=> void, fail?: ()=>void) {"
-            )
+            arguments.add("success?: ()=> void")
+            arguments.add("fail?: ()=>void")
+            pr(reactorConstructor, "constructor(" + arguments + ") {")
             reactorConstructor.indent()
             pr(reactorConstructor, "super(timeout, success, fail);");
-            
         } else {
-            pr(reactorConstructor, "constructor(" + arguments 
-                + "parent:Reactor) {"
-            )
-           
+            pr(reactorConstructor, "constructor (" + arguments + ") {")
             reactorConstructor.indent()
             pr(reactorConstructor, "super(parent);");
         }
@@ -314,7 +318,8 @@ class TypeScriptGenerator extends GeneratorBase {
         for (childReactor : reactor.instantiations ) {
             pr(childReactor.getName() + ": " + childReactor.reactorClass.name )
             
-            var childReactorArguments = new StringBuffer();
+            var childReactorArguments = new StringJoiner(", ");
+            childReactorArguments.add("this")
         
             // Iterate through parameters in the order they appear in the
             // reactor class, find the matching parameter assignments in
@@ -328,35 +333,33 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (parameterAssignment.lhs.name.equals(parameter.name)) {
                         defaultParameter = false;
                         if (parameterAssignment.rhs instanceof Parameter) {
-                            childReactorArguments.append("this." + parameterAssignment.rhs.parameter.name)
+                            childReactorArguments.add("this." + parameterAssignment.rhs.parameter.name)
                         } else if (parameterAssignment.rhs.value !== null) {
-                            childReactorArguments.append(removeCodeDelimiter(parameterAssignment.rhs.value))
+                            childReactorArguments.add(removeCodeDelimiter(parameterAssignment.rhs.value))
                         } else {
-                            childReactorArguments.append(
+                            childReactorArguments.add(
                                 timeInTargetLanguage(parameterAssignment.rhs.time.toString
                                    , parameterAssignment.rhs.unit))
-                        }   
+                        }
                     }
                 }
                 // This reactor instance did not have a value for this
                 // parameter set, so use the default parameter value.
                 if (defaultParameter) {
-                    if (parameter.ofTimeType) {
-                        childReactorArguments.append(
-                            timeInTargetLanguage(parameter.time.toString ,parameter.unit))
-                    } else {
-                        childReactorArguments.append(removeCodeDelimiter(parameter.value))
-                    }
+                    childReactorArguments.add("undefined")
+//                    if (parameter.ofTimeType) {
+//                        childReactorArguments.add(
+//                            timeInTargetLanguage(parameter.time.toString ,parameter.unit))
+//                    } else {
+//                        childReactorArguments.add(removeCodeDelimiter(parameter.value))
+//                    }
                 }
-                childReactorArguments.append(", ")
             }
             
-            // These arguments are always the last of a TypeScript reactor constructor
-            childReactorArguments.append("this");
             
             pr(reactorConstructor, "this." + childReactor.getName()
                 + " = new " + childReactor.reactorClass.name + "("
-                + childReactorArguments.toString() + ")" )
+                + childReactorArguments + ")" )
         }
        
         
@@ -397,13 +400,13 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Create properties for parameters
         for (param : reactor.parameters) {
-            var String paramType;
-            if (param.ofTimeType) {
-                paramType = "TimeInterval"
-            } else {
-                paramType = param.type
-            }
-            pr(param.name + ": " + paramType + "; // Parameter")
+//            var String paramType;
+//            if (param.ofTimeType) {
+//                paramType = "TimeInterval"
+//            } else {
+//                paramType = param.type
+//            }
+            pr(param.name + ": " + getParameterType(param) + "; // Parameter")
             pr(reactorConstructor, "this." + param.name + " = " + param.name + "; // Parameter" )
         }
 
@@ -412,7 +415,7 @@ class TypeScriptGenerator extends GeneratorBase {
             if (state.parameter !== null) {
                 // State is a parameter
                 pr(state.name + ': ' +
-                removeCodeDelimiter(state.parameter.type) +  '; // State');
+                getParameterType(state.parameter) +  '; // State');
                 pr(reactorConstructor, "this." + state.name + " = "
                         + state.parameter.name + "; // State" )
             } else {  
@@ -652,7 +655,8 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("}")
         pr("// =============== END reactor class " + reactor.name)
         pr("")
-        
+
+//      FIXME: IMPLEMENT DEADLINES
 //        var reactionArray = "this._reactions = [ "
 //        var reactionIndex = 0;
 //        for (reaction : reactor.reactions) {
