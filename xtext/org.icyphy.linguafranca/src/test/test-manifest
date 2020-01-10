@@ -31,6 +31,7 @@ ImportThreaded.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf
+MultipleContained.lf
 ParameterizedState.lf
 Preamble.lf
 ReadOutputOfContainedReactor.lf
