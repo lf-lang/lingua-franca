@@ -8,10 +8,11 @@ reactor Deadline(threshold:time(100 msec)) {
     output deadline_violation:boolean;
     reaction(x) -> deadline_violation {=
         console.log("ERROR: Deadline violation was not detected!");
-        throw new Error("ERROR: Deadline violation was not detected!");
+        self.util.failure()
+        //throw new Error("ERROR: Deadline violation was not detected!");
     =} deadline(threshold) {=
         console.log("Deadline violation detected.");
-        (this.state as any).deadline_violation.set(true);
+        deadline_violation.set(true);
     =}
 }
 main reactor DeadlineHandledAbove {
@@ -19,22 +20,23 @@ main reactor DeadlineHandledAbove {
     d = new Deadline(threshold = 10 msec);
     reaction(startup) -> d.x {=
         // Busy wait 20 msec to cause a deadline violation.
-        let initialElapsedTime = this._getElapsedPhysicalTime()
-        while( compareNumericTimeIntervals( this._getElapsedPhysicalTime(), numericTimeSum( initialElapsedTime, [0, 20000000])));
-        (this.state as any).d.x.set(42);
+        let initialElapsedTime = self.util.getElapsedPhysicalTime();
+        while ( self.util.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeInterval(20, TimeUnit.msec))));
+        d.x.set(42);
     =}
-    reaction(d.deadline_violation) {=
-        if( (this.state as any).d.deadline_violation.get()){
+    reaction(d.deadline_violation) d.deadline_violation {=
+        if( d.deadline_violation.get()){
             console.log("Output successfully produced by deadline miss handler.");
-            (this.state as any).violation_detected = true;
+            self.violation_detected = true;
         }
     =}
     reaction(shutdown) {=
-        if ( (this.state as any).violation_detected) {
+        if ( self.violation_detected) {
             console.log("SUCCESS. Test passes.");
         } else {
             console.log("FAILURE. Container did not react to deadline violation.");
-            throw new Error("FAILURE. Container did not react to deadline violation.");
+            self.util.failure()
+            //throw new Error("FAILURE. Container did not react to deadline violation.");
         }
     =}
 }

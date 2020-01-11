@@ -5,7 +5,7 @@
  * @author Matt Weber (matt.weber@berkeley.edu)
  */
 
-import {PrecedenceGraphNode, PrioritySetNode, PrioritySet, PrecedenceGraph} from './util';
+import {PrecedenceGraphNode, PrioritySetNode, PrioritySet, PrecedenceGraph, Log} from './util';
 import {TimeInterval, TimeInstant, Origin, getCurrentPhysicalTime} from './time';
 
 //---------------------------------------------------------------------//
@@ -16,14 +16,6 @@ import {TimeInterval, TimeInstant, Origin, getCurrentPhysicalTime} from './time'
  * Timer used for precisely timing the triggering of reactions.
  */
 const NanoTimer = require('nanotimer');
-
-/**
- * Logging facilty that has multiple levels of severity.
- * Set the `LOG` environment variable to the desired log
- * level prior to running node. For example:
- * `LOG=info && node ./myapp.js`
- */
-var log = require('ulog')('reactor');
 
 //---------------------------------------------------------------------//
 // Types and Helper Functions                                          //
@@ -104,6 +96,8 @@ export interface Schedulable<T> {
 export interface Writable<T> extends Readable<T> {
     set: (value: T | null) => void;
     isProxyOf: (port: Port<any>) => boolean;
+    getPort(): Port<T>;
+    toString(): string;
 }
 
 /**
@@ -205,6 +199,10 @@ export abstract class Reaction<T> implements PrecedenceGraphNode<Priority>, Prio
         this.next = node;
     }
 
+    public toString(): string {
+        return this.parent.getFullyQualifiedName() + "[" + this.parent.getIndex(this) + "]";
+    }
+
     getDependencies(): [Set<Variable>, Set<Variable>] { 
         var deps:Set<Variable> = new Set();
         var antideps: Set<Variable> = new Set();
@@ -217,6 +215,12 @@ export abstract class Reaction<T> implements PrecedenceGraphNode<Priority>, Prio
                 if (this.parent._isDownstream(a)) {
                     antideps.add(a);
                 }
+            } else if (a instanceof Writer) {
+                if (this.parent._isDownstream(a.getPort())) {
+                    antideps.add(a.getPort());
+                }
+            } else {
+                Log.debug("Found argument that is not a Port or Writer: " + a); // Scheduler
             }
         }
         return [deps, antideps];
@@ -239,7 +243,7 @@ export abstract class Reaction<T> implements PrecedenceGraphNode<Priority>, Prio
     }
 
     //A reaction defaults to not having a deadline  FIXME: we want the deadline to have access to the same variables
-    deadline: null| Deadline = null;
+    timeout: TimeInterval | undefined;
 
     /** 
      * Construct a new Reaction by passing in a reference to the reactor that contains it,
@@ -260,11 +264,25 @@ export abstract class Reaction<T> implements PrecedenceGraphNode<Priority>, Prio
      */
     public abstract react(...args:VarList<T>): void;
 
+    public late(...args:VarList<T>): void {
+        Log.warn("Deadline violation occurred!")
+    }
+    
 //    private values: Map<Readable<unknown>, unknown> = new Map();
 
     public doReact() {
-        console.log(">>> Reacting >>>" + this.constructor.name);
-        this.react.apply(this, this.args);
+        Log.debug(">>> Reacting >>>" + this.constructor.name);
+        // Test if this reaction has a deadline which has been violated.
+        // This is the case if the reaction has a registered deadline and
+        // logical time + timeout < physical time
+        if (this.timeout && 
+                !this.parent.util.getCurrentLogicalTime()
+                .getLaterTime(this.timeout)
+                .isEarlierThan(getCurrentPhysicalTime())) {
+            this.late.apply(this, this.args);
+        } else {
+            this.react.apply(this, this.args); // on time
+        }
     }
 
     /**
@@ -272,11 +290,12 @@ export abstract class Reaction<T> implements PrecedenceGraphNode<Priority>, Prio
      * the deadline's timeout will determine whether the reaction's 
      * react function or the deadline's handle function will be invoked.
      * If a deadline has not been set the reaction's react function
-     * will always always be invoked. 
-     * @param deadline The deadline to attach to this reaction.
+     * will be invoked once triggered. 
+     * @param deadline The deadline to set to this reaction.
      */
-    public setDeadline(deadline : Deadline){
-        this.deadline = deadline;
+    setDeadline(timeout: TimeInterval): this {
+        this.timeout = timeout;
+        return this;
     }
 
     /**
@@ -286,52 +305,6 @@ export abstract class Reaction<T> implements PrecedenceGraphNode<Priority>, Prio
      */
     public setPriority(priority: number){
         this.priority = priority;
-    }
-}
-
-/**
- * The abstract class for a reaction deadline. A deadline is an optional relation
- * between logical time and physical time for a reaction. A reaction possessing a
- * deadline with a timeout of x seconds will invoke the deadline's handler()
- * function instad of its ordinary react() function if the reaction is invoked with 
- * physical time > logical time + timeout.
- */
-export abstract class Deadline {
-
-    /**
-     * The time after which the deadline miss's handler is invoked.
-     */
-    private timeout: TimeInterval;
-
-    /**
-     * A reference to the reactor this deadline is a part of so it can
-     * access reactor state.
-     */
-    protected state: Reactor;
-
-    /**
-     * Getter for timeout.
-     */
-    public getTimeout(){
-        return this.timeout;
-    }
-
-    /**
-     * This handler function must be overriden by a concrete handler.
-     */
-    handler(){
-        throw new Error("handler function hasn't been defined.")
-    }
-
-    /**
-     * Deadline constructor.
-     * @param state A reference to the state of reactor this deadline is attached to.
-     * @param timeout Time after which the deadline has been missed and the deadline
-     * miss handler should be invoked.
-     */
-    constructor(state: Reactor, timeout: TimeInterval){
-        this.state = state;
-        this.timeout = timeout;
     }
 }
 
@@ -529,11 +502,11 @@ export class Scheduler<T> implements Readable<T>, Schedulable<T> {
      * The value will be available to reactions depending on this action.
      */
     schedule(extraDelay: TimeInterval | 0, value?: T) {
-        console.log("Scheduling action " + this.action.getName());
+        Log.debug("Scheduling action " + this.action.getName());
         if (!(extraDelay instanceof TimeInterval)) {
             extraDelay = new TimeInterval(0);
         }
-        console.log(">>parent: " + this.parent)
+        Log.debug(">>parent: " + this.parent)
         var tag = this.parent.util.getCurrentLogicalTime();
         var delay = this.action.minDelay.add(extraDelay);
         if (this.action.origin == Origin.physical) {
@@ -683,18 +656,14 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
         return new Writer(port);
     }
 
-    /**
-     * Return the set of downstream ports that this reactor connects 
-     * to the given port.
-     * @param port The port to look up its destinations for.
-     */
-    public getDestinations(port: Port<unknown>): Set<Port<unknown>> {
-        var dests = this._destinationPorts.get(port);
-        if (dests) {
-            return dests;
-        } else {
-            return new Set();
+    public getIndex(reaction: Reaction<unknown>): number {
+        
+        for (let i = 0; i < this._reactions.length; i++) {
+            if (Object.is(reaction, this._reactions[i])) {
+                return i-2; // subtract two for default startup and shutdown
+            }
         }
+        throw new Error("Reaction is not listed.");
     }
 
     /**
@@ -702,8 +671,24 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
      * to the given port.
      * @param port The port to look up its destinations for.
      */
+    public getDestinations(port: Port<unknown>): Set<Port<unknown>> {
+        if (this.parent) {
+            let dests = (this.parent as Reactor)._destinationPorts.get(port);
+            if (dests) {
+                return dests;
+            }    
+        }
+        return new Set();
+    }
+
+    /**
+     * Return the upstream port that this reactor connects to the given port.
+     * @param port The port to look up its source for.
+     */
     public getSource(port: Port<unknown>): Port<unknown>|undefined {
-        return this._sourcePort.get(port);
+        if (this.parent) {
+            return (this.parent as Reactor)._sourcePort.get(port); // FIXME: weird cast
+        }
     }
 
     /**
@@ -743,6 +728,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
         // Ensure that arguments are compatible with implementation of react().
         (function<X>(args: VarList<X>, fun: (...args:VarList<X>) => void): void {
         })(reaction.args, reaction.react);
+        
         this._reactions.push(reaction);
         // Stick this reaction into the trigger map to ensure it gets triggered.
         for (let t of reaction.trigs) {
@@ -756,7 +742,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
             if (t instanceof Port) {
                 this._addDependency(t, reaction);
             } else {
-                console.log(">>>>>>>> not a dependency:" + t);
+                Log.debug(">>>>>>>> not a dependency:" + t);
             }
         }
 
@@ -777,6 +763,9 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
             if (a instanceof Scheduler) {
                 // antidep
             }
+            if (a instanceof Writer) {
+                this._addAntiDependency(a.getPort(), reaction);
+            }
         }
 
         return reaction;
@@ -790,7 +779,8 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
         }
         
         let prev: Reaction<unknown> | null = null;
-        for (let r of this._reactions) {
+        for (let i=0; i < this._reactions.length; i++) {
+            let r = this._reactions[i];
             graph.addNode(r);
             // Establish dependencies between reactions
             // depending on their ordering inside the reactor.
@@ -802,12 +792,16 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
             for (let d of deps[0]) {
                 if (d instanceof Port) {
                     graph.addEdges(r, d.getUpstreamReactions());
+                } else {
+                    Log.error("Found dependency that is not a port")
                 }
             }
             // look downstream
             for (let d of deps[1]) {
                 if (d instanceof Port) {
                     graph.addBackEdges(r, d.getDownstreamReactions());
+                } else {
+                    Log.error("Found antidependency that is not a port")
                 }
             }
             prev = r;
@@ -821,6 +815,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
         let s = this._dependentReactions.get(port);
         if (s == null) {
             s = new Set();    
+            this._dependentReactions.set(port, s);
         }
         s.add(reaction);
     }
@@ -828,7 +823,8 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
     private _addAntiDependency(port: Port<unknown>, reaction: Reaction<unknown>): void {
         let s = this._dependsOnReactions.get(port);
         if (s == null) {
-            s = new Set();    
+            s = new Set();
+            this._dependsOnReactions.set(port, s);    
         }
         s.add(reaction);
     }
@@ -842,7 +838,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
     public _propagateValue<T>(src: Port<T>): void {
         var value = src.get();
         if (value == null) {
-            console.log("Retrieving null value from " + src.getFullyQualifiedName());
+            Log.debug("Retrieving null value from " + src.getFullyQualifiedName());
             return;
         }
         var reactions = this._triggerMap.get(src);
@@ -852,7 +848,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
                 this.app._triggerReaction(r);
             }
         } else {
-            console.log("No reactions to trigger.")
+            Log.debug("No reactions to trigger.")
         }
         // Update all ports that the src is connected to.
         if (this.parent && this.parent instanceof Reactor) {
@@ -865,14 +861,14 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
                     d.update(this.getWritable(d), value);
                 }
             } else {
-                console.log("No downstream receivers.");
+                Log.debug("No downstream receivers.");
             }
         }
         
     }
 
     public triggerReactions(e: Event<unknown>) {
-        console.log("Triggering reactions sensitive to " + e.trigger);
+        Log.debug("Triggering reactions sensitive to " + e.trigger);
         let reactions = this._triggerMap.get(e.trigger);
         if (reactions) {
             for (let r of reactions) {
@@ -910,7 +906,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
         var startup = new class<T> extends Reaction<T> {
             // @ts-ignore
             react(): void {
-                console.log("*** Performing startup reaction of " + this.parent.getFullyQualifiedName());   
+                Log.debug("*** Performing startup reaction of " + this.parent.getFullyQualifiedName());   
                     // Schedule startup for all contained reactors.
                     this.parent._startupChildren();
                     this.parent._setTimers();
@@ -931,14 +927,14 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
 
     public _startupChildren() {
         for (let r of this._getChildren()) {
-            console.log("Propagating startup: " + r.startup);
+            Log.debug("Propagating startup: " + r.startup);
             this.getSchedulable(r.startup).schedule(0);
         }
     }
 
     public _shutdownChildren() {
         for (let r of this._getChildren()) {
-            console.log("Propagating startup: " + r.startup);
+            Log.debug("Propagating startup: " + r.startup);
             this.getSchedulable(r.shutdown).schedule(0);
         }
     }
@@ -1104,7 +1100,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
     protected _connect<D, S extends D>(src:Port<S>, dst:Port<D>) {
         //***********
         if (this.canConnect(src, dst)) {
-            console.log("connecting " + src + " and " + dst);
+            Log.debug("connecting " + src + " and " + dst);
             let dests = this._destinationPorts.get(src);
             if (dests == null) {
                 dests = new Set();
@@ -1113,12 +1109,12 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
             this._destinationPorts.set(src, dests);
             this._sourcePort.set(dst, src);
         } else {
-            console.log("ERROR connecting.");
+            console.error("ERROR connecting.");
         }
     }
 
     protected _disconnect(src:Port<unknown>, dst: Port<unknown>) {
-        console.log("disconnecting " + src + " and " + dst);
+        Log.debug("disconnecting " + src + " and " + dst);
         let dests = this._destinationPorts.get(src);
         if (dests != null) {
             dests.delete(dst);
@@ -1154,7 +1150,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
      * Set all the timers of this reactor.
      */
     public _setTimers(): void {
-        console.log("Setting timers for: " + this);
+        Log.debug("Setting timers for: " + this);
         let timers = new Set<Timer>();
         for (const [k, v] of Object.entries(this)) {
             if (v instanceof Timer) {
@@ -1167,7 +1163,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
      * Unset all the timers of this reactor.
      */
     public _unsetTimers(): void {
-        // console.log("Getting timers for: " + this)
+        // Log.debug("Getting timers for: " + this)
         let timers = new Set<Timer>();
         for (const [k, v] of Object.entries(this)) {
             if (v instanceof Timer) {
@@ -1181,7 +1177,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
      * and return the set of its ports.
      */
     public _getPorts(): Set<Port<any>>{
-        // console.log("Getting ports for: " + this)
+        // Log.debug("Getting ports for: " + this)
         let ports = new Set<Port<any>>();
         for (const [key, value] of Object.entries(this)) {
             if (value instanceof Port) {
@@ -1196,7 +1192,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
      * and return the set of its actions.
      */
     public _getActions(): Set<Action<any>>{
-        // console.log("Getting actions for: " + this)
+        // Log.debug("Getting actions for: " + this)
         let actions = new Set<Action<any>>();
         for (const [key, value] of Object.entries(this)) {
             if (value instanceof Action) {
@@ -1224,8 +1220,8 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
      * @param app The app for this and all contained reactors.
      */
     // public _setApp(app: App){
-    //     // console.log("Starting _setApp for: " + this._getFullyQualifiedName());
-    //     console.log("Setting app for: " + this);
+    //     // Log.debug("Starting _setApp for: " + this._getFullyQualifiedName());
+    //     Log.debug("Setting app for: " + this);
     //     this._app = app;
     //     // Recursively set the app attribute for all contained reactors to app.
     //     let children = this._getChildren();
@@ -1303,10 +1299,15 @@ export abstract class Port<T> extends Descendant implements Readable<T> {
     public getUpstreamReactions(): Set<Reaction<unknown>> {
         var reactions: Set<Reaction<unknown>> = new Set();
         var source = this.parent.getSource(this);
+        Log.debug("Finding upstream reactions for " + this);
         if (source) {
+            Log.debug(">>>");
+            // Reactions upstream (i.e., in other reactors).
             reactions = new Set([...reactions, ...source.getUpstreamReactions()]);
         }
-        reactions = new Set([...reactions, ...this.parent.getUpstreamReactions(this)]); // FIXME
+        // Reactions local (i.e., within the reactor).
+        reactions = new Set([...reactions, ...this.parent.getUpstreamReactions(this)]);
+        Log.debug("Reactions found!");
         return reactions;
     }
 
@@ -1344,14 +1345,14 @@ export abstract class Port<T> extends Descendant implements Readable<T> {
             // Only update the value if the proxy has a reference
             // to this port. If it does, the type variables must
             // match; no further checks are needed.
-            log.debug("Updating value of " + this.getFullyQualifiedName());
+            Log.debug("Updating value of " + this.getFullyQualifiedName());
             //@ts-ignore
             this.value = value;
-            log.debug(">> parent: " + this.parent);
+            Log.debug(">> parent: " + this.parent);
             this.tag = this.parent.util.getCurrentLogicalTime();
             this.parent._propagateValue(this); // FIXME: should this be a utility function?
         } else {
-            log.warn("WARNING: port update denied.");
+            Log.warn("WARNING: port update denied.");
         }
     }
 
@@ -1415,7 +1416,7 @@ class Writer<T> implements Writable<T> { // NOTE: don't export this class!
     * @param value The value to be written.
     */
     public set(value: T | null):void {
-        console.log("set() has been called on " + this.port.getFullyQualifiedName());
+        Log.debug("set() has been called on " + this.port.getFullyQualifiedName());
         if (value != null) {
             this.port.update(this, value);
         }
@@ -1430,6 +1431,14 @@ class Writer<T> implements Writable<T> { // NOTE: don't export this class!
             return true;
         }
         return false;
+    }
+
+    public getPort() {
+        return this.port;
+    }
+
+    public toString() {
+        return "Writable(" + this.port.toString() + ")";
     }
 }
 
@@ -1461,6 +1470,7 @@ class ReactionQueue extends PrioritySet<Priority> {
     public peek(): Reaction<unknown> {
         return super.peek() as Reaction<unknown>;
     }
+
 }
 
 export class App extends Reactor { // Perhaps make this an abstract class, like reactor; omit the name parameter.
@@ -1501,7 +1511,6 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
         
     }(this);
 
-
     /**
      * The current time, made available so actions may be scheduled relative to it.
      */
@@ -1538,7 +1547,7 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
     private _keepAlive = false;
 
     /**
-     * Priority set that keeps track of reactions at the current logical time.
+     * Priority set that keeps track of reactions at the current Logical time.
      */
     private _reactionQ = new ReactionQueue();
 
@@ -1547,7 +1556,7 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
      * @param timer The timer to report to the app.
      */
     public _setTimer(timer: Timer) {
-        console.log(">>>>>>>>>>>>>>>>>>>>>>>>Setting timer: " + timer);
+        Log.debug(">>>>>>>>>>>>>>>>>>>>>>>>Setting timer: " + timer);
         this.schedule(new Event(timer, 
             this.util.getCurrentLogicalTime().getLaterTime(timer.offset), 
             null));
@@ -1578,7 +1587,7 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
      */
     constructor(executionTimeout: TimeInterval | null = null, public success: ()=> void = () => {}, public failure: ()=>void = () => {}) {
         super(null);
-        App.instances.add(this);
+        //App.instances.add(this);
         this._executionTimeout = executionTimeout;
         // NOTE: these will be reset properly during startup.
         this._currentLogicalTime = new TimeInstant(new TimeInterval(0), 0);
@@ -1587,22 +1596,22 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
 
     static instances: Set<App> = new Set(); // FIXME: we have to remove the instance from the set when we're done with it, or this will create a memory leak.
 
-    getName(): string {
-        var alias = super.getName();
-        var count = 0;
-        var suffix = "";
-        if (alias == this.constructor.name) {
-            for (let a of App.instances) {
-                if (a !== this && alias === a.constructor.name) {
-                    count++;
-                }
-            }
-        }
-        if (count > 0) {
-            suffix = "(" + count + ")";
-        }
-        return alias + suffix;
-    }
+    // getName(): string {
+    //     var alias = super.getName();
+    //     var count = 0;
+    //     var suffix = "";
+    //     if (alias == this.constructor.name) {
+    //         for (let a of App.instances) {
+    //             if (a !== this && alias === a.constructor.name) {
+    //                 count++;
+    //             }
+    //         }
+    //     }
+    //     if (count > 0) {
+    //         suffix = "(" + count + ")";
+    //     }
+    //     return alias + suffix;
+    // }
 
     /**
      * Handle the next event on the event queue.
@@ -1623,13 +1632,13 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
      * allowed to continue indefinitely.
      */
     private _next() {
-        console.log("New invocation of next().");
-        console.log("Logical time: " + this.util.getCurrentLogicalTime());
-        console.log("Physical time: " + getCurrentPhysicalTime());
+        Log.debug("New invocation of next().");
+        Log.debug("Logical time: " + this.util.getCurrentLogicalTime());
+        Log.debug("Physical time: " + getCurrentPhysicalTime());
 
         // Terminate with success if timeout has been reached.
         if (this._endOfExecution && this._endOfExecution.isEarlierThan(getCurrentPhysicalTime())) {
-            console.log("Execution timeout reached. Terminating runtime with success.");
+            Log.info("Execution timeout reached. Terminating runtime with success.");
             this.success();
             return;
         }
@@ -1637,26 +1646,26 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
         var nextEvent = this._eventQ.peek();
 
         if (nextEvent == undefined) {
-            console.log("Empty event queue.");
+            Log.debug("Empty event queue.");
             this.suspendOrTerminate();
             return;
         } else if (getCurrentPhysicalTime().isEarlierThan(nextEvent.time)) {
             // Simply return if it is too early to handle the next event;
             // Next will be invoked when the alarm goes off.
-            console.log("Too early to handle next event.");
+            Log.debug("Too early to handle next event.");
             return;
         } else {
             if (nextEvent.trigger === this.snooze) {
-                console.log("Woken up after suspend.");
+                Log.debug("Woken up after suspend.");
             }
             this._currentLogicalTime = nextEvent.time;
-            console.log("Processing events. Logical time elapsed: " + this.util.getElapsedLogicalTime());
+            Log.debug("Processing events. Logical time elapsed: " + this.util.getElapsedLogicalTime());
             while (nextEvent != null && nextEvent.time.isSimultaneousWith(this._currentLogicalTime)) {
                 this._eventQ.pop();
                 // Handle timers.
                 if (nextEvent.trigger instanceof Timer) {
                     if (!nextEvent.trigger.period.isZero()) {
-                        console.log("Rescheduling timer " + nextEvent.trigger);
+                        Log.debug("Rescheduling timer " + nextEvent.trigger);
                         // reschedule
                         this.schedule(new Event(nextEvent.trigger, 
                             this._currentLogicalTime.getLaterTime(nextEvent.trigger.period), 
@@ -1670,18 +1679,7 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
             }
 
             while(this._reactionQ.size() > 0) {
-                // Test if this reaction has a deadline which has been violated.
-                // This is the case if the reaction has a registered deadline and
-                // logical time + timeout < physical time
-                // FIXME: temporarily disabled deadlines
-                // if(r.deadline && compareNumericTimeIntervals( 
-                //         numericTimeSum(this._currentLogicalTime[0], timeIntervalToNumeric(r.deadline.getTimeout())),
-                //         currentPhysicalTime)){
-                //     console.log("handling deadline violation");
-                //     r.deadline.handler();
-                // } else {
                 this._reactionQ.pop().doReact();
-                // }
             }
             nextEvent = this._eventQ.peek();
             if (nextEvent != null) {
@@ -1689,7 +1687,7 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
                 this.setAlarm(nextEvent);
             } else {
                 // Or suspend/terminate.
-                console.log("Empty event queue.")
+                Log.debug("Empty event queue.")
                 this.suspendOrTerminate();
             }
         }
@@ -1698,7 +1696,7 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
     private suspendOrTerminate() {
         if (this._keepAlive) {
             // Snooze if event queue is empty and keepalive is true.
-            console.log("Going to sleep.");
+            Log.debug("Going to sleep.");
             this.getSchedulable(this.snooze).schedule(0, this._currentLogicalTime);
             return;
         } else {
@@ -1750,19 +1748,23 @@ export class App extends Reactor { // Perhaps make this an abstract class, like 
         this._checkAllParents(null);
         // Recursively set the app attribute for this and all contained reactors to this.
         // Set reactions using a topological sort of the dependency graph.
+        Log.setLevel(Log.levels.DEBUG);
         var apg = this.getPrecedenceGraph();
         if (apg.updatePriorities()) {
-            console.log("No cycles.");
+            Log.debug("No cycles.");
         } else {
             throw new Error("Cycle in reaction graph.");
         }
-        console.log(apg.toString());
+        
+        Log.debug(apg.toString());
+        Log.setLevel(Log.levels.INFO);
         this._startOfExecution = getCurrentPhysicalTime();
         this._currentLogicalTime = this._startOfExecution;
         if(this._executionTimeout != null) {
             this._endOfExecution = this._startOfExecution.getLaterTime(this._executionTimeout);
-            console.log("Execution timeout: " + this._executionTimeout);
+            Log.debug("Execution timeout: " + this._executionTimeout);
         }
+
         // Set in motion the execution of this program.
         this.getSchedulable(this.startup).schedule(0);
     }
