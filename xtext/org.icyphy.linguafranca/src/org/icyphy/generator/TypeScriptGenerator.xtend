@@ -295,8 +295,11 @@ class TypeScriptGenerator extends GeneratorBase {
             if (getParameterType(parameter).equals("")) {
                 reportError(parameter,
                     "Parameter is required to have a type: " + parameter.name)
+            } else if (parameter.ofTimeType){
+                 arguments.add(parameter.name + ": " + getParameterType(parameter)
+                    +" = " + timeInTargetLanguage(parameter.time.toString() , parameter.unit )  )
             } else {
-                arguments.add(parameter.name + ": " + getParameterType(parameter)
+                 arguments.add(parameter.name + ": " + getParameterType(parameter)
                     +" = " + removeCodeDelimiter(parameter.value))
             }
         }
@@ -376,6 +379,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 } else {
                     if (timer.period.parameter !== null) {
                         timerPeriod = timer.period.parameter.name
+                    } else if (Integer.parseInt(timer.period.time.toString) === 0 ) {
+                        timerPeriod = "0"
                     } else {
                         timerPeriod = timeInTargetLanguage(timer.period.time.toString(), timer.period.unit)
                     }
@@ -385,8 +390,10 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (timer.offset === null) {
                     timerOffset = "0";
                 } else {
-                    if (timer.offset.parameter !== null) {
+                     if (timer.offset.parameter !== null) {
                         timerOffset = timer.offset.parameter.name
+                    } else if (Integer.parseInt(timer.offset.time.toString) === 0 ) {
+                        timerOffset = "0"
                     } else {
                         timerOffset = timeInTargetLanguage(timer.offset.time.toString(), timer.offset.unit)
                     }
@@ -494,27 +501,27 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactorConstructor, "this._connect(this." + leftPortName + ", this." + rightPortName + ");")
         }
 
-        // Find output ports that receive data from inside reactors
-        // and put them into a HashMap for future use.
-        var outputToContainedOutput = new HashMap<Output, VarRef>();
-        for (connection : reactor.connections) {
-            // If the connection has the form c.x -> y, then it's what we are looking for.
-            if (connection.rightPort.container === null &&
-                connection.leftPort.container !== null) {
-                if (connection.rightPort.variable instanceof Output) {
-                    outputToContainedOutput.put(
-                        connection.rightPort.variable as Output,
-                        connection.leftPort
-                    )
-                } else {
-                    reportError(
-                        connection,
-                        "Expected an output port but got " +
-                            connection.rightPort.variable.name
-                    )
-                }
-            }
-        }
+//        // Find output ports that receive data from inside reactors
+//        // and put them into a HashMap for future use.
+//        var outputToContainedOutput = new HashMap<Output, VarRef>();
+//        for (connection : reactor.connections) {
+//            // If the connection has the form c.x -> y, then it's what we are looking for.
+//            if (connection.rightPort.container === null &&
+//                connection.leftPort.container !== null) {
+//                if (connection.rightPort.variable instanceof Output) {
+//                    outputToContainedOutput.put(
+//                        connection.rightPort.variable as Output,
+//                        connection.leftPort
+//                    )
+//                } else {
+//                    reportError(
+//                        connection,
+//                        "Expected an output port but got " +
+//                            connection.rightPort.variable.name
+//                    )
+//                }
+//            }
+//        }
         
         
         // Next handle reaction instances
@@ -549,7 +556,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     reactSignatureElement += ">"
                     reactSignature.add(reactSignatureElement)
                     
-                    reactFunctArgs.add("this." + source.variable.name + ", ")
+                    reactFunctArgs.add("this." + source.variable.name)
                 } else {
                     var args = containerToArgs.get(source.container)
                     if (args === null) {
@@ -633,6 +640,32 @@ class TypeScriptGenerator extends GeneratorBase {
             var reactionArguments = "this, this.check(" + reactionTriggers
                 + "), this.check(" + reactFunctArgs + ")";
             
+//            var deadlineClassName = reactor.name + '_d' + reactionIndex;
+//            if(reaction.deadline !== null){
+//                pr(deadlineClass, 'class ' + deadlineClassName + ' extends Deadline {')
+//                deadlineClass.indent()
+//                pr(deadlineClass, "handler(){")
+//                deadlineClass.indent()
+//                pr(deadlineClass, removeCodeDelimiter(reaction.deadline.deadlineCode))
+//                deadlineClass.unindent()
+//                pr(deadlineClass, "}")
+//                deadlineClass.unindent()
+//                pr(deadlineClass, "}")
+//      
+//            }
+            
+            
+            // Next, handle the reaction deadline if any
+//            if (reaction.deadline !== null) {
+//                var deadlineName = reactor.name + '_d' + reactionIndex
+//                var deadlineArgs = "this, "
+//                if (reaction.deadline.time.parameter !== null) {
+//                    deadlineArgs+= "this." + reaction.deadline.time.parameter.name; 
+//                } else {
+//                    deadlineArgs += timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
+//                }
+//                pr(reactorConstructor, "this." + reactionName + ".setDeadline( new " + deadlineName + "( " + deadlineArgs + "));")
+//            }
             
             pr(reactorConstructor, "this.addReaction(new class<T> extends Reaction<T> {")
             reactorConstructor.indent()
@@ -643,10 +676,25 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactorConstructor, removeCodeDelimiter(reaction.code))
             reactorConstructor.unindent()
             pr(reactorConstructor, "}")
+            if (reaction.deadline !== null) {
+                pr(reactorConstructor, "//@ts-ignore") 
+                pr(reactorConstructor, "late(" + reactSignature + ") {")
+                reactorConstructor.indent()
+                pr(reactorConstructor, "var self = this.parent as " + reactor.name + ";")
+                pr(reactorConstructor, removeCodeDelimiter(reaction.deadline.deadlineCode))
+                reactorConstructor.unindent()
+                pr(reactorConstructor, "}")
+            }
             reactorConstructor.unindent()
             
-            pr(reactorConstructor, "}(" + reactionArguments + "));")
-            
+            if (reaction.deadline !== null) {
+                pr(reactorConstructor, "}(" + reactionArguments
+                    + ").setDeadline(" + timeInTargetLanguage(
+                    reaction.deadline.time.time.toString(), 
+                    reaction.deadline.time.unit)  + "));")
+            } else {
+                pr(reactorConstructor, "}(" + reactionArguments + "));")                
+            }
         }
         reactorConstructor.unindent()
         pr(reactorConstructor, "}")
@@ -886,15 +934,11 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
      */
     override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
-        if (Integer.parseInt(timeLiteral) === 0 ){
-            "0"
+        if (unit != TimeUnit.NONE) {
+            "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit." + unit + ")"
         } else {
-            if (unit != TimeUnit.NONE) {
-                "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit." + unit + ")"
-            } else {
-                // The default time unit for TypeScript is msec.
-                "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit.msec)"
-            }
+            // The default time unit for TypeScript is msec.
+            "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit.msec)"
         }
     }
 
@@ -942,7 +986,7 @@ class TypeScriptGenerator extends GeneratorBase {
     static val reactorLibPath = "." + File.separator + "reactor"
     static val timeLibPath =  "." + File.separator + "time"
     val static preamble = '''
-import {Variable, Priority, VarList, Mutations, Util, Readable, Schedulable, Writable, Named, Reaction, Deadline, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
+import {Variable, Priority, VarList, Mutations, Util, Readable, Schedulable, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
 import {TimeUnit,TimeInterval, UnitBasedTimeInterval, TimeInstant, Origin, getCurrentPhysicalTime } from "''' + timeLibPath + '''"
 
     '''

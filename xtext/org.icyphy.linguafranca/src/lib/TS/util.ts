@@ -1,3 +1,5 @@
+const ulog = require("ulog");
+
 /**
  * Utilities for the reactor runtime.
  * 
@@ -15,12 +17,12 @@ export interface PrioritySetNode<P> {
      * @param node Next element in the priority set this node is a part of.
      */
     setNext(node: PrioritySetNode<P> | undefined): void;
-
+    
     /**
      * Return the priority of this node.
      */
     getPriority(): P;
-    
+
     /**
      * Determine whether this node has priority over the given node or not.
      * @param node A node to compare the priority of this node to.
@@ -37,6 +39,9 @@ export interface PrioritySetNode<P> {
 
 export interface PrecedenceGraphNode<P> {
     setPriority(priority: P): void;
+    toString(): string;
+    // getSTPUntil(): TimeInstant
+    // setSTPUntil(): TimeInstant
 }
 
 /**
@@ -113,9 +118,17 @@ export class PrioritySet<P> {
 }
 
 export class PrecedenceGraph<T extends PrecedenceGraphNode<unknown>> {
-
-  protected graph: Map<T, Set<T>> = new Map(); // Map vertices to set of dependencies
+  
+  /**
+   * Map nodes to the set of nodes that they depend on.
+   **/
+  protected graph: Map<T, Set<T>> = new Map(); 
+  // FIXME: if we add a second map dependentNodes, we can cut down on the algorithmic
+  // complexity of the sorting algorithms. Not really a big deal now because the graphs
+  // are small, and sorting is not expected to happen often during the course of execution.
   protected numberOfEdges = 0;
+  
+  //protected startNodes: Set<T> = new Set(); 
 
   merge(apg: this) {
     for (const [k, v] of apg.graph) {
@@ -155,35 +168,35 @@ export class PrecedenceGraph<T extends PrecedenceGraphNode<unknown>> {
   }
 
   // node -> deps
-  addEdge(node: T, dependency: T) {
+  addEdge(node: T, dependsOn: T) {
     let deps = this.graph.get(node);
     if (!deps) {
-      this.graph.set(node, new Set([dependency]));
+      this.graph.set(node, new Set([dependsOn]));
       this.numberOfEdges++;
     } else {
-      if (!deps.has(dependency)) {
-        deps.add(dependency);
+      if (!deps.has(dependsOn)) {
+        deps.add(dependsOn);
         this.numberOfEdges++;
       }
     }
-    if (!this.graph.has(dependency)) {
-      this.graph.set(dependency, new Set());
+    if (!this.graph.has(dependsOn)) {
+      this.graph.set(dependsOn, new Set());
     }
   }
 
-  addBackEdges(node:T, antidependencies: Set<T>) {
-    for (let a of antidependencies) {
+  addBackEdges(node:T, dependentNodes: Set<T>) {
+    for (let a of dependentNodes) {
       this.addEdge(a, node);
     }
   }
   
-  addEdges(node: T, dependencies: Set<T>) {
+  addEdges(node: T, dependsOn: Set<T>) {
     let deps = this.graph.get(node);
     if (!deps) {
-      this.graph.set(node, new Set(dependencies));
-      this.numberOfEdges += dependencies.size;
+      this.graph.set(node, new Set(dependsOn));
+      this.numberOfEdges += dependsOn.size;
     } else {
-      for (let dependency of dependencies) {
+      for (let dependency of dependsOn) {
         if (!deps.has(dependency)) {
           deps.add(dependency);
           this.numberOfEdges++;
@@ -195,10 +208,10 @@ export class PrecedenceGraph<T extends PrecedenceGraphNode<unknown>> {
     }
   }
 
-  removeEdge(node: T, dependency: T) {
+  removeEdge(node: T, dependsOn: T) {
     let deps = this.graph.get(node);
-    if (deps && deps.has(dependency)) {
-      deps.delete(dependency);
+    if (deps && deps.has(dependsOn)) {
+      deps.delete(dependsOn);
       this.numberOfEdges--;
     }
   }
@@ -220,7 +233,7 @@ export class PrecedenceGraph<T extends PrecedenceGraphNode<unknown>> {
     /* Populate start set */
     for (const [v, e] of this.graph) {
       if (!e || e.size == 0) {
-        start.push(v);
+        start.push(v); // start nodes have no dependencies
         clone.delete(v);
       }
     }
@@ -250,4 +263,130 @@ export class PrecedenceGraph<T extends PrecedenceGraphNode<unknown>> {
   nodes() {
     return this.graph.keys();
   }
+
+  toString() {
+    var dot = "digraph G {";
+    var start: Array<T> = new Array();
+    var graph = this.graph;
+    var visitedInGraph: Set<T> = new Set();
+
+    function printChain(node:T, chain: Array<T>) {
+      dot += "\n";
+      dot += '"' + node + '"'
+      while (chain.length > 0) {
+        dot += "->" + '"' + chain.pop() + '"';
+      }
+      dot += ";";
+    }
+
+    function buildChain(node: T, chain:Array<T>) {
+      let match = false;
+      for (let [v,e] of graph) {
+        if (e.has(node)) {
+          // Found next link in the chain.
+          let deps = graph.get(node);
+          if (match || !deps || deps.size == 0) {
+            // Start a new line when this is not the first match,
+            // or when the current node is a start node.
+            chain = new Array();
+            Log.debug("Starting new chain.")
+          }
+          
+          // Mark current node as visited.
+          visitedInGraph.add(node);
+          chain.push(node);
+          if (!chain.includes(v)) {
+            if (!visitedInGraph.has(v)) {
+              buildChain(v, chain);
+            } else {
+              // End the recursion; print the chain.
+              printChain(v, chain);
+              Log.debug("Overlapping chain detected.");  
+            }
+          } else {
+            // End the recursion; print the chain.
+            printChain(v, chain);
+            Log.debug("Cycle detected.");
+          }
+          match = true;
+        }
+      }
+      if (!match) {
+        // End the recursion; print the chain.
+        printChain(node, chain);
+        Log.debug("End of chain.");
+      }
+    }
+
+    for (const [v, e] of this.graph) {
+      if (!e || e.size == 0) {
+        start.push(v);
+      }
+    }
+    for (let s of start) {
+      Log.debug("start node:" + s);
+      buildChain(s, new Array());
+    }
+    dot += "\n}"
+    return dot;
+  }
+
+}
+
+
+
+/**
+ * Log levels for `Log`.
+ * @see Log
+ */
+enum LogLevel {
+  ERROR = 1, 
+  WARN,  // 2
+  INFO,  // 3
+  LOG,   // 4
+  DEBUG, // 5
+  TRACE, // 6
+}
+
+/**
+ * Global logging facility that has multiple levels of severity.
+ */
+export class Log {
+
+  public static levels = LogLevel;
+
+  private static logger = ulog("reactor-ts");
+  
+  public static debug(msg: string) {
+    this.logger.debug(msg);
+  }
+  
+  public static error(msg: string) {
+    this.logger.error(msg);
+  }
+
+  public static warn(msg: string) {
+    this.logger.warn(msg);
+  }
+
+  public static info(msg: string) {
+    this.logger.info(msg);
+  }
+
+  public static log(msg: string) {
+    this.logger.log(msg);
+  }
+
+  public static trace(msg: string) {
+    this.logger.trace(msg);
+  }
+
+  public static setLevel(level: LogLevel) {
+    this.logger.level = level;
+  }
+
+  public static getLevel(): LogLevel {
+    return this.logger.level;
+  }
+
 }
