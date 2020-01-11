@@ -65,18 +65,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.clear()
     }
 
-    @Check(FAST)
-    def recordParameter(Parameter param) {
-        if (allNames.contains(param.name)) {
-            error(
-                UNIQUENESS_MESSAGE + param.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        parameters.add(param.name)
-        allNames.add(param.name)
-    }
-
     // //////////////////////////////////////////////////
     // // The following checks are in alphabetical order.
     @Check(FAST)
@@ -162,6 +150,47 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     }
 
     @Check(FAST)
+    def checkParameter(Parameter param) {
+        if (allNames.contains(param.name)) {
+            error(
+                UNIQUENESS_MESSAGE + param.name,
+                Literals.VARIABLE__NAME
+            )
+        }
+        parameters.add(param.name)
+        allNames.add(param.name)
+    }
+
+    @Check(FAST)
+    def checkReactor(Reactor reactor) {
+        if (reactorClasses.contains(reactor.name)) {
+            error(
+                "Names of reactor classes must be unique: " + reactor.name,
+                Literals.REACTOR__NAME
+            )
+        }
+        reactorClasses.add(reactor.name);
+        if (this.target.equals('Cpp') && reactor.isMain && reactor.name.equalsIgnoreCase("main")) {
+            error(
+                "Main reactor cannot be named '" + reactor.name + "'",
+                Literals.REACTOR__NAME
+            )
+        }
+    }
+
+    @Check(FAST)
+    def checkState(org.icyphy.linguaFranca.State input) {
+        if (allNames.contains(input.name)) {
+            error(
+                UNIQUENESS_MESSAGE + input.name,
+                Literals.VARIABLE__NAME
+            )
+        }
+        inputs.add(input.name);
+        allNames.add(input.name)
+    }
+
+    @Check(FAST)
     def checkTarget(Target target) {
         if (!KNOWN_TARGETS.contains(target.name)) {
             warning("Unrecognized target: " + target.name,
@@ -230,21 +259,5 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.add(timer.name)
     }
 
-    @Check(FAST)
-    def checkReactor(Reactor reactor) {
-        if (reactorClasses.contains(reactor.name)) {
-            error(
-                "Names of reactor classes must be unique: " + reactor.name,
-                Literals.REACTOR__NAME
-            )
-        }
-        reactorClasses.add(reactor.name);
-        if (this.target.equals('Cpp') && reactor.isMain && reactor.name.equalsIgnoreCase("main")) {
-            error(
-                "Main reactor cannot be named '" + reactor.name + "'",
-                Literals.REACTOR__NAME
-            )
-        }
-    }
     static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, and reactors) must be unique: "
 }
