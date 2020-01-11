@@ -259,5 +259,5 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.add(timer.name)
     }
 
-    static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, and reactors) must be unique: "
+    static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
 }
