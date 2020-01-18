@@ -52,7 +52,7 @@ else
 			elif [ $1 == "C" ]; then
 				command="bin/$name -timeout 1 sec"
 			elif [ $1 == "TS" ]; then
-				command="node js/$name"
+				command="node ${name}/dist/${name}"".js"
 			else
 				echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";
 				exit 1;
