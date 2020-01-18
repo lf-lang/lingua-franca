@@ -22,6 +22,6 @@
     },
     "scripts": {
         "check-types": "tsc",
-        "build": "rm -rf dist && babel src --out-dir dist --extensions .ts",
+        "build": "rm -rf dist && babel src --out-dir dist --extensions .ts"
     }
 }
