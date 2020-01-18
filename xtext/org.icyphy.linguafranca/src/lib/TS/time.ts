@@ -262,7 +262,13 @@ export class TimeInstant {
      * @param timeSinceEpoch Time elapsed since Epoch.
      * @param microstep Superdense time index.
      */
-    constructor(timeSinceEpoch: TimeInterval, readonly microstep: number) {
+    constructor(timeSinceEpoch: TimeInterval, readonly microstep: number=0) {
+        if (!Number.isInteger(microstep)) {
+            throw new Error("Microstep must be integer.");
+        }
+        if (microstep < 0) {
+            throw new Error("Microstep must be positive.");
+        }
         this.time = timeSinceEpoch;
     }
 
