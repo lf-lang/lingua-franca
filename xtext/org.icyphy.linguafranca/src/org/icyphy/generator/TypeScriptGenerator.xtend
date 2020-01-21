@@ -325,7 +325,7 @@ class TypeScriptGenerator extends GeneratorBase {
             arguments.add("keepAlive: boolean = false")
             arguments.add("success?: () => void")
             arguments.add("fail?: () => void")
-            pr(reactorConstructor, "constructor(" + arguments + ") {")
+            pr(reactorConstructor, "constructor (" + arguments + ") {")
             reactorConstructor.indent()
             pr(reactorConstructor, "super(timeout, keepAlive, success, fail);");
         } else {
@@ -386,6 +386,8 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle timers.
         for (timer : reactor.timers) {
+            // FIXME: startup is no longer a timer. The check below can be deleted.
+             
             // The startup timer is handled by default within
             // the TypeScript reactor framework. There would be a
             // duplicate startup timer if we also use the one provided
@@ -559,12 +561,15 @@ class TypeScriptGenerator extends GeneratorBase {
             // directly to the reactFunctArgs string. If it isn't, write it 
             // into the containerToArgs map, and add it to the string later.
             var reactFunctArgs = new StringJoiner(", ")
-            
             // Combine triggers and sources into a set
             // so we can iterate over their union
             var triggersUnionSources = new HashSet<VarRef>()
             for (trigger : reaction.triggers) {
-                if (! (trigger.startup || trigger.shutdown)) {
+                println("?????????: " + trigger)
+                if (trigger instanceof VarRef) {
+                    println("&&&&&&&&&&: " + trigger.variable.name)
+                }
+                if ( ! (trigger.startup || trigger.shutdown)) {
                     triggersUnionSources.add(trigger as VarRef)
                 }
             }
@@ -718,9 +723,9 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactorConstructor, "new Triggers(" + reactionTriggers + "),")
             pr(reactorConstructor, "new Args(" + reactFunctArgs + "),")
 //            pr(reactorConstructor, "//@ts-ignore")  
-            pr(reactorConstructor, "function(this, " + reactSignature + ") {")
+            pr(reactorConstructor, "function (this, " + reactSignature + ") {")
             reactorConstructor.indent()
-//            pr(reactorConstructor, "var self = this.parent as " + reactor.name + ";")
+//            pr(reactorConstructor, "var self = this.__parent__ as " + reactor.name + ";")
             pr(reactorConstructor, removeCodeDelimiter(reaction.code))
             reactorConstructor.unindent()  
             if (reaction.deadline === null) {
@@ -736,6 +741,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 pr(reactorConstructor, deadlineArgs + "," )
                 pr(reactorConstructor, "function(this, " + reactSignature + ") {")
                 reactorConstructor.indent()
+//                pr(reactorConstructor, "var self = this.__parent__ as " + reactor.name + ";")
                 pr(reactorConstructor, removeCodeDelimiter(reaction.deadline.deadlineCode))
                 reactorConstructor.unindent()
                 pr(reactorConstructor, "}")
