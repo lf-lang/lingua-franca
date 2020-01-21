@@ -111,11 +111,6 @@ void* lf_malloc(size_t size) {
 	return malloc(size);
 }
 
-// Stop execution at the conclusion of the current logical time.
-void stop() {
-    stop_requested = true;
-}
-
 /////////////////////////////
 // The following is not in scope for reactors:
 
