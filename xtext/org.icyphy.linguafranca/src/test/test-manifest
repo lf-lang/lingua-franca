@@ -34,6 +34,7 @@ MinimalThreaded.lf
 MovingAverage.lf
 MultipleContained.lf
 ParameterizedState.lf
+PeriodicDesugared.lf
 Preamble.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
