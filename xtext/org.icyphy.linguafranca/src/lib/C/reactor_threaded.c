@@ -65,9 +65,9 @@ pthread_cond_t end_logical_time = PTHREAD_COND_INITIALIZER;
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     pthread_mutex_lock(&mutex); 	
 	int return_value = __schedule(trigger, extra_delay, value);
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    pthread_cond_signal(&event_q_changed);
  	pthread_mutex_unlock(&mutex);
-	// Notify the main thread in case it is waiting for physical time to elapse.
-	pthread_cond_signal(&event_q_changed);
  	return return_value;
 }
 
@@ -174,7 +174,7 @@ int next() {
     if (event == NULL) {
         // No event in the queue and -wait was not specified.
         // Execution is finished.
-        if (!keepalive_specified) {
+        if (!keepalive_specified || stop_requested) {
      		pthread_mutex_unlock(&mutex);
             return 0;
        }
@@ -267,6 +267,17 @@ int next() {
     return 1;
 }
 
+// Stop execution at the conclusion of the current logical time.
+void stop() {
+    stop_requested = true;
+    // In case any thread is waiting on a condition, notify all.
+    pthread_mutex_lock(&mutex);
+    pthread_cond_broadcast(&reaction_q_changed);
+    pthread_cond_signal(&event_q_changed);
+    pthread_cond_signal(&number_of_idle_threads_increased);
+    pthread_mutex_unlock(&mutex);
+}
+
 // Worker thread for the thread pool.
 void* worker(void* arg) {
 	printf("Worker thread started.\n");
@@ -304,6 +315,7 @@ void* worker(void* arg) {
 			// something went on the reaction queue.
 			// printf("Waiting for items on the reaction queue.\n");
 			pthread_cond_wait(&reaction_q_changed, &mutex);
+            // printf("Done waiting.\n");
 		} else {
 	    	// This thread will no longer be idle.
 	    	if (!have_been_busy) {

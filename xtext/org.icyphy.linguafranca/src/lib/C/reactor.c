@@ -295,6 +295,11 @@ int next() {
     return 1;
 }
 
+// Stop execution at the conclusion of the current logical time.
+void stop() {
+    stop_requested = true;
+}
+
 // Print elapsed logical and physical times.
 void wrapup() {
     // Invoke any code generated wrapup. If this returns true,

@@ -8,6 +8,7 @@ module.exports = function (api) {
     const plugins = [
             "@babel/proposal-class-properties",
             "@babel/proposal-object-rest-spread",
+            "@babel/plugin-proposal-optional-chaining",
             "@babel/plugin-transform-modules-commonjs"
     ];
 
