@@ -327,7 +327,7 @@ class CGenerator extends GeneratorBase {
     override generateReactor(Reactor reactor) {
         super.generateReactor(reactor)
 
-                // Special Timer and Action for startup and shutdown, if they occur.
+        // Special Timer and Action for startup and shutdown, if they occur.
         // Only one of each of these should be created even if multiple
         // reactions are triggered by them.
         var Timer timer = null

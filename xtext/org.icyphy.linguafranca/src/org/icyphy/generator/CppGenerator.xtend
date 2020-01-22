@@ -259,14 +259,14 @@ class CppGenerator extends GeneratorBase {
         «FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
             «a.implementationType» «a.name»{"«a.name»", this};
         «ENDFOR»
+        // default actions
+        reactor::StartupAction startup {"startup", this};
+        reactor::ShutdownAction shutdown {"shutdown", this};
+        
     '''
 
     def implementationType(Action a) {
-        if (a.name == 'startup') {
-            '''reactor::StartupAction'''
-        } else if (a.name == 'shutdown') {
-            '''reactor::ShutdownAction'''
-        } else if (a.origin == ActionOrigin.LOGICAL) {
+        if (a.origin == ActionOrigin.LOGICAL) {
             '''reactor::LogicalAction<«a.trimmedType»>'''
         } else {
             '''reactor::PhysicalAction<«a.trimmedType»>'''
