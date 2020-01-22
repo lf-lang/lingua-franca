@@ -1,0 +1,3 @@
+[submodule "xtext/org.icyphy.linguafranca/src/lib/TS/reactor-ts"]
+	path = xtext/org.icyphy.linguafranca/src/lib/TS/reactor-ts
+	url = https://github.com/icyphy/reactor-ts.git
