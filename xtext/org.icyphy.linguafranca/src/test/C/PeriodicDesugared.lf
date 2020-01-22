@@ -1,4 +1,4 @@
-// Prints "Hello World!" periodically without the use of a timer.
+// Prints "Hello World!" periodically without the use of a timer.git 
 target C;
 main reactor Periodic(offset:time(0), period:time(500 msec)) {
     logical action init(offset);
