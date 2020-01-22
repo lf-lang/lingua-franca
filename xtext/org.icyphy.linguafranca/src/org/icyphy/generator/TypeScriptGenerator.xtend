@@ -30,30 +30,23 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.HashMap
 import java.util.HashSet
-import java.util.regex.Pattern
-import org.eclipse.core.resources.IResource
-import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.emf.ecore.EObject
+import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.State
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Port
-import java.util.StringJoiner
-import org.icyphy.linguaFranca.State
-import java.nio.file.Paths
+import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Variable
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -61,6 +54,7 @@ import java.nio.file.Paths
  *
  *  @author{Matt Weber <matt.weber@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class TypeScriptGenerator extends GeneratorBase {
 
@@ -82,9 +76,9 @@ class TypeScriptGenerator extends GeneratorBase {
         super.doGenerate(resource, fsa, context)
 
         // Generate main instance, if there is one.
-        if (this.main !== null) {
-            generateReactorInstance(this.main)
-            generateRuntimeStart(this.main)
+        if (this.mainDef !== null) {
+            generateReactorInstance(this.mainDef)
+            generateRuntimeStart(this.mainDef)
         }
         
         // Target filename.
@@ -916,15 +910,14 @@ class TypeScriptGenerator extends GeneratorBase {
     /** Traverse the runtime hierarchy of reaction instances and generate code.
      *  @param instance A reactor instance.
      */
-    def void generateReactorInstance(ReactorInstance instance) {
-        var reactorClass = instance.definition.reactorClass
-        var fullName = instance.fullName
+    def void generateReactorInstance(Instantiation defn) {
+        var fullName = defn.name
         pr('// ************* Instance ' + fullName + ' of class ' +
-            reactorClass.name)
+            defn.reactorClass.name)
             
         var arguments = "";
-        for (parameter : instance.parameters) {
-            arguments += removeCodeDelimiter(parameter.literalValue) + ", "
+        for (parameter : defn.parameters) {
+            arguments += removeCodeDelimiter(parameter.rhs.value) + ", "
         }
 
         // Get target properties for the app
@@ -980,28 +973,12 @@ class TypeScriptGenerator extends GeneratorBase {
      *  instance to start the runtime
      *  @param instance A reactor instance.
      */
-    def void generateRuntimeStart(ReactorInstance instance) {
-        var reactorClass = instance.definition.reactorClass
-        var fullName = instance.fullName
-        pr('// ************* Starting Runtime for ' + fullName + ' of class ' +
-            reactorClass.name)
+    def void generateRuntimeStart(Instantiation defn) {
+        pr('// ************* Starting Runtime for ' + defn.name + ' of class ' +
+            defn.reactorClass.name)
         pr("_app._start();")
     }
 
-    /** Set the reaction priorities based on dependency analysis.
-     *  @param reactor The reactor on which to do this.
-     */
-    def void setReactionPriorities(ReactorInstance reactor) {
-        // Use "reactionToReactionTName" property of reactionInstance
-        // to set the levels.
-        for (reactionInstance : reactor.reactions) {
-            pr(reactionStructName(reactionInstance) + ".index = " +
-                    reactionInstance.level + ";")
-        }
-        for (child : reactor.children) {
-            setReactionPriorities(child)
-        }
-    }
 
     // //////////////////////////////////////////
     // // Protected methods.
@@ -1025,14 +1002,6 @@ class TypeScriptGenerator extends GeneratorBase {
         pr(preamble)
     }
 
-    /** Return a unique name for the
-     *  specified reaction instance.
-     *  @param reaction The reaction instance.
-     *  @return A name for the reaction_t struct.
-     */
-    protected def reactionStructName(ReactionInstance reaction) {
-        reaction.uniqueID
-    }
     
      /** Return a string that the target language can recognize as a type
      *  for a time value. In TypeScript this is a TimeInterval.

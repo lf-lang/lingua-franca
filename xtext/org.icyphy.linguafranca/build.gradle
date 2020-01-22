@@ -40,6 +40,7 @@ task generateStandaloneCompiler() {
 	apply plugin: 'com.github.johnrengelman.shadow'
 	mainClassName = 'org.icyphy.generator.Main'
 	shadowJar {
+		exclude 'test/*'
 		minimize() {
 			exclude(dependency('log4j:log4j:.*'))
 			exclude(dependency('com.google.inject:guice:.*'))
