@@ -88,7 +88,7 @@ class CppGenerator extends GeneratorBase {
         var target = resource.findTarget
 
         super.doGenerate(resource, fsa, context)
-        mainReactor = main.definition.reactorClass
+        mainReactor = this.mainDef.reactorClass
 
         fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
         fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain(target))

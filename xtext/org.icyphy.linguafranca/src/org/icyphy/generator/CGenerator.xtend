@@ -58,6 +58,8 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 
 /** Generator for C target.
  * 
@@ -74,6 +76,7 @@ class CGenerator extends GeneratorBase {
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newHashSet('C')
 
+
     // The command to compile the generated code if specified in the target directive.
     var compileCommand = null as ArrayList<String>
 
@@ -88,6 +91,9 @@ class CGenerator extends GeneratorBase {
     
     // Place to collect code to initialize the trigger objects for all reactors.
     var initializeTriggerObjects = new StringBuilder()
+
+    /** The main (top-level) reactor instance. */
+    protected ReactorInstance main
 
     // Indicator of whether to generate multithreaded code and how many by default.
     var numberOfThreads = 0
@@ -121,6 +127,8 @@ class CGenerator extends GeneratorBase {
             IGeneratorContext context) {
         
         super.doGenerate(resource, fsa, context)
+
+        this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.
 
         // Derive target filename from the .lf filename.
         val cFilename = filename + ".c";
@@ -319,6 +327,71 @@ class CGenerator extends GeneratorBase {
     override generateReactor(Reactor reactor) {
         super.generateReactor(reactor)
 
+                // Special Timer and Action for startup and shutdown, if they occur.
+        // Only one of each of these should be created even if multiple
+        // reactions are triggered by them.
+        var Timer timer = null
+        var Action action = null
+        var factory = LinguaFrancaFactory.eINSTANCE
+        if (reactor.reactions !== null) {
+            for (Reaction reaction : reactor.reactions) {
+                // If the reaction triggers include 'startup' or 'shutdown',
+                // then create Timer and TimerInstance objects named 'startup'
+                // or Action and ActionInstance objects named 'shutdown'.
+                // Using a Timer for startup means that the target-specific
+                // code generator doesn't have to do anything special to support this.
+                // However, for 'shutdown', the target-specific code generator
+                // needs to check all reaction instances for a shutdownActionInstance
+                // and schedule that action before shutting down the program.
+                // These get inserted into both the ECore model and the
+                // instance model.
+                var TriggerRef startupTrigger = null;
+                var TriggerRef shutdownTrigger = null;
+                for (trigger : reaction.triggers) {
+                    if (trigger.isStartup) {
+                        startupTrigger = trigger
+                        if (timer === null) {
+                            timer = factory.createTimer
+                            timer.name = LinguaFrancaPackage.Literals.
+                                TRIGGER_REF__STARTUP.name
+                            timer.offset = factory.createTimeOrValue
+                            timer.offset.time = 0
+                            timer.period = factory.createTimeOrValue
+                            timer.period.time = 0
+                            reactor.timers.add(timer)
+                        }
+                    } else if (trigger.isShutdown) {
+                        shutdownTrigger = trigger
+                        if (action === null) {
+                            action = factory.createAction
+                            action.name = LinguaFrancaPackage.Literals.
+                                TRIGGER_REF__SHUTDOWN.name
+                            action.origin = ActionOrigin.LOGICAL
+                            action.delay = factory.createTimeOrValue
+                            action.delay.time = 0
+                            reactor.actions.add(action)
+                        }
+                    }
+                }
+                // If appropriate, add a VarRef to the triggers list of this
+                // reaction for the startup timer or shutdown action.
+                if (startupTrigger !== null) {
+                    reaction.triggers.remove(startupTrigger)
+                    var variableReference = LinguaFrancaFactory.eINSTANCE.
+                        createVarRef()
+                    variableReference.setVariable(timer)
+                    reaction.triggers.add(variableReference)
+                }
+                if (shutdownTrigger !== null) {
+                    reaction.triggers.remove(shutdownTrigger)
+                    var variableReference = LinguaFrancaFactory.eINSTANCE.
+                        createVarRef()
+                    variableReference.setVariable(action)
+                    reaction.triggers.add(variableReference)
+                }
+            }
+        }
+
         // Add a reaction, if necessary, to decrement the reference
         // count for any input that is conveyed using the token_t struct.
         // This will also free malloc'd memory when the reference count
@@ -352,10 +425,10 @@ class CGenerator extends GeneratorBase {
             pr(body, getStateType(state) + ' ' + state.name + ';');
         }
         // Next handle actions.
-        for (action : reactor.actions) {
-            prSourceLineNumber(action)
+        for (a : reactor.actions) {
+            prSourceLineNumber(a)
             // NOTE: Slightly obfuscate output name to help prevent accidental use.
-            pr(body, "trigger_t* __" + action.name + ";")
+            pr(body, "trigger_t* __" + a.name + ";")
         }
         // Next handle inputs.
         for (input : reactor.inputs) {
