@@ -102,8 +102,9 @@ abstract class GeneratorBase {
     /** Indicator of whether generator errors occurred. */
     protected var generatorErrorsOccurred = false
 
-    /** The main (top-level) reactor instance. */
-    protected ReactorInstance main
+    
+    /** Definition of the main (top-level) reactor */
+    protected Instantiation mainDef
     
     /** Mode.STANDALONE if the code generator is being called
      *  from the command line, Mode.INTEGRATED if it is being called
@@ -152,11 +153,11 @@ abstract class GeneratorBase {
             IGeneratorContext context) {
 
         println("Generating code for: " + resource.getURI.toString)
-
+        
         generatorErrorsOccurred = false
-
+        
+        
         this.resource = resource
-
         // Figure out the file name for the target code from the source file name.
         analyzeResource(resource)
         
@@ -172,17 +173,14 @@ abstract class GeneratorBase {
         // reactors defined in the imports.
         processImports(resource)
 
-        var Instantiation mainDef = null
-
         // Recursively instantiate reactors from their definitions
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
             generateReactor(reactor)
             if (reactor.isMain) {
                 // Creating an definition for the main reactor because there isn't one.
-                mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
-                mainDef.setName(reactor.name)
-                mainDef.setReactorClass(reactor)
-                this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.
+                this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
+                this.mainDef.setName(reactor.name)
+                this.mainDef.setReactorClass(reactor)
             }
         }
     }
@@ -212,70 +210,6 @@ abstract class GeneratorBase {
                 reactor.name + " in " + filename
         )
 
-        // Special Timer and Action for startup and shutdown, if they occur.
-        // Only one of each of these should be created even if multiple
-        // reactions are triggered by them.
-        var Timer timer = null
-        var Action action = null
-        var factory = LinguaFrancaFactory.eINSTANCE
-        if (reactor.reactions !== null) {
-            for (Reaction reaction : reactor.reactions) {
-                // If the reaction triggers include 'startup' or 'shutdown',
-                // then create Timer and TimerInstance objects named 'startup'
-                // or Action and ActionInstance objects named 'shutdown'.
-                // Using a Timer for startup means that the target-specific
-                // code generator doesn't have to do anything special to support this.
-                // However, for 'shutdown', the target-specific code generator
-                // needs to check all reaction instances for a shutdownActionInstance
-                // and schedule that action before shutting down the program.
-                // These get inserted into both the ECore model and the
-                // instance model.
-                var TriggerRef startupTrigger = null;
-                var TriggerRef shutdownTrigger = null;
-                for (trigger : reaction.triggers) {
-                    if (trigger.isStartup) {
-                        startupTrigger = trigger
-                        if (timer === null) {
-                            timer = factory.createTimer
-                            timer.name = LinguaFrancaPackage.Literals.
-                                TRIGGER_REF__STARTUP.name
-                            timer.offset = factory.createTimeOrValue
-                            timer.offset.time = 0
-                            timer.period = factory.createTimeOrValue
-                            timer.period.time = 0
-                            reactor.timers.add(timer)
-                        }
-                    } else if (trigger.isShutdown) {
-                        shutdownTrigger = trigger
-                        if (action === null) {
-                            action = factory.createAction
-                            action.name = LinguaFrancaPackage.Literals.
-                                TRIGGER_REF__SHUTDOWN.name
-                            action.origin = ActionOrigin.LOGICAL
-                            action.delay = factory.createTimeOrValue
-                            action.delay.time = 0
-                            reactor.actions.add(action)
-                        }
-                    }
-                }
-                // If appropriate, add a VarRef to the triggers list of this
-                // reaction for the startup timer or shutdown action.
-                if (startupTrigger !== null) {
-                	reaction.triggers.remove(startupTrigger)
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.
-                        createVarRef()
-                    variableReference.setVariable(timer)
-                    reaction.triggers.add(variableReference)
-                }
-                if (shutdownTrigger !== null) {
-                	reaction.triggers.remove(shutdownTrigger)
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.
-                        createVarRef()
-                    variableReference.setVariable(action)
-                    reaction.triggers.add(variableReference)
-                }
-            }
-        }
     }
 
     /** If the argument starts with '{=', then remove it and the last two characters.
