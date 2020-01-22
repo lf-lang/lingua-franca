@@ -705,7 +705,11 @@ class TypeScriptGenerator extends GeneratorBase {
                     } else {
                         reactionTriggers.add("this." + trigger.container.name + "." + trigger.variable.name)
                     }
-                }     
+                } else if (trigger.startup) {
+                    reactionTriggers.add("this.startup")
+                } else if (trigger.shutdown) {
+                    reactionTriggers.add("this.shutdown")
+                }
             }
             
             // Combine reaction triggers and react function arguments            
