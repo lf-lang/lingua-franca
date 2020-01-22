@@ -312,6 +312,7 @@ export class Reaction<T> implements PrecedenceGraphNode<Priority>, PrioritySetNo
             constructor(public event: EventUtils, public exec: ExecUtils, public time: TimeUtils) {
             }
         }(__parent__.util.event, __parent__.util.exec, __parent__.util.time);
+        this.timeout = deadline;
     }
 
     /**
@@ -848,7 +849,7 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
 
 
     protected getSchedulable<T extends Present>(action: Action<T>): Schedulable<T> {
-        return new Scheduler(this, action);
+        return new Scheduler(this, action); /// FIXME: check whether action is local
     }
 
     // protected addReaction<T>(reaction: Reaction<T>): void {
@@ -1066,11 +1067,11 @@ export abstract class Reactor extends Descendant {  // FIXME: may create a sette
      * Create a new reactor.
      * @param __parent__ Parent of this reactor.
      */
-    constructor(__parent__: Reactor | null, alias?: string) {
+    constructor(__parent__: Reactor | null) {
         super(__parent__);
-        if (alias) {
-            this.setAlias(alias);
-        }
+        // if (alias) {
+        //     this.setAlias(alias);
+        // }
         if (__parent__ != null) {
             this.app = __parent__.app;
         } else {
