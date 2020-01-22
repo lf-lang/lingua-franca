@@ -53,6 +53,7 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Port
 import java.util.StringJoiner
 import org.icyphy.linguaFranca.State
+import java.nio.file.Paths
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -87,9 +88,19 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         
         // Target filename.
-        val tsFilename = filename + ".ts";
-        val jsFilename = filename + ".js";
+        val tsFilename = filename + ".ts"
+        val jsFilename = filename + ".js"
         val projectPath = directory + File.separator + filename
+        
+//        val reactorTSURL = this.class.getResource(File.separator + "lib" + File.separator +
+//            "TS" + File.separator + "reactor-ts" + File.separator + "tsconfig.json");
+////        println("444444 " + reactorTSURL)
+//
+//        val reactorTSFile =  Paths.get(reactorTSURL.toURI()).toFile();
+        
+        val reactorTSPath = File.separator + "lib" + File.separator +
+            "TS" + File.separator + "reactor-ts"
+
         var srcGenPath = projectPath + File.separator + "src"
         var outPath = projectPath + File.separator + "dist"
         
@@ -117,20 +128,35 @@ class TypeScriptGenerator extends GeneratorBase {
         var fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + tsFilename));
         fOut.write(getCode().getBytes())
+        
+//        // Pull changes from the wirewrap submodule repository
+//        // git fetch https://github.com/icyphy/reactor-ts.git
+//        println("Running git fetch https://github.com/icyphy/reactor-ts.git "
+//            + "in directory " + reactorTSPath + " ...")
+//        var fetchCmd = newArrayList();
+//        fetchCmd.addAll("git", "fetch", "https://github.com/icyphy/reactor-ts.git")
+//        var fetchBuilder = new ProcessBuilder(fetchCmd)
+//        fetchBuilder.directory(new File(reactorTSPath))
+//        var Process fetchProcess = fetchBuilder.start()
+//
+//        // Sleep until the changes have been pulled
+//        fetchProcess.waitFor()
 
-        // Copy the required library files into the src-gen directory
+        // Copy the required library files into the src directory
         // so they may be compiled as part of the TypeScript project
+        var reactorCorePath = reactorTSPath + File.separator + "src" + File.separator
+            + "core" + File.separator
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "reactor.ts"));
-        fOut.write(readFileInClasspath("/lib/TS/reactor.ts").getBytes())
+        fOut.write(readFileInClasspath(reactorCorePath + "reactor.ts").getBytes())
 
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "time.ts"));
-        fOut.write(readFileInClasspath("/lib/TS/time.ts").getBytes())
+        fOut.write(readFileInClasspath(reactorCorePath + "time.ts").getBytes())
 
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "util.ts"));
-        fOut.write(readFileInClasspath("/lib/TS/util.ts").getBytes())
+        fOut.write(readFileInClasspath(reactorCorePath + "util.ts").getBytes())
 
         // Copy default versions of config files into project if
         // they don't exist.
@@ -168,7 +194,8 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
         // Must compile to ES2015 or later and include the dom library.
-        var tscPath = projectPath + File.separator + "node_modules/typescript/bin/tsc"
+        var tscPath = projectPath + File.separator + "node_modules" +  File.separator 
+            + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
 
 
 //        Working command without a tsconfig.json
