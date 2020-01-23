@@ -701,26 +701,24 @@ class TypeScriptGenerator extends GeneratorBase {
             // Write an object as an argument for each container
             var containers = containerToArgs.keySet()
             for (container : containers) {
-                var containedArgsObject = new StringJoiner(", ")
-                var containedSigObject = new StringJoiner(", ") 
+                var reactFunctArgsElement = "{ "
+                var reactSignatureElement = container.name + ": { " 
                 var containedVariables = containerToArgs.get(container)
                 for (containedVariable : containedVariables) {
                     var functArg = "this." + container.name + "." + containedVariable.name
-                    var containedSigElement = ""
-                    var containedArgElement = ""
+                     
                     if (containedVariable instanceof Input) {
-                        containedSigElement += containedVariable.name + ": Writable<" + containedVariable.type + ">"
-                        containedArgElement += containedVariable.name + ": " + "this.getWritable(" + functArg + ")"
+                        reactSignatureElement += containedVariable.name + ": Writable, "
+                        reactFunctArgsElement += containedVariable.name + ": " + "this.getWritable(" + functArg + "), "
                     } else if(containedVariable instanceof Output) {
-                        containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type + ">"
-                        containedArgElement += containedVariable.name + ": " + functArg
+                        reactSignatureElement += containedVariable.name + ": Readable, "
+                        reactFunctArgsElement += containedVariable.name + ": " + functArg + ", "
                     }
-                    containedArgsObject.add(containedArgElement)
-                    containedSigObject.add(containedSigElement) 
+                    
                 }
-                var reactFunctArgsElement = "{ " +  containedArgsObject.toString() + " }"
-                var reactSignatureElement = container.name + ": { " + containedSigObject.toString() + " }"
-                reactFunctArgs.add(reactFunctArgsElement) 
+                reactFunctArgsElement += " }"
+                reactFunctArgs.add(reactFunctArgsElement)
+                reactSignatureElement += " }"
                 reactSignature.add(reactSignatureElement)
             }
             
