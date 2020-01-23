@@ -491,14 +491,25 @@ class TypeScriptGenerator extends GeneratorBase {
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                pr(action.name + ": Action<" + action.type + ">;")
+                if (action.type !== null) {
+                    pr(action.name + ": Action<" + action.type + ">;")
+                } else {
+                    pr(action.name + ": Action<Present>;")
+                }
+                
                 var actionArgs = "this, Origin." + action.origin  
                 if (action.delay !== null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
                     actionArgs+= ", " + timeInTargetLanguage(action.delay.time.toString, action.delay.unit)
                 }
-                pr(reactorConstructor, "this." + action.name + " = new Action<" + action.type +">(" + actionArgs  + ");")
+                var String actionInstance
+                if (action.type === null) {
+                    actionInstance = "this." + action.name + " = new Action<Present>(" + actionArgs  + ");"
+                } else {
+                    actionInstance = "this." + action.name + " = new Action<" + action.type +">(" + actionArgs  + ");"
+                }
+                pr(reactorConstructor, actionInstance)
             }
         }
         
@@ -586,9 +597,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // so we can iterate over their union
             var triggersUnionSources = new HashSet<VarRef>()
             for (trigger : reaction.triggers) {
-                println("?????????: " + trigger)
                 if (trigger instanceof VarRef) {
-                    println("&&&&&&&&&&: " + trigger.variable.name)
                 }
                 if ( ! (trigger.startup || trigger.shutdown)) {
                     triggersUnionSources.add(trigger as VarRef)
@@ -597,32 +606,47 @@ class TypeScriptGenerator extends GeneratorBase {
             for (source : reaction.sources) {
                 triggersUnionSources.add(source)
             }
+            
+            // Create a set of effect names so actions that appear
+            // as both triggers/sources and effects can be
+            // identified and added to the reaction arguments once.
+            var effectSet = new HashSet<String>()
+            for (effect : reaction.effects){
+                effectSet.add(effect.variable.name)
+            }
              
             var containerToArgs = new HashMap<Instantiation, HashSet<Variable>>();
             for (trigOrSource : triggersUnionSources) {
-                if (trigOrSource.container === null) {
-                    var reactSignatureElement = trigOrSource.variable.name + ": Readable<"
-                    
-                    if (trigOrSource.variable instanceof Timer){
-                        reactSignatureElement += "TimeInstant" 
-                    } else if (trigOrSource.variable instanceof Action){
-                        reactSignatureElement += (trigOrSource.variable as Action).type 
-                    } else if (trigOrSource.variable instanceof Port){
-                        reactSignatureElement += (trigOrSource.variable as Port).type 
+                 // Actions that are both read and scheduled should only
+                 // appear once as a scheduable effect
+                if (!effectSet.contains(trigOrSource.variable.name)){
+                    if (trigOrSource.container === null) {
+                        var reactSignatureElement = trigOrSource.variable.name + ": Readable<"
+                        
+                        if (trigOrSource.variable instanceof Timer){
+                            reactSignatureElement += "TimeInstant" 
+                        } else if (trigOrSource.variable instanceof Action){
+                            if ((trigOrSource.variable as Action).type !== null) {
+                                reactSignatureElement += (trigOrSource.variable as Action).type    
+                            }
+                                reactSignatureElement += "Present"
+                        } else if (trigOrSource.variable instanceof Port){
+                            reactSignatureElement += (trigOrSource.variable as Port).type 
+                        }
+                        reactSignatureElement += ">"
+                        reactSignature.add(reactSignatureElement)
+                        
+                        reactFunctArgs.add("this." + trigOrSource.variable.name)
+                    } else {
+                        var args = containerToArgs.get(trigOrSource.container)
+                        if (args === null) {
+                           // Create the HashSet for the container
+                           args = new HashSet<Variable>();
+                           containerToArgs.put(trigOrSource.container, args)
+                        }
+                        args.add(trigOrSource.variable)
+    //                    reactFunctArgs += "this." + source.container.name + "." + source.variable.name + ", "
                     }
-                    reactSignatureElement += ">"
-                    reactSignature.add(reactSignatureElement)
-                    
-                    reactFunctArgs.add("this." + trigOrSource.variable.name)
-                } else {
-                    var args = containerToArgs.get(trigOrSource.container)
-                    if (args === null) {
-                       // Create the HashSet for the container
-                       args = new HashSet<Variable>();
-                       containerToArgs.put(trigOrSource.container, args)
-                    }
-                    args.add(trigOrSource.variable)
-//                    reactFunctArgs += "this." + source.container.name + "." + source.variable.name + ", "
                 }
             }
             for (effect : reaction.effects) {
@@ -632,11 +656,13 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (effect.variable instanceof Timer){
                         reportError("A timer cannot be an effect of a reaction")
                     } else if (effect.variable instanceof Action){
-                        reactSignatureElement += ": Schedulable<" + (effect.variable as Action).type
+                        if ( (effect.variable as Action).type !== null ) {
+                           reactSignatureElement += ": Schedulable<" + (effect.variable as Action).type + ">"   
+                        }
+                           reactSignatureElement += ": Schedulable<Present>"
                     } else if (effect.variable instanceof Port){
-                        reactSignatureElement += ": Writable<" + (effect.variable as Port).type
+                        reactSignatureElement += ": Writable<" + (effect.variable as Port).type + ">"
                     }
-                    reactSignatureElement += ">"
                     reactSignature.add(reactSignatureElement)
                     
                     functArg = "this." + effect.variable.name 
@@ -1094,7 +1120,7 @@ class TypeScriptGenerator extends GeneratorBase {
     static val reactorLibPath = "." + File.separator + "reactor"
     static val timeLibPath =  "." + File.separator + "time"
     val static preamble = '''
-import {Args, Parameter, State, Variable, Priority, Mutation, Util, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
+import {Args, Present, Parameter, State, Variable, Priority, Mutation, Util, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
 import {TimeUnit,TimeInterval, UnitBasedTimeInterval, TimeInstant, Origin, getCurrentPhysicalTime } from "''' + timeLibPath + '''"
 
     '''

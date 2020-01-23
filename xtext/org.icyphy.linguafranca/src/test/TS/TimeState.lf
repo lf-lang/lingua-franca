@@ -4,7 +4,7 @@ reactor Foo(bar:number(42)) {
     state baz:time(500 msec);
     
     reaction (startup) {=
-        console.log("Baz: " + self.baz);
+        console.log("Baz: " + baz.get());
     =}
 }
 
