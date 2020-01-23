@@ -8,13 +8,13 @@ reactor Count(stride:number(1)) {
     output y:number;
     timer t(0, 100 msec);
     reaction(t) -> y {=
-        y.set(self.count);
-        self.count += self.stride;
+        y.set(count.get());
+        count.set(count.get() + stride.get());
     =}
 }
 reactor Display {
     input x:number;
-    reaction(x) x {=
+    reaction(x) {=
         console.log("Received: " + x.get());
     =}
 }
