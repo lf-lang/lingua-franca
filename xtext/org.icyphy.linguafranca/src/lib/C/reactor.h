@@ -255,7 +255,7 @@ struct trigger_t {
     reaction_t** reactions;   // Reactions sensitive to this trigger.
     int number_of_reactions;  // Number of reactions sensitive to this trigger.
 	interval_t offset;        // For an action, this will be a minimum delay.
-	interval_t period;        // For periodic timers (not for actions).
+	interval_t period;        // For an action, this will be a minimum inter-arrival time.
     void* value;              // Pointer to malloc'd value (or NULL).
     bool is_physical;         // Indicator that this denotes a physical action 
                               // (i.e., to be scheduled relative to physical time)
