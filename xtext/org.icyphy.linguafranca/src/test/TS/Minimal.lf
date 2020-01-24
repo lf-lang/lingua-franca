@@ -1,0 +1,8 @@
+// This is a smoke test of a minimal reactor.
+target TypeScript;
+main reactor Minimal {
+    timer t;
+    reaction(t) {=
+        console.log("Hello World.");
+    =}
+}

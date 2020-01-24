@@ -1,4 +1,4 @@
 # Lingua Franca Examples
 
-Examples of Lingua Franca programs are located in xtext/org.icyphy.linguafranca/src/test.
+Examples of Lingua Franca programs are located in xtext/org.icyphy.linguafranca/src/example.
 

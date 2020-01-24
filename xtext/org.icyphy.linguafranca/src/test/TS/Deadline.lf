@@ -1,0 +1,54 @@
+// This example illustrates local deadline handling.
+// Even numbers are sent by the Source immediately, whereas odd numbers
+// are sent after a big enough delay to violate the deadline.
+target TypeScript(
+    timeout = 2 sec
+);
+
+//run = "bin/Deadline -timeout 2 sec"
+
+reactor Source(period:time(1 sec)) {
+    output y:number;
+    timer t(0, period);
+    state count:number(0);
+    reaction(t) -> y {=
+        if (2 * Math.floor(self.count / 2) != self.count){
+            // The count variable is odd.
+            // Busy wait 0.2 sconds to cause a deadline violation.
+            let initialElapsedTime = self.util.getElapsedPhysicalTime();
+            while ( self.util.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeInterval(200, TimeUnit.msec))));
+        }
+        console.log("Source sends: " + self.count);
+        y.set(self.count);
+        self.count++;
+    =}
+}
+
+reactor Destination(timeout:time(1 sec)) {
+    input x:number;
+    state count:number(0);
+    reaction(x) x {=
+        console.log("Destination receives: " + x.get());
+        if (2 * Math.floor(self.count / 2) != self.count) {
+            // The count variable is odd, so the deadline should have been violated.
+            console.log("ERROR: Failed to detect deadline.");
+            self.util.failure()
+            //throw new Error("ERROR: Failed to detect deadline.");
+        }
+        self.count++;
+    =} deadline(timeout) {=
+        console.log("Destination deadline handler receives: " + x.get());
+        if (2 * Math.floor(self.count / 2) == self.count) {
+            // The count variable is even, so the deadline should not have been violated.
+            console.log("ERROR: Deadline miss handler invoked without deadline violation.");
+            self.util.failure()
+            //throw new Error("ERROR: Deadline miss handler invoked without deadline violation.");
+        }
+        self.count++;
+    =}
+}
+main reactor Deadline {
+    s = new Source();
+    d = new Destination(timeout = 100 msec);
+    s.y -> d.x;
+}

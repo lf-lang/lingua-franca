@@ -35,7 +35,7 @@ main reactor AsyncCallback2 {
   
     timer t(0, 200 msec);
     state thread_id:pthread_t(0);
-    state expected_time:{=long long=}({=0LL=});
+    state expected_time:time(0);
     logical action a;
     state i:int(0);
     reaction(t) -> a {=

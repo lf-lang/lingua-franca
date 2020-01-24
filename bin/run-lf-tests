@@ -2,7 +2,7 @@
 
 #==========================================================
 # Description:  Run all tests for a given LF target.
-# Author:       Marten Lohstroh
+# Author:       Marten Lohstroh, Matt Weber
 # Usage:        run-lf-tests [TARGET]
 #==========================================================
 
@@ -21,15 +21,20 @@ else
 	manifest="$base""org.icyphy.linguafranca/src/test/test-manifest";
     	offset="../../../../../";
 	total=0;
-	correct=0;	
+	correct=0;
+	failed="";
 
 	if [ ! -f "$manifest" ]; then
 		echo "Unable to locate manifest.";
 		echo "File not found: ""$manifest";
 	else
 		pushd $test_dir;
-        eval $offset"bin/lfc"; # trigger fresh build if necessary
+        	eval $offset"bin/lfc"; # trigger fresh build if necessary
 		while read p; do
+			if [[ "$p" =~ ^[[:space:]]*#.* ]]; then
+    			#echo "Ignoring commented out test: $p";
+				continue;
+			fi
 			if [ ! -f "$p" ]; then
     				echo "[WARNING] $p does not exist.";
 				continue
@@ -42,12 +47,23 @@ else
 			echo "================================================================================";
 			eval "$offset""bin/lfc ""$p";
 			echo "================================================================================";
-			command="bin/$name -timeout 1 sec"
+			if [ $1 == "Cpp" ]; then
+				command="bin/$name --timeout 1"
+			elif [ $1 == "C" ]; then
+				command="bin/$name -timeout 1 sec"
+			elif [ $1 == "TS" ]; then
+				command="node ${name}/dist/${name}"".js"
+			else
+				echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";
+				exit 1;
+			fi
 			echo "Executing command:"$command;
 			echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
 			eval $command;
 			if (($? == 0)); then
 				correct=$((correct + 1))
+			else
+				failed="$name $failed"
 			fi
 			echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
 		done <"../test-manifest"
@@ -55,6 +71,7 @@ else
 		echo "Number of tests passed: ("$correct"/"$total")";
 		echo "--------------------------------------------------------------------------------";
 		if (($correct != $total)); then
+			echo "Failed tests: $failed"
 			exit 1;
 		fi
 	fi

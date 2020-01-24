@@ -1,37 +1,37 @@
-/*
- * Copyright (c) 2019, Industrial Cyberphysical Systems Center (iCyPhy)
- * University of California at Berkeley
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 /**
- * @file  reactor.h
- * @brief Reactor core library.
+ * @file
  * @author Edward A. Lee (eal@berkeley.edu)
  * @author Marten Lohstroh (marten@berkeley.edu)
  * @author Chris Gill (cdgill@wustl.edu)
  * @author Mehrdad Niknami (mniknami@berkeley.edu)
- * @{
+ *
+ * @section LICENSE
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ * @section DESCRIPTION
+ * Runtime infrastructure for the C target of Lingua Franca.
+ * This file contains header information used by both the threaded and
+ * non-threaded versions of the C runtime.
  */
 
 #ifndef REACTOR_H
@@ -53,7 +53,7 @@
 #define INITIAL_EVENT_QUEUE_SIZE 10
 #define INITIAL_REACT_QUEUE_SIZE 10
 
-/** Conversion of time to nanoseconds. */
+/* Conversion of time to nanoseconds. */
 #define NSEC(t) (t * 1LL)
 #define NSECS(t) (t * 1LL)
 #define USEC(t) (t * 1000LL)
@@ -71,8 +71,119 @@
 #define WEEK(t)  (t * 604800000000000LL)
 #define WEEKS(t) (t * 604800000000000LL)
 
-/** set() is a macro that handles pointers and the _is_present variable. */
-#define set(out, value) (*out) = value; (*out ## _is_present) = true;
+// NOTE: According to the "Swallowing the Semicolon" section on this page:
+//    https://gcc.gnu.org/onlinedocs/gcc-3.0.1/cpp_3.html
+// the following macros should use an odd do-while construct to avoid
+// problems with if ... else statements that do not use braces around the
+// two branches.
+
+/** Set the specified output (or input of a contained reacor) 
+ *  to the specified value.
+ *  This copies the value into the field in the self struct designated
+ *  for this produced value. This also sets the _is_present variable
+ *  in the self struct to true (which causes the message to be sent).
+ *  @param port The output port (by name) or input of a contained
+ *   reactor in form input_name.port_name.
+ *  @param value The value to insert into the self struct.
+ */
+#define set(out, value) \
+do { \
+    out ## _is_present = true; \
+    self->__ ## out = value; \
+    self->__ ## out ## _is_present = true; \
+} while(0)
+
+/** Version of set for output types given as 'type[]' where you
+ *  want to send a previously dynamically allocated array.
+ *  The deallocation is delegated to downstream reactors, which
+ *  automatically deallocate when the reference count drops to zero.
+ *  It also sets the corresponding _is_present variable in the self
+ *  struct to true (which causes the object message to be sent).
+ *  @param out The output port (by name).
+ *  @param val The array to send (a pointer to the first element).
+ *  @param length The length of the array to send.
+ */
+#define set_array(out, val, len) \
+do { \
+    out ## _is_present = true; \
+    self->__ ## out.value = val; \
+    self->__ ## out.length = len; \
+    self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
+    self->__ ## out ## _is_present = true; \
+} while(0)
+
+/** Version of set() for output types given as 'type*' that
+ *  allocates a new object of the type of the specified output port.
+ *  It also sets the corresponding _is_present variable in the self
+ *  struct to true (which causes the object message to be sent),
+ *  and sets the variable named by the argument to the newly allocated
+ *  object so that the user code can then populate it.
+ *  The freeing of the dynamically allocated object will be handled automatically
+ *  when the last downstream reader of the message has finished.
+ *  @param out The name of the output.
+ */
+#define set_new(out) \
+do { \
+    out ## _is_present = true; \
+    out = __set_new_array_impl(&(self->__ ## out), 1); \
+    self->__ ## out ## _is_present = true; \
+} while(0)
+
+/** Version of set() for output types given as 'type[]'.
+ *  This allocates a new array of the specified length,
+ *  sets the corresponding _is_present variable in the self struct to true
+ *  (which causes the array message to be sent), and sets the variable
+ *  given by the first argument to point to the new array so that the
+ *  user code can populate the array. The freeing of the dynamically
+ *  allocated array will be handled automatically
+ *  when the last downstream reader of the message has finished.
+ *  @param out The name of the output.
+ *  @param length The length of the array to be sent.
+ */
+#define set_new_array(out, length) \
+do { \
+    out ## _is_present = true; \
+    out = __set_new_array_impl(&(self->__ ## out), length); \
+    self->__ ## out ## _is_present = true; \
+} while(0)
+
+/** Version of set() for output types given as 'type[number]'.
+ *  This sets the _is_present variable corresponding to the specified output
+ *  to true (which causes the array message to be sent). The values in the 
+ *  output are normally written directly to the array or struct before or
+ *  after this is called.
+ *  @param out A pointer to the output in the self struct.
+ */
+#define set_present(out) \
+do { \
+    out ## _is_present = true; \
+    self->__ ## out ## _is_present = true; \
+} while(0)
+
+/** Version of set() for output types given as 'type*' where you want
+ *  to send a previously dynamically object of the specified type.
+ *  The deallocation is delegated to downstream reactors, which
+ *  automatically deallocate when the reference count drops to zero.
+ *  @param out A pointer to the output in the self struct.
+ *  @param val A pointer to the object to send.
+ */
+#define set_token(out, val) \
+do { \
+    out ## _is_present = true; \
+    self->__ ## out.value = val; \
+    self->__ ## out.length = 1; \
+    self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
+    self->__ ## out ## _is_present = true; \
+} while(0)
+
+/** Return a writable copy of the specified input, which must be
+ *  a message carried by a token_t struct. If the reference count
+ *  is exactly one, this returns the message itself without copying.
+ *  Otherwise, it returns a copy.
+ *  This is a macro that converts an input name into a reference
+ *  in the self struct.
+ */
+#define writable_copy(input) __writable_copy_impl(self->__ ## input)
 
 //  ======== Type definitions ========  //
 
@@ -90,11 +201,30 @@ typedef long long instant_t;
 /** Intervals of time. */
 typedef long long interval_t;
 
+/** String type so that we don't have use {= char* =}. */
+#ifndef string
+typedef char* string;
+#endif
+
 /** Topological order index for reactions. */
 typedef pqueue_pri_t index_t;
 
 /** Reaction function type. */
 typedef void(*reaction_function_t)(void*);
+
+/** Token type for dynamically allocated arrays and structs sent as messages. */
+typedef struct token_t {
+    /** Pointer to a struct or array to be sent as a message. Must be first. */
+    void* value;
+    /** Size of the struct or array element. */
+    int element_size;
+    /** Length of the array or 1 for a struct. */
+    int length;
+    /** The number of destination input ports for the message. */
+    int initial_ref_count;
+    /** The number of input ports that have not already reacted to the message. */
+    int ref_count;
+} token_t;
 
 /** Reaction activation record to push onto the reaction queue. */
 typedef struct trigger_t trigger_t;
@@ -166,6 +296,11 @@ instant_t get_physical_time();
  * Function to request stopping execution at the end of the current logical time.
  */
 void stop();
+
+/** 
+ * Generated function that optionally sets default command-line options.
+ */
+void __set_default_command_line_options();
 
 /** 
  * Generated function that resets outputs to be absent at the

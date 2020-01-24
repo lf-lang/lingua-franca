@@ -1,0 +1,11 @@
+target TypeScript;
+
+reactor Foo(bar:number(42)) {
+    state baz(bar);
+    reaction (startup) {=
+       console.log("Baz: " + self.baz);
+    =}
+}
+main reactor X {
+    a = new Foo();
+}

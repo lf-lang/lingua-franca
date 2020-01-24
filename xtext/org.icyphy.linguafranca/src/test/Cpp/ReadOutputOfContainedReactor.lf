@@ -1,0 +1,39 @@
+// Test reacting to and reading outputs from a contained
+// reactor in various permutations.
+target Cpp;
+reactor Contained {
+    output out:int;
+    reaction(startup) -> out {=
+        out.set(42);
+    =}
+}
+main reactor ReadOutputOfContainedReactor {
+    preamble {= 
+        #include <iostream>
+        #include <cstdlib>
+    =}
+    c = new Contained();
+    state count:int(0);
+    reaction(startup) c.out {=
+        std::cout << "Startup reaction reading output of contained "
+                  << "reactor: " << *c.out.get() << std::endl;
+        count++;
+    =}
+    reaction(c.out) {=
+        std::cout << "Reading output of contained reactor: " << *c.out.get()
+                  << std::endl;
+        count++;
+    =}
+    reaction(startup, c.out) {=
+        std::cout << "Alternate triggering reading output of contained "
+                  << "reactor: " << *c.out.get() << std::endl;
+        count++;
+    =}
+    reaction(shutdown) {=
+        if (count != 3) {
+            std::cerr << "ERROR: One of the reactions failed to trigger."
+                      << std::endl;
+            exit(1);
+        }
+    =}
+}

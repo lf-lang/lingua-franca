@@ -1,0 +1,32 @@
+target TypeScript (
+    timeout = 5 sec
+);
+main reactor SlowingClock {
+    logical action a(100 msec);
+    state interval:time(100 msec);
+    state expected_time:time(100 msec);
+    reaction(startup) -> a {=
+        a.schedule(0);
+    =}
+    reaction(a) -> a {=
+        let elapsed_logical_time : TimeInterval = self.util.getElapsedLogicalTime();
+        console.log("Logical time since start: " + elapsed_logical_time);
+        if (!elapsed_logical_time.isEqualTo(self.expected_time)) {
+            console.log("ERROR: Expected time to be: " + self.expected_time);
+            self.util.failure();
+            //throw new Error("ERROR: Expected time to be: " + (this.state as any).expected_time);
+        }
+        a.schedule( self.interval);
+        self.expected_time = self.expected_time.add(new UnitBasedTimeInterval(100 , TimeUnit.msec));
+        self.expected_time = self.expected_time.add(self.interval);
+        self.interval = self.interval.add(new UnitBasedTimeInterval(100 , TimeUnit.msec));
+    =}
+    reaction(shutdown) {=
+        if (!self.expected_time.isEqualTo(new UnitBasedTimeInterval(5500 , TimeUnit.msec))) {
+            console.log("ERROR: Expected the next expected time to be: " + new UnitBasedTimeInterval(5500 , TimeUnit.msec));
+            console.log("It was: " + self.expected_time);
+            self.util.failure();
+            //throw new Error("ERROR: Expected the next expected time to be: [ 5, 500000000 ]");
+        }
+    =}
+}

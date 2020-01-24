@@ -1,0 +1,42 @@
+// Test local deadline, where a deadline is associated with a reaction
+// definition. This test triggers a reaction exactly once with a
+// deadline violation.
+target Cpp;
+reactor Deadline(threshold:time(100 msec)) {
+    preamble {= 
+        #include <iostream>
+        #include <cstdlib>
+        #include <chrono>
+        #include <thread>
+    =}
+    input x:int;
+    output deadlineViolation:bool;
+    reaction(x) -> deadlineViolation {=
+        std::cerr << "ERROR: Deadline violation was not detected!" << std::endl;
+        exit(1);
+    =} deadline(threshold) {=
+        std::cout << "Deadline violation detected." << std::endl;
+        deadlineViolation.set(true);
+    =}
+}
+reactor Print {
+    preamble {= 
+        #include <iostream>
+    =}
+    input in:bool;
+    reaction(in) {=
+        if (*in.get()) {
+            std::cout << "Output successfully produced by deadline handler." 
+                      << std::endl;
+        }
+    =}
+}
+main reactor SimpleDeadline {
+    d = new Deadline(threshold = 10 msec);
+    p = new Print();
+    d.deadlineViolation -> p.in;
+    reaction(startup) -> d.x {=
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        d.x.set(42);
+    =}
+} 
