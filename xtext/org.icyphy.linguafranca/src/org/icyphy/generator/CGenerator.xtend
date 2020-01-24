@@ -1625,7 +1625,8 @@ class CGenerator extends GeneratorBase {
     override generateDelayBody(Action action, VarRef port) { 
         val ref = generateVarRef(port);
         val tmp = action.name + "_to_" + port.variable.name
-        '''«IF !action.type.endsWith("*")»
+        // FIXME: the following check is not detecting pointer types masked by a typedef
+        '''«IF !action.type.trim.endsWith("*")»
             «action.type»* «tmp» = malloc(sizeof(«action.type»));
             *«tmp» = «ref»;
         «ELSE»
@@ -2128,8 +2129,7 @@ class CGenerator extends GeneratorBase {
      *  @param type The type specification.
      */
     private def isTokenType(String type) {
-        // FIXME: Ignore white space in [ ].
-        if(type.trim.endsWith('[]') || type.trim.endsWith('*')) {
+        if(type.trim.matches("^\\w*\\[\\s*\\]$") || type.trim.endsWith('*')) {
             true
         } else {
             false
@@ -2195,12 +2195,10 @@ class CGenerator extends GeneratorBase {
     }
     
     // Regular expression pattern for array types with specified length.
-    // FIXME: ignore white space.
-    static final Pattern arrayPatternFixed = Pattern.compile("^([a-zA-Z]+)(\\[[0-9]+\\])");
+    static final Pattern arrayPatternFixed = Pattern.compile("^\\s*+(\\w+)\\s*(\\[[0-9]+\\])\\s*$");
     
     // Regular expression pattern for array types with unspecified length.
-    // FIXME: ignore white space.
-    static final Pattern arrayPatternVariable = Pattern.compile("^([a-zA-Z]+)\\[\\]");
+    static final Pattern arrayPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\[\\]\\s*$");
     
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
