@@ -1,7 +1,7 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
 target C(
-	run = "bin/Composition -timeout 10 sec"
+	run = "bin/Composition -fast -timeout 10 sec"
 );
 reactor Source(period:time(2 sec)) {
 	output y:int;
@@ -27,7 +27,6 @@ reactor Test {
 }
 main reactor Composition {
 	s = new Source();
-	
 	d = new Test();
-	s.y -> d.x after 1 sec;
+	s.y -> d.x after 5 sec;
 }
