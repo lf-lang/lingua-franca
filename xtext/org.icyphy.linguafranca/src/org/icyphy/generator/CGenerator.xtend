@@ -1616,17 +1616,31 @@ class CGenerator extends GeneratorBase {
         acceptableTargetSet
     }
 
-    override generateScheduleCall(Action action, String extraDelay, String value) 
-        '''schedule(«action.name», «extraDelay», &«value»)'''
+    /**
+     * Generate code for the body of a reaction that takes an input and
+     * schedules an action with the value of that input.
+     * @param the action to schedule
+     * @param the port to read from
+     */
+    override generateDelayBody(Action action, VarRef port) '''
+        «IF !action.type.endsWith("*")»
+            «action.type»* foo = malloc(sizeof(«action.type»));
+            *foo = «generateVarRef(port)»; // FIXME: this temporary variable must be chosen such that it doesn't collide with anything.
+        «ELSE»
+            «action.type»* foo = &«generateVarRef(port)»;
+        «ENDIF»
+        schedule(«action.name», 0, foo);
+    '''
     
-    override generatePortRead(VarRef reference)
-        '''«generateVarRef(reference)»'''
-
-    override generateActionRead(VarRef reference)
-        '''«reference.variable.name»_value'''
-           
-    override generatePortWrite(VarRef reference, String value) 
-        '''set(«generateVarRef(reference)», «value»)'''
+    /**
+     * Generate code for the body of a reaction that is triggered by the
+     * given action and writes its value to the given port.
+     * @param the action that triggers the reaction
+     * @param the port to write to
+     */
+    override generateForwardBody(Action action, VarRef port) '''
+        set(«generateVarRef(port)», «action.name»_value);
+    '''
         
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.

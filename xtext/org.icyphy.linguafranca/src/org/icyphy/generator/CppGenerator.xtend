@@ -833,17 +833,19 @@ class CppGenerator extends GeneratorBase {
     
     // FIXME: the following implementations are most certainly incorrect.
     
-    override generateScheduleCall(Action action, String extraDelay, String value) 
-        '''schedule(«action.name», «extraDelay», «value»)'''
+    override generateDelayBody(Action action, VarRef port) '''
+        «IF !action.type.endsWith("*")»
+            «action.type»* foo = malloc(sizeof(«action.type»));
+            *foo = «generateVarRef(port)»;
+        «ELSE»
+            «action.type»* foo = &«generateVarRef(port)»;
+        «ENDIF»
+        schedule(«action.name», 0, foo);
+    '''
     
-    override generatePortRead(VarRef reference)
-        '''«reference.variable.name»'''
 
-    override generateActionRead(VarRef reference)
-        '''«reference.variable.name»_value'''
-           
-    override generatePortWrite(VarRef reference, String value) 
-        '''set(«generateVarRef(reference)», «value»)'''
-
+    override generateForwardBody(Action action, VarRef port) '''
+        set(«generateVarRef(port)», «action.name»_value);
+    '''
     
 }

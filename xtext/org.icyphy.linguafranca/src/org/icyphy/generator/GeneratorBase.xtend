@@ -232,14 +232,12 @@ abstract class GeneratorBase {
         // Configure the first reaction.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
-        r1.code = generateScheduleCall(action, "0", generatePortRead(inRef)) +
-            ";\n"
+        r1.code = generateDelayBody(action, inRef) + ";\n"
 
         // Configure the second reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
-        r2.code = generatePortWrite(outRef, generateActionRead(triggerRef)) +
-            ";\n"
+        r2.code = generateForwardBody(action, outRef) + ";\n"
 
         // Add the reactions to the parent.
         parent.reactions.add(r1)
@@ -257,26 +255,6 @@ abstract class GeneratorBase {
     def errorsOccurred() {
         return generatorErrorsOccurred;
     }
-
-    /**
-     * Generate code for reading the value of an action.
-     * @reference The action to read the value of.
-     */
-    abstract def String generateActionRead(VarRef reference);
-    
-    /**
-     * Generate code for reading the value of port.
-     * @reference The port to read the value of.
-     */
-    abstract def String generatePortRead(VarRef reference);
-    
-    /**
-     * Generate code for writing a value to a port.
-     * @param reference A reference to a port.
-     * @param value An expression in target-code syntax that denotes 
-     * the value to be written to the port.
-     */
-    def String generatePortWrite(VarRef reference, String value);
     
     /** Collect data in a reactor or composite definition.
      *  Subclasses should override this and be sure to call
@@ -298,13 +276,20 @@ abstract class GeneratorBase {
     }
 
     /**
-     * Generate code that invokes runtime function `schedule` using the given arguments.
-     * @param action The action to schedule an event for.
-     * @param extraDelay The extra delay that the scheduled event should incur.
-     * @param value An expression in target-code syntax that references the 
-     * value to associate with the event.
+     * Generate code for the body of a reaction that takes an input and
+     * schedules an action with the value of that input.
+     * @param the action to schedule
+     * @param the port to read from
      */
-    abstract def String generateScheduleCall(Action action, String extraDelay, String value);
+    abstract def String generateDelayBody(Action action, VarRef port);
+
+    /**
+     * Generate code for the body of a reaction that is triggered by the
+     * given action and writes its value to the given port.
+     * @param the action that triggers the reaction
+     * @param the port to write to
+     */
+    abstract def String generateForwardBody(Action action, VarRef port);
     
     /**
      * Generate code for referencing a port, action, or timer.
