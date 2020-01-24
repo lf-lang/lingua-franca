@@ -8,12 +8,12 @@ reactor GeneratedDelay {
     logical action act(100 msec);
 
     reaction(y_in) -> act {=
-        self.y_state = self.y_in.get() as number;
+        y_state.set(y_in.get() as number);
         act.schedule(0);
     =}
 
     reaction(act) -> y_out {=
-        y_out.set(self.y_state);
+        y_out.set(y_state.get());
     =}
 }
 
@@ -24,16 +24,16 @@ reactor Source {
     =} 
 }
 reactor Sink {
-    input in:number;
-    reaction(in) {=
-        var elapsed_logical = self.util.getElapsedLogicalTime();
-        var logical = self.util.getCurrentLogicalTime();
-        var physical = self.util.getCurrentPhysicalTime();
+    input x:number;
+    reaction(x) {=
+        var elapsed_logical = this.util.time.getElapsedLogicalTime();
+        var logical = this.util.time.getCurrentLogicalTime();
+        var physical = this.util.time.getCurrentPhysicalTime();
         console.log("Logical, physical, and elapsed logical: " + logical + physical + elapsed_logical); 
         var oneHundredMsec = new UnitBasedTimeInterval(100, TimeUnit.msec);
-        if (elapsed_logical.isEqualTo(oneHundredMsec)) {
+        if (!elapsed_logical.isEqualTo(oneHundredMsec)) {
             console.log("FAILURE: Expected " + oneHundredMsec + " but got " + elapsed_logical);
-            self.util.failure();
+            this.util.exec.failure();
         } else {
             console.log("SUCCESS. Elapsed logical time is " + elapsed_logical);
         }
@@ -45,5 +45,5 @@ main reactor ActionDelay {
     g = new GeneratedDelay();
     
     source.out -> g.y_in;
-    g.y_out -> sink.in;
+    g.y_out -> sink.x;
 }

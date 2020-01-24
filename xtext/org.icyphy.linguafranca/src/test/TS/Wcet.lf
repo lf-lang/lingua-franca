@@ -13,7 +13,7 @@ reactor Work {
     input in1:number;
     input in2:number;
     output out:number;
-    reaction(in1, in2) in1, in2-> out {=
+    reaction(in1, in2) -> out {=
         let ret:number;
         if ((in1.get() as number) > 10) {
             ret = (in2.get() as number) * (in1.get() as number);
@@ -25,7 +25,7 @@ reactor Work {
 }
 reactor Print {
     input x:number;
-    reaction(x) x {=
+    reaction(x) {=
         console.log("Received: " + x.get());
     =}
 }

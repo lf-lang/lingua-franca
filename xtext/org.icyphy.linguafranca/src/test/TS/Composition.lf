@@ -11,20 +11,20 @@ reactor Source(period:time(2 sec)) {
     timer t(1 sec, period);
     state count:number(0);
     reaction(t) -> y {=
-        self.count++;
-        y.set(self.count);
+        count.set(count.get() + 1);
+        y.set(count.get());
     =}
 }
 
 reactor Test {
     input x:number;
     state count:number(0);
-    reaction(x) x {=
-        self.count++;
+    reaction(x) {=
+        count.set(count.get() + 1);
         console.log("Received " + x.get());
-        if (x.get() != self.count) { 
-            console.log("FAILURE: Expected " + self.count);
-            self.util.failure();
+        if (x.get() != count.get()) { 
+            console.log("FAILURE: Expected " + count.get());
+            this.util.exec.failure();
             //throw new Error("FAILURE: Expected " + (this.state as any).count);
         }
     =} 

@@ -12,15 +12,15 @@ target TypeScript(
 reactor Printer {
     input x:number;
     state count:number(1);
-    reaction(x) x {=
+    reaction(x) {=
         console.log("Inside reactor received: "
           + x.get());
-        if ((x.get() as number) != self.count) {
-            console.log("FAILURE: Expected " + self.count);
-            self.util.failure();
+        if ((x.get() as number) != count.get()) {
+            console.log("FAILURE: Expected " + count.get());
+            this.util.exec.failure();
             //throw new Error("FAILURE: Expected " + (this.state as any).count);
         }
-        self.count++;
+        count.set(count.get() + 1);
     =}
 }
 main reactor SendingInside {
@@ -28,7 +28,7 @@ main reactor SendingInside {
     timer t(0, 1 sec);
     p = new Printer();
     reaction(t) -> p.x {=
-        self.count++;
-        p.x.set(self.count);
+        count.set(count.get() + 1);
+        p.x.set(count.get());
     =}
 }
