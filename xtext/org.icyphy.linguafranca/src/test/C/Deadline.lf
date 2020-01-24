@@ -4,6 +4,7 @@
 target C(
     run = "bin/Deadline -timeout 2 sec"
 );
+
 reactor Source(period:time(1 sec)) {
     output y:int;
     timer t(0, period);
@@ -37,7 +38,7 @@ reactor Destination(timeout:time(1 sec)) {
         printf("Destination deadline handler receives: %d\n", x);
         if (2 * (self->count / 2) == self->count) {
             // The count variable is even, so the deadline should not have been violated.
-            printf("ERROR: Deadline handler invoked without deadline violation.\n");
+            printf("ERROR: Deadline miss handler invoked without deadline violation.\n");
             exit(2);
         }
         (self->count)++;

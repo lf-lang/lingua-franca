@@ -1,0 +1,34 @@
+target C (
+    run = "bin/SlowingClockPhysical -timeout 1 sec"
+);
+main reactor SlowingClockPhysical {
+    physical action a(100 msec);
+    state interval:time(100 msec);
+    state expected_time:time(100 msec);
+    reaction(startup) -> a {=
+        self->expected_time = get_elapsed_physical_time() + MSEC(100);
+        schedule(a, 0, NULL);
+    =}
+    reaction(a) -> a {=
+        instant_t elapsed_logical_time = get_elapsed_logical_time();
+        printf("Logical time since start: \%lld nsec.\n",
+            elapsed_logical_time
+        );
+        if (elapsed_logical_time < self->expected_time) {
+            printf("ERROR: Expected logical time to be: \%lld nsec.\n",
+                self->expected_time
+            );
+            exit(1);
+        }
+        self->expected_time = get_elapsed_physical_time() + MSEC(100) + self->interval;
+        schedule(a, self->interval, NULL);
+        self->interval += MSEC(100);
+    =}
+    reaction(shutdown) {=
+        if (self->expected_time < MSEC(1000)) {
+            printf("ERROR: Expected the next expected time to be at least: 1000000000 nsec.\n");
+            printf("It was: \%lld nsec.\n", self->expected_time);
+            exit(2);            
+        }
+    =}
+}

@@ -1,0 +1,24 @@
+target TypeScript(
+    timeout = 3 sec
+);
+
+import Count.lf;
+reactor Test {
+    input c:number;
+    state i:number(0);
+    reaction(c) c {=
+        console.log("Received " + c.get());
+        self.i++
+        if (c.get() != self.i) {
+            console.log("ERROR: Expected " + self.i + " but got " + c.get());
+            self.util.failure();
+            //throw new Error("ERROR: Expected " + (this.state as any).i + " but got " + (this.state as any).c.get());
+        }
+    =}
+}
+main reactor CountTest {
+    count = new Count();
+    test = new Test();
+    count.c -> test.c;
+}
+

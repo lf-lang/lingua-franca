@@ -1,0 +1,24 @@
+// Source produces a dynamically allocated struct, which it passes
+// to Scale. Scale requests a writable copy, which, instead of
+// copying, it just gets ownership of the original struct.
+// It modifies it and passes it to Print. It gets freed after
+// Print is done with it.
+target C;
+import StructPrint.lf;
+
+reactor Scale(scale:int(2)) {
+    // Mutable keyword indicates that this reactor wants a writable copy of the input.
+    mutable input in:hello_t*;
+    output out:hello_t*;
+    reaction(in) -> out {=
+        in->value *= self->scale;
+        set_token(out, in);
+    =}
+}
+main reactor StructScale {
+    s = new Source();
+    c = new Scale();
+    p = new Print(expected=84);
+    s.out -> c.in;
+    c.out -> p.in;
+}

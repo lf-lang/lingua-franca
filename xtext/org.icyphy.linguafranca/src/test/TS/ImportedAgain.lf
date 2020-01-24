@@ -1,0 +1,16 @@
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target TypeScript(
+    timeout = 2 sec
+);
+reactor ImportedAgain {
+    input x:number;
+    reaction(x) x {=
+        console.log("Received: " + x.get());
+        if ((x.get() as number) != 42) {
+            console.log("ERROR: Expected input to be 42. Got: " + x.get())
+            self.util.failure();
+            //throw new Error("ERROR: Expected input to be 42. Got: " + (this.state as any).x.get());
+        }
+    =}
+}

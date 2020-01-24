@@ -1,0 +1,18 @@
+// Check that a state variable can have a statically initialized struct as a value.
+target C;
+main reactor StructAsState {
+    preamble {=
+        typedef struct hello_t {
+            char* name;
+            int value;
+        } hello_t;
+    =}
+    state s:hello_t({= {"Earth", 42}=});
+    reaction(startup) {=
+        printf("State s.name=\"%s\", value=%d.\n", self->s.name, self->s.value);
+        if (self->s.value != 42) {
+            fprintf(stderr, "FAILED: Expected 42.\n");
+            exit(1);
+        }
+    =}
+}

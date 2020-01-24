@@ -1,6 +1,6 @@
 // Example in the Wiki.
     target C;
-    reactor Gain(scale:int(2)) {
+    reactor Scale(scale:int(2)) {
         input x:int;
         output y:int;
         reaction(x) -> y {=
@@ -26,8 +26,8 @@
             }
         =}
     }
-    main reactor Main {
-        g = new Gain();
+    main reactor Gain {
+        g = new Scale();
         d = new Test();
         g.y -> d.x;
         reaction(startup) -> g.x {=

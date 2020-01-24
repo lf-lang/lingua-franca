@@ -1,0 +1,13 @@
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target TypeScript(
+    timeout = 2 sec
+);
+import ImportedAgain.lf;
+reactor Imported {
+    input x:number;
+    a = new ImportedAgain();
+    reaction(x) x -> a.x {=
+       a.x.set(x.get());
+    =} 
+}

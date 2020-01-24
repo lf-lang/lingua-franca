@@ -1,0 +1,26 @@
+target TypeScript(
+    timeout = 5 sec
+);
+main reactor DelayedAction {
+    timer t(0, 1 sec);
+    logical action a;
+    state count:number(0);
+    reaction(t) -> a {=
+        a.schedule( new UnitBasedTimeInterval(100, TimeUnit.msec));
+    =}
+    
+    reaction(a) {=
+        let elapsedLogical = self.util.getElapsedLogicalTime();
+        let elapsedPhysical = self.util.getElapsedPhysicalTime();
+        console.log("Logical time since start: " + elapsedLogical);
+        console.log("Physical time since start: " + elapsedPhysical);
+        let expected = new UnitBasedTimeInterval( self.count * 1, TimeUnit.sec).add(
+            new UnitBasedTimeInterval(100, TimeUnit.msec));
+        self.count++;
+        if (!elapsedLogical.isEqualTo(expected)) {
+            console.log("Failure: expected " + expected + " but got " + elapsedLogical);
+            self.util.failure();
+            //throw new Error("Expected " + expected + " but got " + elapsedLogical);
+        }
+    =}
+}

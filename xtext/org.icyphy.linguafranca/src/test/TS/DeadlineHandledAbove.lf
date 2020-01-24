@@ -1,0 +1,42 @@
+// Test a deadline where the deadline violation produces
+// an output and the container reacts to that output.
+target TypeScript(
+    timeout = 2 sec
+);
+reactor Deadline(threshold:time(100 msec)) {
+    input x:number;
+    output deadline_violation:boolean;
+    reaction(x) -> deadline_violation {=
+        console.log("ERROR: Deadline violation was not detected!");
+        self.util.failure()
+        //throw new Error("ERROR: Deadline violation was not detected!");
+    =} deadline(threshold) {=
+        console.log("Deadline violation detected.");
+        deadline_violation.set(true);
+    =}
+}
+main reactor DeadlineHandledAbove {
+    state violation_detected:boolean(false);
+    d = new Deadline(threshold = 10 msec);
+    reaction(startup) -> d.x {=
+        // Busy wait 20 msec to cause a deadline violation.
+        let initialElapsedTime = self.util.getElapsedPhysicalTime();
+        while ( self.util.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeInterval(20, TimeUnit.msec))));
+        d.x.set(42);
+    =}
+    reaction(d.deadline_violation) d.deadline_violation {=
+        if( d.deadline_violation.get()){
+            console.log("Output successfully produced by deadline miss handler.");
+            self.violation_detected = true;
+        }
+    =}
+    reaction(shutdown) {=
+        if ( self.violation_detected) {
+            console.log("SUCCESS. Test passes.");
+        } else {
+            console.log("FAILURE. Container did not react to deadline violation.");
+            self.util.failure()
+            //throw new Error("FAILURE. Container did not react to deadline violation.");
+        }
+    =}
+}

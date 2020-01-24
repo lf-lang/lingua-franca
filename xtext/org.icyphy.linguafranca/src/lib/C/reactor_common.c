@@ -1,7 +1,37 @@
-/*
- FIXME: License, copyright, authors.
- */
+/* Runtime infrastructure for the C target of Lingua Franca. */
 
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
+
+/** Runtime infrastructure for the C target of Lingua Franca.
+ *  This file contains resources that are shared by the threaded and
+ *  non-threaded versions of the C runtime.
+ *  
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author{Mehrdad Niknami <mniknami@berkeley.edu>}
+ */
 #include "reactor.h"
 
 /** Global constants. */
@@ -81,11 +111,6 @@ void* lf_malloc(size_t size) {
 	return malloc(size);
 }
 
-// Stop execution at the conclusion of the current logical time.
-void stop() {
-    stop_requested = true;
-}
-
 /////////////////////////////
 // The following is not in scope for reactors:
 
@@ -157,19 +182,50 @@ static void prt_evt(FILE *out, void *a) {
 
 // ********** Priority Queue Support End
 
+// Counter used to issue a warning if memory is allocated and never freed.
+static int __count_allocations;
+
+// Library function to decrement the reference count and free
+// the memory, if appropriate, for messages carried by a token_t struct.
+void __done_using(token_t* token) {
+    token->ref_count--;
+    // printf("****** After reacting, ref_count = %d.\n", token->ref_count);
+    if (token->ref_count == 0) {
+        // Count frees to issue a warning if this is never freed.
+        __count_allocations--;
+        // printf("****** Freeing allocated memory.\n");
+        free(token->value);
+    }
+}
+
 // Schedule the specified trigger at current_time plus the
 // offset of the specified trigger plus the delay.
 // The value is required to be a pointer returned by lf_malloc
 // because it will be freed after having been delivered to
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
-handle_t __schedule(trigger_t* trigger, interval_t delay, void* value) {
+handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
+    // If the trigger is physical, then we need to use
+    // physical time to adjust the delay.
+    if (trigger->is_physical) {
+        // Get the current physical time.
+        struct timespec current_physical_time;
+        clock_gettime(CLOCK_REALTIME, &current_physical_time);
+    
+        interval_t time_adjustment =
+                current_physical_time.tv_sec * BILLION
+                + current_physical_time.tv_nsec
+                - current_time;
+        if (time_adjustment > 0LL) {
+            extra_delay += time_adjustment;
+        }
+    }
     // Recycle event_t structs, if possible.
     event_t* e = pqueue_pop(recycle_q);
     if (e == NULL) {
         e = malloc(sizeof(struct event_t));
     }
-    e->time = current_time + trigger->offset + delay;
+    e->time = current_time + trigger->offset + extra_delay;
     e->trigger = trigger;
     e->value = value;
     
@@ -209,6 +265,39 @@ void schedule_output_reactions(reaction_t* reaction) {
 	}
 }
 
+// Library function for allocating memory for an array output.
+// This turns over "ownership" of the allocated memory to the output.
+void* __set_new_array_impl(token_t* token, int length) {
+    // FIXME: Error checking needed.
+    token->value = malloc(token->element_size * length);
+    token->ref_count = token->initial_ref_count;
+    // Count allocations to issue a warning if this is never freed.
+    __count_allocations++;
+    // printf("****** Allocated object with starting ref_count = %d.\n", token->ref_count);
+    token->length = length;
+    return token->value;
+}
+
+// Library function for returning a writable copy of a token.
+// If the reference count is 1, it returns the original rather than a copy.
+void* __writable_copy_impl(token_t* token) {
+    // printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
+    if (token->ref_count == 1) {
+        // printf("****** Avoided copy because reference count is exactly one.\n");
+        // Decrement the reference count to avoid the automatic free().
+        token->ref_count--;
+        return token->value;
+    } else {
+        // printf("****** Copying array because reference count is not one.\n");
+        int size = token->element_size * token->length;
+        void* copy = malloc(size);
+        memcpy(copy, token->value, size);
+        // Count allocations to issue a warning if this is never freed.
+        __count_allocations++;
+        return copy;
+    }
+}
+
 // Print a usage message.
 void usage(char* command) {
     printf("\nCommand-line arguments: \n\n");
@@ -222,6 +311,11 @@ void usage(char* command) {
     printf("  -threads <n>\n");
     printf("   Executed in <n> threads if possible (optional feature).\n\n");
 }
+
+// If a run option is given in the target directive, then the code
+// generator will overwrite these with default command-line options.
+int default_argc = 0;
+char** default_argv = NULL;
 
 // Process the command-line arguments.
 // If the command line arguments are not understood, then
@@ -290,6 +384,7 @@ int process_args(int argc, char* argv[]) {
 // Initialize the priority queues and set logical time to match
 // physical time. This also prints a message reporting the start time.
 void initialize() {
+    __count_allocations = 0;
 #if _WIN32 || WIN32
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (ntdll) {
@@ -316,7 +411,7 @@ void initialize() {
 
     // Initialize logical time to match physical time.
     clock_gettime(CLOCK_REALTIME, &physicalStartTime);
-    printf("Start execution at time %splus %ld nanoseconds.\n",
+    printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
     		ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
     current_time = physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec;
     start_time = current_time;
@@ -325,6 +420,26 @@ void initialize() {
         // A duration has been specified. Calculate the stop time.
         stop_time = current_time + duration;
     }
+}
+
+// Check that memory allocated by set_new, set_new_array, or writable_copy
+// has been freed and print a warning message if not.
+void termination() {
+    if (__count_allocations != 0) {
+        printf("**** WARNING: Memory allocated by set_new, set_new_array, or writable_copy has not been freed!\n");
+        printf("**** Number of unfreed tokens: %d.\n", __count_allocations);
+    }
+    // Print elapsed times.
+    interval_t elapsed_logical_time
+        = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    printf("---- Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
+    
+    struct timespec physicalEndTime;
+    clock_gettime(CLOCK_REALTIME, &physicalEndTime);
+    interval_t elapsed_physical_time
+        = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
+        - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    printf("---- Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
 }
 
 // ********** Start Windows Support

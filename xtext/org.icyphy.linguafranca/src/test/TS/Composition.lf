@@ -1,0 +1,37 @@
+// This test connects a simple counting source to tester
+// that checks against its own count.
+target TypeScript(
+    timeout = 5 sec
+);
+//(
+//  run = "bin/Composition -fast -timeout 10 sec"
+//);
+reactor Source(period:time(2 sec)) {
+    output y:number;
+    timer t(1 sec, period);
+    state count:number(0);
+    reaction(t) -> y {=
+        self.count++;
+        y.set(self.count);
+    =}
+}
+
+reactor Test {
+    input x:number;
+    state count:number(0);
+    reaction(x) x {=
+        self.count++;
+        console.log("Received " + x.get());
+        if (x.get() != self.count) { 
+            console.log("FAILURE: Expected " + self.count);
+            self.util.failure();
+            //throw new Error("FAILURE: Expected " + (this.state as any).count);
+        }
+    =} 
+}
+main reactor Composition {
+    s = new Source();
+    
+    d = new Test();
+    s.y -> d.x;
+}

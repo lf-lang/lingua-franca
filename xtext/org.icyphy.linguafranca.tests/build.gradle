@@ -1,8 +1,11 @@
 dependencies {
 	compile project(':org.icyphy.linguafranca')
-	testCompile 'org.junit.jupiter:junit-jupiter-api'
-	testRuntime 'org.junit.jupiter:junit-jupiter-engine'
-	testCompile "org.eclipse.xtext:org.eclipse.xtext.testing:${xtextVersion}"
+	testCompile "org.junit.jupiter:junit-jupiter-api:5.1.0"    
+    testCompile "org.junit.jupiter:junit-jupiter-engine:5.1.0"    
+    testCompile "org.junit.platform:junit-platform-commons:1.1.0"    
+    testCompile "org.junit.platform:junit-platform-engine:1.1.0"    
+    testCompile "org.opentest4j:opentest4j:1.0.0"    
+    testCompile "org.eclipse.xtext:org.eclipse.xtext.testing:${xtextVersion}"
 	testCompile "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
 }
 test {

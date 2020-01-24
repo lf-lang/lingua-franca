@@ -1,5 +1,33 @@
-/*
- Version of the C library supporting multithreaded execution.
+/* Runtime infrastructure for the threaded version of the C target of Lingua Franca. */
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
+
+/** Runtime infrastructure for the threaded version of the C target of Lingua Franca.
+ *  
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 
 #include "reactor_common.c"
@@ -36,26 +64,10 @@ pthread_cond_t end_logical_time = PTHREAD_COND_INITIALIZER;
 // it will be ignored.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     pthread_mutex_lock(&mutex); 	
-	// If we are between logical times, this is an asynchronous callback
-	// and we need to use physical time to adjust the delay.
- 	//if (between_logical_times) {
-	if (trigger->is_physical) {
-	 	// Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
-    
-        interval_t time_adjustment =
-                current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec
-                - current_time;
-        if (time_adjustment > 0LL) {
-        	extra_delay += time_adjustment;
-        }
- 	}
 	int return_value = __schedule(trigger, extra_delay, value);
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    pthread_cond_signal(&event_q_changed);
  	pthread_mutex_unlock(&mutex);
-	// Notify the main thread in case it is waiting for physical time to elapse.
-	pthread_cond_signal(&event_q_changed);
  	return return_value;
 }
 
@@ -162,7 +174,7 @@ int next() {
     if (event == NULL) {
         // No event in the queue and -wait was not specified.
         // Execution is finished.
-        if (!keepalive_specified) {
+        if (!keepalive_specified || stop_requested) {
      		pthread_mutex_unlock(&mutex);
             return 0;
        }
@@ -255,6 +267,17 @@ int next() {
     return 1;
 }
 
+// Stop execution at the conclusion of the current logical time.
+void stop() {
+    stop_requested = true;
+    // In case any thread is waiting on a condition, notify all.
+    pthread_mutex_lock(&mutex);
+    pthread_cond_broadcast(&reaction_q_changed);
+    pthread_cond_signal(&event_q_changed);
+    pthread_cond_signal(&number_of_idle_threads_increased);
+    pthread_mutex_unlock(&mutex);
+}
+
 // Worker thread for the thread pool.
 void* worker(void* arg) {
 	printf("Worker thread started.\n");
@@ -292,6 +315,7 @@ void* worker(void* arg) {
 			// something went on the reaction queue.
 			// printf("Waiting for items on the reaction queue.\n");
 			pthread_cond_wait(&reaction_q_changed, &mutex);
+            // printf("Done waiting.\n");
 		} else {
 	    	// This thread will no longer be idle.
 	    	if (!have_been_busy) {
@@ -395,20 +419,12 @@ void wrapup() {
 		printf("Worker thread exited.\n");
 	}
 	free(__thread_ids);
-	
-    interval_t elapsed_logical_time
-        = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
-    printf("Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
-    
-    struct timespec physicalEndTime;
-    clock_gettime(CLOCK_REALTIME, &physicalEndTime);
-    interval_t elapsed_physical_time
-        = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
-        - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
-    printf("Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
 }
 
 int main(int argc, char* argv[]) {
+    // Invoke the function that optionally provides default command-line options.
+    __set_default_command_line_options();
+    
     // Initialize the one and only mutex to be recursive, meaning that it is OK
     // for the same thread to lock and unlock the mutex even if it already holds
     // the lock.
@@ -417,7 +433,8 @@ int main(int argc, char* argv[]) {
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mutex, &attr);
 
-    if (process_args(argc, argv)) {
+    if (process_args(default_argc, default_argv)
+            && process_args(argc, argv)) {
  		pthread_mutex_lock(&mutex);
         initialize();
         
@@ -430,8 +447,10 @@ int main(int argc, char* argv[]) {
  		pthread_mutex_unlock(&mutex);
         while (next() != 0 && !stop_requested);
         wrapup();
+        termination();
     	return 0;
     } else {
+        termination();
     	return -1;
     }
 }

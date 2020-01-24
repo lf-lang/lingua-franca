@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #==========================================================
-# Description: 	Run the lfc compiler.
-# Author:	Marten Lohstroh, Mehrdad Niknami
-# Usage:	lfc [FILE]
+# Description: 		Run the lfc compiler.
+# Authors:		Marten Lohstroh, Mehrdad Niknami
+# Usage:		lfc [FILE]
 #==========================================================
 
 set -euo pipefail
@@ -28,10 +28,12 @@ jarpath="${lfbase}build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar"
 
 if [ ! -f "${jarpath}" ] || ! "${FIND}" "${lfbase}src" -path "${lfbase}src/test" -prune -o -type f -newer "${jarpath}" -exec false {} +; then  # Check if jar is missing or out-of-date relative to source files
 	1>&2 echo "Jar file is missing or out-of-date; running Gradle..."
-	"${base}gradlew" -p "${base}" generateStandaloneCompiler
+	"${base}gradlew" --stacktrace -p "${base}" generateStandaloneCompiler
 	touch -c -- "${jarpath}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be updated
 fi
 
 if [ 0 -lt "$#" ]; then
-	java -jar "${jarpath}" "$@"
+	java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "$@"
+else
+	echo "lfc: fatal error: no input file"
 fi

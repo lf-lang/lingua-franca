@@ -1,6 +1,6 @@
 // Example from Schedule section of the C++ Reactor Target wiki page.
 target Cpp;
-reactor Schedule {
+reactor ScheduleTest {
     preamble {=
         #include <iostream>
         #include <cstdlib>
@@ -21,8 +21,8 @@ reactor Schedule {
         }
     =}
 }
-main reactor Main {
-    a = new Schedule();
+main reactor Schedule {
+    a = new ScheduleTest();
     timer t;
     reaction(t) -> a.x {=
         a.x.set(1);

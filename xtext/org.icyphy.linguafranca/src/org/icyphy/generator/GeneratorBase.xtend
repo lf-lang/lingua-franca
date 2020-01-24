@@ -1,15 +1,46 @@
-/*
- * Generator base class for shared code between code generators.
- */
-// The Lingua-Franca toolkit is licensed under the BSD 2-Clause License.
-// See LICENSE.md file in the top repository directory.
+/* Generator base class for shared code between code generators. */
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
+
 package org.icyphy.generator
 
 import java.io.BufferedReader
+import java.io.File
 import java.io.IOException
+import java.io.InputStream
 import java.io.InputStreamReader
+import java.net.URL
+import java.nio.file.Paths
+import java.util.ArrayList
 import java.util.HashMap
-import java.util.Hashtable
+import java.util.List
+import java.util.Set
+import java.util.regex.Pattern
+import org.eclipse.core.resources.IResource
+import org.eclipse.core.resources.ResourcesPlugin
+import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -18,138 +49,90 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.TimeOrValue
-import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.impl.ActionImpl
-import org.icyphy.linguaFranca.impl.LinguaFrancaFactoryImpl
-import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Port
-import java.util.List
-import java.util.LinkedList
+import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.VarRef
 
-/**
- * Generator base class for shared code between code generators.
+/** Generator base class for shared code between code generators.
  * 
- * @author Edward A. Lee, Marten Lohstroh, Chris Gill
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author{Chris Gill, <cdgill@wustl.edu>}
  */
-class GeneratorBase {
+abstract class GeneratorBase {
 
-    /** All code goes into this string buffer. */
-    var code = new StringBuilder
-    
-    /** Map from builder to its current indentation. */
-    var indentation = new HashMap<StringBuilder, String>()
-    
+    ////////////////////////////////////////////
+    //// Public fields.
+
     // Map from time units to an expression that can convert a number in
     // the specified time unit into nanoseconds. This expression may need
     // to have a suffix like 'LL' or 'L' appended to it, depending on the
-    // target language, to ensure that the result is a 64-bit long.
-    static public var timeUnitsToNs = #{
-            TimeUnit.NSEC->1L,
-            TimeUnit.NSECS->1L,
-            TimeUnit.USEC->1000L,
-            TimeUnit.USECS->1000L,
-            TimeUnit.MSEC->1000000L,
-            TimeUnit.MSECS->1000000L,
-            TimeUnit.SEC->1000000000L,
-            TimeUnit.SECS->1000000000L,
-            TimeUnit.SECOND->1000000000L,
-            TimeUnit.SECONDS->1000000000L,
-            TimeUnit.MIN->60000000000L,
-            TimeUnit.MINS->60000000000L,
-            TimeUnit.MINUTE->60000000000L,
-            TimeUnit.MINUTES->60000000000L,
-            TimeUnit.HOUR->3600000000000L,
-            TimeUnit.HOURS->3600000000000L,
-            TimeUnit.DAY->86400000000000L,
-            TimeUnit.DAYS->86400000000000L,
-            TimeUnit.WEEK->604800000000000L, 
-            TimeUnit.WEEKS->604800000000000L}
-            
-            
-    def generateDelayReactor(Reaction reaction) {
-    	
-    	val lffi = LinguaFrancaFactory.eINSTANCE
-    	val delayReactor = lffi.createReactor
-    	delayReactor.name = "generatedDelay" // TODO: check unique name
-    	
-    	
-		for (effect : reaction.effects) {
-			println("effect variable: " + effect.variable)
-			if (effect.variable instanceof Action) {
-				throw new Error("No after on actions")
-			}
-			val v = (effect.variable as Port)
-			
-			val in = lffi.createInput
-			in.name = v.name + "_in"
-			in.type = v.type
-			delayReactor.inputs.add(in)
-			
-			val out = lffi.createOutput
-			out.name = v.name + "_out"
-			out.type = v.type
-			delayReactor.outputs.add(out)
-			
-			val state = lffi.createState
-			state.name = v.name + "_state"
-			state.type = v.type
-			state.value = "0" // FIXME: default for types
-			delayReactor.states.add(state)
-			
-		// original outputs into additional state variables
-		// in the C code generator set state, schedule timer action
-		}
-		println("after: " + reaction.delay.time)
-		// TODO: for after add a logical action and reaction with delay
-		val action = lffi.createAction
-		// FIXME: how to handle time now
-		// This was before some the change to TimeOrValue
-		// action.delay = timeInTargetLanguage(reaction.delay.time)
-		// This is how deadlines are handled, but the compiler
-		// complains about time being a String.
-		
-		action.delay = reaction.delay.time
-
-		action.name = "act"
-		delayReactor.actions.add(action)
-
-		// println("time: " + action.delay)
-		
-		val r1 = lffi.createReaction
-		for (i : delayReactor.inputs) {
-			val vr = lffi.createVarRef
-			vr.variable = i
-			r1.triggers.add(vr)
-		}
-		val a = lffi.createVarRef
-		a.variable = action
-		r1.effects.add(a)
-		r1.code = "{= printf(\"generatedDelay\"); =}"
-		delayReactor.reactions.add(r1)
-		
-		
-		// quite some to do as this already generates a null pointer exception					
-		// create a reactor first
-		// reactor.actions.add(action)
-		val r2 = lffi.createReaction
-		val vr = lffi.createVarRef
-		vr.variable = action
-		r2.triggers.add(vr)
-		r2.code = "{= printf(\"reaction 2\"); =}"
-		// TODO: effects
-		
-		delayReactor
-	}
+    // target language, to ensure that the result is a 64-bit long.            
+    static public var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+        TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
+        TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
+        TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
+        TimeUnit.SECOND -> 1000000000L, TimeUnit.SECONDS -> 1000000000L,
+        TimeUnit.MIN -> 60000000000L, TimeUnit.MINS -> 60000000000L,
+        TimeUnit.MINUTE -> 60000000000L, TimeUnit.MINUTES -> 60000000000L,
+        TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
+        TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
+        TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
+        
+    ////////////////////////////////////////////
+    //// Protected fields.
     
+    /** Path to the directory containing the .lf file. */
+    protected var String directory
+
+    /** The root filename for the main file containing the source code,
+     *  without the .lf extension.
+     */
+    protected var String filename
+
+    /** Indicator of whether generator errors occurred. */
+    protected var generatorErrorsOccurred = false
+
+    
+    /** Definition of the main (top-level) reactor */
+    protected Instantiation mainDef
+    
+    /** Mode.STANDALONE if the code generator is being called
+     *  from the command line, Mode.INTEGRATED if it is being called
+     *  from the Eclipse IDE, and Mode.UNDEFINED otherwise.
+     */
+    protected var mode = Mode.UNDEFINED
+    
+    /** A list of Reactor definitions in the main
+     *  resource, including non-main reactors defined
+     *  in imported resources.
+     */
+    protected var List<Reactor> reactors
+    
+    /** The file containing the main source code. */
+    protected var Resource resource
+    
+    /** The full path to the file containing the .lf file including the
+     *  full filename with the .lf extension.
+     */
+    protected var String sourceFile
+
+    ////////////////////////////////////////////
+    //// Private fields.
+
+    /** All code goes into this string buffer. */
+    var code = new StringBuilder
+
+    /** Map from builder to its current indentation. */
+    var indentation = new HashMap<StringBuilder, String>()
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -157,82 +140,116 @@ class GeneratorBase {
     /** Generate code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation. This base class invokes generateReactor()
-     *  for each contained reactor. If errors occur during generation,
+     *  for each contained reactor, including any reactors defined
+     *  in imported .lf files (except any main reactors in those
+     *  imported files). If errors occur during generation,
      *  then a subsequent call to errorsOccurred() will return true.
      *  @param resource The resource containing the source code.
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: What is this?
-     *  @param importTable The mapping given by import statements.
      */
-    def void doGenerate(
-            Resource resource, 
-            IFileSystemAccess2 fsa,
-            IGeneratorContext context,
-            Hashtable<String,String> importTable) {
+    def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
+            IGeneratorContext context) {
 
+        println("Generating code for: " + resource.getURI.toString)
+        
         generatorErrorsOccurred = false
         
         this.resource = resource
-
         // Figure out the file name for the target code from the source file name.
-        filename = extractFilename(resource.getURI.toString)
-
-
-		// have an abstract function to generate the C code for the delay,
-		// implemented in the C generator
-		
-		val genDelayReactor = new LinkedList<Reactor>
-		val lffi = LinguaFrancaFactory.eINSTANCE
-		
-		// Iterate over reactors
-		for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-			/*
-			println("reactor: "+reactor)
-			for (action : reactor.actions) {
-				println("action: " + action)
-			}
-			*/
-			// Iterate over reactions to find some with a delay ("after time")
-			for (reaction : reactor.reactions) {
-				println("reaction: " + reaction)
-				if (reaction.delay !== null) {
-					val dr = generateDelayReactor(reaction)
-					genDelayReactor.add(dr)
-					val createInst = lffi.createInstantiation
-					createInst.name = "uniqueTODO" // TODO:
-					createInst.reactorClass = dr
-					reactor.instantiations.add(createInst)
-					// remove the output of the reaction, add it in the timer reaction
-				}
-//				if (reaction.localDeadline !== null) {
-//					println("deadline: " + reaction.localDeadline.time)
-//				}
-			}
-	
-		}
-		for (reactor : genDelayReactor) {
-			generateReactor(reactor, importTable)
-		}
-
-        var Instantiation mainDef = null
-
+        analyzeResource(resource)
         
-        // Recursively instantiate reactors from their definitions
-        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            generateReactor(reactor, importTable)
-            if (reactor.isMain) {
-                // Creating an definition for the main reactor because there isn't one.
-                mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
-                mainDef.setName(reactor.name)
-                mainDef.setReactorClass(reactor)
-                this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.
+        // First, produce any preamble code that the code generator needs
+        // to produce before anything else goes into the code generated files.
+        generatePreamble()
+        
+        // Find connections, and see whether they have a delay associated with them.
+        // For those that do, remove the connection, and replace it with two reactions
+        // and an action.
+        for (connection : resource.allContents.toIterable.filter(Connection)) {
+            if (connection.delay !== null) {
+               desugarDelay(connection, connection.delay)
             }
         }
-
-                
         
+        // Collect a list of reactors defined this resource and (non-main)
+        // reactors defined in imported resources.
+        reactors = newLinkedList
+        
+        // Next process all the imports and call generateReactor on any
+        // reactors defined in the imports.
+        processImports(resource)
+
+        // Recursively instantiate reactors from their definitions
+        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+            generateReactor(reactor)
+            if (reactor.isMain) {
+                // Creating an definition for the main reactor because there isn't one.
+                this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
+                this.mainDef.setName(reactor.name)
+                this.mainDef.setReactorClass(reactor)
+            }
+        }
     }
-    
+
+    /**
+     * Take a connection and replace it with an action and two reactions
+     * that implement a delayed transfer between the end points of the 
+     * given connection.
+     * @param connection The connection to replace.
+     * @param delay The delay associated with the connection.
+     */
+    def desugarDelay(Connection connection, Delay delay) {
+        val factory = LinguaFrancaFactory.eINSTANCE
+        var type = (connection.rightPort.variable as Port).type
+        val action = factory.createAction
+        val triggerRef = factory.createVarRef
+        val effectRef = factory.createVarRef
+        val inRef = factory.createVarRef
+        val outRef = factory.createVarRef
+        val parent = (connection.eContainer as Reactor)
+        val r1 = factory.createReaction
+        val r2 = factory.createReaction
+
+        // Name the newly created action; set its delay and type.
+        action.name = "__delay__" // FIXME: ensure this is unique
+        action.delay = connection.delay.time
+        action.type = type
+
+        // Establish references to the action.
+        triggerRef.variable = action
+        effectRef.variable = action
+
+        // Establish references to the involved ports.
+        inRef.container = connection.leftPort.container
+        inRef.variable = connection.leftPort.variable
+        outRef.container = connection.rightPort.container
+        outRef.variable = connection.rightPort.variable
+
+        // Add the action to the reactor.
+        parent.actions.add(action)
+
+        // Configure the first reaction.
+        r1.triggers.add(inRef)
+        r1.effects.add(effectRef)
+        r1.code = generateScheduleCall(action, "0", generatePortRead(inRef)) +
+            ";\n"
+
+        // Configure the second reaction.
+        r2.triggers.add(triggerRef)
+        r2.effects.add(outRef)
+        r2.code = generatePortWrite(outRef, generateActionRead(triggerRef)) +
+            ";\n"
+
+        // Add the reactions to the parent.
+        parent.reactions.add(r1)
+        parent.reactions.add(r2)
+
+        // Remove the original connection for the parent.
+        parent.connections.remove(connection)
+    }
+
+
     /** Return true if errors occurred in the last call to doGenerate().
      *  This will return true if any of the reportError methods was called.
      *  @return True if errors occurred.
@@ -240,83 +257,70 @@ class GeneratorBase {
     def errorsOccurred() {
         return generatorErrorsOccurred;
     }
+
+    /**
+     * Generate code for reading the value of an action.
+     * @reference The action to read the value of.
+     */
+    abstract def String generateActionRead(VarRef reference);
+    
+    /**
+     * Generate code for reading the value of port.
+     * @reference The port to read the value of.
+     */
+    abstract def String generatePortRead(VarRef reference);
+    
+    /**
+     * Generate code for writing a value to a port.
+     * @param reference A reference to a port.
+     * @param value An expression in target-code syntax that denotes 
+     * the value to be written to the port.
+     */
+    def String generatePortWrite(VarRef reference, String value);
     
     /** Collect data in a reactor or composite definition.
      *  Subclasses should override this and be sure to call
-     *  super.generateReactor(reactor, importTable).
+     *  super.generateReactor(reactor).
      *  @param reactor The parsed reactor AST data structure.
-     *  @param importTable Substitution table for class names (from import statements).
-     */    
-    def void generateReactor(Reactor reactor, Hashtable<String,String> importTable) {
-                
+     */
+    def void generateReactor(Reactor reactor) {
+        reactors.add(reactor)
+
         // Reset indentation, in case it has gotten messed up.
         indentation.put(code, "")
-        
+
         // Print a comment identifying the generated code.
-        prComment("Code generated by the Lingua Franca compiler for reactor " 
-            + reactor.name
-            + " in "
-            + filename
+        prComment(
+            "Code generated by the Lingua Franca compiler for reactor " +
+                reactor.name + " in " + filename
         )
-        
-        // Special Timer and Action for startup and shutdown, if they occur.
-        // Only one of each of these should be created even if multiple
-        // reactions are triggered by them.
-        var Timer timer = null
-        var Action action = null
-        
-        if (reactor.reactions !== null) {
-            for (Reaction reaction : reactor.reactions) {
-                // If the reaction triggers include 'startup' or 'shutdown',
-                // then create Timer and TimerInstance objects named 'startup'
-                // or Action and ActionInstance objects named 'shutdown'.
-                // Using a Timer for startup means that the target-specific
-                // code generator doesn't have to do anything special to support this.
-                // However, for 'shutdown', the target-specific code generator
-                // needs to check all reaction instances for a shutdownActionInstance
-                // and schedule that action before shutting down the program.
-                // These get inserted into both the ECore model and the
-                // instance model.
-                var hasStartupTrigger = false;
-                var hasShutdownTrigger = false;
-                for (trigger : reaction.triggers) {
-                    if (trigger.startup !== null) {
-                        hasStartupTrigger = true
-                        if (timer === null) {
-                            // FIXME: Creating here a pretty incomplete EObject. Is that OK?
-                            timer = LinguaFrancaFactory.eINSTANCE.createTimer()
-                            timer.setName('startup')
-                            reactor.timers.add(timer)
-                        }
-                    } else if (trigger.shutdown !== null) {
-                        hasShutdownTrigger = true
-                        if (action === null) {
-                            // FIXME: Creating here a pretty incomplete EObject. Is that OK?
-                            action = LinguaFrancaFactory.eINSTANCE.createAction()
-                            action.setName('shutdown')
-                            reactor.actions.add(action)
-                        }
-                    }
-                }
-                // If appropriate, add a VarRef to the triggers list of this
-                // reaction for the startup timer or shutdown action.
-                if (hasStartupTrigger) {
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
-                    variableReference.setVariable(timer)
-                    reaction.triggers.add(variableReference)
-                }
-                if (hasShutdownTrigger) {
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
-                    variableReference.setVariable(action)
-                    reaction.triggers.add(variableReference)
-                }
-            }
-        }
+
     }
 
+    /**
+     * Generate code that invokes runtime function `schedule` using the given arguments.
+     * @param action The action to schedule an event for.
+     * @param extraDelay The extra delay that the scheduled event should incur.
+     * @param value An expression in target-code syntax that references the 
+     * value to associate with the event.
+     */
+    abstract def String generateScheduleCall(Action action, String extraDelay, String value);
+    
+    /**
+     * Generate code for referencing a port, action, or timer.
+     * @param reference The referenced variable.
+     */
+    def String generateVarRef(VarRef reference) {
+        var prefix = "";
+        if (reference.container !== null) {
+            prefix = reference.container.name + "." 
+        }
+        return prefix + reference.variable.name
+    }
+    
     /** If the argument starts with '{=', then remove it and the last two characters.
      *  @return The body without the code delimiter or the unmodified argument if it
-     *   is not delimited.
+     *  is not delimited.
      */
     static def String removeCodeDelimiter(String code) {
         if (code === null) {
@@ -327,27 +331,6 @@ class GeneratorBase {
             code
         }
     }
-
-	// FIXME: comments
-	def resolveTime(TimeOrValue timeOrValue, ReactorInstance instance) {
-		var timeLiteral = '0'
-		var unit = TimeUnit.NONE
-		if (timeOrValue !== null) {
-			if (timeOrValue.parameter !== null) {
-				var resolved = instance.resolveParameter(timeOrValue.parameter)
-				if (resolved === null) {
-					throw new InternalError("Incorrect reference to parameter :" + timeOrValue.parameter.name);
-				} else {
-					timeLiteral = resolved.literalValue
-					unit = TimeUnit.NONE
-				}
-			} else {
-				timeLiteral = timeOrValue.time.toString
-				unit = timeOrValue.unit
-			}
-		}
-		return timeInTargetLanguage(timeLiteral, unit)
-	}
 
     /** Given a representation of time that may possibly include units,
      *  return a string that the target language can recognize as a value.
@@ -362,13 +345,13 @@ class GeneratorBase {
      *  @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
     def timeInTargetLanguage(String timeLiteral, TimeUnit unit) { // FIXME: make this static?
-    	if (unit != TimeUnit.NONE) {
-    		unit.name() + '(' + timeLiteral + ')'
-    	} else {
-    		timeLiteral
-    	}       
+        if (unit != TimeUnit.NONE) {
+            unit.name() + '(' + timeLiteral + ')'
+        } else {
+            timeLiteral
+        }
     }
-    
+
     /** Return a string that the target language can recognize as a type
      *  for a time value. This base class returns "instant_t".
      *  Particular target generators will likely need to override
@@ -379,23 +362,19 @@ class GeneratorBase {
         "instant_t"
     }
 
-    ////////////////////////////////////////////
-    //// Protected fields.
+    // //////////////////////////////////////////
+    // // Protected methods.
 
-    /** The main (top-level) reactor instance. */
-    protected ReactorInstance main 
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set is a set of case-insensitive
+     *  strings specifying target names. If any target is acceptable,
+     *  return null.
+     * 
+     */
+    protected abstract def Set<String> acceptableTargets()
     
-    // The root filename for the main file containing the source code, without the .lf.
-    protected var String filename
-    
-    // The file containing the main source code.
-    protected var Resource resource
-    
-    // Indicator of whether generator errors occurred.
-    protected var generatorErrorsOccurred = false
-
-    ////////////////////////////////////////////
-    //// Protected methods.
     
     /** Clear the buffer of generated code.
      */
@@ -403,6 +382,44 @@ class GeneratorBase {
         code = new StringBuilder
     }
     
+    /** Execute the command given by the specified list of strings,
+     *  print the command, its return code, and its output to
+     *  stderr and stdout, and return the return code, which is 0
+     *  if the command succeeds.
+     *  @param command The command.
+     *  @return 0 if the command succeeds, otherwise, an error code.
+     */
+    protected def executeCommand(ArrayList<String> command) {
+        println("In directory: " + directory)
+        println("Executing command: " + command.join(" "))
+        var builder = new ProcessBuilder(command);
+        builder.directory(new File(directory));
+        var process = builder.start()
+        val returnCode = process.waitFor()
+        var stdout = readStream(process.getInputStream())
+        var stderr = readStream(process.getErrorStream())
+        if (returnCode !== 0) {
+            reportError("Command returns error code " + returnCode)
+        }
+        if (stdout.length() > 0) {
+            println("--- Standard output from command:")
+            println(stdout)
+            println("--- End of standard output.")
+        }
+        if (stderr.length() > 0) {
+            reportError("---Command reports errors:\n" + stderr.toString)
+            println("--- End of standard standard error.")
+        }
+        returnCode
+    }
+    
+    /** Generate any preamble code that appears in the code generated
+     *  file before anything else.
+     */
+    protected def generatePreamble() {
+        // FIXME: Header information
+    }
+
     /** Get the code produced so far.
      *  @return The code produced so far as a String.
      */
@@ -415,7 +432,7 @@ class GeneratorBase {
     protected def indent() {
         indent(code)
     }
-    
+
     /** Increase the indentation of the output code produced
      *  on the specified builder.
      *  @param The builder to indent.
@@ -431,30 +448,64 @@ class GeneratorBase {
         }
         indentation.put(builder, buffer.toString)
     }
-    
-    /** Open and parse an import given a URI relative to currentResource.
-     *  @param currentResource The current resource.
-     *  @param importedURIAsString The URI to import as a string.
-     *  @return The resource specified by the URI or null if either
-     *   the resource cannot be found or it is the same as the currentResource.
+
+    /** Open a non-Lingua Franca import file at the specified URI
+     *  in the specified resource set. Throw an exception if the
+     *  file import is not supported. This base class always throws
+     *  an exception because the only supported imports, by default,
+     *  are Lingua Franca files.
+     *  @param importStatement The original import statement (used for error reporting).
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
      */
-    protected def openImport(Resource currentResource, Import importSpec) {
-        val importedURIAsString = importSpec.name;
-        val URI currentURI = currentResource?.getURI;
-        val URI importedURI = URI?.createFileURI(importedURIAsString);
-        val URI resolvedURI = importedURI?.resolve(currentURI);
-        if (resolvedURI.equals(currentURI)) {
-            reportError(importSpec, "Recursive imports are not permitted: " + importSpec.name)
-            return currentResource
+    protected def openForeignImport(
+        Import importStatement, ResourceSet resourceSet, URI resolvedURI
+    ) {
+        reportError(importStatement, "Unsupported imported file type: "
+            + importStatement.importURI
+        )
+    }
+    
+    /** Open an import at the Lingua Franca file at the specified URI
+     *  in the specified resource set and call generateReactor() on
+     *  any non-main reactors given in that file.
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
+     */
+    protected def openLFImport(ResourceSet resourceSet, URI resolvedURI) {
+        val importResource = resourceSet?.getResource(resolvedURI, true);
+        if (importResource === null) {
+            throw new Exception("Failed to load resource.")
         } else {
-            val ResourceSet currentResourceSet = currentResource?.resourceSet;
-            try {
-                return currentResourceSet?.getResource(resolvedURI, true);
-            } catch (Exception ex) {
-                reportError(importSpec, "Import not found: " + importSpec.name 
-                    + ". Exception message: " + ex.message
+            // Make sure the target of the import is acceptable.
+            var targetOK = (acceptableTargets === null)
+            var offendingTarget = ""
+            for (target : importResource.allContents.toIterable.filter(Target)) {
+                for (acceptableTarget : acceptableTargets ?: emptyList()) {
+                    if (acceptableTarget.equalsIgnoreCase(target.name)) {
+                        targetOK = true
+                    }
+                }
+                if (!targetOK) offendingTarget = target.name
+            }
+            if (!targetOK) {
+                throw new Exception("Import target " + offendingTarget
+                    + " is not an acceptable target in import "
+                    + importResource.getURI
+                    + ". Acceptable targets are: "
+                    + acceptableTargets.join(", ")
                 )
-                return null
+            } else {
+                // Process any imports that the import has.
+                processImports(importResource)
+                // Call generateReactor for each reactor contained by the import
+                // that is not a main reactor.
+                for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
+                    if (!reactor.isMain) {
+                        println("Including imported reactor: " + reactor.name)
+                        generateReactor(reactor)
+                    }
+                }
             }
         }
     }
@@ -464,9 +515,11 @@ class GeneratorBase {
      *  @param text The text to append.
      */
     protected def pr(String format, Object... args) {
-        pr(code, if (args !== null && args.length > 0) String.format(format, args) else format)
+        pr(code,
+            if (args !== null && args.length > 0) String.format(format,
+                args) else format)
     }
-    
+
     /** Append the specified text plus a final newline to the specified
      *  code buffer.
      *  @param builder The code buffer.
@@ -518,7 +571,7 @@ class GeneratorBase {
             builder.append("\n")
         }
     }
-    
+
     /** Prints an indented block of text with the given begin and end markers,
      *  but only if the actions print any text at all.
      *  This is helpful to avoid the production of empty blocks.
@@ -551,13 +604,55 @@ class GeneratorBase {
         pr(code, '// ' + comment);
     }
 
+    /** Process any imports included in the resource defined by the
+     *  specified resource. This will open the import, check for
+     *  compatibility, and call generateReactor on any reactors the
+     *  import defines that are not main reactors.
+     *  If the target is not acceptable to this
+     *  generator, as reported by acceptableTargets, report an error,
+     *  ignore the import, and continue.
+     *  @param resource The resource (file) that may contain import
+     *   statements.
+     */
+    protected def void processImports(Resource resource) {
+        for (import : resource.allContents.toIterable.filter(Import)) {
+            // Resolve the import as a URI relative to the current resource's URI.
+            val URI currentURI = resource?.getURI;
+            val URI importedURI = URI?.createFileURI(import.importURI);
+            val URI resolvedURI = importedURI?.resolve(currentURI);
+            val ResourceSet resourceSet = resource?.resourceSet;
+            
+            // Check for self import.
+            if (resolvedURI.equals(currentURI)) {
+                reportError(import,
+                    "Recursive imports are not permitted: " + import.importURI)
+                return
+            }
+            try {
+                if (import.importURI.endsWith(".lf")) {
+                    // Handle Lingua Franca imports.
+                    openLFImport(resourceSet, resolvedURI)
+                } else {
+                    // Handle other supported imports (if any).
+                    openForeignImport(import, resourceSet, resolvedURI)
+                }
+            } catch (Exception ex) {
+                reportError(
+                    import,
+                    "Import error: " + import.importURI +
+                    "\nException message: " + ex.message
+                )
+            }
+        }
+    }
+
     /** Read a text file in the classpath and return its contents as a string.
      *  @param filename The file name as a path relative to the classpath.
      *  @return The contents of the file as a String or null if the file cannot be opened.
      */
     protected def readFileInClasspath(String filename) throws IOException {
         var inputStream = this.class.getResourceAsStream(filename)
-        
+
         if (inputStream === null) {
             return null
         }
@@ -576,13 +671,64 @@ class GeneratorBase {
         }
     }
 
+    /** Read the specified input stream until an end of file is encountered
+     *  and return the result as a StringBuilder.
+     *  @param stream The stream to read.
+     *  @return The result as a string.
+     */
+    protected def readStream(InputStream stream) {
+        var reader = new BufferedReader(new InputStreamReader(stream))
+        var result = new StringBuilder();
+        var line = "";
+        while ((line = reader.readLine()) !== null) {
+            result.append(line);
+            result.append(System.getProperty("line.separator"));
+        }
+        stream.close()
+        reader.close()
+        result
+    }
+    
+    /** If the mode is INTEGRATED (the code generator is running in an
+     *  an Eclipse IDE), then refresh the project. This will ensure that
+     *  any generated files become visible in the project.
+     */
+    protected def refreshProject() {
+        if (mode == Mode.INTEGRATED) {
+            // Find name of current project
+            val id = "((:?[a-z]|[A-Z]|_\\w)*)";
+            val pattern = Pattern.compile(
+                "platform:" + File.separator + "resource" + File.separator +
+                    id + File.separator);
+            val matcher = pattern.matcher(code);
+            var projName = ""
+            if (matcher.find()) {
+                projName = matcher.group(1)
+            }
+            try {
+                val members = ResourcesPlugin.getWorkspace().root.members
+                for (member : members) {
+                    // Refresh current project, or simply entire workspace if project name was not found
+                    if (projName == "" ||
+                        projName.equals(
+                            member.fullPath.toString.substring(1))) {
+                        member.refreshLocal(IResource.DEPTH_INFINITE, null)
+                        println("Refreshed " + member.fullPath.toString)
+                    }
+                }
+            } catch (IllegalStateException e) {
+                println("Unable to refresh workspace: " + e)
+            }
+        }
+    }
+
     /** Report an error.
      *  @param message The error message.
      */
     protected def reportError(String message) {
         System.err.println("ERROR: " + message)
     }
-    
+
     /** Report an error on the specified parse tree object.
      *  @param object The parse tree object.
      *  @param message The error message.
@@ -593,11 +739,8 @@ class GeneratorBase {
         // In case we are using a command-line tool, we report the line number.
         // The caller should not throw an exception so compilation can continue.
         var node = NodeModelUtils.getNode(object)
-        val line = (node === null)? "unknown" : node.getStartLine
-        System.err.println("ERROR: Line "
-                    + line
-                    + ": "
-                    + message)
+        val line = (node === null) ? "unknown" : node.getStartLine
+        System.err.println("ERROR: Line " + line + ": " + message)
         // Return a string that can be inserted into the generated code.
         "[[ERROR: " + message + "]]"
     }
@@ -611,10 +754,8 @@ class GeneratorBase {
         // In case we are using a command-line tool, we report the line number.
         // The caller should not throw an exception so compilation can continue.
         var node = NodeModelUtils.getNode(object)
-        System.err.println("WARNING: Line "
-                    + node.getStartLine()
-                       + ": "
-                    + message)
+        System.err.println("WARNING: Line " + node.getStartLine() + ": " +
+            message)
         // Return an empty string that can be inserted into the generated code.
         ""
     }
@@ -625,7 +766,7 @@ class GeneratorBase {
     protected def unindent() {
         unindent(code)
     }
-    
+
     /** Reduce the indentation by one level for generated code
      *  in the specified code buffer.
      */
@@ -641,7 +782,7 @@ class GeneratorBase {
             indentation.put(builder, indent)
         }
     }
-    
+
     /** Given a representation of time that may possibly include units,
      *  return a string for the same amount of time
      *  in terms of the specified baseUnit. If the two units are the
@@ -655,52 +796,68 @@ class GeneratorBase {
         }
         var timeValue = timeOrValue.time
         var timeUnit = timeOrValue.unit
-        
+
         if (timeOrValue.parameter !== null) {
-        	timeUnit = timeOrValue.parameter.unit
-        	if (timeOrValue.parameter.unit != TimeUnit.NONE) {
-        		timeValue = timeOrValue.parameter.time
-        	} else {
-        		try {
-        			timeValue = Integer.parseInt(timeOrValue.parameter.value)
-        		} catch (NumberFormatException e) {
-        			reportError(timeOrValue, "Invalid time value: " + timeOrValue)
-        		}
-        	}
+            timeUnit = timeOrValue.parameter.unit
+            if (timeOrValue.parameter.unit != TimeUnit.NONE) {
+                timeValue = timeOrValue.parameter.time
+            } else {
+                try {
+                    timeValue = Integer.parseInt(timeOrValue.parameter.value)
+                } catch (NumberFormatException e) {
+                    reportError(timeOrValue,
+                        "Invalid time value: " + timeOrValue)
+                }
+            }
         }
-        
+
         if (timeUnit === TimeUnit.NONE || baseUnit.equals(timeUnit)) {
-        	return timeValue
-       	}
+            return timeValue
+        }
         // Convert time to nanoseconds, then divide by base scale.
-        return ((timeValue * timeUnitsToNs.get(timeUnit)) / timeUnitsToNs.get(baseUnit)).toString
-        
+        return ((timeValue * timeUnitsToNs.get(timeUnit)) /
+            timeUnitsToNs.get(baseUnit)).toString
+
     }
-    
+
     ////////////////////////////////////////////////////
     //// Private functions
     
-    /** Extract a filename from a path. */
-    private def extractFilename(String path) {
-        var result = path
+    /** Analyze the resource (the .lf file) that is being parsed
+     *  to generate code to set the following variables:
+     *  directory, filename, mode, sourceFile.
+     */
+    private def analyzeResource(Resource resource) {
+        var path = resource.getURI.toString
         if (path.startsWith('platform:')) {
-            result = result.substring(9)
+            mode = Mode.INTEGRATED
+            var fileURL = FileLocator.toFileURL(new URL(path)).toString
+            sourceFile = Paths.get(fileURL.substring(5)).normalize.toString
+        } else if (path.startsWith('file:')) {
+            mode = Mode.STANDALONE
+            sourceFile = Paths.get(path.substring(5)).normalize.toString
+        } else {
+            System.err.println(
+                "ERROR: Source file protocol is not recognized: " + path);
         }
-        var lastSlash = result.lastIndexOf('/')
+        var lastSlash = sourceFile.lastIndexOf('/')
         if (lastSlash >= 0) {
-            result = result.substring(lastSlash + 1)
+            filename = sourceFile.substring(lastSlash + 1)
+            directory = sourceFile.substring(0, lastSlash)
         }
-        if (result.endsWith('.lf')) {
-            result = result.substring(0, result.length - 3)
+        // Strip the filename of the extension.
+        if (filename.endsWith('.lf')) {
+            filename = filename.substring(0, filename.length - 3)
         }
-        return result
+        println('******** filename: ' + filename)
+        println('******** sourceFile: ' + sourceFile)
+        println('******** directory: ' + directory)
+        println('******** mode: ' + mode)
     }
-    
+
     enum Mode {
-          STANDALONE,
-          INTEGRATED,
-          UNDEFINED
+        STANDALONE,
+        INTEGRATED,
+        UNDEFINED
     }
 }
-
-

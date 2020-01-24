@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<profiles version="1">
+    <profile kind="XtendFormatterProfile" name="Lingua Franca" version="1">
+        <setting id="blank.lines.after.packagedecl" value="1"/>
+        <setting id="blank.lines.after.last.member" value="0"/>
+        <setting id="blank.line.around.expressions" value="0"/>
+        <setting id="blank.lines.after.imports" value="1"/>
+        <setting id="blank.lines.between.imports" value="0"/>
+        <setting id="newline.after.method.annotations" value="true"/>
+        <setting id="indentation" value="&#9;"/>
+        <setting id="tab.width" value="4"/>
+        <setting id="whitespace.between.keyword.and.parenthesis" value="true"/>
+        <setting id="blank.lines.before.first.member" value="0"/>
+        <setting id="indentation.length" value="-1"/>
+        <setting id="blank.lines.between.methods" value="1"/>
+        <setting id="keep.one.line.methods" value="true"/>
+        <setting id="newline.after.field.annotations" value="true"/>
+        <setting id="preserve.new.lines" value="true"/>
+        <setting id="blank.lines.between.enum.literals" value="0"/>
+        <setting id="newline.after.parameter.annotations" value="true"/>
+        <setting id="line.width.max" value="80"/>
+        <setting id="line.separator" value="&#10;"/>
+        <setting id="braces.in.new.line" value="false"/>
+        <setting id="newline.after.class.annotations" value="true"/>
+        <setting id="newline.after.constructor.annotations" value="true"/>
+        <setting id="blank.lines.between.fields" value="0"/>
+        <setting id="preserve.blank.lines" value="1"/>
+        <setting id="blank.lines.between.fields.and.methods" value="1"/>
+        <setting id="blank.lines.between.classes" value="1"/>
+    </profile>
+</profiles>

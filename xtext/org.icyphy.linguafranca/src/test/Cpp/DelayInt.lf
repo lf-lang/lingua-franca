@@ -19,7 +19,7 @@ reactor Test {
         #include <cstdlib>
     =}
     input in:int;
-    state start_time:{=enactor::time_t=}(0);
+    state start_time:{=reactor::time_t=}(0);
     timer start;
     reaction(start) {=
         // Record the logical time at the start.

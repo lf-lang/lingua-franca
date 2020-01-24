@@ -1,5 +1,34 @@
-/*
- FIXME: License, copyright, authors.
+/* Runtime infrastructure for the non-threaded version of the C target of Lingua Franca. */
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
+
+/** Runtime infrastructure for the non-threaded version of the C target
+ *  of Lingua Franca.
+ *  
+ *  @author{Edward A. Lee <eal@berkeley.edu>}
+ *  @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 
 #include "reactor_common.c"
@@ -266,6 +295,11 @@ int next() {
     return 1;
 }
 
+// Stop execution at the conclusion of the current logical time.
+void stop() {
+    stop_requested = true;
+}
+
 // Print elapsed logical and physical times.
 void wrapup() {
     // Invoke any code generated wrapup. If this returns true,
@@ -274,26 +308,22 @@ void wrapup() {
     if (__wrapup()) {
         next();
     }
-    interval_t elapsed_logical_time
-        = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
-    printf("Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
-    
-    struct timespec physicalEndTime;
-    clock_gettime(CLOCK_REALTIME, &physicalEndTime);
-    interval_t elapsed_physical_time
-        = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
-        - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
-    printf("Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
 }
 
 int main(int argc, char* argv[]) {
-    if (process_args(argc, argv)) {
+    // Invoke the function that optionally provides default command-line options.
+    __set_default_command_line_options();
+
+    if (process_args(default_argc, default_argv)
+            && process_args(argc, argv)) {
         initialize();
         __start_timers();
         while (next() != 0 && !stop_requested);
         wrapup();
+        termination();
     	return 0;
     } else {
+        termination();
     	return -1;
     }
 }

@@ -1,0 +1,61 @@
+// This tests actions with payloads by delaying an input by a fixed amount.
+// This is a start at handling dynamic memory allocation for such actions.
+target TypeScript;
+reactor Delay(delay:time(100 msec)) {
+    input x:number;
+    output out:number;
+    logical action a:number;
+    reaction(x) x -> a {=
+        let delay = self.delay;
+        a.schedule( delay, x.get() as number);
+    =}
+    reaction(a) a -> out {=
+        if (a.isPresent()){
+            out.set(a.get())
+        }
+    =}
+}
+reactor Test {
+    input x:number;
+    state start_time:time(0);
+    state received_value:boolean(false);
+    reaction(startup) {=
+        // Record the logical time at the start.
+        self.start_time = self.util.getCurrentLogicalTime().time;
+    =} 
+    reaction(x) x {=
+        console.log("Received: " + x.get());
+        self.received_value = true;
+        // Check the time of the input.
+        let current_time = self.util.getCurrentLogicalTime().time;
+        let elapsed = current_time.subtract(self.start_time); 
+        console.log("After " + elapsed + " of logical time.");
+        if ( ! elapsed.isEqualTo(new UnitBasedTimeInterval( 100, TimeUnit.msec))) {
+            console.log("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
+            self.util.failure();
+            //throw new Error( "ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
+        }
+        if ( x.get() != 42) {
+            console.log("ERROR: Expected input value to be 42. It was " + x.get());
+            self.util.failure();
+            //throw new Error("ERROR: Expected input value to be 42. It was " + (this.state as any).x.get());            
+        }
+    =}
+    reaction(shutdown) {=
+        console.log("Checking that communication occurred.");
+        if (! self.received_value) {
+            console.log("ERROR: No communication occurred!");
+            self.util.failure();
+            //throw new Error("ERROR: No communication occurred!");          
+        }
+    =}
+}
+
+main reactor DelayInt { 
+    d = new Delay();
+    t = new Test();
+    d.out -> t.x; 
+    reaction(startup) -> d.x {=
+        d.x.set(42);
+    =}
+}

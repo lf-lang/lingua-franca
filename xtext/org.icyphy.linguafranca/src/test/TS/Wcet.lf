@@ -1,0 +1,41 @@
+// Setup for WCET analysis of Worker
+target TypeScript;
+reactor Source {
+    output out1:number;
+    output out2:number;
+    timer t;
+    reaction(t) -> out1, out2 {=
+        out1.set(5);
+        out2.set(10);
+    =}
+}
+reactor Work {
+    input in1:number;
+    input in2:number;
+    output out:number;
+    reaction(in1, in2) in1, in2-> out {=
+        let ret:number;
+        if ((in1.get() as number) > 10) {
+            ret = (in2.get() as number) * (in1.get() as number);
+        } else {
+            ret = (in2.get() as number) + (in1.get() as number);
+        }
+        out.set(ret);
+    =}
+}
+reactor Print {
+    input x:number;
+    reaction(x) x {=
+        console.log("Received: " + x.get());
+    =}
+}
+
+main reactor Wcet {
+    source = new Source();
+    work = new Work();
+    print = new Print();
+    
+    source.out1 -> work.in1;
+    source.out2 -> work.in2;
+    work.out -> print.x;
+}
