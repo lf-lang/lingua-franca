@@ -1622,16 +1622,17 @@ class CGenerator extends GeneratorBase {
      * @param the action to schedule
      * @param the port to read from
      */
-    override generateDelayBody(Action action, VarRef port) '''
-        «IF !action.type.endsWith("*")»
-            «action.type»* foo = malloc(sizeof(«action.type»));
-            *foo = «generateVarRef(port)»; // FIXME: this temporary variable must be chosen such that it doesn't collide with anything.
+    override generateDelayBody(Action action, VarRef port) { 
+        val ref = generateVarRef(port);
+        val tmp = action.name + "_to_" + port.variable.name
+        '''«IF !action.type.endsWith("*")»
+            «action.type»* «tmp» = malloc(sizeof(«action.type»));
+            *«tmp» = «ref»;
         «ELSE»
-            «action.type»* foo = &«generateVarRef(port)»;
+            «action.type»* «tmp» = &«ref»;
         «ENDIF»
-        schedule(«action.name», 0, foo);
-    '''
-    
+        schedule(«action.name», 0, «tmp»);'''
+    }
     /**
      * Generate code for the body of a reaction that is triggered by the
      * given action and writes its value to the given port.
