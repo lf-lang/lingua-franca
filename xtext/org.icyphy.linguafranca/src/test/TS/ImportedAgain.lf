@@ -5,11 +5,11 @@ target TypeScript(
 );
 reactor ImportedAgain {
     input x:number;
-    reaction(x) x {=
+    reaction(x) {=
         console.log("Received: " + x.get());
         if ((x.get() as number) != 42) {
             console.log("ERROR: Expected input to be 42. Got: " + x.get())
-            self.util.failure();
+            this.util.exec.failure();
             //throw new Error("ERROR: Expected input to be 42. Got: " + (this.state as any).x.get());
         }
     =}

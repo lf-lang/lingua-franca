@@ -5,13 +5,12 @@ reactor Delay(delay:time(100 msec)) {
     input x:number;
     output out:number;
     logical action a:number;
-    reaction(x) x -> a {=
-        let delay = self.delay;
-        a.schedule( delay, x.get() as number);
+    reaction(x) -> a {=
+        a.schedule( delay.get(), x.get() as number);
     =}
-    reaction(a) a -> out {=
-        if (a.isPresent()){
-            out.set(a.get())
+    reaction(a) -> out {=
+        if (a.get() !== null){
+            out.set(a.get() as number)
         }
     =}
 }
@@ -21,31 +20,31 @@ reactor Test {
     state received_value:boolean(false);
     reaction(startup) {=
         // Record the logical time at the start.
-        self.start_time = self.util.getCurrentLogicalTime().time;
+        start_time.set(this.util.time.getCurrentLogicalTime().time);
     =} 
-    reaction(x) x {=
+    reaction(x) {=
         console.log("Received: " + x.get());
-        self.received_value = true;
+        received_value.set(true);
         // Check the time of the input.
-        let current_time = self.util.getCurrentLogicalTime().time;
-        let elapsed = current_time.subtract(self.start_time); 
+        let current_time = this.util.time.getCurrentLogicalTime().time;
+        let elapsed = current_time.subtract(start_time.get()); 
         console.log("After " + elapsed + " of logical time.");
         if ( ! elapsed.isEqualTo(new UnitBasedTimeInterval( 100, TimeUnit.msec))) {
             console.log("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
-            self.util.failure();
+            this.util.exec.failure();
             //throw new Error( "ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
         }
         if ( x.get() != 42) {
             console.log("ERROR: Expected input value to be 42. It was " + x.get());
-            self.util.failure();
+            this.util.exec.failure();
             //throw new Error("ERROR: Expected input value to be 42. It was " + (this.state as any).x.get());            
         }
     =}
     reaction(shutdown) {=
         console.log("Checking that communication occurred.");
-        if (! self.received_value) {
+        if (! received_value) {
             console.log("ERROR: No communication occurred!");
-            self.util.failure();
+            this.util.exec.failure();
             //throw new Error("ERROR: No communication occurred!");          
         }
     =}
