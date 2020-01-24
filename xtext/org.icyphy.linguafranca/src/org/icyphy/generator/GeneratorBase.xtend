@@ -49,18 +49,17 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.LinguaFrancaPackage
-import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.VarRef
 
 /** Generator base class for shared code between code generators.
  * 
@@ -76,7 +75,7 @@ abstract class GeneratorBase {
     // Map from time units to an expression that can convert a number in
     // the specified time unit into nanoseconds. This expression may need
     // to have a suffix like 'LL' or 'L' appended to it, depending on the
-    // target language, to ensure that the result is a 64-bit long.
+    // target language, to ensure that the result is a 64-bit long.            
     static public var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
         TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
         TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
@@ -156,7 +155,6 @@ abstract class GeneratorBase {
         
         generatorErrorsOccurred = false
         
-        
         this.resource = resource
         // Figure out the file name for the target code from the source file name.
         analyzeResource(resource)
@@ -164,7 +162,16 @@ abstract class GeneratorBase {
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
         generatePreamble()
-
+        
+        // Find connections, and see whether they have a delay associated with them.
+        // For those that do, remove the connection, and replace it with two reactions
+        // and an action.
+        for (connection : resource.allContents.toIterable.filter(Connection)) {
+            if (connection.delay !== null) {
+               desugarDelay(connection, connection.delay)
+            }
+        }
+        
         // Collect a list of reactors defined this resource and (non-main)
         // reactors defined in imported resources.
         reactors = newLinkedList
@@ -185,6 +192,64 @@ abstract class GeneratorBase {
         }
     }
 
+    /**
+     * Take a connection and replace it with an action and two reactions
+     * that implement a delayed transfer between the end points of the 
+     * given connection.
+     * @param connection The connection to replace.
+     * @param delay The delay associated with the connection.
+     */
+    def desugarDelay(Connection connection, Delay delay) {
+        val factory = LinguaFrancaFactory.eINSTANCE
+        var type = (connection.rightPort.variable as Port).type
+        val action = factory.createAction
+        val triggerRef = factory.createVarRef
+        val effectRef = factory.createVarRef
+        val inRef = factory.createVarRef
+        val outRef = factory.createVarRef
+        val parent = (connection.eContainer as Reactor)
+        val r1 = factory.createReaction
+        val r2 = factory.createReaction
+
+        // Name the newly created action; set its delay and type.
+        action.name = "__delay__" // FIXME: ensure this is unique
+        action.delay = connection.delay.time
+        action.type = type
+
+        // Establish references to the action.
+        triggerRef.variable = action
+        effectRef.variable = action
+
+        // Establish references to the involved ports.
+        inRef.container = connection.leftPort.container
+        inRef.variable = connection.leftPort.variable
+        outRef.container = connection.rightPort.container
+        outRef.variable = connection.rightPort.variable
+
+        // Add the action to the reactor.
+        parent.actions.add(action)
+
+        // Configure the first reaction.
+        r1.triggers.add(inRef)
+        r1.effects.add(effectRef)
+        r1.code = generateScheduleCall(action, "0", generatePortRead(inRef)) +
+            ";\n"
+
+        // Configure the second reaction.
+        r2.triggers.add(triggerRef)
+        r2.effects.add(outRef)
+        r2.code = generatePortWrite(outRef, generateActionRead(triggerRef)) +
+            ";\n"
+
+        // Add the reactions to the parent.
+        parent.reactions.add(r1)
+        parent.reactions.add(r2)
+
+        // Remove the original connection for the parent.
+        parent.connections.remove(connection)
+    }
+
+
     /** Return true if errors occurred in the last call to doGenerate().
      *  This will return true if any of the reportError methods was called.
      *  @return True if errors occurred.
@@ -193,6 +258,26 @@ abstract class GeneratorBase {
         return generatorErrorsOccurred;
     }
 
+    /**
+     * Generate code for reading the value of an action.
+     * @reference The action to read the value of.
+     */
+    abstract def String generateActionRead(VarRef reference);
+    
+    /**
+     * Generate code for reading the value of port.
+     * @reference The port to read the value of.
+     */
+    abstract def String generatePortRead(VarRef reference);
+    
+    /**
+     * Generate code for writing a value to a port.
+     * @param reference A reference to a port.
+     * @param value An expression in target-code syntax that denotes 
+     * the value to be written to the port.
+     */
+    def String generatePortWrite(VarRef reference, String value);
+    
     /** Collect data in a reactor or composite definition.
      *  Subclasses should override this and be sure to call
      *  super.generateReactor(reactor).
@@ -212,9 +297,30 @@ abstract class GeneratorBase {
 
     }
 
+    /**
+     * Generate code that invokes runtime function `schedule` using the given arguments.
+     * @param action The action to schedule an event for.
+     * @param extraDelay The extra delay that the scheduled event should incur.
+     * @param value An expression in target-code syntax that references the 
+     * value to associate with the event.
+     */
+    abstract def String generateScheduleCall(Action action, String extraDelay, String value);
+    
+    /**
+     * Generate code for referencing a port, action, or timer.
+     * @param reference The referenced variable.
+     */
+    def String generateVarRef(VarRef reference) {
+        var prefix = "";
+        if (reference.container !== null) {
+            prefix = reference.container.name + "." 
+        }
+        return prefix + reference.variable.name
+    }
+    
     /** If the argument starts with '{=', then remove it and the last two characters.
      *  @return The body without the code delimiter or the unmodified argument if it
-     *   is not delimited.
+     *  is not delimited.
      */
     static def String removeCodeDelimiter(String code) {
         if (code === null) {
@@ -268,6 +374,7 @@ abstract class GeneratorBase {
      * 
      */
     protected abstract def Set<String> acceptableTargets()
+    
     
     /** Clear the buffer of generated code.
      */

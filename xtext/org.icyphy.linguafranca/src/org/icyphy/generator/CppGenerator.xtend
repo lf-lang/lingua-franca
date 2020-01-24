@@ -830,4 +830,20 @@ class CppGenerator extends GeneratorBase {
     override acceptableTargets() {
         acceptableTargetSet
     }
+    
+    // FIXME: the following implementations are most certainly incorrect.
+    
+    override generateScheduleCall(Action action, String extraDelay, String value) 
+        '''schedule(«action.name», «extraDelay», «value»)'''
+    
+    override generatePortRead(VarRef reference)
+        '''«reference.variable.name»'''
+
+    override generateActionRead(VarRef reference)
+        '''«reference.variable.name»_value'''
+           
+    override generatePortWrite(VarRef reference, String value) 
+        '''set(«generateVarRef(reference)», «value»)'''
+
+    
 }

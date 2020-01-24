@@ -50,7 +50,8 @@ Import:
     'import' importURI=Path ';';
 
 Reactor:
-    (main?='main'? & realtime?='realtime'?) 'reactor' name=ID
+    (main?='main'? & realtime?='realtime'?) 'reactor' name=ID 
+    ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
     (preamble=Preamble)?
     ((states+=State)
@@ -100,6 +101,10 @@ Reaction:
 TriggerRef:
     VarRef | startup?='startup' | shutdown?='shutdown';
 
+Delay:
+    'after' time=TimeOrValue;
+
+
 Deadline:
     'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE;
 
@@ -117,7 +122,7 @@ Instantiation:
     name=ID '=' 'new' reactorClass=[Reactor] '(' (parameters+=Assignment (',' parameters+=Assignment)*)? ')' ';';
 
 Connection:
-    leftPort=VarRef '->' rightPort=VarRef ';';
+    leftPort=VarRef '->' rightPort=VarRef (delay=Delay)? ';';
 
 KEYWORD:
     'input' | 'state' | 'output' | 'timer' | 'action';
@@ -181,7 +186,7 @@ terminal FLOAT:
 // Perhaps the string EQUALS_BRACE could become '=}'?
 terminal CODE:
     '{=' .* '=}';
-
+    
 // The following cannot be terminal because it overlaps ID.
 Path: 
     ID ('.' ID)*;

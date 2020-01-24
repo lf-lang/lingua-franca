@@ -275,6 +275,17 @@ class TypeScriptGenerator extends GeneratorBase {
 //        println("SUCCESS (compiling generated TypeScript code to JavaScript)")
     }
     
+    override generateScheduleCall(Action action, String extraDelay, String value)
+        '''«action.name».schedule(«extraDelay», «value»)'''
+    
+    override generatePortRead(VarRef reference)
+        '''«generateVarRef(reference)».get()'''
+
+    override generateActionRead(VarRef reference)
+        '''«generateVarRef(reference)».get()'''
+    
+    override generatePortWrite(VarRef reference, String value) 
+        '''«generateVarRef(reference)».set(«value»)'''
 
     // //////////////////////////////////////////
     // // Code generators.
