@@ -1254,22 +1254,19 @@ class CGenerator extends GeneratorBase {
                 )
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
-                var delay = "0LL"
-                if (trigger.minDelay !== null) {
-                    val timeOrValue = trigger.minDelay
-                    if (timeOrValue !== null) {
-                        delay = reactorInstance.resolveTime(timeOrValue)
-                    }
-                }
-
+                var minDelay = reactorInstance.resolveTime(trigger.minDelay)
+                var minInterArrival = "0LL"
+                
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
+                } else {
+                    minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival);
                 }
                 pr(
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        delay + ', 0LL, NULL, ' + isPhysical // 0 is ignored since actions don't have a period.
+                        minDelay + ', ' + minInterArrival + ', NULL, ' + isPhysical
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 if ((triggerInstance as ActionInstance).isShutdown) {
