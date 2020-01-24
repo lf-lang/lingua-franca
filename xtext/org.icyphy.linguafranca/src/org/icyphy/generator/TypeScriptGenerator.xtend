@@ -610,16 +610,35 @@ class TypeScriptGenerator extends GeneratorBase {
             // Create a set of effect names so actions that appear
             // as both triggers/sources and effects can be
             // identified and added to the reaction arguments once.
-            var effectSet = new HashSet<String>()
-            for (effect : reaction.effects){
-                effectSet.add(effect.variable.name)
+            // We can't create a set of VarRefs because
+            // an effect and a trigger/source with the same name are
+            // unequal. 
+            // The key of the pair is the effect's container's name,
+            // The effect of the pair is the effect's name
+            var effectSet = new HashSet<Pair<String, String>>()
+
+            for (effect : reaction.effects) {
+                var key = ""; // The container, defaults to an empty string
+                var value = effect.variable.name; // The name of the effect
+                if (effect.container !== null) {
+                    key = effect.container.name
+                }
+                effectSet.add(new Pair(key, value))
             }
-             
+
             var containerToArgs = new HashMap<Instantiation, HashSet<Variable>>();
             for (trigOrSource : triggersUnionSources) {
-                 // Actions that are both read and scheduled should only
-                 // appear once as a scheduable effect
-                if (!effectSet.contains(trigOrSource.variable.name)){
+                // Actions that are both read and scheduled should only
+                // appear once as a schedulable effect
+                
+                var trigOrSourceKey = "" // The default for no container
+                var trigOrSourceValue = trigOrSource.variable.name
+                if (trigOrSource.container !== null) {
+                    trigOrSourceKey = trigOrSource.container.name
+                }
+                var trigOrSourcePair = new Pair(trigOrSourceKey, trigOrSourceValue)
+                 
+                if (!effectSet.contains(trigOrSourcePair)){
                     if (trigOrSource.container === null) {
                         var reactSignatureElement = trigOrSource.variable.name + ": Readable<"
                         
@@ -628,8 +647,9 @@ class TypeScriptGenerator extends GeneratorBase {
                         } else if (trigOrSource.variable instanceof Action){
                             if ((trigOrSource.variable as Action).type !== null) {
                                 reactSignatureElement += (trigOrSource.variable as Action).type    
-                            }
+                            } else {
                                 reactSignatureElement += "Present"
+                            }
                         } else if (trigOrSource.variable instanceof Port){
                             reactSignatureElement += (trigOrSource.variable as Port).type 
                         }
@@ -658,8 +678,9 @@ class TypeScriptGenerator extends GeneratorBase {
                     } else if (effect.variable instanceof Action){
                         if ( (effect.variable as Action).type !== null ) {
                            reactSignatureElement += ": Schedulable<" + (effect.variable as Action).type + ">"   
-                        }
+                        } else {
                            reactSignatureElement += ": Schedulable<Present>"
+                        }
                     } else if (effect.variable instanceof Port){
                         reactSignatureElement += ": Writable<" + (effect.variable as Port).type + ">"
                     }
@@ -938,6 +959,7 @@ class TypeScriptGenerator extends GeneratorBase {
 //            reactionIndex++
 //        }
 //    }
+
 
     /** Traverse the runtime hierarchy of reaction instances and generate code.
      *  @param instance A reactor instance.

@@ -12,7 +12,7 @@ reactor Source {
 reactor Gain {
     input x:number;
     output out:number;
-    reaction(x) x -> out {=
+    reaction(x) -> out {=
         console.log("Received " + x.get());
         out.set((x.get() as number) * 2);
     =}
