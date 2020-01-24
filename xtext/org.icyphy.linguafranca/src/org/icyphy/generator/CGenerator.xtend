@@ -127,9 +127,11 @@ class CGenerator extends GeneratorBase {
             IGeneratorContext context) {
         
         super.doGenerate(resource, fsa, context)
-
-        this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.
-
+        // Build the instantiation tree if a main reactor is present.
+        if (this.mainDef !== null) {
+            this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.    
+        }
+        
         // Derive target filename from the .lf filename.
         val cFilename = filename + ".c";
 
@@ -627,19 +629,19 @@ class CGenerator extends GeneratorBase {
                 pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
             }
 
-            // Actions may appear twice, first as a trigger, then with the outputs.
-            // But we need to declare it only once. Collect in this data structure
-            // the actions that are declared as triggered so that if they appear
-            // again with the outputs, they are not defined a second time.
-            // That second redefinition would trigger a compile error.
-            var actionsAsTriggers = new HashSet<Action>();
-            
             // A reaction may send to or receive from multiple ports of
             // a contained reactor. The variables for these ports need to
             // all be declared as fields of the same struct. Hence, we first
             // collect the fields to be defined in the structs and then
             // generate the structs.
             var fieldsForStructsForContainedReactors = new HashMap<Instantiation,StringBuilder>
+
+            // Actions may appear twice, first as a trigger, then with the outputs.
+            // But we need to declare it only once. Collect in this data structure
+            // the actions that are declared as triggered so that if they appear
+            // again with the outputs, they are not defined a second time.
+            // That second redefinition would trigger a compile error.  
+            var actionsAsTriggers = new HashSet<Action>();
 
             // Next, add the triggers (input and actions; timers are not needed).
             // This defines a local variable in the reaction function whose
@@ -1614,6 +1616,18 @@ class CGenerator extends GeneratorBase {
         acceptableTargetSet
     }
 
+    override generateScheduleCall(Action action, String extraDelay, String value) 
+        '''schedule(«action.name», «extraDelay», &«value»)'''
+    
+    override generatePortRead(VarRef reference)
+        '''«generateVarRef(reference)»'''
+
+    override generateActionRead(VarRef reference)
+        '''«reference.variable.name»_value'''
+           
+    override generatePortWrite(VarRef reference, String value) 
+        '''set(«generateVarRef(reference)», «value»)'''
+        
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
      *  As a side effect, this populates the runCommand and compileCommand
@@ -2138,11 +2152,13 @@ class CGenerator extends GeneratorBase {
 
     // Print the #line compiler directive with the line number of
     // the most recently used node.
+
     private def prSourceLineNumber(EObject eObject) {
         var node = NodeModelUtils.getNode(eObject)
         if (node !== null) {
             pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
         }
+
     }
 
     // Set inputs _is_present variables to the default to point to False.
