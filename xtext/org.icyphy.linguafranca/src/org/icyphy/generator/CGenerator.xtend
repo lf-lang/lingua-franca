@@ -369,8 +369,8 @@ class CGenerator extends GeneratorBase {
                             action.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__SHUTDOWN.name
                             action.origin = ActionOrigin.LOGICAL
-                            action.delay = factory.createTimeOrValue
-                            action.delay.time = 0
+                            action.minDelay = factory.createTimeOrValue
+                            action.minDelay.time = 0
                             reactor.actions.add(action)
                         }
                     }
@@ -1255,8 +1255,8 @@ class CGenerator extends GeneratorBase {
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
                 var delay = "0LL"
-                if (trigger.delay !== null) {
-                    val timeOrValue = trigger.delay
+                if (trigger.minDelay !== null) {
+                    val timeOrValue = trigger.minDelay
                     if (timeOrValue !== null) {
                         delay = reactorInstance.resolveTime(timeOrValue)
                     }

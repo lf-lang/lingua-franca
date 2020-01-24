@@ -213,7 +213,7 @@ abstract class GeneratorBase {
 
         // Name the newly created action; set its delay and type.
         action.name = "__delay__" // FIXME: ensure this is unique
-        action.delay = connection.delay.time
+        action.minDelay = connection.delay.time
         action.type = type
 
         // Establish references to the action.
