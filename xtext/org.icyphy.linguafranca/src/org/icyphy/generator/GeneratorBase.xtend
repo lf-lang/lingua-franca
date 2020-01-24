@@ -60,6 +60,9 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Variable
+import java.util.HashSet
+import java.util.Arrays
 
 /** Generator base class for shared code between code generators.
  * 
@@ -193,6 +196,38 @@ abstract class GeneratorBase {
     }
 
     /**
+     * Produce a unique identifier within a reactor based on a
+     * given based name. If the name does not exists, it is returned;
+     * if does exist, an index is appended that makes the name unique.
+     * @param reactor The reactor to find a unique identifier within.
+     * @param name The name to base the returned identifier on.
+     */
+    def getUniqueIdentifier(Reactor reactor, String name) {
+        val vars = new HashSet<String>();
+        reactor.actions.forEach[it | vars.add(it.name)]
+        reactor.timers.forEach[it | vars.add(it.name)]
+        reactor.parameters.forEach[it | vars.add(it.name)]
+        reactor.inputs.forEach[it | vars.add(it.name)]
+        reactor.outputs.forEach[it | vars.add(it.name)]
+        reactor.states.forEach[it | vars.add(it.name)]
+        reactor.instantiations.forEach[it | vars.add(it.name)]
+        
+        var index = 0;
+        var suffix = ""
+        var exists = true
+        while(exists) {
+            val id = name + suffix
+            if (vars.exists[it | it.equals(id)]) {
+                suffix = "_" + index
+                index++
+            } else {
+                exists = false;
+            }
+        }
+        return name + suffix
+    }
+
+    /**
      * Take a connection and replace it with an action and two reactions
      * that implement a delayed transfer between the end points of the 
      * given connection.
@@ -212,7 +247,7 @@ abstract class GeneratorBase {
         val r2 = factory.createReaction
 
         // Name the newly created action; set its delay and type.
-        action.name = "__delay__" // FIXME: ensure this is unique
+        action.name = getUniqueIdentifier(parent, "delay")
         action.minDelay = connection.delay.time
         action.type = type
 
