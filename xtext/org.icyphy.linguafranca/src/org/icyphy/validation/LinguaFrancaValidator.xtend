@@ -27,6 +27,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'Cpp',
         'TypeScript'
     }
+    public static val TARGET_REQUIRES_TYPES = #{
+        'C' -> true,
+        'Cpp' -> true,
+        'TypeScript' -> false
+    }
     public static val TARGET_PARAMETERS = #{
         'compile', 
         'run', 
@@ -115,8 +120,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.VARIABLE__NAME
             )
         }
-        inputs.add(input.name);
+        inputs.add(input.name)
         allNames.add(input.name)
+        if (TARGET_REQUIRES_TYPES.get(this.target)) {
+            if (input.type === null) {
+                error("Input must have a type.", Literals.VARIABLE__NAME)
+            }
+        }
     }
 
     @Check(FAST)
@@ -147,6 +157,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         outputs.add(output.name);
         allNames.add(output.name)
+        if (TARGET_REQUIRES_TYPES.get(this.target)) {
+            if (output.type === null) {
+                error("Output must have a type.", Literals.VARIABLE__NAME)
+            }
+        }
     }
 
     @Check(FAST)
@@ -159,6 +174,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         parameters.add(param.name)
         allNames.add(param.name)
+        if (TARGET_REQUIRES_TYPES.get(this.target)) {
+            if (param.type === null) {
+                error("Parameters must have a type.", Literals.VARIABLE__NAME)
+            }
+        }
     }
 
     @Check(FAST)
@@ -179,15 +199,20 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     }
 
     @Check(FAST)
-    def checkState(org.icyphy.linguaFranca.State input) {
-        if (allNames.contains(input.name)) {
+    def checkState(org.icyphy.linguaFranca.State state) {
+        if (allNames.contains(state.name)) {
             error(
-                UNIQUENESS_MESSAGE + input.name,
+                UNIQUENESS_MESSAGE + state.name,
                 Literals.VARIABLE__NAME
             )
         }
-        inputs.add(input.name);
-        allNames.add(input.name)
+        inputs.add(state.name);
+        allNames.add(state.name)
+        if (TARGET_REQUIRES_TYPES.get(this.target)) {
+            if (state.type === null) {
+                error("State must have a type.", Literals.VARIABLE__NAME)
+            }
+        }
     }
 
     @Check(FAST)
