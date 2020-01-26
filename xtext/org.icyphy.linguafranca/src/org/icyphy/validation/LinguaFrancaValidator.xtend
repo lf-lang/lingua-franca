@@ -177,7 +177,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (allNames.contains(param.name)) {
             error(
                 UNIQUENESS_MESSAGE + param.name,
-                Literals.VARIABLE__NAME
+                Literals.PARAMETER__NAME
             )
         }
         parameters.add(param.name)
@@ -211,7 +211,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (allNames.contains(state.name)) {
             error(
                 UNIQUENESS_MESSAGE + state.name,
-                Literals.VARIABLE__NAME
+                Literals.STATE__NAME
             )
         }
         inputs.add(state.name);
