@@ -1,9 +1,10 @@
+// Test delay made on a connection.
 target C;
 
 reactor Source {
     output out:int;
     timer t;
-    reaction(t) -> out after 100 msec {=
+    reaction(t) -> out {=
         set(out, 1);
     =} 
 }
@@ -14,36 +15,16 @@ reactor Sink {
 	input in:int;
 	reaction(in) {=
         interval_t elapsed = get_elapsed_logical_time();
-        printf("Nanoseconds since start: %lld.\n", elapsed);		
-	=} deadline(200 msec) {= =}
+        printf("Nanoseconds since start: %lld.\n", elapsed);
+        if (elapsed != 100000000LL) {
+            printf("ERROR: Expected 100000000 but.\n");
+            exit(1);
+        }		
+	=}
 }
 main reactor DelayedReaction {
     
     source = new Source();
     sink = new Sink();
-    source.out -> sink.in;
-    
-    /*
-     * 
-     * stuff from other example
-    timer t(0, 1 sec);
-    logical action a;
-    state count:int(0);
-    
-    
-    reaction(t) -> a {=
-        schedule(a, MSEC(100), NULL);
-        
-    =}
-    reaction(a) {=
-        interval_t elapsed = get_elapsed_logical_time();
-        printf("Nanoseconds since start: %lld.\n", elapsed);
-        interval_t expected = self->count * 1000000000LL + 100000000LL;
-        self->count++;
-        if (elapsed != expected) {
-            printf("Expected %lld but got %lld.\n", expected, elapsed);
-            exit(1);
-        }
-    =}
-    */
+    source.out -> sink.in after 100 msec;
 }
