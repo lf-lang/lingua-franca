@@ -205,9 +205,11 @@ void __done_using(token_t* token) {
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
-    // If the trigger is physical, then we need to use
-    // physical time to adjust the delay.
+    // Compute the tag.
+    interval_t tag = current_time + trigger->offset + extra_delay;
     
+    // If the trigger is physical, then we need to use
+    // physical time to adjust the tag.
     if (trigger->is_physical) {
         // Get the current physical time.
         struct timespec current_physical_time;
@@ -218,25 +220,22 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
                 + current_physical_time.tv_nsec
                 - current_time;
         if (time_adjustment > 0LL) {
-            extra_delay += time_adjustment;
+            tag += time_adjustment;
         }
-        interval_t tag = current_time + trigger->offset + extra_delay;
-        interval_t space = tag - trigger->scheduled;
-        interval_t min_inter_arrival = trigger->period;
-        if (min_inter_arrival > 0LL) {
-            // printf("current time: %lld\n", current_time);
-            // printf("since last: %lld\n", sinceLast);
-            if (space >= 0LL && space < min_inter_arrival) {
-                // Traffic shaping mode: evenly space out events
-                extra_delay += (trigger->count * min_inter_arrival) - space;
+        
+        if (trigger->period > 0LL) {
+            // Space denotes the physical time that has already elapsed.
+            interval_t space = tag - trigger->scheduled;
+            // Padding is the extra delay that has to be added in order
+            // satisfy the minimum inter-arrival time. 
+            interval_t padding = trigger->period * trigger->count;
+            if (space >= 0LL && space < padding) {
+                // Traffic shaping mode: evenly space out events.
+                tag += padding - space;
                 trigger->count++;
-                printf(">>>>>change timestamp>>>>\n");
-                printf("current physical time: %lld\n", current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec);
-                printf("new event time: %lld\n", current_time + trigger->offset + extra_delay);
             } else {
-                // Let through event without modifying its timestamp.
-                trigger->scheduled = tag; // record the tag
+                // Let through event without modifying its timestamp.                
+                trigger->scheduled = tag; // record the time
                 trigger->count = 1;       // reset the counter
             }
         }
@@ -249,7 +248,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     if (e == NULL) {
         e = malloc(sizeof(struct event_t));
     }
-    e->time = current_time + trigger->offset + extra_delay;
+    e->time = tag;
     e->trigger = trigger;
     e->value = value;
     
