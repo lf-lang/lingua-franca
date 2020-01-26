@@ -14,6 +14,7 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.ActionOrigin
 
 /**
  * This class contains custom validation rules. 
@@ -74,6 +75,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     // // The following checks are in alphabetical order.
     @Check(FAST)
     def checkAction(Action action) {
+        if(action.origin == ActionOrigin.LOGICAL && action.minInterArrival !== null) {
+            error(
+                "Logical actions are not allowed to specify a minimum inter-arrival time.",
+                Literals.ACTION__MIN_INTER_ARRIVAL
+            )
+        }
+        
         if (allNames.contains(action.name)) {
             error(
                 UNIQUENESS_MESSAGE + action.name,
@@ -124,7 +132,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.add(input.name)
         if (TARGET_REQUIRES_TYPES.get(this.target)) {
             if (input.type === null) {
-                error("Input must have a type.", Literals.VARIABLE__NAME)
+                error("Input must have a type.", Literals.PORT__TYPE)
             }
         }
     }
@@ -159,7 +167,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.add(output.name)
         if (TARGET_REQUIRES_TYPES.get(this.target)) {
             if (output.type === null) {
-                error("Output must have a type.", Literals.VARIABLE__NAME)
+                error("Output must have a type.", Literals.PORT__TYPE)
             }
         }
     }
@@ -176,7 +184,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.add(param.name)
         if (TARGET_REQUIRES_TYPES.get(this.target)) {
             if (param.type === null) {
-                error("Parameters must have a type.", Literals.VARIABLE__NAME)
+                error("Parameters must have a type.", Literals.PARAMETER__TYPE)
             }
         }
     }
@@ -210,7 +218,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.add(state.name)
         if (TARGET_REQUIRES_TYPES.get(this.target)) {
             if (state.type === null) {
-                error("State must have a type.", Literals.VARIABLE__NAME)
+                error("State must have a type.", Literals.STATE__TYPE)
             }
         }
     }
