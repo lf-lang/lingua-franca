@@ -183,7 +183,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         parameters.add(param.name)
         allNames.add(param.name)
         if (TARGET_REQUIRES_TYPES.get(this.target)) {
-            if (param.type === null) {
+            if (!param.ofTimeType && param.type === null) {
                 error("Parameters must have a type.", Literals.PARAMETER__TYPE)
             }
         }
@@ -217,7 +217,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         inputs.add(state.name);
         allNames.add(state.name)
         if (TARGET_REQUIRES_TYPES.get(this.target)) {
-            if (state.type === null) {
+            if (!state.ofTimeType && state.type === null) {
                 error("State must have a type.", Literals.STATE__TYPE)
             }
         }

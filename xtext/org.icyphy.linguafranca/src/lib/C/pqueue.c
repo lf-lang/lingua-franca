@@ -251,9 +251,9 @@ pqueue_find(pqueue_t *q, void *e, int pos, pqueue_pri_t max)
         return NULL;
     
     if (q->eqelem(q->d[pos], e) && (q->getpri(e) - q->getpri(q->d[pos]) < max)) {
-        printf("Prio of e: %ld\n", q->getpri(e));
-        printf("Prio of found: %ld\n", q->getpri(q->d[pos]));
-        printf("max: %ld", max);
+        // printf("Prio of e: %lld\n", q->getpri(e));
+        // printf("Prio of found: %lld\n", q->getpri(q->d[pos]));
+        // printf("max: %lld", max);
         return q->d[pos];
     } else {
         rval = pqueue_find(q, e, left(pos), max);
