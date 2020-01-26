@@ -217,7 +217,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         inputs.add(state.name);
         allNames.add(state.name)
         if (TARGET_REQUIRES_TYPES.get(this.target)) {
-            if (!state.ofTimeType && state.type === null) {
+            if (!state.ofTimeType && state.parameter === null && state.type === null) {
                 error("State must have a type.", Literals.STATE__TYPE)
             }
         }
