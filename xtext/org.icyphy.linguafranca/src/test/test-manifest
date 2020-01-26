@@ -14,6 +14,7 @@ DanglingOutput.lf
 Deadline.lf
 DeadlineHandledAbove.lf
 DelayedAction.lf
+DelayedReaction.lf
 DelayInt.lf
 DelayIntThreaded.lf
 Determinism.lf
