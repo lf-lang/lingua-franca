@@ -1250,7 +1250,7 @@ class CGenerator extends GeneratorBase {
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        '0LL, 0LL, NULL, false'
+                        '0LL, 0LL, NULL, false, NEVER, 0'
                 )
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
@@ -1260,13 +1260,17 @@ class CGenerator extends GeneratorBase {
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
                 } else {
-                    minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival);
+                    if (trigger.minInterArrival !== null) {
+                        minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival);    
+                    } else {
+                        minInterArrival = DEFAULT_MIN_INTER_ARRIVAL;
+                    }
                 }
                 pr(
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        minDelay + ', ' + minInterArrival + ', NULL, ' + isPhysical
+                        minDelay + ', ' + minInterArrival + ', NULL, ' + isPhysical + ', NEVER, 0'
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 if ((triggerInstance as ActionInstance).isShutdown) {
@@ -2199,4 +2203,6 @@ class CGenerator extends GeneratorBase {
     
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
+        
+    static var DEFAULT_MIN_INTER_ARRIVAL = 'NSEC(1)'
 }

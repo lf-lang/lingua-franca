@@ -207,6 +207,7 @@ void __done_using(token_t* token) {
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     // If the trigger is physical, then we need to use
     // physical time to adjust the delay.
+    
     if (trigger->is_physical) {
         // Get the current physical time.
         struct timespec current_physical_time;
@@ -219,8 +220,31 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
         if (time_adjustment > 0LL) {
             extra_delay += time_adjustment;
         }
+        interval_t tag = current_time + trigger->offset + extra_delay;
+        interval_t space = tag - trigger->scheduled;
+        interval_t min_inter_arrival = trigger->period;
+        if (min_inter_arrival > 0LL) {
+            // printf("current time: %lld\n", current_time);
+            // printf("since last: %lld\n", sinceLast);
+            if (space >= 0LL && space < min_inter_arrival) {
+                // Traffic shaping mode: evenly space out events
+                extra_delay += (trigger->count * min_inter_arrival) - space;
+                trigger->count++;
+                printf(">>>>>change timestamp>>>>\n");
+                printf("current physical time: %lld\n", current_physical_time.tv_sec * BILLION
+                + current_physical_time.tv_nsec);
+                printf("new event time: %lld\n", current_time + trigger->offset + extra_delay);
+            } else {
+                // Let through event without modifying its timestamp.
+                trigger->scheduled = tag; // record the tag
+                trigger->count = 1;       // reset the counter
+            }
+        }
+        // Else, if two events with the same tag are scheduled 
+        // with the same tag, only the last one survives.
+
     }
-    // Recycle event_t structs, if possible.
+    // Recycle event_t structs, if possible.    
     event_t* e = pqueue_pop(recycle_q);
     if (e == NULL) {
         e = malloc(sizeof(struct event_t));

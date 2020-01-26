@@ -66,7 +66,6 @@ typedef struct pqueue_t
     void **d;                   /**< The actual queue in binary heap form */
 } pqueue_t;
 
-
 /**
  * initialize the queue
  *
@@ -133,6 +132,16 @@ pqueue_change_priority(pqueue_t *q,
  */
 void *pqueue_pop(pqueue_t *q);
 
+/**
+ * find the highest-ranking item with priority less than the
+ * provided maximum that matches the supplied entry.
+ * @param q the queue
+ * @param e the entry to compare against
+ * @param pos start position (default=1)
+ * @param max the maximum priority to consider
+ * @return NULL if no matching event has been found, otherwise the entry
+ */ 
+void *pqueue_find(pqueue_t *q, void *e, int pos, pqueue_pri_t max);
 
 /**
  * remove an item from the queue.

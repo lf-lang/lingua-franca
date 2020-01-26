@@ -63,7 +63,7 @@ pthread_cond_t end_logical_time = PTHREAD_COND_INITIALIZER;
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
 handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
-    pthread_mutex_lock(&mutex); 	
+    pthread_mutex_lock(&mutex);
 	int return_value = __schedule(trigger, extra_delay, value);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
@@ -233,7 +233,7 @@ int next() {
             pqueue_insert(reaction_q, event->trigger->reactions[i]);
         }
         // If the trigger is a periodic clock, create a new event for its next execution.
-        if (event->trigger->period > 0) {
+        if (!(event->trigger->is_physical) && event->trigger->period > 0) {
             // Reschedule the trigger.
             // Note that the delay here may be negative because the __schedule
             // function will add the trigger->offset, which we don't want at this point.

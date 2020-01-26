@@ -241,6 +241,30 @@ pqueue_pop(pqueue_t *q)
     return head;
 }
 
+void *
+pqueue_find(pqueue_t *q, void *e, int pos, pqueue_pri_t max)
+{
+    void* rval;
+
+    if ((pos == 1 && (!q || q->size == 1)) 
+            || q->d[pos] == NULL || q->getpri(q->d[pos]) > max)
+        return NULL;
+    
+    if (q->eqelem(q->d[pos], e) && (q->getpri(e) - q->getpri(q->d[pos]) < max)) {
+        printf("Prio of e: %ld\n", q->getpri(e));
+        printf("Prio of found: %ld\n", q->getpri(q->d[pos]));
+        printf("max: %ld", max);
+        return q->d[pos];
+    } else {
+        rval = pqueue_find(q, e, left(pos), max);
+        if (rval) 
+            return rval;
+        else {
+            // Continue search on right branch
+            return pqueue_find(q, e, right(pos), max);
+        }
+    }
+}
 
 void *
 pqueue_peek(pqueue_t *q)

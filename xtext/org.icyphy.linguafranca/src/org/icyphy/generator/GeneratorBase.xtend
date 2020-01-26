@@ -60,9 +60,7 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Variable
 import java.util.HashSet
-import java.util.Arrays
 
 /** Generator base class for shared code between code generators.
  * 
