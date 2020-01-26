@@ -19,7 +19,7 @@ main reactor KeyListener {
     =}
 
     state thread_id:pthread_t(0);
-    physical action a:char;
+    physical action a(0, 1 sec):char;
 
     reaction(startup) -> a {=
         // Start listening for key strokes.
