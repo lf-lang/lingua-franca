@@ -200,7 +200,7 @@ void __done_using(token_t* token) {
 
 // Schedule the specified trigger at current_time plus the
 // offset of the specified trigger plus the delay.
-// The value is required to be a pointer returned by lf_malloc
+// The value is required to be a pointer returned by malloc
 // because it will be freed after having been delivered to
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.

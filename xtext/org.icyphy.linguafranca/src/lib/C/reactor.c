@@ -278,6 +278,7 @@ int next() {
     event_t* free_event = pqueue_pop(free_q);
     while (free_event != NULL) {
         if (free_event->value != NULL) {
+        	// This is where an action payload gets freed.
     	    free(free_event->value);
     	}
     	if (free_event->trigger != NULL) {
