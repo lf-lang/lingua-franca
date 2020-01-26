@@ -1912,7 +1912,7 @@ class CGenerator extends GeneratorBase {
             if (input.isMutable) {
                 pr(builder, input.name + ' = writable_copy(' + input.name + ');')
             }
-        } else {
+        } else if (input.type !== null) {
             // Look for array type of form type[number].
             val matcher = arrayPatternFixed.matcher(input.type)
             if (matcher.find()) {
@@ -2130,7 +2130,8 @@ class CGenerator extends GeneratorBase {
      *  @param type The type specification.
      */
     private def isTokenType(String type) {
-        if(type.trim.matches("^\\w*\\[\\s*\\]$") || type.trim.endsWith('*')) {
+        if(type !== null && 
+                (type.trim.matches("^\\w*\\[\\s*\\]$") || type.trim.endsWith('*'))) {
             true
         } else {
             false
