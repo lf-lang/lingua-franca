@@ -47,6 +47,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //  ======== Macros ========  //
 
+#define NEVER -9223372036854775807LL
 #define BILLION 1000000000LL
 
 // FIXME: May want these to application dependent, hence code generated.
@@ -188,7 +189,7 @@ do { \
 //  ======== Type definitions ========  //
 
 /** Booleans. */
-typedef enum { false, true } bool;
+typedef enum {false, true} bool;
 
 /** Handles for scheduled triggers. */
 typedef int handle_t;
@@ -257,8 +258,9 @@ struct trigger_t {
 	interval_t offset;        // For an action, this will be a minimum delay.
 	interval_t period;        // For an action, this will be a minimum inter-arrival time.
     void* value;              // Pointer to malloc'd value (or NULL).
-    bool is_physical;         // Indicator that this denotes a physical action 
-                              // (i.e., to be scheduled relative to physical time)
+    bool is_physical;         // Indicator that this denotes a physical action (i.e., to be scheduled relative to physical time).
+    instant_t scheduled;      // Tag of the last event that was scheduled for this action.
+    int count;                // Number of events scheduled in interval [scheduled, scheduled + period>.
 };
 
 /** Event activation record to push onto the event queue. */

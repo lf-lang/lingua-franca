@@ -88,7 +88,10 @@ Timer:
     'timer' name=ID ('(' offset=TimeOrValue (',' period=TimeOrValue)? ')')? ';';
 
 Action:
-    origin=ActionOrigin 'action' name=ID ('(' minDelay=TimeOrValue (',' minInterArrival=TimeOrValue)? ')')? (':' type=Type)? ';';
+    origin=ActionOrigin 'action' name=ID 
+    ('(' minDelay=TimeOrValue 
+        (',' minInterArrival=TimeOrValue )? ')'
+    )? (':' type=Type)? ';';
 
 Reaction:
     ('reaction')
@@ -118,7 +121,10 @@ Preamble:
     'preamble' code=CODE;
 
 Instantiation:
-    name=ID '=' 'new' reactorClass=[Reactor] '(' (parameters+=Assignment (',' parameters+=Assignment)*)? ')' ';';
+    name=ID '=' 'new' 
+    reactorClass=[Reactor] '(' 
+    (parameters+=Assignment (',' parameters+=Assignment)*)? 
+    ')' ';';
 
 Connection:
     leftPort=VarRef '->' rightPort=VarRef (delay=Delay)? ';';

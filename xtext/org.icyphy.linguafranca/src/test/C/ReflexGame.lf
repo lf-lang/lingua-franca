@@ -1,0 +1,42 @@
+target C (
+    threads=1,
+    run="bin/ReflexGame -keepalive"
+);
+main reactor KeyListener {
+    preamble {=
+        // Specify a thread that sends all keyboard characters
+        // as valued physical actions until an EOF (control-d or
+        // control-z) is received.
+        void* read_char(void* a) {
+            while(1) {
+                char* c = malloc(sizeof(char));
+                *c = getchar();
+                schedule(a, 0, c);
+                if (*c == EOF) break;
+            }
+            return NULL;
+        }
+    =}
+
+    state thread_id:pthread_t(0);
+    physical action a:char;
+
+    reaction(startup) -> a {=
+        // Start listening for key strokes.
+        // Note that these will not be received until Enter.
+        pthread_create(&self->thread_id, NULL, &read_char, a);
+        printf("Enter character(s) followed by return: ");
+    =}
+   
+    reaction(a) {=
+        if (a_value == EOF) {
+            printf("\nEnd of file received.\n");
+            stop();
+        } else if (a_value == '\n') {
+            printf("Enter character(s) followed by return: ");
+            fflush(stdout);
+        } else {
+            printf("Character entered: %c\n", a_value);
+        }
+    =}
+}
