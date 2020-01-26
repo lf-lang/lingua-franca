@@ -38,6 +38,7 @@ class Main {
         } catch(RuntimeException e) {
             System::err.println('lfc: unexpected error');
             System::err.println(e.message);
+            e.printStackTrace();
             System.exit(1);
         }
 		
