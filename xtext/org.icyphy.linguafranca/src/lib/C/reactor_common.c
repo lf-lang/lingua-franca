@@ -248,6 +248,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
         if (earliest_time > tag) {
         	tag = earliest_time;
         }
+        trigger->scheduled = tag;
         // NOTE: if two events with the same tag are scheduled
         // with the same tag, only the last one survives.
     }
