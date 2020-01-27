@@ -16,7 +16,8 @@ main reactor AsyncCallback {
 		    // Schedule twice. If the action is not physical, these should
 		    // get consolidated into a single action triggering. If it is,
 		    // then they cause two separate triggerings with close but not
-		    // equal time stamps.
+		    // equal time stamps. The minimum time between these is determined
+		    // by the argument in the physical action definition.
 			schedule(a, 0, NULL);
             schedule(a, 0, NULL);
 		}
@@ -35,7 +36,7 @@ main reactor AsyncCallback {
 	state expected_time:time(100 msec);
 	state toggle:bool(false);
 	
-    physical action a:int;
+    physical action a(100 msec):int;
     state i:int(0);
   
 	reaction(t) -> a {=
