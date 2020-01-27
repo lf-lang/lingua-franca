@@ -1,3 +1,14 @@
+/** Output events at physical times at least 100, 300, and 600
+ *  msec after the start time.
+ *  This uses a physical action with a minimum interarrival time of
+ *  100 msec. The reactor increases the interarrival time with each
+ *  invocation of the schedule() function.
+ *  The timestamps of the events will be exact because the physical
+ *  time at which schedule() is called is always way smaller than
+ *  the time of the last invocation (or start time) plus the minimum
+ *  interarrival time. Hence, the minimum interarrival time always
+ *  determines the time of the next event.
+ */
 target C (
     run = "bin/SlowingClockPhysical -timeout 1 sec"
 );
@@ -6,7 +17,7 @@ main reactor SlowingClockPhysical {
     state interval:time(100 msec);
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
-        self->expected_time = get_elapsed_physical_time() + MSEC(100);
+        self->expected_time = MSEC(100);
         schedule(a, 0, NULL);
     =}
     reaction(a) -> a {=
@@ -20,9 +31,9 @@ main reactor SlowingClockPhysical {
             );
             exit(1);
         }
-        self->expected_time = get_elapsed_physical_time() + MSEC(100) + self->interval;
-        schedule(a, self->interval, NULL);
         self->interval += MSEC(100);
+        self->expected_time = MSEC(100) + self->interval;
+        schedule(a, self->interval, NULL);
     =}
     reaction(shutdown) {=
         if (self->expected_time < MSEC(1000)) {

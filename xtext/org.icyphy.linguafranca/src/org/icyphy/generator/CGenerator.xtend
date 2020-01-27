@@ -369,8 +369,8 @@ class CGenerator extends GeneratorBase {
                             action.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__SHUTDOWN.name
                             action.origin = ActionOrigin.LOGICAL
-                            action.minDelay = factory.createTimeOrValue
-                            action.minDelay.time = 0
+                            action.minTime = factory.createTimeOrValue
+                            action.minTime.time = 0
                             reactor.actions.add(action)
                         }
                     }
@@ -1174,7 +1174,7 @@ class CGenerator extends GeneratorBase {
 
                 pr(result, 'trigger_t ' + structName + ' = {')
                 indent(result)
-                pr(result, structName + '_reactions, 1, 0LL, 0LL, NULL, false')
+                pr(result, structName + '_reactions, 1, 0LL, 0LL, NULL, false, NEVER')
                 unindent(result)
                 pr(result, '};')
 
@@ -1250,27 +1250,28 @@ class CGenerator extends GeneratorBase {
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        '0LL, 0LL, NULL, false, NEVER, 0'
+                        '0LL, 0LL, NULL, false, NEVER'
                 )
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
-                var minDelay = reactorInstance.resolveTime(trigger.minDelay)
-                var minInterArrival = "0LL"
+                var minTime = reactorInstance.resolveTime(trigger.minTime)
                 
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
                 } else {
-                    if (trigger.minInterArrival !== null) {
-                        minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival);    
-                    } else {
-                        minInterArrival = DEFAULT_MIN_INTER_ARRIVAL;
+                    // For physical actions,
+                    // if no minimum interarrival time was specified, then
+                    // we do not want zero, which is what resolveTime returns,
+                    // but rather some non-zero time.
+                    if (trigger.minTime === null) {
+                        minTime = DEFAULT_MIN_INTER_ARRIVAL;
                     }
                 }
                 pr(
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        minDelay + ', ' + minInterArrival + ', NULL, ' + isPhysical + ', NEVER, 0'
+                        minTime + ', 0LL, NULL, ' + isPhysical + ', NEVER'
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 if ((triggerInstance as ActionInstance).isShutdown) {

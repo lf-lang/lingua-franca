@@ -87,11 +87,17 @@ Output:
 Timer:
     'timer' name=ID ('(' offset=TimeOrValue (',' period=TimeOrValue)? ')')? ';';
 
+// Action specification is either physical or logical.
+// If it is logical, the minTime is a minimum logical delay
+// after the logical time at which schedule() is called that the
+// delay will be invoked.
+// If the action is physical, then the minTime is the minimum
+// time between action invocations and the minimum logical time
+// (after start) of the first action.
 Action:
     origin=ActionOrigin 'action' name=ID 
-    ('(' minDelay=TimeOrValue 
-        (',' minInterArrival=TimeOrValue )? ')'
-    )? (':' type=Type)? ';';
+    ('(' minTime=TimeOrValue ')')?
+    (':' type=Type)? ';';
 
 Reaction:
     ('reaction')

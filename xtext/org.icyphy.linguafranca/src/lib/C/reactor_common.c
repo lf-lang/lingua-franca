@@ -205,43 +205,51 @@ void __done_using(token_t* token) {
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
-    // Compute the tag.
-    interval_t tag = current_time + trigger->offset + extra_delay;
-    
-    // If the trigger is physical, then we need to use
-    // physical time to adjust the tag.
-    if (trigger->is_physical) {
+    // Compute the tag.  How we do that depends on whether
+	// this is a logical or physical action.
+    interval_t tag = current_time;
+    if (!trigger->is_physical) {
+    	// For logical actions, the logical time of the new event is just
+    	// the current logical time plus the minimum offset (action parameter)
+    	// plus the extra delay specified in the call to schedule.
+    	tag += trigger->offset + extra_delay;
+    } else {
+    	// If the trigger is physical, then we need to use
+    	// physical time and the time of the last invocation to adjust the tag.
+    	// Specifically, the timestamp assigned to the action event will be
+    	// the maximum of the current logical time, the
+    	// current physical time, and the time of last
+    	// invocation plus the minTime (action parameter) plus the
+    	// extra_delay (argument to this function).
+    	// If the action has never been scheduled before, then the
+    	// timestamp will be the maximum of the current logical time,
+    	// the current physical time,
+    	// and the start time + minTime + extra_delay.
+
         // Get the current physical time.
         struct timespec current_physical_time;
         clock_gettime(CLOCK_REALTIME, &current_physical_time);
-    
-        interval_t time_adjustment =
+        // Convert to an instant.
+        instant_t physical_time =
                 current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec
-                - current_time;
-        if (time_adjustment > 0LL) {
-            tag += time_adjustment;
+                + current_physical_time.tv_nsec;
+        if (physical_time > current_time) {
+        	tag = physical_time;
         }
-        
-        if (trigger->period > 0LL) {
-            // Space denotes the physical time that has already elapsed.
-            interval_t space = tag - trigger->scheduled;
-            // Padding is the extra delay that has to be added in order
-            // satisfy the minimum inter-arrival time. 
-            interval_t padding = trigger->period * trigger->count;
-            if (space >= 0LL && space < padding) {
-                // Traffic shaping mode: evenly space out events.
-                tag += padding - space;
-                trigger->count++;
-            } else {
-                // Let through event without modifying its timestamp.                
-                trigger->scheduled = tag; // record the time
-                trigger->count = 1;       // reset the counter
-            }
+        // Next, use the minimum interrarrival time to see whether
+        // this needs to be adjusted.
+        interval_t min_inter_arrival = trigger->offset + extra_delay;
+        instant_t earliest_time;
+        if (trigger->scheduled == NEVER) {
+        	earliest_time = start_time + min_inter_arrival;
+        } else {
+        	earliest_time = trigger->scheduled + min_inter_arrival;
         }
-        // Else, if two events with the same tag are scheduled 
+        if (earliest_time > tag) {
+        	tag = earliest_time;
+        }
+        // NOTE: if two events with the same tag are scheduled
         // with the same tag, only the last one survives.
-
     }
     // Recycle event_t structs, if possible.    
     event_t* e = pqueue_pop(recycle_q);

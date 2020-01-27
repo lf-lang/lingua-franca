@@ -505,10 +505,10 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
                 
                 var actionArgs = "this, Origin." + action.origin  
-                if (action.minDelay !== null) {
+                if (action.minTime !== null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    actionArgs+= ", " + timeInTargetLanguage(action.minDelay.time.toString, action.minDelay.unit)
+                    actionArgs+= ", " + timeInTargetLanguage(action.minTime.time.toString, action.minTime.unit)
                 }
                 var String actionInstance
                 if (action.type === null) {
