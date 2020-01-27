@@ -1,3 +1,9 @@
+/** Output events at logical times 100, 300, 600, and 1000 msec
+ *  after the start time.
+ *  This uses a logical action with a minimum delay of
+ *  100 msec and additional delays provided as arguments
+ *  to the schedule() function.
+ */
 target C (
     run = "bin/SlowingClock -fast -timeout 1 sec"
 );

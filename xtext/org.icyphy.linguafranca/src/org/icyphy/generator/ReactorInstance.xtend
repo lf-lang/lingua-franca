@@ -691,6 +691,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
+    /** If the argument is non-null, determine whether it is a parameter
+     *  reference or a literal time value and convert it to a time value
+     *  in the target language, which is returned.
+     *  If the argument is null, return the target language representation
+     *  of zero time.
+     *  @param timeOrValue A time or parameter reference.
+     */
     def resolveTime(TimeOrValue timeOrValue) {
         var timeLiteral = '0LL'
         var unit = TimeUnit.NONE

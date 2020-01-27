@@ -14,7 +14,6 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.ActionOrigin
 
 /**
  * This class contains custom validation rules. 
@@ -75,13 +74,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     // // The following checks are in alphabetical order.
     @Check(FAST)
     def checkAction(Action action) {
-        if(action.origin == ActionOrigin.LOGICAL && action.minInterArrival !== null) {
-            error(
-                "Logical actions are not allowed to specify a minimum inter-arrival time.",
-                Literals.ACTION__MIN_INTER_ARRIVAL
-            )
-        }
-        
         if (allNames.contains(action.name)) {
             error(
                 UNIQUENESS_MESSAGE + action.name,
