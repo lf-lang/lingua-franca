@@ -36,8 +36,8 @@ main reactor SlowingClockPhysical {
         schedule(a, self->interval, NULL);
     =}
     reaction(shutdown) {=
-        if (self->expected_time < MSEC(1000)) {
-            printf("ERROR: Expected the next expected time to be at least: 1000000000 nsec.\n");
+        if (self->expected_time < MSEC(500)) {
+            printf("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
             printf("It was: \%lld nsec.\n", self->expected_time);
             exit(2);            
         }
