@@ -1,7 +1,7 @@
 target TypeScript;
 reactor Printer {
     input x:number;
-    reaction(x) x {=
+    reaction(x) {=
         console.log("Inside reactor received:" + x.get() );
     =}
 }
