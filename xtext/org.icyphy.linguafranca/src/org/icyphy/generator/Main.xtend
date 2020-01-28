@@ -30,14 +30,18 @@ class Main {
 		try {
 		    main.runGenerator(args.get(0))    
 		} catch(FileNotFoundException e) {
-		    System::err.println('lfc: fatal error: no input file')
+		    System::err.println('lfc: fatal error: no input file.')
+            // System::err.println(e.toString);
+            e.printStackTrace();
 		    System.exit(1);
 		} catch(IOException e) {
-            System::err.println('lfc: error reading input file');
+            System::err.println('lfc: error reading input file.')
+            // System::err.println(e.toString);
+            e.printStackTrace();
             System.exit(1);
         } catch(RuntimeException e) {
-            System::err.println('lfc: unexpected error');
-            System::err.println(e.message);
+            System::err.println('lfc: unexpected error.');
+            // System::err.println(e.toString);
             e.printStackTrace();
             System.exit(1);
         }
