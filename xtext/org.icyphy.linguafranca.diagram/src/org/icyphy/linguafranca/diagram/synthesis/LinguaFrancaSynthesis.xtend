@@ -474,7 +474,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			} else if (parentOutputPorts.containsKey(connection.rightPort.variable)) {
 				parentOutputPorts.get(connection.rightPort.variable)
 			}
-			val edge = createIODependencyEdge(connection).associateWith(connection)
+			val edge = createIODependencyEdge(connection)
+			if (connection.delay !== null) {
+				edge.addCenterEdgeLabel(connection.delay.time.toText) => [
+					associateWith(connection.delay)
+					applyOnEdgeDelayStyle()
+				]
+			}
 			if (source !== null && target !== null) {
 				edge.connect(source, target)
 			}
