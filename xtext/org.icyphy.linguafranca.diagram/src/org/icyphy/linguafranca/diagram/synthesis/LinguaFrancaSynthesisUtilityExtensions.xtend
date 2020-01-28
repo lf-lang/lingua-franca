@@ -16,7 +16,9 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	 * Converts a timing value into readable text
 	 */
 	def toText(TimeOrValue tov) {
-		if (tov.parameter !== null) {
+		if (tov === null) {
+			return ""
+		} else if (tov.parameter !== null) {
 			return tov.parameter.name
 		} else if (tov.value !== null) {
 			return tov.value
