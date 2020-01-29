@@ -154,7 +154,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Copy default versions of config files into project if
         // they don't exist.
-        createDefaultConfigFile(projectPath, "package.json")
+        createDefaultConfigFile(directory, "package.json")
         createDefaultConfigFile(projectPath, "tsconfig.json")
         createDefaultConfigFile(projectPath, "babel.config.js")
         
@@ -164,12 +164,12 @@ class TypeScriptGenerator extends GeneratorBase {
         // variables to run this command.
         
         // Install npm modules.
-        println("In directory: " + projectPath)
+        println("In directory: " + directory)
         println("Running npm install ...")
         var installCmd = newArrayList();
         installCmd.addAll("npm", "install")
         var installBuilder = new ProcessBuilder(installCmd)
-        installBuilder.directory(new File(projectPath))
+        installBuilder.directory(new File(directory))
         var Process installProcess = installBuilder.start()
         
         // Sleep until the modules have installed
@@ -188,7 +188,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
         // Must compile to ES2015 or later and include the dom library.
-        var tscPath = projectPath + File.separator + "node_modules" +  File.separator 
+        var tscPath = directory + File.separator + "node_modules" +  File.separator 
             + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
 
 
@@ -223,7 +223,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Babel will compile TypeScript to JS even if there are type errors
         // so only run compilation if tsc found no problems.
         if (code === 0){
-            var babelPath = projectPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
+            var babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
             // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
             var compileCommand = newArrayList(babelPath, "src",
                 "--out-dir", "dist", "--extensions", ".ts")
@@ -1091,26 +1091,26 @@ class TypeScriptGenerator extends GeneratorBase {
     // // Private methods.
     
     
-    /** If the given filename doesn't already exist in the project root
+    /** If the given filename doesn't already exist in the targetPath
      *  create it by copying over the default from /lib/TS/. Do nothing
      *  if the file already exists because we don't want to overwrite custom
      *  user-specified configurations. 
-     *  @param projectPath The path to the project root.
+     *  @param targetPath The path to the where the file will be copied.
      *  @param filename The name of the file for which to create a default in
      *    the root of the project directory
      *  @return true if the file was created, false otherwise.
      */
-    private def createDefaultConfigFile(String projectPath, String filename) {
-        var File defaultFile = new File(projectPath + File.separator + filename)
+    private def createDefaultConfigFile(String targetPath, String filename) {
+        var File defaultFile = new File(targetPath + File.separator + filename)
         val libFile = File.separator + "lib" + File.separator + "TS" + File.separator + filename
         if(!defaultFile.exists()){
             println(filename + " does not already exist for this project."
                 + " Copying over default from " + libFile)
             var fOut = new FileOutputStream(
-                new File(projectPath + File.separator + filename));
+                new File(targetPath + File.separator + filename));
             fOut.write(readFileInClasspath(libFile).getBytes())      
         } else {
-            println("This project already has " + projectPath + File.separator + filename)
+            println("This project already has " + targetPath + File.separator + filename)
         }
     }
 
