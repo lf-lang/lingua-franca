@@ -28,6 +28,7 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.util.HashMap
 import java.util.HashSet
 import java.util.StringJoiner
@@ -137,12 +138,23 @@ class TypeScriptGenerator extends GeneratorBase {
 //        fetchProcess.waitFor()
 
         // Copy the required library files into the src directory
-        // so they may be compiled as part of the TypeScript project
+        // so they may be compiled as part of the TypeScript project.
+        // This requires that the TypeScript submodule has been installed.
         var reactorCorePath = reactorTSPath + File.separator + "src" + File.separator
             + "core" + File.separator
+        // Use the first file to test whether the submodule has been installed.
+        val fileContents = readFileInClasspath(reactorCorePath + "reactor.ts")
+        if (fileContents === null) {
+            throw new IOException("Required runtime file not found: "
+                + reactorCorePath
+                + "reactor.ts.\n"
+                + "Perhaps the reactor.ts submodule is missing.\n"
+                + "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository."
+            )
+        }
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "reactor.ts"));
-        fOut.write(readFileInClasspath(reactorCorePath + "reactor.ts").getBytes())
+        fOut.write(fileContents.getBytes())
 
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "time.ts"));
