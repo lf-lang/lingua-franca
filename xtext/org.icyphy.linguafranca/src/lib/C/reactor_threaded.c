@@ -111,29 +111,15 @@ int wait_until(instant_t logical_time_ns) {
     return return_value;
 }
 
-// Wait until physical time matches or exceeds the time of the least tag
-// on the event queue. If there is no event in the queue, return 0.
-// After this wait, advance current_time to match
-// this tag. Then pop the next event(s) from the
-// event queue that all have the same tag, and extract from those events
-// the reactions that are to be invoked at this logical time.
-// Sort those reactions by index (determined by a topological sort)
-// and then execute the reactions in order. Each reaction may produce
-// outputs, which places additional reactions into the index-ordered
-// priority queue. All of those will also be executed in order of indices.
-// If the -timeout option has been given on the command line, then return
-// 0 when the logical time duration matches the specified duration.
-// Also return 0 if there are no more events in the queue and
-// the wait command-line option has not been given.
-// Otherwise, return 1.
-int next() {
- 	pthread_mutex_lock(&mutex);
+/** Internal version of next() that does not acquire the mutex lock.
+ *  It assumes the lock is already held.
+ */
+int __next() {
  	// Wait for the reaction queue to be empty and
  	// all worker threads to be idle, indicating that
  	// the previous logical time is complete.
  	while (pqueue_size(reaction_q) > 0 || number_of_idle_threads != number_of_threads) {
  		if (stop_requested) {
-     		pthread_mutex_unlock(&mutex);
             return 0;
  		}
         // Wait for some activity on the number of idle threads.
@@ -159,7 +145,6 @@ int next() {
     // last logical time executed.
     if (stop_time > 0LL && current_time >= stop_time) {
 		stop_requested = true;
-     	pthread_mutex_unlock(&mutex);
  		// Signal the worker threads.
 		pthread_cond_broadcast(&reaction_q_changed);
        	return 0;
@@ -175,7 +160,6 @@ int next() {
         // No event in the queue and -wait was not specified.
         // Execution is finished.
         if (!keepalive_specified || stop_requested) {
-     		pthread_mutex_unlock(&mutex);
             return 0;
        }
     } else {
@@ -200,7 +184,6 @@ int next() {
             if ((stop_time > 0LL && event->time > stop_time) || new_event == NULL) {
             	stop_requested = true;
      			between_logical_times = false;
-    			pthread_mutex_unlock(&mutex);
 				// Signal the worker threads.
 				pthread_cond_broadcast(&reaction_q_changed);
                 return 0;
@@ -258,13 +241,33 @@ int next() {
         event = pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
-	// Release the lock and allow the threads to execute the reactions.    
-    pthread_mutex_unlock(&mutex);
-    
     // Signal the worker threads.
 	pthread_cond_broadcast(&reaction_q_changed);
 
     return 1;
+}
+
+/** Wait until physical time matches or exceeds the time of the least tag
+ *  on the event queue. If there is no event in the queue, return 0.
+ *  After this wait, advance current_time to match
+ *  this tag. Then pop the next event(s) from the
+ *  event queue that all have the same tag, and extract from those events
+ *  the reactions that are to be invoked at this logical time.
+ *  Sort those reactions by index (determined by a topological sort)
+ *  and then execute the reactions in order. Each reaction may produce
+ *  outputs, which places additional reactions into the index-ordered
+ *  priority queue. All of those will also be executed in order of indices.
+ *  If the -timeout option has been given on the command line, then return
+ *  0 when the logical time duration matches the specified duration.
+ *  Also return 0 if there are no more events in the queue and
+ *  the wait command-line option has not been given.
+ *  Otherwise, return 1.
+ */
+int next() {
+ 	pthread_mutex_lock(&mutex);
+ 	int return_value = __next();
+	pthread_mutex_unlock(&mutex);
+	return return_value;
 }
 
 // Stop execution at the conclusion of the current logical time.
@@ -404,13 +407,35 @@ void wrapup() {
     // then actions have been scheduled at the next microstep.
     // Invoke next() one more time to react to those actions.
     if (__wrapup()) {
-        next();
+     	pthread_mutex_lock(&mutex);
+     	// Since we already hold the lock, use the unlocked version of next().
+        __next();
+ 		printf("FIXME: next returned\n");
+     	// Wait for the reaction queue to be empty and
+     	// all worker threads to be idle, indicating that
+     	// the current logical time is complete.
+     	while (pqueue_size(reaction_q) > 0) {
+            // Wait for some activity on the size of the queue.
+     		printf("FIXME: waiting\n");
+            pthread_cond_wait(&reaction_q_changed, &mutex);
+     		printf("FIXME: done waiting\n");
+    	}
+     	while (number_of_idle_threads != number_of_threads) {
+            // Wait for some activity on the number of idle threads.
+     		printf("FIXME: waiting 2\n");
+            pthread_cond_wait(&number_of_idle_threads_increased, &mutex);
+     		printf("FIXME: done waiting 2\n");
+    	}
+     	// All worker threads are idle and lock is held.
+     	pthread_mutex_unlock(&mutex);
     }
 	// Signal worker threads to exit.
 	// Assume the following write is atomic and therefore need not be guarded.
+ 	pthread_mutex_lock(&mutex);
 	stop_requested = true;
 	// Signal the worker threads.
 	pthread_cond_broadcast(&reaction_q_changed);
+ 	pthread_mutex_unlock(&mutex);
 	
 	// Wait for the worker threads to exit.
 	void* worker_thread_exit_status;
