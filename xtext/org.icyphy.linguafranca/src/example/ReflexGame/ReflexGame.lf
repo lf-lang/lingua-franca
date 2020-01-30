@@ -1,0 +1,112 @@
+target C (
+    threads = 1,
+    run="bin/ReflexGame -keepalive"
+);
+// Produce a counting sequence at random times with a minimum
+// and maximum time between outputs specified as parameters.
+reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
+    preamble {=
+        // Generate a random additional delay over the minimum. 
+        // Assume millisecond precision is enough.
+        interval_t additional_time(interval_t min_time, interval_t max_time) {
+            int interval_in_msec = (max_time - min_time) / MSEC(1);
+            return (rand() % interval_in_msec) * MSEC(1);
+        }
+    =}
+    input another:int;
+    output out:int;
+    logical action prompt(min_time);
+    state count:int(0);
+    
+    reaction(startup) -> prompt {=
+        printf("***********************************************\n");
+        printf("Watch for the prompt, then hit Return or Enter.\n");
+        printf("Type Control-D (EOF) to quit.\n\n");
+        
+        // Random number functions are part of stdlib.h, which is included by reactor.h.
+        // Set a seed for random number generation based on the current time.
+        srand(time(0));
+        
+        // Schedule the next event.
+        schedule(prompt, additional_time(self->min_time, self->max_time), NULL);
+    =}
+    reaction(prompt) -> out, prompt {=
+        self->count++;
+        printf("%d. Hit Return or Enter!", self->count);
+        fflush(stdout);
+        set(out, self->count);
+    =}
+    reaction(another) -> prompt {=
+        // Schedule the next event.
+        schedule(prompt, additional_time(self->min_time, self->max_time), NULL);
+    =}
+}
+reactor GetUserInput {
+    preamble {=
+        // Read input characters until an EOF is received.
+        // Each time a newline is received, schedule a response
+        // action.
+        void* read_input(void* response) {
+            int c;
+            while(1) {
+                while((c = getchar()) != '\n') {
+                    if (c == EOF) {
+                        stop();
+                        break;
+                    }
+                }
+                schedule(response, 0, NULL);
+                if (c == EOF) {
+                    break;
+                }
+            }
+            return NULL;
+        }
+    =}
+
+    physical action response;
+    state prompt_time:time(0);
+    state total_time_in_ms:int(0);
+    state count:int(0);
+    
+    input prompt:int;
+    output another:int;
+    
+    reaction(startup) -> response {=
+        // Start the thread that listens for Enter or Return.
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, &read_input, response);        
+    =}
+    
+    reaction(prompt) {=
+        self->prompt_time = get_physical_time();
+    =}
+
+    reaction(response) -> another {=
+        // If the prompt_time is 0, then the user is cheating and
+        // hitting return before being prompted.
+        if (self->prompt_time == 0LL) {
+            printf("YOU CHEATED!\n");
+            stop();
+        } else {
+            int time_in_ms = (get_logical_time() - self->prompt_time) / 1000000LL;
+            printf("Response time in milliseconds: %d\n", time_in_ms);
+            self->count++;
+            self->total_time_in_ms += time_in_ms;
+            // Reset the prompt_time to indicate that there is no new prompt.
+            self->prompt_time = 0LL;
+            // Trigger another prompt.
+            set(another, 42);
+        }
+    =}
+    
+    reaction(shutdown) {=
+        printf("**** Average response time: %d.\n", self->total_time_in_ms/self->count);
+    =}
+}
+main reactor ReflexGame {
+    p = new RandomSource();
+    g = new GetUserInput();
+    p.out -> g.prompt;
+    g.another -> p.another;
+}
