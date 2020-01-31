@@ -51,6 +51,7 @@ reactor GetUserInput {
     reaction(prompt) -> press {=
         int c;
         int nsecs;
+        // No human has a shorter reaction time than 100 ms.
         while((c = getchar()) != '\n' || (nsecs = get_physical_time() - get_logical_time()) < 100000000) {
         	if (c == EOF) {
             	stop();
@@ -76,7 +77,7 @@ reactor ReportPerformance {
 	
 	reaction(press) {=
 		printf("On time! Reaction time: %lld nanoseconds\n", press);        	
-	=} deadline(400 msec) {=
+	=} deadline(300 msec) {=
 		printf("Too late! Reaction time: %lld nanoseconds\n", press);
 	=}
 }
