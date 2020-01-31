@@ -12,10 +12,10 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
             return (rand() % interval_in_msec) * MSEC(1);
         }
     =}
-    input another:int;
-    output out:int;
+    input trigger:int;
+    output start:int;
     physical action prompt(min_time);
-    state count:int(0);
+    state attempt:int(0);
     
     reaction(startup) -> prompt {=
         printf("***********************************************\n");
@@ -29,65 +29,63 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
         // Schedule the next event.
         schedule(prompt, additional_time(self->min_time, self->max_time), NULL);
     =}
-    reaction(prompt) -> out, prompt {=
-        self->count++;
-        printf("%d. Hit Return or Enter!", self->count);
+    reaction(prompt) -> start, prompt {=
+        self->attempt++;
+        printf("%d. Hit Return or Enter!", self->attempt);
         fflush(stdout);
-        set(out, self->count);
+        set(start, self->attempt);
     =}
-    reaction(another) -> prompt {=
+    reaction(trigger) -> prompt {=
         // Schedule the next event.
         schedule(prompt, additional_time(self->min_time, self->max_time), NULL);
     =}
 }
 reactor GetUserInput {
     
-    state prompt_time:time(0);
-    state total_time_in_ms:int(0);
-    state count:int(0);
+    state elapsed_msecs:time(0);
+    state attempts:int(0);
     
     input prompt:int;
-    output another:int;
-    
-//    reaction(prompt) {=
-//        self->prompt_time = get_physical_time();
-//    =}
+    output press:int;
 
-    reaction(prompt) -> another {=
+    reaction(prompt) -> press {=
         int c;
-        while((c = getchar()) != '\n') {
+        int nsecs;
+        while((c = getchar()) != '\n' || (nsecs = get_physical_time() - get_logical_time()) < 100000000) {
         	if (c == EOF) {
             	stop();
             	break;
-            }
+            } 
        }
-       printf("End of GetUserInput at %lld\n", get_physical_time());
-       set(another, 42);
+       if (c != EOF) {
+       	self->attempts = prompt;
+       	self->elapsed_msecs += nsecs / 1000000;
+       	set(press, nsecs);
+       }
+       
+    =}
+
+	reaction(shutdown) {=
+        printf("\n**** Average response time: %d milliseconds.\n", self->elapsed_msecs/self->attempts);
     =}
     
-    reaction(shutdown) {=
-        printf("**** Average response time: %d.\n", self->total_time_in_ms/self->count);
-    =}
 }
 
 reactor ReportPerformance {
-	input press:int;
+	input press:int; // FIXME: this should be time, but the validator chokes on it.
 	
 	reaction(press) {=
-		printf("On time!\n");
-		printf("Reaction time: %lld\n", get_physical_time() - get_logical_time());
-        	
-	=} deadline(100 msec) {=
-		printf("Too late!\n");
+		printf("On time! Reaction time: %lld nanoseconds\n", press);        	
+	=} deadline(400 msec) {=
+		printf("Too late! Reaction time: %lld nanoseconds\n", press);
 	=}
-	
 }
 
 main reactor ReflexGame {
     p = new RandomSource();
     g = new GetUserInput();
     r = new ReportPerformance();
-    p.out -> g.prompt;
-    g.another -> p.another;
-    g.another -> r.press;
+    p.start -> g.prompt;
+    g.press -> p.trigger;
+    g.press -> r.press;
 }
