@@ -1,19 +1,21 @@
-// Prints "Hello World!" periodically without the use of a timer.git 
 target C;
 main reactor Periodic(
-        offset:time(0),
+        offset:time(0), 
         period:time(500 msec)) {
-    logical action a;
-    reaction(startup) -> a {=
+    logical action init(offset);
+    logical action recur(period);
+    
+    reaction(startup) -> init, recur {=
         if (self->offset == 0) {
             printf("Hello World!\n");
-            schedule(a, self->period, NULL);
+            schedule(recur, 0, NULL);		
         } else {
-            schedule(a, self->offset, NULL);
+            schedule(init, 0, NULL);
         }
     =}
-    reaction(a) -> a {=
+    
+    reaction(init, recur) -> recur {=
         printf("Hello World!\n");
-        schedule(a, self->period, NULL);
+        schedule(recur, 0, NULL);
     =}
 }
