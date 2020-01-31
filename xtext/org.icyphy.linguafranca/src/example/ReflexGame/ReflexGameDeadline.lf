@@ -12,12 +12,12 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
             return (rand() % interval_in_msec) * MSEC(1);
         }
     =}
-    input trigger:int;
-    output start:int;
-    physical action prompt(min_time);
+    input press:int;
+    output prompt:int;
+    physical action timeout(min_time);
     state attempt:int(0);
     
-    reaction(startup) -> prompt {=
+    reaction(startup) -> timeout {=
         printf("***********************************************\n");
         printf("Watch for the prompt, then hit Return or Enter.\n");
         printf("Type Control-D (EOF) to quit.\n\n");
@@ -27,17 +27,17 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
         srand(time(0));
         
         // Schedule the next event.
-        schedule(prompt, additional_time(self->min_time, self->max_time), NULL);
+        schedule(timeout, additional_time(self->min_time, self->max_time), NULL);
     =}
-    reaction(prompt) -> start, prompt {=
+    reaction(timeout) -> prompt, timeout {=
         self->attempt++;
         printf("%d. Hit Return or Enter!", self->attempt);
         fflush(stdout);
-        set(start, self->attempt);
+        set(prompt, self->attempt);
     =}
-    reaction(trigger) -> prompt {=
+    reaction(press) -> timeout {=
         // Schedule the next event.
-        schedule(prompt, additional_time(self->min_time, self->max_time), NULL);
+        schedule(timeout, additional_time(self->min_time, self->max_time), NULL);
     =}
 }
 reactor GetUserInput {
@@ -72,7 +72,7 @@ reactor GetUserInput {
     
 }
 
-reactor ReportPerformance {
+reactor Arbiter {
 	input press:int; // FIXME: this should be time, but the validator chokes on it.
 	
 	reaction(press) {=
@@ -85,8 +85,8 @@ reactor ReportPerformance {
 main reactor ReflexGame {
     p = new RandomSource();
     g = new GetUserInput();
-    r = new ReportPerformance();
-    p.start -> g.prompt;
-    g.press -> p.trigger;
+    r = new Arbiter();
+    p.prompt -> g.prompt;
+    g.press -> p.press;
     g.press -> r.press;
 }
