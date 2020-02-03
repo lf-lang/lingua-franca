@@ -1,0 +1,83 @@
+// Minimal version of ReflexGame as presented in papers.
+target C (
+    threads = 1,
+    run="bin/ReflexGame -keepalive"
+);
+reactor RandomSource {
+    preamble {=
+        interval_t random_time() {
+            return (rand() % 3) * MSEC(1);
+        }
+    =}
+    input another:bool;
+    output out:bool;
+    logical action prompt(2 secs);    
+    reaction(startup) -> prompt {=
+        // Random number functions are part of stdlib.h, which is included by reactor.h.
+        // Set a seed for random number generation based on the current time.
+        srand(time(0));
+
+        schedule(prompt, random_time(), NULL);
+    =}
+    reaction(prompt) -> out, prompt {=
+        printf("Hit Return!");
+        set(out, true);
+    =}
+    reaction(another) -> prompt {=
+        schedule(prompt, random_time(), NULL);
+    =}
+}
+reactor GetUserInput {
+    preamble {=
+        // Read input characters until an EOF is received.
+        // Each time a newline is received, schedule a response
+        // action.
+        void* read_input(void* response) {
+            int c;
+            while(1) {
+                while((c = getchar()) != '\n') {
+                    if (c == EOF) {
+                        stop();
+                        break;
+                    }
+                }
+                schedule(response, 0, NULL);
+                if (c == EOF) {
+                    break;
+                }
+            }
+            return NULL;
+        }
+    =}
+
+    physical action response;
+    state prompt_time:time(0);
+    input prompt:bool;
+    output another:bool;
+    
+    reaction(startup) -> response {=
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, &read_input, response);        
+    =}
+
+    reaction(response) -> another {=
+        if (self->prompt_time == 0LL) {
+            printf("YOU CHEATED!\n");
+        } else {
+            int time_in_ms = (get_logical_time() - self->prompt_time) / MSEC(1);
+            printf("Response time ms: %d\n", time_in_ms);
+            self->prompt_time = 0LL;
+        }
+        set(another, true);
+    =}
+
+    reaction(prompt) {=
+        self->prompt_time = get_physical_time();
+    =}
+}
+main reactor ReflexGame {
+    p = new RandomSource();
+    g = new GetUserInput();
+    p.out -> g.prompt;
+    g.another -> p.another;
+}

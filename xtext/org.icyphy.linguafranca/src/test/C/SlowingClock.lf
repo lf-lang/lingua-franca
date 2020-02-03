@@ -5,6 +5,7 @@
  *  to the schedule() function.
  */
 target C (
+    threads = 1,
     run = "bin/SlowingClock -fast -timeout 1 sec"
 );
 main reactor SlowingClock {
@@ -34,6 +35,8 @@ main reactor SlowingClock {
             printf("ERROR: Expected the next expected time to be: 1500000000 nsec.\n");
             printf("It was: \%lld nsec.\n", self->expected_time);
             exit(2);            
+        } else {
+            printf("Test passes.\n");
         }
     =}
 }
