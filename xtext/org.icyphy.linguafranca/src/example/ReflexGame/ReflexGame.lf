@@ -1,3 +1,9 @@
+/** This example illustrates the use of logical and physical actions,
+ *  asynchronous external inputs, the use of startup and shutdown
+ *  reactions, and the use of actions with values.
+ *  @author Edward A. Lee
+ *  @author Marten Lohstroh
+ */
 target C (
     threads = 1,
     run="bin/ReflexGame -keepalive"
@@ -33,7 +39,6 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
     reaction(prompt) -> out, prompt {=
         self->count++;
         printf("%d. Hit Return or Enter!", self->count);
-        fflush(stdout);
         set(out, self->count);
     =}
     reaction(another) -> prompt {=
@@ -50,21 +55,18 @@ reactor GetUserInput {
             int c;
             while(1) {
                 while((c = getchar()) != '\n') {
-                    if (c == EOF) {
-                        stop();
-                        break;
-                    }
+                    if (c == EOF) break;
                 }
-                schedule(response, 0, NULL);
-                if (c == EOF) {
-                    break;
-                }
+                char* value = malloc(sizeof(char));
+                *value = c;
+                schedule(response, 0, value);
+                if (c == EOF) break;
             }
             return NULL;
         }
     =}
 
-    physical action response;
+    physical action response:char;
     state prompt_time:time(0);
     state total_time_in_ms:int(0);
     state count:int(0);
@@ -81,13 +83,17 @@ reactor GetUserInput {
     reaction(prompt) {=
         self->prompt_time = get_physical_time();
     =}
-
+    
     reaction(response) -> another {=
+        if (response_value == EOF) {
+            stop();
+            return;
+        }
         // If the prompt_time is 0, then the user is cheating and
         // hitting return before being prompted.
         if (self->prompt_time == 0LL) {
             printf("YOU CHEATED!\n");
-            //stop();
+            stop();
         } else {
             int time_in_ms = (get_logical_time() - self->prompt_time) / 1000000LL;
             printf("Response time in milliseconds: %d\n", time_in_ms);
@@ -101,7 +107,11 @@ reactor GetUserInput {
     =}
     
     reaction(shutdown) {=
-        printf("**** Average response time: %d.\n", self->total_time_in_ms/self->count);
+        if (self->count > 0) {
+            printf("\n**** Average response time: %d.\n", self->total_time_in_ms/self->count);
+        } else {
+            printf("\n**** No attempts.\n");
+        }
     =}
 }
 main reactor ReflexGame {

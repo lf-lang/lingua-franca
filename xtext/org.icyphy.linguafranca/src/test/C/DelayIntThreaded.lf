@@ -24,13 +24,14 @@ reactor DelayInt(delay:time(100 msec)) {
 reactor Test {
     input in:int;
     state start_time:time(0);
-    timer start;
-    reaction(start) {=
+    state received_value:bool(false);
+    reaction(startup) {=
         // Record the logical time at the start.
         self->start_time = get_logical_time();
     =}
     reaction(in) {=
         printf("Received: %d.\n", in);
+        self->received_value = true;
         // Check the time of the input.
         instant_t current_time = get_logical_time();
         interval_t elapsed = current_time - self->start_time;
@@ -42,6 +43,13 @@ reactor Test {
         if (in != 42) {
             printf("ERROR: Expected input value to be 42. It was %d.\n", in);
             exit(2);            
+        }
+    =}
+    reaction(shutdown) {=
+        printf("Checking that communication occurred.\n");
+        if (!self->received_value) {
+            printf("ERROR: No communication occurred!\n");
+            exit(3);            
         }
     =}
 }

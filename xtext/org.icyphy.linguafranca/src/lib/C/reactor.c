@@ -213,8 +213,7 @@ int next() {
         // same reaction at the current time value, even if at a future superdense time,
         // then the reaction will be invoked and the violation reaction will not be invoked again.
         bool violation = false;
-        if ((reaction->deadline > 0LL && reaction->violation_handled != current_time)
-                || reaction->local_deadline > 0LL) {
+        if (reaction->local_deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;
             clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -238,28 +237,6 @@ int next() {
                     // If the reaction produced outputs, put the resulting
                     // triggered reactions into the queue.
                     schedule_output_reactions(reaction);
-                }
-            }
-            // Next handle the container deadline.
-            if ((reaction->deadline > 0LL && reaction->violation_handled != current_time)
-                    && physical_time > current_time + reaction->deadline) {
-                // Deadline violation has occurred.
-                violation = true;
-                // Prevent this violation from being handled again at the current time.
-                // This could occur if the handler produces outputs directed to this
-                // same reaction. FIXME: This should not be allowed because an input
-                // should not be able to have more than one source. We can probably
-                // remove violation_handled once the compiler prevents this error.
-                reaction->violation_handled = current_time;
-                // Invoke the trigger reactions, if there are any.
-                trigger_t* trigger = reaction->deadline_violation;
-                if (trigger != NULL) {
-                    for (int i = 0; i < trigger->number_of_reactions; i++) {
-                        trigger->reactions[i]->function(trigger->reactions[i]->self);
-                        // If the reaction produced outputs, put the resulting
-                        // triggered reactions into the queue.
-         				schedule_output_reactions(trigger->reactions[i]);
-                    }
                 }
             }
         }
