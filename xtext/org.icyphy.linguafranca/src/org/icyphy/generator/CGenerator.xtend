@@ -969,9 +969,6 @@ class CGenerator extends GeneratorBase {
                     + ", false" // Indicator that the reaction is not running.
                     + ", 0LL" // Local deadline.
                     + deadlineFunctionPointer // deadline_violation_handler: Pointer to local handler function.
-                    + ", 0LL" // Container deadline.
-                    + ", NULL" // Pointer to container deadline violation trigger.
-                    + ", -1LL" // violation_handled for container deadlines.
                     + "};"
             )
         }
@@ -1163,9 +1160,6 @@ class CGenerator extends GeneratorBase {
                         + ", false" // Indicator that the reaction is not running.
                         + ", 0LL" // Local deadline.
                         + ", NULL" // Pointer to local deadline_violation_handler.
-                        + ", 0LL" // Container deadline.
-                        + ", NULL" // Pointer to container deadline violation trigger.
-                        + ", -1LL" // violation_handled for container deadline.
                         + "};"
                 )
                 pr(result,

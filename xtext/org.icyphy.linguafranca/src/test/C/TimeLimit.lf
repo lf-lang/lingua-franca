@@ -38,6 +38,9 @@ main reactor TimeLimit(period:time(1 usec)) {
 	reaction(stop) {=
 		stop();
 	=}
+    reaction(shutdown) {=
+        printf("**** shutdown reaction invoked.\n");
+    =}
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x;

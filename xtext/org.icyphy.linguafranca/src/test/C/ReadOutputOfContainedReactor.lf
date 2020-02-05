@@ -26,6 +26,8 @@ main reactor ReadOutputOfContainedReactor {
         if (self->count != 3) {
             printf("FAILURE: One of the reactions failed to trigger.\n");
             exit(1);
+        } else {
+            printf("Test passes.\n");
         }
     =}
 }
