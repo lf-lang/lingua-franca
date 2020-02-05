@@ -13,7 +13,7 @@ main reactor Periodic(
             schedule(init, 0, NULL);
         }
     =}
-    
+  
     reaction(init, recur) -> recur {=
         printf("Hello World!\n");
         schedule(recur, 0, NULL);

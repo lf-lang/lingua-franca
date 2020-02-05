@@ -20,7 +20,7 @@ reactor Source {
 		self->s++;
 	=}
 }
-reactor Compute {
+reactor Computation {
 	input in:int;
 	output out:int;
 	reaction(in) -> out {=
@@ -46,12 +46,13 @@ reactor Destination {
 		self->s += 4;
 	=}
 }
-main reactor Threaded {
+
+main reactor ScatterGather {
 	a = new Source();
-	t1 = new Compute();
-	t2 = new Compute();
-	t3 = new Compute();
-	t4 = new Compute();
+	t1 = new Computation();
+	t2 = new Computation();
+	t3 = new Computation();
+	t4 = new Computation();
 	b = new Destination();
 	a.out -> t1.in;
 	a.out -> t2.in;
