@@ -5,7 +5,7 @@
         input x:number;
         output y:number;
         reaction(x) -> y {=
-            y.set((x.get() as number) * scale.get());
+            y.set((x.get() as number) * scale);
         =}
     }
     reactor Test {
@@ -13,7 +13,7 @@
         state received_value:boolean(false);
         reaction(x) {=
             console.log("Received " + x.get() + ".");
-            received_value.set(true);
+            received_value = true;
             if ((x.get() as number) != 2) {
                 console.log("ERROR: Expected 2!");
                 this.util.exec.failure();
@@ -21,7 +21,7 @@
             }
         =}
         reaction(shutdown) {=
-            if (!received_value.get()){
+            if (!received_value){
                 console.log("ERROR: No value received by Test reactor!");
                 this.util.exec.failure();
                 //throw new Error("No value received by Test reactor!");

@@ -6,7 +6,7 @@ reactor Delay(delay:time(100 msec)) {
     output out:number;
     logical action a:number;
     reaction(x) -> a {=
-        a.schedule( delay.get(), x.get() as number);
+        a.schedule( delay, x.get() as number);
     =}
     reaction(a) -> out {=
         if (a.get() !== null){
@@ -20,14 +20,14 @@ reactor Test {
     state received_value:boolean(false);
     reaction(startup) {=
         // Record the logical time at the start.
-        start_time.set(this.util.time.getCurrentLogicalTime().time);
+        start_time = this.util.time.getCurrentLogicalTime().time;
     =} 
     reaction(x) {=
         console.log("Received: " + x.get());
-        received_value.set(true);
+        received_value = true;
         // Check the time of the input.
         let current_time = this.util.time.getCurrentLogicalTime().time;
-        let elapsed = current_time.subtract(start_time.get()); 
+        let elapsed = current_time.subtract(start_time); 
         console.log("After " + elapsed + " of logical time.");
         if ( ! elapsed.isEqualTo(new UnitBasedTimeInterval( 100, TimeUnit.msec))) {
             console.log("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);

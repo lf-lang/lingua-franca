@@ -11,20 +11,20 @@ main reactor SlowingClock {
     reaction(a) -> a {=
         let elapsed_logical_time : TimeInterval = this.util.time.getElapsedLogicalTime();
         console.log("Logical time since start: " + elapsed_logical_time);
-        if (!elapsed_logical_time.isEqualTo(expected_time.get())) {
-            console.log("ERROR: Expected time to be: " + expected_time.get());
+        if (!elapsed_logical_time.isEqualTo(expected_time)) {
+            console.log("ERROR: Expected time to be: " + expected_time);
             this.util.exec.failure();
             //throw new Error("ERROR: Expected time to be: " + (this.state as any).expected_time);
         }
-        a.schedule( interval.get());
-        expected_time.set(expected_time.get().add(new UnitBasedTimeInterval(100 , TimeUnit.msec)))
-        expected_time.set( expected_time.get().add(interval.get()) );
-        interval.set(interval.get().add(new UnitBasedTimeInterval(100 , TimeUnit.msec)));
+        a.schedule(interval);
+        expected_time = expected_time.add(new UnitBasedTimeInterval(100 , TimeUnit.msec))
+        expected_time = expected_time.add(interval);
+        interval = interval.add(new UnitBasedTimeInterval(100 , TimeUnit.msec));
     =}
     reaction(shutdown) {=
-        if (!expected_time.get().isEqualTo(new UnitBasedTimeInterval(5500 , TimeUnit.msec))) {
+        if (!expected_time.isEqualTo(new UnitBasedTimeInterval(5500 , TimeUnit.msec))) {
             console.log("ERROR: Expected the next expected time to be: " + new UnitBasedTimeInterval(5500 , TimeUnit.msec));
-            console.log("It was: " + expected_time.get());
+            console.log("It was: " + expected_time);
             this.util.exec.failure();
             //throw new Error("ERROR: Expected the next expected time to be: [ 5, 500000000 ]");
         }

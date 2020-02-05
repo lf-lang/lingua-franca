@@ -48,6 +48,7 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import java.util.LinkedList
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -505,6 +506,13 @@ class TypeScriptGenerator extends GeneratorBase {
             // Determine signature of the react function
             var reactSignature = new StringJoiner(", ")
             
+            // The prologue to the react function writes state
+            // and parameters to local variables of the same name
+            var reactPrologue = new StringBuilder()
+            
+            // The epilogue to the react function writes local
+            // state variables back to the state
+            var reactEpilogue = new StringBuilder()
             
             // Assemble react function arguments from sources and effects
             // Arguments are either elements of this reactor, or an object
@@ -564,15 +572,15 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (trigOrSource.container === null) {
                         var reactSignatureElement = trigOrSource.variable.name + ": Readable<"
                         
-                        if (trigOrSource.variable instanceof Timer){
+                        if (trigOrSource.variable instanceof Timer) {
                             reactSignatureElement += "TimeInstant" 
-                        } else if (trigOrSource.variable instanceof Action){
+                        } else if (trigOrSource.variable instanceof Action) {
                             if ((trigOrSource.variable as Action).type !== null) {
                                 reactSignatureElement += (trigOrSource.variable as Action).type    
                             } else {
                                 reactSignatureElement += "Present"
                             }
-                        } else if (trigOrSource.variable instanceof Port){
+                        } else if (trigOrSource.variable instanceof Port) {
                             reactSignatureElement += (trigOrSource.variable as Port).type 
                         }
                         reactSignatureElement += ">"
@@ -626,16 +634,24 @@ class TypeScriptGenerator extends GeneratorBase {
             
             // Add parameters to the react function
             for (param : reactor.parameters) {
-                reactSignature.add(param.name + ": Parameter<"
+                
+                // Underscores are added to parameter names to prevent conflict with prologue
+                reactSignature.add("__" + param.name + ": Parameter<"
                     + getParameterType(param) + ">")
                 reactFunctArgs.add("this." + param.name)
+                
+                pr(reactPrologue, "let " + param.name + " = __" + param.name + ".get();")
             }
             
             // Add state to the react function
             for (state : reactor.states) {
-                reactSignature.add(state.name + ": State<"
+                // Underscores are added to state names to prevent conflict with prologue
+                reactSignature.add("__" + state.name + ": State<"
                     + getStateType(state) + ">")
                 reactFunctArgs.add("this." + state.name )
+                
+                pr(reactPrologue, "let " + state.name + " = __" + state.name + ".get();")
+                pr(reactEpilogue, "__" + state.name + ".set(" + state.name + ");")
             }
             
             // Write an object as an argument for each container
@@ -680,13 +696,28 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
             }
             
+            
+            // Write the reaction itself
             pr(reactorConstructor, "this.addReaction(")//new class<T> extends Reaction<T> {")
             reactorConstructor.indent()
             pr(reactorConstructor, "new Triggers(" + reactionTriggers + "),")
             pr(reactorConstructor, "new Args(" + reactFunctArgs + "),")
             pr(reactorConstructor, "function (this, " + reactSignature + ") {")
             reactorConstructor.indent()
+            pr(reactorConstructor, "// =============== START react prologue")
+            pr(reactorConstructor, reactPrologue)
+            pr(reactorConstructor, "// =============== END react prologue")
+            pr(reactorConstructor, "try {")
+            reactorConstructor.indent()
             pr(reactorConstructor, removeCodeDelimiter(reaction.code))
+            reactorConstructor.unindent()
+            pr(reactorConstructor, "} finally {")
+            reactorConstructor.indent()
+            pr(reactorConstructor, "// =============== START react epilogue")
+            pr(reactorConstructor, reactEpilogue)
+            pr(reactorConstructor, "// =============== END react epilogue")
+            reactorConstructor.unindent()
+            pr(reactorConstructor, "}")            
             reactorConstructor.unindent()  
             if (reaction.deadline === null) {
                 pr(reactorConstructor, "}")
@@ -701,7 +732,20 @@ class TypeScriptGenerator extends GeneratorBase {
                 pr(reactorConstructor, deadlineArgs + "," )
                 pr(reactorConstructor, "function(this, " + reactSignature + ") {")
                 reactorConstructor.indent()
+                pr(reactorConstructor, "// =============== START deadline prologue")
+                pr(reactorConstructor, reactPrologue)
+                pr(reactorConstructor, "// =============== END deadline prologue")
+                pr(reactorConstructor, "try {")
+                reactorConstructor.indent()
                 pr(reactorConstructor, removeCodeDelimiter(reaction.deadline.deadlineCode))
+                reactorConstructor.unindent()
+                pr(reactorConstructor, "} finally {")
+                reactorConstructor.indent()
+                pr(reactorConstructor, "// =============== START deadline epilogue")
+                pr(reactorConstructor, reactEpilogue)
+                pr(reactorConstructor, "// =============== END deadline epilogue")
+                reactorConstructor.unindent()
+                pr(reactorConstructor, "}")  
                 reactorConstructor.unindent()
                 pr(reactorConstructor, "}")
             }
