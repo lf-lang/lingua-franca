@@ -8,9 +8,9 @@ reactor Test {
     state i:number(0);
     reaction(c) {=
         console.log("Received " + c.get());
-        i.set(i.get() + 1)
-        if (c.get() != i.get()) {
-            console.log("ERROR: Expected " + i.get() + " but got " + c.get());
+        i++;
+        if (c.get() != i) {
+            console.log("ERROR: Expected " + i + " but got " + c.get());
             this.util.exec.failure();
             //throw new Error("ERROR: Expected " + (this.state as any).i + " but got " + (this.state as any).c.get());
         }
