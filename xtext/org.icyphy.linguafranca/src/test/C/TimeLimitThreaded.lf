@@ -18,13 +18,16 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 reactor Destination {
 	input x:int;
 	reaction(x) {=
-		printf("%d\n", x);
+		printf("%d after time %lld\n", x, get_elapsed_logical_time());
 	=}
 }
 main reactor TimeLimitThreaded(period:time(2 secs)) {
 	timer stop(6 secs);
 	reaction(stop) {=
 		stop();
+	=}
+	reaction(shutdown) {=
+	    printf("**** shutdown reaction invoked.\n");
 	=}
 	c = new Clock(period = period);
 	d = new Destination();

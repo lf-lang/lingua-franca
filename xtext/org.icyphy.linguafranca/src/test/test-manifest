@@ -13,6 +13,8 @@ CountTest.lf
 DanglingOutput.lf
 Deadline.lf
 DeadlineHandledAbove.lf
+DeadlineHandledAboveThreaded.lf
+DeadlineThreaded.lf
 DelayedAction.lf
 DelayedReaction.lf
 DelayInt.lf
@@ -22,6 +24,7 @@ DeterminismThreaded.lf
 DoubleReaction.lf
 DoubleReactionThreaded.lf
 Gain.lf
+GainThreaded.lf
 GetTime.lf
 Hello.lf
 HelloThreaded.lf

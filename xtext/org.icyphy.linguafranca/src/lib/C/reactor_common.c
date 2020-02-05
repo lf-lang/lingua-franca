@@ -120,7 +120,7 @@ pqueue_t* reaction_q;  // For sorting by index (precedence sort)
 pqueue_t* recycle_q;   // For recycling malloc'd events.
 pqueue_t* free_q;      // For free malloc'd values carried by events.
 
-handle_t __handle = 0;
+handle_t __handle = 1;
 
 
 // ********** Priority Queue Support Start
@@ -203,7 +203,11 @@ void __done_using(token_t* token) {
 // The value is required to be a pointer returned by malloc
 // because it will be freed after having been delivered to
 // all relevant destinations unless it is NULL, in which case
-// it will be ignored.
+// it will be ignored. If the trigger offset plus the extra
+// delay is greater than zero and stop has been requested,
+// then ignore this and return 0.
+// Otherwise, return a handle to the scheduled trigger,
+// which is an integer greater than 0.
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     // Compute the tag.  How we do that depends on whether
 	// this is a logical or physical action.
@@ -251,6 +255,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
         trigger->scheduled = tag;
         // NOTE: if two events with the same tag are scheduled
         // with the same tag, only the last one survives.
+    }
+    if (tag != current_time && stop_requested) {
+    	return 0;
     }
     // Recycle event_t structs, if possible.    
     event_t* e = pqueue_pop(recycle_q);
