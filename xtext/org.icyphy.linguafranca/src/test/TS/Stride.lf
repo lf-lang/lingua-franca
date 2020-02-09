@@ -8,8 +8,8 @@ reactor Count(stride:number(1)) {
     output y:number;
     timer t(0, 100 msec);
     reaction(t) -> y {=
-        y.set(count.get());
-        count.set(count.get() + stride.get());
+        y.set(count);
+        count = count + stride;
     =}
 }
 reactor Display {

@@ -8,12 +8,12 @@ reactor GeneratedDelay {
     logical action act(100 msec);
 
     reaction(y_in) -> act {=
-        y_state.set(y_in.get() as number);
+        y_state = y_in.get() as number;
         act.schedule(0);
     =}
 
     reaction(act) -> y_out {=
-        y_out.set(y_state.get());
+        y_out.set(y_state);
     =}
 }
 

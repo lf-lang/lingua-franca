@@ -14,9 +14,9 @@ main reactor DelayedAction {
         let elapsedPhysical = this.util.time.getElapsedPhysicalTime();
         console.log("Logical time since start: " + elapsedLogical);
         console.log("Physical time since start: " + elapsedPhysical);
-        let expected = new UnitBasedTimeInterval( count.get() * 1, TimeUnit.sec).add(
+        let expected = new UnitBasedTimeInterval( count * 1, TimeUnit.sec).add(
             new UnitBasedTimeInterval(100, TimeUnit.msec));
-        count.set(count.get() + 1);
+        count++;
         if (!elapsedLogical.isEqualTo(expected)) {
             console.log("Failure: expected " + expected + " but got " + elapsedLogical);
             this.util.exec.failure();

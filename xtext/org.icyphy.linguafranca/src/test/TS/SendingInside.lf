@@ -15,12 +15,12 @@ reactor Printer {
     reaction(x) {=
         console.log("Inside reactor received: "
           + x.get());
-        if ((x.get() as number) != count.get()) {
-            console.log("FAILURE: Expected " + count.get());
+        if ((x.get() as number) != count) {
+            console.log("FAILURE: Expected " + count);
             this.util.exec.failure();
             //throw new Error("FAILURE: Expected " + (this.state as any).count);
         }
-        count.set(count.get() + 1);
+        count++;
     =}
 }
 main reactor SendingInside {
@@ -28,7 +28,7 @@ main reactor SendingInside {
     timer t(0, 1 sec);
     p = new Printer();
     reaction(t) -> p.x {=
-        count.set(count.get() + 1);
-        p.x.set(count.get());
+        count++;
+        p.x.set(count);
     =}
 }
