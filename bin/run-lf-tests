@@ -29,7 +29,6 @@ else
         echo "File not found: ""$manifest";
     else
         pushd $test_dir;
-        eval $offset"bin/lfc"; # trigger fresh build if necessary
         if [ $1 == "TS" ]; then
             echo "Executing command: rm package.json"
             rm package.json
