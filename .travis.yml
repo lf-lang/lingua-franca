@@ -10,6 +10,7 @@ jdk:
 cache:  
  directories:  
   - $HOME/.m2
+  - $HOME/.gradle
 # The node_js property doesn't work if the language is java
 before_install:
   - nvm install 10.4.0
