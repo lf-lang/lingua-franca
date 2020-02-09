@@ -12,15 +12,15 @@ reactor Source(period:time(1 sec)) {
     timer t(0, period);
     state count:number(0);
     reaction(t) -> y {=
-        if (2 * Math.floor(count.get() / 2) != count.get()){
+        if (2 * Math.floor(count / 2) != count){
             // The count variable is odd.
             // Busy wait 0.2 sconds to cause a deadline violation.
             let initialElapsedTime = this.util.time.getElapsedPhysicalTime();
             while ( this.util.time.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeInterval(200, TimeUnit.msec))));
         }
         console.log("Source sends: " + count);
-        y.set(count.get());
-        count.set(count.get() + 1);
+        y.set(count);
+        count++;
     =}
 }
 
@@ -29,22 +29,22 @@ reactor Destination(timeout:time(1 sec)) {
     state count:number(0);
     reaction(x) {=
         console.log("Destination receives: " + x.get());
-        if (2 * Math.floor(count.get() / 2) != count.get()) {
+        if (2 * Math.floor(count / 2) != count) {
             // The count variable is odd, so the deadline should have been violated.
             console.log("ERROR: Failed to detect deadline.");
             this.util.exec.failure()
             //throw new Error("ERROR: Failed to detect deadline.");
         }
-        count.set(count.get() + 1);
+        count++;
     =} deadline(timeout) {=
         console.log("Destination deadline handler receives: " + x.get());
-        if (2 * Math.floor(count.get() / 2) == count.get()) {
+        if (2 * Math.floor(count / 2) == count) {
             // The count variable is even, so the deadline should not have been violated.
             console.log("ERROR: Deadline miss handler invoked without deadline violation.");
             this.util.exec.failure()
             //throw new Error("ERROR: Deadline miss handler invoked without deadline violation.");
         }
-        count.set(count.get() + 1);
+        count++;
     =}
 }
 main reactor Deadline {
