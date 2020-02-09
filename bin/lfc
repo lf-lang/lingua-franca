@@ -8,32 +8,107 @@
 
 set -euo pipefail
 
-if [ 1 -lt "$#" ]; then
-	1>&2 echo "Usage: lfc [FILE]"
+# Exit with message and error code 1.
+function error_exit() {
+    1>&2 echo "compilation terminated."
 	exit 1
-fi
+}
 
-FIND=find
-if [ "${OSTYPE}" = "msys" ]; then  # Make sure we don't use the built-in Windows 'find' command, which is different
-	FIND="/usr/bin/${FIND}"
+# Report error.
+function error() {
+    1>&2 echo -e "\e[1mlfc: \e[31merror: \e[0m$1"
+}
+
+# Report fatal error.
+function fatal_error() {
+    1>&2 echo -e "\e[1mlfc: \e[31mfatal error: \e[0m$1"
+}
+
+# Report that no input files are given.
+function no_files() {
+    fatal_error "no input files"
+}
+
+# Report that the given file cannot be found.
+function file_not_found() {
+    error "$1: No such file or directory"
+    no_files
+}
+
+# Report that the given file does not have the appropriate extension.
+function incompatible_file() {
+    1>&2 echo "$1: file not recognized: file format not recognized"
+    fatal_error "incompatible input file"
+}
+
+# Print message explaining the CLI args.
+function usage() {
+    echo "Usage: lfc [options] file..."
+    echo "Options:"
+    echo "  -h | --help           Display this information."
+    echo "  -r | --rebuild        Rebuild the compiler first."
+}
+
+# Process CLI args.
+rebuild=0
+files=()
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -f | --file )
+            shift
+            filename=$1
+        ;;
+        -r | --rebuild )
+            rebuild=1
+        ;;
+        -h | --help )
+            usage
+            exit 0
+        ;;
+        -* ) 
+            1>&2 echo "Unknown parameter passed: $1"
+            usage
+            error_exit
+        ;;
+        * ) 
+            if [[ ! -f "$1" ]]; then
+                file_not_found $1
+                error_exit
+            else
+                if [[ $1 == *.lf ]]; then
+                    files+=( $1 )
+                else
+                    incompatible_file $1
+                    error_exit
+                fi
+            fi
+    esac
+    shift
+done
+
+# Exit if no input files are given.
+entries=${#files[@]}
+if [[ ${entries} -lt 1 ]]; then
+fatal_error "no input files"
+    error_exit
 fi
 
 base=""
 if [ ! "$0" = "${0##*/*}" ]; then  # Do we have a parent directory?
 	base="${0%/*}/"
 fi
+
+# Rebuild if requested. No Internet connection should be required for this.
+if [ ${rebuild} -eq 1 ]; then
+    "${base}/build-lfc" "--offline"
+fi
+
 base="${base}../xtext/"
 lfbase="${base}org.icyphy.linguafranca/"
 jarpath="${lfbase}build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar"
 
-if [ ! -f "${jarpath}" ] || ! "${FIND}" "${lfbase}src" -path "${lfbase}src/test" -prune -o -type f -newer "${jarpath}" -exec false {} +; then  # Check if jar is missing or out-of-date relative to source files
-	1>&2 echo "Jar file is missing or out-of-date; running Gradle..."
-	"${base}gradlew" --stacktrace -p "${base}" generateStandaloneCompiler
-	touch -c -- "${jarpath}"  # Ensure the file timestamp is up-to-date even if the file didn't need to be updated
-fi
-
-if [ 0 -lt "$#" ]; then
-	java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "$@"
-else
-	echo "lfc: fatal error: no input file"
-fi
+# Compile the given file entries.
+for (( i=0; i<$entries; i++ )); do 
+    java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "${files[$i]}"; 
+done
