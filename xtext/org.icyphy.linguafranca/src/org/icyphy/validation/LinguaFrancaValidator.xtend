@@ -14,6 +14,7 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.eclipse.emf.ecore.EStructuralFeature
 
 /**
  * This class contains custom validation rules. 
@@ -51,6 +52,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var target = "";
     
     // //////////////////////////////////////////////////
+    // // Helper functions for checks to be performed on multiple entities
+
+    // Check the name of a feature for illegal substrings.
+    def checkName(String name, EStructuralFeature feature) {
+        // Raises an error if the string starts with two underscores.
+        if(name.substring(0,2).equals("__")) {
+            error(UNDERSCORE_MESSAGE + name,  feature)
+        }
+    }
+    
+    // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
     // FAST ensures that these checks run whenever a file is modified.
     // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
@@ -74,6 +86,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     // // The following checks are in alphabetical order.
     @Check(FAST)
     def checkAction(Action action) {
+        checkName(action.name, Literals.VARIABLE__NAME)
         if (allNames.contains(action.name)) {
             error(
                 UNIQUENESS_MESSAGE + action.name,
@@ -114,6 +127,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkInput(Input input) {
+        checkName(input.name, Literals.VARIABLE__NAME)
         if (allNames.contains(input.name)) {
             error(
                 UNIQUENESS_MESSAGE + input.name,
@@ -131,6 +145,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkInstance(Instantiation instance) {
+        checkName(instance.name, Literals.INSTANTIATION__NAME)
         if (allNames.contains(instance.name)) {
             error(
                 UNIQUENESS_MESSAGE + instance.name,
@@ -149,6 +164,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkOutput(Output output) {
+        checkName(output.name, Literals.VARIABLE__NAME)
         if (allNames.contains(output.name)) {
             error(
                 UNIQUENESS_MESSAGE + output.name,
@@ -166,6 +182,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkParameter(Parameter param) {
+        checkName(param.name, Literals.PARAMETER__NAME)
         if (allNames.contains(param.name)) {
             error(
                 UNIQUENESS_MESSAGE + param.name,
@@ -183,6 +200,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkReactor(Reactor reactor) {
+        checkName(reactor.name, Literals.REACTOR__NAME)
         if (reactorClasses.contains(reactor.name)) {
             error(
                 "Names of reactor classes must be unique: " + reactor.name,
@@ -200,6 +218,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkState(org.icyphy.linguaFranca.State state) {
+        checkName(state.name, Literals.STATE__NAME)
         if (allNames.contains(state.name)) {
             error(
                 UNIQUENESS_MESSAGE + state.name,
@@ -274,6 +293,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkTimer(Timer timer) {
+        checkName(timer.name, Literals.VARIABLE__NAME)
         if (allNames.contains(timer.name)) {
             error(
                 UNIQUENESS_MESSAGE + timer.name,
@@ -285,4 +305,5 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     }
 
     static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
+    static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
 }
