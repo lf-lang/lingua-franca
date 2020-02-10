@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #==========================================================
-# Description: 		Run the lfc compiler.
-# Authors:		Marten Lohstroh, Mehrdad Niknami
-# Usage:		lfc [FILE]
+# Description: 	    Run the lfc compiler.
+# Authors:		    Marten Lohstroh, Mehrdad Niknami
+# Usage:		    Usage: lfc [options] file...
 #==========================================================
 
 set -euo pipefail
