@@ -59,7 +59,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     // Check the name of a feature for illegal substrings.
     def checkName(String name, EStructuralFeature feature) {
         // Raises an error if the string starts with two underscores.
-        if(name.substring(0,2).equals("__")) {
+        if (name.length() >= 2 && name.substring(0,2).equals("__")) {
             error(UNDERSCORE_MESSAGE + name,  feature)
         }
     }
