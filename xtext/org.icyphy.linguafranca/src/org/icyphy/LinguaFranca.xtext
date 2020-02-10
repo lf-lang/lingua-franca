@@ -1,7 +1,5 @@
 /* Grammar for Lingua Franca. */
 
-/* Runtime infrastructure for the C target of Lingua Franca. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -95,8 +93,8 @@ Timer:
 // time between action invocations and the minimum logical time
 // (after start) of the first action.
 Action:
-    origin=ActionOrigin 'action' name=ID 
-    ('(' minTime=TimeOrValue ')')?
+    (origin=ActionOrigin)? 'action' name=ID 
+    ('(' minTime=TimeOrValue (',' policy=CongestionManagement)? ')')?
     (':' type=Type)? ';';
 
 Reaction:
@@ -203,11 +201,14 @@ Path:
     ID ('.' ID)*;
 
 /////////// Enums
+enum CongestionManagement:
+    NONE | DELAY='DEFER' | DROP='DROP' | REPLACE='REPLACE';
+
 enum ActionOrigin:
-    LOGICAL='logical' | PHYSICAL='physical';
+    NONE | LOGICAL='logical' | PHYSICAL='physical';
 
 enum TimeUnit:
-    NONE='empty' |
+    NONE |
     NSEC='nsec' | NSECS='nsecs' |
     USEC='usec' | USECS='usecs' |
     MSEC='msec' | MSECS='msecs' |
