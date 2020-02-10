@@ -3,16 +3,10 @@
 #==========================================================
 # Description: 	Build the lfc compiler.
 # Authors:		Marten Lohstroh, Mehrdad Niknami
-# Usage:		build-lfc [--offline] [--stacktrace] [--clean]
+# Usage:		build-lfc [options]
 #==========================================================
 
 set -euo pipefail
-
-# if [ "$#" -lt 1 ]; then
-# 	1>&2 echo "Usage: build-lfc [--offline] [--stacktrace] [--clean]"
-# 	exit 1
-# fi
-
 
 # Print message explaining the CLI args.
 function usage() {
