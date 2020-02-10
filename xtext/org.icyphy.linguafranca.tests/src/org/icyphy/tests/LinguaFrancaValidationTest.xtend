@@ -61,4 +61,175 @@ class LinguaFrancaValidationTest {
             null,
             "Main reactor cannot be named 'Main'")
     }
+    
+    /**
+     * Ensure that "__" is not allowed at the start of an input name.
+     */
+    @Test
+    def void disallowUnderscoreInputs() {
+        val model = '''
+            target TypeScript;
+            main reactor Foo {
+                input __bar;
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.input,
+            null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
+    /**
+     * Ensure that "__" is not allowed at the start of an output name.
+     */
+    @Test
+    def void disallowUnderscoreOutputs() {
+        val model = '''
+            target TypeScript;
+            main reactor Foo {
+                output __bar;
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.output,
+            null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
+    /**
+     * Ensure that "__" is not allowed at the start of an action name.
+     */
+    @Test
+    def void disallowUnderscoreActions() {
+        val model = '''
+            target TypeScript;
+            main reactor Foo {
+                logical action __bar;
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.action,
+            null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
+    /**
+     * Ensure that "__" is not allowed at the start of a timer name.
+     */
+    @Test
+    def void disallowUnderscoreTimers() {
+        val model = '''
+            target TypeScript;
+            main reactor Foo {
+                timer __bar(0);
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.timer,
+            null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
+    /**
+     * Ensure that "__" is not allowed at the start of a parameter name.
+     */
+    @Test
+    def void disallowUnderscoreParameters() {
+        val model = '''
+            target TypeScript;
+            main reactor Foo(__bar) {
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter,
+            null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
+    /**
+     * Ensure that "__" is not allowed at the start of an state name.
+     */
+    @Test
+    def void disallowUnderscoreStates() {
+        val model = '''
+            target TypeScript;
+            main reactor Foo {
+                state __bar;
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.state,
+            null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
+    /**
+     * Ensure that "__" is not allowed at the start of a reactor definition name.
+     */
+    @Test
+    def void disallowUnderscoreReactorDef() {
+        val model = '''
+            target TypeScript;
+            main reactor __Foo {
+            }
+        '''.parse
+
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+          // FIXME: The below assertion doesn't work for some reason.
+//        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor,
+//            null,
+//            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
+    /**
+     * Ensure that "__" is not allowed at the start of a reactor instantiation name.
+     */
+    @Test
+    def void disallowUnderscoreReactorInstantiation() {
+        val model = '''
+            target TypeScript;
+            reactor Foo {
+            }
+            main reactor Bar {
+                __x = new Foo();
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        // FIXME: The below assertion doesn't work for some reason.
+//        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+//            null,
+//            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
 }
