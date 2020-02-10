@@ -2,6 +2,7 @@ package org.icyphy.validation
 
 import org.eclipse.xtext.validation.Check
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -14,6 +15,7 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.CongestionManagement
 
 /**
  * This class contains custom validation rules. 
@@ -74,6 +76,18 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     // // The following checks are in alphabetical order.
     @Check(FAST)
     def checkAction(Action action) {
+        if (action.origin == ActionOrigin.NONE) {
+            error(
+                "Action must have modifier `logical` or `physical`.",
+                Literals.ACTION__ORIGIN
+            )
+        } else if (action.origin == ActionOrigin.LOGICAL && action.policy != CongestionManagement.NONE) {
+            error(
+                "Logical action cannot specify a congestion management policy.",
+                Literals.ACTION__POLICY
+            )
+        }
+        
         if (allNames.contains(action.name)) {
             error(
                 UNIQUENESS_MESSAGE + action.name,
