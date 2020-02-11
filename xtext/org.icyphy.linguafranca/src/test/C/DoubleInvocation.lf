@@ -1,0 +1,42 @@
+// FIXME: This illustrates a very strange bug.
+// At logical time zero, the two Print reactors are
+// fired twice each at the same logical time.
+// They should only be fired once.
+// This behavior is eliminated by any one of the following
+// actions, neither of which should affect this behavior:
+// * Removing the startup reaction in Print.
+// * Sending only position, not velocity from Ball.
+
+target C (timeout = 10 sec);
+reactor Ball {
+    output position:int;
+    output velocity:int;
+    state p:int(200);
+    timer trigger(0, 1 sec);
+    reaction(trigger) -> position, velocity {=
+        set(position, self->p);
+        set(velocity, -1);      
+        self->p -= 1;
+    =}
+}
+reactor Print {
+    input velocity:int;
+    input position:int;
+    reaction (startup) {=
+        printf("####### Print startup\n");
+    =}
+    reaction (position, velocity) {=
+        if (position_is_present) {
+            printf("Position: %d.\n", position);
+        }
+    =}
+}
+main reactor DoubleInvocation {
+    b1 = new Ball();
+    p = new Print();
+    plot = new Print();
+    b1.position -> p.position;
+    b1.velocity -> p.velocity;
+    b1.position -> plot.position;
+    b1.velocity -> plot.velocity;
+}
