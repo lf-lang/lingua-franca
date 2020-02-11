@@ -202,10 +202,9 @@ class LinguaFrancaValidationTest {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-          // FIXME: The below assertion doesn't work for some reason.
-//        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor,
-//            null,
-//            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor,
+            null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __Foo")
     }
     
     /**
@@ -226,10 +225,9 @@ class LinguaFrancaValidationTest {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        // FIXME: The below assertion doesn't work for some reason.
-//        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
-//            null,
-//            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+            null,
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __x")
     }
     
 }
