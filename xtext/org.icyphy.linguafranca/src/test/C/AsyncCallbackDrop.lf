@@ -1,0 +1,67 @@
+// Test asynchronous callbacks that trigger a physical action.
+// This test case assumes that target is multithreaded.
+// This test will not work with the unthreaded C target because that target
+// does not implement any mutex protecting the event queue.
+target C(
+	threads = 1,
+	run = "bin/AsyncCallbackDrop -timeout 2 sec"
+);
+
+main reactor AsyncCallback {
+	
+	preamble {= 
+		#include <pthread.h>
+		void callback(void* a) {
+		    // Schedule twice. If the action is not physical, these should
+		    // get consolidated into a single action triggering. If it is,
+		    // then they cause two separate triggerings with close but not
+		    // equal time stamps. The minimum time between these is determined
+		    // by the argument in the physical action definition.
+			int* v = malloc(sizeof(int));
+			*v = 0;
+			schedule(a, 0, v);
+			v = malloc(sizeof(int));
+			*v = 1;
+            schedule(a, 0, v);
+		}
+		// Simulate time passing before a callback occurs.
+		void* take_time(void* a) {
+			struct timespec sleep_time = {(time_t) 0, (long)100000000};
+			struct timespec remaining_time;
+			nanosleep(&sleep_time, &remaining_time);
+			callback(a);
+			return NULL;
+		}
+		pthread_t threadId;
+	=}
+	timer t(0, 200 msec);
+	state thread_id:pthread_t(0);
+	state expected_time:time(100 msec);
+	state toggle:bool(false);
+	
+    physical action a(100 msec, DROP):int;
+    state i:int(0);
+  
+	reaction(t) -> a {=
+		// start new thread, provide callback
+		pthread_create(&self->thread_id, NULL, &take_time, a);
+	=}
+	
+	reaction(a) {=
+		instant_t elapsed_time = get_elapsed_logical_time();
+        printf("Asynchronous callback %d: Assigned logical time greater than start time by %lld nsec.\n", self->i++, elapsed_time); 
+		if (elapsed_time <= self->expected_time) {
+		    printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
+		    exit(1);
+		}
+		if (a_value != 0) {
+			printf("ERROR: Received:%d, expected 0 because the second event should have been dropped.\n", a_value);
+		}
+        if (self->toggle) {
+            self->toggle = false;
+            self->expected_time += 200000000LL;
+        } else {
+            self->toggle = true;
+        }
+	=}
+}
