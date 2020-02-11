@@ -10,12 +10,12 @@ import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.CongestionManagement
 
 /**
  * This class contains custom validation rules. 
@@ -81,9 +81,9 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 "Action must have modifier `logical` or `physical`.",
                 Literals.ACTION__ORIGIN
             )
-        } else if (action.origin == ActionOrigin.LOGICAL && action.policy != CongestionManagement.NONE) {
+        } else if (action.origin == ActionOrigin.LOGICAL && action.policy != QueuingPolicy.NONE) {
             error(
-                "Logical action cannot specify a congestion management policy.",
+                "Logical action cannot specify a queuing policy.",
                 Literals.ACTION__POLICY
             )
         }

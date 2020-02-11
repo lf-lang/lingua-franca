@@ -60,6 +60,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.linguaFranca.QueuingPolicy
 
 /** Generator for C target.
  * 
@@ -1168,7 +1169,7 @@ class CGenerator extends GeneratorBase {
 
                 pr(result, 'trigger_t ' + structName + ' = {')
                 indent(result)
-                pr(result, structName + '_reactions, 1, 0LL, 0LL, NULL, false, NEVER')
+                pr(result, structName + '_reactions, 1, 0LL, 0LL, NULL, false, NEVER, NONE')
                 unindent(result)
                 pr(result, '};')
 
@@ -1244,7 +1245,7 @@ class CGenerator extends GeneratorBase {
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        '0LL, 0LL, NULL, false, NEVER'
+                        '0LL, 0LL, NULL, false, NEVER, NONE'
                 )
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
@@ -1260,12 +1261,15 @@ class CGenerator extends GeneratorBase {
                     if (trigger.minTime === null) {
                         minTime = DEFAULT_MIN_INTER_ARRIVAL;
                     }
+                    if (trigger.policy == QueuingPolicy.NONE) {
+                        trigger.policy = QueuingPolicy.DEFER;
+                    }
                 }
                 pr(
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        minTime + ', 0LL, NULL, ' + isPhysical + ', NEVER'
+                        minTime + ', 0LL, NULL, ' + isPhysical + ', NEVER,' + trigger.policy
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 if ((triggerInstance as ActionInstance).isShutdown) {

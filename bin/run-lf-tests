@@ -28,6 +28,7 @@ else
         echo "Unable to locate manifest.";
         echo "File not found: ""$manifest";
     else
+	eval "$offset""bin/build-lfc"
         pushd $test_dir;
         if [ $1 == "TS" ]; then
             echo "Executing command: rm package.json"

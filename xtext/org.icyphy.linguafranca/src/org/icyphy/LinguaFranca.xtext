@@ -94,7 +94,7 @@ Timer:
 // (after start) of the first action.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minTime=TimeOrValue (',' policy=CongestionManagement)? ')')?
+    ('(' minTime=TimeOrValue (',' policy=QueuingPolicy)? ')')?
     (':' type=Type)? ';';
 
 Reaction:
@@ -201,8 +201,8 @@ Path:
     ID ('.' ID)*;
 
 /////////// Enums
-enum CongestionManagement:
-    NONE | DELAY='DEFER' | DROP='DROP' | REPLACE='REPLACE';
+enum QueuingPolicy:
+    NONE | DEFER='DEFER' | DROP='DROP' | UPDATE='UPDATE';
 
 enum ActionOrigin:
     NONE | LOGICAL='logical' | PHYSICAL='physical';

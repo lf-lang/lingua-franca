@@ -212,12 +212,21 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     // Compute the tag.  How we do that depends on whether
 	// this is a logical or physical action.
     interval_t tag = current_time;
-    if (!trigger->is_physical) {
-    	// For logical actions, the logical time of the new event is just
-    	// the current logical time plus the minimum offset (action parameter)
-    	// plus the extra delay specified in the call to schedule.
-    	tag += trigger->offset + extra_delay;
-    } else {
+
+    // Recycle event_t structs, if possible.    
+    event_t* e = pqueue_pop(recycle_q);
+    if (e == NULL) {
+        e = malloc(sizeof(struct event_t));
+    }
+    
+    e->trigger = trigger;
+    e->value = value;
+    // For logical actions, the logical time of the new event is just
+    // the current logical time plus the minimum offset (action parameter)
+    // plus the extra delay specified in the call to schedule.
+    e->time = tag + trigger->offset + extra_delay;
+
+    if (trigger->is_physical) {
     	// If the trigger is physical, then we need to use
     	// physical time and the time of the last invocation to adjust the tag.
     	// Specifically, the timestamp assigned to the action event will be
@@ -240,33 +249,51 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
         if (physical_time > current_time) {
         	tag = physical_time;
         }
-        // Next, use the minimum interrarrival time to see whether
-        // this needs to be adjusted.
+
         interval_t min_inter_arrival = trigger->offset + extra_delay;
+        // Compute the earliest time that this event can be scheduled.
         instant_t earliest_time;
         if (trigger->scheduled == NEVER) {
-        	earliest_time = start_time + min_inter_arrival;
+            earliest_time = start_time + min_inter_arrival;
         } else {
-        	earliest_time = trigger->scheduled + min_inter_arrival;
+            earliest_time = trigger->scheduled + min_inter_arrival;
         }
+        
         if (earliest_time > tag) {
-        	tag = earliest_time;
+            // The event is early. See which policy applies.
+            event_t* existing = NULL;
+            if (trigger->policy == UPDATE) {
+                // Update existing event if it exists.   
+                e->time = tag;
+                existing = pqueue_find(event_q, e, 1, earliest_time);
+                if (existing != NULL) {
+                    // Update the value of the existing event.
+                    existing->value = value;
+                }
+            }
+            if (trigger->policy == DROP || existing != NULL) {
+                // Recycle the new event.
+                e->value = NULL;
+                pqueue_insert(recycle_q, e);
+                return(0);
+            }
+            if (trigger->policy == DEFER 
+                || (trigger->policy == UPDATE && existing == NULL)) {
+                // Adjust the tag.
+                tag = earliest_time;
+            }
         }
+
+        // Record the tag.
         trigger->scheduled = tag;
+        
         // NOTE: if two events with the same tag are scheduled
         // with the same tag, only the last one survives.
+        e->time = tag;                        
     }
     if (tag != current_time && stop_requested) {
     	return 0;
     }
-    // Recycle event_t structs, if possible.    
-    event_t* e = pqueue_pop(recycle_q);
-    if (e == NULL) {
-        e = malloc(sizeof(struct event_t));
-    }
-    e->time = tag;
-    e->trigger = trigger;
-    e->value = value;
     
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
