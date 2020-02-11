@@ -505,6 +505,7 @@ class TypeScriptGenerator extends GeneratorBase {
             
             // Determine signature of the react function
             var reactSignature = new StringJoiner(", ")
+            reactSignature.add("this")
             
             // The prologue to the react function writes state
             // and parameters to local variables of the same name
@@ -702,7 +703,7 @@ class TypeScriptGenerator extends GeneratorBase {
             reactorConstructor.indent()
             pr(reactorConstructor, "new Triggers(" + reactionTriggers + "),")
             pr(reactorConstructor, "new Args(" + reactFunctArgs + "),")
-            pr(reactorConstructor, "function (this, " + reactSignature + ") {")
+            pr(reactorConstructor, "function (" + reactSignature + ") {")
             reactorConstructor.indent()
             pr(reactorConstructor, "// =============== START react prologue")
             pr(reactorConstructor, reactPrologue)
@@ -730,7 +731,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     deadlineArgs += timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
                 }
                 pr(reactorConstructor, deadlineArgs + "," )
-                pr(reactorConstructor, "function(this, " + reactSignature + ") {")
+                pr(reactorConstructor, "function(" + reactSignature + ") {")
                 reactorConstructor.indent()
                 pr(reactorConstructor, "// =============== START deadline prologue")
                 pr(reactorConstructor, reactPrologue)
