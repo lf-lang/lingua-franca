@@ -21,6 +21,7 @@ DelayInt.lf
 DelayIntThreaded.lf
 Determinism.lf
 DeterminismThreaded.lf
+DoubleInvocation.lf
 DoubleReaction.lf
 DoubleReactionThreaded.lf
 Gain.lf
