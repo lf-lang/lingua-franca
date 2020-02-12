@@ -17,7 +17,7 @@ import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.eclipse.emf.ecore.EStructuralFeature
-asdfasdfasfasdfasdfsadf
+
 
 /**
  * This class contains custom validation rules. 
