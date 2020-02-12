@@ -1,13 +1,17 @@
-// FIXME: This illustrates a very strange bug.
-// At logical time zero, the two Print reactors are
+// This illustrates a very strange bug that showed up
+// and has now been fixed. This test ensures it does
+// not reappear.
+// At logical time zero, the two Print reactors used to be
 // fired twice each at the same logical time.
 // They should only be fired once.
-// This behavior is eliminated by any one of the following
+// This behavior was oddly eliminated by either of the following
 // actions, neither of which should affect this behavior:
 // * Removing the startup reaction in Print.
 // * Sending only position, not velocity from Ball.
 
-target C (timeout = 10 sec);
+target C (
+    run = "bin/DoubleInvocation -timeout 5 sec -fast"
+);
 reactor Ball {
     output position:int;
     output velocity:int;
@@ -22,12 +26,17 @@ reactor Ball {
 reactor Print {
     input velocity:int;
     input position:int;
+    state previous:int(-1);
     reaction (startup) {=
         printf("####### Print startup\n");
     =}
     reaction (position, velocity) {=
         if (position_is_present) {
             printf("Position: %d.\n", position);
+        }
+        if (position == self->previous) {
+            printf("ERROR: Multiple firings at the same logical time!\n");
+            exit(1);
         }
     =}
 }
