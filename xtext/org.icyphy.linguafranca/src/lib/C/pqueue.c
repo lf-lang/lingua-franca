@@ -24,11 +24,11 @@
  * 
  * Modified by Marten Lohstroh (May, 2019).
  * Changes: 
- * - require implementation of a pqueue_eq_elem_f function to determine
- *    whether two elements are equal or not
- * - the pqueue_insert function removes possible duplicate entries after
- *   insertion. Among duplicates, only the most recently added entry is kept.
- * - removed capability to reassign priorities
+ * - Require implementation of a pqueue_eq_elem_f function to determine
+ *   whether two elements are equal or not; and
+ * - The provided pqueue_eq_elem_f implementation is used to test and 
+ *   search for equal elements present in the queue; and
+ * - Removed capability to reassign priorities.
  */
 
 #include <stdlib.h>
@@ -37,11 +37,9 @@
 
 #include "pqueue.h"
 
-
 #define left(i)   ((i) << 1)
 #define right(i)  (((i) << 1) + 1)
 #define parent(i) ((i) >> 1)
-
 
 pqueue_t *
 pqueue_init(size_t n,
@@ -50,8 +48,7 @@ pqueue_init(size_t n,
             pqueue_get_pos_f getpos,
             pqueue_set_pos_f setpos,
             pqueue_eq_elem_f eqelem,
-            pqueue_print_entry_f prt)
-{
+            pqueue_print_entry_f prt) {
     pqueue_t *q;
 
     if (!(q = malloc(sizeof(pqueue_t))))
@@ -74,24 +71,18 @@ pqueue_init(size_t n,
     return q;
 }
 
-void
-pqueue_free(pqueue_t *q)
-{
+void pqueue_free(pqueue_t *q) {
     free(q->d);
     free(q);
 }
 
 
-size_t
-pqueue_size(pqueue_t *q)
-{
-    /* queue element 0 exists but doesn't count since it isn't used. */
+size_t pqueue_size(pqueue_t *q) {
+    // Queue element 0 exists but doesn't count since it isn't used.
     return (q->size - 1);
 }
 
-static size_t
-maxchild(pqueue_t *q, size_t i)
-{
+static size_t maxchild(pqueue_t *q, size_t i) {
     size_t child_node = left(i);
 
     if (child_node >= q->size)
@@ -104,53 +95,7 @@ maxchild(pqueue_t *q, size_t i)
     return child_node;
 }
 
-// NOTE: must be run after each insertion (only removes one duplicate).
-static void
-dedup(pqueue_t *q, size_t i)
-{
-    size_t parent_node;
-    size_t sibling_node;
-    void *inserted_node = q->d[i];
-    pqueue_pri_t prio = q->getpri(inserted_node);
-
-    // printf("==Before dedup==\n");
-    // pqueue_dump(q, stdout, q->prt);
-    
-    if (i > 1) { // nothing to do if there's only one node
-        // look up
-        parent_node = parent(i);
-        if (q->getpri(q->d[parent_node]) == prio) {
-            if (q->eqelem(q->d[parent_node], inserted_node)) {
-                pqueue_remove(q, q->d[parent_node]);
-            }
-        }
-    
-        // look left
-        sibling_node = left(parent_node);
-        if (sibling_node != i && sibling_node < q->size 
-                && q->getpri(q->d[sibling_node]) == prio) {
-            if (q->eqelem(q->d[sibling_node], inserted_node)) {
-                pqueue_remove(q, q->d[sibling_node]);
-            }
-        }
-
-        // look right
-        sibling_node = right(parent_node);
-        if (sibling_node != i && sibling_node < q->size 
-                && q->getpri(q->d[sibling_node]) == prio) {
-            if (q->eqelem(q->d[sibling_node], inserted_node)) {
-                pqueue_remove(q, q->d[sibling_node]);
-            }
-        }
-    }
-  
-    // printf("==After dedup==\n");
-    // pqueue_dump(q, stdout, q->prt);
-}
-
-static size_t
-bubble_up(pqueue_t *q, size_t i)
-{
+static size_t bubble_up(pqueue_t *q, size_t i) {
     size_t parent_node;
     void *moving_node = q->d[i];
     pqueue_pri_t moving_pri = q->getpri(moving_node);
@@ -168,9 +113,7 @@ bubble_up(pqueue_t *q, size_t i)
     return i;
 }
 
-static void
-percolate_down(pqueue_t *q, size_t i)
-{
+static void percolate_down(pqueue_t *q, size_t i) {
     size_t child_node;
     void *moving_node = q->d[i];
     pqueue_pri_t moving_pri = q->getpri(moving_node);
@@ -188,14 +131,15 @@ percolate_down(pqueue_t *q, size_t i)
 }
 
 
-int
-pqueue_insert(pqueue_t *q, void *d)
-{
+int pqueue_insert(pqueue_t *q, void *d) {
     void *tmp;
     size_t i;
     size_t newsize;
 
     if (!q) return 1;
+
+    //printf("==Before insert==\n");
+    //pqueue_dump(q, stdout, q->prt);
 
     /* allocate more memory if necessary */
     if (q->size >= q->avail) {
@@ -208,13 +152,15 @@ pqueue_insert(pqueue_t *q, void *d)
     /* insert item and remove potential duplicate */
     i = q->size++;
     q->d[i] = d;
-    dedup(q, bubble_up(q, i));
+    bubble_up(q, i);
+    
+    //printf("==After insert==\n");
+    //pqueue_dump(q, stdout, q->prt);
+
     return 0;
 }
 
-int
-pqueue_remove(pqueue_t *q, void *d)
-{
+int pqueue_remove(pqueue_t *q, void *d) {
     size_t posn = q->getpos(d);
     q->d[posn] = q->d[--q->size];
     if (q->cmppri(q->getpri(d), q->getpri(q->d[posn])))
@@ -226,10 +172,8 @@ pqueue_remove(pqueue_t *q, void *d)
 }
 
 
-void *
-pqueue_pop(pqueue_t *q)
-{
-    void *head;
+void* pqueue_pop(pqueue_t *q) {
+    void* head;
     
     if (!q || q->size == 1)
         return NULL;
@@ -241,34 +185,41 @@ pqueue_pop(pqueue_t *q)
     return head;
 }
 
-void *
-pqueue_find(pqueue_t *q, void *e, int pos, pqueue_pri_t max)
-{
+void* find(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
     void* rval;
 
-    if ((pos == 1 && (!q || q->size == 1)) 
-            || q->d[pos] == NULL || q->getpri(q->d[pos]) > max)
+    // Stop the recursion when we've reached the end of the 
+    // queue or once we've reached the maximum priority.
+    if (!q || pos >= q->size || !q->d[pos] || q->getpri(q->d[pos]) > max) {
         return NULL;
+    }
     
-    if (q->eqelem(q->d[pos], e) && (q->getpri(e) - q->getpri(q->d[pos]) < max)) {
-        // printf("Prio of e: %lld\n", q->getpri(e));
-        // printf("Prio of found: %lld\n", q->getpri(q->d[pos]));
-        // printf("max: %lld", max);
+    if (q->eqelem(q->d[pos], e)) {
         return q->d[pos];
     } else {
-        rval = pqueue_find(q, e, left(pos), max);
+        // Search on left branch.
+        rval = find(q, e, left(pos), max);
         if (rval) 
             return rval;
         else {
-            // Continue search on right branch
-            return pqueue_find(q, e, right(pos), max);
+            // Continue search on right branch.
+            return find(q, e, right(pos), max);
         }
     }
 }
 
-void *
-pqueue_peek(pqueue_t *q)
-{
+void* pqueue_find(pqueue_t *q, void *e, pqueue_pri_t max) {
+    return find(q, e, 1, max);
+}
+
+int pqueue_has(pqueue_t *q, void *e) {
+    if (find(q, e, 1, q->getpri(e))) {
+        return 1;
+    }
+    return 0;
+}
+
+void* pqueue_peek(pqueue_t *q) {
     void *d;
     if (!q || q->size == 1)
         return NULL;
@@ -276,11 +227,7 @@ pqueue_peek(pqueue_t *q)
     return d;
 }
 
-void
-pqueue_dump(pqueue_t *q,
-            FILE *out,
-            pqueue_print_entry_f print)
-{
+void pqueue_dump(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
     int i;
 
     fprintf(stdout,"posn\tleft\tright\tparent\tmaxchild\t...\n");
@@ -294,11 +241,7 @@ pqueue_dump(pqueue_t *q,
     }
 }
 
-void
-pqueue_print(pqueue_t *q,
-             FILE *out,
-             pqueue_print_entry_f print)
-{
+void pqueue_print(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
     pqueue_t *dup;
 	void *e;
 
@@ -317,10 +260,7 @@ pqueue_print(pqueue_t *q,
     pqueue_free(dup);
 }
 
-
-static int
-subtree_is_valid(pqueue_t *q, int pos)
-{
+static int subtree_is_valid(pqueue_t *q, int pos) {
     if (left(pos) < q->size) {
         /* has a left child */
         if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[left(pos)])))
@@ -338,9 +278,6 @@ subtree_is_valid(pqueue_t *q, int pos)
     return 1;
 }
 
-
-int
-pqueue_is_valid(pqueue_t *q)
-{
+int pqueue_is_valid(pqueue_t *q) {
     return subtree_is_valid(q, 1);
 }

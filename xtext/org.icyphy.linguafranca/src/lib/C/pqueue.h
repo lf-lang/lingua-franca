@@ -21,8 +21,14 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Modified by Marten Lohstroh (May, 2019).
+ * Changes: 
+ * - Require implementation of a pqueue_eq_elem_f function to determine
+ *   whether two elements are equal or not; and
+ * - The provided pqueue_eq_elem_f implementation is used to test and 
+ *   search for equal elements present in the queue; and
+ * - Removed capability to reassign priorities.
  */
-
 
 /**
  * @file  pqueue.h
@@ -62,7 +68,7 @@ typedef struct pqueue_t
     pqueue_get_pos_f getpos;    /**< callback to get position of a node */
     pqueue_set_pos_f setpos;    /**< callback to set position of a node */
     pqueue_eq_elem_f eqelem;    /**< callback to compare elements */
-    pqueue_print_entry_f prt;    /**< callback to print elements */
+    pqueue_print_entry_f prt;   /**< callback to print elements */
     void **d;                   /**< The actual queue in binary heap form */
 } pqueue_t;
 
@@ -103,18 +109,16 @@ void pqueue_free(pqueue_t *q);
  */
 size_t pqueue_size(pqueue_t *q);
 
-
 /**
- * insert an item into the queue.
+ * Insert an element into the queue.
  * @param q the queue
- * @param d the item
+ * @param e the element
  * @return 0 on success
  */
 int pqueue_insert(pqueue_t *q, void *d);
 
-
 /**
- * move an existing entry to a different priority
+ * Move an existing entry to a different priority.
  * @param q the queue
  * @param new_pri the new priority
  * @param d the entry
@@ -126,42 +130,48 @@ pqueue_change_priority(pqueue_t *q,
 
 
 /**
- * pop the highest-ranking item from the queue.
+ * Pop the highest-ranking item from the queue.
  * @param q the queue
  * @return NULL on error, otherwise the entry
  */
 void *pqueue_pop(pqueue_t *q);
 
 /**
- * find the highest-ranking item with priority less than the
+ * Find the highest-ranking item with priority less than the
  * provided maximum that matches the supplied entry.
  * @param q the queue
  * @param e the entry to compare against
- * @param pos start position (default=1)
  * @param max the maximum priority to consider
  * @return NULL if no matching event has been found, otherwise the entry
  */ 
-void *pqueue_find(pqueue_t *q, void *e, int pos, pqueue_pri_t max);
+void *pqueue_find(pqueue_t *q, void *e, pqueue_pri_t max);
 
 /**
- * remove an item from the queue.
+ * Determine whether or not there is an entry present in the queue
+ * that is equal to the given element.
  * @param q the queue
- * @param d the entry
+ * @param e the entry to compare against
+ */ 
+int pqueue_has(pqueue_t *q, void *e);
+
+/**
+ * Remove an item from the queue.
+ * @param q the queue
+ * @param e the entry
  * @return 0 on success
  */
-int pqueue_remove(pqueue_t *q, void *d);
+int pqueue_remove(pqueue_t *q, void *e);
 
 
 /**
- * access highest-ranking item without removing it.
+ * Access highest-ranking item without removing it.
  * @param q the queue
  * @return NULL on error, otherwise the entry
  */
 void *pqueue_peek(pqueue_t *q);
 
-
 /**
- * print the queue
+ * Print the queue.
  * @internal
  * DEBUG function only
  * @param q the queue
@@ -175,7 +185,7 @@ pqueue_print(pqueue_t *q,
 
 
 /**
- * dump the queue and it's internal structure
+ * Dump the queue and it's internal structure.
  * @internal
  * debug function only
  * @param q the queue
@@ -189,7 +199,7 @@ pqueue_dump(pqueue_t *q,
 
 
 /**
- * checks that the pq is in the right order, etc
+ * Check that the all entries are in the right order, etc.
  * @internal
  * debug function only
  * @param q the queue

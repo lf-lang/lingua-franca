@@ -129,9 +129,9 @@ handle_t __handle = 1;
 static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
     return (next > curr);
 }
-// Compare two events. They are "equal" if they refer to the same trigger.
+// Compare two events. They are "equal" if they refer to the same trigger and have the same tag.
 static int eql_evt(void* next, void* curr) {
-    return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
+    return (((event_t*)next)->trigger == ((event_t*)curr)->trigger) && (((event_t*)next)->time == ((event_t*)curr)->time);
 }
 // Compare two reactions.
 static int eql_rct(void* next, void* curr) {
@@ -212,6 +212,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     // Compute the tag.  How we do that depends on whether
 	// this is a logical or physical action.
     interval_t tag = current_time;
+    event_t* existing = NULL;
 
     // Recycle event_t structs, if possible.    
     event_t* e = pqueue_pop(recycle_q);
@@ -261,11 +262,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
         
         if (earliest_time > tag) {
             // The event is early. See which policy applies.
-            event_t* existing = NULL;
             if (trigger->policy == UPDATE) {
                 // Update existing event if it exists.   
                 e->time = tag;
-                existing = pqueue_find(event_q, e, 1, earliest_time);
+                // See if there is an existing event up to but not including
+                // the earliest time this event can be scheduled.
+                existing = pqueue_find(event_q, e, earliest_time-1);
                 if (existing != NULL) {
                     // Update the value of the existing event.
                     existing->value = value;
@@ -273,7 +275,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
             }
             if (trigger->policy == DROP || existing != NULL) {
                 // Recycle the new event.
-                e->value = NULL;
+                e->value = NULL;    // FIXME: Memory leak.
                 pqueue_insert(recycle_q, e);
                 return(0);
             }
@@ -285,16 +287,26 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
         }
 
         // Record the tag.
-        trigger->scheduled = tag;
-        
-        // NOTE: if two events with the same tag are scheduled
-        // with the same tag, only the last one survives.
+        trigger->scheduled = tag;        
         e->time = tag;                        
     }
+    
+    // Do not schedule events if a stop has been requested.
     if (tag != current_time && stop_requested) {
     	return 0;
     }
-    
+
+    // Handle duplicate events for logical actions.
+    if (!trigger->is_physical) {
+        existing = pqueue_find(event_q, e, tag);
+        if (existing != NULL) {
+            existing->value = value;
+            // Recycle the new event.
+            e->value = NULL;    // FIXME: Memory leak.
+            pqueue_insert(recycle_q, e);
+            return(0);
+        }
+    }
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
     // (time and microstep) have been pulled from the queue,
@@ -311,6 +323,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
 void schedule_output_reactions(reaction_t* reaction) {
     // If the reaction produced outputs, put the resulting triggered
     // reactions into the queue.
+    
     for(int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
             trigger_t** triggerArray = (reaction->triggers)[i];
@@ -320,9 +333,10 @@ void schedule_output_reactions(reaction_t* reaction) {
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* reaction = trigger->reactions[k];
                         if (reaction != NULL) {
-                            pqueue_insert(reaction_q, reaction);
-                            // printf("Pushed on reaction_q reaction with deadline: %lld\n", trigger->reactions[k]->deadline);
-                            // printf("Reaction pointer: %p\n", trigger->reactions[k]);
+                            // Only insert reaction if its not already on the queue.
+                            if (!pqueue_has(reaction_q, reaction)) {
+                                pqueue_insert(reaction_q, reaction);
+                            }
                         }
                     }
                 }
