@@ -7,18 +7,18 @@
 #==========================================================
 
 if [ "$(dirname "$0")" == '.' ]; then
-        base="../xtext/";
+        base="../";
 else
         suffix=${0#$(dirname "$(dirname "$0")")/};
-        base="${0%$suffix}""xtext/";
+        base="${0%$suffix}";
 fi
 
 if [ "$1" == '' ]; then
     echo "Usage: run-lf-tests [target]";
 else
     ext=$(echo "$1" | awk '{print tolower($0)}')
-    test_dir="$base""org.icyphy.linguafranca/src/test/""$1";
-    manifest="$base""org.icyphy.linguafranca/src/test/test-manifest";
+    test_dir="$base""xtext/org.icyphy.linguafranca/src/test/""$1";
+    manifest="$base""xtext/org.icyphy.linguafranca/src/test/test-manifest";
     offset="../../../../../";
     total=0;
     correct=0;
@@ -28,7 +28,7 @@ else
         echo "Unable to locate manifest.";
         echo "File not found: ""$manifest";
     else
-        bin/build-lfc --offline;
+        "${base}bin/build-lfc" "--offline";
         build_exit_code=$?;
         if [ $build_exit_code -ne 0 ]; then
             echo "Build failed. Exiting run-lf-tests.";
