@@ -154,8 +154,10 @@ int pqueue_insert(pqueue_t *q, void *d) {
     q->d[i] = d;
     bubble_up(q, i);
     
-    //printf("==After insert==\n");
-    //pqueue_dump(q, stdout, q->prt);
+    if (!pqueue_is_valid(q)) {
+        pqueue_dump(q, stdout, q->prt);
+        exit(1);
+    }
 
     return 0;
 }
@@ -185,38 +187,55 @@ void* pqueue_pop(pqueue_t *q) {
     return head;
 }
 
-void* find(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
+void* find_equal_same_priority(pqueue_t *q, void *e, int pos) {
     void* rval;
-
+    void* curr = q->d[pos];
     // Stop the recursion when we've reached the end of the 
-    // queue or once we've reached the maximum priority.
-    if (!q || pos >= q->size || !q->d[pos] || q->getpri(q->d[pos]) > max) {
+    // queue or once we've surpassed the priority of the element
+    // we're looking for.
+    if (!q || pos >= q->size || !curr || q->cmppri(q->getpri(curr), q->getpri(e))) {
         return NULL;
     }
     
-    if (q->eqelem(q->d[pos], e)) {
-        return q->d[pos];
+    if (q->getpri(curr) == q->getpri(e) && q->eqelem(curr, e)) {
+        return curr;
     } else {
-        // Search on left branch.
-        rval = find(q, e, left(pos), max);
+        rval = find_equal_same_priority(q, e, left(pos));
         if (rval) 
             return rval;
-        else {
-            // Continue search on right branch.
-            return find(q, e, right(pos), max);
-        }
+        else
+            return find_equal_same_priority(q, e, right(pos));   
     }
+    return NULL;
 }
 
-void* pqueue_find(pqueue_t *q, void *e, pqueue_pri_t max) {
-    return find(q, e, 1, max);
+void* find_equal(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
+    void* rval;
+    void* curr = q->d[pos];
+    // Stop the recursion when we've reached the end of the 
+    // queue or once we've surpassed the maximum priority.
+    if (!q || pos >= q->size || !curr || q->cmppri(q->getpri(curr), max)) {
+        return NULL;
+    }
+    
+    if (q->eqelem(curr, e)) {
+        return curr;
+    } else {
+        rval = find_equal(q, e, left(pos), max);
+        if (rval) 
+            return rval;
+        else
+            return find_equal(q, e, right(pos), max);
+    }
+    return NULL;
 }
 
-int pqueue_has(pqueue_t *q, void *e) {
-    if (find(q, e, 1, q->getpri(e))) {
-        return 1;
-    }
-    return 0;
+void* pqueue_find_equal_same_priority(pqueue_t *q, void *e) {
+    return find_equal_same_priority(q, e, 1);
+}
+
+void* pqueue_find_equal(pqueue_t *q, void *e, pqueue_pri_t max) {
+    return find_equal(q, e, 1, max);
 }
 
 void* pqueue_peek(pqueue_t *q) {
