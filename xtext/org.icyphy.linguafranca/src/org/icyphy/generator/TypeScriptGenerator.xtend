@@ -434,7 +434,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // by LF.
             if (action.name != "shutdown") {
                 if (action.type !== null) {
-                    pr(action.name + ": Action<" + action.type + ">;")
+                    pr(action.name + ": Action<" + removeCodeDelimiter(action.type) + ">;")
                 } else {
                     pr(action.name + ": Action<Present>;")
                 }
@@ -449,7 +449,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (action.type === null) {
                     actionInstance = "this." + action.name + " = new Action<Present>(" + actionArgs  + ");"
                 } else {
-                    actionInstance = "this." + action.name + " = new Action<" + action.type +">(" + actionArgs  + ");"
+                    actionInstance = "this." + action.name + " = new Action<" + removeCodeDelimiter(action.type) +">(" + actionArgs  + ");"
                 }
                 pr(reactorConstructor, actionInstance)
             }
@@ -574,7 +574,7 @@ class TypeScriptGenerator extends GeneratorBase {
                             reactSignatureElement += "TimeInstant" 
                         } else if (trigOrSource.variable instanceof Action) {
                             if ((trigOrSource.variable as Action).type !== null) {
-                                reactSignatureElement += (trigOrSource.variable as Action).type    
+                                reactSignatureElement += removeCodeDelimiter((trigOrSource.variable as Action).type)  
                             } else {
                                 reactSignatureElement += "Present"
                             }
@@ -604,7 +604,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         reportError("A timer cannot be an effect of a reaction")
                     } else if (effect.variable instanceof Action){
                         if ( (effect.variable as Action).type !== null ) {
-                           reactSignatureElement += ": Schedulable<" + (effect.variable as Action).type + ">"   
+                           reactSignatureElement += ": Schedulable<" + removeCodeDelimiter((effect.variable as Action).type) + ">"   
                         } else {
                            reactSignatureElement += ": Schedulable<Present>"
                         }
