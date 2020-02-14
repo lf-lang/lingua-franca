@@ -40,7 +40,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'run', 
         'threads',
         'timeout',
-        'cmake_include'
+        'cmake_include',
+        'keep_alive'
     }
 
     var reactorClasses = newHashSet()
