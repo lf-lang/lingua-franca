@@ -137,22 +137,23 @@ pqueue_change_priority(pqueue_t *q,
 void *pqueue_pop(pqueue_t *q);
 
 /**
- * Find the highest-ranking item with priority less than the
- * provided maximum that matches the supplied entry.
+ * Find the highest-ranking item with the same priority that matches the
+ * supplied entry.
  * @param q the queue
  * @param e the entry to compare against
- * @param max the maximum priority to consider
  * @return NULL if no matching event has been found, otherwise the entry
  */ 
-void *pqueue_find(pqueue_t *q, void *e, pqueue_pri_t max);
+void* pqueue_find_equal_same_priority(pqueue_t *q, void *e);
 
 /**
- * Determine whether or not there is an entry present in the queue
- * that is equal to the given element.
+ * Find the highest-ranking item with priority up to and including the given
+ * maximum priority that matches the supplied entry.
  * @param q the queue
  * @param e the entry to compare against
+ * @param max_priority the maximum priority to consider
+ * @return NULL if no matching event has been found, otherwise the entry
  */ 
-int pqueue_has(pqueue_t *q, void *e);
+void* pqueue_find_equal(pqueue_t *q, void *e, pqueue_pri_t max_priority);
 
 /**
  * Remove an item from the queue.
