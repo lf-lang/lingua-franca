@@ -129,9 +129,9 @@ handle_t __handle = 1;
 static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
     return (next > curr);
 }
-// Compare two events. They are "equal" if they refer to the same trigger and have the same tag.
+// Compare two events. They are "equal" if they refer to the same trigger.
 static int eql_evt(void* next, void* curr) {
-    return (((event_t*)next)->trigger == ((event_t*)curr)->trigger) && (((event_t*)next)->time == ((event_t*)curr)->time);
+    return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
 }
 // Compare two reactions.
 static int eql_rct(void* next, void* curr) {
@@ -267,7 +267,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
                 e->time = tag;
                 // See if there is an existing event up to but not including
                 // the earliest time this event can be scheduled.
-                existing = pqueue_find(event_q, e, earliest_time-1);
+                existing = pqueue_find_equal(event_q, e, earliest_time-1);
                 if (existing != NULL) {
                     // Update the value of the existing event.
                     existing->value = value;
@@ -298,7 +298,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
 
     // Handle duplicate events for logical actions.
     if (!trigger->is_physical) {
-        existing = pqueue_find(event_q, e, tag);
+        existing = pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
             existing->value = value;
             // Recycle the new event.
@@ -334,7 +334,8 @@ void schedule_output_reactions(reaction_t* reaction) {
                         reaction_t* reaction = trigger->reactions[k];
                         if (reaction != NULL) {
                             // Only insert reaction if its not already on the queue.
-                            if (!pqueue_has(reaction_q, reaction)) {
+                            if (pqueue_find_equal(reaction_q, reaction, 
+                                    reaction_q->getpri(reaction)) == NULL) {
                                 pqueue_insert(reaction_q, reaction);
                             }
                         }
