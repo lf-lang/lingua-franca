@@ -39,6 +39,7 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
     reaction(prompt) -> out, prompt {=
         self->count++;
         printf("%d. Hit Return or Enter!", self->count);
+        fflush(stdout);
         set(out, self->count);
     =}
     reaction(another) -> prompt {=
