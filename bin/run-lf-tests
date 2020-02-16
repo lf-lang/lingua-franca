@@ -7,18 +7,18 @@
 #==========================================================
 
 if [ "$(dirname "$0")" == '.' ]; then
-        base="../xtext/";
+        base="../";
 else
         suffix=${0#$(dirname "$(dirname "$0")")/};
-        base="${0%$suffix}""xtext/";
+        base="${0%$suffix}";
 fi
 
 if [ "$1" == '' ]; then
     echo "Usage: run-lf-tests [target]";
 else
     ext=$(echo "$1" | awk '{print tolower($0)}')
-    test_dir="$base""org.icyphy.linguafranca/src/test/""$1";
-    manifest="$base""org.icyphy.linguafranca/src/test/test-manifest";
+    test_dir="$base""xtext/org.icyphy.linguafranca/src/test/""$1";
+    manifest="$base""xtext/org.icyphy.linguafranca/src/test/test-manifest";
     offset="../../../../../";
     total=0;
     correct=0;
@@ -28,55 +28,61 @@ else
         echo "Unable to locate manifest.";
         echo "File not found: ""$manifest";
     else
-	eval "$offset""bin/build-lfc"
-        pushd $test_dir;
-        if [ $1 == "TS" ]; then
-            echo "Executing command: rm package.json"
-            rm package.json
-        fi
-        while read p; do
-            if [[ "$p" =~ ^[[:space:]]*#.* ]]; then
-                #echo "Ignoring commented out test: $p";
-                continue;
+        "${base}bin/build-lfc" "--offline";
+        build_exit_code=$?;
+        if [ $build_exit_code -ne 0 ]; then
+            echo "Build failed. Exiting run-lf-tests.";
+            exit 1;
+        else 
+            pushd $test_dir;
+            if [ $1 == "TS" ]; then
+                echo "Executing command: rm package.json";
+                rm package.json;
             fi
-            if [ ! -f "$p" ]; then
-                    echo "[WARNING] $p does not exist.";
-                continue
-            fi
-            echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
-            total=$((total + 1))
-            name=$(echo $p | rev | cut -d. -f2 | rev)
-            echo $p;
-            echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
-            echo "================================================================================";
-            eval "$offset""bin/lfc ""$p";
-            echo "================================================================================";
-            if [ $1 == "Cpp" ]; then
-                command="bin/$name --timeout 1"
-            elif [ $1 == "C" ]; then
-                command="bin/$name -timeout 1 sec"
-            elif [ $1 == "TS" ]; then
-                command="node ${name}/dist/${name}"".js"
-            else
-                echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";
+            while read p; do
+                if [[ "$p" =~ ^[[:space:]]*#.* ]]; then
+                    #echo "Ignoring commented out test: $p";
+                    continue;
+                fi
+                if [ ! -f "$p" ]; then
+                        echo "[WARNING] $p does not exist.";
+                    continue
+                fi
+                echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
+                total=$((total + 1))
+                name=$(echo $p | rev | cut -d. -f2 | rev)
+                echo $p;
+                echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
+                echo "================================================================================";
+                eval "$offset""bin/lfc ""$p";
+                echo "================================================================================";
+                if [ $1 == "Cpp" ]; then
+                    command="bin/$name --timeout 1"
+                elif [ $1 == "C" ]; then
+                    command="bin/$name -timeout 1 sec"
+                elif [ $1 == "TS" ]; then
+                    command="node ${name}/dist/${name}"".js"
+                else
+                    echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";
+                    exit 1;
+                fi
+                echo "Executing command:"$command;
+                echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+                eval $command;
+                if (($? == 0)); then
+                    correct=$((correct + 1))
+                else
+                    failed="$name $failed"
+                fi
+                echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+            done <"../test-manifest"
+            echo "--------------------------------------------------------------------------------";        
+            echo "Number of tests passed: ("$correct"/"$total")";
+            echo "--------------------------------------------------------------------------------";
+            if (($correct != $total)); then
+                echo "Failed tests: $failed"
                 exit 1;
             fi
-            echo "Executing command:"$command;
-            echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-            eval $command;
-            if (($? == 0)); then
-                correct=$((correct + 1))
-            else
-                failed="$name $failed"
-            fi
-            echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-        done <"../test-manifest"
-        echo "--------------------------------------------------------------------------------";        
-        echo "Number of tests passed: ("$correct"/"$total")";
-        echo "--------------------------------------------------------------------------------";
-        if (($correct != $total)); then
-            echo "Failed tests: $failed"
-            exit 1;
         fi
     fi
 fi
