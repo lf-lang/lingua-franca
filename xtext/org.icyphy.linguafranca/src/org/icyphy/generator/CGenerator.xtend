@@ -1656,6 +1656,10 @@ class CGenerator extends GeneratorBase {
         
         for (target : resource.allContents.toIterable.filter(Target)) {
             if (target.properties !== null) {
+                // NOTE: Same warning issued by the validator.
+                reportError(
+                        "WARNING: Using deprecated syntax for target parameters. "
+                        + "See https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-C#the-c-target-specification.")
                 for (assignment : target.properties) {
                     if (assignment.name.equals("threads")) {
                         // This has been checked by the validator.
@@ -1678,6 +1682,36 @@ class CGenerator extends GeneratorBase {
                         // Strip off enclosing quotation marks and split at spaces.
                         val command = assignment.literal.substring(1,
                             assignment.literal.length - 1).split(' ')
+                        compileCommand = newArrayList
+                        compileCommand.addAll(command)
+                    }
+                }
+            } else if (target.config !== null) {
+                // Target parameters given as key-value pairs.
+                for (pair : target.config.pairs) {
+                    if (pair.name.equals("threads")) {
+                        // This has been checked by the validator.
+                        numberOfThreads = Integer.decode(pair.value.literal)
+                        // Set this as the default in the generated code,
+                        // but only if it has not been overridden on the command line.
+                        pr(startTimers, "if (number_of_threads == 0) {")
+                        indent(startTimers)
+                        pr(startTimers,
+                            "number_of_threads = " + numberOfThreads + ";")
+                        unindent(startTimers)
+                        pr(startTimers, "}")
+                    } else if (pair.name.equals("run")) {
+                        // FIXME: Not documented as a target parameter!
+                        // Strip off enclosing quotation marks and split at spaces.
+                        val command = pair.value.literal.substring(1,
+                            pair.value.literal.length - 1).split(' ')
+                        // FIXME: First argument is needed????
+                        runCommand = newArrayList
+                        runCommand.addAll(command)
+                    } else if (pair.name.equals("compile")) {
+                        // Strip off enclosing quotation marks and split at spaces.
+                        val command = pair.value.literal.substring(1,
+                            pair.value.literal.length - 1).split(' ')
                         compileCommand = newArrayList
                         compileCommand.addAll(command)
                     }

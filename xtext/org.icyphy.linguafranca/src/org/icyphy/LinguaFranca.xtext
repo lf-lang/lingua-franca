@@ -42,7 +42,12 @@ Model:
 
 /////////// Top level elements
 Target:
-    'target' name=ID ('(' properties+=Property (',' properties+=Property)* ')')? ';';
+    'target' name=ID (
+        // Old syntax for target parameters:
+        '(' properties+=Property (',' properties+=Property)* ')'
+        // New syntax for target parameters:
+        | config=KeyValuePairs
+     )? ';';
 
 Import:
     'import' importURI=Path ';';
@@ -135,6 +140,24 @@ Connection:
 
 KEYWORD:
     'input' | 'state' | 'output' | 'timer' | 'action';
+    
+/////////// For target parameters
+
+KeyValuePairs:
+    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
+
+KeyValuePair:
+    name=ID ':' value=Element;
+
+Array:
+    '[' elements+=Element (',' (elements+=Element))* ']';
+    
+Element:
+    keyvalue=KeyValuePairs 
+    | array=Array
+    | literal=Literal 
+    | (time=INT unit=TimeUnit) 
+    | id=ID;
 
 /////////// Pieces
 Variable:
