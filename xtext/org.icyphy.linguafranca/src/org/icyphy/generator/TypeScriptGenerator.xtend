@@ -406,27 +406,24 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Next handle states.
         for (state : reactor.states) {
+            pr(state.name + ': ' +
+                    "State<" + getStateType(state) +  '>;');
             if (state.parameter !== null) {
                 // State is a parameter
-                pr(state.name + ': ' +
-                    "State<" + getParameterType(state.parameter) +  '>;');
                 pr(reactorConstructor, "this." + state.name + " = "
                         + "new State(" + state.parameter.name + ");" )
-            } else {  
-                // State is a literal
-                if (state.ofTimeType) {
-                    // State is a time type
-                    pr(state.name + ': ' +
-                        "State<" + timeTypeInTargetLanguage + '>;');
-                    pr(reactorConstructor, "this." + state.name + " = "
-                        + "new State(" + timeInTargetLanguage( state.time.toString, state.unit) + ");" )
-                } else {
-                    // State is a literal 
-                    pr(state.name + ': ' +
-                        "State<" + removeCodeDelimiter(state.type) + '>;');
-                    pr(reactorConstructor, "this." + state.name + " = "
-                        + "new State(" +removeCodeDelimiter(state.value) + ");" )
-                }
+            } else if (state.ofTimeType) {  
+                // State is a time type
+                pr(reactorConstructor, "this." + state.name + " = "
+                    + "new State(" + timeInTargetLanguage( state.time.toString, state.unit) + ");" )
+            } else if (state.value !== null) {
+                // State is a literal 
+                pr(reactorConstructor, "this." + state.name + " = "
+                    + "new State(" +removeCodeDelimiter(state.value) + ");" )
+            } else {
+                // State has an undefined value
+                 pr(reactorConstructor, "this." + state.name + " = "
+                    + "new State(undefined);" )
             }
         }
         // Next handle actions.
@@ -437,7 +434,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // by LF.
             if (action.name != "shutdown") {
                 if (action.type !== null) {
-                    pr(action.name + ": Action<" + action.type + ">;")
+                    pr(action.name + ": Action<" + removeCodeDelimiter(action.type) + ">;")
                 } else {
                     pr(action.name + ": Action<Present>;")
                 }
@@ -452,7 +449,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (action.type === null) {
                     actionInstance = "this." + action.name + " = new Action<Present>(" + actionArgs  + ");"
                 } else {
-                    actionInstance = "this." + action.name + " = new Action<" + action.type +">(" + actionArgs  + ");"
+                    actionInstance = "this." + action.name + " = new Action<" + removeCodeDelimiter(action.type) +">(" + actionArgs  + ");"
                 }
                 pr(reactorConstructor, actionInstance)
             }
@@ -577,7 +574,7 @@ class TypeScriptGenerator extends GeneratorBase {
                             reactSignatureElement += "TimeInstant" 
                         } else if (trigOrSource.variable instanceof Action) {
                             if ((trigOrSource.variable as Action).type !== null) {
-                                reactSignatureElement += (trigOrSource.variable as Action).type    
+                                reactSignatureElement += removeCodeDelimiter((trigOrSource.variable as Action).type)  
                             } else {
                                 reactSignatureElement += "Present"
                             }
@@ -607,7 +604,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         reportError("A timer cannot be an effect of a reaction")
                     } else if (effect.variable instanceof Action){
                         if ( (effect.variable as Action).type !== null ) {
-                           reactSignatureElement += ": Schedulable<" + (effect.variable as Action).type + ">"   
+                           reactSignatureElement += ": Schedulable<" + removeCodeDelimiter((effect.variable as Action).type) + ">"   
                         } else {
                            reactSignatureElement += ": Schedulable<Present>"
                         }
@@ -771,9 +768,9 @@ class TypeScriptGenerator extends GeneratorBase {
         pr('// ************* Instance ' + fullName + ' of class ' +
             defn.reactorClass.name)
             
-        var arguments = "";
+        var arguments = new StringJoiner(", ")
         for (parameter : defn.parameters) {
-            arguments += removeCodeDelimiter(parameter.rhs.value) + ", "
+            arguments.add(removeCodeDelimiter(parameter.rhs.value))
         }
 
         // Get target properties for the app
@@ -781,28 +778,60 @@ class TypeScriptGenerator extends GeneratorBase {
         var String timeoutArg
         var isATimeoutArg = false
         
-        for (target : resource.allContents.toIterable.filter(Target)) {
-            if (target.properties !== null) {
-                for (property : target.properties) {
-                    if (property.name.equals("timeout")) {
-                        // A timeout must be a Time, it can't be a literal
-                        // (except 0 which will match as a literal).
-                        // Since 0 is the only literal that corresponds to a time
-                        // any other literal is an error
-                        if (property.literal !== null && property.literal !=0) {
-                            reportError("The timeout property only accepts time assignments.")
-                        }
-                        isATimeoutArg = true
-                        timeoutArg = timeInTargetLanguage(property.time.toString(), property.unit)
-                    }
-                }
-            }   
+        // Timeout Property
+        var timeoutProperty = getTargetProperty("timeout")
+        if (timeoutProperty !== null) {
+         
+            if (timeoutProperty.literal !== null && timeoutProperty.literal !=0) {
+                reportError("The timeout property only accepts time assignments.")
+            }
+            isATimeoutArg = true
+            timeoutArg = timeInTargetLanguage(timeoutProperty.time.toString(),timeoutProperty.unit)   
         }
         
-        arguments += "'" + fullName + "'"
-        if (isATimeoutArg) {
-            arguments += ", " + timeoutArg
+        // KeepAlive Property
+        var String keepAliveArg
+        var isAKeepAliveArg = false
+        var keepAliveProperty = getTargetProperty("keep_alive")
+        if (keepAliveProperty !== null && keepAliveProperty.literal !==null ){
+            isAKeepAliveArg = true
+            if (keepAliveProperty.literal == "\"true\"") {
+                keepAliveArg = "true"
+            } else {
+                keepAliveArg = "false"
+            }
         }
+        
+//        for (target : resource.allContents.toIterable.filter(Target)) {
+//            if (target.properties !== null) {
+//                for (property : target.properties) {
+//                    if (property.name.equals("timeout")) {
+//                        // A timeout must be a Time, it can't be a literal
+//                        // (except 0 which will match as a literal).
+//                        // Since 0 is the only literal that corresponds to a time
+//                        // any other literal is an error
+//                        if (property.literal !== null && property.literal !=0) {
+//                            reportError("The timeout property only accepts time assignments.")
+//                        }
+//                        isATimeoutArg = true
+//                        timeoutArg = timeInTargetLanguage(property.time.toString(), property.unit)
+//                    }
+//                }
+//            }   
+//        }
+        
+        
+        arguments.add("'" + fullName + "'")
+        if (isATimeoutArg) {
+            arguments.add(timeoutArg)
+        }
+        if (isAKeepAliveArg){
+            if(!isATimeoutArg){
+                arguments.add("undefined")
+            }
+            arguments.add(keepAliveArg)
+        }
+        
         
         pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
     }
@@ -867,6 +896,26 @@ class TypeScriptGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Private methods.
     
+    /** Search over all targets and target properties in the file
+     *  for the given property name. Return the matching property
+     *  if it's found. Otherwise return null.
+     *  @param propertyName The name of the property to obtain.
+     *  @return The property if it was found. Otherwise null.
+     * 
+     */
+    private def getTargetProperty(String propertyName) {
+        // FIXME: Not sure if iterating over potentially more than
+        // one target is desirable.
+        for (target : resource.allContents.toIterable.filter(Target)) {
+            for (property : target.properties) {
+                if (property.name.equals(propertyName)) {
+                    return property
+                }
+            }
+        }
+        return null
+    }
+    
     
     /** If the given filename doesn't already exist in the targetPath
      *  create it by copying over the default from /lib/TS/. Do nothing
@@ -896,16 +945,20 @@ class TypeScriptGenerator extends GeneratorBase {
      *  If there are code delimiters around it, those are removed.
      *  If the type is "time", then it is converted to "TimeInterval".
      *  If state is a parameter, get the parameter's type.
+     *  If the state doesn't have a type, type it as 'unknown'
      *  @param state The state.
      *  @return The TS type.
      */
     private def getStateType(State state) {
-        var type = removeCodeDelimiter(state.type)
-        if (state.unit != TimeUnit.NONE || state.isOfTimeType) {
-            type = 'TimeInterval'
-        }
-        if (state.parameter !== null) {
+        var String type
+        if (state.isOfTimeType) {
+            type = timeTypeInTargetLanguage
+        } else if (state.type !== null) {
+            type = removeCodeDelimiter(state.type)
+        } else if (state.parameter !== null) {
             type = getParameterType(state.parameter)
+        } else {
+            type = 'unknown'
         }
         type
     }
