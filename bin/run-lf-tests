@@ -59,7 +59,7 @@ else
                 if [ $1 == "Cpp" ]; then
                     command="bin/$name --timeout 1"
                 elif [ $1 == "C" ]; then
-                    command="bin/$name -timeout 1 sec"
+                    command="bin/$name --timeout 1 sec"
                 elif [ $1 == "TS" ]; then
                     command="node ${name}/dist/${name}"".js"
                 else
