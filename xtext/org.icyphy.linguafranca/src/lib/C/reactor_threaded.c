@@ -131,7 +131,6 @@ void __free_action_values() {
 	}
 }
 
-
 /** Internal version of next() that does not acquire the mutex lock.
  *  It assumes the lock is already held.
  *
@@ -192,29 +191,32 @@ bool __next() {
     	next_time = event->time;
     } else {
     	// There is no event on the event queue.
+     	// printf("DEBUG: next(): event queue is empty.\n");
     	if (!keepalive_specified) {
+    	 	// printf("DEBUG: next(): requesting stop.\n");
     		stop_requested = true;
 			// Signal the worker threads.
 			pthread_cond_broadcast(&reaction_or_executing_q_changed);
     		return false;
-    	} else {
-    		// Check whether physical time exceeds the stop time, if a
-    		// stop time is given. If it does, return false.
-    		if (stop_time > 0LL) {
-    			if (get_elapsed_physical_time() >= stop_time) {
-    	    		stop_requested = true;
-    				// Signal the worker threads.
-    				pthread_cond_broadcast(&reaction_or_executing_q_changed);
-    				return false;
-    			}
-    		}
     	}
+		// Check whether physical time exceeds the stop time, if a
+		// stop time is given. If it does, return false.
+		if (stop_time > 0LL) {
+			if (get_physical_time() >= stop_time) {
+				// printf("DEBUG: next(): stop time reached by physical clock. Requesting stop.\n");
+				stop_requested = true;
+				// Signal the worker threads.
+				pthread_cond_broadcast(&reaction_or_executing_q_changed);
+				return false;
+			}
+		}
     }
 
     // Check whether the new logical time exceeds the timeout, if a
     // timeout was specified. Note that this will execute all microsteps
     // at the stop time.
-    if (stop_time > 0LL && next_time > stop_time) {
+    if (stop_time > 0LL && (event != NULL && next_time > stop_time)) {
+	 	// printf("DEBUG: next(): logical stop time reached. Requesting stop.\n");
 		stop_requested = true;
  		// Signal the worker threads. Since both the queues are
 		// empty, the threads will exit without doing anything further.
@@ -233,37 +235,61 @@ bool __next() {
     // NOTE: We should release the lock even if there will be no physical time wait
     // to allow other threads to sneak in. Perhaps also do a yield?
     // The __wait_until function will release the lock while waiting.
-    if (!__wait_until(wait_until_time)) {
-        // Sleep was interrupted or the timeout time has been reached.
-        // Time has not advanced to the time of the event.
-        // There may be a new earlier event on the queue.
-        // Mutex lock was reacquired by wait_until.
-        event_t* new_event = pqueue_peek(event_q);
-        if (new_event == event) {
-            // There is no new event. If the timeout time has been reached,
-        	// or there is also no old event,
-            // or if the maximum time has been reached (unlikely), then return.
-            if ((stop_time > 0LL && event->time > stop_time) || new_event == NULL) {
-            	stop_requested = true;
-				// Signal the worker threads.
-				pthread_cond_broadcast(&reaction_or_executing_q_changed);
-                return false;
-            }
-        } else {
-        	// Handle the new event.
-        	event = new_event;
-        	next_time = event->time;
-        }
-    } else {
-    	// Arrived at the wait_until_time, but there may still be no
-    	// event, in which case, we should stop.
-    	event = pqueue_peek(event_q);
-    	if (event == NULL) {
-        	stop_requested = true;
-			// Signal the worker threads.
-			pthread_cond_broadcast(&reaction_or_executing_q_changed);
-            return false;
-    	}
+    while (!stop_requested) {
+    	// printf("DEBUG: next(): Waiting until time %lld.\n", (wait_until_time - start_time));
+    	if (!__wait_until(wait_until_time)) {
+    		// printf("DEBUG: next(): Wait until time interrupted.\n");
+    		// Sleep was interrupted or the timeout time has been reached.
+    		// Time has not advanced to the time of the event.
+    		// There may be a new earlier event on the queue.
+    		// Mutex lock was reacquired by wait_until.
+    		event_t* new_event = pqueue_peek(event_q);
+    		if (new_event == event) {
+    			// There is no new event. If the timeout time has been reached,
+    			// or there is also no old event,
+    			// or if the maximum time has been reached (unlikely), then return.
+    			if ((stop_time > 0LL && event->time > stop_time) || new_event == NULL) {
+    				stop_requested = true;
+    				// Signal the worker threads.
+    				pthread_cond_broadcast(&reaction_or_executing_q_changed);
+    				return false;
+    			}
+    		} else {
+    			// Handle the new event.
+    			event = new_event;
+    			next_time = event->time;
+    			break;
+    		}
+		} else {
+			// printf("DEBUG: next(): Done waiting until time.\n");
+			// Arrived at the wait_until_time, but there may still be no
+			// event, in which case, we should stop, unless keepalive was
+			// specified or physical time has reached the stop time.
+			event = pqueue_peek(event_q);
+			if (event == NULL) {
+				if (!keepalive_specified) {
+					// printf("DEBUG: next(): No event. Quitting.\n");
+					stop_requested = true;
+					// Signal the worker threads.
+					pthread_cond_broadcast(&reaction_or_executing_q_changed);
+					return false;
+				}
+				// Check whether physical time exceeds the stop time, if a
+				// stop time is given. If it does, return false.
+				if (stop_time > 0LL) {
+					if (get_physical_time() >= stop_time) {
+						// printf("DEBUG: next(): stop time reached by physical clock. Requesting stop.\n");
+						stop_requested = true;
+						// Signal the worker threads.
+						pthread_cond_broadcast(&reaction_or_executing_q_changed);
+						return false;
+					}
+				}
+				continue; // Keep waiting.
+			} else {
+				break;
+			}
+		}
     }
 
     // At this point, finally, we have an event to process.

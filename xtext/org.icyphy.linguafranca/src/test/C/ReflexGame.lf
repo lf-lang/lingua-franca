@@ -1,7 +1,7 @@
-target C (
-    threads=1,
-    run="bin/ReflexGame -keepalive"
-);
+target C {
+    threads: 1,
+    keepalive: true
+};
 main reactor KeyListener {
     preamble {=
         // Specify a thread that sends all keyboard characters

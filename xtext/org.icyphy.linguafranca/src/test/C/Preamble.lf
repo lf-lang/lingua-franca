@@ -1,6 +1,7 @@
-target C(
-    run = "bin/Preamble -timeout 2 sec -fast"
-);
+target C {
+    timeout: 2 sec,
+    fast: true
+};
 main reactor Preamble {
     preamble {=
         #include <stdlib.h>

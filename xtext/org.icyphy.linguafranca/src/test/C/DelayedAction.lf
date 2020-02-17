@@ -1,6 +1,7 @@
-target C(
-    run = "bin/DelayedAction -fast -timeout 5 sec"
-);
+target C {
+    fast: true,
+    timeout: 5 sec
+};
 main reactor DelayedAction {
     timer t(0, 1 sec);
     logical action a;

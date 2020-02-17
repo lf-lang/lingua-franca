@@ -4,10 +4,10 @@
  *  @author Edward A. Lee
  *  @author Marten Lohstroh
  */
-target C (
-    threads = 1,
-    run="bin/ReflexGame -keepalive"
-);
+target C {
+    threads: 1,
+    keepalive: true
+};
 // Produce a counting sequence at random times with a minimum
 // and maximum time between outputs specified as parameters.
 reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {

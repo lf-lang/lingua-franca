@@ -5,10 +5,10 @@
 // since in every 200 msec cycle it has 800 msec of work to do.
 // On a quad-core machine, however, it does pretty well, completing 800 msec of work
 // in about 225 msec.
-target C(
-	threads = 4,
-	run = "bin/ThreadedThreaded -timeout 2 sec"
-);
+target C {
+    timeout: 2 sec,
+    threads: 4
+};
 reactor Source {
 	timer t(0, 200 msec);
 	output out:int;

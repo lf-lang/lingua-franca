@@ -1,9 +1,10 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
-target C(
-	threads = 1,
-	run = "bin/CompositionThreaded -fast -timeout 10 sec"
-);
+target C {
+	threads: 1,
+	fast: true,
+	timeout: 10 sec
+};
 
 reactor Source(period:time(2 sec)) {
 	output y:int;

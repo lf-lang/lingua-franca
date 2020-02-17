@@ -1,8 +1,9 @@
 // This file includes code documented on the Wiki.
 // For this test, success is just compiling and running.
-target C(
-    run = "bin/GetTime -timeout 2 sec -fast"
-);
+target C {
+    timeout: 2 sec,
+    fast: true
+};
 main reactor GetTime {
     timer t(0, 1 sec);
     reaction(t) {=

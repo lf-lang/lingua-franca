@@ -2,10 +2,10 @@
 // This test case assumes that target is multithreaded.
 // This test will not work with the unthreaded C target because that target
 // does not implement any mutex protecting the event queue.
-target C(
-    threads = 1,
-    run = "bin/AsyncCallback2 -timeout 2 sec"
-);
+target C {
+    threads: 1,
+    timeout: 2 sec
+};
 main reactor AsyncCallback2 {
     
     preamble {=
