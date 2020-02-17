@@ -1,7 +1,7 @@
 // This tests actions with values by delaying an input by a fixed amount.
-target C(
-    threads = 1 
-);
+target C {
+    threads: 1 
+};
 reactor DelayInt(delay:time(100 msec)) {
     input in:int;
     output out:int;

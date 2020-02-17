@@ -1,8 +1,9 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
-target C(
-	run = "bin/IdentifierLength -fast -timeout 10 sec"
-);
+target C {
+    timeout: 10 sec,
+    fast: true
+};
 reactor A_Really_Long_Name_For_A_Source(period:time(2 sec)) {
 	output y:int;
 	timer t(1 sec, period);

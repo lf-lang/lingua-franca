@@ -1,6 +1,7 @@
-target C(
-    run = "bin/CountTest -timeout 3 sec -fast"
-);
+target C {
+    timeout: 3 sec,
+    fast: true
+};
 
 import Count.lf;
 reactor Test {

@@ -3,10 +3,11 @@
 // runtime. It also performs various smoke tests of timing aligned
 // reactions. The first instance has a period of 4 seconds, the second
 // of 2 seconds, and the third (composite) or 1 second.
-target C(
-	threads = 1,
-	run = "bin/HelloThreaded -fast -timeout 10 sec"
-);
+target C {
+    timeout: 10 sec,
+    fast: true,
+    threads: 1
+};
 reactor Reschedule(period:time(2 secs), message:string("Hello C")) {
 	state count:int(0);
 	state previous_time:time(0);

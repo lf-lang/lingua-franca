@@ -105,10 +105,10 @@ instant_t get_elapsed_physical_time() {
  * @return A pointer to the allocated memory block.
  */
 void* lf_malloc(size_t size) {
-	// NOTE: For now, this just delegates to malloc.
-	// But in the future, we expect to use it to attach a reference count to the
-	// allocated object.
-	return malloc(size);
+    // NOTE: For now, this just delegates to malloc.
+    // But in the future, we expect to use it to attach a reference count to the
+    // allocated object.
+    return malloc(size);
 }
 
 /////////////////////////////
@@ -169,15 +169,15 @@ static void set_rct_pos(void *a, size_t pos) {
 }
 
 static void prt_rct(FILE *out, void *a) {
-	reaction_t *n = a;
+    reaction_t *n = a;
     fprintf(out, "index: %lld, reaction: %p\n",
-			n->index, n);
+            n->index, n);
 }
 
 static void prt_evt(FILE *out, void *a) {
-	event_t *n = a;
+    event_t *n = a;
     fprintf(out, "time: %lld, trigger: %p, value: %p\n",
-			n->time, n->trigger, n->value);
+            n->time, n->trigger, n->value);
 }
 
 // ********** Priority Queue Support End
@@ -210,7 +210,7 @@ void __done_using(token_t* token) {
 // which is an integer greater than 0.
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     // Compute the tag.  How we do that depends on whether
-	// this is a logical or physical action.
+    // this is a logical or physical action.
     interval_t tag = current_time;
     event_t* existing = NULL;
 
@@ -228,17 +228,17 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     e->time = tag + trigger->offset + extra_delay;
 
     if (trigger->is_physical) {
-    	// If the trigger is physical, then we need to use
-    	// physical time and the time of the last invocation to adjust the tag.
-    	// Specifically, the timestamp assigned to the action event will be
-    	// the maximum of the current logical time, the
-    	// current physical time, and the time of last
-    	// invocation plus the minTime (action parameter) plus the
-    	// extra_delay (argument to this function).
-    	// If the action has never been scheduled before, then the
-    	// timestamp will be the maximum of the current logical time,
-    	// the current physical time,
-    	// and the start time + minTime + extra_delay.
+        // If the trigger is physical, then we need to use
+        // physical time and the time of the last invocation to adjust the tag.
+        // Specifically, the timestamp assigned to the action event will be
+        // the maximum of the current logical time, the
+        // current physical time, and the time of last
+        // invocation plus the minTime (action parameter) plus the
+        // extra_delay (argument to this function).
+        // If the action has never been scheduled before, then the
+        // timestamp will be the maximum of the current logical time,
+        // the current physical time,
+        // and the start time + minTime + extra_delay.
 
         // Get the current physical time.
         struct timespec current_physical_time;
@@ -248,7 +248,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
                 current_physical_time.tv_sec * BILLION
                 + current_physical_time.tv_nsec;
         if (physical_time > current_time) {
-        	tag = physical_time;
+            tag = physical_time;
         }
 
         interval_t min_inter_arrival = trigger->offset + extra_delay;
@@ -293,7 +293,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     
     // Do not schedule events if a stop has been requested.
     if (tag != current_time && stop_requested) {
-    	return 0;
+        return 0;
     }
 
     // Handle duplicate events for logical actions.
@@ -328,7 +328,7 @@ void schedule_output_reactions(reaction_t* reaction) {
         if (*(reaction->output_produced[i])) {
             trigger_t** triggerArray = (reaction->triggers)[i];
             for (int j=0; j < reaction->triggered_sizes[i]; j++) {
-            	trigger_t* trigger = triggerArray[j];
+                trigger_t* trigger = triggerArray[j];
                 if (trigger != NULL) {
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* reaction = trigger->reactions[k];
@@ -343,7 +343,7 @@ void schedule_output_reactions(reaction_t* reaction) {
                 }
             }
         }
-	}
+    }
 }
 
 // Library function for allocating memory for an array output.
@@ -380,21 +380,27 @@ void* __writable_copy_impl(token_t* token) {
 }
 
 // Print a usage message.
-void usage(char* command) {
+void usage(int argc, char* argv[]) {
     printf("\nCommand-line arguments: \n\n");
-    printf("  -fast\n");
-    printf("   Do not wait for physical time to match logical time.\n\n");
-    printf("  -timeout <duration> <units>\n");
+    printf("  -f, --fast [true | false]\n");
+    printf("   Whether to wait for physical time to match logical time.\n\n");
+    printf("  -o, --timeout <duration> <units>\n");
     printf("   Stop after the specified amount of logical time, where units are one of\n");
     printf("   nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.\n\n");
-    printf("  -keepalive\n");
-    printf("   Do not stop execution even if there are no events to process. Just wait.\n\n");
-    printf("  -threads <n>\n");
+    printf("  -k, --keepalive\n");
+    printf("   Whether continue execution even when there are no events to process.\n\n");
+    printf("  -t, --threads <n>\n");
     printf("   Executed in <n> threads if possible (optional feature).\n\n");
+
+    printf("Command given:\n");
+    for (int i = 0; i < argc; i++) {
+        printf("%s ", argv[i]);
+    }
+    printf("\n\n");
 }
 
-// If a run option is given in the target directive, then the code
-// generator will overwrite these with default command-line options.
+// Some options given in the target directive are provided here as
+// default command-line options.
 int default_argc = 0;
 char** default_argv = NULL;
 
@@ -404,60 +410,95 @@ char** default_argv = NULL;
 // Otherwise, return 1.
 int process_args(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-fast") == 0) {
-            fast = true;
-        } else if (strcmp(argv[i], "-timeout") == 0) {
-            if (argc < i + 3) {
-                usage(argv[0]);
-                return 0;
-            }
-            i++;
-            char* time_spec = argv[i++];
-            char* units = argv[i];
-            duration = atoll(time_spec);
-            // A parse error returns 0LL, so check to see whether that is what is meant.
-            if (duration == 0LL && strncmp(time_spec, "0", 1) != 0) {
-                // Parse error.
-                printf("Error: invalid time value: %s", time_spec);
-                usage(argv[0]);
-                return 0;
-            }
-            if (strncmp(units, "sec", 3) == 0) {
-                duration = SEC(duration);
-            } else if (strncmp(units, "msec", 4) == 0) {
-                duration = MSEC(duration);
-            } else if (strncmp(units, "usec", 4) == 0) {
-                duration = USEC(duration);
-            } else if (strncmp(units, "nsec", 4) == 0) {
-                duration = NSEC(duration);
-            } else if (strncmp(units, "minute", 6) == 0) {
-                duration = MINUTE(duration);
-            } else if (strncmp(units, "hour", 4) == 0) {
-                duration = HOUR(duration);
-            } else if (strncmp(units, "day", 3) == 0) {
-                duration = DAY(duration);
-            } else if (strncmp(units, "week", 4) == 0) {
-                duration = WEEK(duration);
-            } else {
-                // Invalid units.
-                printf("Error: invalid time units: %s", units);
-                usage(argv[0]);
-                return 0;
-            }
-        } else if (strcmp(argv[i], "-keepalive") == 0) {
-            keepalive_specified = true;
-        } else if (strcmp(argv[i], "-threads") == 0) {
+        if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--fast") == 0) {
             if (argc < i + 2) {
-                usage(argv[0]);
+                printf("Error: --fast needs a boolean.\n");
+                usage(argc, argv);
                 return 0;
             }
             i++;
-            char* threads_spec = argv[i++];
-            number_of_threads = atoi(threads_spec);           
-        } else {
-            usage(argv[0]);
-            return 0;
-        }
+            char* fast_spec = argv[i];
+            if (strcmp(fast_spec, "true") == 0) {
+                fast = true;
+            } else if (strcmp(fast_spec, "false") == 0) {
+                fast = false;
+            } else {
+                printf("Error: Invalid value for --fast: %s\n", fast_spec);
+            }
+       } else if (strcmp(argv[i], "-o") == 0
+               || strcmp(argv[i], "--timeout") == 0
+               || strcmp(argv[i], "-timeout") == 0) {
+           // Tolerate -timeout for legacy uses.
+           if (argc < i + 3) {
+               printf("Error: --timeout needs time and units.\n");
+               usage(argc, argv);
+               return 0;
+           }
+           i++;
+           char* time_spec = argv[i++];
+           char* units = argv[i];
+           duration = atoll(time_spec);
+           // A parse error returns 0LL, so check to see whether that is what is meant.
+           if (duration == 0LL && strncmp(time_spec, "0", 1) != 0) {
+        	   // Parse error.
+        	   printf("Error: invalid time value: %s", time_spec);
+        	   usage(argc, argv);
+        	   return 0;
+           }
+           if (strncmp(units, "sec", 3) == 0) {
+        	   duration = SEC(duration);
+           } else if (strncmp(units, "msec", 4) == 0) {
+        	   duration = MSEC(duration);
+           } else if (strncmp(units, "usec", 4) == 0) {
+        	   duration = USEC(duration);
+           } else if (strncmp(units, "nsec", 4) == 0) {
+        	   duration = NSEC(duration);
+           } else if (strncmp(units, "min", 3) == 0) {
+        	   duration = MINUTE(duration);
+           } else if (strncmp(units, "hour", 4) == 0) {
+        	   duration = HOUR(duration);
+           } else if (strncmp(units, "day", 3) == 0) {
+        	   duration = DAY(duration);
+           } else if (strncmp(units, "week", 4) == 0) {
+        	   duration = WEEK(duration);
+           } else {
+        	   // Invalid units.
+        	   printf("Error: invalid time units: %s", units);
+        	   usage(argc, argv);
+        	   return 0;
+           }
+       } else if (strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--keepalive") == 0) {
+    	   if (argc < i + 2) {
+    		   printf("Error: --keepalive needs a boolean.\n");
+    		   usage(argc, argv);
+    		   return 0;
+    	   }
+    	   i++;
+    	   char* keep_spec = argv[i];
+    	   if (strcmp(keep_spec, "true") == 0) {
+    		   keepalive_specified = true;
+    	   } else if (strcmp(keep_spec, "false") == 0) {
+    		   keepalive_specified = false;
+    	   } else {
+    		   printf("Error: Invalid value for --keepalive: %s\n", keep_spec);
+    	   }
+       } else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--threads") == 0) {
+    	   if (argc < i + 2) {
+    		   printf("Error: --threads needs an integer argument.\n");
+    		   usage(argc, argv);
+    		   return 0;
+    	   }
+    	   i++;
+    	   char* threads_spec = argv[i++];
+    	   number_of_threads = atoi(threads_spec);
+    	   if (number_of_threads <= 0) {
+    		   printf("Error: Invalid value for --threads: %s\n", threads_spec);
+    	   }
+       } else {
+    	   printf("Error: Unrecognized command-line argument: %s\n", argv[i]);
+    	   usage(argc, argv);
+    	   return 0;
+       }
     }
     return 1;
 }
@@ -480,10 +521,10 @@ void initialize() {
             get_evt_pos, set_evt_pos, eql_evt, prt_evt);
     reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, cmp_pri, get_rct_pri,
             get_rct_pos, set_rct_pos, eql_rct, prt_rct);
-	// NOTE: The recycle queue does not need to be sorted. But here it is.
+    // NOTE: The recycle queue does not need to be sorted. But here it is.
     recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
             get_evt_pos, set_evt_pos, eql_evt, prt_evt);
-	// NOTE: The free queue does not need to be sorted. But here it is.
+    // NOTE: The free queue does not need to be sorted. But here it is.
     free_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
             get_evt_pos, set_evt_pos, eql_evt, prt_evt);
 
@@ -493,7 +534,7 @@ void initialize() {
     // Initialize logical time to match physical time.
     clock_gettime(CLOCK_REALTIME, &physicalStartTime);
     printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
-    		ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
+            ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
     current_time = physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec;
     start_time = current_time;
     

@@ -7,10 +7,10 @@
 // this executes 10,000,000 cycles (two reactions in each cycle) in 0.85 seconds,
 // for over 23 million reactions per second.
 // This translates to 43 nanoseconds per reaction invocation.
-target C(
-    compile = "gcc -O2 src-gen/TimeLimit.c -o bin/TimeLimit",
-	run = "bin/TimeLimit -fast"
-);
+target C {
+    compile: "gcc -O2 src-gen/TimeLimit.c -o bin/TimeLimit",
+	fast: true
+};
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
 	timer t(offset, period);

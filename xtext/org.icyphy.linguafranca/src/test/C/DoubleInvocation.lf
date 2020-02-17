@@ -9,9 +9,10 @@
 // * Removing the startup reaction in Print.
 // * Sending only position, not velocity from Ball.
 
-target C (
-    run = "bin/DoubleInvocation -timeout 5 sec -fast"
-);
+target C {
+    timeout: 5 sec,
+    fast: true
+};
 reactor Ball {
     output position:int;
     output velocity:int;

@@ -1,8 +1,8 @@
 // Minimal version of ReflexGame as presented in papers.
-target C (
-    threads = 1,
-    run="bin/ReflexGame -keepalive"
-);
+target C {
+    threads: 1,
+    keepalive: true
+};
 reactor RandomSource {
     preamble {=
         interval_t random_time() {
@@ -21,6 +21,7 @@ reactor RandomSource {
     =}
     reaction(prompt) -> out, prompt {=
         printf("Hit Return!");
+        fflush(stdout);
         set(out, true);
     =}
     reaction(another) -> prompt {=

@@ -2,9 +2,10 @@
 // The MovingAverage reactor computes the moving average of the last
 // four inputs and produces that as output.  The source is a counting
 // sequence.
-target C(
-    run = "bin/MovingAverage -fast -timeout 1 sec"
-);
+target C {
+    timeout: 1 sec,
+    fast: true
+};
 reactor Source {
     output out:double;
     state count:int(0);

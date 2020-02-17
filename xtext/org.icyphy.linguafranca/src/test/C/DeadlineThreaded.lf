@@ -1,10 +1,10 @@
 // This example illustrates local deadline handling.
 // Even numbers are sent by the Source immediately, whereas odd numbers
 // are sent after a big enough delay to violate the deadline.
-target C(
-    run = "bin/Deadline -timeout 2 sec",
-    threads = 1
-);
+target C {
+    timeout: 2 sec,
+    threads: 1
+};
 
 reactor Source(period:time(1 sec)) {
     output y:int;

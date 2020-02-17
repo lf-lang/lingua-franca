@@ -2,10 +2,10 @@
 // a time limit.
 // Correct output for this 1, 2, 3, 4.
 // Failure for this test is failing to halt.
-target C(
-	threads = 1,
-	run = "bin/TimeLimitThreaded -fast"
-);
+target C {
+	threads: 1,
+	fast: true
+};
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
 	timer t(offset, period);

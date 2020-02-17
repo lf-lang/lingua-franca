@@ -1,6 +1,6 @@
-target C(
-	threads = 1	
-);
+target C {
+	threads: 1	
+};
 reactor Source {
 	output y:int;
 	timer t;

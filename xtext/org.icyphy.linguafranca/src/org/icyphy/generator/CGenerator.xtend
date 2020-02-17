@@ -77,7 +77,6 @@ class CGenerator extends GeneratorBase {
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newHashSet('C')
 
-
     // The command to compile the generated code if specified in the target directive.
     var compileCommand = null as ArrayList<String>
 
@@ -100,7 +99,7 @@ class CGenerator extends GeneratorBase {
     var numberOfThreads = 0
     
     // The command to run the generated code if specified in the target directive.
-    var runCommand = null as ArrayList<String>
+    var runCommand = new ArrayList<String>()
 
     // Place to collect shutdown action instances.
     var shutdownActionInstances = new LinkedList<ActionInstance>()
@@ -194,12 +193,12 @@ class CGenerator extends GeneratorBase {
             // Generate function to set default command-line options.
             // A literal array needs to be given outside any function definition,
             // so start with that.
-            if (runCommand !== null && runCommand.length > 0) {
+            if (runCommand.length > 0) {
                 pr('char* __default_argv[] = {"' + runCommand.join('", "') + '"};')
             }
             pr('void __set_default_command_line_options() {\n')
             indent()
-            if (runCommand !== null && runCommand.length > 0) {
+            if (runCommand.length > 0) {
                 pr('default_argc = ' + runCommand.length + ';')
                 pr('default_argv = __default_argv;')
             }
@@ -255,7 +254,6 @@ class CGenerator extends GeneratorBase {
         // Invoke the compiler on the generated code.
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
         val relativeBinFilename = "bin" + File.separator + filename;
-        // FIXME: Do we want to keep the compileCommand option?
         if (compileCommand === null) {
             compileCommand = newArrayList
             compileCommand.addAll("gcc", "-O2", relativeSrcFilename)
@@ -1655,7 +1653,53 @@ class CGenerator extends GeneratorBase {
         pr('#include "pqueue.c"')
         
         for (target : resource.allContents.toIterable.filter(Target)) {
-            if (target.properties !== null) {
+            if (target.config !== null && target.config.pairs.length > 0) {
+                // Using the newer syntax.
+                // Target parameters given as key-value pairs.
+                for (pair : target.config.pairs) {
+                    if (pair.name.equals("threads")) {
+                        // This has been checked by the validator.
+                        numberOfThreads = Integer.decode(pair.value.literal)
+                        // Set this as the default in the generated code,
+                        // but only if it has not been overridden on the command line.
+                        pr(startTimers, "if (number_of_threads == 0) {")
+                        indent(startTimers)
+                        pr(startTimers,
+                            "number_of_threads = " + numberOfThreads + ";")
+                        unindent(startTimers)
+                        pr(startTimers, "}")
+                    } else if (pair.name.equals("compile")) {
+                        // Strip off enclosing quotation marks and split at spaces.
+                        val command = pair.value.literal.substring(1,
+                            pair.value.literal.length - 1).split(' ')
+                        compileCommand = newArrayList
+                        compileCommand.addAll(command)
+                    } else if (pair.name.equals("fast")) {
+                        // The runCommand has a first entry that is ignored but needed.
+                        if (runCommand.length === 0) {
+                            runCommand.add("X")
+                        }
+                        runCommand.add("-f")
+                        runCommand.add(pair.value.id)
+                    } else if (pair.name.equals("keepalive")) {
+                        // The runCommand has a first entry that is ignored but needed.
+                        if (runCommand.length === 0) {
+                            runCommand.add("X")
+                        }
+                        runCommand.add("-k")
+                        runCommand.add(pair.value.id)
+                    } else if (pair.name.equals("timeout")) {
+                        // The runCommand has a first entry that is ignored but needed.
+                        if (runCommand.length === 0) {
+                            runCommand.add("X")
+                        }
+                        runCommand.add("-o")
+                        runCommand.add(Integer.toString(pair.value.time))
+                        runCommand.add(pair.value.unit.toString)
+                    }
+                }
+            } else if (target.properties !== null) {
+                // Using the old syntax.
                 // NOTE: Same warning issued by the validator.
                 reportError(
                         "WARNING: Using deprecated syntax for target parameters. "
@@ -1676,42 +1720,11 @@ class CGenerator extends GeneratorBase {
                         // Strip off enclosing quotation marks and split at spaces.
                         val command = assignment.literal.substring(1,
                             assignment.literal.length - 1).split(' ')
-                        runCommand = newArrayList
                         runCommand.addAll(command)
                     } else if (assignment.name.equals("compile")) {
                         // Strip off enclosing quotation marks and split at spaces.
                         val command = assignment.literal.substring(1,
                             assignment.literal.length - 1).split(' ')
-                        compileCommand = newArrayList
-                        compileCommand.addAll(command)
-                    }
-                }
-            } else if (target.config !== null) {
-                // Target parameters given as key-value pairs.
-                for (pair : target.config.pairs) {
-                    if (pair.name.equals("threads")) {
-                        // This has been checked by the validator.
-                        numberOfThreads = Integer.decode(pair.value.literal)
-                        // Set this as the default in the generated code,
-                        // but only if it has not been overridden on the command line.
-                        pr(startTimers, "if (number_of_threads == 0) {")
-                        indent(startTimers)
-                        pr(startTimers,
-                            "number_of_threads = " + numberOfThreads + ";")
-                        unindent(startTimers)
-                        pr(startTimers, "}")
-                    } else if (pair.name.equals("run")) {
-                        // FIXME: Not documented as a target parameter!
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = pair.value.literal.substring(1,
-                            pair.value.literal.length - 1).split(' ')
-                        // FIXME: First argument is needed????
-                        runCommand = newArrayList
-                        runCommand.addAll(command)
-                    } else if (pair.name.equals("compile")) {
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = pair.value.literal.substring(1,
-                            pair.value.literal.length - 1).split(' ')
                         compileCommand = newArrayList
                         compileCommand.addAll(command)
                     }

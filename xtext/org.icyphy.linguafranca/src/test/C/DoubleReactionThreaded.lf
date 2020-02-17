@@ -1,10 +1,11 @@
 // Test that two simultaneous inputs that trigger a reaction
 // trigger it only once.
 // Correct output for this 2, 4, 6, 8, etc.
-target C(
-	threads = 1,
-	run = "bin/DoubleReactionThreaded -fast -timeout 10 sec"
-);
+target C {
+    timeout: 10 sec,
+    fast: true,
+    threads: 1
+};
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
 	timer t(offset, period);

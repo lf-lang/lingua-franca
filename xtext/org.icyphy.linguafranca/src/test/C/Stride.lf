@@ -1,8 +1,9 @@
 // This example illustrates state variables and parameters on the wiki.
 // For this test, success is just compiling and running.
-target C(
-    run = "bin/Stride -timeout 2 sec -fast"
-);
+target C {
+    timeout: 2 sec,
+    fast: true
+};
 reactor Count(stride:int(1)) {
     state count:int(0);
     output y:int;

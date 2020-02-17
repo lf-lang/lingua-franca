@@ -4,7 +4,8 @@
 // does not implement any mutex protecting the event queue.
 target C {
 	threads: 2,
-	timeout: 2 sec
+	timeout: 2 sec,
+	keepalive: true    // Not really needed here because there is a timer.
 };
 
 main reactor AsyncCallback {
