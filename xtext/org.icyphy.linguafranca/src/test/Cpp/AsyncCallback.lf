@@ -1,9 +1,9 @@
 // Test asynchronous callbacks that trigger a physical action.
-target Cpp(
-    threads = 1,
-    run = "bin/AsyncCallback --timeout 2",
-    cmake_include = "AsyncCallback.cmake"
-);
+target Cpp {
+    threads: 1,
+    run: "bin/AsyncCallback --timeout 2",
+    cmake_include: "AsyncCallback.cmake"
+};
 
 main reactor AsyncCallback {    
     preamble {= 

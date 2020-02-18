@@ -1,9 +1,9 @@
 // Test that two simultaneous inputs that trigger a reaction
 // trigger it only once.
 // Correct output for this 2, 4, 6, 8, etc.
-target Cpp(
-	run = "bin/DoubleReaction --fast --timeout 10"
-);
+target Cpp {
+	run: "bin/DoubleReaction --fast --timeout 10"
+};
 reactor Clock(offset:time(0), period:time(1 sec)) {
     output y:int;
     timer t(offset, period);

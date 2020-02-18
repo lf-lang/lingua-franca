@@ -1,6 +1,6 @@
-target Cpp (
-    run = "bin/CountTest --timeout 3 --fast"
-);
+target Cpp {
+    run: "bin/CountTest --timeout 3 --fast"
+};
 import Count.lf;
 reactor Test {
     preamble {=

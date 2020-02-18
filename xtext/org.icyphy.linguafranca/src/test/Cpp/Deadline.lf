@@ -1,9 +1,9 @@
 // This example illustrates local deadline handling.
 // Even numbers are sent by the Source immediately, whereas odd numbers
 // are sent after a big enough delay to violate the deadline.
-target Cpp(
-    run = "bin/Deadline --timeout 2"
-);
+target Cpp {
+    run: "bin/Deadline --timeout 2"
+};
 reactor Source(period:time(1 sec)) {
     preamble {=
         #include <iostream>
