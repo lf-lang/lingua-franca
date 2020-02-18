@@ -1,8 +1,8 @@
 // This file includes code documented on the Wiki.
 // For this test, success is just compiling and running.
-target Cpp(
-    run = "bin/GetTime --timeout 2 --fast"
-);
+target Cpp {
+    run: "bin/GetTime --timeout 2 --fast"
+};
 main reactor GetTime {
     preamble {=
         #include <iostream>

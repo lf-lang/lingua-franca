@@ -88,7 +88,12 @@ class CppGenerator extends GeneratorBase {
         var target = resource.findTarget
 
         super.doGenerate(resource, fsa, context)
-        mainReactor = this.mainDef.reactorClass
+        mainReactor = this.mainDef?.reactorClass
+        
+        if (mainReactor === null) {
+            // No main reactor. Nothing to do.
+            return
+        }
 
         fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
         fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain(target))
@@ -194,22 +199,41 @@ class CppGenerator extends GeneratorBase {
         target
     }
 
+    /** Return the value of a target property as a string suitable for
+     *  embedding in generated code, or return null if there is no such
+     *  property.
+     */
     def getProperty(Target t, String s) {
-        for (p : t.properties) {
+        if (t.config !== null) {
+            // target properties are using the new syntax.
+            for (pair : t.config.pairs) {
+                if (pair.name == s) {
+                    if (pair.value.literal !== null) {
+                        return pair.value.literal.toString
+                    } else {
+                        return "[FIXME: only literal target properties are supported.]"
+                    }
+                }
+            }
+        }
+        // The following supports legacy target properties syntax.
+        for (p : t.properties ?: emptyList) {
             if (p.name == s) {
-                return p
+                if (p.literal !== null) {
+                    return p.literal.toString
+                } else {
+                    return "[FIXME: time-valued target properties not supported.]"
+                }
             }
         }
         null
     }
 
+    /** Return true if a target property with the specified name
+     *  exists and false otherwise.
+     */
     def hasProperty(Target t, String s) {
-        for (p : t.properties) {
-            if (p.name == s) {
-                return true
-            }
-        }
-        false
+        !(getProperty(t, s) === null)
     }
 
     def declare(Reaction n) '''
@@ -635,7 +659,7 @@ class CppGenerator extends GeneratorBase {
         int main(int argc, char **argv) {
           CLI::App app("«filename» Reactor Program");
           
-          unsigned threads = «IF t.hasProperty('threads')»«t.getProperty('threads').literal»«ELSE»4«ENDIF»;
+          unsigned threads = «IF t.hasProperty('threads')»«t.getProperty('threads')»«ELSE»4«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
           unsigned timeout;
           auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
@@ -730,7 +754,7 @@ class CppGenerator extends GeneratorBase {
         install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         
         «IF target.hasProperty("cmake_include")»
-            include(«directory»«File.separator»«target.getProperty("cmake_include").literal.withoutQuotes»)
+            include(«directory»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
         «ENDIF»
     '''
 

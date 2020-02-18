@@ -1,8 +1,8 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
-target Cpp(
-    run = "bin/Composition --fast --timeout 10"
-);
+target Cpp {
+    run: "bin/Composition --fast --timeout 10"
+};
 reactor Source(period:time(2 sec)) {
     output y:int;
     timer t(1 sec, period);
