@@ -1,9 +1,9 @@
 // This example extends the Stride example by passing multiple parameters through a hierarchy
 // For this test, success is just compiling and running.
-target Cpp(
-    run = "bin/StrideHierarchy --timeout 2 --fast"
-);
-reactor Count(stride:int(1), period:time(100 msec), const start:int(0)) {
+target Cpp {
+    run: "bin/StrideHierarchy --timeout 2 --fast"
+};
+reactor Count(stride:int(1), period:time(100 msec), start:int(0)) {
     state count:int(start);
     state test:bool(false);
     state blub:{=const int*=}({=&start=});
