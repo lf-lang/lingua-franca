@@ -1,8 +1,8 @@
 // This example illustrates state variables and parameters on the wiki.
 // For this test, success is just compiling and running.
-target TypeScript(
-    timeout = 2 sec
-);
+target TypeScript{
+    timeout : 2 sec
+};
 reactor Count(stride:number(1)) {
     state count:number(0);
     output y:number;

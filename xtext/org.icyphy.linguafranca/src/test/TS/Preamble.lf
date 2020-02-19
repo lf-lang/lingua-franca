@@ -1,6 +1,6 @@
-target TypeScript(
-    timeout = 2 sec
-);
+target TypeScript{
+    timeout : 2 sec
+};
 main reactor Preamble {
     preamble {=
         function add42( i:number) {

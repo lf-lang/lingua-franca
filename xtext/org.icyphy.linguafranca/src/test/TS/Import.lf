@@ -1,8 +1,8 @@
 // This tests the ability to import a reactor definition
 // that itself imports a reactor definition.
-target TypeScript(
-    timeout = 2 sec
-);
+target TypeScript{
+    timeout : 2 sec
+};
 import Imported.lf;
 main reactor Import {
     timer t;

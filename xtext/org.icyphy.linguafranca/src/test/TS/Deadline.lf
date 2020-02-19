@@ -1,9 +1,9 @@
 // This example illustrates local deadline handling.
 // Even numbers are sent by the Source immediately, whereas odd numbers
 // are sent after a big enough delay to violate the deadline.
-target TypeScript(
-    timeout = 2 sec
-);
+target TypeScript{
+    timeout : 2 sec
+};
 
 //run = "bin/Deadline -timeout 2 sec"
 
