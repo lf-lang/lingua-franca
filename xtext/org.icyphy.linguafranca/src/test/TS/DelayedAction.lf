@@ -1,6 +1,6 @@
-target TypeScript(
-    timeout = 5 sec
-);
+target TypeScript{
+    timeout : 5 sec
+};
 main reactor DelayedAction {
     timer t(0, 1 sec);
     logical action a;

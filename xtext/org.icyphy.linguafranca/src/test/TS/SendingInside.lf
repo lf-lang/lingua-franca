@@ -3,9 +3,9 @@
 
 // FIXME: Find a way to terminate with failure and address target attributes
 
-target TypeScript(
-    timeout = 2 sec
-);
+target TypeScript{
+    timeout : 2 sec
+};
 //(
 //  run = "bin/SendingInside -fast -timeout 10 sec"
 //);

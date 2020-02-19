@@ -1,8 +1,8 @@
 // Test a deadline where the deadline violation produces
 // an output and the container reacts to that output.
-target TypeScript(
-    timeout = 2 sec
-);
+target TypeScript{
+    timeout : 2 sec
+};
 reactor Deadline(threshold:time(100 msec)) {
     input x:number;
     output deadline_violation:boolean;

@@ -48,7 +48,8 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import java.util.LinkedList
+import org.icyphy.linguaFranca.Property
+import org.icyphy.linguaFranca.Element
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -554,7 +555,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 effectSet.add(new Pair(key, value))
             }
 
-            var containerToArgs = new HashMap<Instantiation, HashSet<Variable>>();
+            // Add triggers and sources to the react function
+            var containerToArgs = new HashMap<Instantiation, HashSet<Variable>>();           
             for (trigOrSource : triggersUnionSources) {
                 // Actions that are both read and scheduled should only
                 // appear once as a schedulable effect
@@ -781,26 +783,59 @@ class TypeScriptGenerator extends GeneratorBase {
         // Timeout Property
         var timeoutProperty = getTargetProperty("timeout")
         if (timeoutProperty !== null) {
-         
-            if (timeoutProperty.literal !== null && timeoutProperty.literal !=0) {
-                reportError("The timeout property only accepts time assignments.")
-            }
             isATimeoutArg = true
-            timeoutArg = timeInTargetLanguage(timeoutProperty.time.toString(),timeoutProperty.unit)   
+//            if (timeoutProperty.literal !== null && timeoutProperty.literal !=0) {
+//                    reportError("The timeout property only accepts time assignments.")
+//                }
+//                timeoutArg = timeInTargetLanguage(timeoutProperty.time.toString(),timeoutProperty.unit)
+            // "Old style" property
+            if (timeoutProperty instanceof Property) {
+                if (timeoutProperty.literal !== null && timeoutProperty.literal !=0) {
+                    reportError("The timeout property only accepts time assignments.")
+                }
+                timeoutArg = timeInTargetLanguage(timeoutProperty.time.toString(),timeoutProperty.unit)
+            }
+            
+            // "New style" (YAML) property
+            if (timeoutProperty instanceof Element) {
+                if (timeoutProperty.literal !== null && timeoutProperty.literal !=0) {
+                    reportError("The timeout property only accepts time assignments.")
+                }
+                timeoutArg = timeInTargetLanguage(timeoutProperty.time.toString(),timeoutProperty.unit)
+            }
         }
         
         // KeepAlive Property
         var String keepAliveArg
         var isAKeepAliveArg = false
         var keepAliveProperty = getTargetProperty("keep_alive")
-        if (keepAliveProperty !== null && keepAliveProperty.literal !==null ){
-            isAKeepAliveArg = true
-            if (keepAliveProperty.literal == "\"true\"") {
-                keepAliveArg = "true"
-            } else {
-                keepAliveArg = "false"
+        if (keepAliveProperty !== null) {
+            
+            // "Old style" property
+            if (keepAliveProperty instanceof Property) {
+                if (keepAliveProperty.literal !== null) {
+                    isAKeepAliveArg = true
+                    if (keepAliveProperty.literal == "\"true\"") {
+                        keepAliveArg = "true"
+                    } else {
+                        keepAliveArg = "false"
+                    }
+                }
+            }
+            
+            // "New style" (YAML) property
+            if (keepAliveProperty instanceof Element) {
+                if (keepAliveProperty.literal !== null) {
+                    isAKeepAliveArg = true
+                    if (keepAliveProperty.literal == "\"true\"") {
+                        keepAliveArg = "true"
+                    } else {
+                        keepAliveArg = "false"
+                    }
+                }
             }
         }
+        
         
 //        for (target : resource.allContents.toIterable.filter(Target)) {
 //            if (target.properties !== null) {
@@ -897,19 +932,31 @@ class TypeScriptGenerator extends GeneratorBase {
     // // Private methods.
     
     /** Search over all targets and target properties in the file
-     *  for the given property name. Return the matching property
-     *  if it's found. Otherwise return null.
+     *  for the given property name. If target properties are "old style"
+     *  return the matching property if it's found. If target properties
+     *  are "new style" (i.e. YAML) search for a top level property with the
+     *  given name and return the matching KeyValuePair's value. Otherwise return null.
      *  @param propertyName The name of the property to obtain.
-     *  @return The property if it was found. Otherwise null.
+     *  @return The matching Property or top level KeyValuePair if it was found.
+     *  Otherwise null.
      * 
      */
     private def getTargetProperty(String propertyName) {
         // FIXME: Not sure if iterating over potentially more than
         // one target is desirable.
         for (target : resource.allContents.toIterable.filter(Target)) {
-            for (property : target.properties) {
-                if (property.name.equals(propertyName)) {
-                    return property
+            // Determine if using old or new style (YAML) target properties
+            if ( target.config !== null ) {
+                for (pair: target.config.pairs) {
+                    if (pair.name.equals(propertyName)) {
+                        return pair.value
+                    }
+                }
+            } else {
+                for (property : target.properties) {
+                    if (property.name.equals(propertyName)) {
+                        return property
+                    }
                 }
             }
         }
