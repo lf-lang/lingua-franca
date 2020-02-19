@@ -1,26 +1,18 @@
-// This checks that a logical action is scheduled the specified
-// logical time after the current logical time.
-// Currently, this fails after the first iteration, apparently using
-// physical time.
+// This checks that the after keyword adjusts logical time, not
+// using physical time.
 target C {
-    fast: true,
+    fast: false,
     timeout: 3 sec
 };
 reactor foo {
     input x:int;
     output y:int;
-    logical action a:int;
-    reaction(x) -> y, a {=
+    reaction(x) -> y {=
         set(y, 2*x);
-        // The following uses physical time, incorrectly.
-        schedule(a, MSEC(500), NULL);
-    =}
-    reaction(a) -> y {=
-        set(y, -42);
     =}
 }
 reactor print {
-    state expected_time:time(0);
+    state expected_time:time(10 msec);
     input x:int;
     reaction(x) {=
         interval_t elapsed_time = get_elapsed_logical_time();
@@ -31,7 +23,7 @@ reactor print {
             printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
             exit(1);
         }
-        self->expected_time += MSEC(500);
+        self->expected_time += SEC(1);
     =}
 }
 main reactor top {
@@ -41,5 +33,5 @@ main reactor top {
     reaction(t) -> f.x {=
         set(f.x, 42);
     =}
-    f.y -> p.x;
+    f.y -> p.x after 10 msec;
 }
