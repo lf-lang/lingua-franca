@@ -43,6 +43,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'fast',
         'hosts',
         'keepalive',
+        'logging',
         'run', 
         'threads',
         'timeout'
