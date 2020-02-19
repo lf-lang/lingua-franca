@@ -902,6 +902,8 @@ class TypeScriptGenerator extends GeneratorBase {
     override generatePreamble() {
         super.generatePreamble
         pr(preamble)
+        pr("")
+        pr("Log.setGlobalLevel(Log.levels." + getLoggingLevel() + ");")
     }
 
     
@@ -930,6 +932,70 @@ class TypeScriptGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Private methods.
+    
+    /** Look for a "logging" target property and return
+     *  the appropriate logging level. This level is a
+     *  subset of Log.level enum from the ulog module
+     *  https://www.npmjs.com/package/ulog. Logged messages
+     *  will display if the level of the message <= the logging level.
+     *  For now, these log levels are:
+     *  Error < Warn < Info < Log < Debug.
+     *  The case of the level when expressed as a target property
+     *  doesn't matter, but the return value from this function is
+     *  in all caps.
+     *  @return The logging target property's value in all caps.
+     */
+    private def getLoggingLevel() {
+        var logLevel = getTargetProperty("logging")
+        
+        // Default to least verbose log level if no property is given.
+        if (logLevel === null) return "ERROR"
+        if (logLevel instanceof Element) {
+            if (! (logLevel.literal instanceof String)) {
+                reportError("The \"logging\" property must be a string.")
+            } else {
+                var upperCaseLogLevel = logLevel.literal.toUpperCase()
+                switch (upperCaseLogLevel) {
+                    case "\"ERROR\"" :
+                        return "ERROR"
+                    case "\"WARN\"" :
+                        return "WARN"
+                    case "\"INFO\"" :
+                        return "INFO"
+                    case "\"LOG\"" :
+                        return "LOG"
+                    case "\"DEBUG\"" :
+                        return "DEBUG"
+                    default:
+                        reportError("The only valid values for the \"logging\" property "
+                            + "are (case insensitive): ERROR, WARN, INFO, LOG, AND DEBUG")
+                }
+            }
+        }
+        if (logLevel instanceof Property) {
+            if (! (logLevel.literal instanceof String)) {
+                reportError("The \"logging\" property must be a string.")
+            } else {
+                var upperCaseLogLevel = logLevel.literal.toUpperCase()
+                switch (upperCaseLogLevel) {
+                    case "\"ERROR\"" :
+                        return "ERROR"
+                    case "\"WARN\"" :
+                        return "WARN"
+                    case "\"INFO\"" :
+                        return "INFO"
+                    case "\"LOG\"" :
+                        return "LOG"
+                    case "\"DEBUG\"" :
+                        return "DEBUG"
+                    default:
+                        reportError("The only valid values for the \"logging\" property "
+                            + "are (case insensitive): ERROR, WARN, INFO, LOG, AND DEBUG")
+                }
+            }
+        }
+    }
+    
     
     /** Search over all targets and target properties in the file
      *  for the given property name. If target properties are "old style"
@@ -1027,9 +1093,11 @@ class TypeScriptGenerator extends GeneratorBase {
 
     static val reactorLibPath = "." + File.separator + "reactor"
     static val timeLibPath =  "." + File.separator + "time"
+    static val utilLibPath =  "." + File.separator + "util"
     val static preamble = '''
 import {Args, Present, Parameter, State, Variable, Priority, Mutation, Util, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
 import {TimeUnit,TimeInterval, UnitBasedTimeInterval, TimeInstant, Origin, getCurrentPhysicalTime } from "''' + timeLibPath + '''"
+import {Log} from "''' + utilLibPath + '''"
 
     '''
 }
