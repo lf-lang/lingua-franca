@@ -1,0 +1,45 @@
+// This checks that a logical action is scheduled the specified
+// logical time after the current logical time.
+// Currently, this fails after the first iteration, apparently using
+// physical time.
+target C {
+    fast: false,
+    timeout: 3 sec
+};
+reactor foo {
+    input x:int;
+    output y:int;
+    logical action a:int;
+    reaction(x) -> y, a {=
+        set(y, 2*x);
+        // The following uses physical time, incorrectly.
+        schedule(a, MSEC(500), NULL);
+    =}
+    reaction(a) -> y {=
+        set(y, -42);
+    =}
+}
+reactor print {
+    state expected_time:time(10 msec);
+    input x:int;
+    reaction(x) {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("Result is %d\n", x);
+        printf("Current logical time is: %lld\n", elapsed_time);
+        printf("Current physical time is: %lld\n", get_elapsed_physical_time());
+        if (elapsed_time != self->expected_time) {
+            printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
+            exit(1);
+        }
+        self->expected_time += MSEC(500);
+    =}
+}
+main reactor top {
+    f = new foo();
+    p = new print();
+    timer t(0, 1 sec);
+    reaction(t) -> f.x {=
+        set(f.x, 42);
+    =}
+    f.y -> p.x after 10 msec;
+}
