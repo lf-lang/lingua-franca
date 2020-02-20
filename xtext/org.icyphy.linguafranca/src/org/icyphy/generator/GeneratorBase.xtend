@@ -35,6 +35,7 @@ import java.net.URL
 import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.HashMap
+import java.util.HashSet
 import java.util.List
 import java.util.Set
 import java.util.regex.Pattern
@@ -49,6 +50,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Import
@@ -60,7 +62,6 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.VarRef
-import java.util.HashSet
 
 /** Generator base class for shared code between code generators.
  * 
@@ -248,6 +249,7 @@ abstract class GeneratorBase {
         action.name = getUniqueIdentifier(parent, "delay")
         action.minTime = connection.delay.time
         action.type = type
+        action.origin = ActionOrigin.LOGICAL
 
         // Establish references to the action.
         triggerRef.variable = action

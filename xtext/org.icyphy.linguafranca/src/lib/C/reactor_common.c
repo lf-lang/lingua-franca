@@ -206,9 +206,12 @@ void __done_using(token_t* token) {
 // it will be ignored. If the trigger offset plus the extra
 // delay is greater than zero and stop has been requested,
 // then ignore this and return 0.
+// Also, if the trigger argument is null, ignore and return 0.
 // Otherwise, return a handle to the scheduled trigger,
 // which is an integer greater than 0.
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
+	// The trigger argument could be null, meaning that nothing is triggered.
+	if (trigger == NULL) return 0;
     // Compute the tag.  How we do that depends on whether
     // this is a logical or physical action.
     interval_t tag = current_time;
