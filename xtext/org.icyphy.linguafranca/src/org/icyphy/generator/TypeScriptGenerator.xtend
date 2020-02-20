@@ -808,7 +808,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // KeepAlive Property
         var String keepAliveArg
         var isAKeepAliveArg = false
-        var keepAliveProperty = getTargetProperty("keep_alive")
+        var keepAliveProperty = getTargetProperty("keepalive")
         if (keepAliveProperty !== null) {
             
             // "Old style" property
@@ -866,7 +866,6 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             arguments.add(keepAliveArg)
         }
-        
         
         pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
     }
