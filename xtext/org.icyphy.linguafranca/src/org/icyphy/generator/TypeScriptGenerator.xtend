@@ -277,6 +277,8 @@ class TypeScriptGenerator extends GeneratorBase {
         if (reactor.isMain()) {
             arguments.add("name: string")
             arguments.add("timeout: TimeInterval | undefined = undefined")
+            arguments.add("keepAlive: boolean = false")
+            arguments.add("fast: boolean = false")
         } else {
             arguments.add("parent:Reactor")
         }
@@ -297,23 +299,11 @@ class TypeScriptGenerator extends GeneratorBase {
         
         if (reactor.isMain()) {
             
-            // FIXME: Implement check for keepalive. This is incomplete.
-            // See if the keepAlive property has been set
-            // keepAlive defaults to false.
-            var keepAlive = "false"    
-            for (target : resource.allContents.toIterable.filter(Target)) {
-                if (target.properties !== null) {
-                    for (property : target.properties) {
-                        
-                    }
-                }
-            }
-            arguments.add("keepAlive: boolean = false")
             arguments.add("success?: () => void")
             arguments.add("fail?: () => void")
             pr(reactorConstructor, "constructor (" + arguments + ") {")
             reactorConstructor.indent()
-            pr(reactorConstructor, "super(timeout, keepAlive, success, fail);");
+            pr(reactorConstructor, "super(timeout, keepAlive, fast, success, fail);");
         } else {
             pr(reactorConstructor, "constructor (" + arguments + ") {")
             reactorConstructor.indent()
@@ -836,6 +826,37 @@ class TypeScriptGenerator extends GeneratorBase {
             }
         }
         
+        // Fast Property
+        var String fastArg
+        var isAFastArg = false
+        var fastProperty = getTargetProperty("fast")
+        if (fastProperty !== null) {
+            
+            // "Old style" property
+            if (fastProperty instanceof Property) {
+                if (fastProperty.literal !== null) {
+                    isAFastArg = true
+                    if (fastProperty.literal == "\"true\"") {
+                        fastArg = "true"
+                    } else {
+                        fastArg = "false"
+                    }
+                }
+            }
+            
+            // "New style" (YAML) property
+            if (fastProperty instanceof Element) {
+                if (fastProperty.literal !== null) {
+                    isAFastArg = true
+                    if (fastProperty.literal == "\"true\"") {
+                        fastArg = "true"
+                    } else {
+                        fastArg = "false"
+                    }
+                }
+            }
+        }
+        
         
 //        for (target : resource.allContents.toIterable.filter(Target)) {
 //            if (target.properties !== null) {
@@ -859,12 +880,18 @@ class TypeScriptGenerator extends GeneratorBase {
         arguments.add("'" + fullName + "'")
         if (isATimeoutArg) {
             arguments.add(timeoutArg)
+        } else {
+            arguments.add("undefined")
         }
-        if (isAKeepAliveArg){
-            if(!isATimeoutArg){
-                arguments.add("undefined")
-            }
+        if (isAKeepAliveArg) {
             arguments.add(keepAliveArg)
+        } else {
+            arguments.add("undefined")
+        }
+        if (isAFastArg) {
+            arguments.add(fastArg)
+        } else {
+            arguments.add("undefined")
         }
         
         pr("let _app" + " = new "+ fullName + "(" + arguments + ")")

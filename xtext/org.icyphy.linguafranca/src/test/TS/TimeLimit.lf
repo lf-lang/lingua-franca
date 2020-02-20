@@ -10,7 +10,9 @@
 // for over 23 million reactions per second.
 // This translates to 43 nanoseconds per reaction invocation.
 target TypeScript {
-	logging: "debug"
+	fast: "true",
+	logging: "info"
+	//timeout: 3 sec
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:number;
@@ -24,31 +26,23 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 reactor Destination {
 	input x:number;
 	state s:number(1);
-	reaction(x, shutdown) {=
-	    console.log("???? Inside reaction triggered by x.")
-	    if (x.get()) {
-	        if (x.get() != s) {
-                console.log("Error: Expected " + s + " and got " + x.get() + ".")
-                this.util.exec.failure()
-            }
-            s++;
-	    }
-		
-	=}
-	reaction(shutdown) {=
-	   console.log("s: " + s);   
+	reaction(x) {=
+        if (x.get() != s) {
+            console.log("Error: Expected " + s + " and got " + x.get() + ".")
+            this.util.exec.failure()
+        }
+        s++;		
 	=}
 }
 
 main reactor TimeLimit(period:time(1 usec)) {
 	timer stop(10 secs);
 	reaction(stop) {=
+//	    console.log("$$$$$$ before requesting shutdown");
 		this.util.exec.requestShutdown();
+//		console.log("$$$$$$ finished requesting shutdown.");
 	=}
-    reaction(shutdown) {=
-       console.log("**** shutdown reaction invoked.\n");
-       console.log()
-    =}
+
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x;
