@@ -1,4 +1,6 @@
 ActionDelay.lf
+ActionWithNoReaction.lf
+After.lf
 AsyncCallback.lf
 AsyncCallback2.lf
 ArrayAsParameter.lf
@@ -44,6 +46,7 @@ PeriodicDesugared.lf
 Preamble.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
+ScheduleLogicalAction.lf
 SendingInside.lf
 SendingInside2.lf
 SendingInsideThreaded.lf

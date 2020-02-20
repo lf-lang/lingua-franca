@@ -1,5 +1,6 @@
 // This checks that action can be created even if there is no reaction.
-// Currently, the generated code fails to compile.
+// This test passes merely by compiling and executing without a segfault.
+// Its other functionality is tested by other tests.
 target C {
     fast: true,
     timeout: 3 sec
@@ -12,6 +13,7 @@ reactor foo {
         set(y, 2*x);
         schedule(a, MSEC(500), NULL);
     =}
+    // reaction(a) {= =}
 }
 reactor print {
     input x:int;
