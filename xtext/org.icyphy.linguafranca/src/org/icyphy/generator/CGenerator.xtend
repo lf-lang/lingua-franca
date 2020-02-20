@@ -1698,7 +1698,7 @@ class CGenerator extends GeneratorBase {
                         runCommand.add(pair.value.unit.toString)
                     }
                 }
-            } else if (target.properties !== null) {
+            } else if (target.properties !== null && target.properties.length > 0) {
                 // Using the old syntax.
                 // NOTE: Same warning issued by the validator.
                 reportError(
