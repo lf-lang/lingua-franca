@@ -1,7 +1,5 @@
 // This checks that a logical action is scheduled the specified
 // logical time after the current logical time.
-// Currently, this fails after the first iteration, apparently using
-// physical time.
 target C {
     fast: true,
     timeout: 3 sec
