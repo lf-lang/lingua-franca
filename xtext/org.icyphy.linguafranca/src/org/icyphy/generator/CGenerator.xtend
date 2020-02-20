@@ -1540,12 +1540,17 @@ class CGenerator extends GeneratorBase {
         generateTriggerForTransferOutputs(instance)
 
         // Next, initialize the struct with actions.
+        val triggersInUse = instance.triggers
         for (action : instance.actions) {
-            var triggerStruct = triggerStructName(action)
+            var triggerStruct = '&' + triggerStructName(action)
+            // If the action doesn't actually trigger anything, then
+            // no trigger struct was defined.
+            if (!triggersInUse.contains(action)) {
+                triggerStruct = 'NULL'
+            }
             pr(
                 initializeTriggerObjects,
-                nameOfSelfStruct + '.__' + action.name + ' = &' +
-                    triggerStruct + ';'
+                nameOfSelfStruct + '.__' + action.name + ' = ' + triggerStruct + ';'
             )
         }
         // Next, generate the code to initialize outputs and inputs at the start
