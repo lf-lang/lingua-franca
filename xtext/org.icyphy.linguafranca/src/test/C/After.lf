@@ -1,0 +1,37 @@
+// This checks that the after keyword adjusts logical time, not
+// using physical time.
+target C {
+    fast: false,
+    timeout: 3 sec
+};
+reactor foo {
+    input x:int;
+    output y:int;
+    reaction(x) -> y {=
+        set(y, 2*x);
+    =}
+}
+reactor print {
+    state expected_time:time(10 msec);
+    input x:int;
+    reaction(x) {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("Result is %d\n", x);
+        printf("Current logical time is: %lld\n", elapsed_time);
+        printf("Current physical time is: %lld\n", get_elapsed_physical_time());
+        if (elapsed_time != self->expected_time) {
+            printf("ERROR: Expected logical time to be %lld.\n", self->expected_time);
+            exit(1);
+        }
+        self->expected_time += SEC(1);
+    =}
+}
+main reactor top {
+    f = new foo();
+    p = new print();
+    timer t(0, 1 sec);
+    reaction(t) -> f.x {=
+        set(f.x, 42);
+    =}
+    f.y -> p.x after 10 msec;
+}
