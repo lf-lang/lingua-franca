@@ -240,11 +240,11 @@ class TypeScriptGenerator extends GeneratorBase {
     }
     
     override generateDelayBody(Action action, VarRef port) {
-        '''«action.name».schedule(0, «generateVarRef(port)».get())'''
+        '''«action.name».schedule(0, «generateVarRef(port)» as «getActionType(action)»)'''
     }
 
     override generateForwardBody(Action action, VarRef port) {
-        '''«generateVarRef(port)».set(«action.name».get())'''
+        '''«generateVarRef(port)».set(«action.name» as «getActionType(action)»)'''
     }
  
     // //////////////////////////////////////////
@@ -424,11 +424,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                if (action.type !== null) {
-                    pr(action.name + ": Action<" + removeCodeDelimiter(action.type) + ">;")
-                } else {
-                    pr(action.name + ": Action<Present>;")
-                }
+                pr(action.name + ": Action<" + getActionType(action) + ">;")
 
                 var actionArgs = "this, Origin." + action.origin  
                 if (action.minTime !== null) {
@@ -436,13 +432,9 @@ class TypeScriptGenerator extends GeneratorBase {
                     // with an optional minDelay argument which defaults to 0.
                     actionArgs+= ", " + timeInTargetLanguage(action.minTime.time.toString, action.minTime.unit)
                 }
-                var String actionInstance
-                if (action.type === null) {
-                    actionInstance = "this." + action.name + " = new Action<Present>(" + actionArgs  + ");"
-                } else {
-                    actionInstance = "this." + action.name + " = new Action<" + removeCodeDelimiter(action.type) +">(" + actionArgs  + ");"
-                }
-                pr(reactorConstructor, actionInstance)
+                pr(reactorConstructor, "this." + 
+                    action.name + " = new Action<" + getActionType(action) +
+                    ">(" + actionArgs  + ");")
             }
         }
         
@@ -1109,6 +1101,21 @@ class TypeScriptGenerator extends GeneratorBase {
             type = 'unknown'
         }
         type
+    }
+    
+    /**
+     * Return a TS type for the specified action.
+     * If the type has not been specified, return
+     * "Present" which is the base type for Actions.
+     * @param action The action
+     * @return The TS type.
+     */
+    private def getActionType(Action action) {
+        if (action.type !== null) {
+            return removeCodeDelimiter(action.type)
+        } else {
+            return "Present"    
+        }
     }
 
 

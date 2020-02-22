@@ -1,0 +1,33 @@
+// This checks that action can be created even if there is no reaction.
+// This test passes merely by compiling and executing without a segfault.
+// Its other functionality is tested by other tests.
+target TypeScript {
+    fast: true,
+    timeout: 3 sec
+};
+reactor foo {
+    input x:number;
+    output y:number;
+    logical action a:number;
+    reaction(x) -> y, a {=
+        y.set(2*(x as number));
+        a.schedule(new UnitBasedTimeInterval(500, TimeUnit.msec))
+    =}
+}
+reactor print {
+    input x:number;
+    reaction(x) {=
+        console.log("Result is " + (x as number));
+        console.log("Current logical time is " + this.util.time.getElapsedLogicalTime());
+        console.log("Current physical time is: " + this.util.time.getElapsedPhysicalTime());
+    =}
+}
+main reactor top {
+    f = new foo();
+    p = new print();
+    timer t(0, 1 sec);
+    reaction(t) -> f.x {=
+        f.x.set(42);
+    =}
+    f.y -> p.x after 10 msec;
+}
