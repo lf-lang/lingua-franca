@@ -13,9 +13,8 @@ reactor Printer {
     input x:number;
     state count:number(1);
     reaction(x) {=
-        console.log("Inside reactor received: "
-          + x.get());
-        if ((x.get() as number) != count) {
+        console.log("Inside reactor received: " + x);
+        if ((x as number) != count) {
             console.log("FAILURE: Expected " + count);
             this.util.exec.failure();
             //throw new Error("FAILURE: Expected " + (this.state as any).count);

@@ -25,7 +25,7 @@ main reactor DeadlineHandledAbove {
         d.x.set(42);
     =}
     reaction(d.deadline_violation) {=
-        if( d.deadline_violation.get()){
+        if (d.deadline_violation) {
             console.log("Output successfully produced by deadline miss handler.");
             violation_detected = true;
         }

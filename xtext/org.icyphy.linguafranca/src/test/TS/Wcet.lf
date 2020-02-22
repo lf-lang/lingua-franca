@@ -15,10 +15,10 @@ reactor Work {
     output out:number;
     reaction(in1, in2) -> out {=
         let ret:number;
-        if ((in1.get() as number) > 10) {
-            ret = (in2.get() as number) * (in1.get() as number);
+        if ((in1 as number) > 10) {
+            ret = (in2 as number) * (in1 as number);
         } else {
-            ret = (in2.get() as number) + (in1.get() as number);
+            ret = (in2 as number) + (in1 as number);
         }
         out.set(ret);
     =}
@@ -26,7 +26,7 @@ reactor Work {
 reactor Print {
     input x:number;
     reaction(x) {=
-        console.log("Received: " + x.get());
+        console.log("Received: " + x);
     =}
 }
 

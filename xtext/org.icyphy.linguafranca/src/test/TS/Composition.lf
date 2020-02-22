@@ -24,8 +24,8 @@ reactor Test {
     state count:number(0);
     reaction(x) {=
         count++;
-        console.log("Received " + x.get());
-        if (x.get() != count) { 
+        console.log("Received " + x);
+        if (x != count) { 
             console.log("FAILURE: Expected " + count);
             this.util.exec.failure();
             //throw new Error("FAILURE: Expected " + (this.state as any).count);

@@ -27,8 +27,8 @@ reactor Destination {
 	input x:number;
 	state s:number(1);
 	reaction(x) {=
-        if (x.get() != s) {
-            console.log("Error: Expected " + s + " and got " + x.get() + ".")
+        if (x != s) {
+            console.log("Error: Expected " + s + " and got " + x + ".")
             this.util.exec.failure()
         }
         s++;		
@@ -46,4 +46,4 @@ main reactor TimeLimit(period:time(1 usec)) {
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x;
-}
+} 

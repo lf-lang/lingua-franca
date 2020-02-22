@@ -5,16 +5,16 @@
         input x:number;
         output y:number;
         reaction(x) -> y {=
-            y.set((x.get() as number) * scale);
+            y.set((x as number) * scale);
         =}
     }
     reactor Test {
         input x:number;
         state received_value:boolean(false);
         reaction(x) {=
-            console.log("Received " + x.get() + ".");
+            console.log("Received " + x + ".");
             received_value = true;
-            if ((x.get() as number) != 2) {
+            if ((x as number) != 2) {
                 console.log("ERROR: Expected 2!");
                 this.util.exec.failure();
                 //throw new Error("ERROR: Expected 2!");
