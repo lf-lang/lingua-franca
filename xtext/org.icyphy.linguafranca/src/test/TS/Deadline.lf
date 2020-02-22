@@ -28,7 +28,7 @@ reactor Destination(timeout:time(1 sec)) {
     input x:number;
     state count:number(0);
     reaction(x) {=
-        console.log("Destination receives: " + x.get());
+        console.log("Destination receives: " + x);
         if (2 * Math.floor(count / 2) != count) {
             // The count variable is odd, so the deadline should have been violated.
             console.log("ERROR: Failed to detect deadline.");
@@ -37,7 +37,7 @@ reactor Destination(timeout:time(1 sec)) {
         }
         count++;
     =} deadline(timeout) {=
-        console.log("Destination deadline handler receives: " + x.get());
+        console.log("Destination deadline handler receives: " + x);
         if (2 * Math.floor(count / 2) == count) {
             // The count variable is even, so the deadline should not have been violated.
             console.log("ERROR: Deadline miss handler invoked without deadline violation.");

@@ -6,11 +6,11 @@ reactor Delay(delay:time(100 msec)) {
     output out:number;
     logical action a:number;
     reaction(x) -> a {=
-        a.schedule( delay, x.get() as number);
+        a.schedule( delay, x as number);
     =}
     reaction(a) -> out {=
-        if (a.get() !== null){
-            out.set(a.get() as number)
+        if (a !== null){
+            out.set(a as number)
         }
     =}
 }
@@ -23,7 +23,7 @@ reactor Test {
         start_time = this.util.time.getCurrentLogicalTime().time;
     =} 
     reaction(x) {=
-        console.log("Received: " + x.get());
+        console.log("Received: " + x);
         received_value = true;
         // Check the time of the input.
         let current_time = this.util.time.getCurrentLogicalTime().time;
@@ -34,10 +34,10 @@ reactor Test {
             this.util.exec.failure();
             //throw new Error( "ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
         }
-        if ( x.get() != 42) {
-            console.log("ERROR: Expected input value to be 42. It was " + x.get());
+        if ( x != 42) {
+            console.log("ERROR: Expected input value to be 42. It was " + x);
             this.util.exec.failure();
-            //throw new Error("ERROR: Expected input value to be 42. It was " + (this.state as any).x.get());            
+            //throw new Error("ERROR: Expected input value to be 42. It was " + (this.state as any).x);            
         }
     =}
     reaction(shutdown) {=

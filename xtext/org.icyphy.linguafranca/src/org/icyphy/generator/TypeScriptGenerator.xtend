@@ -560,22 +560,24 @@ class TypeScriptGenerator extends GeneratorBase {
                  
                 if (!effectSet.contains(trigOrSourcePair)){
                     if (trigOrSource.container === null) {
-                        var reactSignatureElement = trigOrSource.variable.name + ": Readable<"
+                        var reactSignatureElementType = "";
                         
                         if (trigOrSource.variable instanceof Timer) {
-                            reactSignatureElement += "TimeInstant" 
+                            reactSignatureElementType = "TimeInstant"
                         } else if (trigOrSource.variable instanceof Action) {
                             if ((trigOrSource.variable as Action).type !== null) {
-                                reactSignatureElement += removeCodeDelimiter((trigOrSource.variable as Action).type)  
+                                reactSignatureElementType = removeCodeDelimiter((trigOrSource.variable as Action).type)
                             } else {
-                                reactSignatureElement += "Present"
+                                reactSignatureElementType = "Present"
                             }
                         } else if (trigOrSource.variable instanceof Port) {
-                            reactSignatureElement += (trigOrSource.variable as Port).type 
+                            reactSignatureElementType = (trigOrSource.variable as Port).type
                         }
-                        reactSignatureElement += ">"
-                        reactSignature.add(reactSignatureElement)
+                        var reactSignatureElement =  "__" + trigOrSource.variable.name
+                            + ": Readable<" + reactSignatureElementType + ">"
                         
+                        pr(reactPrologue, "let " + trigOrSource.variable.name + " = __" + trigOrSource.variable.name + ".get();")
+                        reactSignature.add(reactSignatureElement)
                         reactFunctArgs.add("this." + trigOrSource.variable.name)
                     } else {
                         var args = containerToArgs.get(trigOrSource.container)
@@ -649,25 +651,32 @@ class TypeScriptGenerator extends GeneratorBase {
             for (container : containers) {
                 var containedArgsObject = new StringJoiner(", ")
                 var containedSigObject = new StringJoiner(", ") 
+                var containedPrologueObject = new StringJoiner(", ")
                 var containedVariables = containerToArgs.get(container)
                 for (containedVariable : containedVariables) {
                     var functArg = "this." + container.name + "." + containedVariable.name
                     var containedSigElement = ""
                     var containedArgElement = ""
+                    var containedPrologueElement = ""
                     if (containedVariable instanceof Input) {
-                        containedSigElement += containedVariable.name + ": Writable<" + containedVariable.type + ">"
+                        containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type + ">"
                         containedArgElement += containedVariable.name + ": " + "this.getWritable(" + functArg + ")"
+                        containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name
                     } else if(containedVariable instanceof Output) {
                         containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type + ">"
                         containedArgElement += containedVariable.name + ": " + functArg
+                        containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                     }
                     containedArgsObject.add(containedArgElement)
-                    containedSigObject.add(containedSigElement) 
+                    containedSigObject.add(containedSigElement)
+                    containedPrologueObject.add(containedPrologueElement) 
                 }
+//                pr(reactPrologue, "let " + container.name + "." + containedVariable.name + " = " + container.name + "." + "__" + containedVariable.name + ".get();")
                 var reactFunctArgsElement = "{ " +  containedArgsObject.toString() + " }"
-                var reactSignatureElement = container.name + ": { " + containedSigObject.toString() + " }"
+                var reactSignatureElement = "__" + container.name + ": { " + containedSigObject.toString() + " }"
                 reactFunctArgs.add(reactFunctArgsElement) 
                 reactSignature.add(reactSignatureElement)
+                pr(reactPrologue, "let " + container.name + " = {" + containedPrologueObject + "};")
             }
             
             // Assemble reaction triggers          

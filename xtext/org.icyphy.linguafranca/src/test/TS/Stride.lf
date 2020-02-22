@@ -15,7 +15,7 @@ reactor Count(stride:number(1)) {
 reactor Display {
     input x:number;
     reaction(x) {=
-        console.log("Received: " + x.get());
+        console.log("Received: " + x);
     =}
 }
 main reactor Stride {
