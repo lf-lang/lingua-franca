@@ -82,11 +82,11 @@ class CppGenerator extends GeneratorBase {
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
-    
+        
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
         var target = resource.findTarget
-
+        
         super.doGenerate(resource, fsa, context)
         mainReactor = this.mainDef?.reactorClass
         
@@ -183,57 +183,6 @@ class CppGenerator extends GeneratorBase {
     def priority(Reaction n) {
         var r = n.eContainer as Reactor
         r.reactions.lastIndexOf(n) + 1
-    }
-
-    def findTarget(Resource resource) {
-        var target = null as Target
-        for (t : resource.allContents.toIterable.filter(Target)) {
-            if (target !== null) {
-                throw new RuntimeException("There is more than one target!")
-            }
-            target = t
-        }
-        if (target === null) {
-            throw new RuntimeException("No target found!")
-        }
-        target
-    }
-
-    /** Return the value of a target property as a string suitable for
-     *  embedding in generated code, or return null if there is no such
-     *  property.
-     */
-    def getProperty(Target t, String s) {
-        if (t.config !== null) {
-            // target properties are using the new syntax.
-            for (pair : t.config.pairs) {
-                if (pair.name == s) {
-                    if (pair.value.literal !== null) {
-                        return pair.value.literal.toString
-                    } else {
-                        return "[FIXME: only literal target properties are supported.]"
-                    }
-                }
-            }
-        }
-        // The following supports legacy target properties syntax.
-        for (p : t.properties ?: emptyList) {
-            if (p.name == s) {
-                if (p.literal !== null) {
-                    return p.literal.toString
-                } else {
-                    return "[FIXME: time-valued target properties not supported.]"
-                }
-            }
-        }
-        null
-    }
-
-    /** Return true if a target property with the specified name
-     *  exists and false otherwise.
-     */
-    def hasProperty(Target t, String s) {
-        !(getProperty(t, s) === null)
     }
 
     def declare(Reaction n) '''
@@ -659,7 +608,7 @@ class CppGenerator extends GeneratorBase {
         int main(int argc, char **argv) {
           CLI::App app("«filename» Reactor Program");
           
-          unsigned threads = «IF t.hasProperty('threads')»«t.getProperty('threads')»«ELSE»4«ENDIF»;
+          unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»4«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
           unsigned timeout;
           auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
@@ -753,14 +702,10 @@ class CppGenerator extends GeneratorBase {
 
         install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         
-        «IF target.hasProperty("cmake_include")»
-            include(«directory»«File.separator»«target.getProperty("cmake_include").withoutQuotes»)
+        «IF targetCmakeInclude !== null»
+            include(«directory»«File.separator»«targetCmakeInclude»)
         «ENDIF»
     '''
-
-    def withoutQuotes(String s) {
-        s.replace("\"", "").replace("\'", "")
-    }
 
     def void doCompile() {
         var makeCmd = newArrayList()

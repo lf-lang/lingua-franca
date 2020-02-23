@@ -36,6 +36,7 @@ import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.HashSet
+import java.util.LinkedList
 import java.util.List
 import java.util.Set
 import java.util.regex.Pattern
@@ -94,7 +95,7 @@ abstract class GeneratorBase {
     
     /** Path to the directory containing the .lf file. */
     protected var String directory
-
+    
     /** The root filename for the main file containing the source code,
      *  without the .lf extension.
      */
@@ -102,7 +103,6 @@ abstract class GeneratorBase {
 
     /** Indicator of whether generator errors occurred. */
     protected var generatorErrorsOccurred = false
-
     
     /** Definition of the main (top-level) reactor */
     protected Instantiation mainDef
@@ -126,6 +126,41 @@ abstract class GeneratorBase {
      *  full filename with the .lf extension.
      */
     protected var String sourceFile
+    
+    ////////////////////////////////////////////
+    //// Target properties, if they are included.
+    
+    /** A list of federate names or a list with a single empty string
+     *  if there are no federates specified.
+     */
+    protected var List<String> federates = new LinkedList<String>
+
+    /** The cmake_include target parameter, or null if there is none. */
+    protected String targetCmakeInclude
+    
+    /** The compile target parameter, or null if there is none. */
+    protected String targetCompile
+    
+    /** The fast target parameter, or false if there is none. */
+    protected boolean targetFast = false
+    
+    /** The value of the keepalive target parameter, or false if there is none. */
+    protected boolean targetKeepalive
+    
+    /** The level of logging or null if not given. */
+    protected String targetLoggingLevel
+
+    /** The run target parameter, or null if there is none. */
+    protected String targetRun
+
+    /** The threads target parameter, or the default 0 if there is none. */
+    protected int targetThreads = 0
+
+    /** The threads timeout parameter, or the default -1 if there is none. */
+    protected int targetTimeout = -1
+
+    /** The threads timeout unit parameter, or the default null if there is none. */
+    protected TimeUnit targetTimeoutUnit
 
     ////////////////////////////////////////////
     //// Private fields.
@@ -157,9 +192,47 @@ abstract class GeneratorBase {
         
         generatorErrorsOccurred = false
         
+        var target = resource.findTarget
+        for (param: target.config?.pairs ?: emptyList) {
+            switch param.name {
+                case "cmake_include":
+                    targetCmakeInclude = param.value.literal.withoutQuotes
+                case "compile":
+                    targetCompile = param.value.literal.withoutQuotes
+                case "fast":
+                    if (param.value.id.equals('true')) {
+                        targetFast = true
+                    } else {
+                        targetFast = false
+                    }
+                case "keepalive":
+                    if (param.value.id.equals('true')) {
+                        targetKeepalive = true
+                    } else {
+                        targetKeepalive = false
+                    }
+                case "logging":
+                    targetLoggingLevel = param.value.id
+                case "run":
+                    targetRun = param.value.literal.withoutQuotes
+                case "threads":
+                    targetThreads = Integer.decode(param.value.literal)
+                case "timeout": {
+                    targetTimeout = param.value.time
+                    targetTimeoutUnit = param.value.unit
+                }
+            }
+        }
+        
         this.resource = resource
         // Figure out the file name for the target code from the source file name.
         analyzeResource(resource)
+        
+        // If federates are specified in the target, create a mapping
+        // from Instantiations in the main reactor to federate names.
+        // Also create a list of federate names or a list with a single
+        // empty name if there are no federates specified.
+        analyzeFederates(resource)
         
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
@@ -382,6 +455,19 @@ abstract class GeneratorBase {
         "instant_t"
     }
 
+    /** Remove quotation marks surrounding the specified string.
+     */
+    def withoutQuotes(String s) {
+        var result = s
+        if (s.startsWith("\"") || s.startsWith("\'")) {
+            result = s.substring(1)
+        }
+        if (result.endsWith("\"") || result.endsWith("\'")) {
+            result = result.substring(0, result.length - 1)
+        }
+        result
+    }
+
     // //////////////////////////////////////////
     // // Protected methods.
 
@@ -431,6 +517,21 @@ abstract class GeneratorBase {
             println("--- End of standard standard error.")
         }
         returnCode
+    }
+    
+    /** Return the target. */
+    def findTarget(Resource resource) {
+        var target = null as Target
+        for (t : resource.allContents.toIterable.filter(Target)) {
+            if (target !== null) {
+                throw new RuntimeException("There is more than one target!")
+            }
+            target = t
+        }
+        if (target === null) {
+            throw new RuntimeException("No target found!")
+        }
+        target
     }
     
     /** Generate any preamble code that appears in the code generated
@@ -842,6 +943,15 @@ abstract class GeneratorBase {
 
     ////////////////////////////////////////////////////
     //// Private functions
+    
+    /** Analyze the resource (the .lf file) that is being parsed
+     *  to determine whether code is being mapped to single or to
+     *  multiple target machines.
+     */
+    private def analyzeFederates(Resource resource) {
+        var target = resource.findTarget 
+        // FIXME
+    }
     
     /** Analyze the resource (the .lf file) that is being parsed
      *  to generate code to set the following variables:

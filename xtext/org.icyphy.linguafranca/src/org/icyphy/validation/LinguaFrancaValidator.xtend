@@ -31,6 +31,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'Cpp',
         'TypeScript'
     }
+    
+    public static val LOGGING_LEVELS = #{
+        'ERROR',
+        'WARN',
+        'INFO',
+        'LOG',
+        'DEBUG'
+    }
+    
     public static val TARGET_REQUIRES_TYPES = #{
         'C' -> true,
         'Cpp' -> true,
@@ -41,6 +50,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'cmake_include',
         'compile', 
         'fast',
+        'federates',
         'hosts',
         'keepalive',
         'logging',
@@ -185,33 +195,80 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     /** Check target parameters, which are key-value pairs. */
     @Check(FAST)
     def checkKeyValuePair(KeyValuePair param) {
-        // NOTE: If we use key-value pairs for anything other than target
-        // parameters, then this will have to be adjusted.
-        if (!TARGET_PARAMETERS.contains(param.name)) {
-            warning(
-                "Unrecognized target parameter: " + param.name,
-                Literals.KEY_VALUE_PAIR__NAME)
-        }
-        if (param.name.equals("threads")) {
-            try {
-                val value = Integer.decode(param.value.literal)
-                if (value <= 0) {
-                    error("Target property threads is required to be a positive integer.",
-                    Literals.KEY_VALUE_PAIR__VALUE)
-                }
-            } catch (NumberFormatException ex) {
-                error(
-                    "Target property threads is required to be an integer.",
-                    Literals.KEY_VALUE_PAIR__VALUE)
+        // Check only if the container's container is a Target.
+        if (param.eContainer.eContainer instanceof Target) {
+            if (!TARGET_PARAMETERS.contains(param.name)) {
+                warning(
+                    "Unrecognized target parameter: " + param.name +
+                    ". Recognized parameters are " + TARGET_PARAMETERS,
+                    Literals.KEY_VALUE_PAIR__NAME)
             }
-        } else if (param.name.equals("timeout")) {
-            if (param.value.unit === null) {
-                error("Target property timeout requires a time unit. Should be one of " +
-                    TimeUnit.VALUES.filter[it != TimeUnit.NONE],
-                    Literals.KEY_VALUE_PAIR__VALUE)
-            } else if (param.value.time <= 0) {
-                error("Target property timeout requires a positive time value with units.",
-                    Literals.KEY_VALUE_PAIR__VALUE)
+            switch param.name {
+            case "cmake_include":
+                if (param.value.literal === null) {
+                    error("Target property cmake_include is required to be a string.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "compile":
+                if (param.value.literal === null) {
+                    error("Target property compile is required to be a string.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "fast":
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                    error("Target property fast is required to be true or false.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "federates":
+                if (param.value.keyvalue === null) {
+                    error("Target property federates is required to be a set of key-value pairs.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                } else {
+                    for (federate : param.value.keyvalue.eContents) {
+                        // FIXME: Check syntax of federate.
+                    }
+                }
+            case "keepalive":
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                    error("Target property keepalive is required to be true or false.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "logging":
+                if (!LOGGING_LEVELS.contains(param.value.id)) {
+                    error("Target property logging is required to be one of " +
+                        LOGGING_LEVELS,
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "run":
+                if (param.value.literal === null) {
+                    error("Target property run is required to be a string.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "threads": {
+                if (param.value.literal === null) {
+                    error("Target property threads is required to be a non-negative integer.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+                try {
+                    val value = Integer.decode(param.value.literal)
+                    if (value < 0) {
+                        error("Target property threads is required to be a non-negative integer.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                } catch (NumberFormatException ex) {
+                    error("Target property threads is required to be a non-negative integer.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            }
+            case "timeout":
+                if (param.value.unit === null) {
+                    error("Target property timeout requires a time unit. Should be one of " +
+                        TimeUnit.VALUES.filter[it != TimeUnit.NONE],
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                } else if (param.value.time < 0) {
+                    error("Target property timeout requires a non-negative time value with units.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
             }
         }
     }
@@ -295,40 +352,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.TARGET__NAME)
         } else {
             this.target = target.name;
-        }
-        if (target.properties !== null && !target.properties.isEmpty()) {
-            warning("Deprecated target parameter syntax.", Literals.TARGET__PROPERTIES);
-            for (property : target.properties) {
-                if (!TARGET_PARAMETERS.contains(property.name)) {
-                    warning(
-                        "Unrecognized target parameter: " + property.name,
-                        Literals.TARGET__PROPERTIES
-                    )
-                }
-                // Make sure the value of the parameter is a string,
-                // a parsable integer, or a time.
-                if(property.literal !== null){
-                    // This is a Literal
-                    if (!property.literal.startsWith('"') ||
-                        !property.literal.endsWith('"')) {
-                        try {
-                            Integer.decode(property.literal)
-                        } catch (NumberFormatException ex) {
-                            error(
-                                "Target property literal is required to be an integer or a string surrounded by quotation marks.",
-                                Literals.TARGET__PROPERTIES
-                            )
-                        }
-                    }
-                } else {
-                    // This is a Time
-                    if (property.unit == TimeUnit.NONE) {
-                        error("Missing time units. Should be one of " +
-                        TimeUnit.VALUES.filter[it != TimeUnit.NONE],
-                        Literals.TIME_OR_VALUE__UNIT)
-                    }
-                }
-            }
         }
     }
     

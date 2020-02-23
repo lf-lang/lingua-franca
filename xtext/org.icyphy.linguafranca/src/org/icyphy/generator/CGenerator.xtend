@@ -47,20 +47,19 @@ import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.QueuingPolicy
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.State
-import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.LinguaFrancaPackage
-import org.icyphy.linguaFranca.QueuingPolicy
 
 /** Generator for C target.
  * 
@@ -94,9 +93,6 @@ class CGenerator extends GeneratorBase {
 
     /** The main (top-level) reactor instance. */
     protected ReactorInstance main
-
-    // Indicator of whether to generate multithreaded code and how many by default.
-    var numberOfThreads = 0
     
     // The command to run the generated code if specified in the target directive.
     var runCommand = new ArrayList<String>()
@@ -170,7 +166,7 @@ class CGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + "reactor.h"));
         fOut.write(readFileInClasspath("/lib/C/reactor.h").getBytes())
 
-        if (numberOfThreads === 0) {
+        if (targetThreads === 0) {
             fOut = new FileOutputStream(
                 new File(srcGenPath + File.separator + "reactor.c"));
             fOut.write(readFileInClasspath("/lib/C/reactor.c").getBytes())
@@ -269,7 +265,7 @@ class CGenerator extends GeneratorBase {
             }
             compileCommand.addAll("-o", relativeBinFilename)
             // If threaded computation is requested, add a -pthread option.
-            if (numberOfThreads !== 0) {
+            if (targetThreads !== 0) {
                 compileCommand.add("-pthread")
             }
             // If there is no main reactor, then use the -c flag to prevent linking from occurring.
@@ -1667,90 +1663,48 @@ class CGenerator extends GeneratorBase {
         
         pr('#include "pqueue.c"')
         
-        for (target : resource.allContents.toIterable.filter(Target)) {
-            if (target.config !== null && target.config.pairs.length > 0) {
-                // Using the newer syntax.
-                // Target parameters given as key-value pairs.
-                for (pair : target.config.pairs) {
-                    if (pair.name.equals("threads")) {
-                        // This has been checked by the validator.
-                        numberOfThreads = Integer.decode(pair.value.literal)
-                        // Set this as the default in the generated code,
-                        // but only if it has not been overridden on the command line.
-                        pr(startTimers, "if (number_of_threads == 0) {")
-                        indent(startTimers)
-                        pr(startTimers,
-                            "number_of_threads = " + numberOfThreads + ";")
-                        unindent(startTimers)
-                        pr(startTimers, "}")
-                    } else if (pair.name.equals("compile")) {
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = pair.value.literal.substring(1,
-                            pair.value.literal.length - 1).split(' ')
-                        compileCommand = newArrayList
-                        compileCommand.addAll(command)
-                    } else if (pair.name.equals("fast")) {
-                        // The runCommand has a first entry that is ignored but needed.
-                        if (runCommand.length === 0) {
-                            runCommand.add("X")
-                        }
-                        runCommand.add("-f")
-                        runCommand.add(pair.value.id)
-                    } else if (pair.name.equals("keepalive")) {
-                        // The runCommand has a first entry that is ignored but needed.
-                        if (runCommand.length === 0) {
-                            runCommand.add("X")
-                        }
-                        runCommand.add("-k")
-                        runCommand.add(pair.value.id)
-                    } else if (pair.name.equals("timeout")) {
-                        // The runCommand has a first entry that is ignored but needed.
-                        if (runCommand.length === 0) {
-                            runCommand.add("X")
-                        }
-                        runCommand.add("-o")
-                        runCommand.add(Integer.toString(pair.value.time))
-                        runCommand.add(pair.value.unit.toString)
-                    }
-                }
-            } else if (target.properties !== null && target.properties.length > 0) {
-                // Using the old syntax.
-                // NOTE: Same warning issued by the validator.
-                reportError(
-                        "WARNING: Using deprecated syntax for target parameters. "
-                        + "See https://github.com/icyphy/lingua-franca/wiki/Writing-Reactors-in-C#the-c-target-specification.")
-                for (assignment : target.properties) {
-                    if (assignment.name.equals("threads")) {
-                        // This has been checked by the validator.
-                        numberOfThreads = Integer.decode(assignment.literal)
-                        // Set this as the default in the generated code,
-                        // but only if it has not been overridden on the command line.
-                        pr(startTimers, "if (number_of_threads == 0) {")
-                        indent(startTimers)
-                        pr(startTimers,
-                            "number_of_threads = " + numberOfThreads + ";")
-                        unindent(startTimers)
-                        pr(startTimers, "}")
-                    } else if (assignment.name.equals("run")) {
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = assignment.literal.substring(1,
-                            assignment.literal.length - 1).split(' ')
-                        runCommand.addAll(command)
-                    } else if (assignment.name.equals("compile")) {
-                        // Strip off enclosing quotation marks and split at spaces.
-                        val command = assignment.literal.substring(1,
-                            assignment.literal.length - 1).split(' ')
-                        compileCommand = newArrayList
-                        compileCommand.addAll(command)
-                    }
-                }
-            }
-        }
-        
-        if (numberOfThreads === 0) {
-            pr("#include \"reactor.c\"")
-        } else {
+        // Handle target parameters.
+        if (targetThreads > 0) {
+            // Set this as the default in the generated code,
+            // but only if it has not been overridden on the command line.
+            pr(startTimers, "if (number_of_threads == 0) {")
+            indent(startTimers)
+            pr(startTimers, "number_of_threads = " + targetThreads + ";")
+            unindent(startTimers)
+            pr(startTimers, "}")
             pr("#include \"reactor_threaded.c\"")
+        } else {
+            pr("#include \"reactor.c\"")
+        }
+        if (targetCompile !== null) {
+            val command = targetCompile.split(' ')
+            compileCommand = newArrayList
+            compileCommand.addAll(command)
+        }
+        if (targetFast) {
+            // The runCommand has a first entry that is ignored but needed.
+            if (runCommand.length === 0) {
+                runCommand.add("X")
+            }
+            runCommand.add("-f")
+            runCommand.add("true")
+        }
+        if (targetKeepalive) {
+            // The runCommand has a first entry that is ignored but needed.
+            if (runCommand.length === 0) {
+                runCommand.add("X")
+            }
+            runCommand.add("-k")
+            runCommand.add("true")
+        }
+        if (targetTimeout >= 0) {
+            // The runCommand has a first entry that is ignored but needed.
+            if (runCommand.length === 0) {
+                runCommand.add("X")
+            }
+            runCommand.add("-o")
+            runCommand.add(Integer.toString(targetTimeout))
+            runCommand.add(targetTimeoutUnit.toString)
         }
         
         // Generate #include statements for each .proto import.

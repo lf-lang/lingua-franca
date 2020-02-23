@@ -10,8 +10,8 @@
 // for over 23 million reactions per second.
 // This translates to 43 nanoseconds per reaction invocation.
 target TypeScript {
-	fast: "true",
-	logging: "info"
+	fast: true,
+	logging: INFO
 	//timeout: 3 sec
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
