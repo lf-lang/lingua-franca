@@ -44,6 +44,8 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
+import java.math.BigInteger
+import java.util.ArrayList
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -145,28 +147,33 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     "Model has no reactions at all. Nothing to do."
                 )
             }
-
+             
             // Analyze the dependency graph for reactions and assign
-            // levels to each reaction.
-            analyzeDependencies()
+            // chain identifiers/levels to each reaction.
+            this.chainIDWidth = analyzeDependencies()
 
-            // If there are reaction instances that have not been assigned
-            // a level, throw an exception. There are cyclic dependencies.
-            var reactionsInCycle = new LinkedList<ReactionInstance>()
-            reactionsWithoutLevels(this, reactionsInCycle)
-            if (!reactionsInCycle.isEmpty) {
-                // There are cycles. Construct an error message.
-                var inCycle = new LinkedList<String>
-                for (reaction : reactionsInCycle) {
-                    inCycle.add(
-                        "reaction " + reaction.reactionIndex + " in " +
-                            reaction.parent.getFullName
-                    )
-                }
-                throw new Exception(
-                    "Found cycles including: " + inCycle.join(", ")
-                )
-            }
+            // FIXME: also record number of reactions.
+            // We can use this to set the sizes of the queues.
+            
+// NOTE: retaining this code for benchmarking purposes!            
+//            assignLevels()
+//            // If there are reaction instances that have not been assigned
+//            // a level, throw an exception. There are cyclic dependencies.
+//            var reactionsInCycle = new LinkedList<ReactionInstance>()
+//            reactionsWithoutLevels(this, reactionsInCycle)
+//            if (!reactionsInCycle.isEmpty) {
+//                // There are cycles. Construct an error message.
+//                var inCycle = new LinkedList<String>
+//                for (reaction : reactionsInCycle) {
+//                    inCycle.add(
+//                        "reaction " + reaction.reactionIndex + " in " +
+//                            reaction.parent.getFullName
+//                    )
+//                }
+//                throw new Exception(
+//                    "Found cycles including: " + inCycle.join(", ")
+//                )
+//            }
         }
     }
 
@@ -175,6 +182,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** The action instances belonging to this reactor instance. */
     public var actions = new LinkedList<ActionInstance>
 
+    /** The number of bits required to store the chain identifiers. */
+    public var chainIDWidth = 0
+    
     /** The contained instances, indexed by name. */
     public var LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
 
@@ -440,6 +450,88 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
+    protected def DependencyGraph<ReactionInstance> getDependencyGraph() {
+        var graph = new DependencyGraph<ReactionInstance>()
+        for (child : this.children) {
+            graph.merge(child.dependencyGraph)
+        }
+        for (r : this.reactions) {
+            for (dependency : r.dependsOnReactions) {
+                graph.addEdge(r, dependency)
+            }
+            for (dependent: r.dependentReactions) {
+                graph.addEdge(dependent, r)
+            }
+        }
+        
+        graph
+    }
+
+    /**
+     * Analyze the dependencies between reactions and assign each
+     * reaction instance a chain identifier and level. Each branch
+     * in the graph introduces a new chain identifier, which is chosen
+     * such that the logical and with the chain id of any upstream
+     * reactions is always nonzero. All reactions with the same chain
+     * id are totally ordered according to their level. If any cycles
+     * are present in the dependency graph, an exception is thrown.
+     * This should be called only on the top-level (main) reactor.
+     */
+    protected def analyzeDependencies() {
+        if (independentReactions.isEmpty()) {
+            throw new Exception(
+                "Reactions form a cycle, where every reaction depends on another reaction!")
+        }
+        // This procedure is based on Kahn's algorithm for topological sorting.
+        var graph = this.getDependencyGraph();
+        var start = new ArrayList(independentReactions)
+        
+        for (s : start) {
+            s.level = 0 // All chains start out with zero depth.
+        }
+
+        var branch = 0;        
+        while (!start.empty) {
+            val n = start.remove(0)
+            var first = true
+            // The start of a chain is assigned a fresh ID.
+            if (independentReactions.contains(n)) {
+                n.chainID = new BigInteger("1").shiftLeft(branch)
+                branch++
+            }
+            for (m : graph.nodes) {
+                val deps  = graph.getDependencies(m)
+                if (deps.contains(n)) {
+                    // Remove edge to dependent node.
+                    deps.remove(n)
+                    // Update level of dependent node.
+                    m.level = Math.max(m.level, n.level+1)
+                    if (first) {
+                        // The first fork inherits the id of its parent.
+                        m.chainID = m.chainID.or(n.chainID)
+                        first = false
+                    } else {
+                        // Subsequent forks are assigned a fresh ID.
+                        m.chainID = m.chainID.or(n.chainID).or(new BigInteger("1").shiftLeft(branch))
+                        branch++    
+                    }
+                }
+                if (deps.size == 0) {
+                    if (m !== n)       // Visit nodes only once.
+                        start.add(m)   // Add new node to the start set.
+                }
+            }
+            
+            // Remove the current node from the graph.
+            graph.removeNode(n)
+        }
+        if (graph.nodeCount != 0) {
+            throw new Exception(
+                "Reactions form a cycle!")
+        }
+        return branch-1 // Number of bits required to store the branch ids.
+    }
+    
     /** Analyze the dependencies between reactions and assign levels.
      *  A reaction has level 0 if it has no dependence on any other reaction,
      *  i.e. it is the first reaction in a reactor and it is triggered by
@@ -450,7 +542,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  part of the cycle.
      *  This should be called only on the top-level (main) reactor.
      */
-    protected def void analyzeDependencies() {
+    protected def void assignLevels() {
         if (independentReactions.isEmpty()) {
             throw new Exception(
                 "Reactions form a cycle, where every reaction depends on another reaction!")
@@ -459,11 +551,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         var level = 0
         for (reaction : independentReactions) {
             reaction.level = level
+            reaction.chainID = new BigInteger("1");
             candidatesForLevel.addAll(reaction.dependentReactions)
         }
         while (!candidatesForLevel.isEmpty) {
             level++
-            candidatesForLevel = analyzeDependencies(candidatesForLevel, level)
+            candidatesForLevel = assignLevels(candidatesForLevel, level)
         }
     }
 
@@ -476,7 +569,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  @param level The specified level.
      *  @return Candidates for the next level.
      */
-    protected def analyzeDependencies(
+    protected def assignLevels(
         LinkedList<ReactionInstance> candidatesForLevel,
         int level
     ) {
@@ -493,6 +586,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
             if (ready) {
                 reaction.level = level
+                reaction.chainID = new BigInteger("1");
                 newCandidatesForLevel.addAll(reaction.dependentReactions)
             } else {
                 newCandidatesForLevel.add(reaction)

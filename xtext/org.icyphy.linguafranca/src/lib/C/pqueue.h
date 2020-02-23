@@ -163,7 +163,6 @@ void* pqueue_find_equal(pqueue_t *q, void *e, pqueue_pri_t max_priority);
  */
 int pqueue_remove(pqueue_t *q, void *e);
 
-
 /**
  * Access highest-ranking item without removing it.
  * @param q the queue
@@ -184,7 +183,6 @@ pqueue_print(pqueue_t *q,
              FILE *out,
              pqueue_print_entry_f print);
 
-
 /**
  * Dump the queue and it's internal structure.
  * @internal
@@ -198,7 +196,6 @@ pqueue_dump(pqueue_t *q,
              FILE *out,
              pqueue_print_entry_f print);
 
-
 /**
  * Check that the all entries are in the right order, etc.
  * @internal
@@ -206,7 +203,6 @@ pqueue_dump(pqueue_t *q,
  * @param q the queue
  */
 int pqueue_is_valid(pqueue_t *q);
-
 
 #endif /* PQUEUE_H */
 /** @} */
