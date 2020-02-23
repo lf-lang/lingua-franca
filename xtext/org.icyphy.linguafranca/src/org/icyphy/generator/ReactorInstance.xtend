@@ -26,6 +26,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
+import java.math.BigInteger
+import java.util.ArrayList
 import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
@@ -39,13 +41,11 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.TimeOrValue
+import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.TimeOrValue
-import org.icyphy.linguaFranca.TimeUnit
-import java.math.BigInteger
-import java.util.ArrayList
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
