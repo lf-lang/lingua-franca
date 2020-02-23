@@ -76,9 +76,6 @@ class CGenerator extends GeneratorBase {
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newHashSet('C')
 
-    // The command to compile the generated code if specified in the target directive.
-    var compileCommand = null as ArrayList<String>
-
     // Additional sources to add to the compile command if appropriate.
     var compileAdditionalSources = null as ArrayList<String>
 
@@ -122,7 +119,11 @@ class CGenerator extends GeneratorBase {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
+        analyzeModel(resource, fsa, context)
+
+        // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
+        
         // Build the instantiation tree if a main reactor is present.
         if (this.mainDef !== null) {
             this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.    
@@ -131,30 +132,14 @@ class CGenerator extends GeneratorBase {
         if (main.chainIDWidth > 64) {
             throw new Exception("Currently no support for programs with more than 64 branches in the dependency tree. ")
         }
-        
-        // Derive target filename from the .lf filename.
-        val cFilename = filename + ".c";
-
-        var srcGenPath = directory + File.separator + "src-gen"
-        var outPath = directory + File.separator + "bin"
 
         // Create the output directories if they don't yet exist.
+        var srcGenPath = directory + File.separator + "src-gen"
+        var outPath = directory + File.separator + "bin"
         var dir = new File(srcGenPath)
         if (!dir.exists()) dir.mkdirs()
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
-
-        // Delete source previously produced by the LF compiler.
-        var file = new File(srcGenPath + File.separator + cFilename)
-        if (file.exists) {
-            file.delete
-        }
-
-        // Delete binary previously produced by the C compiler.
-        file = new File(outPath + File.separator + filename)
-        if (file.exists) {
-            file.delete
-        }
 
         // Copy the required library files into the target filesystem.
         // This will overwrite previous versions.
@@ -185,77 +170,131 @@ class CGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + "pqueue.h"));
         fOut.write(readFileInClasspath("/lib/C/pqueue.h").getBytes())
 
-        // Generate main instance, if there is one.
-        // Note that any main reactors in imported files are ignored.        
-        if (this.main !== null) {
-            generateReactorInstance(this.main)
-
-            // Generate function to set default command-line options.
-            // A literal array needs to be given outside any function definition,
-            // so start with that.
-            if (runCommand.length > 0) {
-                pr('char* __default_argv[] = {"' + runCommand.join('", "') + '"};')
+        // Perform distinct code generation into distinct files for each federate.
+        val baseFilename = filename
+        var commonCode = code
+        for (federate : federates) {
+            // Empty string means no federates were defined, so we only generate
+            // one output.
+            if (!federate.equals("")) {
+                filename = baseFilename + '_' + federate
+                // Copy the commonCode into a new code string.
+                code = new StringBuilder(commonCode)
             }
-            pr('void __set_default_command_line_options() {\n')
-            indent()
-            if (runCommand.length > 0) {
-                pr('default_argc = ' + runCommand.length + ';')
-                pr('default_argv = __default_argv;')
-            }
-            unindent()
-            pr('}\n')
-
-            // Generate function to initialize the trigger objects for all reactors.
-            pr('void __initialize_trigger_objects() {\n')
-            indent()
-            pr(initializeTriggerObjects.toString)
-            doDeferredInitialize()
-            setReactionPriorities(main)
-            unindent()
-            pr('}\n')
-
-            // Generate function to start timers for all reactors.
-            pr("void __start_timers() {")
-            indent()
-            pr(startTimers.toString)
-            unindent()
-            pr("}")
-
-            // Generate function to execute at the start of a time step.
-            pr('void __start_time_step() {\n')
-            indent()
-            pr(startTimeStep.toString)
-            unindent()
-            pr('}\n')
-
-            // Generate function to schedule shutdown actions if any
-            // reactors have reactions to shutdown.
-            pr('bool __wrapup() {\n')
-            indent()
-            for (instance : shutdownActionInstances) {
-                pr('schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
-            }
-            if (shutdownActionInstances.length === 0) {
-                pr('return false;')
-            } else {
-                pr('return true;')
-            }
-            unindent()
-            pr('}\n')
-        }
-
-        // Write the generated code to the output file.
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + cFilename));
-        fOut.write(getCode().getBytes())
-
-        refreshProject()
         
-        // Invoke the compiler on the generated code.
-        val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-        val relativeBinFilename = "bin" + File.separator + filename;
-        if (compileCommand === null) {
-            compileCommand = newArrayList
+            // Derive target filename from the .lf filename.
+            val cFilename = filename + ".c";
+
+            // Delete source previously produced by the LF compiler.
+            var file = new File(srcGenPath + File.separator + cFilename)
+            if (file.exists) {
+                file.delete
+            }
+
+            // Delete binary previously produced by the C compiler.
+            file = new File(outPath + File.separator + filename)
+            if (file.exists) {
+                file.delete
+            }
+
+            // Generate main instance, if there is one.
+            // Note that any main reactors in imported files are ignored.        
+            if (this.main !== null) {
+                generateReactorInstance(this.main)
+
+                // Generate function to set default command-line options.
+                // A literal array needs to be given outside any function definition,
+                // so start with that.
+                if (runCommand.length > 0) {
+                    pr('char* __default_argv[] = {"' + runCommand.join('", "') + '"};')
+                }
+                pr('void __set_default_command_line_options() {\n')
+                indent()
+                if (runCommand.length > 0) {
+                    pr('default_argc = ' + runCommand.length + ';')
+                    pr('default_argv = __default_argv;')
+                }
+                unindent()
+                pr('}\n')
+
+                // Generate function to initialize the trigger objects for all reactors.
+                pr('void __initialize_trigger_objects() {\n')
+                indent()
+                pr(initializeTriggerObjects.toString)
+                doDeferredInitialize()
+                setReactionPriorities(main)
+                unindent()
+                pr('}\n')
+
+                // Generate function to start timers for all reactors.
+                pr("void __start_timers() {")
+                indent()
+                pr(startTimers.toString)
+                unindent()
+                pr("}")
+
+                // Generate function to execute at the start of a time step.
+                pr('void __start_time_step() {\n')
+                indent()
+                pr(startTimeStep.toString)
+                unindent()
+                pr('}\n')
+
+                // Generate function to schedule shutdown actions if any
+                // reactors have reactions to shutdown.
+                pr('bool __wrapup() {\n')
+                indent()
+                for (instance : shutdownActionInstances) {
+                    pr('schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
+                }
+                if (shutdownActionInstances.length === 0) {
+                    pr('return false;')
+                } else {
+                    pr('return true;')
+                }
+                unindent()
+                pr('}\n')
+            }
+
+            // Write the generated code to the output file.
+            fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + cFilename));
+            fOut.write(getCode().getBytes())
+            fOut.close()
+        }
+        // Restore the base filename.
+        filename = baseFilename
+        
+        // In case we are in Eclipse, make sure the generated code is visible.
+        refreshProject()
+
+        compileCode()
+    }
+    
+    /** Invoke the compiler on the generated code. */
+    def compileCode() {
+        // If the target directive gives a compile command, use that.
+        if (targetCompile !== null) {
+            val command = targetCompile.split(' ')
+            var compileCommand = newArrayList
+            compileCommand.addAll(command)
+            executeCommand(compileCommand)
+            return
+        }
+        // If there is more than one federate, compile each one.
+        val baseFilename = filename
+        for (federate : federates) {
+            // Empty string means no federates were defined, so we only
+            // compile one file.
+            if (!federate.equals("")) {
+                filename = baseFilename + '_' + federate
+            }
+            // Derive target filename from the .lf filename.
+            val cFilename = filename + ".c";            
+            val relativeSrcFilename = "src-gen" + File.separator + cFilename;
+            val relativeBinFilename = "bin" + File.separator + filename;
+            
+            var compileCommand = newArrayList
             compileCommand.addAll("gcc", "-O2", relativeSrcFilename)
             if (compileAdditionalSources !== null) {
                 compileCommand.addAll(compileAdditionalSources)
@@ -279,8 +318,8 @@ class CGenerator extends GeneratorBase {
                         "ERROR: Did not output executable; no main reactor found.")
                 }
             }
+            executeCommand(compileCommand)
         }
-        executeCommand(compileCommand)
     }
 
     // //////////////////////////////////////////
@@ -1643,6 +1682,7 @@ class CGenerator extends GeneratorBase {
         «ENDIF»
         schedule(«action.name», 0, «tmp»);'''
     }
+    
     /**
      * Generate code for the body of a reaction that is triggered by the
      * given action and writes its value to the given port.
@@ -1675,11 +1715,6 @@ class CGenerator extends GeneratorBase {
             pr("#include \"reactor_threaded.c\"")
         } else {
             pr("#include \"reactor.c\"")
-        }
-        if (targetCompile !== null) {
-            val command = targetCompile.split(' ')
-            compileCommand = newArrayList
-            compileCommand.addAll(command)
         }
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.

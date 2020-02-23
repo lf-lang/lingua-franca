@@ -224,8 +224,32 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     error("Target property federates is required to be a set of key-value pairs.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 } else {
-                    for (federate : param.value.keyvalue.eContents) {
-                        // FIXME: Check syntax of federate.
+                    for (federate : param.value.keyvalue.pairs) {
+                        if (federate.value.keyvalue === null) {
+                            error("Each federate needs to be defined by key-value pairs.",
+                                Literals.KEY_VALUE_PAIR__VALUE)
+                        }
+                        // Check that there is a 'reactors' property that is an array of ids.
+                        var foundReactors = false
+                        for (property : federate.value.keyvalue.pairs) {
+                            if (property.name.equals("reactors")) {
+                                foundReactors = true
+                                if (property.value.array === null) {
+                                    error("Each reactor property needs to be an array of ids.",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                                }
+                                for (reactor : property.value.array.elements) {
+                                    if (reactor.id === null) {
+                                        error("Each reactor property needs to be an array of ids.",
+                                            Literals.KEY_VALUE_PAIR__VALUE)
+                                    }
+                                }
+                            }
+                        }
+                        if (!foundReactors) {
+                            error("Each federate needs to have a reactor property.",
+                                Literals.KEY_VALUE_PAIR__VALUE)
+                        }
                     }
                 }
             case "keepalive":
