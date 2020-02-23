@@ -2,8 +2,8 @@
 
 #==========================================================
 # Description: 	    Run the lfc compiler.
-# Authors:		    Marten Lohstroh, Mehrdad Niknami
-# Usage:		    Usage: lfc [options] file...
+# Authors:          Marten Lohstroh, Mehrdad Niknami
+# Usage:            Usage: lfc [options] file...
 #==========================================================
 
 set -euo pipefail
@@ -50,23 +50,25 @@ function usage() {
 }
 
 
-if type -p java; then
-    echo found java executable in PATH
+if [[ $(type -p java) != "" ]]; then
+    #echo found java executable in PATH
     _java=java
 elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]];  then
-    echo found java executable in JAVA_HOME     
+    #echo found java executable in JAVA_HOME     
     _java="$JAVA_HOME/bin/java"
 else
-    echo "no java"
+    fatal_error "JRE not found."
+    error_exit
 fi
 
 if [[ "$_java" ]]; then
-    version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
-    echo version "$version"
-    if [[ "$version" > "1.5" ]]; then
-        echo version is more than 1.5
-    else         
-        echo version is less than 1.5
+    semantic_version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    java_version=$(echo "$semantic_version" | awk -F. '{printf("%03d%03d",$1,$2);}')
+    #echo version "$semantic_version"
+    #echo version "$java_version"
+    if [ $java_version -lt 001008 ]; then
+        fatal_error "JRE $semantic_version found but 1.8 or greater is required."     
+        error_exit   
     fi
 fi
 
@@ -129,16 +131,11 @@ base="${base}../xtext/"
 lfbase="${base}org.icyphy.linguafranca/"
 jarpath="${lfbase}build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar"
 
-version1=$(echo "$version" | awk -F. '{printf("%03d%03d",$1,$2);}')
-
 # Compile the given file entries.
 for (( i=0; i<$entries; i++ )); do
-    if [ $version1 -ge 001008 ]; then
+    if [ $java_version -gt 001008 ]; then
         java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "${files[$i]}";
     else
-        echo "$JAVA_VER";
         java -jar "${jarpath}" "${files[$i]}";
     fi
 done
-
-#echo "$version1"
