@@ -8,6 +8,34 @@
 
 set -euo pipefail
 
+# Report fatal error.
+function fatal_error() {
+    1>&2 echo -e "\e[1mbuild-lfc: \e[31mfatal error: \e[0m$1"
+}
+
+if [[ $(type -p javac) != "" ]]; then
+    #echo found java executable in PATH
+    _javac=javac
+elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/javac" ]];  then
+    #echo found java executable in JAVA_HOME     
+    _javac="$JAVA_HOME/bin/javac"
+else
+    fatal_error "JDK not found."
+    exit 1
+fi
+
+if [[ "$_javac" ]]; then
+    semantic_version=$("$_javac" -version 2>&1 | awk '{print $2}')
+    javac_version=$(echo "$semantic_version" | awk -F. '{printf("%03d%03d",$1,$2);}')
+    #echo $_javac
+    #echo version "$semantic_version"
+    #echo version "$javac_version"
+    if [ $javac_version -lt 001008 ]; then
+        fatal_error "JDK $semantic_version found but 1.8 or greater is required."     
+        exit 1
+    fi
+fi
+
 # Print message explaining the CLI args.
 function usage() {
     echo "Usage: build-lfc [options]"
