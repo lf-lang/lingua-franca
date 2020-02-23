@@ -7,7 +7,6 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.KeyValuePair
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
@@ -15,6 +14,7 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.TargetParam
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
@@ -35,18 +35,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'C' -> true,
         'Cpp' -> true,
         'TypeScript' -> false
-    }
-    // Allowed target parameters, in alphabetical order.
-    public static val TARGET_PARAMETERS = #{
-        'cmake_include',
-        'compile', 
-        'fast',
-        'hosts',
-        'keepalive',
-        'logging',
-        'run', 
-        'threads',
-        'timeout'
     }
 
     var reactorClasses = newHashSet()
@@ -182,40 +170,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
     }
 
-    /** Check target parameters, which are key-value pairs. */
-    @Check(FAST)
-    def checkKeyValuePair(KeyValuePair param) {
-        // NOTE: If we use key-value pairs for anything other than target
-        // parameters, then this will have to be adjusted.
-        if (!TARGET_PARAMETERS.contains(param.name)) {
-            warning(
-                "Unrecognized target parameter: " + param.name,
-                Literals.KEY_VALUE_PAIR__NAME)
-        }
-        if (param.name.equals("threads")) {
-            try {
-                val value = Integer.decode(param.value.literal)
-                if (value <= 0) {
-                    error("Target property threads is required to be a positive integer.",
-                    Literals.KEY_VALUE_PAIR__VALUE)
-                }
-            } catch (NumberFormatException ex) {
-                error(
-                    "Target property threads is required to be an integer.",
-                    Literals.KEY_VALUE_PAIR__VALUE)
-            }
-        } else if (param.name.equals("timeout")) {
-            if (param.value.unit === null) {
-                error("Target property timeout requires a time unit. Should be one of " +
-                    TimeUnit.VALUES.filter[it != TimeUnit.NONE],
-                    Literals.KEY_VALUE_PAIR__VALUE)
-            } else if (param.value.time <= 0) {
-                error("Target property timeout requires a positive time value with units.",
-                    Literals.KEY_VALUE_PAIR__VALUE)
-            }
-        }
-    }
-
     @Check(FAST)
     def checkOutput(Output output) {
         checkName(output.name, Literals.VARIABLE__NAME)
@@ -296,39 +250,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         } else {
             this.target = target.name;
         }
-        if (target.properties !== null && !target.properties.isEmpty()) {
-            warning("Deprecated target parameter syntax.", Literals.TARGET__PROPERTIES);
-            for (property : target.properties) {
-                if (!TARGET_PARAMETERS.contains(property.name)) {
-                    warning(
-                        "Unrecognized target parameter: " + property.name,
-                        Literals.TARGET__PROPERTIES
-                    )
-                }
-                // Make sure the value of the parameter is a string,
-                // a parsable integer, or a time.
-                if(property.literal !== null){
-                    // This is a Literal
-                    if (!property.literal.startsWith('"') ||
-                        !property.literal.endsWith('"')) {
-                        try {
-                            Integer.decode(property.literal)
-                        } catch (NumberFormatException ex) {
-                            error(
-                                "Target property literal is required to be an integer or a string surrounded by quotation marks.",
-                                Literals.TARGET__PROPERTIES
-                            )
-                        }
-                    }
-                } else {
-                    // This is a Time
-                    if (property.unit == TimeUnit.NONE) {
-                        error("Missing time units. Should be one of " +
-                        TimeUnit.VALUES.filter[it != TimeUnit.NONE],
-                        Literals.TIME_OR_VALUE__UNIT)
-                    }
-                }
-            }
+    }
+    
+        /** Check target parameters, which are key-value pairs. */
+    @Check(FAST)
+    def checkTargetParam(TargetParam param) {
+        if (param.threads < 0) {
+            error("Target property threads is required to be a positive integer.",
+                   Literals.TARGET_PARAM__THREADS)
         }
     }
     
