@@ -34,6 +34,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Variable
+import java.math.BigInteger
 
 /** Representation of a runtime instance of a reaction.
  *  A ReactionInstance object stores all dependency information necessary
@@ -114,6 +115,14 @@ class ReactionInstance extends NamedInstance<Reaction> {
         }
     }
 
+    /** 
+     * Indicates the chain this reaction is a part of. It is constructed
+     * through a bit-wise or among all upstream chains. Each fork in the
+     * dependency graph setting a new, unused bit to true in order to
+     * disambiguate it from parallel chains.
+     */
+    public BigInteger chainID = new BigInteger("0");
+
     /** The actions that this reaction triggers. */
     public var dependentActions = new HashSet<ActionInstance>();
 
@@ -149,6 +158,11 @@ class ReactionInstance extends NamedInstance<Reaction> {
      *  that trigger reactions) that trigger this reaction.
      */
     public var triggers = new HashSet<TriggerInstance<Variable>>
+
+    /**
+     * Sources through which this reaction instance has been visited.
+     */
+    public var visited = new HashSet<ReactionInstance>
 
     /** Return the name of this reaction, which is 'reaction_n',
      *  where n is replaced by the reactionIndex. 
