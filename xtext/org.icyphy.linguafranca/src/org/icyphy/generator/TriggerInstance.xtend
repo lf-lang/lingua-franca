@@ -55,7 +55,7 @@ class TriggerInstance<T extends Variable> extends NamedInstance<Variable> {
     public var dependentReactions = new HashSet<ReactionInstance>();
 
     /** Reaction instances that may send outputs via this port. */
-    public var dependsOnReactions = new HashSet<ReactionInstance>();
+    public var dependsOnReactions = new HashSet<ReactionInstance>(); // FIXME: Perhaps better to use a TreeSet here
 
     /////////////////////////////////////////////
     //// Public Methods

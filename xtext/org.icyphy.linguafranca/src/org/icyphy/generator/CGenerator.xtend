@@ -128,6 +128,10 @@ class CGenerator extends GeneratorBase {
             this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.    
         }
         
+        if (main.chainIDWidth > 64) {
+            throw new Exception("Currently no support for programs with more than 64 branches in the dependency tree. ")
+        }
+        
         // Derive target filename from the .lf filename.
         val cFilename = filename + ".c";
 
@@ -956,6 +960,7 @@ class CGenerator extends GeneratorBase {
                 result,
                 "reaction_t " + reactionInstanceName + " = {&" + functionName +
                     selfStructArgument + ", 0" // index: index from the topological sort.
+                    + ", 0" // chain_id: binary encoding of the branches that this reaction has upstream in the dependency graph.
                     + ", 0" // pos: position used by the pqueue implementation for sorting.
                     + ", " + outputCount // num_outputs: number of outputs produced by this reaction.
                     + ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
@@ -1147,6 +1152,7 @@ class CGenerator extends GeneratorBase {
                     "reaction_t " + reactionInstanceName + " = {&" +
                         functionName + ", &" + nameOfSelfStruct // Function
                         + ", 0" // index: index from the topological sort.
+                        + ", 0"
                         + ", 0" // pos: position used by the pqueue implementation for sorting.
                         + ", 1" // num_outputs: number of outputs produced by this reaction. This is just one.
                         + ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
@@ -1597,6 +1603,10 @@ class CGenerator extends GeneratorBase {
             pr(
                 reactionStructName(reactionInstance) + ".index = " +
                     reactionInstance.level + ";")
+            pr(        
+                reactionStructName(reactionInstance) + ".chain_id = " +
+                    reactionInstance.chainID.toString() + ";")
+                
         }
         for (child : reactor.children) {
             setReactionPriorities(child)

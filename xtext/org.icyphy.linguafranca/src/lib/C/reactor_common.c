@@ -38,42 +38,58 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 bool False = false;
 bool True = true;
 
-// Indicator of whether to wait for physical time to match logical time.
-// By default, execution will wait. The command-line argument -fast will
-// eliminate the wait and allow logical time to exceed physical time.
+/** 
+ * Indicator of whether to wait for physical time to match logical time.
+ * By default, execution will wait. The command-line argument -fast will
+ * eliminate the wait and allow logical time to exceed physical time.
+ */ 
 bool fast = false;
 
-// By default, execution is not threaded and this variable will have value 0.
-int number_of_threads = 0;
+/** By default, execution is not threaded. */
+int number_of_threads = 0; // FIXME: should be unsigned
 
-// Current time in nanoseconds since January 1, 1970.
-// This is not in scope for reactors.
+
+/** The number of reactions in the system. */
+unsigned int number_of_reactions = 100; // FIXME set this in the generated code
+
+/**
+ * Current time in nanoseconds since January 1, 1970.
+ * This is not in scope for reactors.
+ */
 instant_t current_time = 0LL;
 
-// Logical time at the start of execution.
+/** Logical time at the start of execution. */
 interval_t start_time = 0LL;
 
-// Physical time at the start of the execution.
+/** Physical time at the start of the execution. */
 struct timespec physicalStartTime;
 
-// Indicator that the execution should stop after the completion of the
-// current logical time. This can be set to true by calling the stop()
-// function in a reaction.
+/**
+ * Indicator that the execution should stop after the completion of the
+ * current logical time. This can be set to true by calling the `stop()`
+ * function in a reaction.
+ */
 bool stop_requested = false;
 
-// Duration, or -1 if no timeout time has been given.
+/** 
+ * The logical time to elapse during execution, or -1 if no timeout time has
+ * been given. When the logical equal to start_time + duration has been
+ * reached, execution will terminate.
+ */
 instant_t duration = -1LL;
 
-// Stop time, or 0 if no timeout time has been given.
+/**
+ * Stop time (start_time + duration), or 0 if no timeout time has been given.
+ */
 instant_t stop_time = 0LL;
 
-// Indicator of whether the keepalive command-line option was given.
+/** Indicator of whether the keepalive command-line option was given. */
 bool keepalive_specified = false;
 
 /////////////////////////////
 // The following functions are in scope for all reactors:
 
-/** Return the elpased logical time in nanoseconds since the start of execution. */
+/** Return the elapsed logical time in nanoseconds since the start of execution. */
 interval_t get_elapsed_logical_time() {
     return current_time - start_time;
 }
@@ -114,9 +130,11 @@ void* lf_malloc(size_t size) {
 /////////////////////////////
 // The following is not in scope for reactors:
 
-// Priority queues.
+/** Priority queues. */
 pqueue_t* event_q;     // For sorting by time.
-pqueue_t* reaction_q;  // For sorting by index (precedence sort)
+pqueue_t* blocked_q;   // To store reactions that are blocked by other reactions.
+pqueue_t* transfer_q;  // To store reactions that are still blocked by other reactions.
+pqueue_t* ready_q;  // For sorting by deadline.
 pqueue_t* recycle_q;   // For recycling malloc'd events.
 pqueue_t* free_q;      // For free malloc'd values carried by events.
 
@@ -125,59 +143,98 @@ handle_t __handle = 1;
 
 // ********** Priority Queue Support Start
 
-// Compare two priorities.
-static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
-    return (next > curr);
+/**
+ * Return whether the first and second argument are given in reverse order.
+ */
+static int in_reverse_order(pqueue_pri_t this, pqueue_pri_t that) {
+    return (this > that);
 }
-// Compare two events. They are "equal" if they refer to the same trigger.
-static int eql_evt(void* next, void* curr) {
+
+/**
+ * Return whether or not the given events have matching tags.
+ */
+static int event_matches(void* next, void* curr) {
     return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
 }
-// Compare two reactions.
-static int eql_rct(void* next, void* curr) {
+
+/**
+ * Return whether or not the given reaction_t pointers 
+ * point to the same struct.
+ */
+static int reaction_matches(void* next, void* curr) {
     return (next == curr);
 }
-// Get priorities based on time.
-// Used for sorting event_t structs.
-static pqueue_pri_t get_evt_pri(void *a) {
+
+/**
+ * Report a priority equal to the time of the given event.
+ * Used for sorting pointers to event_t structs in the event queue.
+ */
+static pqueue_pri_t get_event_time(void *a) {
     return (pqueue_pri_t)(((event_t*) a)->time);
 }
-// Get priorities based on indices, which reflect topological sort.
-// Used for sorting reaction_t structs.
-static pqueue_pri_t get_rct_pri(void *a) {
+
+/**
+ * Report a priority equal to the index of the given reaction.
+ * Used for sorting pointers to reaction_t structs in the 
+ * blocked and executing queues.
+ */
+static pqueue_pri_t get_reaction_index(void *a) {
     return ((reaction_t*) a)->index;
 }
 
-// Get position in the queue of the specified event.
-static size_t get_evt_pos(void *a) {
+/**
+ * Report a priority equal to the deadline of the given reaction.
+ * Used for sorting pointers to reaction_t structs in the 
+ * ready queue.
+ */
+static pqueue_pri_t get_reaction_deadline(void *a) {
+    return ((reaction_t*) a)->local_deadline;
+}
+
+/**
+ * Return the given event's position in the queue.
+ */
+static size_t get_event_position(void *a) {
     return ((event_t*) a)->pos;
 }
 
-// Get position in the queue of the specified event.
-static size_t get_rct_pos(void *a) {
+/**
+ * Return the given reaction's position in the queue.
+ */
+static size_t get_reaction_position(void *a) {
     return ((reaction_t*) a)->pos;
 }
 
-// Set position of the specified event.
-static void set_evt_pos(void *a, size_t pos) {
+/**
+ * Set the given event's position in the queue.
+ */
+static void set_event_position(void *a, size_t pos) {
     ((event_t*) a)->pos = pos;
 }
 
-// Set position of the specified event.
-static void set_rct_pos(void *a, size_t pos) {
+/**
+ * Return the given reaction's position in the queue.
+ */
+static void set_reaction_position(void *a, size_t pos) {
     ((reaction_t*) a)->pos = pos;
 }
 
-static void prt_rct(FILE *out, void *a) {
-    reaction_t *n = a;
-    fprintf(out, "index: %lld, reaction: %p\n",
-            n->index, n);
+/**
+ * Print some information about the given reaction.
+ */
+static void print_reaction(FILE *out, void *reaction) {
+	reaction_t *r = reaction;
+    fprintf(out, "chain_id:%llu, index: %llu, reaction: %p\n", 
+        r->chain_id, r->index, r);
 }
 
-static void prt_evt(FILE *out, void *a) {
-    event_t *n = a;
+/**
+ * Print some information about the given event.
+ */
+static void print_event(FILE *out, void *event) {
+	event_t *e = event;
     fprintf(out, "time: %lld, trigger: %p, value: %p\n",
-            n->time, n->trigger, n->value);
+			e->time, e->trigger, e->value);
 }
 
 // ********** Priority Queue Support End
@@ -196,6 +253,19 @@ void __done_using(token_t* token) {
         // printf("****** Freeing allocated memory.\n");
         free(token->value);
     }
+}
+
+bool is_blocked_by(pqueue_t* q, reaction_t* reaction) {
+    // Check if there is another active reaction that
+    // has precedence over the given reaction.
+    for (int i = 1; i < q->size; i++) {
+        reaction_t* active = q->d[i];
+        if ((reaction->chain_id & active->chain_id != 0) 
+                && reaction->index > active->index) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Schedule the specified trigger at current_time plus the
@@ -321,12 +391,33 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     return __handle++;
 }
 
+/**
+ * Move pending reactions to the ready queue if 
+ * there are no more reactions blocking them.
+ */
+void move_ready_reactions() {
+    reaction_t* r;
+    pqueue_t* tmp;
+    while (pqueue_size(blocked_q) > 0) {
+        r = pqueue_pop(blocked_q);
+        if (is_blocked(r)) {
+            pqueue_insert(transfer_q, r);
+        } else {
+            pqueue_insert(ready_q, r);
+        }
+    }
+    tmp = blocked_q;
+    blocked_q = transfer_q;
+    transfer_q = tmp;
+}
+
 // For the specified reaction, if it has produced outputs, put the
 // resulting triggered reactions into the reaction queue.
+// If any reaction has been added to the ready queue, return true,
+// false otherwise.
 void schedule_output_reactions(reaction_t* reaction) {
     // If the reaction produced outputs, put the resulting triggered
-    // reactions into the queue.
-    
+    // reactions into the blocking queue.
     for(int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
             trigger_t** triggerArray = (reaction->triggers)[i];
@@ -336,17 +427,18 @@ void schedule_output_reactions(reaction_t* reaction) {
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* reaction = trigger->reactions[k];
                         if (reaction != NULL) {
-                            // Only insert reaction if its not already on the queue.
-                            if (pqueue_find_equal(reaction_q, reaction, 
-                                    reaction_q->getpri(reaction)) == NULL) {
-                                pqueue_insert(reaction_q, reaction);
+                            // Do not enqueue this reaction twice.
+                            if (has_not_been_triggered(reaction)) {
+                                pqueue_insert(blocked_q, reaction);
                             }
                         }
                     }
                 }
             }
         }
-    }
+	}
+    // Move ready reactions from the blocked queue to the ready queue.
+    move_ready_reactions();
 }
 
 // Library function for allocating memory for an array output.
@@ -520,16 +612,26 @@ void initialize() {
 #endif
 
     // Initialize our priority queues.
-    event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
-            get_evt_pos, set_evt_pos, eql_evt, prt_evt);
-    reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, cmp_pri, get_rct_pri,
-            get_rct_pos, set_rct_pos, eql_rct, prt_rct);
-    // NOTE: The recycle queue does not need to be sorted. But here it is.
-    recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
-            get_evt_pos, set_evt_pos, eql_evt, prt_evt);
-    // NOTE: The free queue does not need to be sorted. But here it is.
-    free_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, cmp_pri, get_evt_pri,
-            get_evt_pos, set_evt_pos, eql_evt, prt_evt);
+
+    // Reaction queue ordered by deadline. FIXME: rename this to ready_q
+    ready_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_deadline,
+            get_reaction_position, set_reaction_position, reaction_matches, print_reaction);    
+
+    // Blocked reactions ordered by index.
+    blocked_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
+            get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
+
+    transfer_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
+            get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
+
+    event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
+            get_event_position, set_event_position, event_matches, print_event);
+	// NOTE: The recycle queue does not need to be sorted. But here it is.
+    recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
+            get_event_position, set_event_position, event_matches, print_event);
+	// NOTE: The free queue does not need to be sorted. But here it is.
+    free_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
+            get_event_position, set_event_position, event_matches, print_event);
 
     // Initialize the trigger table.
     __initialize_trigger_objects();
@@ -546,6 +648,8 @@ void initialize() {
         stop_time = current_time + duration;
     }
 }
+
+
 
 // Check that memory allocated by set_new, set_new_array, or writable_copy
 // has been freed and print a warning message if not.
