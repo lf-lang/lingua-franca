@@ -260,7 +260,7 @@ bool is_blocked_by(pqueue_t* q, reaction_t* reaction) {
     // has precedence over the given reaction.
     for (int i = 1; i < q->size; i++) {
         reaction_t* active = q->d[i];
-        if ((reaction->chain_id & active->chain_id != 0) 
+        if (((reaction->chain_id & active->chain_id) != 0) 
                 && reaction->index > active->index) {
             return true;
         }
