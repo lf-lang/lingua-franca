@@ -42,12 +42,7 @@ Model:
 
 /////////// Top level elements
 Target:
-    'target' name=ID (
-        // Old syntax for target parameters:
-        '(' properties+=Property (',' properties+=Property)* ')'
-        // New syntax for target parameters:
-        | config=KeyValuePairs
-     )? ';';
+    'target' name=ID (config=KeyValuePairs)? ';';
 
 Import:
     'import' importURI=Path ';';

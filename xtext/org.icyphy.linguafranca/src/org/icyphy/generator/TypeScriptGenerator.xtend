@@ -43,13 +43,10 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.State
-import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.Property
-import org.icyphy.linguaFranca.Element
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -772,111 +769,22 @@ class TypeScriptGenerator extends GeneratorBase {
         var isATimeoutArg = false
         
         // Timeout Property
-        var timeoutProperty = getTargetProperty("timeout")
-        if (timeoutProperty !== null) {
+        if (targetTimeout >= 0) {
             isATimeoutArg = true
-//            if (timeoutProperty.literal !== null && timeoutProperty.literal !=0) {
-//                    reportError("The timeout property only accepts time assignments.")
-//                }
-//                timeoutArg = timeInTargetLanguage(timeoutProperty.time.toString(),timeoutProperty.unit)
-            // "Old style" property
-            if (timeoutProperty instanceof Property) {
-                if (timeoutProperty.literal !== null && timeoutProperty.literal !=0) {
-                    reportError("The timeout property only accepts time assignments.")
-                }
-                timeoutArg = timeInTargetLanguage(timeoutProperty.time.toString(),timeoutProperty.unit)
-            }
-            
-            // "New style" (YAML) property
-            if (timeoutProperty instanceof Element) {
-                if (timeoutProperty.literal !== null && timeoutProperty.literal !=0) {
-                    reportError("The timeout property only accepts time assignments.")
-                }
-                timeoutArg = timeInTargetLanguage(timeoutProperty.time.toString(),timeoutProperty.unit)
-            }
+            timeoutArg = timeInTargetLanguage(Integer.toString(targetTimeout), targetTimeoutUnit)
         }
         
         // KeepAlive Property
-        var String keepAliveArg
-        var isAKeepAliveArg = false
-        var keepAliveProperty = getTargetProperty("keepalive")
-        if (keepAliveProperty !== null) {
-            
-            // "Old style" property
-            if (keepAliveProperty instanceof Property) {
-                if (keepAliveProperty.literal !== null) {
-                    isAKeepAliveArg = true
-                    if (keepAliveProperty.literal == "\"true\"") {
-                        keepAliveArg = "true"
-                    } else {
-                        keepAliveArg = "false"
-                    }
-                }
-            }
-            
-            // "New style" (YAML) property
-            if (keepAliveProperty instanceof Element) {
-                if (keepAliveProperty.literal !== null) {
-                    isAKeepAliveArg = true
-                    if (keepAliveProperty.literal == "\"true\"") {
-                        keepAliveArg = "true"
-                    } else {
-                        keepAliveArg = "false"
-                    }
-                }
-            }
+        var String keepAliveArg = "false"
+        if (targetKeepalive) {
+            keepAliveArg = "true"
         }
         
         // Fast Property
-        var String fastArg
-        var isAFastArg = false
-        var fastProperty = getTargetProperty("fast")
-        if (fastProperty !== null) {
-            
-            // "Old style" property
-            if (fastProperty instanceof Property) {
-                if (fastProperty.literal !== null) {
-                    isAFastArg = true
-                    if (fastProperty.literal == "\"true\"") {
-                        fastArg = "true"
-                    } else {
-                        fastArg = "false"
-                    }
-                }
-            }
-            
-            // "New style" (YAML) property
-            if (fastProperty instanceof Element) {
-                if (fastProperty.literal !== null) {
-                    isAFastArg = true
-                    if (fastProperty.literal == "\"true\"") {
-                        fastArg = "true"
-                    } else {
-                        fastArg = "false"
-                    }
-                }
-            }
+        var String fastArg = "false"
+        if (targetFast) {
+            fastArg = "true"
         }
-        
-        
-//        for (target : resource.allContents.toIterable.filter(Target)) {
-//            if (target.properties !== null) {
-//                for (property : target.properties) {
-//                    if (property.name.equals("timeout")) {
-//                        // A timeout must be a Time, it can't be a literal
-//                        // (except 0 which will match as a literal).
-//                        // Since 0 is the only literal that corresponds to a time
-//                        // any other literal is an error
-//                        if (property.literal !== null && property.literal !=0) {
-//                            reportError("The timeout property only accepts time assignments.")
-//                        }
-//                        isATimeoutArg = true
-//                        timeoutArg = timeInTargetLanguage(property.time.toString(), property.unit)
-//                    }
-//                }
-//            }   
-//        }
-        
         
         arguments.add("'" + fullName + "'")
         if (isATimeoutArg) {
@@ -884,16 +792,8 @@ class TypeScriptGenerator extends GeneratorBase {
         } else {
             arguments.add("undefined")
         }
-        if (isAKeepAliveArg) {
-            arguments.add(keepAliveArg)
-        } else {
-            arguments.add("undefined")
-        }
-        if (isAFastArg) {
-            arguments.add(fastArg)
-        } else {
-            arguments.add("undefined")
-        }
+        arguments.add(keepAliveArg)
+        arguments.add(fastArg)
         
         pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
     }
@@ -973,89 +873,12 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The logging target property's value in all caps.
      */
     private def getLoggingLevel() {
-        var logLevel = getTargetProperty("logging")
-        
-        // Default to least verbose log level if no property is given.
-        if (logLevel === null) return "ERROR"
-        if (logLevel instanceof Element) {
-            if (! (logLevel.literal instanceof String)) {
-                reportError("The \"logging\" property must be a string.")
-            } else {
-                var upperCaseLogLevel = logLevel.literal.toUpperCase()
-                switch (upperCaseLogLevel) {
-                    case "\"ERROR\"" :
-                        return "ERROR"
-                    case "\"WARN\"" :
-                        return "WARN"
-                    case "\"INFO\"" :
-                        return "INFO"
-                    case "\"LOG\"" :
-                        return "LOG"
-                    case "\"DEBUG\"" :
-                        return "DEBUG"
-                    default:
-                        reportError("The only valid values for the \"logging\" property "
-                            + "are (case insensitive): ERROR, WARN, INFO, LOG, AND DEBUG")
-                }
-            }
-        }
-        if (logLevel instanceof Property) {
-            if (! (logLevel.literal instanceof String)) {
-                reportError("The \"logging\" property must be a string.")
-            } else {
-                var upperCaseLogLevel = logLevel.literal.toUpperCase()
-                switch (upperCaseLogLevel) {
-                    case "\"ERROR\"" :
-                        return "ERROR"
-                    case "\"WARN\"" :
-                        return "WARN"
-                    case "\"INFO\"" :
-                        return "INFO"
-                    case "\"LOG\"" :
-                        return "LOG"
-                    case "\"DEBUG\"" :
-                        return "DEBUG"
-                    default:
-                        reportError("The only valid values for the \"logging\" property "
-                            + "are (case insensitive): ERROR, WARN, INFO, LOG, AND DEBUG")
-                }
-            }
+        if (targetLoggingLevel === null) {
+            'ERROR'
+        } else {
+            targetLoggingLevel
         }
     }
-    
-    
-    /** Search over all targets and target properties in the file
-     *  for the given property name. If target properties are "old style"
-     *  return the matching property if it's found. If target properties
-     *  are "new style" (i.e. YAML) search for a top level property with the
-     *  given name and return the matching KeyValuePair's value. Otherwise return null.
-     *  @param propertyName The name of the property to obtain.
-     *  @return The matching Property or top level KeyValuePair if it was found.
-     *  Otherwise null.
-     * 
-     */
-    private def getTargetProperty(String propertyName) {
-        // FIXME: Not sure if iterating over potentially more than
-        // one target is desirable.
-        for (target : resource.allContents.toIterable.filter(Target)) {
-            // Determine if using old or new style (YAML) target properties
-            if ( target.config !== null ) {
-                for (pair: target.config.pairs) {
-                    if (pair.name.equals(propertyName)) {
-                        return pair.value
-                    }
-                }
-            } else {
-                for (property : target.properties) {
-                    if (property.name.equals(propertyName)) {
-                        return property
-                    }
-                }
-            }
-        }
-        return null
-    }
-    
     
     /** If the given filename doesn't already exist in the targetPath
      *  create it by copying over the default from /lib/TS/. Do nothing

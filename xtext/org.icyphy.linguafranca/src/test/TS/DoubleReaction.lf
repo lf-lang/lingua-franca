@@ -3,7 +3,7 @@
 // Correct output for this 2, 4, 6, 8, etc.
 target TypeScript {
     timeout: 10 sec,
-    fast: "true"
+    fast: true
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:number;
