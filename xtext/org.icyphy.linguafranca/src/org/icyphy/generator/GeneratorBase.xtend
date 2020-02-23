@@ -96,11 +96,6 @@ abstract class GeneratorBase {
     /** Path to the directory containing the .lf file. */
     protected var String directory
     
-    /** A list of federate names or a list with a single empty string
-     *  if there are no federates specified.
-     */
-    protected var List<String> federates = new LinkedList<String>
-
     /** The root filename for the main file containing the source code,
      *  without the .lf extension.
      */
@@ -135,6 +130,11 @@ abstract class GeneratorBase {
     ////////////////////////////////////////////
     //// Target properties, if they are included.
     
+    /** A list of federate names or a list with a single empty string
+     *  if there are no federates specified.
+     */
+    protected var List<String> federates = new LinkedList<String>
+
     /** The cmake_include target parameter, or null if there is none. */
     protected String targetCmakeInclude
     
@@ -193,32 +193,34 @@ abstract class GeneratorBase {
         generatorErrorsOccurred = false
         
         var target = resource.findTarget
-        for (param: target.params ?: emptyList) {
-            if (param.name.equals("cmake_include")) {
-                targetCmakeInclude = param.cmake_include.withoutQuotes
-            } else if (param.name.equals("compile")) {
-                targetCompile = param.compile.withoutQuotes
-            } else if (param.name.equals("fast")) {
-                if (param.fastIsTrue) {
-                    targetFast = true
-                } else if (param.fastIsFalse) {
-                    targetFast = false
+        for (param: target.config?.pairs ?: emptyList) {
+            switch param.name {
+                case "cmake_include":
+                    targetCmakeInclude = param.value.literal.withoutQuotes
+                case "compile":
+                    targetCompile = param.value.literal.withoutQuotes
+                case "fast":
+                    if (param.value.id.equals('true')) {
+                        targetFast = true
+                    } else {
+                        targetFast = false
+                    }
+                case "keepalive":
+                    if (param.value.id.equals('true')) {
+                        targetKeepalive = true
+                    } else {
+                        targetKeepalive = false
+                    }
+                case "logging":
+                    targetLoggingLevel = param.value.id
+                case "run":
+                    targetRun = param.value.literal.withoutQuotes
+                case "threads":
+                    targetThreads = Integer.decode(param.value.literal)
+                case "timeout": {
+                    targetTimeout = param.value.time
+                    targetTimeoutUnit = param.value.unit
                 }
-            } else if (param.name.equals("keepalive")) {
-                if (param.keepaliveIsTrue) {
-                    targetKeepalive = true
-                } else if (param.keepaliveIsFalse) {
-                    targetKeepalive = false
-                }
-            } else if (param.name.equals("logging")) {
-                targetLoggingLevel = param.level
-            } else if (param.name.equals("run")) {
-                targetRun = param.run.withoutQuotes
-            } else if (param.name.equals("threads")) {
-                targetThreads = param.threads
-            } else if (param.name.equals("timeout")) {
-                targetTimeout = param.timeout
-                targetTimeoutUnit = param.unit
             }
         }
         

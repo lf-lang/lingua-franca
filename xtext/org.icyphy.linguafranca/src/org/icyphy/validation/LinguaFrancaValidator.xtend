@@ -7,6 +7,7 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.KeyValuePair
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
@@ -14,7 +15,6 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
-import org.icyphy.linguaFranca.TargetParam
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
@@ -31,10 +31,32 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'Cpp',
         'TypeScript'
     }
+    
+    public static val LOGGING_LEVELS = #{
+        'ERROR',
+        'WARN',
+        'INFO',
+        'LOG',
+        'DEBUG'
+    }
+    
     public static val TARGET_REQUIRES_TYPES = #{
         'C' -> true,
         'Cpp' -> true,
         'TypeScript' -> false
+    }
+    // Allowed target parameters, in alphabetical order.
+    public static val TARGET_PARAMETERS = #{
+        'cmake_include',
+        'compile', 
+        'fast',
+        'federates',
+        'hosts',
+        'keepalive',
+        'logging',
+        'run', 
+        'threads',
+        'timeout'
     }
 
     var reactorClasses = newHashSet()
@@ -170,6 +192,87 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
     }
 
+    /** Check target parameters, which are key-value pairs. */
+    @Check(FAST)
+    def checkKeyValuePair(KeyValuePair param) {
+        // Check only if the container's container is a Target.
+        if (param.eContainer.eContainer instanceof Target) {
+            if (!TARGET_PARAMETERS.contains(param.name)) {
+                warning(
+                    "Unrecognized target parameter: " + param.name +
+                    ". Recognized parameters are " + TARGET_PARAMETERS,
+                    Literals.KEY_VALUE_PAIR__NAME)
+            }
+            switch param.name {
+            case "cmake_include":
+                if (param.value.literal === null) {
+                    error("Target property cmake_include is required to be a string.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "compile":
+                if (param.value.literal === null) {
+                    error("Target property compile is required to be a string.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "fast":
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                    error("Target property fast is required to be true or false.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "federates":
+                if (param.value.keyvalue === null) {
+                    error("Target property federates is required to be a set of key-value pairs.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                } else {
+                    for (federate : param.value.keyvalue.eContents) {
+                        // FIXME: Check syntax of federate.
+                    }
+                }
+            case "keepalive":
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                    error("Target property keepalive is required to be true or false.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "logging":
+                if (!LOGGING_LEVELS.contains(param.value.id)) {
+                    error("Target property logging is required to be one of " +
+                        LOGGING_LEVELS,
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "run":
+                if (param.value.literal === null) {
+                    error("Target property run is required to be a string.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case "threads": {
+                if (param.value.literal === null) {
+                    error("Target property threads is required to be a non-negative integer.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+                try {
+                    val value = Integer.decode(param.value.literal)
+                    if (value < 0) {
+                        error("Target property threads is required to be a non-negative integer.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                } catch (NumberFormatException ex) {
+                    error("Target property threads is required to be a non-negative integer.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            }
+            case "timeout":
+                if (param.value.unit === null) {
+                    error("Target property timeout requires a time unit. Should be one of " +
+                        TimeUnit.VALUES.filter[it != TimeUnit.NONE],
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                } else if (param.value.time < 0) {
+                    error("Target property timeout requires a non-negative time value with units.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            }
+        }
+    }
+
     @Check(FAST)
     def checkOutput(Output output) {
         checkName(output.name, Literals.VARIABLE__NAME)
@@ -249,15 +352,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.TARGET__NAME)
         } else {
             this.target = target.name;
-        }
-    }
-    
-        /** Check target parameters, which are key-value pairs. */
-    @Check(FAST)
-    def checkTargetParam(TargetParam param) {
-        if (param.threads < 0) {
-            error("Target property threads is required to be a positive integer.",
-                   Literals.TARGET_PARAM__THREADS)
         }
     }
     

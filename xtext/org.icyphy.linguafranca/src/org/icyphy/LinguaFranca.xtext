@@ -42,7 +42,7 @@ Model:
 
 /////////// Top level elements
 Target:
-    'target' name=ID ('{' params+=TargetParam (',' (params+=TargetParam))* '}')? ';';
+    'target' name=ID (config=KeyValuePairs)? ';';
 
 Import:
     'import' importURI=Path ';';
@@ -138,18 +138,6 @@ KEYWORD:
     
 /////////// For target parameters
 
-TargetParam:
-    name='cmake_include' ':' cmake_include=STRING
-    | name='compile' ':' compile=STRING
-    | name='fast' ':' (fastIsTrue?='true' | fastIsFalse?='false')
-    | name='federates' ':' federates=Array
-    | name='keepalive' ':' (keepaliveIsTrue?='true' | keepaliveIsFalse?='false')
-    | name='logging' ':' level=('ERROR' | 'WARN' | 'INFO' | 'LOG' | 'DEBUG')
-    | name='run' ':' run=STRING
-    | name='threads' ':' threads=INT
-    | name='timeout' ':' timeout=INT unit=TimeUnit;
-
-// FIXME: Make the following more specific for federates.
 KeyValuePairs:
     '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
 
