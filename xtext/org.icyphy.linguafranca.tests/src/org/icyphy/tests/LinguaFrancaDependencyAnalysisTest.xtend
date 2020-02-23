@@ -16,6 +16,7 @@ import org.junit.jupiter.api.^extension.ExtendWith
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
+
 class LinguaFrancaDependencyAnalysisTest {
 	@Inject extension ParseHelper<Model>
     

@@ -49,7 +49,6 @@ function usage() {
     echo "  -r | --rebuild        Rebuild the compiler first."
 }
 
-
 if [[ $(type -p java) != "" ]]; then
     #echo found java executable in PATH
     _java=java
