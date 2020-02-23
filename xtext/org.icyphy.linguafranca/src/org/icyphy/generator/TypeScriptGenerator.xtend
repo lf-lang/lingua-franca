@@ -73,6 +73,8 @@ class TypeScriptGenerator extends GeneratorBase {
         IFileSystemAccess2 fsa,
         IGeneratorContext context
     ) {
+        analyzeModel(resource, fsa, context)
+        
         super.doGenerate(resource, fsa, context)
         
         // Target filename.

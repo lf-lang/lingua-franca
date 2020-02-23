@@ -86,6 +86,8 @@ class CppGenerator extends GeneratorBase {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
         var target = resource.findTarget
+
+        analyzeModel(resource, fsa, context)
         
         super.doGenerate(resource, fsa, context)
         mainReactor = this.mainDef?.reactorClass

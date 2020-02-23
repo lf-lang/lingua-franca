@@ -38,6 +38,7 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Map
 import java.util.Set
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
@@ -93,6 +94,9 @@ abstract class GeneratorBase {
     ////////////////////////////////////////////
     //// Protected fields.
     
+    /** All code goes into this string buffer. */
+    protected var code = new StringBuilder
+
     /** Path to the directory containing the .lf file. */
     protected var String directory
     
@@ -134,6 +138,12 @@ abstract class GeneratorBase {
      *  if there are no federates specified.
      */
     protected var List<String> federates = new LinkedList<String>
+    
+    /** A map from federate names to a set of reactor names included
+     *  in the federate.
+     */
+    protected var Map<String,HashSet<String>> federateContents
+            = new HashMap<String,HashSet<String>>()
 
     /** The cmake_include target parameter, or null if there is none. */
     protected String targetCmakeInclude
@@ -165,14 +175,78 @@ abstract class GeneratorBase {
     ////////////////////////////////////////////
     //// Private fields.
 
-    /** All code goes into this string buffer. */
-    var code = new StringBuilder
-
     /** Map from builder to its current indentation. */
     var indentation = new HashMap<StringBuilder, String>()
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
+    
+    /** Analyze the model, setting target variables, filenames,
+     *  working directory, and federates. This also performs any
+     *  transformations that are needed on the AST of the model,
+     *  including handling delays on connections.
+     *  @param resource The resource containing the source code.
+     *  @param fsa The file system access (used to write the result).
+     *  @param context FIXME: What is this?
+     */
+    def void analyzeModel(Resource resource, IFileSystemAccess2 fsa,
+            IGeneratorContext context) {
+        
+        generatorErrorsOccurred = false
+        
+        var target = resource.findTarget
+        if (target.config !== null) {
+            for (param: target.config.pairs ?: emptyList) {
+                switch param.name {
+                    case "cmake_include":
+                        targetCmakeInclude = param.value.literal.withoutQuotes
+                    case "compile":
+                        targetCompile = param.value.literal.withoutQuotes
+                    case "fast":
+                        if (param.value.id.equals('true')) {
+                            targetFast = true
+                        } else {
+                            targetFast = false
+                        }
+                    case "keepalive":
+                        if (param.value.id.equals('true')) {
+                            targetKeepalive = true
+                        } else {
+                            targetKeepalive = false
+                        }
+                    case "logging":
+                        targetLoggingLevel = param.value.id
+                    case "run":
+                        targetRun = param.value.literal.withoutQuotes
+                    case "threads":
+                        targetThreads = Integer.decode(param.value.literal)
+                    case "timeout": {
+                        targetTimeout = param.value.time
+                        targetTimeoutUnit = param.value.unit
+                    }
+                }
+            }
+        }
+        
+        this.resource = resource
+        // Figure out the file name for the target code from the source file name.
+        analyzeResource(resource)
+        
+        // If federates are specified in the target, create a mapping
+        // from Instantiations in the main reactor to federate names.
+        // Also create a list of federate names or a list with a single
+        // empty name if there are no federates specified.
+        analyzeFederates(resource)
+
+        // Find connections, and see whether they have a delay associated with them.
+        // For those that do, remove the connection, and replace it with two reactions
+        // and an action.
+        for (connection : resource.allContents.toIterable.filter(Connection)) {
+            if (connection.delay !== null) {
+                desugarDelay(connection, connection.delay)
+            }
+        }
+    }
     
     /** Generate code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -190,62 +264,9 @@ abstract class GeneratorBase {
 
         println("Generating code for: " + resource.getURI.toString)
         
-        generatorErrorsOccurred = false
-        
-        var target = resource.findTarget
-        for (param: target.config?.pairs ?: emptyList) {
-            switch param.name {
-                case "cmake_include":
-                    targetCmakeInclude = param.value.literal.withoutQuotes
-                case "compile":
-                    targetCompile = param.value.literal.withoutQuotes
-                case "fast":
-                    if (param.value.id.equals('true')) {
-                        targetFast = true
-                    } else {
-                        targetFast = false
-                    }
-                case "keepalive":
-                    if (param.value.id.equals('true')) {
-                        targetKeepalive = true
-                    } else {
-                        targetKeepalive = false
-                    }
-                case "logging":
-                    targetLoggingLevel = param.value.id
-                case "run":
-                    targetRun = param.value.literal.withoutQuotes
-                case "threads":
-                    targetThreads = Integer.decode(param.value.literal)
-                case "timeout": {
-                    targetTimeout = param.value.time
-                    targetTimeoutUnit = param.value.unit
-                }
-            }
-        }
-        
-        this.resource = resource
-        // Figure out the file name for the target code from the source file name.
-        analyzeResource(resource)
-        
-        // If federates are specified in the target, create a mapping
-        // from Instantiations in the main reactor to federate names.
-        // Also create a list of federate names or a list with a single
-        // empty name if there are no federates specified.
-        analyzeFederates(resource)
-        
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
         generatePreamble()
-        
-        // Find connections, and see whether they have a delay associated with them.
-        // For those that do, remove the connection, and replace it with two reactions
-        // and an action.
-        for (connection : resource.allContents.toIterable.filter(Connection)) {
-            if (connection.delay !== null) {
-               desugarDelay(connection, connection.delay)
-            }
-        }
         
         // Collect a list of reactors defined this resource and (non-main)
         // reactors defined in imported resources.
@@ -378,9 +399,8 @@ abstract class GeneratorBase {
         // Print a comment identifying the generated code.
         prComment(
             "Code generated by the Lingua Franca compiler for reactor " +
-                reactor.name + " in " + filename
+                reactor.name + " in " + sourceFile
         )
-
     }
 
     /**
@@ -949,8 +969,29 @@ abstract class GeneratorBase {
      *  multiple target machines.
      */
     private def analyzeFederates(Resource resource) {
-        var target = resource.findTarget 
-        // FIXME
+        var target = resource.findTarget
+        var foundOne = false
+        for (param : target.config?.pairs ?: emptyList) {
+            if (param.name.equals("federates")) {
+                for (federate : param.value.keyvalue.pairs) {
+                    federates.add(federate.name)
+                    foundOne = true
+                    val contents = new HashSet<String>
+                    federateContents.put(federate.name, contents)
+                    // NOTE: Validator check for the following structure.
+                    for (property : federate.value.keyvalue.pairs) {
+                        if (property.name.equals("reactors")) {
+                            for (reactor : property.value.array.elements) {
+                                contents.add(reactor.id)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!foundOne) {
+            federates.add("")
+        }
     }
     
     /** Analyze the resource (the .lf file) that is being parsed
