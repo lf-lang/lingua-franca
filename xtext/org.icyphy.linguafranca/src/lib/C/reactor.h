@@ -236,6 +236,7 @@ struct reaction_t {
     reaction_function_t function;
     void* self;    // Pointer to a struct with the reactor's state.
     index_t index; // Inverse priority determined by dependency analysis.
+    unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph.
     size_t pos;    // Current position in the priority queue.
     int num_outputs;  // Number of outputs that may possibly be produced by this function.
     bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced.
@@ -245,6 +246,20 @@ struct reaction_t {
     interval_t local_deadline;// Local deadline relative to the time stamp for invocation of the reaction.
     reaction_function_t deadline_violation_handler; // Local deadline violation handler.
 };
+
+/**
+ * Return true if the given reaction has already been triggered at the current time.
+ */
+bool has_not_been_triggered(reaction_t* reaction);
+
+bool is_blocked_by(pqueue_t* q, reaction_t* reaction);
+
+/**
+ * Return true if there is currently another reaction blocking the given reaction.
+ */
+bool is_blocked(reaction_t* reaction);
+
+void print_snapshot();
 
 /** 
  * Enumeration of different policies for handling events that succeed one

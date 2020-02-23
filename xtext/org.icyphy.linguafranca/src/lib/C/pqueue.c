@@ -41,14 +41,65 @@
 #define right(i)  (((i) << 1) + 1)
 #define parent(i) ((i) >> 1)
 
-pqueue_t *
-pqueue_init(size_t n,
-            pqueue_cmp_pri_f cmppri,
-            pqueue_get_pri_f getpri,
-            pqueue_get_pos_f getpos,
-            pqueue_set_pos_f setpos,
-            pqueue_eq_elem_f eqelem,
-            pqueue_print_entry_f prt) {
+/**
+ * Find an element in the queue that matches the given element up to
+ * but not including the given maximum priority.
+ */ 
+void* find_equal(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
+    void* rval;
+    void* curr = q->d[pos];
+    // Stop the recursion when we've reached the end of the 
+    // queue or once we've surpassed the maximum priority.
+    if (!q || pos >= q->size || !curr || q->cmppri(q->getpri(curr), max)) {
+        return NULL;
+    }
+    
+    if (q->eqelem(curr, e)) {
+        return curr;
+    } else {
+        rval = find_equal(q, e, left(pos), max);
+        if (rval) 
+            return rval;
+        else
+            return find_equal(q, e, right(pos), max);
+    }
+    return NULL;
+}
+
+/**
+ * Find an element in the queue that matches the given element up to
+ * but not including the given maximum priority. The matching element
+ * has to _also_ have the same priority.
+ */ 
+void* find_equal_same_priority(pqueue_t *q, void *e, int pos) {
+    void* rval;
+    void* curr = q->d[pos];
+    // Stop the recursion when we've reached the end of the 
+    // queue or once we've surpassed the priority of the element
+    // we're looking for.
+    if (!q || pos >= q->size || !curr || q->cmppri(q->getpri(curr), q->getpri(e))) {
+        return NULL;
+    }
+    
+    if (q->getpri(curr) == q->getpri(e) && q->eqelem(curr, e)) {
+        return curr;
+    } else {
+        rval = find_equal_same_priority(q, e, left(pos));
+        if (rval) 
+            return rval;
+        else
+            return find_equal_same_priority(q, e, right(pos));   
+    }
+    return NULL;
+}
+
+pqueue_t * pqueue_init(size_t n,
+                       pqueue_cmp_pri_f cmppri,
+                       pqueue_get_pri_f getpri,
+                       pqueue_get_pos_f getpos,
+                       pqueue_set_pos_f setpos,
+                       pqueue_eq_elem_f eqelem,
+                       pqueue_print_entry_f prt) {
     pqueue_t *q;
 
     if (!(q = malloc(sizeof(pqueue_t))))
@@ -75,7 +126,6 @@ void pqueue_free(pqueue_t *q) {
     free(q->d);
     free(q);
 }
-
 
 size_t pqueue_size(pqueue_t *q) {
     // Queue element 0 exists but doesn't count since it isn't used.
@@ -130,6 +180,13 @@ static void percolate_down(pqueue_t *q, size_t i) {
     q->setpos(moving_node, i);
 }
 
+void* pqueue_find_equal_same_priority(pqueue_t *q, void *e) {
+    return find_equal_same_priority(q, e, 1);
+}
+
+void* pqueue_find_equal(pqueue_t *q, void *e, pqueue_pri_t max) {
+    return find_equal(q, e, 1, max);
+}
 
 int pqueue_insert(pqueue_t *q, void *d) {
     void *tmp;
@@ -173,7 +230,6 @@ int pqueue_remove(pqueue_t *q, void *d) {
     return 0;
 }
 
-
 void* pqueue_pop(pqueue_t *q) {
     void* head;
     
@@ -185,57 +241,6 @@ void* pqueue_pop(pqueue_t *q) {
     percolate_down(q, 1);
     
     return head;
-}
-
-void* find_equal_same_priority(pqueue_t *q, void *e, int pos) {
-    void* rval;
-    void* curr = q->d[pos];
-    // Stop the recursion when we've reached the end of the 
-    // queue or once we've surpassed the priority of the element
-    // we're looking for.
-    if (!q || pos >= q->size || !curr || q->cmppri(q->getpri(curr), q->getpri(e))) {
-        return NULL;
-    }
-    
-    if (q->getpri(curr) == q->getpri(e) && q->eqelem(curr, e)) {
-        return curr;
-    } else {
-        rval = find_equal_same_priority(q, e, left(pos));
-        if (rval) 
-            return rval;
-        else
-            return find_equal_same_priority(q, e, right(pos));   
-    }
-    return NULL;
-}
-
-void* find_equal(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
-    void* rval;
-    void* curr = q->d[pos];
-    // Stop the recursion when we've reached the end of the 
-    // queue or once we've surpassed the maximum priority.
-    if (!q || pos >= q->size || !curr || q->cmppri(q->getpri(curr), max)) {
-        return NULL;
-    }
-    
-    if (q->eqelem(curr, e)) {
-        return curr;
-    } else {
-        rval = find_equal(q, e, left(pos), max);
-        if (rval) 
-            return rval;
-        else
-            return find_equal(q, e, right(pos), max);
-    }
-    return NULL;
-}
-
-void* pqueue_find_equal_same_priority(pqueue_t *q, void *e) {
-    return find_equal_same_priority(q, e, 1);
-}
-
-void* pqueue_find_equal(pqueue_t *q, void *e, pqueue_pri_t max) {
-    return find_equal(q, e, 1, max);
 }
 
 void* pqueue_peek(pqueue_t *q) {

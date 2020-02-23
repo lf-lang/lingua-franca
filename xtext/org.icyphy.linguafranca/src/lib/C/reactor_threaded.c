@@ -143,9 +143,11 @@ void __free_action_values() {
  *  on the event queue; pop the next event(s) from the
  *  event queue that all have the same tag; extract from those events
  *  the reactions that are to be invoked at this logical time and
- *  transfer them to the reaction queue (which is sorted by precedence);
- *  wait until both the reaction and execution queues are empty;
- *  and finally, return true.
+ *  transfer them to the blocking and/or ready queue. The blocking queue
+ *  is sorted by index (level), and the ready queue is sorted by deadline.
+ *  Anything found on the ready queue is ready to execute (there are no
+ *  reactions that they need to wait for). Wait until both the ready and
+ *  executing queues are empty; and finally, return true.
  *
  *  If there is no event in the queue and the
  *  keepalive command-line option was not given, return false.
@@ -164,7 +166,7 @@ bool __next() {
 	// indicating that the previous logical time is complete.
 	// printf("DEBUG: next(): number_of_idle_threads = %d\n", number_of_idle_threads);
 	// printf("DEBUG: next(): reaction_q size = %ld\n", pqueue_size(reaction_q));
- 	while (pqueue_size(reaction_q) > 0 || pqueue_size(executing_q) > 0) {
+ 	while (pqueue_size(ready_q) > 0 || pqueue_size(executing_q) > 0) {
  		// Do not check for stop_requested here because stopping should occur
  		// only between logical times!
 
@@ -311,7 +313,7 @@ bool __next() {
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
             // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
             // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
-            pqueue_insert(reaction_q, event->trigger->reactions[i]);
+            pqueue_insert(blocked_q, event->trigger->reactions[i]);
         }
         // If the trigger is a periodic clock, create a new event for its next execution.
         if (!(event->trigger->is_physical) && event->trigger->period > 0) {
@@ -338,6 +340,8 @@ bool __next() {
 		// Peek at the next event in the event queue.
         event = pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
+
+    move_ready_reactions();
 
     // Signal the worker threads.
 	pthread_cond_broadcast(&reaction_or_executing_q_changed);
@@ -386,22 +390,20 @@ void stop() {
 
 // Worker thread for the thread pool.
 void* worker(void* arg) {
-	printf("Worker thread started.\n");
+	//printf("Worker thread started.\n");
 	// Keep track of whether we have decremented the idle thread count.
 	bool have_been_busy = false;
 	pthread_mutex_lock(&mutex);
 	// Iterate until stop is requested and the reaction_q is empty (signaling
 	// that the current time instant is done).
-	while (!stop_requested || pqueue_size(reaction_q) > 0) {
+	while (!stop_requested || pqueue_size(ready_q) > 0) {
 		// Obtain a reaction from the reaction_q.
-		reaction_t* reaction = pqueue_peek(reaction_q);
+		reaction_t* reaction = pqueue_peek(ready_q);
 		reaction_t* executing = pqueue_peek(executing_q);
 		// Check whether there is a reaction ready to execute.
-		// A reaction that is the earliest one on the reaction queue
-		// is ready to execute if there are no currently executing reactions
-		// with levels less than the level of the reaction.
-        // FIXME: This is conservative, since the index just denotes the level in the precedence
-        // graph. This can be improved using a binary encoding of dependencies.
+		// A reaction that is the earliest one on the ready queue.
+        // It will only be there if there are no currently executing
+        // reactions that it depends on.
 		if (reaction == NULL || (executing != NULL && executing->index < reaction->index)) {
 			// There are no reactions ready to run.
 			// If we were previously busy, count this thread as idle now.
@@ -414,8 +416,8 @@ void* worker(void* arg) {
 			// could be a startup condition.
 			pthread_cond_signal(&number_of_idle_threads_changed);
 			// Wait for something to change (either a stop request or
-			// something went on the reaction queue.
-			// printf("DEBUG: worker: Waiting for items on the reaction queue.\n");
+			// something went on the ready queue.
+			// printf("DEBUG: worker: Waiting for items on the ready queue.\n");
 			pthread_cond_wait(&reaction_or_executing_q_changed, &mutex);
             // printf("DEBUG: worker: Done waiting.\n");
 		} else {
@@ -427,7 +429,7 @@ void* worker(void* arg) {
 			// Notify the main thread that there is one fewer idle thread.
 			pthread_cond_signal(&number_of_idle_threads_changed);
 
-        	reaction_t* reaction = pqueue_pop(reaction_q);
+        	reaction_t* reaction = pqueue_pop(ready_q);
         	// printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->local_deadline);
         	
         	// Push the reaction on the executing queue in order to prevent any
@@ -468,13 +470,13 @@ void* worker(void* arg) {
                         pthread_mutex_unlock(&mutex);
                         (*handler)(reaction->self);
 						pthread_mutex_lock(&mutex);
+                        // Remove the reaction from the executing queue.
+                	    pqueue_remove(executing_q, reaction);
                         // If the reaction produced outputs, put the resulting
                         // triggered reactions into the queue.
                         schedule_output_reactions(reaction);
-                	    // There may be new reactions on the reaction queue, so notify other threads.
+                        // There may be new reactions on the ready_queue, so notify other threads.
         			    pthread_cond_broadcast(&reaction_or_executing_q_changed);
-                	    // Remove the reaction from the executing queue.
-                	    pqueue_remove(executing_q, reaction);
                     }
                 }
             }
@@ -486,12 +488,12 @@ void* worker(void* arg) {
         	    reaction->function(reaction->self);
         	    // Reacquire the mutex lock.
  			    pthread_mutex_lock(&mutex);
+        	    // Remove the reaction from the executing queue.
+        	    pqueue_remove(executing_q, reaction);
         	    // If the reaction produced outputs, put the resulting triggered
         	    // reactions into the queue while holding the mutex lock.
         	    schedule_output_reactions(reaction);
-        	    // Remove the reaction from the executing queue.
-        	    pqueue_remove(executing_q, reaction);
-        	    // There may be new reactions on the reaction queue, so notify other threads.
+        	    // There may be new reactions on the ready queue, so notify other threads.
 			    pthread_cond_broadcast(&reaction_or_executing_q_changed);
  			    // printf("DEBUG: worker: Done invoking reaction.\n");
             }
@@ -507,6 +509,27 @@ void* worker(void* arg) {
  	pthread_mutex_unlock(&mutex);
 	// timeout has been requested.
 	return NULL;
+}
+
+bool has_not_been_triggered(reaction_t* reaction) {
+    return (pqueue_find_equal_same_priority(ready_q, reaction) == NULL && 
+            pqueue_find_equal_same_priority(blocked_q, reaction) == NULL &&
+            pqueue_find_equal_same_priority(executing_q, reaction) == NULL);
+}
+
+bool is_blocked(reaction_t* reaction) {
+    return is_blocked_by(ready_q, reaction) || is_blocked_by(executing_q, reaction);
+}
+
+void print_snapshot() {
+    printf(">>> START Snapshot\n");
+    printf("Ready:\n");
+    pqueue_dump(ready_q, stdout, ready_q->prt);
+    printf("Executing:\n");
+    pqueue_dump(executing_q, stdout, ready_q->prt);
+    printf("Blocked:\n");
+    pqueue_dump(executing_q, stdout, ready_q->prt);
+    printf(">>> END Snapshot\n");
 }
 
 // Array of thread IDs (to be dynamically allocated).
@@ -560,26 +583,26 @@ void wrapup() {
     	// To make sure next() doesn't wait for events that will
     	// never arrive, unset keepalive.
     	keepalive_specified = false;
-
+        
     	// Execute one iteration of next(), which will process the
     	// next timestamp on the event queue, moving its reactions
-    	// to the reaction queue. This returns false if there was
-    	// in fact nothing on the event queue.
+    	// to the blocking and/or ready queue. This returns false
+        // if there was in fact nothing on the event queue.
         if (next()) {
         	// printf("DEBUG: wrapup: next() returned\n");
         	// printf("DEBUG: reaction_q size = %ld, executing_q = %ld\n", pqueue_size(reaction_q), pqueue_size(executing_q));
         	// Without relying on the worker threads, execute whatever is on the reaction_q.
         	// NOTE: deadlines on these reactions are ignored.
         	// Is that the right thing to do?
-        	while (pqueue_size(reaction_q) > 0) {
-        		reaction_t* reaction = pqueue_pop(reaction_q);
+        	while (pqueue_size(ready_q) > 0) {
+        		reaction_t* reaction = pqueue_pop(ready_q);
 
         		// Invoke the reaction function.
         		// printf("DEBUG: wrapup(): Invoking reaction.\n");
         		reaction->function(reaction->self);
 
         		// If the reaction produced outputs, put the resulting triggered
-        		// reactions into the reaction queue.
+        		// reactions into the blocking and/or ready queue.
         		schedule_output_reactions(reaction);
         		// printf("DEBUG: wrapup(): Done invoking reaction.\n");
         	}
@@ -605,8 +628,8 @@ int main(int argc, char* argv[]) {
         initialize();
         
         // Create a queue on which to put reactions that are currently executing.
-        executing_q = pqueue_init(number_of_threads, cmp_pri, get_rct_pri,
-            	get_rct_pos, set_rct_pos, eql_rct, prt_rct);
+        executing_q = pqueue_init(number_of_threads, in_reverse_order, get_reaction_index,
+            get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
 
         __start_timers();
         start_threads();
