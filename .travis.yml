@@ -25,7 +25,7 @@ script:
  - pushd xtext
  - ./gradlew test
  - popd
- - bin/build-lfc
+ - bin/build-lfc --clean
  - bin/run-lf-tests TS
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp
