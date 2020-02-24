@@ -283,11 +283,10 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def generatePreamble(Reactor r) '''
-        «IF r.preamble !== null»
+        «FOR p : r.preambles ?: emptyList AFTER '\n'»
             // preamble
-            «removeCodeDelimiter(r.preamble.code)»
-            
-        «ENDIF»
+            «removeCodeDelimiter(p.code)»
+        «ENDFOR»
     '''
 
     def declareTriggers(Reaction n) '''
