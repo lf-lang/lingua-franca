@@ -38,6 +38,7 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 Model:
     target=Target
     (imports+=Import)*
+    (preambles+=Preamble)*
     (reactors+=Reactor)+;
 
 /////////// Top level elements
@@ -51,8 +52,8 @@ Reactor:
     (main?='main'? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
-    (preamble=Preamble)?
-    ((states+=State)
+    ((preambles+=Preamble)
+    | (states+=State)
     | (inputs+=Input)
     | (outputs+=Output)
     | (timers+=Timer)
@@ -122,7 +123,7 @@ Mutation:
     code=CODE;
 
 Preamble:
-    'preamble' code=CODE;
+    (visibility=Visibility)? 'preamble' code=CODE;
 
 Instantiation:
     name=ID '=' 'new' 
@@ -224,6 +225,9 @@ enum QueuingPolicy:
 
 enum ActionOrigin:
     NONE | LOGICAL='logical' | PHYSICAL='physical';
+
+enum Visibility:
+    PRIVATE='private' | PUBLIC='public';
 
 enum TimeUnit:
     NONE |
