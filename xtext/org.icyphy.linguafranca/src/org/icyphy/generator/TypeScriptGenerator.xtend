@@ -439,26 +439,16 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle inputs.
         for (input : reactor.inputs) {
-            if (input.type === null) {
-                reportError(input,
-                    "Input is required to have a type: " + input.name)
-            } else {
-                pr(input.name + ": " + "InPort<" + input.type + ">;")
-                pr(reactorConstructor, "this." + input.name + " = new InPort<"
-                    + input.type + ">(this);")
-            }
+            pr(input.name + ": " + "InPort<" + getPortType(input) + ">;")
+            pr(reactorConstructor, "this." + input.name + " = new InPort<"
+                + getPortType(input) + ">(this);")
         }
         
         // Next handle outputs.
         for (output : reactor.outputs) {
-            if (output.type === null) {
-                reportError(output,
-                    "Output is required to have a type: " + output.name)
-            } else {
-                pr(output.name + ": " + "OutPort<" + output.type + ">;")
-                pr(reactorConstructor, "this." + output.name + " = new OutPort<"
-                    + output.type + ">(this);")
-            }
+            pr(output.name + ": " + "OutPort<" + getPortType(output) + ">;")
+            pr(reactorConstructor, "this." + output.name + " = new OutPort<"
+                + getPortType(output) + ">(this);")
         }
         
         // Next handle connections
@@ -556,13 +546,9 @@ class TypeScriptGenerator extends GeneratorBase {
                         if (trigOrSource.variable instanceof Timer) {
                             reactSignatureElementType = "TimeInstant"
                         } else if (trigOrSource.variable instanceof Action) {
-                            if ((trigOrSource.variable as Action).type !== null) {
-                                reactSignatureElementType = removeCodeDelimiter((trigOrSource.variable as Action).type)
-                            } else {
-                                reactSignatureElementType = "Present"
-                            }
+                            reactSignatureElementType = getActionType(trigOrSource.variable as Action)
                         } else if (trigOrSource.variable instanceof Port) {
-                            reactSignatureElementType = (trigOrSource.variable as Port).type
+                            reactSignatureElementType = getPortType(trigOrSource.variable as Port)
                         }
                         var reactSignatureElement =  "__" + trigOrSource.variable.name
                             + ": Readable<" + reactSignatureElementType + ">"
@@ -588,13 +574,9 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (effect.variable instanceof Timer){
                         reportError("A timer cannot be an effect of a reaction")
                     } else if (effect.variable instanceof Action){
-                        if ( (effect.variable as Action).type !== null ) {
-                           reactSignatureElement += ": Schedulable<" + removeCodeDelimiter((effect.variable as Action).type) + ">"   
-                        } else {
-                           reactSignatureElement += ": Schedulable<Present>"
-                        }
+                        reactSignatureElement += ": Schedulable<" + getActionType(effect.variable as Action) + ">"
                     } else if (effect.variable instanceof Port){
-                        reactSignatureElement += ": Writable<" + (effect.variable as Port).type + ">"
+                        reactSignatureElement += ": Writable<" + getPortType(effect.variable as Port) + ">"
                     }
                     reactSignature.add(reactSignatureElement)
                     
@@ -938,6 +920,21 @@ class TypeScriptGenerator extends GeneratorBase {
     private def getActionType(Action action) {
         if (action.type !== null) {
             return removeCodeDelimiter(action.type)
+        } else {
+            return "Present"    
+        }
+    }
+    
+     /**
+     * Return a TS type for the specified port.
+     * If the type has not been specified, return
+     * "Present" which is the base type for ports.
+     * @param port The port
+     * @return The TS type.
+     */
+    private def getPortType(Port port) {
+        if (port.type !== null) {
+            return removeCodeDelimiter(port.type)
         } else {
             return "Present"    
         }

@@ -1,0 +1,44 @@
+// Source produces a statically allocated array, which it passes
+// to Print. The destination references the array directly.
+target TypeScript;
+reactor Source {
+    output out:{=Array<number>=};
+    reaction(startup) -> out {=
+        let toSend = new Array<number>();
+        toSend[0] = 0;
+        toSend[1] = 1;
+        toSend[2] = 2;
+        out.set(toSend);
+    =}
+}
+// The scale parameter is just for testing.
+reactor Print(scale:number(1)) {
+    input x:{=Array<number>=};
+    reaction(x) {=
+        let count = 0;       // For testing.
+        let failed = false; // For testing.
+        let msg = "";
+        x = x as Array<number>
+        msg += "Received: [";
+        for (let i = 0; i < 3; i++) {
+            if (i > 0)  msg += ", ";
+             msg += (x[i]);
+            // For testing, check whether values match expectation.
+            if ((x[i]) != scale * count) {
+                failed = true;
+            }
+            count++;         // For testing.
+        }
+         msg += "]";
+         console.log(msg);
+        if (failed) {
+            console.log("ERROR: Value received by Print does not match expectation!");
+            this.util.exec.failure();
+        }
+    =}
+}
+main reactor ArrayAsType {
+    s = new Source();
+    p = new Print();
+    s.out -> p.x;
+}
