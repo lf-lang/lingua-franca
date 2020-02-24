@@ -1,10 +1,12 @@
-// Source produces a statically allocated array, which it passes
-// to Print. The destination references the array directly.
+// In TypeScript this test is almost exactly the same as ArrayAsType.
+
+// Source produces a dynamically allocated array, which it passes
+// to Print. Reference counting ensures that the array is freed.
 target TypeScript;
 reactor Source {
     output out:{=Array<number>=};
     reaction(startup) -> out {=
-        let toSend = [];
+        let toSend = new Array<number>();
         toSend[0] = 0;
         toSend[1] = 1;
         toSend[2] = 2;
