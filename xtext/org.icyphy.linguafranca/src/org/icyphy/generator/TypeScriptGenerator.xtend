@@ -797,7 +797,7 @@ class TypeScriptGenerator extends GeneratorBase {
         arguments.add(keepAliveArg)
         arguments.add(fastArg)
         
-        pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
+        pr("let _app = new "+ fullName + "(" + arguments + ")")
     }
     
     /** Generate code to call the _start function on the main App
