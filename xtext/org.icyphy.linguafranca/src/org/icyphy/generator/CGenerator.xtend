@@ -173,6 +173,10 @@ class CGenerator extends GeneratorBase {
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = filename
         var commonCode = code
+        var commonInitializeTriggerObjects = initializeTriggerObjects
+        var commonStartTimeStep = startTimeStep
+        var commonStartTimers = startTimers
+        
         for (federate : federates) {
             // Empty string means no federates were defined, so we only generate
             // one output.
@@ -180,6 +184,9 @@ class CGenerator extends GeneratorBase {
                 filename = baseFilename + '_' + federate
                 // Copy the commonCode into a new code string.
                 code = new StringBuilder(commonCode)
+                initializeTriggerObjects = new StringBuilder(commonInitializeTriggerObjects)
+                startTimeStep = new StringBuilder(commonStartTimeStep)
+                startTimers = new StringBuilder(commonStartTimers)
             }
         
             // Derive target filename from the .lf filename.
@@ -200,7 +207,7 @@ class CGenerator extends GeneratorBase {
             // Generate main instance, if there is one.
             // Note that any main reactors in imported files are ignored.        
             if (this.main !== null) {
-                generateReactorInstance(this.main)
+                generateReactorInstance(this.main, federate)
 
                 // Generate function to set default command-line options.
                 // A literal array needs to be given outside any function definition,
@@ -222,7 +229,7 @@ class CGenerator extends GeneratorBase {
                 indent()
                 pr(initializeTriggerObjects.toString)
                 doDeferredInitialize()
-                setReactionPriorities(main)
+                setReactionPriorities(main, federate)
                 unindent()
                 pr('}\n')
 
@@ -1475,8 +1482,10 @@ class CGenerator extends GeneratorBase {
 
     /** Traverse the runtime hierarchy of reaction instances and generate code.
      *  @param instance A reactor instance.
+     *  @param federate A federate name to conditionally generate code by
+     *   contained reactors or an empty string "" if there are no federates.
      */
-    def void generateReactorInstance(ReactorInstance instance) {
+    def void generateReactorInstance(ReactorInstance instance, String federate) {
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
         pr('// ************* Instance ' + fullName + ' of class ' +
@@ -1624,18 +1633,45 @@ class CGenerator extends GeneratorBase {
                         deadline + ';')
             }
         }
-
+        var insideFederate = if (instance === this.main) federate else null
         for (child : instance.children) {
-            generateReactorInstance(child)
+            if (reactorBelongsToFederate(child, federate)) {
+                generateReactorInstance(child, insideFederate)
+            }
         }
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
+    
+    /** Return true if the specified reactor instance belongs to the specified
+     *  federate. This always returns true if the specified federate is
+     *  null or an empty string. Otherwise, it returns true only if the
+     *  instance is contained by the main reactor and the instance name
+     *  was included in the 'reactors' property of the targets 'federates'
+     *  specification.
+     *  @param instance A reactor instance.
+     *  @param federate A federate name or "" if there are no federates.
+     */
+    def reactorBelongsToFederate(ReactorInstance instance, String federate) {
+        if (federate === null || federate.equals("")) {
+            return true
+        } else {
+            if (instance.parent === this.main 
+                && !federateContents.get(federate).contains(instance.name)
+            ) {
+                return false
+            } else {
+                return true
+            }
+        }
+    }
 
     /** Set the reaction priorities based on dependency analysis.
      *  @param reactor The reactor on which to do this.
+     *  @param federate A federate name to conditionally generate code by
+     *   contained reactors or an empty string "" if there are no federates.
      */
-    def void setReactionPriorities(ReactorInstance reactor) {
+    def void setReactionPriorities(ReactorInstance reactor, String federate) {
         // Use "reactionToReactionTName" property of reactionInstance
         // to set the levels.
         for (reactionInstance : reactor.reactions) {
@@ -1648,7 +1684,9 @@ class CGenerator extends GeneratorBase {
                 
         }
         for (child : reactor.children) {
-            setReactionPriorities(child)
+            if (reactorBelongsToFederate(child, federate)) {
+                setReactionPriorities(child, federate)
+            }
         }
     }
 
