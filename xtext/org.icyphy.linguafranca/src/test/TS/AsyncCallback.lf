@@ -1,0 +1,50 @@
+// Test asynchronous callbacks that trigger a physical action.
+
+target TypeScript {
+	timeout: 2 sec,
+	keepalive: true    // Not really needed here because there is a timer.
+};
+
+main reactor AsyncCallback {
+	
+	preamble {= 
+	    
+	    function callback(a : Schedulable<null>) {
+	        // Schedule twice. If the action is not physical, these should
+            // get consolidated into a single action triggering. If it is,
+            // then they cause two separate triggerings with close but not
+            // equal time stamps. The minimum time between these is determined
+            // by the argument in the physical action definition.
+	        a.schedule(0);
+	        a.schedule(0);
+	    }
+	=}
+	timer t(0, 200 msec);
+	state expected_time:time(100 msec);
+	state toggle:boolean(false);
+	
+    physical action a(100 msec):number;
+    state i:number(0);
+  
+	reaction(t) -> a {=
+		// set a timeout for the callback
+		setTimeout(callback, 1000, a);
+	=}
+	
+	reaction(a) {=
+		let elapsed_time = this.util.time.getElapsedLogicalTime();
+        console.log("Asynchronous callback " + i
+            + ": Assigned logical time greater than start time by" + elapsed_time + " nsec."
+        ); 
+		if (elapsed_time.isSmallerThan(expected_time)) {
+		    console.log("ERROR: Expected logical time to be larger than " + expected_time + ".");
+		    this.util.exec.failure();
+		}
+        if (toggle) {
+            toggle = false;
+            expected_time.add( new UnitBasedTimeInterval(200, TimeUnit.msec));
+        } else {
+            toggle = true;
+        }
+	=}
+}
