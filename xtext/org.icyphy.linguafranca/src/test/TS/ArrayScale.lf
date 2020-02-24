@@ -1,0 +1,26 @@
+// Source produces a dynamically allocated array, which it passes
+// to Scale. Scale requests a writable copy, which, instead of
+// copying, it just gets ownership of the original array.
+// It modifies it and passes it to Print. It gets freed after
+// Print is done with it.
+target TypeScript;
+import ArrayPrint.lf;
+
+reactor Scale(scale:number(2)) {
+    mutable input x:{=Array<number>=};
+    output out:{=Array<number>=};
+    reaction(x) -> out {=
+        x = x as Array<number>;
+        for(let i = 0; i < x.length; i++) {
+            x[i] = x[i] * scale;
+        }
+        out.set(x);
+    =}
+}
+main reactor ArrayScale {
+    s = new Source();
+    c = new Scale();
+    p = new Print(scale=2);
+    s.out -> c.x;
+    c.out -> p.x;
+}
