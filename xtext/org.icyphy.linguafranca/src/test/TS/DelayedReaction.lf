@@ -1,0 +1,30 @@
+// Test delay made on a connection.
+target TypeScript;
+
+reactor Source {
+    output out:number;
+    timer t;
+    reaction(t) -> out {=
+        out.set(1);
+    =} 
+}
+
+
+
+reactor Sink {
+	input x:number;
+	reaction(x) {=
+        let elapsed = this.util.time.getElapsedLogicalTime();
+        console.log("Nanoseconds since start: " + elapsed);
+        if (! elapsed.isEqualTo(new UnitBasedTimeInterval( 100, TimeUnit.msec))) {
+            console.log("ERROR: Expected 100 msecs but got" + elapsed );
+            this.util.exec.failure();
+        }		
+	=}
+}
+main reactor DelayedReaction {
+    
+    source = new Source();
+    sink = new Sink();
+    source.out -> sink.x after 100 msec;
+}
