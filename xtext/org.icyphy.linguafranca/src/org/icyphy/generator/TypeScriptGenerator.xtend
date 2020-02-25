@@ -321,13 +321,14 @@ class TypeScriptGenerator extends GeneratorBase {
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor
             for (parameter : childReactor.reactorClass.parameters) {
+                var childParameterFound = false
                 
                 // Attempt to find a non-default parameter value
                 for (parameterAssignment : childReactor.parameters) {
                     if (parameterAssignment.lhs.name.equals(parameter.name)) {
-                        if (parameterAssignment.rhs instanceof Parameter) {
-                            childReactorArguments.add("this."
-                            + parameterAssignment.rhs.parameter.name + ".get()")
+                        childParameterFound = true
+                        if (parameterAssignment.rhs.parameter !== null) {
+                            childReactorArguments.add(parameterAssignment.rhs.parameter.name)
                         } else if (parameterAssignment.rhs.value !== null) {
                             childReactorArguments.add(removeCodeDelimiter(parameterAssignment.rhs.value))
                         } else {
@@ -336,6 +337,10 @@ class TypeScriptGenerator extends GeneratorBase {
                                    , parameterAssignment.rhs.unit))
                         }
                     }
+                }
+                
+                if (!childParameterFound) {
+                    childReactorArguments.add("undefined")
                 }
             }
             
@@ -734,7 +739,9 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("")
     }
 
-    /** Traverse the runtime hierarchy of reaction instances and generate code.
+    /** Generate the main app instance. This function is only used once
+     *  because all other reactors are instantiated as properties of the
+     *  main one.
      *  @param instance A reactor instance.
      */
     def void generateReactorInstance(Instantiation defn) {
@@ -748,7 +755,6 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         // Get target properties for the app
-
         var String timeoutArg
         var isATimeoutArg = false
         
@@ -960,7 +966,7 @@ class TypeScriptGenerator extends GeneratorBase {
     static val utilLibPath =  "." + File.separator + "util"
     val static preamble = '''
 import {Args, Present, Parameter, State, Variable, Priority, Mutation, Util, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
-import {TimeUnit,TimeInterval, UnitBasedTimeInterval, TimeInstant, Origin, getCurrentPhysicalTime } from "''' + timeLibPath + '''"
+import {TimeUnit, TimeInterval, UnitBasedTimeInterval, TimeInstant, Origin } from "''' + timeLibPath + '''"
 import {Log} from "''' + utilLibPath + '''"
 
     '''
