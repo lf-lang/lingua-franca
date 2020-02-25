@@ -1,0 +1,44 @@
+target TypeScript;
+reactor Source {
+    output y:number;
+    timer t;
+    reaction(t) -> y {=
+        y.set(1);
+    =}
+} 
+reactor Destination {
+    input x:number;
+    input y:number;
+    reaction(x, y) {=
+        let sum = 0;
+        if (x) {
+            sum += x;
+        }
+        if (y) {
+            sum += y;
+        }
+        console.log("Received " + sum);
+        if (sum != 2) {
+            console.log("FAILURE: Expected 2.");
+            this.util.exec.failure();
+        }
+    =}
+}
+reactor Pass {
+    input x:number;
+    output y:number;
+    reaction(x) -> y {=
+        y.set(x as number);
+    =}
+}
+
+main reactor Determinism {
+    s = new Source();
+    d = new Destination();
+    p1 = new Pass();
+    p2 = new Pass();
+    s.y -> d.y;
+    s.y -> p1.x;
+    p1.y -> p2.x;
+    p2.y -> d.x;
+}
