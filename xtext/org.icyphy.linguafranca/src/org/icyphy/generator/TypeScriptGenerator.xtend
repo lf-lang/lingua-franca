@@ -275,7 +275,7 @@ class TypeScriptGenerator extends GeneratorBase {
         var arguments = new StringJoiner(", ")
         if (reactor.isMain()) {
             arguments.add("name: string")
-            arguments.add("timeout: TimeInterval | undefined = undefined")
+            arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
         } else {
@@ -549,7 +549,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         var reactSignatureElementType = "";
                         
                         if (trigOrSource.variable instanceof Timer) {
-                            reactSignatureElementType = "TimeInstant"
+                            reactSignatureElementType = "Tag"
                         } else if (trigOrSource.variable instanceof Action) {
                             reactSignatureElementType = getActionType(trigOrSource.variable as Action)
                         } else if (trigOrSource.variable instanceof Port) {
@@ -825,11 +825,11 @@ class TypeScriptGenerator extends GeneratorBase {
 
     
      /** Return a string that the target language can recognize as a type
-     *  for a time value. In TypeScript this is a TimeInterval.
-     *  @return The string "TimeInterval"
+     *  for a time value. In TypeScript this is a TimeValue.
+     *  @return The string "TimeValue"
      */
     override timeTypeInTargetLanguage() {
-        "TimeInterval"
+        "TimeValue"
     }
 
     /** Given a representation of time that may possibly include units,
@@ -840,10 +840,10 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
         if (unit != TimeUnit.NONE) {
-            "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit." + unit + ")"
+            "new UnitBasedTimeValue(" + timeLiteral + ", TimeUnit." + unit + ")"
         } else {
             // The default time unit for TypeScript is msec.
-            "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit.msec)"
+            "new UnitBasedTimeValue(" + timeLiteral + ", TimeUnit.msec)"
         }
     }
 
@@ -896,7 +896,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
     /** Return a TS type for the type of the specified state.
      *  If there are code delimiters around it, those are removed.
-     *  If the type is "time", then it is converted to "TimeInterval".
+     *  If the type is "time", then it is converted to "TimeValue".
      *  If state is a parameter, get the parameter's type.
      *  If the state doesn't have a type, type it as 'unknown'
      *  @param state The state.
@@ -949,14 +949,14 @@ class TypeScriptGenerator extends GeneratorBase {
 
     /** Return a TS type for the type of the specified parameter.
      *  If there are code delimiters around it, those are removed.
-     *  If the type is "time", then it is converted to "TimeInterval".
+     *  If the type is "time", then it is converted to "TimeValue".
      *  @param parameter The parameter.
      *  @return The TS type.
      */
     private def getParameterType(Parameter parameter) {
         var type = removeCodeDelimiter(parameter.type)
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
-            type = 'TimeInterval'
+            type = 'TimeValue'
         }
         type
     }
@@ -966,7 +966,7 @@ class TypeScriptGenerator extends GeneratorBase {
     static val utilLibPath =  "." + File.separator + "util"
     val static preamble = '''
 import {Args, Present, Parameter, State, Variable, Priority, Mutation, Util, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
-import {TimeUnit, TimeInterval, UnitBasedTimeInterval, TimeInstant, Origin } from "''' + timeLibPath + '''"
+import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeLibPath + '''"
 import {Log} from "''' + utilLibPath + '''"
 
     '''

@@ -16,7 +16,7 @@ reactor Source(period:time(1 sec)) {
             // The count variable is odd.
             // Busy wait 0.2 sconds to cause a deadline violation.
             let initialElapsedTime = this.util.time.getElapsedPhysicalTime();
-            while ( this.util.time.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeInterval(200, TimeUnit.msec))));
+            while ( this.util.time.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeValue(200, TimeUnit.msec))));
         }
         console.log("Source sends: " + count);
         y.set(count);
