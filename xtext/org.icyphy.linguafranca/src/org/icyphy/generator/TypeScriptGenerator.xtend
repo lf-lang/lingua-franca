@@ -258,9 +258,9 @@ class TypeScriptGenerator extends GeneratorBase {
 
         pr("// =============== START reactor class " + reactor.name)
 
-        if (reactor.preamble !== null) {
+        for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
-            pr(removeCodeDelimiter(reactor.preamble.code))
+            pr(removeCodeDelimiter(p.code))
             pr("\n// *********** End of preamble.")
         }
 
@@ -275,7 +275,7 @@ class TypeScriptGenerator extends GeneratorBase {
         var arguments = new StringJoiner(", ")
         if (reactor.isMain()) {
             arguments.add("name: string")
-            arguments.add("timeout: TimeInterval | undefined = undefined")
+            arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
         } else {
@@ -321,13 +321,14 @@ class TypeScriptGenerator extends GeneratorBase {
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor
             for (parameter : childReactor.reactorClass.parameters) {
+                var childParameterFound = false
                 
                 // Attempt to find a non-default parameter value
                 for (parameterAssignment : childReactor.parameters) {
                     if (parameterAssignment.lhs.name.equals(parameter.name)) {
-                        if (parameterAssignment.rhs instanceof Parameter) {
-                            childReactorArguments.add("this."
-                            + parameterAssignment.rhs.parameter.name + ".get()")
+                        childParameterFound = true
+                        if (parameterAssignment.rhs.parameter !== null) {
+                            childReactorArguments.add(parameterAssignment.rhs.parameter.name)
                         } else if (parameterAssignment.rhs.value !== null) {
                             childReactorArguments.add(removeCodeDelimiter(parameterAssignment.rhs.value))
                         } else {
@@ -336,6 +337,10 @@ class TypeScriptGenerator extends GeneratorBase {
                                    , parameterAssignment.rhs.unit))
                         }
                     }
+                }
+                
+                if (!childParameterFound) {
+                    childReactorArguments.add("undefined")
                 }
             }
             
@@ -439,26 +444,16 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle inputs.
         for (input : reactor.inputs) {
-            if (input.type === null) {
-                reportError(input,
-                    "Input is required to have a type: " + input.name)
-            } else {
-                pr(input.name + ": " + "InPort<" + input.type + ">;")
-                pr(reactorConstructor, "this." + input.name + " = new InPort<"
-                    + input.type + ">(this);")
-            }
+            pr(input.name + ": " + "InPort<" + getPortType(input) + ">;")
+            pr(reactorConstructor, "this." + input.name + " = new InPort<"
+                + getPortType(input) + ">(this);")
         }
         
         // Next handle outputs.
         for (output : reactor.outputs) {
-            if (output.type === null) {
-                reportError(output,
-                    "Output is required to have a type: " + output.name)
-            } else {
-                pr(output.name + ": " + "OutPort<" + output.type + ">;")
-                pr(reactorConstructor, "this." + output.name + " = new OutPort<"
-                    + output.type + ">(this);")
-            }
+            pr(output.name + ": " + "OutPort<" + getPortType(output) + ">;")
+            pr(reactorConstructor, "this." + output.name + " = new OutPort<"
+                + getPortType(output) + ">(this);")
         }
         
         // Next handle connections
@@ -554,15 +549,11 @@ class TypeScriptGenerator extends GeneratorBase {
                         var reactSignatureElementType = "";
                         
                         if (trigOrSource.variable instanceof Timer) {
-                            reactSignatureElementType = "TimeInstant"
+                            reactSignatureElementType = "Tag"
                         } else if (trigOrSource.variable instanceof Action) {
-                            if ((trigOrSource.variable as Action).type !== null) {
-                                reactSignatureElementType = removeCodeDelimiter((trigOrSource.variable as Action).type)
-                            } else {
-                                reactSignatureElementType = "Present"
-                            }
+                            reactSignatureElementType = getActionType(trigOrSource.variable as Action)
                         } else if (trigOrSource.variable instanceof Port) {
-                            reactSignatureElementType = (trigOrSource.variable as Port).type
+                            reactSignatureElementType = getPortType(trigOrSource.variable as Port)
                         }
                         var reactSignatureElement =  "__" + trigOrSource.variable.name
                             + ": Readable<" + reactSignatureElementType + ">"
@@ -588,13 +579,9 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (effect.variable instanceof Timer){
                         reportError("A timer cannot be an effect of a reaction")
                     } else if (effect.variable instanceof Action){
-                        if ( (effect.variable as Action).type !== null ) {
-                           reactSignatureElement += ": Schedulable<" + removeCodeDelimiter((effect.variable as Action).type) + ">"   
-                        } else {
-                           reactSignatureElement += ": Schedulable<Present>"
-                        }
+                        reactSignatureElement += ": Schedulable<" + getActionType(effect.variable as Action) + ">"
                     } else if (effect.variable instanceof Port){
-                        reactSignatureElement += ": Writable<" + (effect.variable as Port).type + ">"
+                        reactSignatureElement += ": Writable<" + getPortType(effect.variable as Port) + ">"
                     }
                     reactSignature.add(reactSignatureElement)
                     
@@ -752,7 +739,9 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("")
     }
 
-    /** Traverse the runtime hierarchy of reaction instances and generate code.
+    /** Generate the main app instance. This function is only used once
+     *  because all other reactors are instantiated as properties of the
+     *  main one.
      *  @param instance A reactor instance.
      */
     def void generateReactorInstance(Instantiation defn) {
@@ -766,7 +755,6 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         // Get target properties for the app
-
         var String timeoutArg
         var isATimeoutArg = false
         
@@ -797,7 +785,7 @@ class TypeScriptGenerator extends GeneratorBase {
         arguments.add(keepAliveArg)
         arguments.add(fastArg)
         
-        pr("let _app" + " = new "+ fullName + "(" + arguments + ")")
+        pr("let _app = new "+ fullName + "(" + arguments + ")")
     }
     
     /** Generate code to call the _start function on the main App
@@ -837,11 +825,11 @@ class TypeScriptGenerator extends GeneratorBase {
 
     
      /** Return a string that the target language can recognize as a type
-     *  for a time value. In TypeScript this is a TimeInterval.
-     *  @return The string "TimeInterval"
+     *  for a time value. In TypeScript this is a TimeValue.
+     *  @return The string "TimeValue"
      */
     override timeTypeInTargetLanguage() {
-        "TimeInterval"
+        "TimeValue"
     }
 
     /** Given a representation of time that may possibly include units,
@@ -852,10 +840,10 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
         if (unit != TimeUnit.NONE) {
-            "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit." + unit + ")"
+            "new UnitBasedTimeValue(" + timeLiteral + ", TimeUnit." + unit + ")"
         } else {
             // The default time unit for TypeScript is msec.
-            "new UnitBasedTimeInterval(" + timeLiteral + ", TimeUnit.msec)"
+            "new UnitBasedTimeValue(" + timeLiteral + ", TimeUnit.msec)"
         }
     }
 
@@ -908,7 +896,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
     /** Return a TS type for the type of the specified state.
      *  If there are code delimiters around it, those are removed.
-     *  If the type is "time", then it is converted to "TimeInterval".
+     *  If the type is "time", then it is converted to "TimeValue".
      *  If state is a parameter, get the parameter's type.
      *  If the state doesn't have a type, type it as 'unknown'
      *  @param state The state.
@@ -942,18 +930,33 @@ class TypeScriptGenerator extends GeneratorBase {
             return "Present"    
         }
     }
+    
+     /**
+     * Return a TS type for the specified port.
+     * If the type has not been specified, return
+     * "Present" which is the base type for ports.
+     * @param port The port
+     * @return The TS type.
+     */
+    private def getPortType(Port port) {
+        if (port.type !== null) {
+            return removeCodeDelimiter(port.type)
+        } else {
+            return "Present"    
+        }
+    }
 
 
     /** Return a TS type for the type of the specified parameter.
      *  If there are code delimiters around it, those are removed.
-     *  If the type is "time", then it is converted to "TimeInterval".
+     *  If the type is "time", then it is converted to "TimeValue".
      *  @param parameter The parameter.
      *  @return The TS type.
      */
     private def getParameterType(Parameter parameter) {
         var type = removeCodeDelimiter(parameter.type)
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
-            type = 'TimeInterval'
+            type = 'TimeValue'
         }
         type
     }
@@ -963,7 +966,7 @@ class TypeScriptGenerator extends GeneratorBase {
     static val utilLibPath =  "." + File.separator + "util"
     val static preamble = '''
 import {Args, Present, Parameter, State, Variable, Priority, Mutation, Util, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
-import {TimeUnit,TimeInterval, UnitBasedTimeInterval, TimeInstant, Origin, getCurrentPhysicalTime } from "''' + timeLibPath + '''"
+import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeLibPath + '''"
 import {Log} from "''' + utilLibPath + '''"
 
     '''

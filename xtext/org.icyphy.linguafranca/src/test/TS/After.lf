@@ -23,7 +23,7 @@ reactor print {
             console.log("ERROR: Expected logical time to be " + expected_time);
             this.util.exec.failure();
         }
-        expected_time = expected_time.add(new UnitBasedTimeInterval(1, TimeUnit.sec));
+        expected_time = expected_time.add(new UnitBasedTimeValue(1, TimeUnit.sec));
     =}
 }
 main reactor top {

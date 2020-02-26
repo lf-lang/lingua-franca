@@ -1,0 +1,45 @@
+// This test checks that logical time is incremented an appropriate
+// amount as a result of an invocation of the schedule() function at
+// runtime. It also performs various smoke tests of timing aligned
+// reactions. The first instance has a period of 4 seconds, the second
+// of 2 seconds, and the third (composite) or 1 second.
+target TypeScript {
+    timeout: 10 sec,
+    fast: true
+};
+reactor Reschedule(period:time(2 secs), message:string("Hello TypeScript")) {
+	state count:number(0);
+	state previous_time:time(0);
+	timer t(1 secs, period);
+	logical action a;
+	reaction(t) -> a {=
+		console.log(message);
+		a.schedule(new UnitBasedTimeValue(200, TimeUnit.msec));
+		// Print the current time.
+		previous_time = this.util.time.getCurrentLogicalTime();
+		console.log("Current time is " + previous_time);
+	=}
+	reaction(a) {=
+		count++;
+		console.log("***** action " + count + " at time " + this.util.time.getCurrentLogicalTime());
+		// Check the a_has_value variable.
+		if (a) {
+		    console.log("FAILURE: Expected a to be null (not present), but it was non-null.");
+		    this.util.exec.failure();
+		}
+		let currentTime = this.util.time.getCurrentLogicalTime();
+		if (! currentTime.subtract(previous_time).isEqualTo(new UnitBasedTimeValue(200, TimeUnit.msec))) {
+			console.log("FAILURE: Expected 200ms of logical time to elapse but got " +
+			    currentTime.subtract(previous_time));
+			this.util.exec.failure();
+		}
+	=}
+} 
+reactor Inside(period:time(1 sec), message:string("Composite default message.")) {
+	third_instance = new Reschedule(period = period, message = message);
+}
+main reactor Hello { 
+	first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
+	second_instance = new Reschedule(message = "Hello from second_instance.");
+	composite_instance = new Inside(message = "Hello from composite_instance.");
+}

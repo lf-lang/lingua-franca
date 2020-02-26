@@ -20,16 +20,16 @@ reactor Test {
     state received_value:boolean(false);
     reaction(startup) {=
         // Record the logical time at the start.
-        start_time = this.util.time.getCurrentLogicalTime().time;
+        start_time = this.util.time.getCurrentLogicalTime();
     =} 
     reaction(x) {=
         console.log("Received: " + x);
         received_value = true;
         // Check the time of the input.
-        let current_time = this.util.time.getCurrentLogicalTime().time;
+        let current_time = this.util.time.getCurrentLogicalTime();
         let elapsed = current_time.subtract(start_time); 
         console.log("After " + elapsed + " of logical time.");
-        if ( ! elapsed.isEqualTo(new UnitBasedTimeInterval( 100, TimeUnit.msec))) {
+        if ( ! elapsed.isEqualTo(new UnitBasedTimeValue( 100, TimeUnit.msec))) {
             console.log("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
             this.util.exec.failure();
             //throw new Error( "ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);

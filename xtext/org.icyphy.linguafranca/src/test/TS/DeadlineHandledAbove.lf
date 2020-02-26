@@ -21,7 +21,7 @@ main reactor DeadlineHandledAbove {
     reaction(startup) -> d.x {=
         // Busy wait 20 msec to cause a deadline violation.
         let initialElapsedTime = this.util.time.getElapsedPhysicalTime();
-        while ( this.util.time.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeInterval(20, TimeUnit.msec))));
+        while ( this.util.time.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeValue(20, TimeUnit.msec))));
         d.x.set(42);
     =}
     reaction(d.deadline_violation) {=

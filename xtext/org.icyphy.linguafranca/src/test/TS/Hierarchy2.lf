@@ -1,0 +1,61 @@
+// Test data transport across hierarchy.
+target TypeScript {
+    timeout: 5 sec,
+    fast: true,
+    logging: DEBUG
+};
+reactor Source {
+    output out:number;
+    timer t(0, 1 sec);
+    reaction(t) -> out {=
+        out.set(1);
+    =}
+}
+reactor Count {
+    output out:number;
+    timer t(0, 1 sec);
+    state i:number(0);
+    reaction(t) -> out {=
+        i++;
+        out.set(i);
+    =}
+}
+reactor Add {
+    input in1:number;
+    input in2:number;
+    output out:number;
+    reaction(in1, in2) -> out {=
+        let result = 0;
+        if (in1) result += in1;
+        if (in2) result += in2;
+        out.set(result);
+    =}
+}
+reactor Print {
+    input x:number;
+    state expected:number(2);
+    reaction(x) {=
+        x = x as number;
+        if (x != expected) {
+            console.log("Expected " + expected);
+            this.util.exec.failure();
+        }
+        expected++;
+    =}
+}
+reactor AddCount {
+    input x:number;
+    output out:number;
+    count = new Count();
+    add = new Add();
+    x -> add.in1;
+    count.out -> add.in2;
+    add.out -> out;
+}
+main reactor Hierarchy2 {
+    source = new Source();
+    addCount = new AddCount();
+    print = new Print();
+    source.out -> addCount.x;
+    addCount.out -> print.x;
+} 
