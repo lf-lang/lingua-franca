@@ -42,7 +42,7 @@ main reactor AsyncCallback {
 		}
         if (toggle) {
             toggle = false;
-            expected_time.add( new UnitBasedTimeInterval(200, TimeUnit.msec));
+            expected_time.add( new UnitBasedTimeValue(200, TimeUnit.msec));
         } else {
             toggle = true;
         }

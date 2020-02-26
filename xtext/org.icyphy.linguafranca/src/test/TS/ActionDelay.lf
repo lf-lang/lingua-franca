@@ -30,7 +30,7 @@ reactor Sink {
         var logical = this.util.time.getCurrentLogicalTime();
         var physical = this.util.time.getCurrentPhysicalTime();
         console.log("Logical, physical, and elapsed logical: " + logical + physical + elapsed_logical); 
-        var oneHundredMsec = new UnitBasedTimeInterval(100, TimeUnit.msec);
+        var oneHundredMsec = new UnitBasedTimeValue(100, TimeUnit.msec);
         if (!elapsed_logical.isEqualTo(oneHundredMsec)) {
             console.log("FAILURE: Expected " + oneHundredMsec + " but got " + elapsed_logical);
             this.util.exec.failure();

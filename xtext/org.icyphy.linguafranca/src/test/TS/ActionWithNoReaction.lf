@@ -11,7 +11,7 @@ reactor foo {
     logical action a:number;
     reaction(x) -> y, a {=
         y.set(2*(x as number));
-        a.schedule(new UnitBasedTimeInterval(500, TimeUnit.msec))
+        a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec))
     =}
 }
 reactor print {
