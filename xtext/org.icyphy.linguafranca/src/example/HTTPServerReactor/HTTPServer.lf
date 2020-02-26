@@ -1,5 +1,5 @@
-target TypeScript{
-    keepalive : "true"
+target TypeScript {
+    keepalive : true
     //logging : "debug"
     //timeout : 10 sec
 };

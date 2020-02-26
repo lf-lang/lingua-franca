@@ -571,8 +571,8 @@ abstract class GeneratorBase {
             println("--- End of standard output.")
         }
         if (stderr.length() > 0) {
-            reportError("---Command reports errors:\n" + stderr.toString)
-            println("--- End of standard standard error.")
+            reportError("---Command reports errors:\n" + stderr.toString
+                    + "\n--- End of standard standard error.")
         }
         returnCode
     }
