@@ -23,7 +23,9 @@
 
 
 
-target C;
+target C {
+    compile: "gcc src-gen/HelloProtocolBuffers.c src-gen/hello_string.pb-c.c -l protobuf-c -o bin/HelloProtocolBuffers"
+};
 main reactor HelloProtocolBuffers {
 	
 	preamble {=

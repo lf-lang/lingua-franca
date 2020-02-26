@@ -153,22 +153,36 @@ class TypeScriptGenerator extends GeneratorBase {
         createDefaultConfigFile(projectPath, "tsconfig.json")
         createDefaultConfigFile(projectPath, "babel.config.js")
         
-        // FIXME: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
+        // NOTE: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
         // the complete PATH variable needed to find the command npm. I had
         // to start my eclipse instance from a terminal so eclipse would have the correct environment
         // variables to run this command.
         
-        // Install npm modules.
-        println("In directory: " + directory)
-        println("Running npm install ...")
-        var installCmd = newArrayList();
-        installCmd.addAll("npm", "install")
-        var installBuilder = new ProcessBuilder(installCmd)
-        installBuilder.directory(new File(directory))
-        var Process installProcess = installBuilder.start()
+        // To fix this, at least on a Mac, we look in the common place
+        // where npm is typically installed, /usr/local/bin/
+        val paths = newArrayList("/usr/local/bin/")
+        var npm = findExternalProgram("npm", paths)
+        if (npm === null) {
+            // On a Mac, if you are running within Eclipse, the PATH variable is extremely
+            // limited (to the default provided in /etc/paths, supposedly, but on my machine,
+            // it does not even include directories in that file for some reason.
+            // One way to add /usr/local/bin to the path once-and-for-all is this:
+            // sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+            reportError(resource.findTarget, "npm executable not found in "
+                    + "/usr/local/bin nor on the PATH:\n"
+                    + System.getenv("PATH")
+                    + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+            return
+        }
         
-        // Sleep until the modules have installed
-        installProcess.waitFor()
+        // Install npm modules.
+        var installCmd = newArrayList();
+        installCmd.addAll(npm, "install")
+        
+        if (executeCommand(installCmd) !== 0) {
+            reportError(resource.findTarget, "ERROR: npm install command failed.")
+            return
+        }
         
         refreshProject()
 
