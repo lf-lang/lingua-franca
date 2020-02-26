@@ -1370,26 +1370,20 @@ class CGenerator extends GeneratorBase {
         if (importStatement.importURI.endsWith(".proto")) {
             // First, check that protoc is installed.
             // FIXME: Should we include this as a submodule? If so, how to invoke it?
-            val protocTest = newArrayList
-            var protoc_c = "protoc-c"
-            protocTest.addAll("which", protoc_c)
-            if (executeCommand(protocTest) != 0) {
+            // protoc is commonly installed in /usr/local/bin, which sadly is not by
+            // default on the PATH for a Mac.
+            val paths = newArrayList("/usr/local/bin/")
+            var protoc_c = findExternalProgram("protoc-c", paths)
+            if (protoc_c === null) {
                 // On a Mac, if you are running within Eclipse, the PATH variable is extremely
                 // limited (to the default provided in /etc/paths, supposedly, but on my machine,
                 // it does not even include directories in that file for some reason.
                 // One way to add /usr/local/bin to the path once-and-for-all is this:
                 // sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
-                
-                // Instead, here, we look for it in /usr/local/bin.
-                protoc_c = "/usr/local/bin/protoc-c"
-                protocTest.clear()
-                protocTest.addAll('which', protoc_c)
-                if (executeCommand(protocTest) != 0) {
-                    return reportError(importStatement, "Protocol buffers protoc-c executable not found in "
+                return reportError(importStatement, "Protocol buffers protoc-c executable not found in "
                         + "/usr/local/bin nor on the PATH:\n"
                         + System.getenv("PATH")
                         + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c")
-                }
             }
             // Invoke protoc-c.
             val protocCommand = newArrayList
