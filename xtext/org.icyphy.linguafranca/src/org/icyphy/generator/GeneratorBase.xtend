@@ -287,7 +287,45 @@ abstract class GeneratorBase {
             }
         }
     }
-
+    
+    /**
+     * Utility function to find an external program given its name
+     * and a list of paths to search. This first executes the command
+     * "which <name>", and if this succeeds, just returns name.
+     * This means that the program is already found using the
+     * environment PATH variable.  Unfortunately, at least on a
+     * Mac, if you are running within Eclipse, the PATH variable
+     * is extremely limited; supposedly, it is given by the default
+     * provided in /etc/paths, but at least on my machine,
+     * it does not even include directories in that file for some reason.
+     * One way to add /usr/local/bin to the path once-and-for-all is this:
+     * 
+     *     sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+     * 
+     * But asking users to do that is not ideal. Hence, we try a more
+     * hack-y approach of just trying to find the program in common locations.
+     * @param name The name of the program to find.
+     * @param paths A list of paths, such as "/usr/local/bin/" (with trailing /).
+     * @return Returns just name if the program is already on the PATH,
+     *  or a path if it is found on one of the specified paths, such as
+     *  "/usr/local/bin/name", or null if it is not found.
+     */
+    def String findExternalProgram(String name, List<String> paths) {
+        val whichCommand = newArrayList
+        var result = name
+        whichCommand.addAll("which", result)
+        var path = paths.iterator
+        while (executeCommand(whichCommand) != 0) {
+            if (!path.hasNext) {
+                return null
+            }
+            result = path.next + name
+            whichCommand.clear()
+            whichCommand.addAll('which', result)
+        }
+        return result
+    }
+    
     /**
      * Produce a unique identifier within a reactor based on a
      * given based name. If the name does not exists, it is returned;
