@@ -1,0 +1,33 @@
+// This test connects a simple counting source
+// that checks against its own count.
+target TypeScript {
+	fast: true,
+	timeout: 10 sec
+};
+reactor Source(period:time(2 sec)) {
+	output y:number;
+	timer t(1 sec, period);
+	state count:number(0);
+	reaction(t) -> y {=
+		count++;
+		y.set(count);
+	=}
+}
+
+reactor Test {
+	input x:number;
+	state count:number(0);
+	reaction(x) {=
+		count++;
+		console.log("Received " + x);
+		if (x != count) { 
+			console.log("FAILURE: Expected " + count);
+			this.util.exec.failure(); 
+		}
+	=} 
+}
+main reactor Composition(delay:time(5 sec)) {
+	s = new Source();
+	d = new Test();
+	s.y -> d.x after delay;
+}

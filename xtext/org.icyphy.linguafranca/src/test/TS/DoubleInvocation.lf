@@ -1,0 +1,52 @@
+// This illustrates a very strange bug that showed up
+// and has now been fixed. This test ensures it does
+// not reappear.
+// At logical time zero, the two Print reactors used to be
+// fired twice each at the same logical time.
+// They should only be fired once.
+// This behavior was oddly eliminated by either of the following
+// actions, neither of which should affect this behavior:
+// * Removing the startup reaction in Print.
+// * Sending only position, not velocity from Ball.
+
+target TypeScript {
+    timeout: 5 sec,
+    fast: true
+};
+reactor Ball {
+    output position:number;
+    output velocity:number;
+    state p:number(200);
+    timer trigger(0, 1 sec);
+    reaction(trigger) -> position, velocity {=
+        position.set(p);
+        velocity.set(-1);     
+        p -= 1;
+    =}
+}
+reactor Print {
+    input velocity:number;
+    input position:number;
+    state previous:number(-1);
+    reaction (startup) {=
+        console.log("####### Print startup");
+    =}
+    reaction (position, velocity) {=
+        if (position) {
+            console.log("Position: " + position);
+        }
+        if (position && position == previous) {
+            console.log("ERROR: Multiple firings at the same logical time!");
+            this.util.exec.failure();
+        }
+    =}
+}
+main reactor DoubleInvocation {
+    b1 = new Ball();
+    p = new Print();
+    plot = new Print();
+    b1.position -> p.position;
+    b1.velocity -> p.velocity;
+    b1.position -> plot.position;
+    b1.velocity -> plot.velocity;
+}

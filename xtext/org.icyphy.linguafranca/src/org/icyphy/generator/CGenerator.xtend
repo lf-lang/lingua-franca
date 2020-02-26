@@ -449,9 +449,9 @@ class CGenerator extends GeneratorBase {
 
         // Scan reactions.
         // Preamble code contains state declarations with static initializers.
-        if (reactor.preamble !== null) {
+        for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
-            pr(removeCodeDelimiter(reactor.preamble.code))
+            pr(removeCodeDelimiter(p.code))
             pr("\n// *********** End of preamble.")
         }
 
