@@ -7,6 +7,7 @@ reactor Destination {
         printf("Time since start: %lld.\n", elapsed);
         if (elapsed != 0LL) {
             printf("Expected elapsed time to be 0, but it was %lld.\n", elapsed);
+            exit(1);
         }
         int count = 0;
         if (x_is_present) {
@@ -19,6 +20,7 @@ reactor Destination {
         }
         if (count != 1) {
             printf("Expected exactly one input to be present but got %d.\n", count);
+            exit(1);
         }
     =}
 }
