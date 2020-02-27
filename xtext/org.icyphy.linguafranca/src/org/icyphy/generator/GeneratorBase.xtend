@@ -289,44 +289,6 @@ abstract class GeneratorBase {
     }
     
     /**
-     * Utility function to find an external program given its name
-     * and a list of paths to search. This first executes the command
-     * "which <name>", and if this succeeds, just returns name.
-     * This means that the program is already found using the
-     * environment PATH variable.  Unfortunately, at least on a
-     * Mac, if you are running within Eclipse, the PATH variable
-     * is extremely limited; supposedly, it is given by the default
-     * provided in /etc/paths, but at least on my machine,
-     * it does not even include directories in that file for some reason.
-     * One way to add /usr/local/bin to the path once-and-for-all is this:
-     * 
-     *     sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
-     * 
-     * But asking users to do that is not ideal. Hence, we try a more
-     * hack-y approach of just trying to find the program in common locations.
-     * @param name The name of the program to find.
-     * @param paths A list of paths, such as "/usr/local/bin/" (with trailing /).
-     * @return Returns just name if the program is already on the PATH,
-     *  or a path if it is found on one of the specified paths, such as
-     *  "/usr/local/bin/name", or null if it is not found.
-     */
-    def String findExternalProgram(String name, List<String> paths) {
-        val whichCommand = newArrayList
-        var result = name
-        whichCommand.addAll("which", result)
-        var path = paths.iterator
-        while (executeCommand(whichCommand) != 0) {
-            if (!path.hasNext) {
-                return null
-            }
-            result = path.next + name
-            whichCommand.clear()
-            whichCommand.addAll('which', result)
-        }
-        return result
-    }
-    
-    /**
      * Produce a unique identifier within a reactor based on a
      * given based name. If the name does not exists, it is returned;
      * if does exist, an index is appended that makes the name unique.
@@ -550,31 +512,84 @@ abstract class GeneratorBase {
      *  print the command, its return code, and its output to
      *  stderr and stdout, and return the return code, which is 0
      *  if the command succeeds.
+     * 
+     *  If the command fails to execute, then a second attempt is
+     *  made using a bash shell with the --login option, which sources
+     *  the user's ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
+     *  is first found) before running the command. This helps to ensure
+     *  that the user's PATH variable is set according to their usual
+     *  environment, assuming that they use a bash shell.
+     * 
+     *  More information: Unfortunately, at least on a Mac,
+     *  if you are running within Eclipse, the PATH variable
+     *  is extremely limited; supposedly, it is given by the default
+     *  provided in /etc/paths, but at least on my machine,
+     *  it does not even include directories in that file for some reason.
+     *  One way to add a directory like
+     *  /usr/local/bin to the path once-and-for-all is this:
+     * 
+     *     sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+     * 
+     *  But asking users to do that is not ideal. Hence, we try a more
+     *  hack-y approach of just trying to execute using a bash shel.
+     * 
      *  @param command The command.
+     *  @param directory The directory in which to execute the command.
      *  @return 0 if the command succeeds, otherwise, an error code.
      */
-    protected def executeCommand(ArrayList<String> command) {
+    protected def executeCommand(ArrayList<String> command, String directory) {
         println("In directory: " + directory)
         println("Executing command: " + command.join(" "))
         var builder = new ProcessBuilder(command);
         builder.directory(new File(directory));
-        var process = builder.start()
-        val returnCode = process.waitFor()
-        var stdout = readStream(process.getInputStream())
-        var stderr = readStream(process.getErrorStream())
-        if (returnCode !== 0) {
-            reportError("Command returns error code " + returnCode)
+        try {
+            var process = builder.start()
+            var returnCode = process.waitFor()
+            var stdout = readStream(process.getInputStream())
+            if (stdout.length() > 0) {
+                println("--- Standard output from command:")
+                println(stdout)
+                println("--- End of standard output.")
+            }
+            var stderr = readStream(process.getErrorStream())
+            if (stderr.length() > 0) {
+                reportError("---Command reports errors:\n" + stderr.toString
+                        + "\n--- End of standard standard error.")
+            }
+            if (returnCode !== 0) {
+                // Throw an exception, which will be caught below for a second attempt.
+                throw new Exception("Command returns error code " + returnCode)
+            }
+            return returnCode
+        } catch (Exception ex) {
+            println("--- Exception: " + ex)
+            // Try running with bash.
+            // The --login option forces bash to look for and load the first of
+            // ~/.bash_profile, ~/.bash_login, and ~/.bashrc that it finds.
+            var bashCommand = new ArrayList<String>()
+            bashCommand.addAll("bash", "--login", "-c")
+            bashCommand.addAll(command.join(" "))
+            // bashCommand.addAll("bash", "--login", "-c", 'ls', '-a')
+            println("--- Attempting instead to run: " + bashCommand.join(" "))
+            builder.command(bashCommand)
+            var process = builder.start()
+            var returnCode = process.waitFor()
+            var stdout = readStream(process.getInputStream())
+            if (stdout.length() > 0) {
+                println("--- Standard output from bash command:")
+                println(stdout)
+                println("--- End of standard output.")
+            }
+            if (returnCode !== 0) {
+                reportError("Bash command returns error code " + returnCode)
+            }
+            var stderr = readStream(process.getErrorStream())
+            if (stderr.length() > 0) {
+                reportError("---Bash command reports errors:\n" + stderr.toString
+                        + "\n--- End of standard standard error.")
+            }
+            return returnCode
         }
-        if (stdout.length() > 0) {
-            println("--- Standard output from command:")
-            println(stdout)
-            println("--- End of standard output.")
-        }
-        if (stderr.length() > 0) {
-            reportError("---Command reports errors:\n" + stderr.toString
-                    + "\n--- End of standard standard error.")
-        }
-        returnCode
     }
     
     /** Return the target. */
