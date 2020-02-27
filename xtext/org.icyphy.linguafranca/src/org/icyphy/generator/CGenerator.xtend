@@ -129,7 +129,7 @@ class CGenerator extends GeneratorBase {
             this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.    
         }
         
-        if (main.chainIDWidth > 64) {
+        if (main !== null && main.chainIDWidth > 64) {
             throw new Exception("Currently no support for programs with more than 64 branches in the dependency tree. ")
         }
 
@@ -285,7 +285,7 @@ class CGenerator extends GeneratorBase {
             val command = targetCompile.split(' ')
             var compileCommand = newArrayList
             compileCommand.addAll(command)
-            executeCommand(compileCommand)
+            executeCommand(compileCommand, directory)
             return
         }
         // If there is more than one federate, compile each one.
@@ -325,7 +325,7 @@ class CGenerator extends GeneratorBase {
                         "ERROR: Did not output executable; no main reactor found.")
                 }
             }
-            executeCommand(compileCommand)
+            executeCommand(compileCommand, directory)
         }
     }
 
@@ -1368,28 +1368,17 @@ class CGenerator extends GeneratorBase {
         // Unfortunately, the resolvedURI appears to be useless for ordinary files
         // (non-xtext files). Use the original importStatement.importURI
         if (importStatement.importURI.endsWith(".proto")) {
-            // First, check that protoc is installed.
-            // FIXME: Should we include this as a submodule? If so, how to invoke it?
+            // FIXME: Should we include protoc-c as a submodule? If so, how to invoke it?
             // protoc is commonly installed in /usr/local/bin, which sadly is not by
             // default on the PATH for a Mac.
-            val paths = newArrayList("/usr/local/bin/")
-            var protoc_c = findExternalProgram("protoc-c", paths)
-            if (protoc_c === null) {
-                // On a Mac, if you are running within Eclipse, the PATH variable is extremely
-                // limited (to the default provided in /etc/paths, supposedly, but on my machine,
-                // it does not even include directories in that file for some reason.
-                // One way to add /usr/local/bin to the path once-and-for-all is this:
-                // sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
-                return reportError(importStatement, "Protocol buffers protoc-c executable not found in "
-                        + "/usr/local/bin nor on the PATH:\n"
-                        + System.getenv("PATH")
-                        + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c")
-            }
             // Invoke protoc-c.
             val protocCommand = newArrayList
-            protocCommand.addAll(protoc_c, "--c_out=src-gen", importStatement.importURI)
-            if (executeCommand(protocCommand) != 0) {
-                return reportError(importStatement, "Protocol buffer compiler failed.")
+            protocCommand.addAll("protoc-c", "--c_out=src-gen", importStatement.importURI)
+            if (executeCommand(protocCommand, directory) != 0) {
+                return reportError(importStatement, "Protocol buffer compiler failed."
+                    + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c."
+                    + "\nMake sure that your PATH variable includes the directory where protoc-c is installed,"
+                    + "\ntypically /usr/local/bin. You can set PATH in ~/.bash_profile on Linux or Mac.")
             }
             if (compileAdditionalSources === null) {
                 compileAdditionalSources = newArrayList

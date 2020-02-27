@@ -156,31 +156,18 @@ class TypeScriptGenerator extends GeneratorBase {
         // NOTE: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
         // the complete PATH variable needed to find the command npm. I had
         // to start my eclipse instance from a terminal so eclipse would have the correct environment
-        // variables to run this command.
-        
-        // To fix this, at least on a Mac, we look in the common place
-        // where npm is typically installed, /usr/local/bin/
-        val paths = newArrayList("/usr/local/bin/")
-        var npm = findExternalProgram("npm", paths)
-        if (npm === null) {
-            // On a Mac, if you are running within Eclipse, the PATH variable is extremely
-            // limited (to the default provided in /etc/paths, supposedly, but on my machine,
-            // it does not even include directories in that file for some reason.
-            // One way to add /usr/local/bin to the path once-and-for-all is this:
-            // sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
-            reportError(resource.findTarget, "npm executable not found in "
-                    + "/usr/local/bin nor on the PATH:\n"
-                    + System.getenv("PATH")
-                    + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
-            return
-        }
+        // variables to run this command. Now, executeCommand makes a second
+        // attempt to run the command using a bash shell, so if you have a
+        // ~/.bash_profile file that specifies suitable paths, the command should
+        // work.
         
         // Install npm modules.
         var installCmd = newArrayList();
-        installCmd.addAll(npm, "install")
+        installCmd.addAll("npm", "install")
         
-        if (executeCommand(installCmd) !== 0) {
-            reportError(resource.findTarget, "ERROR: npm install command failed.")
+        if (executeCommand(installCmd, directory) !== 0) {
+            reportError(resource.findTarget, "ERROR: npm install command failed."
+                + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
             return
         }
         
@@ -206,46 +193,18 @@ class TypeScriptGenerator extends GeneratorBase {
         typeCheckCommand.addAll(tscPath)
         
         println("Type checking with command: " + typeCheckCommand.join(" "))
-        var builder = new ProcessBuilder(typeCheckCommand);
-        builder.directory(new File(projectPath));
-        var process = builder.start()
-        var code = process.waitFor()
-        var stdout = readStream(process.getInputStream())
-        var stderr = readStream(process.getErrorStream())
-        if (stdout.length() > 0) {
-            println("--- Standard output from TypeScript type checker:")
-            println(stdout)
-        }
-        if (code !== 0) {
-            reportError("Type checker returns error code " + code)
-        }
-        if (stderr.length() > 0) {
-            reportError("Type checker reports errors:\n" + stderr.toString)
-        }
-        
-        // Babel will compile TypeScript to JS even if there are type errors
-        // so only run compilation if tsc found no problems.
-        if (code === 0){
+        if (executeCommand(typeCheckCommand, projectPath) != 0) {
+            reportError("Type checking failed.")
+        } else {
+            // Babel will compile TypeScript to JS even if there are type errors
+            // so only run compilation if tsc found no problems.
             var babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
             // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
             var compileCommand = newArrayList(babelPath, "src",
                 "--out-dir", "dist", "--extensions", ".ts")
             println("Compiling with command: " + compileCommand.join(" "))
-            builder = new ProcessBuilder(compileCommand);
-            builder.directory(new File(projectPath));
-            process = builder.start()
-            code = process.waitFor()
-            stdout = readStream(process.getInputStream())
-            stderr = readStream(process.getErrorStream())
-            if (stdout.length() > 0) {
-                println("--- Standard output from Babel compiler:")
-                println(stdout)
-            }
-            if (code !== 0) {
-                reportError("Compiler returns error code " + code)
-            }
-            if (stderr.length() > 0) {
-                reportError("Compiler reports errors:\n" + stderr.toString)
+            if (executeCommand(compileCommand, projectPath) !== 0) {
+                reportError("Compiler failed.")
             } else {
                 println("SUCCESS (compiling generated TypeScript code)")
             }
