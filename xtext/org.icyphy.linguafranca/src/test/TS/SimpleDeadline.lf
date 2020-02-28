@@ -1,0 +1,42 @@
+// Test local deadline, where a deadline is associated with a reaction
+// definition. This test triggers a reaction exactly once with a
+// deadline violation.
+target TypeScript;
+reactor Deadline(threshold:time(100 msec)) {
+    input x:number;
+    output deadlineViolation:boolean;
+    reaction(x) -> deadlineViolation {=
+        console.log("ERROR: Deadline violation was not detected!\n");
+        this.util.exec.failure();
+    =} deadline(threshold) {=
+        console.log("Deadline violation detected.");
+        deadlineViolation.set(true);
+    =}
+    // FIXME: Causes an NPE:
+    // logical action foo;
+    // deadline(d.x, 100 msec, foo);
+    // It is erroneous code, but it should not cause an NPE.
+    // May need to uncomment logical action foo above.
+}
+reactor Print {
+    input x:boolean;
+    reaction(x) {=
+        if (x) {
+            console.log("Output successfully produced by deadline handler.");
+        }
+    =}
+}
+main reactor SimpleDeadline {
+    timer start;
+    d = new Deadline(threshold = 10 msec);
+    p = new Print();
+    d.deadlineViolation -> p.x;
+    reaction(start) -> d.x {=
+        let sleep_time =  new UnitBasedTimeValue(20, TimeUnit.msec);
+        let startTime = this.util.time.getCurrentPhysicalTime();
+        let finishTime = startTime.add(sleep_time)
+        // Busy wait
+        while(this.util.time.getCurrentPhysicalTime().isSmallerThan(finishTime));
+        d.x.set(42);
+    =}
+} 
