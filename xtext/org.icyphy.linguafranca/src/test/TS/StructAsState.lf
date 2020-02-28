@@ -1,0 +1,18 @@
+// Check that a state variable can have an object type as a value.
+target TypeScript;
+main reactor StructAsState {
+    preamble {=
+        type hello_t =  {
+            name: string ;
+            value: number;
+        }
+    =}
+    state s:hello_t({= {name: "Earth", value: 42}=});
+    reaction(startup) {=
+        console.log("State s.name=" + s.name + ", value=" + s.value);
+        if (s.value != 42) {
+            console.log("FAILED: Expected 42.");
+            this.util.exec.failure();
+        }
+    =}
+}
