@@ -1,0 +1,62 @@
+// Demonstration of a state variable that is an array.
+// The MovingAverage reactor computes the moving average of the last
+// four inputs and produces that as output.  The source is a counting
+// sequence.
+target TypeScript {
+    timeout: 1 sec,
+    fast: true
+};
+reactor Source {
+    output out:number;
+    state count:number(0);
+    timer clock(0, 200 msec);
+    reaction(clock) -> out {=
+        out.set(count);
+        count++;
+    =}
+}
+reactor MovingAverageImpl {
+    state delay_line:{=Array<number>=}({= [0.0, 0.0, 0.0] =});
+    state index:number(0);
+    input x:number;
+    output out:number;
+    reaction(x) -> out {=
+        x = x as number;
+        // Calculate the output.
+        let sum = x;
+        for (let i = 0; i < 3; i++) {
+            sum += delay_line[i];
+        }
+        out.set(sum/4.0);
+
+        // Insert the input in the delay line.
+        delay_line[index] = x;
+
+        // Update the index for the next input.
+        index++;
+        if (index >= 3) {
+            index = 0;
+        }
+    =}
+}
+reactor Print {
+    input x:number;
+    state count:number(0);
+    reaction(x) {=
+        x = x as number;
+        console.log("Received: " + x);
+        let expected = [0.0, 0.25, 0.75, 1.5, 2.5, 3.5];
+        if (x != expected[count]) {
+            console.log("ERROR: Expected " + expected[count]);
+            this.util.exec.failure();
+        }
+        count++;
+    =}
+}
+main reactor MovingAverage {
+    s = new Source();
+    m = new MovingAverageImpl();
+    p = new Print();
+    s.out -> m.x;
+    m.out -> p.x;
+}
