@@ -1,0 +1,41 @@
+/** Output events at physical times at least 100, 300, and 600
+ *  msec after the start time.
+ *  This uses a physical action with a minimum interarrival time of
+ *  100 msec. The reactor increases the interarrival time with each
+ *  invocation of the schedule() function.
+ *  The timestamps of the events will be exact because the physical
+ *  time at which schedule() is called is always way smaller than
+ *  the time of the last invocation (or start time) plus the minimum
+ *  interarrival time. Hence, the minimum interarrival time always
+ *  determines the time of the next event.
+ */
+target TypeScript {
+    timeout: 1 sec
+};
+main reactor SlowingClockPhysical {
+    physical action a(100 msec);
+    state interval:time(100 msec);
+    state expected_time:time(100 msec);
+    reaction(startup) -> a {=
+        expected_time = new UnitBasedTimeValue(100, TimeUnit.msec);
+        a.schedule(0);
+    =}
+    reaction(a) -> a {=
+        let elapsed_logical_time = this.util.time.getElapsedLogicalTime();
+        console.log("Logical time since start: " + elapsed_logical_time);
+        if (elapsed_logical_time.isSmallerThan(expected_time)) {
+            console.log("ERROR: Expected logical time to be: " + expected_time );
+            this.util.exec.failure();
+        }
+        interval = interval.add(new UnitBasedTimeValue(100, TimeUnit.msec));
+        expected_time = (new UnitBasedTimeValue(100, TimeUnit.msec)).add(interval);
+        a.schedule(interval);
+    =}
+    reaction(shutdown) {=
+        if (expected_time.isSmallerThan(new UnitBasedTimeValue(500, TimeUnit.msec))) {
+            console.log("ERROR: Expected the next expected time to be at least: 500 msec.");
+            console.log("It was: " + expected_time);
+            this.util.exec.failure();            
+        }
+    =}
+}
