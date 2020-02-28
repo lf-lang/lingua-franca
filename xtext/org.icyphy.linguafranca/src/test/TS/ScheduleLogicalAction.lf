@@ -1,0 +1,44 @@
+// This checks that a logical action is scheduled the specified
+// logical time after the current logical time.
+target TypeScript {
+    fast: true,
+    timeout: 3 sec
+};
+reactor foo {
+    input x:number;
+    output y:number;
+    logical action a:number;
+    reaction(x) -> y, a {=
+        x = x as number;
+        y.set(2 * x);
+        // The following uses physical time, incorrectly.
+        a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec));
+    =}
+    reaction(a) -> y {=
+        y.set(-42);
+    =}
+}
+reactor print {
+    state expected_time:time(0);
+    input x:number;
+    reaction(x) {=
+        let elapsed_time = this.util.time.getElapsedLogicalTime();
+        console.log("Result is " + x);
+        console.log("Current logical time is: " + elapsed_time);
+        console.log("Current physical time is: " + this.util.time.getElapsedPhysicalTime());
+        if (! elapsed_time.isEqualTo(expected_time)) {
+            console.log("ERROR: Expected logical time to be " + expected_time);
+            this.util.exec.failure();
+        }
+        expected_time = expected_time.add( new UnitBasedTimeValue(500, TimeUnit.msec));
+    =}
+}
+main reactor top {
+    f = new foo();
+    p = new print();
+    timer t(0, 1 sec);
+    reaction(t) -> f.x {=
+        f.x.set(42);
+    =}
+    f.y -> p.x;
+}

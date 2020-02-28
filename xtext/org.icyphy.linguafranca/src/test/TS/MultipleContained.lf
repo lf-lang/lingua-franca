@@ -1,0 +1,35 @@
+// Test that a reaction can react to and send two multiple
+// ports of a contained reactor.
+target TypeScript;
+reactor Contained {
+    output trigger:number;
+    input in1:number;
+    input in2:number;
+    reaction(startup) -> trigger {=
+        trigger.set(42);
+    =}
+    reaction(in1) {=
+        in1 = in1 as number;
+        console.log("in1 received " + in1);
+        if (in1 != 42) {
+            console.log("FAILED: Expected 42.");
+            this.util.exec.failure();
+        }
+    =}
+    reaction(in2) {=
+        in2 = in2 as number;
+        console.log("in2 received " + in2);
+        if (in2 != 42) {
+            console.log("FAILED: Expected 42.");
+            this.util.exec.failure();
+        }
+    =}
+}
+main reactor MultipleContained {
+    c = new Contained();
+    reaction(c.trigger) -> c.in1, c.in2 {=
+        c.trigger = c.trigger as number;
+        c.in1.set(c.trigger);
+        c.in2.set(c.trigger);
+    =}
+}
