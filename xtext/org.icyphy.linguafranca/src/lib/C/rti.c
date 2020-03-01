@@ -55,13 +55,10 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t received_start_times = PTHREAD_COND_INITIALIZER;
 
 // Array of thread IDs (to be dynamically allocated).
-pthread_t* thread_ids;
+pthread_t thread_ids[NUMBER_OF_FEDERATES];
 
 // Socket descriptors for each federate (to be dynamically allocated).
-int* fed_socket_descriptor;
-
-// Number of federates.
-int number_of_federates = 0;
+int fed_socket_descriptors[NUMBER_OF_FEDERATES];
 
 // Maximum start time seen so far from the federates.
 instant_t max_start_time = 0LL;
@@ -142,13 +139,13 @@ void* federate(void* fed_socket_descriptor) {
     if (timestamp > max_start_time) {
         max_start_time = timestamp;
     }
-    if (num_feds_proposed_start == number_of_federates) {
+    if (num_feds_proposed_start == NUMBER_OF_FEDERATES) {
         // All federates have proposed a start time.
         pthread_cond_broadcast(&received_start_times);
     } else {
         // Some federates have not yet proposed a start time.
         // wait for a notification.
-        while (num_feds_proposed_start < number_of_federates) {
+        while (num_feds_proposed_start < NUMBER_OF_FEDERATES) {
             // FIXME: Should have a timeout here?
             pthread_cond_wait(&received_start_times, &mutex);
         }
@@ -180,48 +177,42 @@ void* federate(void* fed_socket_descriptor) {
 /** Wait for one incoming connection request from each federate,
  *  and upon receiving it, create a thread to communicate with
  *  that federate. Return when all federates have connected.
- *  @param number_of_federates The number of federates.
  *  @param socket_descriptor The socket on which to accept connections.
  */
-void connect_to_federates(int number_of_federates, int socket_descriptor) {
-    // Array of thread IDs.
-    thread_ids = malloc(number_of_federates * sizeof(thread_ids));
-    // Socket descriptors for each federate.
-    fed_socket_descriptor = malloc(number_of_federates * sizeof(int));
-
-    for (int i = 0; i < number_of_federates; i++) {
+void connect_to_federates(int socket_descriptor) {
+    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
-        fed_socket_descriptor[i]
+        fed_socket_descriptors[i]
                 = accept(socket_descriptor, &client_fd, &client_length);
-        if (fed_socket_descriptor < 0) error("ERROR on server accept");
+        if (fed_socket_descriptors[i] < 0) error("ERROR on server accept");
 
         // Create a thread for the federate.
-        pthread_create(&(thread_ids[i]), NULL, federate, &(fed_socket_descriptor[i]));
+        pthread_create(&(thread_ids[i]), NULL, federate, &(fed_socket_descriptors[i]));
     }
 }
 
-int main(int argc, char* argv[]) {
+/** Start a runtime infrastructure (RTI) for the specified number of
+ *  federates that listens for socket connections on the specified port.
+ *  @param num_feds Number of federates.
+ *  @param port The port on which to listen for socket connections.
+ */
+void start_rti(int port) {
 
     // FIXME: Better way to handle port number.
-    int socket_descriptor = create_server(55001);
-
-    // FIXME: Better way to handle number of federates.
-    number_of_federates = 2;
+    int socket_descriptor = create_server(port);
 
     // Wait for connections from federates and create a thread for each.
-    connect_to_federates(number_of_federates, socket_descriptor);
+    connect_to_federates(socket_descriptor);
 
     // All federates have connected.
 
     // Wait for federate threads to exit.
     void* thread_exit_status;
-    for (int i = 0; i < number_of_federates; i++) {
+    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         pthread_join(thread_ids[i], &thread_exit_status);
         // printf("DEBUG: Federate thread exited.\n");
     }
     close(socket_descriptor);
-    free(thread_ids);
-    free(fed_socket_descriptor);
 }
