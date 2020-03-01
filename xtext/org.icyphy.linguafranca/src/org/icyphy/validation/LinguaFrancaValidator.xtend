@@ -18,6 +18,8 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Connection
 
 /**
  * This class contains custom validation rules. 
@@ -150,6 +152,18 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             assignment.lhs.name +
                             ". The latter is a time parameter, but the former is not.",
                         Literals.ASSIGNMENT__RHS)
+                }
+            }
+        }
+    }
+
+    @Check(FAST)
+    def checkConnection(Connection connection) {
+        var reactor  = connection.eContainer as Reactor
+        for (reaction : reactor.reactions) {
+            for (effect : reaction.effects) {
+                if (connection.rightPort.variable === effect.variable) {
+                    error("Cannot connect: Port named '" + effect.variable.name + "' is already effect of a reaction.", Literals.CONNECTION__RIGHT_PORT)
                 }
             }
         }

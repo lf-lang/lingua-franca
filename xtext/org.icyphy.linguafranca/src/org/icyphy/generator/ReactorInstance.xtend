@@ -663,6 +663,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     reactionInstance.dependsOnReactions.add(previousReaction)
                 }
                 previousReaction = reactionInstance;
+                
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
                 this.reactions.add(reactionInstance);

@@ -230,4 +230,63 @@ class LinguaFrancaValidationTest {
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __x")
     }
     
+    /**
+     * Disallow connection to port that is effect of reaction.
+     */
+    @Test
+    def void connectionToEffectPort() {
+        val model = '''
+            target TypeScript;
+            reactor Foo {
+                output out:int;
+            }
+            main reactor Bar {
+                output out:int;
+                x = new Foo();
+                x.out -> out;
+                reaction(startup) -> out {=                    
+                =}
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.connection,
+            null,
+            "Cannot connect: Port named 'out' is already effect of a reaction.")
+    }
+    
+        /**
+     * Disallow connection to port that is effect of reaction.
+     */
+    @Test
+    def void connectionToEffectPort2() {
+        val model = '''
+            target TypeScript;
+            reactor Foo {
+                input inp:int;
+                output out:int;
+            }
+            main reactor Bar {
+                output out:int;
+                x = new Foo();
+                y = new Foo();
+                
+                y.out -> x.inp;
+                reaction(startup) -> x.inp {=                    
+                =}
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.connection,
+            null,
+            "Cannot connect: Port named 'inp' is already effect of a reaction.")
+    }
+        
 }
