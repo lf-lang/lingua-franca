@@ -21,11 +21,11 @@ main reactor SlowingClockPhysical {
         a.schedule(0);
     =}
     reaction(a) -> a {=
-        let elapsed_logical_time = this.util.time.getElapsedLogicalTime();
+        let elapsed_logical_time = util.time.getElapsedLogicalTime();
         console.log("Logical time since start: " + elapsed_logical_time);
         if (elapsed_logical_time.isSmallerThan(expected_time)) {
             console.log("ERROR: Expected logical time to be: " + expected_time );
-            this.util.exec.failure();
+            util.exec.failure();
         }
         interval = interval.add(new UnitBasedTimeValue(100, TimeUnit.msec));
         expected_time = (new UnitBasedTimeValue(100, TimeUnit.msec)).add(interval);
@@ -35,7 +35,7 @@ main reactor SlowingClockPhysical {
         if (expected_time.isSmallerThan(new UnitBasedTimeValue(500, TimeUnit.msec))) {
             console.log("ERROR: Expected the next expected time to be at least: 500 msec.");
             console.log("It was: " + expected_time);
-            this.util.exec.failure();            
+            util.exec.failure();            
         }
     =}
 }

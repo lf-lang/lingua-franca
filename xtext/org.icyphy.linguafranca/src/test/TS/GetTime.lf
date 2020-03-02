@@ -8,13 +8,13 @@ target TypeScript {
 main reactor GetTime {
     timer t(0, 1 sec);
     reaction(t) {=
-        let logical = this.util.time.getCurrentLogicalTime();
+        let logical = util.time.getCurrentLogicalTime();
         console.log("Logical time is " + logical);
 
-        let elapsed = this.util.time.getElapsedLogicalTime();
+        let elapsed = util.time.getElapsedLogicalTime();
         console.log("Elapsed logical time is " + elapsed);
         
-        let physical = this.util.time.getCurrentPhysicalTime();
+        let physical = util.time.getCurrentPhysicalTime();
         console.log("Physical time is " + physical);
         
         console.log("Time lag is " + physical.subtract(logical));

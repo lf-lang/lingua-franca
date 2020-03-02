@@ -15,8 +15,8 @@ reactor Source(period:time(1 sec)) {
         if (2 * Math.floor(count / 2) != count){
             // The count variable is odd.
             // Busy wait 0.2 sconds to cause a deadline violation.
-            let initialElapsedTime = this.util.time.getElapsedPhysicalTime();
-            while ( this.util.time.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeValue(200, TimeUnit.msec))));
+            let initialElapsedTime = util.time.getElapsedPhysicalTime();
+            while ( util.time.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add( new UnitBasedTimeValue(200, TimeUnit.msec))));
         }
         console.log("Source sends: " + count);
         y.set(count);
@@ -32,7 +32,7 @@ reactor Destination(timeout:time(1 sec)) {
         if (2 * Math.floor(count / 2) != count) {
             // The count variable is odd, so the deadline should have been violated.
             console.log("ERROR: Failed to detect deadline.");
-            this.util.exec.failure()
+            util.exec.failure()
             //throw new Error("ERROR: Failed to detect deadline.");
         }
         count++;
@@ -41,7 +41,7 @@ reactor Destination(timeout:time(1 sec)) {
         if (2 * Math.floor(count / 2) == count) {
             // The count variable is even, so the deadline should not have been violated.
             console.log("ERROR: Deadline miss handler invoked without deadline violation.");
-            this.util.exec.failure()
+            util.exec.failure()
             //throw new Error("ERROR: Deadline miss handler invoked without deadline violation.");
         }
         count++;

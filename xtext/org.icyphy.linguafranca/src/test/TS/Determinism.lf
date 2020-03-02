@@ -20,7 +20,7 @@ reactor Destination {
         console.log("Received " + sum);
         if (sum != 2) {
             console.log("FAILURE: Expected 2.");
-            this.util.exec.failure();
+            util.exec.failure();
         }
     =}
 }

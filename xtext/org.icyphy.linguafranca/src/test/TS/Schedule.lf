@@ -7,11 +7,11 @@ reactor Schedule {
         a.schedule( new UnitBasedTimeValue(200, TimeUnit.msec))
     =}
     reaction(a) {=
-        let elapsedTime = this.util.time.getElapsedLogicalTime();
+        let elapsedTime = util.time.getElapsedLogicalTime();
         console.log("Action triggered at logical time " + elapsedTime + " (sec, nsec) after start.");
         if ( ! elapsedTime.isEqualTo(new UnitBasedTimeValue(200, TimeUnit.msec))) {
             console.log("Expected action time to be 200 msec. It was " + elapsedTime + " (sec, nsec).");
-            this.util.exec.failure();
+            util.exec.failure();
         } else {
             console.log("Success! Action time was " + elapsedTime);
         }

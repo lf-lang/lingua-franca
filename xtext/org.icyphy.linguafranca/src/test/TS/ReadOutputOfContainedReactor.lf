@@ -25,7 +25,7 @@ main reactor ReadOutputOfContainedReactor {
     reaction(shutdown) {=
         if (count != 3) {
             console.log("FAILURE: One of the reactions failed to trigger.");
-            this.util.exec.failure();
+            util.exec.failure();
         } else {
             console.log("Test passes.");
         }

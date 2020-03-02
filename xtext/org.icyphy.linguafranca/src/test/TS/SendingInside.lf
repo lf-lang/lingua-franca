@@ -16,7 +16,7 @@ reactor Printer {
         console.log("Inside reactor received: " + x);
         if ((x as number) != count) {
             console.log("FAILURE: Expected " + count);
-            this.util.exec.failure();
+            util.exec.failure();
             //throw new Error("FAILURE: Expected " + (this.state as any).count);
         }
         count++;

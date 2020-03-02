@@ -15,13 +15,13 @@ reactor print {
     state expected_time:time(10 msec);
     input x:number;
     reaction(x) {=
-        let elapsed_time = this.util.time.getElapsedLogicalTime();
+        let elapsed_time = util.time.getElapsedLogicalTime();
         console.log("Result is " + x);
         console.log("Current logical time is: " + elapsed_time);
-        console.log("Current physical time is: " + this.util.time.getElapsedPhysicalTime());
+        console.log("Current physical time is: " + util.time.getElapsedPhysicalTime());
         if (! elapsed_time.isEqualTo(expected_time)) {
             console.log("ERROR: Expected logical time to be " + expected_time);
-            this.util.exec.failure();
+            util.exec.failure();
         }
         expected_time = expected_time.add(new UnitBasedTimeValue(1, TimeUnit.sec));
     =}

@@ -12,7 +12,7 @@ main reactor StructAsState {
         console.log("State s.name=" + s.name + ", value=" + s.value);
         if (s.value != 42) {
             console.log("FAILED: Expected 42.");
-            this.util.exec.failure();
+            util.exec.failure();
         }
     =}
 }

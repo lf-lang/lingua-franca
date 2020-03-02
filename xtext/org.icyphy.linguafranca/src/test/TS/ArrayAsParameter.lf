@@ -20,7 +20,7 @@ reactor Print {
         console.log("Received: " + x + ".");
         if (x != count) {
             console.log("ERROR: Expected " + count + ".");
-            this.util.exec.failure();
+            util.exec.failure();
         }
         count++;
     =}

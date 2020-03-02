@@ -9,17 +9,15 @@ reactor Source {
     =} 
 }
 
-
-
 reactor Sink {
 	input x:number;
 	reaction(x) {=
-        let elapsed = this.util.time.getElapsedLogicalTime();
+        let elapsed = util.time.getElapsedLogicalTime();
         console.log("Nanoseconds since start: " + elapsed);
         if (! elapsed.isEqualTo(new UnitBasedTimeValue( 100, TimeUnit.msec))) {
             console.log("ERROR: Expected 100 msecs but got" + elapsed );
-            this.util.exec.failure();
-        }		
+            util.exec.failure();
+        }
 	=}
 }
 main reactor DelayedReaction {

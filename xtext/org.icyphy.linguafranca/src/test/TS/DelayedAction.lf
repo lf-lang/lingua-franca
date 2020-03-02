@@ -10,8 +10,8 @@ main reactor DelayedAction {
     =}
     
     reaction(a) {=
-        let elapsedLogical = this.util.time.getElapsedLogicalTime();
-        let elapsedPhysical = this.util.time.getElapsedPhysicalTime();
+        let elapsedLogical = util.time.getElapsedLogicalTime();
+        let elapsedPhysical = util.time.getElapsedPhysicalTime();
         console.log("Logical time since start: " + elapsedLogical);
         console.log("Physical time since start: " + elapsedPhysical);
         let expected = new UnitBasedTimeValue( count * 1, TimeUnit.sec).add(
@@ -19,7 +19,7 @@ main reactor DelayedAction {
         count++;
         if (!elapsedLogical.isEqualTo(expected)) {
             console.log("Failure: expected " + expected + " but got " + elapsedLogical);
-            this.util.exec.failure();
+            util.exec.failure();
             //throw new Error("Expected " + expected + " but got " + elapsedLogical);
         }
     =}

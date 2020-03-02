@@ -48,7 +48,7 @@ reactor Print {
         let expected = [0.0, 0.25, 0.75, 1.5, 2.5, 3.5];
         if (x != expected[count]) {
             console.log("ERROR: Expected " + expected[count]);
-            this.util.exec.failure();
+            util.exec.failure();
         }
         count++;
     =}
