@@ -203,6 +203,13 @@ Literal:
 
 /////////// Elementary components
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
+
+@Override
+terminal SL_COMMENT : ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
+
+@Override
+terminal ML_COMMENT : ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
+
 terminal NEGINT:
     '-' ('0'..'9')+;
 
