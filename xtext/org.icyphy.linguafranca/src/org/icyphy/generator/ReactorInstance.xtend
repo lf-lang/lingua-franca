@@ -26,7 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import java.math.BigInteger
 import java.util.ArrayList
 import java.util.HashSet
 import java.util.LinkedHashMap
@@ -497,7 +496,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             var first = true
             // The start of a chain is assigned a fresh ID.
             if (independentReactions.contains(n)) {
-                n.chainID = new BigInteger("1").shiftLeft(branch)
+                // FIXME: don't hard code the width here
+                n.chainID = 1 << (branch % 64) //new BigInteger("1").shiftLeft(branch)
                 branch++
             }
             for (m : graph.nodes) {
@@ -509,11 +509,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     m.level = Math.max(m.level, n.level+1)
                     if (first) {
                         // The first fork inherits the id of its parent.
-                        m.chainID = m.chainID.or(n.chainID)
+                        m.chainID = m.chainID.bitwiseOr(n.chainID)
                         first = false
                     } else {
                         // Subsequent forks are assigned a fresh ID.
-                        m.chainID = m.chainID.or(n.chainID).or(new BigInteger("1").shiftLeft(branch))
+                        m.chainID = m.chainID.bitwiseOr(n.chainID).bitwiseOr(1 << (branch % 64))
                         branch++    
                     }
                 }
@@ -552,7 +552,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         var level = 0
         for (reaction : independentReactions) {
             reaction.level = level
-            reaction.chainID = new BigInteger("1");
+            reaction.chainID = 1;
             candidatesForLevel.addAll(reaction.dependentReactions)
         }
         while (!candidatesForLevel.isEmpty) {
@@ -587,7 +587,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
             if (ready) {
                 reaction.level = level
-                reaction.chainID = new BigInteger("1");
+                reaction.chainID = 1;
                 newCandidatesForLevel.addAll(reaction.dependentReactions)
             } else {
                 newCandidatesForLevel.add(reaction)

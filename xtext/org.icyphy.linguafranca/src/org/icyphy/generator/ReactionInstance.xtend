@@ -121,7 +121,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
      * dependency graph setting a new, unused bit to true in order to
      * disambiguate it from parallel chains.
      */
-    public BigInteger chainID = new BigInteger("0");
+    public long chainID = 0L;
 
     /** The actions that this reaction triggers. */
     public var dependentActions = new HashSet<ActionInstance>();
