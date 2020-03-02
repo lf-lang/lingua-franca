@@ -1,0 +1,21 @@
+target C {
+    federates: {
+        RTI: {host: "localhost", port: 15044},
+        Hello: {reactors: [hello]},
+        World: {reactors: [world]}
+    }
+};
+reactor Hello {
+    reaction(startup) {=
+        printf("Hello\n");
+    =}
+}
+reactor World {
+    reaction(startup) {=
+        printf("World\n");
+    =}
+}
+main reactor HelloDistributed {
+    hello = new Hello();
+    world = new World();
+}

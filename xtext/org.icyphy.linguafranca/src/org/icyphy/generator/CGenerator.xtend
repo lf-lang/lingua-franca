@@ -143,32 +143,25 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required library files into the target filesystem.
         // This will overwrite previous versions.
-        var fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "reactor_common.c"));
-        fOut.write(readFileInClasspath("/lib/C/reactor_common.c").getBytes())
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "reactor.h"));
-        fOut.write(readFileInClasspath("/lib/C/reactor.h").getBytes())
-
+        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h")
         if (targetThreads === 0) {
-            fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + "reactor.c"));
-            fOut.write(readFileInClasspath("/lib/C/reactor.c").getBytes())
+            files.add("reactor.c")
         } else {
-            fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + "reactor_threaded.c"));
-            fOut.write(
-                readFileInClasspath("/lib/C/reactor_threaded.c").getBytes())
+            files.add("reactor_threaded.c")
         }
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "pqueue.c"));
-        fOut.write(readFileInClasspath("/lib/C/pqueue.c").getBytes())
-
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "pqueue.h"));
-        fOut.write(readFileInClasspath("/lib/C/pqueue.h").getBytes())
+        // If there are federates, copy the required files for that.
+        // Also, create the RTI C file.
+        if (federates.length > 1) {
+            files.addAll("util.c", "rti.c", "rti.h", "federate.c")
+            createFederateRTI()
+        }
+        
+        for (file : files) {
+            var fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + file));
+            fOut.write(readFileInClasspath("/lib/C/" + file).getBytes())
+            fOut.close()
+        }
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = filename
@@ -264,7 +257,7 @@ class CGenerator extends GeneratorBase {
             }
 
             // Write the generated code to the output file.
-            fOut = new FileOutputStream(
+            var fOut = new FileOutputStream(
                 new File(srcGenPath + File.separator + cFilename));
             fOut.write(getCode().getBytes())
             fOut.close()
@@ -327,6 +320,16 @@ class CGenerator extends GeneratorBase {
             }
             executeCommand(compileCommand, directory)
         }
+        // Also compile the RTI if there is more than one federate.
+        if (federates.length > 1) {
+            filename = baseFilename + '_RTI'
+            var compileCommand = newArrayList
+            compileCommand.addAll("gcc", "-O2", 
+                    "src-gen" + File.separator + filename + '.c',
+                    "-o", "bin" + File.separator + filename,
+                    "-pthread")
+            executeCommand(compileCommand, directory)
+        }
     }
 
     // //////////////////////////////////////////
@@ -366,6 +369,37 @@ class CGenerator extends GeneratorBase {
             reaction.setCode(body.toString)
             reactor.reactions.add(reaction)
         }
+    }
+    
+    /** Create a file  */
+    def createFederateRTI() {
+        // Derive target filename from the .lf filename.
+        val cFilename = filename + "_RTI.c";
+        var srcGenPath = directory + File.separator + "src-gen"
+        var outPath = directory + File.separator + "bin"
+
+        // Delete source previously produced by the LF compiler.
+        var file = new File(srcGenPath + File.separator + cFilename)
+        if (file.exists) {
+            file.delete
+        }
+
+        // Delete binary previously produced by the C compiler.
+        file = new File(outPath + File.separator + filename)
+        if (file.exists) {
+            file.delete
+        }
+        
+        var fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + cFilename));
+        fOut.write('''
+#define NUMBER_OF_FEDERATES «federates.length»
+#include "rti.c"
+int main(int argc, char* argv[]) {
+    start_rti(«federationRTIPort»);
+}
+        '''.toString().getBytes())
+        fOut.close()
     }
     
     /** Generate a reactor class definition.
@@ -1736,6 +1770,14 @@ class CGenerator extends GeneratorBase {
             pr("#include \"reactor_threaded.c\"")
         } else {
             pr("#include \"reactor.c\"")
+        }
+        if (federates.length > 1) {
+            pr("#include \"federate.c\"")
+            pr(startTimers, 'synchronize_with_other_federates("'
+                + federationRTIHost 
+                + '", ' + federationRTIPort
+                + ");"
+            )
         }
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.

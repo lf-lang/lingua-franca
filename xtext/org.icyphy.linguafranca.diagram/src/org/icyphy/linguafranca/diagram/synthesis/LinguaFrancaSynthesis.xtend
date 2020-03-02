@@ -38,6 +38,8 @@ import org.eclipse.elk.core.options.PortConstraints
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
+import org.icyphy.AnnotatedDependencyGraph
+import org.icyphy.AnnotatedNode
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
@@ -122,6 +124,25 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val rootNode = createNode()
 
 		try {
+			// Check for cyclic dependencies that will cause the synthesis to run into
+			// stack overflow.
+			// FIXME: We're doing the same analysis in the validator since diagram synthesis
+			// happens before or in parallel with validation. 
+			// We may want to turn this into something more descriptive than a message, such
+			// as highlighting in red coloring the instantiations that are part of a cycle.
+			var depGraph = new AnnotatedDependencyGraph()
+            for (instantiation : model.eAllContents.toIterable.filter(Instantiation)) {
+                depGraph.addEdge(new AnnotatedNode(instantiation.eContainer as Reactor), new AnnotatedNode(instantiation.reactorClass))    
+            }
+            depGraph.detectCycles
+    
+            if (depGraph.cycles.size > 0) {
+                val messageNode = createNode()
+                messageNode.addErrorMessage("Cannot render due to cyclic dependencies", null)
+                rootNode.children += messageNode
+                return rootNode
+            }
+
 			// Find main
 			val main = model.reactors.findFirst[main]
 			if (main !== null) {
@@ -318,7 +339,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		var startupUsed = false
 		val shutdownNode = createNode
 		var shutdownUsed = false
-		
+
 		// Transform instances
 		for (entry : reactor.instantiations.indexed) {
 			val instance = entry.value
