@@ -30,7 +30,7 @@ reactor Destination {
 		console.log("Sum of inputs is: " + sum);
 		if (sum != s) {
 		    console.log("FAILURE: Expected sum to be " + s + ", but it was " + sum);
-			this.util.exec.failure();
+			util.exec.failure();
 		}
 		s += 2;
 	=}

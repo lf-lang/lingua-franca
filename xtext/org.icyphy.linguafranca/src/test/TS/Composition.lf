@@ -27,7 +27,7 @@ reactor Test {
         console.log("Received " + x);
         if (x != count) { 
             console.log("FAILURE: Expected " + count);
-            this.util.exec.failure();
+            util.exec.failure();
             //throw new Error("FAILURE: Expected " + (this.state as any).count);
         }
     =} 

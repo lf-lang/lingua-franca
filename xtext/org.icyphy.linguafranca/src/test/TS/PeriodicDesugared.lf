@@ -19,7 +19,7 @@ main reactor Periodic(
         console.log("Hello World!");
         recur.schedule(0);
         if (count > 10) {
-            this.util.exec.requestShutdown();
+            util.exec.requestShutdown();
         }
         count++;
     =}

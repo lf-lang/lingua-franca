@@ -29,7 +29,7 @@ reactor Destination {
 	reaction(x) {=
         if (x != s) {
             console.log("Error: Expected " + s + " and got " + x + ".")
-            this.util.exec.failure()
+            util.exec.failure()
         }
         s++;		
 	=}
@@ -40,14 +40,14 @@ reactor Destination {
 
 //main reactor TimeLimit(period:time(1 usec)) {
 main reactor TimeLimit(period:time(1 sec)) {
-	timer stop(10 secs);
+	timer stop(1000000 secs);
 	reaction(stop) {=
 //	    console.log("$$$$$$ before requesting shutdown");
-		this.util.exec.requestShutdown();
+		util.exec.requestShutdown();
 //		console.log("$$$$$$ finished requesting shutdown.");
 	=}
 
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x;
-} 
+}

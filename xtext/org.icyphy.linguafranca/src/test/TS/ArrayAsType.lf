@@ -35,7 +35,7 @@ reactor Print(scale:number(1)) {
          console.log(msg);
         if (failed) {
             console.log("ERROR: Value received by Print does not match expectation!");
-            this.util.exec.failure();
+            util.exec.failure();
         }
     =}
 }

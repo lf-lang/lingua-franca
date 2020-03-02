@@ -18,8 +18,8 @@ reactor print {
     input x:number;
     reaction(x) {=
         console.log("Result is " + (x as number));
-        console.log("Current logical time is " + this.util.time.getElapsedLogicalTime());
-        console.log("Current physical time is: " + this.util.time.getElapsedPhysicalTime());
+        console.log("Current logical time is " + util.time.getElapsedLogicalTime());
+        console.log("Current physical time is: " + util.time.getElapsedPhysicalTime());
     =}
 }
 main reactor top {

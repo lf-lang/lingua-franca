@@ -24,7 +24,7 @@ reactor Print(expected:number(42)) {
         console.log("Received: name = " + x.name + ", value = " + x.value);
         if (x.value != expected) {
             console.log("ERROR: Expected value to be " + expected);
-            this.util.exec.failure();
+            util.exec.failure();
         }
     =}
 }

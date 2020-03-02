@@ -37,7 +37,7 @@ reactor Print {
         }
         if (position && position == previous) {
             console.log("ERROR: Multiple firings at the same logical time!");
-            this.util.exec.failure();
+            util.exec.failure();
         }
     =}
 }
