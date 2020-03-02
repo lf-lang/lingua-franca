@@ -236,7 +236,7 @@ class LinguaFrancaValidationTest {
     @Test
     def void connectionToEffectPort() {
         val model = '''
-            target TypeScript;
+            target C;
             reactor Foo {
                 output out:int;
             }
@@ -258,13 +258,13 @@ class LinguaFrancaValidationTest {
             "Cannot connect: Port named 'out' is already effect of a reaction.")
     }
     
-        /**
+    /**
      * Disallow connection to port that is effect of reaction.
      */
     @Test
     def void connectionToEffectPort2() {
         val model = '''
-            target TypeScript;
+            target C;
             reactor Foo {
                 input inp:int;
                 output out:int;
@@ -288,5 +288,53 @@ class LinguaFrancaValidationTest {
             null,
             "Cannot connect: Port named 'inp' is already effect of a reaction.")
     }
+    
+        /**
+     * Detect cycles in the instantiation graph.
+     */
+    @Test
+    def void detectInstantiationCycle() {
+        val model = '''
+            target C;
+            
+            reactor Contained {
+                x = new Contained();
+            }
+        '''.parse
         
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+            null, 'Instantiation is part of a cycle: Contained')
+    }
+    
+    
+    /**
+     * Detect cycles in the instantiation graph.
+     */
+    @Test
+    def void detectInstantiationCycle2() {
+        val model = '''
+            target C;
+            reactor Intermediate {
+                x = new Contained();
+            }
+            
+            reactor Contained {
+                x = new Intermediate();
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+            null, 'Instantiation is part of a cycle: Contained')
+        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+            null, 'Instantiation is part of a cycle: Intermediate')
+    }
+    
 }
