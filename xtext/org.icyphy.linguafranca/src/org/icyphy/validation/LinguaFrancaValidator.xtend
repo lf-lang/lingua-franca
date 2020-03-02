@@ -2,6 +2,8 @@ package org.icyphy.validation
 
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
+import org.icyphy.AnnotatedDependencyGraph
+import org.icyphy.AnnotatedNode
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
@@ -67,7 +69,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var timers = newHashSet()
     var actions = newHashSet()
     var allNames = newHashSet() // Names of contained objects must be unique.
-
+    var depGraph = new AnnotatedDependencyGraph()
     var target = "";
     
     // //////////////////////////////////////////////////
@@ -187,21 +189,34 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     }
 
     @Check(FAST)
-    def checkInstance(Instantiation instance) {
-        checkName(instance.name, Literals.INSTANTIATION__NAME)
-        if (allNames.contains(instance.name)) {
+    def checkInstantiation(Instantiation instantiation) {
+        checkName(instantiation.name, Literals.INSTANTIATION__NAME)
+        if (allNames.contains(instantiation.name)) {
             error(
-                UNIQUENESS_MESSAGE + instance.name,
+                UNIQUENESS_MESSAGE + instantiation.name,
                 Literals.INSTANTIATION__NAME
             )
         }
-        allNames.add(instance.name)
-        if (instance.reactorClass.isMain) {
+        allNames.add(instantiation.name)
+        if (instantiation.reactorClass.isMain) {
             error(
                 "Cannot instantiate a main reactor: " 
-                + instance.reactorClass.name,
+                + instantiation.reactorClass.name,
                 Literals.INSTANTIATION__REACTOR_CLASS
             )
+        }
+        // Report error if this instantiation is part of a cycle.
+        if (this.depGraph.cycles.size > 0) {
+            for (cycle : this.depGraph.cycles) {
+                val instance = new AnnotatedNode(instantiation.reactorClass)
+                val reactor = new AnnotatedNode(instantiation.eContainer as Reactor)
+                if (cycle.contains(reactor) && cycle.contains(instance)) {
+                    error("Instantiation is part of a cycle: " 
+                        + instantiation.reactorClass.name,
+                        Literals.INSTANTIATION__REACTOR_CLASS
+                    )
+                }
+            }
         }
     }
 
@@ -356,6 +371,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
     }
 
+    @Check(NORMAL)
+    def checkModel(Model model) {
+        this.depGraph = new AnnotatedDependencyGraph()
+        for (instantiation : model.eAllContents.toIterable.filter(Instantiation)) {
+            this.depGraph.addEdge(new AnnotatedNode(instantiation.eContainer as Reactor), new AnnotatedNode(instantiation.reactorClass))    
+        }
+        this.depGraph.detectCycles
+    }
+    
     @Check(FAST)
     def checkParameter(Parameter param) {
         checkName(param.name, Literals.PARAMETER__NAME)
