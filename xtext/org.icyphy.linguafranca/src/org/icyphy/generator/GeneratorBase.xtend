@@ -144,6 +144,12 @@ abstract class GeneratorBase {
      */
     protected var Map<String,HashSet<String>> federateContents
             = new HashMap<String,HashSet<String>>()
+            
+    /** The federation RTI host, which defaults to "localhost". */
+    protected var federationRTIHost = "localhost"
+    
+    /** The federation RTI port, which defaults to "15045". */
+    protected var federationRTIPort = "15045"
 
     /** The cmake_include target parameter, or null if there is none. */
     protected String targetCmakeInclude
@@ -1027,15 +1033,30 @@ abstract class GeneratorBase {
         for (param : target.config?.pairs ?: emptyList) {
             if (param.name.equals("federates")) {
                 for (federate : param.value.keyvalue.pairs) {
-                    federates.add(federate.name)
-                    foundOne = true
-                    val contents = new HashSet<String>
-                    federateContents.put(federate.name, contents)
-                    // NOTE: Validator check for the following structure.
-                    for (property : federate.value.keyvalue.pairs) {
-                        if (property.name.equals("reactors")) {
-                            for (reactor : property.value.array.elements) {
-                                contents.add(reactor.id)
+                    if (federate.name == "RTI") {
+                        for (property : federate.value.keyvalue.pairs) {
+                            switch property.name {
+                            case "host": federationRTIHost = 
+                                    if (property.value.literal !== null) {
+                                        property.value.literal.withoutQuotes
+                                    } else {
+                                        property.value.id
+                                    }
+                            case "port": federationRTIPort
+                                    = property.value.literal.withoutQuotes
+                            }
+                        }
+                    } else {
+                        federates.add(federate.name)
+                        foundOne = true
+                        val contents = new HashSet<String>
+                        federateContents.put(federate.name, contents)
+                        // NOTE: Validator check for the following structure.
+                        for (property : federate.value.keyvalue.pairs) {
+                            if (property.name.equals("reactors")) {
+                                for (reactor : property.value.array.elements) {
+                                    contents.add(reactor.id)
+                                }
                             }
                         }
                     }
