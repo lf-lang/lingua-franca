@@ -50,37 +50,51 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  @return A socket descriptor.
  */
 int connect_to_rti(char* hostname, int port) {
+    int socket_descriptor;
+    // Repeatedly try to connect, one attempt every 2 seconds, until
+    // either the program is killed, the sleep is interrupted,
+    // or the connection succeeds.
+    int result = -1;
+    while (result < 0) {
+        // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
+        socket_descriptor = socket(AF_INET , SOCK_STREAM , 0);
+        if (socket_descriptor < 0) error("ERROR on federate creating socket to RTI");
 
-    // FIXME: Should retry until a specified time has elapsed rather than exit.
+        struct hostent *server = gethostbyname(hostname);
+        if (server == NULL) {
+            fprintf(stderr,"ERROR, no such host for RTI.\n");
+            exit(1);
+        }
+        // Server file descriptor.
+        struct sockaddr_in server_fd;
 
-    // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-    int socket_descriptor = socket(AF_INET , SOCK_STREAM , 0);
-    if (socket_descriptor < 0) error("ERROR on federate creating socket to RTI");
+        // Zero out the server_fd struct.
+        bzero((char *) &server_fd, sizeof(server_fd));
 
-    struct hostent *server = gethostbyname(hostname);
-    if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host for RTI.\n");
-        exit(1);
-    }
-    // Server file descriptor.
-    struct sockaddr_in server_fd;
-    // Zero out the server_fd struct.
-    bzero((char *) &server_fd, sizeof(server_fd));
+        // Set up the server_fd fields.
+        server_fd.sin_family = AF_INET;    // IPv4
+        bcopy((char *)server->h_addr,
+             (char *)&server_fd.sin_addr.s_addr,
+             server->h_length);
+        // Convert the port number from host byte order to network byte order.
+        server_fd.sin_port = htons(port);
 
-    // Set up the server_fd fields.
-    server_fd.sin_family = AF_INET;    // IPv4
-    bcopy((char *)server->h_addr,
-         (char *)&server_fd.sin_addr.s_addr,
-         server->h_length);
-    // Convert the port number from host byte order to network byte order.
-    server_fd.sin_port = htons(port);
-
-    int result = connect(
+        result = connect(
             socket_descriptor,
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
-    if (result < 0) error("ERROR connecting to RTI");
-
+        if (result < 0) {
+            printf("Could not connect to RTI at %s, port %d. Will try again every 2 seconds.\n", hostname, port);
+            // Wait two seconds.
+            struct timespec wait_time = {(time_t)2, 0L};
+            struct timespec remaining_time;
+            if (nanosleep(&wait_time, &remaining_time) != 0) {
+                // Sleep was interrupted.
+                break;
+            }
+        }
+    }
+    printf("Federate: connected to RTI at %s, port %d.\n", hostname, port);
     return socket_descriptor;
 }
 
