@@ -5,6 +5,7 @@ import org.eclipse.xtext.validation.Check
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
+import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
@@ -18,8 +19,6 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Connection
 
 /**
  * This class contains custom validation rules. 
@@ -243,26 +242,54 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             error("Each federate needs to be defined by key-value pairs.",
                                 Literals.KEY_VALUE_PAIR__VALUE)
                         }
-                        // Check that there is a 'reactors' property that is an array of ids.
-                        var foundReactors = false
-                        for (property : federate.value.keyvalue.pairs) {
-                            if (property.name.equals("reactors")) {
-                                foundReactors = true
-                                if (property.value.array === null) {
-                                    error("Each reactor property needs to be an array of ids.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                                }
-                                for (reactor : property.value.array.elements) {
-                                    if (reactor.id === null) {
-                                        error("Each reactor property needs to be an array of ids.",
+                        if (federate.name == "RTI") {
+                            // Check port and host parameter form.
+                            for (property : federate.value.keyvalue.pairs) {
+                                switch property.name {
+                                case "port":
+                                    if (property.value.literal === null) {
+                                        error("port property needs to be a number.",
+                                            Literals.KEY_VALUE_PAIR__VALUE)
+                                    } else {
+                                        try {
+                                            Integer.parseInt(property.value.literal)
+                                        } catch (NumberFormatException ex) {
+                                            error("port property needs to be a number.",
+                                                    Literals.KEY_VALUE_PAIR__VALUE)
+                                        }
+                                    }
+                                case "host":
+                                    if (property.value.literal === null) {
+                                        error("host property needs to be a string.",
                                             Literals.KEY_VALUE_PAIR__VALUE)
                                     }
                                 }
                             }
-                        }
-                        if (!foundReactors) {
-                            error("Each federate needs to have a reactor property.",
-                                Literals.KEY_VALUE_PAIR__VALUE)
+                        } else {
+                            // Check that there is a 'reactors' property that is an array of ids.
+                            var foundReactors = false
+                            // Check that each federate specifies a set of reactors.
+                            for (property : federate.value.keyvalue.pairs) {
+                                if (property.name.equals("reactors")) {
+                                    foundReactors = true
+                                            if (property.value.array === null) {
+                                                error("Each reactor property needs to be an array of ids.",
+                                                        Literals.KEY_VALUE_PAIR__VALUE)
+                                            }
+                                    for (reactor : property.value.array.elements) {
+                                        if (reactor.id === null) {
+                                            error("Each reactor property needs to be an array of ids.",
+                                                    Literals.KEY_VALUE_PAIR__VALUE)
+                                        }
+                                    }
+                                    // FIXME: Should check that the reactor is an instance
+                                    // main reactor.
+                                }
+                            }
+                            if (!foundReactors) {
+                                error("Each federate needs to have a reactor property.",
+                                    Literals.KEY_VALUE_PAIR__VALUE)
+                            }
                         }
                     }
                 }
