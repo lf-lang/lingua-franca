@@ -33,6 +33,7 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
+import org.icyphy.DependencyGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
