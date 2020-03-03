@@ -53,10 +53,11 @@ int rti_socket = -1;
  *  the socket descriptor for the connection. If this fails, the
  *  program exits. If it succeeds, it sets the rti_socket global
  *  variable to refer to the socket for communicating with the RTI.
+ *  @param id The assigned ID of the federate.
  *  @param hostname A hostname, such as "localhost".
  *  @param port A port number.
  */
-void connect_to_rti(char* hostname, int port) {
+void connect_to_rti(int id, char* hostname, int port) {
     // Repeatedly try to connect, one attempt every 2 seconds, until
     // either the program is killed, the sleep is interrupted,
     // or the connection succeeds.
@@ -101,6 +102,23 @@ void connect_to_rti(char* hostname, int port) {
         }
     }
     printf("Federate: connected to RTI at %s, port %d.\n", hostname, port);
+
+    // Notify the RTI of the ID of this federate.
+    // Send the message type first.
+    unsigned char message_marker = FED_ID;
+    int bytes_written = write(rti_socket, &message_marker, 1);
+    // FIXME: Retry rather than exit.
+    if (bytes_written < 0) error("ERROR sending federate ID to RTI");
+
+    // Send the ID.
+    int message = swap_bytes_if_little_endian_int(id);
+    /*
+    for (int i = 0; i < sizeof(int); i++) {
+        printf("DEBUG: sending %d: %u\n", i, ((unsigned char*)(&message))[i]);
+    }
+    */
+    bytes_written = write(rti_socket, (void*)(&message), sizeof(int));
+    if (bytes_written < 0) error("ERROR sending federate ID to RTI");
 }
 
 /** Send the specified timestamp to the RTI and wait for a response.
@@ -173,15 +191,16 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
  *  It then waits for physical time to match the specified time,
  *  sets current logical time to the time returned by the RTI,
  *  and then returns.
+ *  @param id The assigned ID of the federate.
  *  @param hostname The name of the RTI host, such as "localhost".
  *  @param port The port used by the RTI.
  */
-void synchronize_with_other_federates(char* hostname, int port) {
+void synchronize_with_other_federates(int id, char* hostname, int port) {
 
     // printf("DEBUG: Federate synchronizing with other federates.\n");
 
     // Connect to the RTI. This sets rti_socket.
-    connect_to_rti(hostname, port);
+    connect_to_rti(id, hostname, port);
 
     // Reset the start time to the coordinated start time for all federates.
     current_time = get_start_time_from_rti(current_time);

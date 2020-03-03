@@ -35,5 +35,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // These message types will be encoded in an unsigned char,
 // so the magnitude must not exceed 255.
 
-/** Byte identifying a timestamp message. */
-#define TIMESTAMP 1
+/** Byte identifying a federate ID message, which is 32 bits long. */
+#define FED_ID 1
+
+/** Byte identifying a timestamp message, which is 64 bits long. */
+#define TIMESTAMP 2

@@ -144,7 +144,12 @@ abstract class GeneratorBase {
      */
     protected var Map<String,HashSet<String>> federateContents
             = new HashMap<String,HashSet<String>>()
-            
+
+    /** A map from federate names to an integer ID for the federate.
+     */
+    protected var Map<String,Integer> federateIDs
+            = new HashMap<String,Integer>()
+
     /** The federation RTI host, which defaults to "localhost". */
     protected var federationRTIHost = "localhost"
     
@@ -1047,6 +1052,9 @@ abstract class GeneratorBase {
                             }
                         }
                     } else {
+                        // Assign an integer ID to the federate.
+                        federateIDs.put(federate.name, federates.length)
+                        // Add the federate name to the list of names.
                         federates.add(federate.name)
                         foundOne = true
                         val contents = new HashSet<String>

@@ -54,11 +54,27 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // Condition variable used to signal receipt of all proposed start times.
 pthread_cond_t received_start_times = PTHREAD_COND_INITIALIZER;
 
-// Array of thread IDs (to be dynamically allocated).
-pthread_t thread_ids[NUMBER_OF_FEDERATES];
+// State of a federate.
+typedef enum fed_state_t {
+    NOT_CONNECTED,  // The federate has not connected.
+    GRANTED,        // Most recent NMR has been granted.
+    PENDING         // Waiting for upstream federates.
+} fed_state_t;
 
-// Socket descriptors for each federate (to be dynamically allocated).
-int fed_socket_descriptors[NUMBER_OF_FEDERATES];
+// Struct for a federate.
+typedef struct federate_t {
+    pthread_t thread_id;    // The ID of the thread handling communication with this federate.
+    int socket;             // The socket descriptor for communicating with this federate.
+    instant_t nmr;          // Most recent NMR tag received from each federate (or NEVER).
+    fed_state_t state;      // State of the federate.
+    struct federate_t* upstream;   // Array of upstream federates.
+    int num_upstream;       // Size of the array of upstream federates.
+    struct federate_t* downstream; // Array of downstream federates.
+    int num_downstream;     // Size of the array of downstream federates.
+} federate_t;
+
+// The federates.
+federate_t federates[NUMBER_OF_FEDERATES];
 
 // Maximum start time seen so far from the federates.
 instant_t max_start_time = 0LL;
@@ -111,7 +127,7 @@ void* federate(void* fed_socket_descriptor) {
 
     // Read bytes from the socket. We need 9 bytes.
     int bytes_read = 0;
-    while (bytes_read < 9) {
+    while (bytes_read < sizeof(long long) + 1) {
         int more = read(client_socket_descriptor, &(buffer[bytes_read]),
                 sizeof(long long) + 1 - bytes_read);
         if (more < 0) error("ERROR on RTI reading from socket");
@@ -184,13 +200,64 @@ void connect_to_federates(int socket_descriptor) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
-        fed_socket_descriptors[i]
-                = accept(socket_descriptor, &client_fd, &client_length);
-        if (fed_socket_descriptors[i] < 0) error("ERROR on server accept");
+        int socket_id = accept(socket_descriptor, &client_fd, &client_length);
+        if (socket_id < 0) error("ERROR on server accept");
 
-        // Create a thread for the federate.
-        pthread_create(&(thread_ids[i]), NULL, federate, &(fed_socket_descriptors[i]));
+        // The first message from the federate should be its ID.
+        // Buffer for message ID plus the federate ID.
+        int length = sizeof(int) + 1;
+        unsigned char buffer[length];
+
+        // Read bytes from the socket. We need 5 bytes.
+        int bytes_read = 0;
+        while (bytes_read < length) {
+            int more = read(socket_id, &(buffer[bytes_read]),
+                    length - bytes_read);
+            if (more < 0) error("ERROR on RTI reading from socket");
+            // If more == 0, this is an EOF. Exit the thread.
+            if (more == 0) return;
+            bytes_read += more;
+        }
+        /*
+        printf("DEBUG: read %d bytes.\n", bytes_read);
+        for (int i = 0; i < sizeof(long long) + 1; i++) {
+            printf("DEBUG: received byte %d: %u\n", i, buffer[i]);
+        }
+        */
+
+        // First byte received in the message ID.
+        if (buffer[0] != FED_ID) {
+            fprintf(stderr, "ERROR: RTI expected a FED_ID message. Got %u (see rti.h).\n", buffer[0]);
+        }
+
+        int fed_id = swap_bytes_if_little_endian_int(*((int*)(&(buffer[1]))));
+        printf("DEBUG: RTI received federate ID: %d\n", fed_id);
+
+        if (federates[fed_id].state != NOT_CONNECTED) {
+            fprintf(stderr, "Duplicate federate ID: %d.\n", fed_id);
+            // FIXME: Rather harsh error handling here.
+            exit(1);
+        }
+        // Default state is as if an NMR has been granted for the start time.
+        federates[fed_id].state = GRANTED;
+        federates[fed_id].socket = socket_id;
+
+        // Create a thread to communicate with the federate.
+        pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id].socket));
     }
+}
+
+/** Initialize the federate with the specified ID.
+ *  @param id The federate ID.
+ */
+void initialize_federate(int id) {
+    federates[id].socket = -1;      // No socket.
+    federates[id].nmr = NEVER;      // No NMR.
+    federates[id].state = NOT_CONNECTED;
+    federates[id].upstream = NULL;
+    federates[id].num_upstream = 0;
+    federates[id].downstream = NULL;
+    federates[id].num_downstream = 0;
 }
 
 /** Start a runtime infrastructure (RTI) for the specified number of
@@ -199,8 +266,10 @@ void connect_to_federates(int socket_descriptor) {
  *  @param port The port on which to listen for socket connections.
  */
 void start_rti(int port) {
+    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+        initialize_federate(i);
+    }
 
-    // FIXME: Better way to handle port number.
     int socket_descriptor = create_server(port);
 
     // Wait for connections from federates and create a thread for each.
@@ -211,7 +280,7 @@ void start_rti(int port) {
     // Wait for federate threads to exit.
     void* thread_exit_status;
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-        pthread_join(thread_ids[i], &thread_exit_status);
+        pthread_join(federates[i].thread_id, &thread_exit_status);
         // printf("DEBUG: Federate thread exited.\n");
     }
     close(socket_descriptor);
