@@ -179,7 +179,17 @@ class CGenerator extends GeneratorBase {
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder(commonInitializeTriggerObjects)
                 startTimeStep = new StringBuilder(commonStartTimeStep)
-                startTimers = new StringBuilder(commonStartTimers)
+                startTimers = new StringBuilder()
+                pr("#include \"federate.c\"")
+                // This should go first in the start_timers function.
+                pr(startTimers, 'synchronize_with_other_federates('
+                    + federateIDs.get(federate)
+                    + ', "'
+                    + federationRTIHost 
+                    + '", ' + federationRTIPort
+                    + ");"
+                )
+                startTimers.append(commonStartTimers);
             }
         
             // Derive target filename from the .lf filename.
@@ -1650,10 +1660,9 @@ int main(int argc, char* argv[]) {
                         deadline + ';')
             }
         }
-        var insideFederate = if (instance === this.main) federate else null
         for (child : instance.children) {
             if (reactorBelongsToFederate(child, federate)) {
-                generateReactorInstance(child, insideFederate)
+                generateReactorInstance(child, federate)
             }
         }
 
@@ -1771,14 +1780,6 @@ int main(int argc, char* argv[]) {
         } else {
             pr("#include \"reactor.c\"")
         }
-        if (federates.length > 1) {
-            pr("#include \"federate.c\"")
-            pr(startTimers, 'synchronize_with_other_federates("'
-                + federationRTIHost 
-                + '", ' + federationRTIPort
-                + ");"
-            )
-        }
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
@@ -1859,11 +1860,16 @@ int main(int argc, char* argv[]) {
             } else {
                 // Reaction in a container being triggered.
                 // In this case, the input field is not an input, but the
-                // output of a contained reactor.
-                var triggerStructName = triggerStructName(init.input)
-                pr(
-                    init.remoteTriggersArrayName + '[' + init.arrayIndex +
+                // output of a contained reactor. If the contained reactor
+                // is not in the federate, then skip this step.
+                // Note that in this case, init.input is misnamed.
+                // It is an output.
+                if (reactorBelongsToFederate(init.input.parent, federate)) {
+                    var triggerStructName = triggerStructName(init.input)
+                    pr(
+                        init.remoteTriggersArrayName + '[' + init.arrayIndex +
                         '] = &' + triggerStructName + ';')
+                }
             }
         }
         // Set all inputs _is_present variables to point to False by default.
@@ -1871,13 +1877,16 @@ int main(int argc, char* argv[]) {
 
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that send it data.
-        connectInputsToOutputs(main)
+        connectInputsToOutputs(main, federate)
     }
 
-    // Generate assignments of pointers in the "self" struct of a destination
-    // port's reactor to the appropriate entries in the "self" struct of the
-    // source reactor.
-    private def void connectInputsToOutputs(ReactorInstance instance) {
+    /** Generate assignments of pointers in the "self" struct of a destination
+     *  port's reactor to the appropriate entries in the "self" struct of the
+     *  source reactor.
+     *  @param instance The reactor instance.
+     *  @param federate The federate for which we are generating code.
+     */
+    private def void connectInputsToOutputs(ReactorInstance instance, String federate) {
         pr('// Connect inputs and outputs.')
         for (source : instance.destinations.keySet) {
             var eventualSource = source
@@ -1943,7 +1952,7 @@ int main(int argc, char* argv[]) {
 
         for (child : instance.children) {
             // In case this is a composite, recurse.
-            connectInputsToOutputs(child)
+            connectInputsToOutputs(child, federate)
         }
 
         var containerSelfStructName = selfStructName(instance)
@@ -1980,22 +1989,25 @@ int main(int argc, char* argv[]) {
             for (port : reaction.dependsOnPorts) {
                 if (port.definition instanceof Output) {
                     // This reaction is receiving data from an output
-                    // of a contained reactor.
-                    var outputSelfStructName = selfStructName(port.parent)
-                    pr(
-                        containerSelfStructName + '.__' +
-                            port.parent.definition.name + '.' +
-                            port.definition.name + ' = &' +
-                            outputSelfStructName + '.__' +
-                            port.definition.name + ';'
-                    )
-                    pr(
-                        containerSelfStructName + '.__' +
-                            port.parent.definition.name + '.' +
-                            port.definition.name + '_is_present' + ' = &' +
-                            outputSelfStructName + '.__' +
-                            port.definition.name + '_is_present;'
-                    )
+                    // of a contained reactor. If the contained reactor is
+                    // not in the federate, then we don't do anything here.
+                    if (reactorBelongsToFederate(port.parent, federate)) {
+                        var outputSelfStructName = selfStructName(port.parent)
+                        pr(
+                            containerSelfStructName + '.__' +
+                                port.parent.definition.name + '.' +
+                                port.definition.name + ' = &' +
+                                outputSelfStructName + '.__' +
+                                port.definition.name + ';'
+                        )
+                        pr(
+                            containerSelfStructName + '.__' +
+                                port.parent.definition.name + '.' +
+                                port.definition.name + '_is_present' + ' = &' +
+                                outputSelfStructName + '.__' +
+                                port.definition.name + '_is_present;'
+                        )
+                    }
                 }
             }
         }
@@ -2303,10 +2315,7 @@ int main(int argc, char* argv[]) {
         // even if they are connected locally in the hierarchy, but not globally.
         for (containedReactor : parent.children) {
             // Do this only for reactors in the federate.
-            if (parent === main 
-                && ((federate == "")
-                    || federateContents.get(federate).contains(containedReactor.name))) {
-                        
+            if (reactorBelongsToFederate(containedReactor, federate)) {
                 for (input : containedReactor.inputs) {
                     var inputSelfStructName = selfStructName(containedReactor)
                     pr(inputSelfStructName + '.__' + input.definition.name +

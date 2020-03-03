@@ -41,6 +41,50 @@ void error(char *msg) {
 #define HOST_LITTLE_ENDIAN 1
 #define HOST_BIG_ENDIAN 2
 
+/** Return true (1) if the host is big endian. Otherwise,
+ *  return false.
+ */
+int host_is_big_endian() {
+    static int host = 0;
+    union {
+        int uint;
+        unsigned char c[4];
+    } x;
+    if (host == 0) {
+        // Determine the endianness of the host by setting the low-order bit.
+        x.uint = 0x01;
+        host = (x.c[3] == 0x01) ? HOST_BIG_ENDIAN : HOST_LITTLE_ENDIAN;
+    }
+    return (host == HOST_BIG_ENDIAN);
+}
+
+/** If this host is little endian, then reverse the order of
+ *  the bytes of the argument. Otherwise, return the argument
+ *  unchanged. This can be used to convert the argument to
+ *  network order (big endian) and then back again.
+ *  Network transmissions, by convention, are big endian,
+ *  meaning that the high-order byte is sent first.
+ *  But many platforms, including my Mac, are little endian,
+ *  meaning that the low-order byte is first in memory.
+ *  @param src The argument to convert.
+ */
+int swap_bytes_if_little_endian_int(int src) {
+    union {
+        int uint;
+        unsigned char c[4];
+    } x;
+    if (host_is_big_endian()) return src;
+    // printf("DEBUG: Host is little endian.\n");
+    x.uint = src;
+    // printf("DEBUG: Before swapping bytes: %lld.\n", x.ull);
+    unsigned char c;
+    // Swap bytes.
+    c = x.c[0]; x.c[0] = x.c[3]; x.c[3] = c;
+    c = x.c[1]; x.c[1] = x.c[2]; x.c[2] = c;
+    // printf("DEBUG: After swapping bytes: %lld.\n", x.ull);
+    return x.uint;
+}
+
 /** If this host is little endian, then reverse the order of
  *  the bytes of the argument. Otherwise, return the argument
  *  unchanged. This can be used to convert the argument to
@@ -52,17 +96,11 @@ void error(char *msg) {
  *  @param src The argument to convert.
  */
 long long swap_bytes_if_little_endian_ll(long long src) {
-    static int host = 0;
     union {
         long long ull;
         unsigned char c[8];
     } x;
-    if (host == 0) {
-        // Determine the endianness of the host by setting the low-order bit.
-        x.ull = 0x01;
-        host = (x.c[7] == 0x01LL) ? HOST_BIG_ENDIAN : HOST_LITTLE_ENDIAN;
-    }
-    if (host == HOST_BIG_ENDIAN) return src;
+    if (host_is_big_endian()) return src;
     // printf("DEBUG: Host is little endian.\n");
     x.ull = src;
     // printf("DEBUG: Before swapping bytes: %lld.\n", x.ull);
