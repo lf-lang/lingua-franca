@@ -38,27 +38,33 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>     // Defines read(), write(), and close()
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
+#include <assert.h>
 #include "util.c"       // Defines error() and swap_bytes_if_little_endian().
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
 
+/** The socket descriptor for this federate to communicate with the RTI.
+ *  This is set by connect_to_rti(), which must be called before other
+ *  functions are called.
+ */
+int rti_socket = -1;
+
 /** Connect to the RTI at the specified host and port and return
  *  the socket descriptor for the connection. If this fails, the
- *  program exits.
+ *  program exits. If it succeeds, it sets the rti_socket global
+ *  variable to refer to the socket for communicating with the RTI.
  *  @param hostname A hostname, such as "localhost".
  *  @param port A port number.
- *  @return A socket descriptor.
  */
-int connect_to_rti(char* hostname, int port) {
-    int socket_descriptor;
+void connect_to_rti(char* hostname, int port) {
     // Repeatedly try to connect, one attempt every 2 seconds, until
     // either the program is killed, the sleep is interrupted,
     // or the connection succeeds.
     int result = -1;
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        socket_descriptor = socket(AF_INET , SOCK_STREAM , 0);
-        if (socket_descriptor < 0) error("ERROR on federate creating socket to RTI");
+        rti_socket = socket(AF_INET , SOCK_STREAM , 0);
+        if (rti_socket < 0) error("ERROR on federate creating socket to RTI");
 
         struct hostent *server = gethostbyname(hostname);
         if (server == NULL) {
@@ -80,7 +86,7 @@ int connect_to_rti(char* hostname, int port) {
         server_fd.sin_port = htons(port);
 
         result = connect(
-            socket_descriptor,
+            rti_socket,
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
         if (result < 0) {
@@ -95,7 +101,6 @@ int connect_to_rti(char* hostname, int port) {
         }
     }
     printf("Federate: connected to RTI at %s, port %d.\n", hostname, port);
-    return socket_descriptor;
 }
 
 /** Send the specified timestamp to the RTI and wait for a response.
@@ -103,15 +108,13 @@ int connect_to_rti(char* hostname, int port) {
  *  federate, and the response will be the designated start time for
  *  the federate. This proceedure blocks until the response is
  *  received from the RTI.
- *  @param socket_descriptor The socket descriptor returned by
- *   connect_to_rti.
  *  @param my_physical_time The physical time at this federate.
  *  @return The designated start time for the federate.
  */
-instant_t get_start_time_from_rti(int socket_descriptor, instant_t my_physical_time) {
+instant_t get_start_time_from_rti(instant_t my_physical_time) {
     // Send the timestamp marker first.
     unsigned char message_marker = TIMESTAMP;
-    int bytes_written = write(socket_descriptor, &message_marker, 1);
+    int bytes_written = write(rti_socket, &message_marker, 1);
     // FIXME: Retry rather than exit.
     if (bytes_written < 0) error("ERROR sending message ID to RTI");
 
@@ -122,7 +125,7 @@ instant_t get_start_time_from_rti(int socket_descriptor, instant_t my_physical_t
         printf("DEBUG: sending %d: %u\n", i, ((unsigned char*)(&message))[i]);
     }
     */
-    bytes_written = write(socket_descriptor, (void*)(&message), sizeof(long long));
+    bytes_written = write(rti_socket, (void*)(&message), sizeof(long long));
     if (bytes_written < 0) error("ERROR sending message to RTI");
 
     // Get a reply.
@@ -132,7 +135,7 @@ instant_t get_start_time_from_rti(int socket_descriptor, instant_t my_physical_t
     // Read bytes from the socket. We need 9 bytes.
     int bytes_read = 0;
     while (bytes_read < 9) {
-        int more = read(socket_descriptor, &(buffer[bytes_read]),
+        int more = read(rti_socket, &(buffer[bytes_read]),
                 sizeof(long long) + 1 - bytes_read);
         if (more < 0) error("ERROR on federate reading reply from RTI");
         // If more == 0, this is an EOF. Kill the federate.
@@ -177,11 +180,11 @@ void synchronize_with_other_federates(char* hostname, int port) {
 
     // printf("DEBUG: Federate synchronizing with other federates.\n");
 
-    // Connect to the RTI.
-    int rti_socket = connect_to_rti(hostname, port);
+    // Connect to the RTI. This sets rti_socket.
+    connect_to_rti(hostname, port);
 
     // Reset the start time to the coordinated start time for all federates.
-    current_time = get_start_time_from_rti(rti_socket, current_time);
+    current_time = get_start_time_from_rti(current_time);
 
     start_time = current_time;
 

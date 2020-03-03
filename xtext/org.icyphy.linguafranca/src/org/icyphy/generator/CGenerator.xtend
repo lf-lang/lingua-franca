@@ -221,7 +221,7 @@ class CGenerator extends GeneratorBase {
                 pr('void __initialize_trigger_objects() {\n')
                 indent()
                 pr(initializeTriggerObjects.toString)
-                doDeferredInitialize()
+                doDeferredInitialize(federate)
                 setReactionPriorities(main, federate)
                 unindent()
                 pr('}\n')
@@ -1828,8 +1828,11 @@ int main(int argc, char* argv[]) {
 
     // //////////////////////////////////////////
     // // Private methods.
-    /** Perform deferred initializations in initialize_trigger_objects. */
-    private def doDeferredInitialize() {
+
+    /** Perform deferred initializations in initialize_trigger_objects.
+     *  @param federate The federate for which we are doing this.
+     */
+    private def doDeferredInitialize(String federate) {
         // First, populate the trigger tables for each output.
         // The entries point to the trigger_t structs for the destination inputs.
         pr('// doDeferredInitialize')
@@ -1864,7 +1867,7 @@ int main(int argc, char* argv[]) {
             }
         }
         // Set all inputs _is_present variables to point to False by default.
-        setInputsAbsentByDefault(main)
+        setInputsAbsentByDefault(main, federate)
 
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that send it data.
@@ -2291,21 +2294,27 @@ int main(int argc, char* argv[]) {
 
     }
 
-    // Set inputs _is_present variables to the default to point to False.
-    private def void setInputsAbsentByDefault(ReactorInstance parent) {
+    /** Set inputs _is_present variables to the default to point to False.
+     *  @param parent The container reactor.
+     */
+    private def void setInputsAbsentByDefault(ReactorInstance parent, String federate) {
         // For all inputs, set a default where their _is_present variable points to False.
         // This handles dangling input ports that are not connected to anything
         // even if they are connected locally in the hierarchy, but not globally.
         for (containedReactor : parent.children) {
-            for (input : containedReactor.inputs) {
-                var inputSelfStructName = selfStructName(containedReactor)
-                pr(inputSelfStructName + '.__' + input.definition.name +
-                    '_is_present = &False;')
+            // Do this only for reactors in the federate.
+            if (parent === main 
+                && ((federate == "")
+                    || federateContents.get(federate).contains(containedReactor.name))) {
+                        
+                for (input : containedReactor.inputs) {
+                    var inputSelfStructName = selfStructName(containedReactor)
+                    pr(inputSelfStructName + '.__' + input.definition.name +
+                        '_is_present = &False;')
+                }
+                // In case this is a composite, handle its assignments.
+                setInputsAbsentByDefault(containedReactor, federate)
             }
-        }
-        for (containedReactor : parent.children) {
-            // In case this is a composite, handle its assignments.
-            setInputsAbsentByDefault(containedReactor)
         }
     }
     
