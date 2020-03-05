@@ -6,10 +6,10 @@ reactor Source(sequence:{=Array<number>=}({= [0, 1, 2] =})) {
     state count:number(0);
     logical action next;
     reaction(startup, next) -> out, next {=
-        out.set(sequence[count]);
+        out = sequence[count];
         count++;
         if (count < sequence.length) {
-            next.schedule(0);
+            actions.next.schedule(0);
         }
     =}
 }
@@ -20,7 +20,7 @@ reactor Print {
         console.log("Received: " + x + ".");
         if (x != count) {
             console.log("ERROR: Expected " + count + ".");
-            util.exec.failure();
+            util.failure();
         }
         count++;
     =}

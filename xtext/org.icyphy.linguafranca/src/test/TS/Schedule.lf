@@ -4,14 +4,14 @@ reactor Schedule {
     input x:number;
     logical action a;
     reaction(x) -> a {=
-        a.schedule( new UnitBasedTimeValue(200, TimeUnit.msec))
+        actions.a.schedule( new UnitBasedTimeValue(200, TimeUnit.msec))
     =}
     reaction(a) {=
-        let elapsedTime = util.time.getElapsedLogicalTime();
+        let elapsedTime = util.getElapsedLogicalTime();
         console.log("Action triggered at logical time " + elapsedTime + " (sec, nsec) after start.");
-        if ( ! elapsedTime.isEqualTo(new UnitBasedTimeValue(200, TimeUnit.msec))) {
+        if (! elapsedTime.isEqualTo(new UnitBasedTimeValue(200, TimeUnit.msec))) {
             console.log("Expected action time to be 200 msec. It was " + elapsedTime + " (sec, nsec).");
-            util.exec.failure();
+            util.failure();
         } else {
             console.log("Success! Action time was " + elapsedTime);
         }
@@ -21,6 +21,6 @@ main reactor Main {
     a = new Schedule();
     timer t;
     reaction(t) -> a.x {=
-        a.x.set(1);
+        a.x = 1;
     =}
 }

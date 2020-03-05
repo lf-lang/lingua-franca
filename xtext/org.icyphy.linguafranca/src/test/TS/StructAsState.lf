@@ -9,10 +9,10 @@ main reactor StructAsState {
     =}
     state s:hello_t({= {name: "Earth", value: 42}=});
     reaction(startup) {=
-        console.log("State s.name=" + s.name + ", value=" + s.value);
+        console.log("State s.name=" + s.name + ", s.value=" + s.value);
         if (s.value != 42) {
             console.log("FAILED: Expected 42.");
-            util.exec.failure();
+            util.failure();
         }
     =}
 }

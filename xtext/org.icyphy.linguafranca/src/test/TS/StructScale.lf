@@ -13,7 +13,7 @@ reactor Scale(scale:number(2)) {
     reaction(x) -> out {=
         x = x as hello_t
         x.value *= scale;
-        out.set(x);
+        out = x;
     =}
 }
 main reactor StructScale {

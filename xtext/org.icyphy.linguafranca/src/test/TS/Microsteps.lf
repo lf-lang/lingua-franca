@@ -3,11 +3,11 @@ reactor Destination {
     input x:number;
     input y:number;
     reaction(x, y) {=
-        let elapsed = util.time.getElapsedLogicalTime();
+        let elapsed = util.getElapsedLogicalTime();
         console.log("Time since start: " + elapsed);
         if (! elapsed.isEqualTo(new UnitBasedTimeValue( 0, TimeUnit.sec ))) {
             console.log("Expected elapsed time to be 0, but it was " + elapsed);
-            util.exec.failure();
+            util.failure();
         }
         let count = 0;
         if (x) {
@@ -20,7 +20,7 @@ reactor Destination {
         }
         if (count != 1) {
             console.log("Expected exactly one input to be present but got " + count);
-            util.exec.failure();
+            util.failure();
         }
     =}
 }
@@ -29,10 +29,10 @@ main reactor Microsteps {
     logical action repeat;
     d = new Destination();
     reaction(start) -> d.x, repeat {=
-        d.x.set(1);
-        repeat.schedule(0);
+        d.x = 1;
+        actions.repeat.schedule(0);
     =}
     reaction(repeat) -> d.y {=
-        d.y.set(1);
+        d.y = 1;
     =}
 }

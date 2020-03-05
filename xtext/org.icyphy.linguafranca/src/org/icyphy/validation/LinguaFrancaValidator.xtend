@@ -79,7 +79,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkName(String name, EStructuralFeature feature) {
         // Raises an error if the string starts with two underscores.
         if (name.length() >= 2 && name.substring(0,2).equals("__")) {
-            error(UNDERSCORE_MESSAGE + name,  feature)
+            error(UNDERSCORE_MESSAGE + name, feature)
+        }
+        
+        if (this.target.equals("TypeScript") && name.equals("actions")) {
+            error(ACTIONS_MESSAGE + name, feature)
         }
     }
     
@@ -473,4 +477,5 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
+    static val ACTIONS_MESSAGE = "\"actions\" is a reserved name for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation)." 
 }

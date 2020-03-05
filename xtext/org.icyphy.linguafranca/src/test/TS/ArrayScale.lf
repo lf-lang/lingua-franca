@@ -14,7 +14,7 @@ reactor Scale(scale:number(2)) {
         for(let i = 0; i < x.length; i++) {
             x[i] = x[i] * scale;
         }
-        out.set(x);
+        out = x;
     =}
 }
 main reactor ArrayScale {

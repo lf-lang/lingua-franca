@@ -16,7 +16,7 @@ reactor Printer {
         console.log("Inside reactor received: " + x);
         if ((x as number) != count) {
             console.log("FAILURE: Expected " + count);
-            util.exec.failure();
+            util.failure();
             //throw new Error("FAILURE: Expected " + (this.state as any).count);
         }
         count++;
@@ -28,6 +28,6 @@ main reactor SendingInside {
     p = new Printer();
     reaction(t) -> p.x {=
         count++;
-        p.x.set(count);
+        p.x = count;
     =}
 }

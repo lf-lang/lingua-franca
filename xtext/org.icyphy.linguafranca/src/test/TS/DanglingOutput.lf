@@ -5,7 +5,7 @@ reactor Source {
     output out:number;
     timer t;
     reaction(t) -> out {=
-        out.set(1);
+        out = 1;
     =}
 }
 
@@ -14,7 +14,7 @@ reactor Gain {
     output out:number;
     reaction(x) -> out {=
         console.log("Received " + x);
-        out.set((x as number) * 2);
+        out = (x as number) * 2;
     =}
 }
 

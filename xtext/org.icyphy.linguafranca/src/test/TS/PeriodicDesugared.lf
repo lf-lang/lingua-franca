@@ -9,17 +9,17 @@ main reactor Periodic(
     reaction(startup) -> init, recur {=
         if (offset.isZero()) {
             console.log("Hello World!");
-            recur.schedule(0);
+            actions.recur.schedule(0);
         } else {
-            init.schedule(0);
+            actions.init.schedule(0);
         }
     =}
   
     reaction(init, recur) -> recur {=
         console.log("Hello World!");
-        recur.schedule(0);
+        actions.recur.schedule(0);
         if (count > 10) {
-            util.exec.requestShutdown();
+            util.requestShutdown();
         }
         count++;
     =}

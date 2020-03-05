@@ -14,24 +14,24 @@ reactor Reschedule(period:time(2 secs), message:string("Hello TypeScript")) {
 	logical action a;
 	reaction(t) -> a {=
 		console.log(message);
-		a.schedule(new UnitBasedTimeValue(200, TimeUnit.msec));
+		actions.a.schedule(new UnitBasedTimeValue(200, TimeUnit.msec));
 		// Print the current time.
-		previous_time = util.time.getCurrentLogicalTime();
+		previous_time = util.getCurrentLogicalTime();
 		console.log("Current time is " + previous_time);
 	=}
 	reaction(a) {=
 		count++;
-		console.log("***** action " + count + " at time " + util.time.getCurrentLogicalTime());
+		console.log("***** action " + count + " at time " + util.getCurrentLogicalTime());
 		// Check the a_has_value variable.
 		if (a) {
 		    console.log("FAILURE: Expected a to be null (not present), but it was non-null.");
-		    util.exec.failure();
+		    util.failure();
 		}
-		let currentTime = util.time.getCurrentLogicalTime();
+		let currentTime = util.getCurrentLogicalTime();
 		if (! currentTime.subtract(previous_time).isEqualTo(new UnitBasedTimeValue(200, TimeUnit.msec))) {
 			console.log("FAILURE: Expected 200ms of logical time to elapse but got " +
 			    currentTime.subtract(previous_time));
-			util.exec.failure();
+			util.failure();
 		}
 	=}
 } 

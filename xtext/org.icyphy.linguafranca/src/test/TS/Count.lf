@@ -6,6 +6,6 @@ reactor Count {
     state i:number(0);
     reaction(t) -> c {=
         i++;
-        c.set(i);
+        c = i;
     =}
 }

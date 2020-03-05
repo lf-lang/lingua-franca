@@ -3,7 +3,7 @@ reactor Source {
     output y:number;
     timer t;
     reaction(t) -> y {=
-        y.set(1);
+        y = 1;
     =}
 } 
 reactor Destination {
@@ -20,7 +20,7 @@ reactor Destination {
         console.log("Received " + sum);
         if (sum != 2) {
             console.log("FAILURE: Expected 2.");
-            util.exec.failure();
+            util.failure();
         }
     =}
 }
@@ -28,7 +28,7 @@ reactor Pass {
     input x:number;
     output y:number;
     reaction(x) -> y {=
-        y.set(x as number);
+        y = x as number;
     =}
 }
 

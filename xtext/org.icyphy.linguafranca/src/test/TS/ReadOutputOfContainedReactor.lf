@@ -4,7 +4,7 @@ target TypeScript;
 reactor Contained {
     output out:number;
     reaction(startup) -> out {=
-        out.set(42);
+        out = 42;
     =}
 }
 main reactor ReadOutputOfContainedReactor {
@@ -25,7 +25,7 @@ main reactor ReadOutputOfContainedReactor {
     reaction(shutdown) {=
         if (count != 3) {
             console.log("FAILURE: One of the reactions failed to trigger.");
-            util.exec.failure();
+            util.failure();
         } else {
             console.log("Test passes.");
         }

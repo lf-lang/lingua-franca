@@ -1,0 +1,47 @@
+// Test data transport across hierarchy.
+target TypeScript;
+reactor Source {
+    output out:number;
+    timer t;
+    reaction(t) -> out {=
+        console.log("Producing from source");
+        out = 1;
+    =}
+}
+reactor Gain {
+    input x:number;
+    output out:number;
+    reaction(x) -> out {=
+        console.log("Gain received " + x);
+        out = (x as number) * 2;
+    =}
+}
+reactor Print {
+    input x:number;
+    reaction(x) {=
+        x = x as number;
+        console.log("Received: " + x);
+        if (x != 2) {
+            console.log("Expected 2.\n");
+            util.failure();
+        }
+    =}
+}
+reactor GainContainer {
+    input x:number;
+    output out:number;
+    output out2:number;
+    gain = new Gain();
+    x -> gain.x;
+    gain.out -> out;
+    gain.out -> out2;
+}
+main reactor Hierarchy {
+    source = new Source();
+    container = new GainContainer();
+    print = new Print();
+    print2 = new Print(); 
+    source.out -> container.x;
+    container.out -> print.x;
+    container.out -> print2.x;
+}
