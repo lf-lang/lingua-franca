@@ -19,8 +19,8 @@ reactor Ball {
     state p:number(200);
     timer trigger(0, 1 sec);
     reaction(trigger) -> position, velocity {=
-        position.set(p);
-        velocity.set(-1);     
+        position = p;
+        velocity = -1;     
         p -= 1;
     =}
 }
@@ -37,7 +37,7 @@ reactor Print {
         }
         if (position && position == previous) {
             console.log("ERROR: Multiple firings at the same logical time!");
-            util.exec.failure();
+            util.failure();
         }
     =}
 }

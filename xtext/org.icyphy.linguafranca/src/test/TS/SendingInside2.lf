@@ -9,6 +9,6 @@ main reactor SendingInside2 {
     timer t;
     p = new Printer();
     reaction(t) -> p.x {=
-        p.x.set(1);
+        p.x = 1;
     =}
 }

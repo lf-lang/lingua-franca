@@ -8,7 +8,7 @@ reactor Count(stride:number(1)) {
     output y:number;
     timer t(0, 100 msec);
     reaction(t) -> y {=
-        y.set(count);
+        y = count;
         count = count + stride;
     =}
 }

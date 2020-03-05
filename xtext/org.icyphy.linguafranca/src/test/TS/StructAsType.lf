@@ -13,7 +13,7 @@ reactor Source {
         // Create the struct on the stack and then copy
         // it to the output as follows:
         let temp: hello_t = {name: "Earth", value: 42}
-        out.set(temp);
+        out = temp;
     =}
 }
 // expected parameter is for testing.
@@ -24,7 +24,7 @@ reactor Print(expected:number(42)) {
         console.log("Received: name = " + x.name + ", value = " + x.value);
         if (x.value != expected) {
             console.log("ERROR: Expected value to be " + expected);
-            util.exec.failure();
+            util.failure();
         }
     =}
 }

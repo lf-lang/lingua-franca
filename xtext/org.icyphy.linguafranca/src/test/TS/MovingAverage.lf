@@ -11,7 +11,7 @@ reactor Source {
     state count:number(0);
     timer clock(0, 200 msec);
     reaction(clock) -> out {=
-        out.set(count);
+        out = count;
         count++;
     =}
 }
@@ -27,7 +27,7 @@ reactor MovingAverageImpl {
         for (let i = 0; i < 3; i++) {
             sum += delay_line[i];
         }
-        out.set(sum/4.0);
+        out = sum/4.0;
 
         // Insert the input in the delay line.
         delay_line[index] = x;
@@ -48,7 +48,7 @@ reactor Print {
         let expected = [0.0, 0.25, 0.75, 1.5, 2.5, 3.5];
         if (x != expected[count]) {
             console.log("ERROR: Expected " + expected[count]);
-            util.exec.failure();
+            util.failure();
         }
         count++;
     =}

@@ -5,7 +5,7 @@ reactor SendsPointer  {
     output out:{= {value: number} =};
     reaction(startup) -> out {=
         let my_object = { value: 42 };
-        out.set(my_object)
+        out = my_object;
     =}
 }
 // expected parameter is for testing.
@@ -16,7 +16,7 @@ reactor Print(expected:{= {value: number} =}({={ value: 42 }=})) {
         console.log("Received: " + JSON.stringify(x));
         if (x.value != expected.value) {
             console.log("ERROR: Expected x.value to be " + expected.value);
-            util.exec.failure();
+            util.failure();
         }
     =}
 }

@@ -11,7 +11,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 	state count:number(0);
 	reaction(t) -> y {=
 	    count++;
-	    y.set(count);
+	    y = count;
 	=}
 }
 
@@ -30,7 +30,7 @@ reactor Destination {
 		console.log("Sum of inputs is: " + sum);
 		if (sum != s) {
 		    console.log("FAILURE: Expected sum to be " + s + ", but it was " + sum);
-			util.exec.failure();
+			util.failure();
 		}
 		s += 2;
 	=}

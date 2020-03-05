@@ -6,11 +6,11 @@ reactor Delay(delay:time(100 msec)) {
     output out:number;
     logical action a:number;
     reaction(x) -> a {=
-        a.schedule( delay, x as number);
+        actions.a.schedule( delay, x as number);
     =}
     reaction(a) -> out {=
         if (a !== null){
-            out.set(a as number)
+            out = a as number
         }
     =}
 }
@@ -20,23 +20,23 @@ reactor Test {
     state received_value:boolean(false);
     reaction(startup) {=
         // Record the logical time at the start.
-        start_time = util.time.getCurrentLogicalTime();
+        start_time = util.getCurrentLogicalTime();
     =} 
     reaction(x) {=
         console.log("Received: " + x);
         received_value = true;
         // Check the time of the input.
-        let current_time = util.time.getCurrentLogicalTime();
+        let current_time = util.getCurrentLogicalTime();
         let elapsed = current_time.subtract(start_time); 
         console.log("After " + elapsed + " of logical time.");
         if ( ! elapsed.isEqualTo(new UnitBasedTimeValue( 100, TimeUnit.msec))) {
             console.log("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
-            util.exec.failure();
+            util.failure();
             //throw new Error( "ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
         }
         if ( x != 42) {
             console.log("ERROR: Expected input value to be 42. It was " + x);
-            util.exec.failure();
+            util.failure();
             //throw new Error("ERROR: Expected input value to be 42. It was " + (this.state as any).x);            
         }
     =}
@@ -44,7 +44,7 @@ reactor Test {
         console.log("Checking that communication occurred.");
         if (! received_value) {
             console.log("ERROR: No communication occurred!");
-            util.exec.failure();
+            util.failure();
             //throw new Error("ERROR: No communication occurred!");          
         }
     =}
@@ -55,6 +55,6 @@ main reactor DelayInt {
     t = new Test();
     d.out -> t.x; 
     reaction(startup) -> d.x {=
-        d.x.set(42);
+        d.x = 42;
     =}
 }

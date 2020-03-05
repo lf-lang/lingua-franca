@@ -8,7 +8,7 @@ reactor Source {
     output out:number;
     timer t(0, 1 sec);
     reaction(t) -> out {=
-        out.set(1);
+        out = 1;
     =}
 }
 reactor Count {
@@ -17,7 +17,7 @@ reactor Count {
     state i:number(0);
     reaction(t) -> out {=
         i++;
-        out.set(i);
+        out = i;
     =}
 }
 reactor Add {
@@ -28,7 +28,7 @@ reactor Add {
         let result = 0;
         if (in1) result += in1;
         if (in2) result += in2;
-        out.set(result);
+        out = result;
     =}
 }
 reactor Print {
@@ -38,7 +38,7 @@ reactor Print {
         x = x as number;
         if (x != expected) {
             console.log("Expected " + expected);
-            util.exec.failure();
+            util.failure();
         }
         expected++;
     =}

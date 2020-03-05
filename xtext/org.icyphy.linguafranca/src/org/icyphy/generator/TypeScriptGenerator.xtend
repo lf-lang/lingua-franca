@@ -116,7 +116,7 @@ class TypeScriptGenerator extends GeneratorBase {
             file.delete
         }
 
-        // Write the generated code to the src-gen directory.
+        // Write the generated code to the srcGen directory.
         var fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + tsFilename));
         fOut.write(getCode().getBytes())
@@ -135,6 +135,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 + "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository."
             )
         }
+        
+        // Copy core reactor.ts files into the srcGen directory
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "reactor.ts"));
         fOut.write(fileContents.getBytes())
@@ -146,6 +148,18 @@ class TypeScriptGenerator extends GeneratorBase {
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "util.ts"));
         fOut.write(readFileInClasspath(reactorCorePath + "util.ts").getBytes())
+        
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "ulog.d.ts"));
+        fOut.write(readFileInClasspath(reactorCorePath + "ulog.d.ts").getBytes())
+        
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "nanotimer.d.ts"));
+        fOut.write(readFileInClasspath(reactorCorePath + "nanotimer.d.ts").getBytes())
+        
+        fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "microtime.d.ts"));
+        fOut.write(readFileInClasspath(reactorCorePath + "microtime.d.ts").getBytes())
 
         // Copy default versions of config files into project if
         // they don't exist.
@@ -212,11 +226,11 @@ class TypeScriptGenerator extends GeneratorBase {
     }
     
     override generateDelayBody(Action action, VarRef port) {
-        '''«action.name».schedule(0, «generateVarRef(port)» as «getActionType(action)»)'''
+        '''actions.«action.name».schedule(0, «generateVarRef(port)» as «getActionType(action)»)'''
     }
 
     override generateForwardBody(Action action, VarRef port) {
-        '''«generateVarRef(port)».set(«action.name» as «getActionType(action)»)'''
+        '''«generateVarRef(port)» = «action.name» as «getActionType(action)»'''
     }
  
     // //////////////////////////////////////////
@@ -539,6 +553,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         var args = containerToArgs.get(trigOrSource.container)
                         if (args === null) {
                            // Create the HashSet for the container
+                           // and handle it later.
                            args = new HashSet<Variable>();
                            containerToArgs.put(trigOrSource.container, args)
                         }
@@ -546,17 +561,26 @@ class TypeScriptGenerator extends GeneratorBase {
                     }
                 }
             }
+            var schedActionSet = new HashSet<Action>();
             for (effect : reaction.effects) {
                 var functArg = ""
                 if (effect.container === null) {
-                    var reactSignatureElement = effect.variable.name
-                    if (effect.variable instanceof Timer){
+                    var reactSignatureElement = "__" + effect.variable.name
+                    if (effect.variable instanceof Timer) {
                         reportError("A timer cannot be an effect of a reaction")
                     } else if (effect.variable instanceof Action){
                         reactSignatureElement += ": Schedulable<" + getActionType(effect.variable as Action) + ">"
+                        schedActionSet.add(effect.variable as Action)
                     } else if (effect.variable instanceof Port){
                         reactSignatureElement += ": Writable<" + getPortType(effect.variable as Port) + ">"
+                        pr(reactEpilogue, "if (" + effect.variable.name + "!== undefined) {")
+                        reactEpilogue.indent()
+                        pr(reactEpilogue,  "__" + effect.variable.name + ".set(" + effect.variable.name + ");")
+                        reactEpilogue.unindent()
+                        pr(reactEpilogue, "}")
                     }
+                    
+                    pr(reactPrologue, "let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
                     reactSignature.add(reactSignatureElement)
                     
                     functArg = "this." + effect.variable.name 
@@ -574,6 +598,17 @@ class TypeScriptGenerator extends GeneratorBase {
                     }
                     args.add(effect.variable)
                 }
+            }
+            
+            // Iterate through the actions to handle the prologue's
+            // "actions" object
+            var prologueActionObjectBody = new StringJoiner(", ")
+            for (act : schedActionSet) {
+                prologueActionObjectBody.add(act.name + ": __" + act.name)
+            }
+            if (schedActionSet.size > 0) {
+                pr(reactPrologue, "let actions = {"
+                    + prologueActionObjectBody + "};")
             }
             
             // Add parameters to the react function
@@ -613,7 +648,13 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (containedVariable instanceof Input) {
                         containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type + ">"
                         containedArgElement += containedVariable.name + ": " + "this.getWritable(" + functArg + ")"
-                        containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name
+                        containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
+                        pr(reactEpilogue, "if (" + container.name + "." + containedVariable.name + " !== undefined) {")
+                        reactEpilogue.indent()
+                        pr(reactEpilogue,  "__" + container.name + "." + containedVariable.name
+                            + ".set(" + container.name + "." + containedVariable.name + ");")
+                        reactEpilogue.unindent()
+                        pr(reactEpilogue, "}")
                     } else if(containedVariable instanceof Output) {
                         containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type + ">"
                         containedArgElement += containedVariable.name + ": " + functArg
@@ -794,7 +835,7 @@ class TypeScriptGenerator extends GeneratorBase {
         super.generatePreamble
         pr(preamble)
         pr("")
-        pr("Log.setGlobalLevel(Log.levels." + getLoggingLevel() + ");")
+        pr("Log.global.level = Log.levels." + getLoggingLevel() + ";")
     }
 
     
@@ -939,7 +980,7 @@ class TypeScriptGenerator extends GeneratorBase {
     static val timeLibPath =  "." + File.separator + "time"
     static val utilLibPath =  "." + File.separator + "util"
     val static preamble = '''
-import {Args, Present, Parameter, State, Variable, Priority, Mutation, Util, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
+import {Args, Present, Parameter, State, Variable, Priority, Mutation, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
 import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeLibPath + '''"
 import {Log} from "''' + utilLibPath + '''"
 

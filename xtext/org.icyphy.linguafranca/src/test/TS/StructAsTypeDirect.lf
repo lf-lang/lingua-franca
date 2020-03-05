@@ -13,7 +13,7 @@ preamble {=
         let temp: hello_t = {name: "", value: 0};
         temp.name = "Earth";
         temp.value = 42;
-        out.set(temp);
+        out = temp;
     =}
 }
 // expected parameter is for testing.
@@ -21,10 +21,10 @@ reactor Print(expected:number(42)) {
     input x:hello_t;
     reaction(x) {=
         x = x as hello_t;
-        console.log("Received: name = " + x.name + " value = " + x.value);
+        console.log("Received: name = " + x.name + ", value = " + x.value);
         if (x.value != expected) {
             console.log("ERROR: Expected value to be " + expected);
-            util.exec.failure();
+            util.failure();
         }
     =}
 }

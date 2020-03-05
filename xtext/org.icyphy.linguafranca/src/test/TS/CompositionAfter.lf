@@ -10,7 +10,7 @@ reactor Source(period:time(2 sec)) {
 	state count:number(0);
 	reaction(t) -> y {=
 		count++;
-		y.set(count);
+		y = count;
 	=}
 }
 
@@ -22,7 +22,7 @@ reactor Test {
 		console.log("Received " + x);
 		if (x != count) { 
 			console.log("FAILURE: Expected " + count);
-			util.exec.failure(); 
+			util.failure(); 
 		}
 	=} 
 }

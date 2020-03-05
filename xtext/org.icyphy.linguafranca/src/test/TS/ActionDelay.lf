@@ -9,31 +9,31 @@ reactor GeneratedDelay {
 
     reaction(y_in) -> act {=
         y_state = y_in as number;
-        act.schedule(0);
+        actions.act.schedule(0);
     =}
 
     reaction(act) -> y_out {=
-        y_out.set(y_state);
+        y_out = y_state;
     =}
 }
 
 reactor Source {
     output out:number;
     reaction(startup) -> out {=
-        out.set(1);
+        out = 1;
     =} 
 }
 reactor Sink {
     input x:number;
     reaction(x) {=
-        var elapsed_logical = util.time.getElapsedLogicalTime();
-        var logical = util.time.getCurrentLogicalTime();
-        var physical = util.time.getCurrentPhysicalTime();
+        var elapsed_logical = util.getElapsedLogicalTime();
+        var logical = util.getCurrentLogicalTime();
+        var physical = util.getCurrentPhysicalTime();
         console.log("Logical, physical, and elapsed logical: " + logical + physical + elapsed_logical); 
         var oneHundredMsec = new UnitBasedTimeValue(100, TimeUnit.msec);
         if (!elapsed_logical.isEqualTo(oneHundredMsec)) {
             console.log("FAILURE: Expected " + oneHundredMsec + " but got " + elapsed_logical);
-            util.exec.failure();
+            util.failure();
         } else {
             console.log("SUCCESS. Elapsed logical time is " + elapsed_logical);
         }

@@ -11,7 +11,7 @@ reactor Test {
         i++;
         if (c != i) {
             console.log("ERROR: Expected " + i + " but got " + c);
-            util.exec.failure();
+            util.failure();
             //throw new Error("ERROR: Expected " + (this.state as any).i + " but got " + (this.state as any).c.get());
         }
     =}

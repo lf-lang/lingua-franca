@@ -10,25 +10,25 @@ reactor foo {
     logical action a:number;
     reaction(x) -> y, a {=
         x = x as number;
-        y.set(2 * x);
+        y  = 2 * x;
         // The following uses physical time, incorrectly.
-        a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec));
+        actions.a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec));
     =}
     reaction(a) -> y {=
-        y.set(-42);
+        y = -42;
     =}
 }
 reactor print {
     state expected_time:time(0);
     input x:number;
     reaction(x) {=
-        let elapsed_time = util.time.getElapsedLogicalTime();
+        let elapsed_time = util.getElapsedLogicalTime();
         console.log("Result is " + x);
         console.log("Current logical time is: " + elapsed_time);
-        console.log("Current physical time is: " + util.time.getElapsedPhysicalTime());
+        console.log("Current physical time is: " + util.getElapsedPhysicalTime());
         if (! elapsed_time.isEqualTo(expected_time)) {
             console.log("ERROR: Expected logical time to be " + expected_time);
-            util.exec.failure();
+            util.failure();
         }
         expected_time = expected_time.add( new UnitBasedTimeValue(500, TimeUnit.msec));
     =}
@@ -38,7 +38,7 @@ main reactor top {
     p = new print();
     timer t(0, 1 sec);
     reaction(t) -> f.x {=
-        f.x.set(42);
+        f.x = 42;
     =}
     f.y -> p.x;
 }

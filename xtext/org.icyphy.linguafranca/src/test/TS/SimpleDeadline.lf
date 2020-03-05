@@ -7,10 +7,10 @@ reactor Deadline(threshold:time(100 msec)) {
     output deadlineViolation:boolean;
     reaction(x) -> deadlineViolation {=
         console.log("ERROR: Deadline violation was not detected!\n");
-        util.exec.failure();
+        util.failure();
     =} deadline(threshold) {=
         console.log("Deadline violation detected.");
-        deadlineViolation.set(true);
+        deadlineViolation = true;
     =}
     // FIXME: Causes an NPE:
     // logical action foo;
@@ -33,10 +33,10 @@ main reactor SimpleDeadline {
     d.deadlineViolation -> p.x;
     reaction(start) -> d.x {=
         let sleep_time =  new UnitBasedTimeValue(20, TimeUnit.msec);
-        let startTime = util.time.getCurrentPhysicalTime();
+        let startTime = util.getCurrentPhysicalTime();
         let finishTime = startTime.add(sleep_time)
         // Busy wait
-        while(util.time.getCurrentPhysicalTime().isSmallerThan(finishTime));
-        d.x.set(42);
+        while(util.getCurrentPhysicalTime().isSmallerThan(finishTime));
+        d.x = 42;
     =}
 } 

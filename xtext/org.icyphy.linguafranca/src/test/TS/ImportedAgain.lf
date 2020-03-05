@@ -9,7 +9,7 @@ reactor ImportedAgain {
         console.log("Received: " + x);
         if ((x as number) != 42) {
             console.log("ERROR: Expected input to be 42. Got: " + x)
-            util.exec.failure();
+            util.failure();
             //throw new Error("ERROR: Expected input to be 42. Got: " + (this.state as any).x.get());
         }
     =}

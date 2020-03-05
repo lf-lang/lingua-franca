@@ -6,17 +6,17 @@ main reactor SlowingClock {
     state interval:time(100 msec);
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
-        a.schedule(0);
+        actions.a.schedule(0);
     =}
     reaction(a) -> a {=
-        let elapsed_logical_time : TimeValue = util.time.getElapsedLogicalTime();
+        let elapsed_logical_time : TimeValue = util.getElapsedLogicalTime();
         console.log("Logical time since start: " + elapsed_logical_time);
         if (!elapsed_logical_time.isEqualTo(expected_time)) {
             console.log("ERROR: Expected time to be: " + expected_time);
-            util.exec.failure();
+            util.failure();
             //throw new Error("ERROR: Expected time to be: " + (this.state as any).expected_time);
         }
-        a.schedule(interval);
+        actions.a.schedule(interval);
         expected_time = expected_time.add(new UnitBasedTimeValue(100 , TimeUnit.msec))
         expected_time = expected_time.add(interval);
         interval = interval.add(new UnitBasedTimeValue(100 , TimeUnit.msec));
@@ -25,7 +25,7 @@ main reactor SlowingClock {
         if (!expected_time.isEqualTo(new UnitBasedTimeValue(5500 , TimeUnit.msec))) {
             console.log("ERROR: Expected the next expected time to be: " + new UnitBasedTimeValue(5500 , TimeUnit.msec));
             console.log("It was: " + expected_time);
-            util.exec.failure();
+            util.failure();
             //throw new Error("ERROR: Expected the next expected time to be: [ 5, 500000000 ]");
         }
     =}

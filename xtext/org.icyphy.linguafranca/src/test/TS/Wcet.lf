@@ -5,8 +5,8 @@ reactor Source {
     output out2:number;
     timer t;
     reaction(t) -> out1, out2 {=
-        out1.set(5);
-        out2.set(10);
+        out1 = 5;
+        out2 = 10;
     =}
 }
 reactor Work {
@@ -20,7 +20,7 @@ reactor Work {
         } else {
             ret = (in2 as number) + (in1 as number);
         }
-        out.set(ret);
+        out = ret;
     =}
 }
 reactor Print {

@@ -20,7 +20,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 	state count:number(0);
 	reaction(t) -> y {=
 	    count++;
-	    y.set(count);
+	    y = count;
 	=}
 }
 reactor Destination {
@@ -29,7 +29,7 @@ reactor Destination {
 	reaction(x) {=
         if (x != s) {
             console.log("Error: Expected " + s + " and got " + x + ".")
-            util.exec.failure()
+            util.failure()
         }
         s++;		
 	=}
@@ -43,7 +43,7 @@ main reactor TimeLimit(period:time(1 sec)) {
 	timer stop(1000000 secs);
 	reaction(stop) {=
 //	    console.log("$$$$$$ before requesting shutdown");
-		util.exec.requestShutdown();
+		util.requestShutdown();
 //		console.log("$$$$$$ finished requesting shutdown.");
 	=}
 

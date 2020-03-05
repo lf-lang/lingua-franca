@@ -5,18 +5,18 @@ reactor Source {
     output out:number;
     timer t;
     reaction(t) -> out {=
-        out.set(1);
+        out = 1;
     =} 
 }
 
 reactor Sink {
 	input x:number;
 	reaction(x) {=
-        let elapsed = util.time.getElapsedLogicalTime();
+        let elapsed = util.getElapsedLogicalTime();
         console.log("Nanoseconds since start: " + elapsed);
         if (! elapsed.isEqualTo(new UnitBasedTimeValue( 100, TimeUnit.msec))) {
             console.log("ERROR: Expected 100 msecs but got" + elapsed );
-            util.exec.failure();
+            util.failure();
         }
 	=}
 }
