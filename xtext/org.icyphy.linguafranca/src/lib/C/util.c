@@ -68,12 +68,12 @@ int host_is_big_endian() {
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-int swap_bytes_if_little_endian_int(int src) {
+int swap_bytes_if_big_endian_int(int src) {
     union {
         int uint;
         unsigned char c[4];
     } x;
-    if (host_is_big_endian()) return src;
+    if (!host_is_big_endian()) return src;
     // printf("DEBUG: Host is little endian.\n");
     x.uint = src;
     // printf("DEBUG: Before swapping bytes: %lld.\n", x.ull);
@@ -95,12 +95,12 @@ int swap_bytes_if_little_endian_int(int src) {
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-long long swap_bytes_if_little_endian_ll(long long src) {
+long long swap_bytes_if_big_endian_ll(long long src) {
     union {
         long long ull;
         unsigned char c[8];
     } x;
-    if (host_is_big_endian()) return src;
+    if (!host_is_big_endian()) return src;
     // printf("DEBUG: Host is little endian.\n");
     x.ull = src;
     // printf("DEBUG: Before swapping bytes: %lld.\n", x.ull);
@@ -112,4 +112,30 @@ long long swap_bytes_if_little_endian_ll(long long src) {
     c = x.c[3]; x.c[3] = x.c[4]; x.c[4] = c;
     // printf("DEBUG: After swapping bytes: %lld.\n", x.ull);
     return x.ull;
+}
+
+/** If this host is little endian, then reverse the order of
+ *  the bytes of the argument. Otherwise, return the argument
+ *  unchanged. This can be used to convert the argument to
+ *  network order (big endian) and then back again.
+ *  Network transmissions, by convention, are big endian,
+ *  meaning that the high-order byte is sent first.
+ *  But many platforms, including my Mac, are little endian,
+ *  meaning that the low-order byte is first in memory.
+ *  @param src The argument to convert.
+ */
+int swap_bytes_if_big_endian_ushort(unsigned short src) {
+    union {
+        unsigned short uint;
+        unsigned char c[2];
+    } x;
+    if (!host_is_big_endian()) return src;
+    // printf("DEBUG: Host is little endian.\n");
+    x.uint = src;
+    // printf("DEBUG: Before swapping bytes: %lld.\n", x.ull);
+    unsigned char c;
+    // Swap bytes.
+    c = x.c[0]; x.c[0] = x.c[1]; x.c[1] = c;
+    // printf("DEBUG: After swapping bytes: %lld.\n", x.ull);
+    return x.uint;
 }

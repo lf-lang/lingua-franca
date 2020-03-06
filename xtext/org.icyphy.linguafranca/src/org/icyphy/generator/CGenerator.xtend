@@ -119,20 +119,9 @@ class CGenerator extends GeneratorBase {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
-        analyzeModel(resource, fsa, context)
-
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
         
-        // Build the instantiation tree if a main reactor is present.
-        if (this.mainDef !== null) {
-            this.main = new ReactorInstance(mainDef, null, this) // Recursively builds instances.    
-        }
-        
-        if (main !== null && main.chainIDWidth > 64) {
-            throw new Exception("Currently no support for programs with more than 64 branches in the dependency tree. ")
-        }
-
         // Create the output directories if they don't yet exist.
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
@@ -165,22 +154,18 @@ class CGenerator extends GeneratorBase {
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = filename
-        var commonCode = code
-        var commonInitializeTriggerObjects = initializeTriggerObjects
-        var commonStartTimeStep = startTimeStep
-        var commonStartTimers = startTimers
         
+        var commonCode = code;
         for (federate : federates) {
             // Empty string means no federates were defined, so we only generate
             // one output.
             if (!federate.equals("")) {
                 filename = baseFilename + '_' + federate
-                // Copy the commonCode into a new code string.
+                // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
-                initializeTriggerObjects = new StringBuilder(commonInitializeTriggerObjects)
-                startTimeStep = new StringBuilder(commonStartTimeStep)
+                initializeTriggerObjects = new StringBuilder()
+                startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder()
-                pr("#include \"federate.c\"")
                 // This should go first in the start_timers function.
                 pr(startTimers, 'synchronize_with_other_federates('
                     + federateIDs.get(federate)
@@ -189,7 +174,20 @@ class CGenerator extends GeneratorBase {
                     + '", ' + federationRTIPort
                     + ");"
                 )
-                startTimers.append(commonStartTimers);
+            }
+        
+            // Build the instantiation tree if a main reactor is present.
+            if (this.mainDef !== null) {
+                generateReactorFederated(this.mainDef.reactorClass, federate)
+                if (this.main === null) {
+                    // Recursively build instances. This is done once because
+                    // it is the same for all federates.
+                    this.main = new ReactorInstance(mainDef, null, this) 
+                }   
+            }
+        
+            if (main !== null && main.chainIDWidth > 64) {
+                throw new Exception("Currently no support for programs with more than 64 branches in the dependency tree. ")
             }
         
             // Derive target filename from the .lf filename.
@@ -416,6 +414,20 @@ int main(int argc, char* argv[]) {
      *  @param reactor The parsed reactor data structure.
      */
     override generateReactor(Reactor reactor) {
+        generateReactorFederated(reactor, "")
+    }
+    
+    /** Generate a reactor class definition for the specified
+     *  federate. If the reactor is the main reactor, then
+     *  the generated code may be customized. Specifically,
+     *  if the main reactor has reactions, these reactions
+     *  will not be generated if are triggered by or send
+     *  data to contained reactors that are in the federate.
+     *  @param reactor The parsed reactor data structure.
+     *  @param federate A federate name, or an empty string
+     *   to unconditionally generate.
+     */
+    def generateReactorFederated(Reactor reactor, String federate) {
         super.generateReactor(reactor)
 
         // Special Timer and Action for startup and shutdown, if they occur.
@@ -686,7 +698,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Generate reactions
-        generateReactions(reactor)
+        generateReactions(reactor, federate)
         generateTransferOutputs(reactor, outputToContainedOutput)
         pr("// =============== END reactor class " + reactor.name)
         pr("")
@@ -697,188 +709,192 @@ int main(int argc, char* argv[]) {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reactor The reactor.
+     *  @param federate The federate, or an empty string if this is not
+     *   federated or not the main reactor. 
      */
-    def generateReactions(Reactor reactor) {
+    def generateReactions(Reactor reactor, String federate) {
         var reactions = reactor.reactions
         var reactionIndex = 0;
         for (reaction : reactions) {
-            // Create a unique function name for each reaction.
-            val functionName = reactor.name.toLowerCase + "_rfunc_" +
-                reactionIndex
+            if (isReactionInFederation(reactor, reaction, federate)) {
+                generateReaction(reaction, reactor, reactionIndex)
+            }
+            reactionIndex++
+        }
+    }
+    
+    /** Generate a reaction function definition for a reactor.
+     *  This function has a single argument that is a void* pointing to
+     *  a struct that contains parameters, state variables, inputs (triggering or not),
+     *  actions (triggering or produced), and outputs.
+     *  @param reaction The reaction.
+     *  @param reactor The reactor.
+     *  @param reactionIndex The position of the reaction within the reactor. 
+     */
+    def generateReaction(Reaction reaction, Reactor reactor, int reactionIndex) {
+        // Create a unique function name for each reaction.
+        val functionName = reactor.name.toLowerCase + "_rfunc_" + reactionIndex
 
-            // Construct the reactionInitialization code to go into
-            // the body of the function before the verbatim code.
-            var StringBuilder reactionInitialization = new StringBuilder()
+        // Construct the reactionInitialization code to go into
+        // the body of the function before the verbatim code.
+        var StringBuilder reactionInitialization = new StringBuilder()
 
+        // Define the "self" struct.
+        if (!hasEmptySelfStruct(reactor)) {
+            var structType = selfStructType(reactor)
+            // A null structType means there are no inputs, state,
+            // or anything else. No need to declare it.
+            pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
+        }
+
+        // A reaction may send to or receive from multiple ports of
+        // a contained reactor. The variables for these ports need to
+        // all be declared as fields of the same struct. Hence, we first
+        // collect the fields to be defined in the structs and then
+        // generate the structs.
+        var fieldsForStructsForContainedReactors = new HashMap<Instantiation, StringBuilder>
+
+        // Actions may appear twice, first as a trigger, then with the outputs.
+        // But we need to declare it only once. Collect in this data structure
+        // the actions that are declared as triggered so that if they appear
+        // again with the outputs, they are not defined a second time.
+        // That second redefinition would trigger a compile error.  
+        var actionsAsTriggers = new HashSet<Action>();
+
+        // Next, add the triggers (input and actions; timers are not needed).
+        // This defines a local variable in the reaction function whose
+        // name matches that of the trigger. If the trigger is an input
+        // (not an action), then it also defines a local variable whose
+        // name is the input name with suffix "_is_present", a boolean
+        // that indicates whether the input is present.
+        // If the trigger is an output, then it is an output of a
+        // contained reactor. In this case, a struct with the name
+        // of the contained reactor is created with two fields.
+        // E.g., if the contained reactor is named 'c' and its output
+        // port is named 'out', then c.out and c.out_is_present are
+        // defined so that they can be used in the verbatim code.
+        for (TriggerRef trigger : reaction.triggers ?: emptyList) {
+            if (trigger instanceof VarRef) {
+                if (trigger.variable instanceof Port) {
+                    generatePortVariablesInReaction(reactionInitialization,
+                        fieldsForStructsForContainedReactors, trigger)
+                } else if (trigger.variable instanceof Action) {
+                    actionsAsTriggers.add(trigger.variable as Action);
+                    // If the action has a type, create variables for accessing the value.
+                    val type = (trigger.variable as Action).type
+                    val valuePointer = 'self->__' + trigger.variable.name + '->value'
+                    // Create the _has_value variable.
+                    pr(reactionInitialization,
+                        'bool ' + trigger.variable.name + '_has_value = (' + valuePointer + ' != NULL);')
+                    // Create the _value variable if there is a type.
+                    if (type !== null) {
+                        // Create the value variable, but initialize it only if the pointer is not null.
+                        pr(reactionInitialization, type + ' ' + trigger.variable.name + '_value;')
+                        pr(
+                            reactionInitialization,
+                            'if (' + trigger.variable.name + '_has_value) ' + trigger.variable.name +
+                                '_value = *(' + '(' + type + '*)' + valuePointer + ');'
+                        );
+                    }
+                }
+            }
+        }
+        if (reaction.triggers === null || reaction.triggers.size === 0) {
+            // No triggers are given, which means react to any input.
+            // Declare an argument for every input.
+            // NOTE: this does not include contained outputs. 
+            for (input : reactor.inputs) {
+                generateInputVariablesInReaction(reactionInitialization, input)
+            }
+        }
+        // Define argument for non-triggering inputs.
+        for (VarRef src : reaction.sources ?: emptyList) {
+            if (src.variable instanceof Port) {
+                generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src)
+            }
+        }
+
+        // Define variables for each declared output or action.
+        // In the case of outputs, the variable is a pointer to where the
+        // output is stored. This gives the reaction code access to any previous
+        // value that may have been written to that output in an earlier reaction.
+        // In addition, the _is_present variable is a boolean that indicates
+        // whether the output has been written.
+        if (reaction.effects !== null) {
+            for (effect : reaction.effects) {
+                // val action = getAction(reactor, output)
+                if (effect.variable instanceof Action) {
+                    // It is an action, not an output.
+                    // If it has already appeared as trigger, do not redefine it.
+                    if (!actionsAsTriggers.contains(effect.variable.name)) {
+                        pr(reactionInitialization,
+                            "trigger_t* " + effect.variable.name + ' = self->__' + effect.variable.name + ';');
+                    }
+                } else {
+                    if (effect.variable instanceof Output) {
+                        generateOutputVariablesInReaction(reactionInitialization, effect.variable as Output)
+                    } else if (effect.variable instanceof Input) {
+                        // It is the input of a contained reactor.
+                        generateVariablesForSendingToContainedReactors(
+                            reactionInitialization,
+                            fieldsForStructsForContainedReactors,
+                            effect.container,
+                            effect.variable as Input
+                        )
+                    } else {
+                        reportError(
+                            reaction,
+                            "In generateReactor(): " + effect.variable.name + " is neither an input nor an output."
+                        )
+                    }
+                }
+            }
+        }
+        pr('void ' + functionName + '(void* instance_args) {')
+        indent()
+        var body = removeCodeDelimiter(reaction.code)
+
+        // Do not generate the initialization code if the body is marked
+        // to not generate it.
+        if (!body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
+            // First generate the structs used for communication to and from contained reactors.
+            for (containedReactor : fieldsForStructsForContainedReactors.keySet) {
+                pr('struct ' + containedReactor.name + '{')
+                indent();
+                pr(fieldsForStructsForContainedReactors.get(containedReactor).toString)
+                unindent();
+                pr('} ' + containedReactor.name + ';')
+            }
+            // Next generate all the collected setup code.
+            pr(reactionInitialization.toString)
+        } else {
             // Define the "self" struct.
             if (!hasEmptySelfStruct(reactor)) {
                 var structType = selfStructType(reactor)
                 // A null structType means there are no inputs, state,
                 // or anything else. No need to declare it.
-                pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
+                pr(structType + "* self = (" + structType + "*)instance_args;")
             }
+        }
+        // Code verbatim from 'reaction'
+        prSourceLineNumber(reaction)
+        pr(body)
+        unindent()
+        pr("}")
 
-            // A reaction may send to or receive from multiple ports of
-            // a contained reactor. The variables for these ports need to
-            // all be declared as fields of the same struct. Hence, we first
-            // collect the fields to be defined in the structs and then
-            // generate the structs.
-            var fieldsForStructsForContainedReactors = new HashMap<Instantiation,StringBuilder>
+        // Now generate code for the deadline violation function, if there is one.
+        if (reaction.deadline !== null) {
+            // The following name has to match the choice in generateReactionStructs
+            val deadlineFunctionName = reactor.name.toLowerCase + '_deadline_function' + reactionIndex
 
-            // Actions may appear twice, first as a trigger, then with the outputs.
-            // But we need to declare it only once. Collect in this data structure
-            // the actions that are declared as triggered so that if they appear
-            // again with the outputs, they are not defined a second time.
-            // That second redefinition would trigger a compile error.  
-            var actionsAsTriggers = new HashSet<Action>();
-
-            // Next, add the triggers (input and actions; timers are not needed).
-            // This defines a local variable in the reaction function whose
-            // name matches that of the trigger. If the trigger is an input
-            // (not an action), then it also defines a local variable whose
-            // name is the input name with suffix "_is_present", a boolean
-            // that indicates whether the input is present.
-            // If the trigger is an output, then it is an output of a
-            // contained reactor. In this case, a struct with the name
-            // of the contained reactor is created with two fields.
-            // E.g., if the contained reactor is named 'c' and its output
-            // port is named 'out', then c.out and c.out_is_present are
-            // defined so that they can be used in the verbatim code.
-            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-                if (trigger instanceof VarRef) {
-                    if (trigger.variable instanceof Port) {
-                        generatePortVariablesInReaction(reactionInitialization,
-                            fieldsForStructsForContainedReactors, trigger)
-                    } else if (trigger.variable instanceof Action) {
-                        actionsAsTriggers.add(trigger.variable as Action);
-                        // If the action has a type, create variables for accessing the value.
-                        val type = (trigger.variable as Action).type
-                        val valuePointer = 'self->__' + trigger.variable.name + '->value'
-                        // Create the _has_value variable.
-                        pr(reactionInitialization,
-                            'bool ' + trigger.variable.name + '_has_value = (' +
-                                valuePointer + ' != NULL);')
-                        // Create the _value variable if there is a type.
-                        if (type !== null) {
-                            // Create the value variable, but initialize it only if the pointer is not null.
-                            pr(reactionInitialization,
-                                type + ' ' + trigger.variable.name + '_value;')
-                            pr(
-                                reactionInitialization,
-                                'if (' + trigger.variable.name +
-                                    '_has_value) ' + trigger.variable.name +
-                                    '_value = *(' + '(' + type + '*)' +
-                                    valuePointer + ');'
-                            );
-                        }
-                    }
-                }
-            }
-            if (reaction.triggers === null || reaction.triggers.size === 0) {
-                // No triggers are given, which means react to any input.
-                // Declare an argument for every input.
-                // NOTE: this does not include contained outputs. 
-                for (input : reactor.inputs) {
-                    generateInputVariablesInReaction(reactionInitialization,
-                        input)
-                }
-            }
-            // Define argument for non-triggering inputs.
-            for (VarRef src : reaction.sources ?: emptyList) {
-                if (src.variable instanceof Port) {
-                    generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src)
-                }
-            }
-
-            // Define variables for each declared output or action.
-            // In the case of outputs, the variable is a pointer to where the
-            // output is stored. This gives the reaction code access to any previous
-            // value that may have been written to that output in an earlier reaction.
-            // In addition, the _is_present variable is a boolean that indicates
-            // whether the output has been written.
-            if (reaction.effects !== null) {
-                for (effect : reaction.effects) {
-                    // val action = getAction(reactor, output)
-                    if (effect.variable instanceof Action) {
-                        // It is an action, not an output.
-                        // If it has already appeared as trigger, do not redefine it.
-                        if (!actionsAsTriggers.contains(effect.variable.name)) {
-                            pr(reactionInitialization,
-                                "trigger_t* " + effect.variable.name +
-                                    ' = self->__' + effect.variable.name + ';');
-                        }
-                    } else {
-                        if (effect.variable instanceof Output) {
-                            generateOutputVariablesInReaction(
-                                reactionInitialization,
-                                effect.variable as Output)
-                        } else if (effect.variable instanceof Input) {
-                            // It is the input of a contained reactor.
-                            generateVariablesForSendingToContainedReactors(
-                                reactionInitialization,
-                                fieldsForStructsForContainedReactors,
-                                effect.container,
-                                effect.variable as Input
-                            )
-                        } else {
-                            reportError(
-                                reaction,
-                                "In generateReactor(): " +
-                                    effect.variable.name +
-                                    " is neither an input nor an output."
-                            )
-                        }
-                    }
-                }
-            }
-            pr('void ' + functionName + '(void* instance_args) {')
-            indent()
-            var body = removeCodeDelimiter(reaction.code)
-                        
-            // Do not generate the initialization code if the body is marked
-            // to not generate it.
-            if (!body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
-                // First generate the structs used for communication to and from contained reactors.
-                for (containedReactor: fieldsForStructsForContainedReactors.keySet) {
-                    pr('struct ' + containedReactor.name + '{')
-                    indent();
-                    pr(fieldsForStructsForContainedReactors.get(containedReactor).toString)
-                    unindent();
-                    pr('} ' + containedReactor.name + ';')
-                }
-                // Next generate all the collected setup code.
-                pr(reactionInitialization.toString)
-            } else {
-                // Define the "self" struct.
-                if (!hasEmptySelfStruct(reactor)) {
-                    var structType = selfStructType(reactor)
-                    // A null structType means there are no inputs, state,
-                    // or anything else. No need to declare it.
-                    pr(structType + "* self = (" + structType + "*)instance_args;")
-                }
-            }
-            // Code verbatim from 'reaction'
-            prSourceLineNumber(reaction)
-            pr(body)
+            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            indent();
+            pr(reactionInitialization.toString)
+            // Code verbatim from 'deadline'
+            prSourceLineNumber(reaction.deadline.time)
+            pr(removeCodeDelimiter(reaction.deadline.deadlineCode))
             unindent()
             pr("}")
-
-            // Now generate code for the deadline violation function, if there is one.
-            if (reaction.deadline !== null) {
-                // The following name has to match the choice in generateReactionStructs
-                val deadlineFunctionName = reactor.name.toLowerCase +
-                    '_deadline_function' + reactionIndex
-
-                pr('void ' + deadlineFunctionName + '(void* instance_args) {')
-                indent();
-                pr(reactionInitialization.toString)
-                // Code verbatim from 'deadline'
-                prSourceLineNumber(reaction.deadline.time)
-                pr(removeCodeDelimiter(reaction.deadline.deadlineCode))
-                unindent()
-                pr("}")
-            }
-            reactionIndex++
         }
     }
 
@@ -886,181 +902,186 @@ int main(int argc, char* argv[]) {
      *  specified reactor instance. The name of the struct will be
      *  uniqueID of the reaction instance.
      *  @param reactorIntance The reactor instance.
+     *  @param federate The federate name or "" if no federation.
      */
-    def generateReactionStructs(ReactorInstance reactorInstance) {
+    def generateReactionStructs(ReactorInstance reactorInstance, String federate) {
         val result = new StringBuilder()
         for (reaction : reactorInstance.reactions) {
+            if (isReactionInFederation(
+                    reactorInstance.definition.reactorClass,
+                    reaction.definition,
+                    federate)) {
+                val reactionInstanceName = reaction.uniqueID
 
-            val reactionInstanceName = reaction.uniqueID
+                var presentPredicates = new LinkedList<String>()
+                var triggeredSizesContents = new LinkedList<String>()
+                var triggersContents = new LinkedList<String>()
+                var Collection<PortInstance> destinationPorts = null
 
-            var presentPredicates = new LinkedList<String>()
-            var triggeredSizesContents = new LinkedList<String>()
-            var triggersContents = new LinkedList<String>()
-            var Collection<PortInstance> destinationPorts = null
+                // Generate entries for the reaction_t struct that specify how
+                // to handle outputs.
+                for (port : reaction.dependentPorts) {
+                    // Place to collect reactions up the hierarchy triggered by this port.
+                    var destinationReactions = new LinkedList<ReactionInstance>()
 
-            // Generate entries for the reaction_t struct that specify how
-            // to handle outputs.
-            for (port : reaction.dependentPorts) {
-                // Place to collect reactions up the hierarchy triggered by this port.
-                var destinationReactions = new LinkedList<ReactionInstance>()
+                    // Collect the destinations for each output port.
+                    if (port.definition instanceof Output) {
+                        // Reaction sends to an output.
+                        // First create the array of pointers to booleans indicating
+                        // whether an output is produced.
+                        presentPredicates.add(
+                            '&' + selfStructName(reactorInstance) + '.__' +
+                                port.name + '_is_present')
 
-                // Collect the destinations for each output port.
-                if (port.definition instanceof Output) {
-                    // Reaction sends to an output.
-                    // First create the array of pointers to booleans indicating
-                    // whether an output is produced.
-                    presentPredicates.add(
-                        '&' + selfStructName(reactorInstance) + '.__' +
-                            port.name + '_is_present')
+                        // For each output, obtain the destinations from the parent.
+                        var parent = reactorInstance.parent
+                        if (parent !== null) {
+                            destinationPorts = parent.transitiveClosure(port)
+                        } else {
+                            // At the top level, where there cannot be any destinations
+                            // for an output port.
+                            destinationPorts = new LinkedList<PortInstance>()
+                        }
 
-                    // For each output, obtain the destinations from the parent.
-                    var parent = reactorInstance.parent
-                    if (parent !== null) {
-                        destinationPorts = parent.transitiveClosure(port)
+                        // The port may also have dependent reactions, which are
+                        // reactions in the container of this port's container.
+                        for (dependentReactions : port.dependentReactions) {
+                            destinationReactions.add(dependentReactions)
+                        }
                     } else {
-                        // At the top level, where there cannot be any destinations
-                        // for an output port.
-                        destinationPorts = new LinkedList<PortInstance>()
+                        // The reaction is sending data to the input of a contained reactor.
+                        // First create the array of pointers to booleans indicating whether
+                        // an output is produced.
+                        presentPredicates.add(
+                            '&' + selfStructName(reactorInstance) + '.__' +
+                                port.parent.name + '.' + port.name + '_is_present')
+
+                        // Since the port is the input port of a contained reactor,
+                        // use that reactor instance to compute the transitive closure.
+                        destinationPorts = port.parent.transitiveClosure(port)
                     }
 
-                    // The port may also have dependent reactions, which are
-                    // reactions in the container of this port's container.
-                    for (dependentReactions : port.dependentReactions) {
-                        destinationReactions.add(dependentReactions)
-                    }
-                } else {
-                    // The reaction is sending data to the input of a contained reactor.
-                    // First create the array of pointers to booleans indicating whether
-                    // an output is produced.
-                    presentPredicates.add(
-                        '&' + selfStructName(reactorInstance) + '.__' +
-                            port.parent.name + '.' + port.name + '_is_present')
+                    val numberOfTriggerTObjects = destinationPorts.size +
+                        destinationReactions.size
 
-                    // Since the port is the input port of a contained reactor,
-                    // use that reactor instance to compute the transitive closure.
-                    destinationPorts = port.parent.transitiveClosure(port)
+                    // Next, create an array trigger_t objects, which are
+                    // the triggers that fire if this output is produced.
+                    // Append to the array that records the sizes of the trigger arrays.
+                    triggeredSizesContents.add("" + numberOfTriggerTObjects)
+
+                    // Then, for each destination connected to this output,
+                    // create an array of pointers to its trigger_t structs,
+                    // and collect pointers to each of these arrays.
+                    if (numberOfTriggerTObjects === 0) {
+                        triggersContents.add("NULL")
+                    } else {
+                        // FIXME: This ID may exceed some maximum length.
+                        var remoteTriggersArrayName = reactionInstanceName + '_' +
+                            presentPredicates.size + '_remote_triggers'
+                        var inputCount = 0;
+                        for (destination : destinationPorts) {
+                            deferredInitialize.add(
+                                new InitializeRemoteTriggersTable(
+                                    reactorInstance,
+                                    remoteTriggersArrayName,
+                                    (inputCount++),
+                                    destination,
+                                    null
+                                )
+                            )
+                        }
+                        for (destinationReaction : destinationReactions) {
+                            deferredInitialize.add(
+                                new InitializeRemoteTriggersTable(
+                                    reactorInstance,
+                                    remoteTriggersArrayName,
+                                    (inputCount++),
+                                    port,
+                                    destinationReaction
+                                )
+                            )
+                        }
+                        pr(
+                            result,
+                            'trigger_t* ' + remoteTriggersArrayName + '[' +
+                                inputCount + '];'
+                        )
+                        triggersContents.add('&' + remoteTriggersArrayName + '[0]')
+                    }
                 }
-
-                val numberOfTriggerTObjects = destinationPorts.size +
-                    destinationReactions.size
-
-                // Next, create an array trigger_t objects, which are
-                // the triggers that fire if this output is produced.
-                // Append to the array that records the sizes of the trigger arrays.
-                triggeredSizesContents.add("" + numberOfTriggerTObjects)
-
-                // Then, for each destination connected to this output,
-                // create an array of pointers to its trigger_t structs,
-                // and collect pointers to each of these arrays.
-                if (numberOfTriggerTObjects === 0) {
-                    triggersContents.add("NULL")
-                } else {
-                    // FIXME: This ID may exceed some maximum length.
-                    var remoteTriggersArrayName = reactionInstanceName + '_' +
-                        presentPredicates.size + '_remote_triggers'
-                    var inputCount = 0;
-                    for (destination : destinationPorts) {
-                        deferredInitialize.add(
-                            new InitializeRemoteTriggersTable(
-                                reactorInstance,
-                                remoteTriggersArrayName,
-                                (inputCount++),
-                                destination,
-                                null
-                            )
-                        )
-                    }
-                    for (destinationReaction : destinationReactions) {
-                        deferredInitialize.add(
-                            new InitializeRemoteTriggersTable(
-                                reactorInstance,
-                                remoteTriggersArrayName,
-                                (inputCount++),
-                                port,
-                                destinationReaction
-                            )
-                        )
-                    }
+                var outputProducedArray = "NULL"
+                var triggeredSizesArray = "NULL"
+                var triggersArray = "NULL"
+                val outputCount = presentPredicates.size
+                if (outputCount > 0) {
+                    outputProducedArray = reactionInstanceName +
+                        '_outputs_are_present'
+                    // Create a array with booleans indicating whether an output has been produced.
                     pr(
                         result,
-                        'trigger_t* ' + remoteTriggersArrayName + '[' +
-                            inputCount + '];'
+                        'bool* ' + reactionInstanceName + '_outputs_are_present[]' +
+                                ' = {' + presentPredicates.join(", ") + '};'
                     )
-                    triggersContents.add('&' + remoteTriggersArrayName + '[0]')
+                    // Create a array with ints indicating these
+                    // numbers and assign it to triggered_reactions_sizes
+                    // field of the reaction_t object.
+                    triggeredSizesArray = '&' + reactionInstanceName +
+                        '_triggered_sizes[0]'
+                    pr(
+                        result,
+                        'int ' + reactionInstanceName + '_triggered_sizes' +
+                                '[] = {' + triggeredSizesContents.join(", ") + '};'
+                    )
+                    // Create an array with pointers to arrays of pointers to trigger_t
+                    // structs for each input triggered by an output.
+                    triggersArray = '&' + reactionInstanceName + '_triggers[0]'
+                    pr(
+                        result,
+                        'trigger_t** ' + reactionInstanceName + '_triggers' +
+                                '[] = {' + triggersContents.join(', ') + '};'
+                    )
                 }
-            }
-            var outputProducedArray = "NULL"
-            var triggeredSizesArray = "NULL"
-            var triggersArray = "NULL"
-            val outputCount = presentPredicates.size
-            if (outputCount > 0) {
-                outputProducedArray = reactionInstanceName +
-                    '_outputs_are_present'
-                // Create a array with booleans indicating whether an output has been produced.
-                pr(
-                    result,
-                    'bool* ' + reactionInstanceName + '_outputs_are_present[]' +
-                        ' = {' + presentPredicates.join(", ") + '};'
-                )
-                // Create a array with ints indicating these
-                // numbers and assign it to triggered_reactions_sizes
-                // field of the reaction_t object.
-                triggeredSizesArray = '&' + reactionInstanceName +
-                    '_triggered_sizes[0]'
-                pr(
-                    result,
-                    'int ' + reactionInstanceName + '_triggered_sizes' +
-                        '[] = {' + triggeredSizesContents.join(", ") + '};'
-                )
-                // Create an array with pointers to arrays of pointers to trigger_t
-                // structs for each input triggered by an output.
-                triggersArray = '&' + reactionInstanceName + '_triggers[0]'
-                pr(
-                    result,
-                    'trigger_t** ' + reactionInstanceName + '_triggers' +
-                        '[] = {' + triggersContents.join(', ') + '};'
-                )
-            }
-            // Finally, produce the reaction_t struct.          
-            // The argument specifying the self struct may be NULL if there
-            // is no self struct.
-            var selfStructArgument = ", &" + selfStructName(reactorInstance)
-            var reactorClass = reactorInstance.definition.reactorClass
-            if (hasEmptySelfStruct(reactorClass)) {
-                selfStructArgument = ", NULL"
-            }
-            var deadlineFunctionPointer = ", NULL"
-            if (reaction.definition.deadline !== null) {
-                // The following has to match the name chosen in generateReactions
-                val deadlineFunctionName = reactorInstance.definition.
-                    reactorClass.name.toLowerCase + '_deadline_function' +
+                // Finally, produce the reaction_t struct.          
+                // The argument specifying the self struct may be NULL if there
+                // is no self struct.
+                var selfStructArgument = ", &" + selfStructName(reactorInstance)
+                var reactorClass = reactorInstance.definition.reactorClass
+                if (hasEmptySelfStruct(reactorClass)) {
+                    selfStructArgument = ", NULL"
+                }
+                var deadlineFunctionPointer = ", NULL"
+                if (reaction.definition.deadline !== null) {
+                    // The following has to match the name chosen in generateReactions
+                    val deadlineFunctionName = reactorInstance.definition.
+                        reactorClass.name.toLowerCase + '_deadline_function' +
+                        reaction.reactionIndex
+
+                    deadlineFunctionPointer = ", &" + deadlineFunctionName
+                }
+
+                // Use the same function name as in generateReactions.
+                // FIXME: Fragile!  Find a better way to get agreement on function name.
+                val functionName = reactorClass.name.toLowerCase + "_rfunc_" +
                     reaction.reactionIndex
 
-                deadlineFunctionPointer = ", &" + deadlineFunctionName
+                // First 0 is an index that specifies priorities based on precedences.
+                // It will be set later.
+                pr(
+                    result,
+                    "reaction_t " + reactionInstanceName + " = {&" + functionName +
+                        selfStructArgument + ", 0" // index: index from the topological sort.
+                        + ", 0" // chain_id: binary encoding of the branches that this reaction has upstream in the dependency graph.
+                        + ", 0" // pos: position used by the pqueue implementation for sorting.
+                        + ", " + outputCount // num_outputs: number of outputs produced by this reaction.
+                        + ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
+                        + ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
+                        + ", " + triggersArray // triggered: array of pointers to arrays of triggers.
+                        + ", false" // Indicator that the reaction is not running.
+                        + ", 0LL" // Local deadline.
+                        + deadlineFunctionPointer // deadline_violation_handler: Pointer to local handler function.
+                        + "};"
+                )
             }
-
-            // Use the same function name as in generateReactions.
-            // FIXME: Fragile!  Find a better way to get agreement on function name.
-            val functionName = reactorClass.name.toLowerCase + "_rfunc_" +
-                reaction.reactionIndex
-
-            // First 0 is an index that specifies priorities based on precedences.
-            // It will be set later.
-            pr(
-                result,
-                "reaction_t " + reactionInstanceName + " = {&" + functionName +
-                    selfStructArgument + ", 0" // index: index from the topological sort.
-                    + ", 0" // chain_id: binary encoding of the branches that this reaction has upstream in the dependency graph.
-                    + ", 0" // pos: position used by the pqueue implementation for sorting.
-                    + ", " + outputCount // num_outputs: number of outputs produced by this reaction.
-                    + ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
-                    + ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
-                    + ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-                    + ", false" // Indicator that the reaction is not running.
-                    + ", 0LL" // Local deadline.
-                    + deadlineFunctionPointer // deadline_violation_handler: Pointer to local handler function.
-                    + "};"
-            )
         }
         // This goes directly out to the generated code.
         pr(result.toString())
@@ -1289,9 +1310,10 @@ int main(int argc, char* argv[]) {
      *  This object has a pointer to the function to invoke for that
      *  reaction.
      *  @param reactorInstance The instance for which we are generating trigger objects.
+     *  @param federate The federate or "" if no federation.
      *  @return A map of trigger names to the name of the trigger struct.
      */
-    def generateTriggerObjects(ReactorInstance reactorInstance) {
+    def generateTriggerObjects(ReactorInstance reactorInstance, String federate) {
         val result = new StringBuilder()
         var count = 0
         // Iterate over triggers (input ports, actions, and timers that trigger reactions).
@@ -1312,12 +1334,17 @@ int main(int argc, char* argv[]) {
                         trigger.name + ' of instance ' +
                         reactorInstance.fullName
                 )
+                if (isReactionInFederation(
+                    reactionInstance.parent.definition.reactorClass,
+                    reactionInstance.definition,
+                    federate
+                )) {                    
+                    val reactionInstanceName = reactionInstance.uniqueID
 
-                val reactionInstanceName = reactionInstance.uniqueID
-
-                // Collect the reaction instance names to initialize the
-                // reaction pointer array for the trigger.
-                reactionTNames.add('&' + reactionInstanceName)
+                    // Collect the reaction instance names to initialize the
+                    // reaction pointer array for the trigger.
+                    reactionTNames.add('&' + reactionInstanceName)
+                }
             }
             // Trigger could be a Timer, Action, or Input
             var triggerStructName = triggerStructName(triggerInstance)
@@ -1608,10 +1635,10 @@ int main(int argc, char* argv[]) {
         }
 
         // Generate reaction structs for the instance.
-        generateReactionStructs(instance)
+        generateReactionStructs(instance, federate)
 
         // Generate trigger objects for the instance.
-        generateTriggerObjects(instance)
+        generateTriggerObjects(instance, federate)
 
         // Generate trigger objects for transferring outputs of a composite.
         generateTriggerForTransferOutputs(instance)
@@ -1701,13 +1728,17 @@ int main(int argc, char* argv[]) {
         // Use "reactionToReactionTName" property of reactionInstance
         // to set the levels.
         for (reactionInstance : reactor.reactions) {
-            pr(
-                reactionStructName(reactionInstance) + ".index = " +
+            if (isReactionInFederation(
+                    reactor.definition.reactorClass,
+                    reactionInstance.definition,
+                    federate)) {
+                pr(
+                    reactionStructName(reactionInstance) + ".index = " +
                     reactionInstance.level + ";")
-            pr(        
-                reactionStructName(reactionInstance) + ".chain_id = " +
+                pr(        
+                    reactionStructName(reactionInstance) + ".chain_id = " +
                     reactionInstance.chainID.toString() + ";")
-                
+            }
         }
         for (child : reactor.children) {
             if (reactorBelongsToFederate(child, federate)) {
@@ -1766,7 +1797,7 @@ int main(int argc, char* argv[]) {
         super.generatePreamble()
         
         pr('#include "pqueue.c"')
-        
+                
         // Handle target parameters.
         if (targetThreads > 0) {
             // Set this as the default in the generated code,
@@ -1779,6 +1810,9 @@ int main(int argc, char* argv[]) {
             pr("#include \"reactor_threaded.c\"")
         } else {
             pr("#include \"reactor.c\"")
+        }
+        if (federates.length > 1) {
+            pr("#include \"federate.c\"")
         }
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
@@ -1964,26 +1998,28 @@ int main(int argc, char* argv[]) {
             for (port : reaction.dependentPorts) {
                 if (port.definition instanceof Input) {
                     // This reaction is sending to an input. Must be
-                    // the input of a contained reactor.
-                    var inputSelfStructName = selfStructName(port.parent)
-                    pr(
-                        inputSelfStructName + '.__' + port.definition.name +
-                            ' = &' + containerSelfStructName + '.__' +
-                            port.parent.definition.name + '.' +
-                            port.definition.name + ';'
-                    )
-                    pr(
-                        inputSelfStructName + '.__' + port.definition.name +
-                            '_is_present = &' + containerSelfStructName +
-                            '.__' + port.parent.definition.name + '.' +
-                            port.definition.name + '_is_present;'
-                    )
-                    pr(
-                        startTimeStep,
-                        containerSelfStructName + '.__' +
-                            port.parent.definition.name + '.' +
-                            port.definition.name + '_is_present = false;'
-                    )
+                    // the input of a contained reactor in the federate.
+                    if (reactorBelongsToFederate(port.parent, federate)) {
+                        var inputSelfStructName = selfStructName(port.parent)
+                        pr(
+                            inputSelfStructName + '.__' + port.definition.name +
+                                ' = &' + containerSelfStructName + '.__' +
+                                port.parent.definition.name + '.' +
+                                port.definition.name + ';'
+                        )
+                        pr(
+                            inputSelfStructName + '.__' + port.definition.name +
+                                '_is_present = &' + containerSelfStructName +
+                                '.__' + port.parent.definition.name + '.' +
+                                port.definition.name + '_is_present;'
+                        )
+                        pr(
+                            startTimeStep,
+                            containerSelfStructName + '.__' +
+                                port.parent.definition.name + '.' +
+                                port.definition.name + '_is_present = false;'
+                        )
+                    }
                 }
             }
             for (port : reaction.dependsOnPorts) {

@@ -388,7 +388,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     // same time will automatically be executed at the next microstep.
     pqueue_insert(event_q, e);
     // FIXME: make a record of handle and implement unschedule.
-    return __handle++;
+    // NOTE: Rather than wrapping around to get a negative number,
+    // we reset the handle on the assumption that much earlier
+    // handles are irrelevant.
+    int return_value = __handle++;
+    if (__handle < 0) __handle = 1;
+    return return_value;
 }
 
 /**

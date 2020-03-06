@@ -86,8 +86,6 @@ class CppGenerator extends GeneratorBase {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 
         var target = resource.findTarget
-
-        analyzeModel(resource, fsa, context)
         
         super.doGenerate(resource, fsa, context)
         mainReactor = this.mainDef?.reactorClass
@@ -95,6 +93,8 @@ class CppGenerator extends GeneratorBase {
         if (mainReactor === null) {
             // No main reactor. Nothing to do.
             return
+        } else {
+            generateReactor(mainReactor)
         }
 
         fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
