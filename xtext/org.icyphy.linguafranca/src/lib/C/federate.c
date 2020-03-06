@@ -38,6 +38,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>     // Defines read(), write(), and close()
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
+#include <pthread.h>
 #include <assert.h>
 #include "util.c"       // Defines error() and swap_bytes_if_big_endian().
 #include "rti.h"        // Defines TIMESTAMP.
@@ -220,6 +221,83 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     return timestamp;
 }
 
+/** Handle a message being received from a remote federate via the RTI.
+ *  @param receiving_socket The identifier for the sending socket.
+ *  @param buffer The message (or at least the start of it).
+ *  @param bytes_read The number of bytes read from the socket and already
+ *   in the buffer.
+ */
+void handle_message(int receiving_socket, unsigned char* buffer, int bytes_read) {
+    // The first byte, which has value MESSAGE, has already been read.
+    // We need 8 more bytes:
+    //   - two bytes with the ID of the destination port.
+    //   - two bytes with the destination federate ID.
+    //   - four bytes after that will be the length of the message.
+    // We keep the MESSAGE byte in the buffer for forwarding.
+    int min_bytes = 9;
+    while (bytes_read < min_bytes) {
+        int more = read(receiving_socket, &(buffer[bytes_read]), min_bytes - bytes_read);
+        if (more < 0) error("ERROR on federate reading from RTI socket");
+        bytes_read += more;
+    }
+    // The next two bytes are the ID of the destination reactor.
+    unsigned short port_id
+            = swap_bytes_if_big_endian_ushort(
+              *((unsigned short*)(buffer + 1)));
+    // The next four bytes are the message length.
+    // The next two bytes are the ID of the destination federate.
+    unsigned short federate_id
+            = swap_bytes_if_big_endian_ushort(
+              *((unsigned short*)(buffer + 3)));
+    // FIXME: Better error handling needed here.
+    assert(federate_id < NUMBER_OF_FEDERATES);
+    // The next four bytes are the message length.
+    unsigned int length
+            = swap_bytes_if_big_endian_int(
+              *((unsigned int*)(buffer + 5)));
+
+    printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
+
+    // Allocate memory for the message contents.
+    unsigned char* message_contents = malloc(length);
+
+    bytes_read = 0;
+    while (bytes_read < length) {
+        int more = read(receiving_socket, &(message_contents[bytes_read]), length - bytes_read);
+        if (more < 0) error("ERROR on federate reading from RTI socket");
+        bytes_read += more;
+    }
+    printf("DEBUG: Message received by federate: %s.\n", message_contents);
+
+    // FIXME: Call schedule!!
+}
+
+/** Thread that listens for inputs from the RTI.
+ *  When a physical message arrives, this calls schedule.
+ */
+void* listen_to_rti(void* args) {
+    // Buffer for incoming messages.
+    // This does not constrain the message size
+    // because the message will be put into malloc'd memory.
+    unsigned char buffer[BUFFER_SIZE];
+
+    // Listen for messages from the federate.
+    while (1) {
+        // Read one byte to get the message type.
+        int bytes_read = read(rti_socket, &buffer, 1);
+        // FIXME: Need more robust error handling. This will kill the federate.
+        if (bytes_read < 0) error("ERROR on federate reading from RTI socket");
+        if (bytes_read == 0 || buffer[0] == RESIGN) {
+            printf("RTI has quit.\n");
+            stop();
+            break;
+        } else if (buffer[0] == MESSAGE) {
+            handle_message(rti_socket, buffer, bytes_read);
+        }
+    }
+    return NULL;
+}
+
 /** Synchronize the start with other federates via the RTI.
  *  This initiates a connection with the RTI, then
  *  sends the current logical time to the RTI and waits for the
@@ -247,7 +325,13 @@ void synchronize_with_other_federates(int id, char* hostname, int port) {
         // A duration has been specified. Recalculate the stop time.
         stop_time = current_time + duration;
     }
+
+    // Start a thread to listen for incoming messages from the RTI.
+    pthread_t thread_id;
+    pthread_create(&thread_id, NULL, listen_to_rti, NULL);
+
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time.
     wait_until(current_time);
+    printf("DEBUG: Done waiting for start time.\n");
 }

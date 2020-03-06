@@ -156,6 +156,7 @@ class CGenerator extends GeneratorBase {
         val baseFilename = filename
         
         var commonCode = code;
+        var commonStartTimers = startTimers;
         for (federate : federates) {
             // Empty string means no federates were defined, so we only generate
             // one output.
@@ -165,7 +166,7 @@ class CGenerator extends GeneratorBase {
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
                 startTimeStep = new StringBuilder()
-                startTimers = new StringBuilder()
+                startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
                 pr(startTimers, 'synchronize_with_other_federates('
                     + federateIDs.get(federate)
@@ -1797,6 +1798,7 @@ int main(int argc, char* argv[]) {
         super.generatePreamble()
         
         pr('#include "pqueue.c"')
+        pr('#define NUMBER_OF_FEDERATES ' + federates.length);        
                 
         // Handle target parameters.
         if (targetThreads > 0) {
