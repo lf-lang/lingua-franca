@@ -72,9 +72,7 @@ class TypeScriptGenerator extends GeneratorBase {
         Resource resource,
         IFileSystemAccess2 fsa,
         IGeneratorContext context
-    ) {
-        analyzeModel(resource, fsa, context)
-        
+    ) {        
         super.doGenerate(resource, fsa, context)
         
         // Target filename.
@@ -92,6 +90,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Generate main instance, if there is one.
         if (this.mainDef !== null) {
+            generateReactor(this.mainDef.reactorClass)
             generateReactorInstance(this.mainDef)
             generateRuntimeStart(this.mainDef)
         }

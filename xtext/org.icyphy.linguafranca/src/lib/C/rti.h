@@ -29,6 +29,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Header file for the runtime infrastructure for distributed Lingua Franca programs.
  */
 
+#ifndef RTI_H
+#define RTI_H
+
+// Size of the buffer used for messages sent between federates.
+// This is used by both the federates and the rti, so message lengths
+// should generally match.
+#define BUFFER_SIZE 256
+
 ////////////////////////////////////////////
 //// Message types
 
@@ -40,3 +48,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Byte identifying a timestamp message, which is 64 bits long. */
 #define TIMESTAMP 2
+
+/** Byte identifying a message to forward to another federate.
+ *  The next two bytes will be the federate ID.
+ *  The four bytes after that will be the length of the message.
+ *  The remaining bytes are the message.
+ */
+#define MESSAGE 3
+
+/** Byte identifying that the federate is ending its execution. */
+#define RESIGN 4
+
+#endif /* RTI_H */

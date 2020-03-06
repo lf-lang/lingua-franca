@@ -56,13 +56,17 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 
 /** Generator base class for shared code between code generators.
@@ -275,11 +279,13 @@ abstract class GeneratorBase {
 
         println("Generating code for: " + resource.getURI.toString)
         
+        analyzeModel(resource, fsa, context)
+
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
         generatePreamble()
         
-        // Collect a list of reactors defined this resource and (non-main)
+        // Collect a list of reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
         reactors = newLinkedList
         
@@ -287,14 +293,19 @@ abstract class GeneratorBase {
         // reactors defined in the imports.
         processImports(resource)
 
-        // Recursively instantiate reactors from their definitions
+        // Recursively generate reactor class code from their definitions
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            generateReactor(reactor)
+            // NOTE: We do not generate code for the main reactor here
+            // because that code needs to be customized for federates in
+            // a distributed execution.  Subclasses are required to
+            // generate the main reactor code.
             if (reactor.isMain) {
                 // Creating an definition for the main reactor because there isn't one.
                 this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
                 this.mainDef.setName(reactor.name)
                 this.mainDef.setReactorClass(reactor)
+            } else {
+                generateReactor(reactor)
             }
         }
     }
@@ -440,6 +451,88 @@ abstract class GeneratorBase {
             prefix = reference.container.name + "." 
         }
         return prefix + reference.variable.name
+    }
+    
+    /** Cached result of analysis of which reactions to exclude from main. */
+    var excludeReactions = null as Map<String,Set<Reaction>>
+    
+    /** Return true if the specified reactor is not the main reactor,
+     *  or if it is and the reaction should be included in the code generated for the
+     *  federate. This means that if the reaction is triggered by or
+     *  sends data to a port of a contained reactor, then that reactor
+     *  is in the federate. Otherwise, return false.
+     *  @param reaction The reaction.
+     *  @param federate The name of the federate or an empty string if there
+     *   is no federation.
+     */
+    def isReactionInFederation(Reactor reactor, Reaction reaction, String federate) {
+        // Easy case first.
+        if (!reactor.main || federate == "") return true
+        
+        // If this has been called before, then the result of the
+        // following check is cached.
+        var excluded = null as Set<Reaction>
+        if (excludeReactions !== null) {
+            excluded = excludeReactions.get(federate)
+            if (excluded !== null) {
+                return !excludeReactions.get(federate).contains(reaction)
+            } else {
+                excluded = new HashSet<Reaction>
+                excludeReactions.put(federate, excluded)
+            }
+        } else {
+            excludeReactions = new HashMap<String,Set<Reaction>>
+            excluded = new HashSet<Reaction>
+            excludeReactions.put(federate, excluded)
+        }
+        
+        // Construct the set of excluded reactions for this federate.
+        for (react : reactor.reactions) {
+            // If the reaction is triggered by an output of a contained
+            // reactor that is not in the federate, or the reaction
+            // sends to an input of a contained reactor that is not
+            // in the federate, then do not generate code for the reaction.
+            // If the reaction mixes ports across federates, then report
+            // an error and do not generate code.
+            var referencesFederate = false;
+            var inFederate = true;
+            for (TriggerRef trigger : react.triggers ?: emptyList) {
+                if (trigger instanceof VarRef) {
+                    if (trigger.variable instanceof Output) {
+                        // The trigger is an output port of a contained reactor.
+                        if (federateContents.get(federate).contains(trigger.container.name)) {
+                            referencesFederate = true;
+                        } else {
+                            if (referencesFederate) {
+                                reportError(react, 
+                                "Reaction mixes triggers and effects from" +
+                                " different federates. This is not permitted")
+                            }
+                            inFederate = false;
+                        }
+                    }
+                }
+            }
+            for (effect : react.effects ?: emptyList) {
+                if (effect.variable instanceof Input) {
+                    // It is the input of a contained reactor.
+                    if (federateContents.get(federate).contains(effect.container.name)) {
+                        referencesFederate = true;
+                    } else {
+                        if (referencesFederate) {
+                            reportError(react,
+                                "Reaction mixes triggers and effects from" + 
+                                " different federates. This is not permitted")
+                        }
+                        inFederate = false;
+                    }
+                }
+            }
+            if (!inFederate) {
+                excluded.add(react)
+            }
+        }
+        return !excluded.contains(reaction)
     }
     
     /** If the argument starts with '{=', then remove it and the last two characters.

@@ -39,7 +39,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
 #include <assert.h>
-#include "util.c"       // Defines error() and swap_bytes_if_little_endian().
+#include "util.c"       // Defines error() and swap_bytes_if_big_endian().
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
 
@@ -48,6 +48,41 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  functions are called.
  */
 int rti_socket = -1;
+
+/** Send the specified message to the specified port in the
+ *  specified federate via the RTI. The port should be an
+ *  input port of a reactor in the destination federate.
+ *  @param port The ID of the destination port.
+ *  @param federate The ID of the destination federate.
+ *  @param length The message length.
+ *  @param message The message.
+ */
+void send_physical(int port, int federate, int length, unsigned char* message) {
+    assert(port < 65536);
+    assert(federate < 65536);
+    unsigned char buffer[BUFFER_SIZE];
+    buffer[0] = MESSAGE;
+    // NOTE: Send messages little endian, not big endian.
+    buffer[1] = port & 0xff;
+    buffer[2] = port & 0xff00;
+    buffer[3] = federate & 0xff;
+    buffer[4] = federate & 0xff00;
+    buffer[5] = length & 0xff;
+    buffer[6] = length & 0xff00;
+    buffer[7] = length & 0xff0000;
+    buffer[8] = length & 0xff000000;
+
+    // FIXME: Handle messages that are too long for the buffer!
+    // For now, error out.
+    if (length > BUFFER_SIZE - 9) {
+        fprintf(stderr, "FIXME: Messages longer than %d are not yet supported.\n", BUFFER_SIZE - 9);
+        return;
+    }
+    memcpy(&(buffer[9]), message, length);
+    int total_bytes = length + 9;
+    int bytes_written = write(rti_socket, buffer, total_bytes);
+    if (bytes_written != total_bytes) error("ERROR sending message to federate via RTI");
+}
 
 /** Connect to the RTI at the specified host and port and return
  *  the socket descriptor for the connection. If this fails, the
@@ -111,7 +146,7 @@ void connect_to_rti(int id, char* hostname, int port) {
     if (bytes_written < 0) error("ERROR sending federate ID to RTI");
 
     // Send the ID.
-    int message = swap_bytes_if_little_endian_int(id);
+    int message = swap_bytes_if_big_endian_int(id);
     /*
     for (int i = 0; i < sizeof(int); i++) {
         printf("DEBUG: sending %d: %u\n", i, ((unsigned char*)(&message))[i]);
@@ -137,7 +172,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     if (bytes_written < 0) error("ERROR sending message ID to RTI");
 
     // Send the timestamp.
-    long long message = swap_bytes_if_little_endian_ll(my_physical_time);
+    long long message = swap_bytes_if_big_endian_ll(my_physical_time);
     /*
     for (int i = 0; i < sizeof(long long); i++) {
         printf("DEBUG: sending %d: %u\n", i, ((unsigned char*)(&message))[i]);
@@ -148,13 +183,14 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 
     // Get a reply.
     // Buffer for message ID plus timestamp.
-    unsigned char buffer[sizeof(long long) + 1];
+    int buffer_length = sizeof(long long) + 1;
+    unsigned char buffer[buffer_length];
 
     // Read bytes from the socket. We need 9 bytes.
     int bytes_read = 0;
     while (bytes_read < 9) {
         int more = read(rti_socket, &(buffer[bytes_read]),
-                sizeof(long long) + 1 - bytes_read);
+                buffer_length - bytes_read);
         if (more < 0) error("ERROR on federate reading reply from RTI");
         // If more == 0, this is an EOF. Kill the federate.
         if (more == 0) {
@@ -178,7 +214,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
         exit(1);
     }
 
-    instant_t timestamp = swap_bytes_if_little_endian_ll(*((long long*)(&(buffer[1]))));
+    instant_t timestamp = swap_bytes_if_big_endian_ll(*((long long*)(&(buffer[1]))));
     printf("Federate: starting timestamp is: %llx\n", timestamp);
 
     return timestamp;
