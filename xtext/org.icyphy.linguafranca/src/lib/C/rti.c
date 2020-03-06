@@ -52,6 +52,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
 #include <pthread.h>
+#include <assert.h>
 #include "util.c"       // Defines error() and swap_bytes_if_big_endian().
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
@@ -131,9 +132,15 @@ int create_server(int port) {
  */
 void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
     // The message is a message to forward to a federate.
-    // We require at least 9 bytes.
-    while (bytes_read < 9) {
-        int more = read(sending_socket, &(buffer[bytes_read]), BUFFER_SIZE - bytes_read);
+    // The first byte, which has value MESSAGE, has already been read.
+    // We need 8 more bytes:
+    //   - two bytes with the ID of the destination port.
+    //   - two bytes with the destination federate ID.
+    //   - four bytes after that will be the length of the message.
+    // We keep the MESSAGE byte in the buffer for forwarding.
+    int min_bytes = 9;
+    while (bytes_read < min_bytes) {
+        int more = read(sending_socket, &(buffer[bytes_read]), min_bytes - bytes_read);
         if (more < 0) error("ERROR on RTI reading from federate socket");
         bytes_read += more;
     }
@@ -146,6 +153,8 @@ void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
     unsigned short federate_id
             = swap_bytes_if_big_endian_ushort(
               *((unsigned short*)(buffer + 3)));
+    // FIXME: Better error handling needed here.
+    assert(federate_id < NUMBER_OF_FEDERATES);
     // The next four bytes are the message length.
     unsigned int length
             = swap_bytes_if_big_endian_int(
@@ -153,20 +162,42 @@ void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
 
     printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
 
+    unsigned int bytes_to_read = length + min_bytes;
+    // Prevent a buffer overflow.
+    if (bytes_to_read > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE;
+
+    while (bytes_read < bytes_to_read) {
+        int more = read(sending_socket, &(buffer[min_bytes]), bytes_to_read - bytes_read);
+        if (more < 0) error("ERROR on RTI reading from federate socket");
+        bytes_read += more;
+    }
+    printf("DEBUG: Message received by RTI: %s.\n", &(buffer[9]));
+
+    // Forward the message or message chunk.
+    int destination_socket = federates[federate_id].socket;
+    int bytes_written = 0;
+    while (bytes_written < bytes_read) {
+        int more = write(destination_socket, &(buffer[bytes_written]), bytes_read - bytes_written);
+        if (more < 0) error("ERROR forwarding message to federate");
+        bytes_written += more;
+    }
+
     // The message length may be longer than the buffer,
     // in which case we have to handle it in chunks.
     int total_bytes_read = bytes_read;
-    while (total_bytes_read < 7 + length) {
-        while (bytes_read < 7 + length && bytes_read < BUFFER_SIZE) {
-            int more = read(sending_socket, &(buffer[bytes_read]), BUFFER_SIZE - bytes_read);
-            if (more < 0) error("ERROR on RTI reading from federate socket");
-            bytes_read += more;
-            total_bytes_read += more;
+    while (total_bytes_read < length + min_bytes) {
+        bytes_to_read = length + min_bytes;
+        if (bytes_to_read > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE;
+        int more = read(sending_socket, buffer, bytes_to_read);
+        if (more < 0) error("ERROR on RTI reading from federate socket");
+        int bytes_written = 0;
+        while (bytes_written < more) {
+            int more_written = write(destination_socket, &(buffer[bytes_written]), more - bytes_written);
+            if (more < 0) error("ERROR forwarding message to federate");
+            bytes_written += more;
         }
+        total_bytes_read += more;
     }
-    // Forward the message or message chunk.
-    // FIXME: do this!
-    printf("FIXME: Message received by RTI: %s.\n", &(buffer[9]));
 }
 
 /** Thread for a federate.
@@ -242,8 +273,8 @@ void* federate(void* fed_socket_descriptor) {
 
     // Listen for messages from the federate.
     while (1) {
-        // Read no more than BUFFER_SIZE bytes.
-        bytes_read = read(fed_socket, &buffer, BUFFER_SIZE);
+        // Read no more than one byte to get the message type.
+        bytes_read = read(fed_socket, &buffer, 1);
         // FIXME: Need more robust error handling. This will kill the RTI.
         if (bytes_read < 0) error("ERROR on RTI reading from federate socket");
         if (bytes_read == 0 || buffer[0] == RESIGN) {

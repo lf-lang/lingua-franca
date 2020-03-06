@@ -50,7 +50,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TIMESTAMP 2
 
 /** Byte identifying a message to forward to another federate.
- *  The next two bytes will be the federate ID.
+ *  The next two bytes will be the ID of the destination port.
+ *  The next two bytes are the destination federate ID.
  *  The four bytes after that will be the length of the message.
  *  The remaining bytes are the message.
  */

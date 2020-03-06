@@ -80,7 +80,7 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
  *  was placed on the queue if that event time matches the
  *  specified stop time.
  */
-bool __wait_until(instant_t logical_time_ns) {
+bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
     if (stop_time > 0LL && logical_time_ns > stop_time) {
     	// Modify the time to wait until to be the timeout time.
@@ -165,7 +165,7 @@ bool __next() {
  	// Wait for the reaction and executing queues to be empty,
 	// indicating that the previous logical time is complete.
 	// printf("DEBUG: next(): number_of_idle_threads = %d\n", number_of_idle_threads);
-	// printf("DEBUG: next(): reaction_q size = %ld\n", pqueue_size(reaction_q));
+	// printf("DEBUG: next(): ready_q size = %ld\n", pqueue_size(ready_q));
  	while (pqueue_size(ready_q) > 0 || pqueue_size(executing_q) > 0) {
  		// Do not check for stop_requested here because stopping should occur
  		// only between logical times!
@@ -173,7 +173,7 @@ bool __next() {
         // Wait for some activity on the reaction and executing queues.
         pthread_cond_wait(&reaction_or_executing_q_changed, &mutex);
     	// printf("DEBUG: next(): number_of_idle_threads = %d\n", number_of_idle_threads);
-    	// printf("DEBUG: next(): reaction_q size = %ld\n", pqueue_size(reaction_q));
+    	// printf("DEBUG: next(): ready_q size = %ld\n", pqueue_size(ready_q));
 	}
  	// printf("DEBUG: next(): continuing.\n");
 
@@ -236,10 +236,10 @@ bool __next() {
     // Do not hold the lock during the wait.
     // NOTE: We should release the lock even if there will be no physical time wait
     // to allow other threads to sneak in. Perhaps also do a yield?
-    // The __wait_until function will release the lock while waiting.
+    // The wait_until function will release the lock while waiting.
     while (!stop_requested) {
     	// printf("DEBUG: next(): Waiting until time %lld.\n", (wait_until_time - start_time));
-    	if (!__wait_until(wait_until_time)) {
+    	if (!wait_until(wait_until_time)) {
     		// printf("DEBUG: next(): Wait until time interrupted.\n");
     		// Sleep was interrupted or the timeout time has been reached.
     		// Time has not advanced to the time of the event.
@@ -390,7 +390,7 @@ void stop() {
 
 // Worker thread for the thread pool.
 void* worker(void* arg) {
-	//printf("Worker thread started.\n");
+	// printf("DEBUG: Worker thread started.\n");
 	// Keep track of whether we have decremented the idle thread count.
 	bool have_been_busy = false;
 	pthread_mutex_lock(&mutex);
@@ -537,6 +537,7 @@ pthread_t* __thread_ids;
 
 // Start threads in the thread pool.
 void start_threads() {
+    // printf("DEBUG: Starting %d worker threads.\n", number_of_threads);
 	__thread_ids = malloc(number_of_threads * sizeof(pthread_t));
 	number_of_idle_threads = number_of_threads;
 	for (int i = 0; i < number_of_threads; i++) {
@@ -590,7 +591,7 @@ void wrapup() {
         // if there was in fact nothing on the event queue.
         if (next()) {
         	// printf("DEBUG: wrapup: next() returned\n");
-        	// printf("DEBUG: reaction_q size = %ld, executing_q = %ld\n", pqueue_size(reaction_q), pqueue_size(executing_q));
+        	// printf("DEBUG: ready_q size = %ld, executing_q = %ld\n", pqueue_size(ready_q), pqueue_size(executing_q));
         	// Without relying on the worker threads, execute whatever is on the reaction_q.
         	// NOTE: deadlines on these reactions are ignored.
         	// Is that the right thing to do?
@@ -634,6 +635,7 @@ int main(int argc, char* argv[]) {
         __start_timers();
         start_threads();
  		pthread_mutex_unlock(&mutex);
+ 		// printf("DEBUG: Starting main loop.\n");
         while (next() != 0 && !stop_requested);
         wrapup();
         termination();

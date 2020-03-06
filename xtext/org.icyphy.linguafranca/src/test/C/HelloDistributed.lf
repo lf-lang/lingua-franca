@@ -1,6 +1,8 @@
 target C {
+    // keepalive: true, // FIXME: Should be automatic.
+    threads: 1,      // FIXME: Should be automatic, inferred from federates.
     federates: {
-        RTI: {host: "localhost", port: 15044},
+        RTI: {host: "localhost", port: 15045},
         Source: {reactors: [s]},
         Destination: {reactors: [d]}
     }
@@ -8,11 +10,15 @@ target C {
 reactor Source {
     output out:string;
     reaction(startup) -> out {=
+        printf("Sending message from source federate.\n");
         set(out, "Hello World!");
     =}
-}
+} 
 reactor Destination {
     input in:string;
+    reaction(startup) {=
+        printf("Destination started.\n");
+    =}
     reaction(in) {=
         // FIXME: Check that starting logical times are the same.
         printf("Destination received: %s\n", in);
