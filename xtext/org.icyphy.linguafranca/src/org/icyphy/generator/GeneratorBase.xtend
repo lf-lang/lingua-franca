@@ -56,17 +56,13 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Import
-import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 
 /** Generator base class for shared code between code generators.
@@ -141,18 +137,15 @@ abstract class GeneratorBase {
     /** A list of federate names or a list with a single empty string
      *  if there are no federates specified.
      */
-    protected var List<String> federates = new LinkedList<String>
+    protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
     
-    /** A map from federate names to a set of reactor names included
-     *  in the federate.
-     */
-    protected var Map<String,HashSet<String>> federateContents
-            = new HashMap<String,HashSet<String>>()
+    /** A map from federate names to federate instances. */
+    protected var Map<String,FederateInstance> federateByName
+            = new HashMap<String,FederateInstance>()
 
-    /** A map from federate names to an integer ID for the federate.
-     */
-    protected var Map<String,Integer> federateIDs
-            = new HashMap<String,Integer>()
+    /** A map from federate IDs to federate instances. */
+    protected var Map<Integer,FederateInstance> federateByID
+            = new HashMap<Integer,FederateInstance>()
 
     /** The federation RTI host, which defaults to "localhost". */
     protected var federationRTIHost = "localhost"
@@ -199,7 +192,8 @@ abstract class GeneratorBase {
     /** Analyze the model, setting target variables, filenames,
      *  working directory, and federates. This also performs any
      *  transformations that are needed on the AST of the model,
-     *  including handling delays on connections.
+     *  including handling delays on connections and communication
+     *  between federates.
      *  @param resource The resource containing the source code.
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: What is this?
@@ -251,6 +245,7 @@ abstract class GeneratorBase {
         // from Instantiations in the main reactor to federate names.
         // Also create a list of federate names or a list with a single
         // empty name if there are no federates specified.
+        // This must be done before desugaring delays below.
         analyzeFederates(resource)
 
         // Find connections, and see whether they have a delay associated with them.
@@ -452,89 +447,7 @@ abstract class GeneratorBase {
         }
         return prefix + reference.variable.name
     }
-    
-    /** Cached result of analysis of which reactions to exclude from main. */
-    var excludeReactions = null as Map<String,Set<Reaction>>
-    
-    /** Return true if the specified reactor is not the main reactor,
-     *  or if it is and the reaction should be included in the code generated for the
-     *  federate. This means that if the reaction is triggered by or
-     *  sends data to a port of a contained reactor, then that reactor
-     *  is in the federate. Otherwise, return false.
-     *  @param reaction The reaction.
-     *  @param federate The name of the federate or an empty string if there
-     *   is no federation.
-     */
-    def isReactionInFederation(Reactor reactor, Reaction reaction, String federate) {
-        // Easy case first.
-        if (!reactor.main || federate == "") return true
         
-        // If this has been called before, then the result of the
-        // following check is cached.
-        var excluded = null as Set<Reaction>
-        if (excludeReactions !== null) {
-            excluded = excludeReactions.get(federate)
-            if (excluded !== null) {
-                return !excludeReactions.get(federate).contains(reaction)
-            } else {
-                excluded = new HashSet<Reaction>
-                excludeReactions.put(federate, excluded)
-            }
-        } else {
-            excludeReactions = new HashMap<String,Set<Reaction>>
-            excluded = new HashSet<Reaction>
-            excludeReactions.put(federate, excluded)
-        }
-        
-        // Construct the set of excluded reactions for this federate.
-        for (react : reactor.reactions) {
-            // If the reaction is triggered by an output of a contained
-            // reactor that is not in the federate, or the reaction
-            // sends to an input of a contained reactor that is not
-            // in the federate, then do not generate code for the reaction.
-            // If the reaction mixes ports across federates, then report
-            // an error and do not generate code.
-            var referencesFederate = false;
-            var inFederate = true;
-            for (TriggerRef trigger : react.triggers ?: emptyList) {
-                if (trigger instanceof VarRef) {
-                    if (trigger.variable instanceof Output) {
-                        // The trigger is an output port of a contained reactor.
-                        if (federateContents.get(federate).contains(trigger.container.name)) {
-                            referencesFederate = true;
-                        } else {
-                            if (referencesFederate) {
-                                reportError(react, 
-                                "Reaction mixes triggers and effects from" +
-                                " different federates. This is not permitted")
-                            }
-                            inFederate = false;
-                        }
-                    }
-                }
-            }
-            for (effect : react.effects ?: emptyList) {
-                if (effect.variable instanceof Input) {
-                    // It is the input of a contained reactor.
-                    if (federateContents.get(federate).contains(effect.container.name)) {
-                        referencesFederate = true;
-                    } else {
-                        if (referencesFederate) {
-                            reportError(react,
-                                "Reaction mixes triggers and effects from" + 
-                                " different federates. This is not permitted")
-                        }
-                        inFederate = false;
-                    }
-                }
-            }
-            if (!inFederate) {
-                excluded.add(react)
-            }
-        }
-        return !excluded.contains(reaction)
-    }
-    
     /** If the argument starts with '{=', then remove it and the last two characters.
      *  @return The body without the code delimiter or the unmodified argument if it
      *  is not delimited.
@@ -604,7 +517,6 @@ abstract class GeneratorBase {
      * 
      */
     protected abstract def Set<String> acceptableTargets()
-    
     
     /** Clear the buffer of generated code.
      */
@@ -1123,7 +1035,26 @@ abstract class GeneratorBase {
     
     /** Analyze the resource (the .lf file) that is being parsed
      *  to determine whether code is being mapped to single or to
-     *  multiple target machines.
+     *  multiple target machines. If it is being mapped to multiple
+     *  machines, then set the 'federates' list, the 'federateIDs'
+     *  map, and the 'federationRTIHost' and 'federationRTIPort'
+     *  variables.
+     * 
+     *  In addition, analyze the connections between federates.
+     *  Ensure that every cycle has a non-zero delay (microstep
+     *  delays will not be sufficient). Construct the dependency
+     *  graph between federates. And replace connections between
+     *  federates with a pair of reactions, one triggered by
+     *  the sender's output port, and the other triggered by
+     *  an action.
+     * 
+     *  This class is target independent, so the target code
+     *  generator still has quite a bit of work to do.
+     *  It needs to provide the body of the sending and
+     *  receiving reactions. It also needs to provide the
+     *  runtime infrastructure that uses the dependency
+     *  information between federates. See the C target
+     *  for a reference implementation.
      */
     private def analyzeFederates(Resource resource) {
         var target = resource.findTarget
@@ -1134,38 +1065,39 @@ abstract class GeneratorBase {
                     if (federate.name == "RTI") {
                         for (property : federate.value.keyvalue.pairs) {
                             switch property.name {
-                            case "host": federationRTIHost = 
+                            case "host": 
+                                federationRTIHost = 
                                     if (property.value.literal !== null) {
                                         property.value.literal.withoutQuotes
                                     } else {
                                         property.value.id
                                     }
-                            case "port": federationRTIPort
+                            case "port":
+                                federationRTIPort
                                     = property.value.literal.withoutQuotes
                             }
                         }
                     } else {
                         // Assign an integer ID to the federate.
-                        federateIDs.put(federate.name, federates.length)
+                        var federateID = federates.length
                         // Add the federate name to the list of names.
-                        federates.add(federate.name)
+                        var federateInstance = new FederateInstance(federate, federateID, this)
+                        federates.add(federateInstance)
+                        federateByName.put(federate.name, federateInstance)
+                        federateByID.put(federateID, federateInstance)
                         foundOne = true
-                        val contents = new HashSet<String>
-                        federateContents.put(federate.name, contents)
-                        // NOTE: Validator check for the following structure.
-                        for (property : federate.value.keyvalue.pairs) {
-                            if (property.name.equals("reactors")) {
-                                for (reactor : property.value.array.elements) {
-                                    contents.add(reactor.id)
-                                }
-                            }
-                        }
                     }
                 }
             }
         }
         if (!foundOne) {
-            federates.add("")
+            // Ensure federates is never empty.
+            var federateInstance = new FederateInstance(null, 0, this)
+            federates.add(federateInstance)
+            federateByName.put("", federateInstance)
+            federateByID.put(0, federateInstance)
+        } else {
+            // Analyze the connection topology of federates.
         }
     }
     

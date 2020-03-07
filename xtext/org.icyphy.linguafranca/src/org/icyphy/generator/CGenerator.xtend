@@ -158,10 +158,9 @@ class CGenerator extends GeneratorBase {
         var commonCode = code;
         var commonStartTimers = startTimers;
         for (federate : federates) {
-            // Empty string means no federates were defined, so we only generate
-            // one output.
-            if (!federate.equals("")) {
-                filename = baseFilename + '_' + federate
+            // Only generate one output if there is no federation.
+            if (!federate.isSingleton) {
+                filename = baseFilename + '_' + federate.name
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
@@ -169,7 +168,7 @@ class CGenerator extends GeneratorBase {
                 startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
                 pr(startTimers, 'synchronize_with_other_federates('
-                    + federateIDs.get(federate)
+                    + federate.id
                     + ', "'
                     + federationRTIHost 
                     + '", ' + federationRTIPort
@@ -295,8 +294,8 @@ class CGenerator extends GeneratorBase {
         for (federate : federates) {
             // Empty string means no federates were defined, so we only
             // compile one file.
-            if (!federate.equals("")) {
-                filename = baseFilename + '_' + federate
+            if (!federate.isSingleton) {
+                filename = baseFilename + '_' + federate.name
             }
             // Derive target filename from the .lf filename.
             val cFilename = filename + ".c";            
@@ -411,11 +410,13 @@ int main(int argc, char* argv[]) {
         fOut.close()
     }
     
-    /** Generate a reactor class definition.
+    /** Generate a reactor class definition. This version unconditionally
+     *  generates the reactor class definition, regardless of the
+     *  federate structure.
      *  @param reactor The parsed reactor data structure.
      */
     override generateReactor(Reactor reactor) {
-        generateReactorFederated(reactor, "")
+        generateReactorFederated(reactor, null)
     }
     
     /** Generate a reactor class definition for the specified
@@ -425,10 +426,10 @@ int main(int argc, char* argv[]) {
      *  will not be generated if are triggered by or send
      *  data to contained reactors that are in the federate.
      *  @param reactor The parsed reactor data structure.
-     *  @param federate A federate name, or an empty string
+     *  @param federate A federate name, or null
      *   to unconditionally generate.
      */
-    def generateReactorFederated(Reactor reactor, String federate) {
+    def generateReactorFederated(Reactor reactor, FederateInstance federate) {
         super.generateReactor(reactor)
 
         // Special Timer and Action for startup and shutdown, if they occur.
@@ -710,14 +711,15 @@ int main(int argc, char* argv[]) {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reactor The reactor.
-     *  @param federate The federate, or an empty string if this is not
-     *   federated or not the main reactor. 
+     *  @param federate The federate, or null if this is not
+     *   federated or not the main reactor and reactions should be
+     *   unconditionally generated.
      */
-    def generateReactions(Reactor reactor, String federate) {
+    def generateReactions(Reactor reactor, FederateInstance federate) {
         var reactions = reactor.reactions
         var reactionIndex = 0;
         for (reaction : reactions) {
-            if (isReactionInFederation(reactor, reaction, federate)) {
+            if (federate === null || federate.containsReaction(reactor, reaction)) {
                 generateReaction(reaction, reactor, reactionIndex)
             }
             reactionIndex++
@@ -903,15 +905,14 @@ int main(int argc, char* argv[]) {
      *  specified reactor instance. The name of the struct will be
      *  uniqueID of the reaction instance.
      *  @param reactorIntance The reactor instance.
-     *  @param federate The federate name or "" if no federation.
+     *  @param federate The federate name or null if no federation.
      */
-    def generateReactionStructs(ReactorInstance reactorInstance, String federate) {
+    def generateReactionStructs(ReactorInstance reactorInstance, FederateInstance federate) {
         val result = new StringBuilder()
         for (reaction : reactorInstance.reactions) {
-            if (isReactionInFederation(
+            if (federate === null || federate.containsReaction(
                     reactorInstance.definition.reactorClass,
-                    reaction.definition,
-                    federate)) {
+                    reaction.definition)) {
                 val reactionInstanceName = reaction.uniqueID
 
                 var presentPredicates = new LinkedList<String>()
@@ -1311,10 +1312,10 @@ int main(int argc, char* argv[]) {
      *  This object has a pointer to the function to invoke for that
      *  reaction.
      *  @param reactorInstance The instance for which we are generating trigger objects.
-     *  @param federate The federate or "" if no federation.
+     *  @param federate The federate or null if no federation.
      *  @return A map of trigger names to the name of the trigger struct.
      */
-    def generateTriggerObjects(ReactorInstance reactorInstance, String federate) {
+    def generateTriggerObjects(ReactorInstance reactorInstance, FederateInstance federate) {
         val result = new StringBuilder()
         var count = 0
         // Iterate over triggers (input ports, actions, and timers that trigger reactions).
@@ -1335,10 +1336,9 @@ int main(int argc, char* argv[]) {
                         trigger.name + ' of instance ' +
                         reactorInstance.fullName
                 )
-                if (isReactionInFederation(
+                if (federate === null || federate.containsReaction(
                     reactionInstance.parent.definition.reactorClass,
-                    reactionInstance.definition,
-                    federate
+                    reactionInstance.definition
                 )) {                    
                     val reactionInstanceName = reactionInstance.uniqueID
 
@@ -1538,9 +1538,9 @@ int main(int argc, char* argv[]) {
     /** Traverse the runtime hierarchy of reaction instances and generate code.
      *  @param instance A reactor instance.
      *  @param federate A federate name to conditionally generate code by
-     *   contained reactors or an empty string "" if there are no federates.
+     *   contained reactors or null if there are no federates.
      */
-    def void generateReactorInstance(ReactorInstance instance, String federate) {
+    def void generateReactorInstance(ReactorInstance instance, FederateInstance federate) {
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
         pr('// ************* Instance ' + fullName + ' of class ' +
@@ -1699,19 +1699,19 @@ int main(int argc, char* argv[]) {
     
     /** Return true if the specified reactor instance belongs to the specified
      *  federate. This always returns true if the specified federate is
-     *  null or an empty string. Otherwise, it returns true only if the
+     *  null or a singleton. Otherwise, it returns true only if the
      *  instance is contained by the main reactor and the instance name
      *  was included in the 'reactors' property of the targets 'federates'
      *  specification.
      *  @param instance A reactor instance.
-     *  @param federate A federate name or "" if there are no federates.
+     *  @param federate A federate null if there are no federates.
      */
-    def reactorBelongsToFederate(ReactorInstance instance, String federate) {
-        if (federate === null || federate.equals("")) {
+    def reactorBelongsToFederate(ReactorInstance instance, FederateInstance federate) {
+        if (federate === null || federate.isSingleton) {
             return true
         } else {
             if (instance.parent === this.main 
-                && !federateContents.get(federate).contains(instance.name)
+                && !federate.contains(instance.name)
             ) {
                 return false
             } else {
@@ -1722,17 +1722,17 @@ int main(int argc, char* argv[]) {
 
     /** Set the reaction priorities based on dependency analysis.
      *  @param reactor The reactor on which to do this.
-     *  @param federate A federate name to conditionally generate code by
-     *   contained reactors or an empty string "" if there are no federates.
+     *  @param federate A federate to conditionally generate code for
+     *   contained reactors or null if there are no federates.
      */
-    def void setReactionPriorities(ReactorInstance reactor, String federate) {
+    def void setReactionPriorities(ReactorInstance reactor, FederateInstance federate) {
         // Use "reactionToReactionTName" property of reactionInstance
         // to set the levels.
         for (reactionInstance : reactor.reactions) {
-            if (isReactionInFederation(
+            if (federate === null || federate.containsReaction(
                     reactor.definition.reactorClass,
-                    reactionInstance.definition,
-                    federate)) {
+                    reactionInstance.definition
+            )) {
                 pr(
                     reactionStructName(reactionInstance) + ".index = " +
                     reactionInstance.level + ";")
@@ -1869,7 +1869,7 @@ int main(int argc, char* argv[]) {
     /** Perform deferred initializations in initialize_trigger_objects.
      *  @param federate The federate for which we are doing this.
      */
-    private def doDeferredInitialize(String federate) {
+    private def doDeferredInitialize(FederateInstance federate) {
         // First, populate the trigger tables for each output.
         // The entries point to the trigger_t structs for the destination inputs.
         pr('// doDeferredInitialize')
@@ -1920,9 +1920,10 @@ int main(int argc, char* argv[]) {
      *  port's reactor to the appropriate entries in the "self" struct of the
      *  source reactor.
      *  @param instance The reactor instance.
-     *  @param federate The federate for which we are generating code.
+     *  @param federate The federate for which we are generating code or null
+     *   if there is no federation.
      */
-    private def void connectInputsToOutputs(ReactorInstance instance, String federate) {
+    private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
         pr('// Connect inputs and outputs.')
         for (source : instance.destinations.keySet) {
             var eventualSource = source
@@ -2346,8 +2347,9 @@ int main(int argc, char* argv[]) {
 
     /** Set inputs _is_present variables to the default to point to False.
      *  @param parent The container reactor.
+     *  @param federate The federate, or null if there is no federation.
      */
-    private def void setInputsAbsentByDefault(ReactorInstance parent, String federate) {
+    private def void setInputsAbsentByDefault(ReactorInstance parent, FederateInstance federate) {
         // For all inputs, set a default where their _is_present variable points to False.
         // This handles dangling input ports that are not connected to anything
         // even if they are connected locally in the hierarchy, but not globally.
