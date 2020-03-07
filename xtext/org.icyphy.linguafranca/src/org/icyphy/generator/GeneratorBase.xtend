@@ -147,6 +147,9 @@ abstract class GeneratorBase {
     protected var Map<Integer,FederateInstance> federateByID
             = new HashMap<Integer,FederateInstance>()
 
+    /** A map from reactor names to the federate instance that contains the reactor. */
+    protected var Map<String,FederateInstance> federateByReactor
+
     /** The federation RTI host, which defaults to "localhost". */
     protected var federationRTIHost = "localhost"
     
@@ -274,6 +277,16 @@ abstract class GeneratorBase {
 
         println("Generating code for: " + resource.getURI.toString)
         
+        // Find the main reactor and create an AST node for its instantiation.
+        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+            if (reactor.isMain) {
+                // Creating an definition for the main reactor because there isn't one.
+                this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
+                this.mainDef.setName(reactor.name)
+                this.mainDef.setReactorClass(reactor)
+            }
+        }
+
         analyzeModel(resource, fsa, context)
 
         // First, produce any preamble code that the code generator needs
@@ -289,17 +302,16 @@ abstract class GeneratorBase {
         processImports(resource)
 
         // Recursively generate reactor class code from their definitions
+        // NOTE: We do not generate code for the main reactor here
+        // because that code needs to be customized for federates in
+        // a distributed execution.  Subclasses are required to
+        // generate the main reactor code.
+        // FIXME: It may be better to also not generate code for
+        // non-main reactors that are not instantiated in a particular
+        // federate. But it seems harmless to generate it since a good
+        // compiler will remove it anyway as dead code.
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            // NOTE: We do not generate code for the main reactor here
-            // because that code needs to be customized for federates in
-            // a distributed execution.  Subclasses are required to
-            // generate the main reactor code.
-            if (reactor.isMain) {
-                // Creating an definition for the main reactor because there isn't one.
-                this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
-                this.mainDef.setName(reactor.name)
-                this.mainDef.setReactorClass(reactor)
-            } else {
+            if (!reactor.isMain) {
                 generateReactor(reactor)
             }
         }
@@ -1059,6 +1071,8 @@ abstract class GeneratorBase {
     private def analyzeFederates(Resource resource) {
         var target = resource.findTarget
         var foundOne = false
+        // First, collect the properties of the RTI, if there is one,
+        // and create a FederateInstance for each federate.
         for (param : target.config?.pairs ?: emptyList) {
             if (param.name.equals("federates")) {
                 for (federate : param.value.keyvalue.pairs) {
@@ -1086,10 +1100,20 @@ abstract class GeneratorBase {
                         federateByName.put(federate.name, federateInstance)
                         federateByID.put(federateID, federateInstance)
                         foundOne = true
+                        
+                        if (federateByReactor === null) {
+                            federateByReactor = new HashMap<String,FederateInstance>()
+                        }
+                        for (reactorName : federateInstance.containedReactorNames) {
+                            federateByReactor.put(reactorName, federateInstance)
+                        }
                     }
                 }
             }
         }
+        // Next, if there actually are federates, analyze the topology
+        // interconnecting them and replace the connections between them
+        // with an action and two reactions.
         if (!foundOne) {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, this)
@@ -1098,6 +1122,57 @@ abstract class GeneratorBase {
             federateByID.put(0, federateInstance)
         } else {
             // Analyze the connection topology of federates.
+            // First, find all the connections between federates.
+            // Those that are labeled "physical" create no dependency.
+            // Otherwise, there is a dependency. This may have a delay
+            // which corresponds to the "lookahead"
+            // of HLA.
+            // FIXME: If there is no delay, we may have to transmit
+            // the microstep, not just the timestamp.
+            
+            // For each connection between federates, replace it in the
+            // AST with an action (which inherits the delay) and two reactions.
+            // The action will be physical if the connection physical and
+            // otherwise will be logical.
+            if (mainDef !== null) {
+                for (connection : mainDef.reactorClass.connections) {
+                    var leftFederate = federateByReactor.get(connection.leftPort.container)
+                    var rightFederate = federateByReactor.get(connection.rightPort.container)
+                    if (leftFederate !== rightFederate) {
+                        // Connection spans federates.
+                        // First, update the dependencies in the FederateInstances.
+                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                        if (dependsOn === null) {
+                            dependsOn = new HashSet<TimeOrValue>()
+                            rightFederate.dependsOn.put(leftFederate, dependsOn)
+                        }
+                        if (connection.delay !== null) {
+                            dependsOn.add(connection.delay.time)
+                        }
+                        // Check for causality loops between federates.
+                        var reverseDependency = leftFederate.dependsOn.get(rightFederate)
+                        if (reverseDependency !== null) {
+                            // Check that at least one direction has a delay.
+                            if (reverseDependency.size === 0 && dependsOn.size === 0) {
+                                // Found a causality loop.
+                                val message = "Causality loop found between federates "
+                                    + leftFederate.name + " and " + rightFederate.name
+                                reportError(connection, message)
+                                // This is a fatal error, so throw an exception.
+                                throw new Exception(message)
+                            }
+                        }
+                        
+                        // Next, replace the connection in the AST with an action
+                        // (which inherits the delay) and two reactions.
+                        // The action will be physical if the connection physical and
+                        // otherwise will be logical.
+                        
+                        // FIXME: Got to here. See the main reactor of HelloDistributed
+                        // the C tests directory for what these reactions should look like.
+                    }
+                }
+            }
         }
     }
     

@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
+import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
 import org.icyphy.linguaFranca.Input
@@ -33,6 +34,7 @@ import org.icyphy.linguaFranca.KeyValuePair
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 
@@ -81,6 +83,13 @@ class FederateInstance {
     
     /** The Instantiation AST object from which this was created. */
     public var KeyValuePair definition
+    
+    /** Map from the federates that this federate receives messages from
+     *  to the delays on connections from that federate. The delay set
+     *  may be empty, meaning no delay (not even a microstep or 0 delay)
+     *  was specified.
+     */
+    public var dependsOn = new HashMap<FederateInstance,Set<TimeOrValue>>()
     
     /** The integer ID of this federate. */
     public var id = 0;
