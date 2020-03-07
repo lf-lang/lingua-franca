@@ -1,6 +1,7 @@
 target C {
-    // keepalive: true, // FIXME: Should be automatic.
+    keepalive: true, // FIXME: Should be automatic.
     threads: 1,      // FIXME: Should be automatic, inferred from federates.
+    timeout: 3 sec,
     federates: {
         RTI: {host: "localhost", port: 15045},
         Source: {reactors: [s]},
@@ -33,8 +34,8 @@ main reactor HelloDistributed {
     // s.out -> d.in physical;  
     // Code generator adds the following two reactions:
     reaction(s.out) {=
-        #define D_IN 0
-        #define FED_DESTINATION 1
+        #define D_IN 0  // Identifier for the destination port.
+        #define FED_DESTINATION 1  // Identifier for the destination federate.
         send_physical(D_IN, FED_DESTINATION, strlen(s.out) + 1, (unsigned char*) s.out);
     =}
     reaction(a) -> d.in {=
