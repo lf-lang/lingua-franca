@@ -28,7 +28,9 @@ package org.icyphy.generator
 
 import java.util.HashMap
 import java.util.HashSet
+import java.util.LinkedList
 import java.util.Set
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.KeyValuePair
 import org.icyphy.linguaFranca.Output
@@ -93,6 +95,13 @@ class FederateInstance {
     
     /** The integer ID of this federate. */
     public var id = 0;
+    
+    /** List of networkMessage actions. Each of these handles a message
+     *  received from another federate over the network. The ID of
+     *  receiving port is simply the position of the action in the list.
+     *  The sending federate needs to specify this ID.
+     */
+    public var networkMessageActions = new LinkedList<Action>()
 
     /////////////////////////////////////////////
     //// Public Methods

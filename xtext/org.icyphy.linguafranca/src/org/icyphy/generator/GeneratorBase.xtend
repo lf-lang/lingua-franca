@@ -634,6 +634,51 @@ abstract class GeneratorBase {
         }
         target
     }
+
+    /**
+     * Generate code for the body of a reaction that handles input from the network
+     * that is handled by the specified action. This base class throws an exception.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @throws UnsupportedOperationException If the target does not support this operation.
+     */
+    def String generateNetworkReceiverBody(
+        Action action,
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        String type
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+    }
+    
+    /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network. This base class throws an exception.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @throws UnsupportedOperationException If the target does not support this operation.
+     */
+    def String generateNetworkSenderBody(
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        String type
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+    }
     
     /** Generate any preamble code that appears in the code generated
      *  file before anything else.
@@ -1135,9 +1180,10 @@ abstract class GeneratorBase {
             // The action will be physical if the connection physical and
             // otherwise will be logical.
             if (mainDef !== null) {
+                var connectionsToRemove = new LinkedList<Connection>()
                 for (connection : mainDef.reactorClass.connections) {
-                    var leftFederate = federateByReactor.get(connection.leftPort.container)
-                    var rightFederate = federateByReactor.get(connection.rightPort.container)
+                    var leftFederate = federateByReactor.get(connection.leftPort.container.name)
+                    var rightFederate = federateByReactor.get(connection.rightPort.container.name)
                     if (leftFederate !== rightFederate) {
                         // Connection spans federates.
                         // First, update the dependencies in the FederateInstances.
@@ -1167,10 +1213,16 @@ abstract class GeneratorBase {
                         // (which inherits the delay) and two reactions.
                         // The action will be physical if the connection physical and
                         // otherwise will be logical.
+                        makeCommunication(connection,  leftFederate, rightFederate)
                         
-                        // FIXME: Got to here. See the main reactor of HelloDistributed
-                        // the C tests directory for what these reactions should look like.
+                        // To avoid concurrent modification exception, collect a list
+                        // of connections to remove.
+                        connectionsToRemove.add(connection)
                     }
+                }
+                for (connection : connectionsToRemove) {
+                    // Remove the original connection for the parent.
+                    mainDef.reactorClass.connections.remove(connection)
                 }
             }
         }
@@ -1206,6 +1258,84 @@ abstract class GeneratorBase {
         println('******** sourceFile: ' + sourceFile)
         println('******** directory: ' + directory)
         println('******** mode: ' + mode)
+    }
+    
+    /** Replace the specified connection with a communication between federates.
+     *  @param connection The connection.
+     *  @param leftFederate The source federate.
+     *  @param rightFederate The destination federate.
+     */
+    private def makeCommunication(
+        Connection connection, 
+        FederateInstance leftFederate,
+        FederateInstance rightFederate
+    ) {
+        val factory = LinguaFrancaFactory.eINSTANCE
+        var type = (connection.rightPort.variable as Port).type
+        val action = factory.createAction
+        val triggerRef = factory.createVarRef
+        val effectRef = factory.createVarRef
+        val inRef = factory.createVarRef
+        val outRef = factory.createVarRef
+        val parent = (connection.eContainer as Reactor)
+        val r1 = factory.createReaction
+        val r2 = factory.createReaction
+
+        // Name the newly created action; set its delay and type.
+        action.name = getUniqueIdentifier(parent, "networkMessage")
+        // FIXME: Handle connection delay. E.g.:  
+        // action.minTime = connection.delay.time
+        action.type = type
+        // FIXME: For now, only handling physical connections.
+        action.origin = ActionOrigin.PHYSICAL
+        
+        // Record this action in the right federate.
+        // The ID of the receiving port (rightPort) is the position
+        // of the action in this list.
+        val receivingPortID = rightFederate.networkMessageActions.length
+        rightFederate.networkMessageActions.add(action)
+
+        // Establish references to the action.
+        triggerRef.variable = action
+        effectRef.variable = action
+
+        // Establish references to the involved ports.
+        inRef.container = connection.leftPort.container
+        inRef.variable = connection.leftPort.variable
+        outRef.container = connection.rightPort.container
+        outRef.variable = connection.rightPort.variable
+
+        // Add the action to the reactor.
+        parent.actions.add(action)
+
+        // Configure the sending reaction.
+        r1.triggers.add(inRef)
+        r1.effects.add(effectRef)
+        r1.code = generateNetworkSenderBody(
+            inRef,
+            outRef,
+            receivingPortID,
+            leftFederate,
+            rightFederate,
+            type
+        )
+
+        // Configure the receiving reaction.
+        r2.triggers.add(triggerRef)
+        r2.effects.add(outRef)
+        r2.code = generateNetworkReceiverBody(
+            action,
+            inRef,
+            outRef,
+            receivingPortID,
+            leftFederate,
+            rightFederate,
+            type
+        )
+
+        // Add the reactions to the parent.
+        parent.reactions.add(r1)
+        parent.reactions.add(r2)
     }
 
     enum Mode {
