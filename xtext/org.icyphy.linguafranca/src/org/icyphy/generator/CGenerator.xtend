@@ -1763,8 +1763,8 @@ int main(int argc, char* argv[]) {
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
-     * @param the action to schedule
-     * @param the port to read from
+     * @param action The action to schedule
+     * @param port The port to read from
      */
     override generateDelayBody(Action action, VarRef port) { 
         val ref = generateVarRef(port);
@@ -1782,13 +1782,72 @@ int main(int argc, char* argv[]) {
     /**
      * Generate code for the body of a reaction that is triggered by the
      * given action and writes its value to the given port.
-     * @param the action that triggers the reaction
-     * @param the port to write to
+     * @param action The action that triggers the reaction
+     * @param port The port to write to
      */
     override generateForwardBody(Action action, VarRef port) '''
         set(«generateVarRef(port)», «action.name»_value);
     '''
-        
+
+    /**
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     */
+    override generateNetworkReceiverBody(
+        Action action,
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        String type
+    ) { 
+        val sendRef = generateVarRef(sendingPort);
+        val receiveRef = generateVarRef(receivingPort);
+        '''
+        // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+        // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
+        // So passing it downstream should be OK.
+        set(«receiveRef», «action.name»_value);
+        '''
+    }
+
+    /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     */
+    override generateNetworkSenderBody(
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        String type
+    ) { 
+        val sendRef = generateVarRef(sendingPort);
+        val receiveRef = generateVarRef(receivingPort);
+        '''
+        // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+        // FIXME: Only supporting string type right now.
+        int message_length = strlen(«sendRef») + 1;
+        send_physical(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
+        '''
+    }
+
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
      *  As a side effect, this populates the runCommand and compileCommand

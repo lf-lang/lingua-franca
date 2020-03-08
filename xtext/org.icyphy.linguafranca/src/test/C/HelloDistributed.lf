@@ -31,8 +31,9 @@ main reactor HelloDistributed {
     // Following action is added by the code generator.
     physical action a:string; // FIXME: not sure about malloc.
     // Code generator removes the following connection:
-    // s.out -> d.in physical;  
+    s.out -> d.in; // physical;
     // Code generator adds the following two reactions:
+    /*
     reaction(s.out) {=
         #define D_IN 0  // Identifier for the destination port.
         #define FED_DESTINATION 1  // Identifier for the destination federate.
@@ -43,4 +44,5 @@ main reactor HelloDistributed {
         // So passing it downstream should be OK.
         set(d.in, a_value);
     =}
+    */
 }
