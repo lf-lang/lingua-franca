@@ -4,10 +4,12 @@ import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.AnnotatedDependencyGraph
 import org.icyphy.AnnotatedNode
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Deadline
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
@@ -173,6 +175,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
     }
+
+// FIXME: We need a parameter resolver in order to detect problems with
+// parameterized deadlines
+
+//    @Check(FAST)
+//    def checkDeadline(Deadline deadline) {
+//        
+//        if (deadline.time.unit != TimeUnit.NONE && (new TimeValue(deadline.time.time, deadline.time.unit)).toNanoSeconds > TimeValue.MAX_BIGINT_DEADLINE) {
+//            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + "nanoseconds.", Literals.DEADLINE__TIME)
+//        }
+//    }
 
     @Check(FAST)
     def checkInput(Input input) {

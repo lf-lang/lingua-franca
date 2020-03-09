@@ -50,15 +50,6 @@ handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     return __schedule(trigger, extra_delay, value);
 }
 
-bool has_not_been_triggered(reaction_t* reaction) {
-    return (pqueue_find_equal_same_priority(ready_q, reaction) == NULL && 
-            pqueue_find_equal_same_priority(blocked_q, reaction) == NULL);
-}
-
-bool is_blocked(reaction_t* reaction) {
-    return is_blocked_by(ready_q, reaction); // There is not executing_q.
-}
-
 // Advance logical time to the lesser of the specified time or the
 // timeout time, if a timeout time has been given. If the -fast command-line option
 // was not given, then wait until physical time matches or exceeds the start time of
@@ -125,10 +116,7 @@ int wait_until(instant_t logical_time_ns) {
 
 void print_snapshot() {
     printf(">>> START Snapshot\n");
-    printf("Ready:\n");
-    pqueue_dump(ready_q, stdout, ready_q->prt);
-    printf("Blocked:\n");
-    pqueue_dump(blocked_q, stdout, ready_q->prt);
+    pqueue_dump(reaction_q, stdout, reaction_q->prt);
     printf(">>> END Snapshot\n");
 }
 
@@ -190,11 +178,11 @@ int next() {
     // stick them into the reaction queue.
     do {
         event = pqueue_pop(event_q);
-        // See if there are pending reactions that can be moved to the ready queue.
+        // Load reactions triggered by this event onto the reaction queue.
 
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            // printf("Pushed on reaction_q reaction with level: %lld\n", event->trigger->reactions[i]->index);
-            pqueue_insert(blocked_q, event->trigger->reactions[i]);
+            //printf("Pushed on reaction_q reaction with level: %lld\n", event->trigger->reactions[i]->index);
+            pqueue_insert(reaction_q, event->trigger->reactions[i]);
         }
         if (!(event->trigger->is_physical) && event->trigger->period > 0) {
             // Reschedule the trigger.
@@ -221,12 +209,9 @@ int next() {
         event = pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
-    // Pending reactions that no longer have to wait are now marked as ready.
-    move_ready_reactions();
-
     // Invoke reactions.
-    while(pqueue_size(ready_q) > 0) {
-        reaction_t* reaction = pqueue_pop(ready_q);
+    while(pqueue_size(reaction_q) > 0) {
+        reaction_t* reaction = pqueue_pop(reaction_q);
         // printf("Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
         // printf("Address of reaction: %p\n", reaction);
 

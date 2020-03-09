@@ -51,6 +51,7 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
@@ -482,15 +483,14 @@ abstract class GeneratorBase {
      *  to either define functions or macros for each possible time unit
      *  or override this method to return something acceptable to the
      *  target language.
-     *  @param time Literal that represents a time value.
-     *  @param unit Enum that denotes units
+     *  @param time A TimeValue that represents a time.
      *  @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
-    def timeInTargetLanguage(String timeLiteral, TimeUnit unit) { // FIXME: make this static?
-        if (unit != TimeUnit.NONE) {
-            unit.name() + '(' + timeLiteral + ')'
+    def String timeInTargetLanguage(TimeValue time) {
+        if (time.unit != TimeUnit.NONE) {
+            time.unit.name() + '(' + time.time + ')'
         } else {
-            timeLiteral
+            time.time.toString()
         }
     }
 

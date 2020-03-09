@@ -186,6 +186,12 @@ do { \
  */
 #define writable_copy(input) __writable_copy_impl(self->__ ## input)
 
+#define LEVEL(index) (index & 0xFFFF)
+
+#define OVERLAPPING(chain1, chain2) ((chain1 & chain2) != 0)
+
+#define DEADLINE(index) (index & 0x7FFFFFFFFFFF0000)
+
 //  ======== Type definitions ========  //
 
 /** Booleans. */
@@ -246,20 +252,6 @@ struct reaction_t {
     interval_t local_deadline;// Local deadline relative to the time stamp for invocation of the reaction.
     reaction_function_t deadline_violation_handler; // Local deadline violation handler.
 };
-
-/**
- * Return true if the given reaction has already been triggered at the current time.
- */
-bool has_not_been_triggered(reaction_t* reaction);
-
-bool is_blocked_by(pqueue_t* q, reaction_t* reaction);
-
-/**
- * Return true if there is currently another reaction blocking the given reaction.
- */
-bool is_blocked(reaction_t* reaction);
-
-void print_snapshot();
 
 /** 
  * Enumeration of different policies for handling events that succeed one
@@ -331,6 +323,11 @@ instant_t get_logical_time();
  * @return a time instant
  */
 instant_t get_physical_time();
+
+/**
+ * Print a snapshot of the priority queues used during execution.
+ */
+void print_snapshot();
 
 /**
  * Function to request stopping execution at the end of the current logical time.

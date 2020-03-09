@@ -35,6 +35,7 @@ import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -273,9 +274,9 @@ class TypeScriptGenerator extends GeneratorBase {
             if (getParameterType(parameter).equals("")) {
                 reportError(parameter,
                     "Parameter is required to have a type: " + parameter.name)
-            } else if (parameter.ofTimeType){
+            } else if (parameter.ofTimeType) {
                  arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + timeInTargetLanguage(parameter.time.toString() , parameter.unit )  )
+                    +" = " + timeInTargetLanguage(new TimeValue(parameter.time, parameter.unit)))
             } else {
                  arguments.add(parameter.name + ": " + getParameterType(parameter)
                     +" = " + removeCodeDelimiter(parameter.value))
@@ -319,8 +320,7 @@ class TypeScriptGenerator extends GeneratorBase {
                             childReactorArguments.add(removeCodeDelimiter(parameterAssignment.rhs.value))
                         } else {
                             childReactorArguments.add(
-                                timeInTargetLanguage(parameterAssignment.rhs.time.toString
-                                   , parameterAssignment.rhs.unit))
+                                timeInTargetLanguage(new TimeValue(parameterAssignment.rhs.time, parameterAssignment.rhs.unit)))
                         }
                     }
                 }
@@ -355,7 +355,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     } else if (Integer.parseInt(timer.period.time.toString) === 0 ) {
                         timerPeriod = "0"
                     } else {
-                        timerPeriod = timeInTargetLanguage(timer.period.time.toString(), timer.period.unit)
+                        timerPeriod = timeInTargetLanguage(new TimeValue(timer.period.time, timer.period.unit))
                     }
                 }
                 
@@ -368,7 +368,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     } else if (Integer.parseInt(timer.offset.time.toString) === 0 ) {
                         timerOffset = "0"
                     } else {
-                        timerOffset = timeInTargetLanguage(timer.offset.time.toString(), timer.offset.unit)
+                        timerOffset = timeInTargetLanguage(new TimeValue(timer.offset.time, timer.offset.unit))
                     }
                 }
     
@@ -396,7 +396,7 @@ class TypeScriptGenerator extends GeneratorBase {
             } else if (state.ofTimeType) {  
                 // State is a time type
                 pr(reactorConstructor, "this." + state.name + " = "
-                    + "new State(" + timeInTargetLanguage( state.time.toString, state.unit) + ");" )
+                    + "new State(" + timeInTargetLanguage(new TimeValue(state.time, state.unit)) + ");" )
             } else if (state.value !== null) {
                 // State is a literal 
                 pr(reactorConstructor, "this." + state.name + " = "
@@ -420,7 +420,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (action.minTime !== null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    actionArgs+= ", " + timeInTargetLanguage(action.minTime.time.toString, action.minTime.unit)
+                    actionArgs+= ", " + timeInTargetLanguage(new TimeValue(action.minTime.time, action.minTime.unit))
                 }
                 pr(reactorConstructor, "this." + 
                     action.name + " = new Action<" + getActionType(action) +
@@ -718,7 +718,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (reaction.deadline.time.parameter !== null) {
                     deadlineArgs += "this." + reaction.deadline.time.parameter.name + ".get()"; 
                 } else {
-                    deadlineArgs += timeInTargetLanguage( reaction.deadline.time.time.toString(), reaction.deadline.time.unit)
+                    deadlineArgs += timeInTargetLanguage(new TimeValue(reaction.deadline.time.time, reaction.deadline.time.unit))
                 }
                 pr(reactorConstructor, deadlineArgs + "," )
                 pr(reactorConstructor, "function(" + reactSignature + ") {")
@@ -775,7 +775,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Timeout Property
         if (targetTimeout >= 0) {
             isATimeoutArg = true
-            timeoutArg = timeInTargetLanguage(Integer.toString(targetTimeout), targetTimeoutUnit)
+            timeoutArg = timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit))
         }
         
         // KeepAlive Property
@@ -852,12 +852,12 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @param unit Enum that denotes units
      *  @return A string, as "[ timeLiteral, TimeUnit.unit]" .
      */
-    override timeInTargetLanguage(String timeLiteral, TimeUnit unit) {
-        if (unit != TimeUnit.NONE) {
-            "new UnitBasedTimeValue(" + timeLiteral + ", TimeUnit." + unit + ")"
+    override timeInTargetLanguage(TimeValue value) {
+        if (value.unit != TimeUnit.NONE) {
+            "new UnitBasedTimeValue(" + value.time + ", TimeUnit." + value.unit + ")"
         } else {
             // The default time unit for TypeScript is msec.
-            "new UnitBasedTimeValue(" + timeLiteral + ", TimeUnit.msec)"
+            "new UnitBasedTimeValue(" + value.time + ", TimeUnit.msec)" // FIXME: times should always have units associated with them.
         }
     }
 

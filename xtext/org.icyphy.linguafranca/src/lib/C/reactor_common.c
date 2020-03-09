@@ -132,9 +132,9 @@ void* lf_malloc(size_t size) {
 
 /** Priority queues. */
 pqueue_t* event_q;     // For sorting by time.
-pqueue_t* blocked_q;   // To store reactions that are blocked by other reactions.
-pqueue_t* transfer_q;  // To store reactions that are still blocked by other reactions.
-pqueue_t* ready_q;  // For sorting by deadline.
+// pqueue_t* blocked_q;   // To store reactions that are blocked by other reactions.
+
+pqueue_t* reaction_q;  // For sorting by deadline.
 pqueue_t* recycle_q;   // For recycling malloc'd events.
 pqueue_t* free_q;      // For free malloc'd values carried by events.
 
@@ -180,15 +180,6 @@ static pqueue_pri_t get_event_time(void *a) {
  */
 static pqueue_pri_t get_reaction_index(void *a) {
     return ((reaction_t*) a)->index;
-}
-
-/**
- * Report a priority equal to the deadline of the given reaction.
- * Used for sorting pointers to reaction_t structs in the 
- * ready queue.
- */
-static pqueue_pri_t get_reaction_deadline(void *a) {
-    return ((reaction_t*) a)->local_deadline;
 }
 
 /**
@@ -239,11 +230,13 @@ static void print_event(FILE *out, void *event) {
 
 // ********** Priority Queue Support End
 
-// Counter used to issue a warning if memory is allocated and never freed.
+/** Counter used to issue a warning if memory is allocated and never freed. */
 static int __count_allocations;
 
-// Library function to decrement the reference count and free
-// the memory, if appropriate, for messages carried by a token_t struct.
+/**
+ * Library function to decrement the reference count and free the memory, if
+ * appropriate, for messages carried by a token_t struct.
+ */
 void __done_using(token_t* token) {
     token->ref_count--;
     // printf("****** After reacting, ref_count = %d.\n", token->ref_count);
@@ -255,30 +248,16 @@ void __done_using(token_t* token) {
     }
 }
 
-bool is_blocked_by(pqueue_t* q, reaction_t* reaction) {
-    // Check if there is another active reaction that
-    // has precedence over the given reaction.
-    for (int i = 1; i < q->size; i++) {
-        reaction_t* active = q->d[i];
-        if (((reaction->chain_id & active->chain_id) != 0) 
-                && reaction->index > active->index) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Schedule the specified trigger at current_time plus the
-// offset of the specified trigger plus the delay.
-// The value is required to be a pointer returned by malloc
-// because it will be freed after having been delivered to
-// all relevant destinations unless it is NULL, in which case
-// it will be ignored. If the trigger offset plus the extra
-// delay is greater than zero and stop has been requested,
-// then ignore this and return 0.
-// Also, if the trigger argument is null, ignore and return 0.
-// Otherwise, return a handle to the scheduled trigger,
-// which is an integer greater than 0.
+/** 
+ * Schedule the specified trigger at current_time plus the offset of the
+ * specified trigger plus the delay. The value is required to be a pointer
+ * returned by malloc because it will be freed after having been delivered to
+ * all relevant destinations unless it is NULL, in which case it will be
+ * ignored. If the trigger offset plus the extra delay is greater than zero and
+ * stop has been requested, then ignore this and return 0. Also, if the trigger
+ * argument is null, ignore and return 0. Otherwise, return a handle to the
+ * scheduled trigger, which is an integer greater than 0.
+ */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
 	// The trigger argument could be null, meaning that nothing is triggered.
 	if (trigger == NULL) return 0;
@@ -397,29 +376,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
 }
 
 /**
- * Move pending reactions to the ready queue if 
- * there are no more reactions blocking them.
+ * For the specified reaction, if it has produced outputs, insert the
+ * resulting triggered reactions into the reaction queue.
  */
-void move_ready_reactions() {
-    reaction_t* r;
-    pqueue_t* tmp;
-    while (pqueue_size(blocked_q) > 0) {
-        r = pqueue_pop(blocked_q);
-        if (is_blocked(r)) {
-            pqueue_insert(transfer_q, r);
-        } else {
-            pqueue_insert(ready_q, r);
-        }
-    }
-    tmp = blocked_q;
-    blocked_q = transfer_q;
-    transfer_q = tmp;
-}
-
-// For the specified reaction, if it has produced outputs, put the
-// resulting triggered reactions into the reaction queue.
-// If any reaction has been added to the ready queue, return true,
-// false otherwise.
 void schedule_output_reactions(reaction_t* reaction) {
     // If the reaction produced outputs, put the resulting triggered
     // reactions into the blocking queue.
@@ -433,8 +392,8 @@ void schedule_output_reactions(reaction_t* reaction) {
                         reaction_t* reaction = trigger->reactions[k];
                         if (reaction != NULL) {
                             // Do not enqueue this reaction twice.
-                            if (has_not_been_triggered(reaction)) {
-                                pqueue_insert(blocked_q, reaction);
+                            if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                                pqueue_insert(reaction_q, reaction);
                             }
                         }
                     }
@@ -442,12 +401,12 @@ void schedule_output_reactions(reaction_t* reaction) {
             }
         }
 	}
-    // Move ready reactions from the blocked queue to the ready queue.
-    move_ready_reactions();
 }
 
-// Library function for allocating memory for an array output.
-// This turns over "ownership" of the allocated memory to the output.
+/**
+ * Library function for allocating memory for an array output.
+ * This turns over "ownership" of the allocated memory to the output.
+ */
 void* __set_new_array_impl(token_t* token, int length) {
     // FIXME: Error checking needed.
     token->value = malloc(token->element_size * length);
@@ -459,8 +418,10 @@ void* __set_new_array_impl(token_t* token, int length) {
     return token->value;
 }
 
-// Library function for returning a writable copy of a token.
-// If the reference count is 1, it returns the original rather than a copy.
+/**
+ * Library function for returning a writable copy of a token.
+ * If the reference count is 1, it returns the original rather than a copy.
+ */
 void* __writable_copy_impl(token_t* token) {
     // printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
     if (token->ref_count == 1) {
@@ -479,7 +440,9 @@ void* __writable_copy_impl(token_t* token) {
     }
 }
 
-// Print a usage message.
+/**
+ * Print a usage message.
+ */
 void usage(int argc, char* argv[]) {
     printf("\nCommand-line arguments: \n\n");
     printf("  -f, --fast [true | false]\n");
@@ -504,10 +467,11 @@ void usage(int argc, char* argv[]) {
 int default_argc = 0;
 char** default_argv = NULL;
 
-// Process the command-line arguments.
-// If the command line arguments are not understood, then
-// print a usage message and return 0.
-// Otherwise, return 1.
+/**
+ * Process the command-line arguments. If the command line arguments are not
+ * understood, then print a usage message and return 0. Otherwise, return 1.
+ * @return 1 if the arguments processed successfully, 0 otherwise.
+ */
 int process_args(int argc, char* argv[]) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--fast") == 0) {
@@ -603,8 +567,10 @@ int process_args(int argc, char* argv[]) {
     return 1;
 }
 
-// Initialize the priority queues and set logical time to match
-// physical time. This also prints a message reporting the start time.
+/**
+ * Initialize the priority queues and set logical time to match
+ * physical time. This also prints a message reporting the start time.
+ */
 void initialize() {
     __count_allocations = 0;
 #if _WIN32 || WIN32
@@ -618,16 +584,11 @@ void initialize() {
 
     // Initialize our priority queues.
 
-    // Reaction queue ordered by deadline. FIXME: rename this to ready_q
-    ready_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_deadline,
+    // Reaction queue ordered first by deadline, then by level.
+    // The index of the reaction holds the deadline in the 48 most significant bits,
+    // the level in the 16 least significant bits.
+    reaction_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);    
-
-    // Blocked reactions ordered by index.
-    blocked_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
-            get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
-
-    transfer_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
-            get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
 
     event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);

@@ -43,7 +43,7 @@
 
 /**
  * Find an element in the queue that matches the given element up to
- * but not including the given maximum priority.
+ * and including the given maximum priority.
  */ 
 void* find_equal(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
     void* rval;
@@ -211,10 +211,11 @@ int pqueue_insert(pqueue_t *q, void *d) {
     q->d[i] = d;
     bubble_up(q, i);
     
-    if (!pqueue_is_valid(q)) {
-        pqueue_dump(q, stdout, q->prt);
-        exit(1);
-    }
+    // NOTE: Only use this for debugging!
+    // if (!pqueue_is_valid(q)) {
+    //     pqueue_dump(q, stdout, q->prt);
+    //     exit(1);
+    // }
 
     return 0;
 }
