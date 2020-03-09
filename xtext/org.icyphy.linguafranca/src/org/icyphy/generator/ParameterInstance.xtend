@@ -110,8 +110,6 @@ class TimeParameter extends ParameterInstance {
 	
 	public TimeValue value
 	
-	public var unit = TimeUnit.NONE
-	
     /** The time value of the parameter in the target language. */
 	override getLiteralValue() {
 		return parent.generator.timeInTargetLanguage(this.value)

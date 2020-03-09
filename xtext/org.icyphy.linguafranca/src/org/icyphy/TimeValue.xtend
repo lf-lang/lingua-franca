@@ -17,7 +17,7 @@ class TimeValue {
     static var W = new BigInteger("604800016558522")
 
     /**
-     * NOTE: if we were to used an unsigned data type the this would be
+     * NOTE: if we were to use an unsigned data type the this would be
      * 0xFFFFFFFFFFFF
      */
     public static long MAX_LONG_DEADLINE = Long.decode("0x7FFFFFFFFFFF")

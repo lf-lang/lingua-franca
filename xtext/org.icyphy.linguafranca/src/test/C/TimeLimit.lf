@@ -17,6 +17,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 	state count:int(0);
 	reaction(t) -> y {=
 		(self->count)++;
+		//printf("Reacting at time %ld.\n", get_elapsed_logical_time());
 		set(y, self->count);
 	=}
 }
