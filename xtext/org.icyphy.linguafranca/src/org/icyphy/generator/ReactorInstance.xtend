@@ -33,6 +33,7 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
 import org.icyphy.DependencyGraph
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -136,6 +137,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // Set of reactions that do not depend on other reactions at
             // a logical time instant.
             independentReactions = new HashSet<ReactionInstance>()
+            reactionsWithDeadline = new HashSet<ReactionInstance>()
 
             // Add to the dependsOnReactions and dependentReactions
             // of each reaction instance all the
@@ -150,7 +152,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
              
             // Analyze the dependency graph for reactions and assign
             // chain identifiers/levels to each reaction.
-            this.chainIDWidth = analyzeDependencies()
+            analyzeDependencies()
+
+            // Propagate any declared deadline upstream.
+            propagateDeadlines()
 
             // FIXME: also record number of reactions.
             // We can use this to set the sizes of the queues.
@@ -416,7 +421,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     protected GeneratorBase generator
 
     /** Set of independent reactions. */
-    protected Set<ReactionInstance> independentReactions
+    protected Set<ReactionInstance> independentReactions // FIXME: use static var instead?
+
+    protected Set<ReactionInstance> reactionsWithDeadline // FIXME: use static var instead?
 
     // ////////////////////////////////////////////////////
     // // Protected methods.
@@ -496,8 +503,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             var first = true
             // The start of a chain is assigned a fresh ID.
             if (independentReactions.contains(n)) {
-                // FIXME: don't hard code the width here
-                n.chainID = 1 << (branch % 64) //new BigInteger("1").shiftLeft(branch)
+                n.chainID = 1 << (branch % 64)
                 branch++
             }
             for (m : graph.nodes) {
@@ -512,6 +518,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         m.chainID = m.chainID.bitwiseOr(n.chainID)
                         first = false
                     } else {
+                        // FIXME: this depends Endianness; we need a target property for it.
                         // Subsequent forks are assigned a fresh ID.
                         m.chainID = m.chainID.bitwiseOr(n.chainID).bitwiseOr(1 << (branch % 64))
                         branch++    
@@ -530,7 +537,25 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             throw new Exception(
                 "Reactions form a cycle!")
         }
-        return branch-1 // Number of bits required to store the branch ids.
+    }
+    
+    def propagateDeadlines() {
+        // Assume the graph is acyclic.
+        for (r : reactionsWithDeadline) {
+            if (r.definition.deadline !== null && r.definition.deadline.time !== null) {
+                r.deadline = this.resolveTime(r.definition.deadline.time)
+            }
+            propagateDeadline(r)
+        }
+    }
+    
+    def void propagateDeadline(ReactionInstance upstream) {
+        for (r : upstream.dependsOnReactions) {
+            if (upstream.deadline.isEarlierThan(r.deadline)) {
+                r.deadline = upstream.deadline
+            }
+            propagateDeadline(r)
+        }
     }
     
     /** Analyze the dependencies between reactions and assign levels.
@@ -630,6 +655,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // reactions, then it is an independent reaction.
             if (reactionInstance.dependsOnReactions.isEmpty()) {
                 main.independentReactions.add(reactionInstance);
+            }
+            
+            if (reactionInstance.definition.deadline !== null) {
+                main.reactionsWithDeadline.add(reactionInstance)
             }
         }
         // Repeat for all children.
@@ -758,7 +787,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     if (referencedParameter instanceof TimeParameter) {
                         var timeParm = referencedParameter
                         return new TimeParameter(parameter, parent,
-                            timeParm.value, timeParm.unit)
+                            timeParm.value.time, timeParm.unit)
                     } else {
                         var valParm = referencedParameter as ValueParameter
                         return new ValueParameter(parameter, parent,
@@ -794,25 +823,20 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  of zero time.
      *  @param timeOrValue A time or parameter reference.
      */
-    def resolveTime(TimeOrValue timeOrValue) {
-        var timeLiteral = '0LL'
-        var unit = TimeUnit.NONE
+    def TimeValue resolveTime(TimeOrValue timeOrValue) {
         if (timeOrValue !== null) {
             if (timeOrValue.parameter !== null) {
                 var resolved = this.resolveParameter(timeOrValue.parameter)
-                if (resolved === null) {
+                if (resolved === null || !(resolved instanceof TimeParameter)) {
                     throw new InternalError(
                         "Incorrect reference to parameter :" +
                             timeOrValue.parameter.name);
-                } else {
-                    timeLiteral = resolved.literalValue
-                    unit = TimeUnit.NONE
                 }
+                return (resolved as TimeParameter).value
             } else {
-                timeLiteral = timeOrValue.time.toString
-                unit = timeOrValue.unit
+                return new TimeValue(timeOrValue.time, timeOrValue.unit) 
             }
         }
-        return this.generator.timeInTargetLanguage(timeLiteral, unit)
+        return new TimeValue(0, TimeUnit.NONE)
     }
 }

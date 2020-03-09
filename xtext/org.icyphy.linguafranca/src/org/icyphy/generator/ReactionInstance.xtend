@@ -27,14 +27,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.generator
 
 import java.util.HashSet
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import java.math.BigInteger
 
 /** Representation of a runtime instance of a reaction.
  *  A ReactionInstance object stores all dependency information necessary
@@ -56,7 +57,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
     protected new(Reaction definition, ReactorInstance parent, int index) {
         super(definition, parent);
         this.reactionIndex = index
-
+        
         // Identify the dependencies for this reaction.
         // First handle the triggers.
         for (TriggerRef trigger : definition.triggers) {
@@ -144,10 +145,13 @@ class ReactionInstance extends NamedInstance<Reaction> {
     /** The reactions that this reaction depends on. */
     public var dependsOnReactions = new HashSet<ReactionInstance>();
 
+    /** Inferred deadline. Defaults to the maximum long value. */
+    public var deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NSEC)
+
     /** The level in the dependence graph. -1 indicates that the level
      *  has not yet been assigned.
      */
-    public int level = -1;
+    public long level = -1L;
 
     /** Index of order of occurrence within the reactor definition.
      *  The first reaction has index 0, the second index 1, etc.

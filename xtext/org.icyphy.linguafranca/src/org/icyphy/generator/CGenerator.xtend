@@ -28,6 +28,7 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
+import java.math.BigInteger
 import java.util.ArrayList
 import java.util.Collection
 import java.util.HashMap
@@ -41,6 +42,7 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Import
@@ -1387,7 +1389,7 @@ int main(int argc, char* argv[]) {
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        minTime + ', 0LL, NULL, ' + isPhysical + ', NEVER,' + trigger.policy
+                        timeInTargetLanguage(minTime) + ', 0LL, NULL, ' + isPhysical + ', NEVER,' + trigger.policy
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 if ((triggerInstance as ActionInstance).isShutdown) {
@@ -1410,9 +1412,9 @@ int main(int argc, char* argv[]) {
                 val period = reactorInstance.resolveTime(trigger.period)
 
                 pr(initializeTriggerObjects,
-                    triggerStructName + '.offset = ' + offset + ';')
+                    triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
                 pr(initializeTriggerObjects,
-                    triggerStructName + '.period = ' + period + ';')
+                    triggerStructName + '.period = ' + timeInTargetLanguage(period) + ';')
 
                 // Generate a line to go into the __start_timers() function.
                 // Note that the delay, the second argument, is zero because the
@@ -1599,7 +1601,7 @@ int main(int argc, char* argv[]) {
             if (state.ofTimeType) {
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + state.name + " = " +
-                        timeInTargetLanguage(time.toString, unit) + ";")
+                        timeInTargetLanguage(new TimeValue(time, unit)) + ";")
             } else {
                 // If the state is initialized with a parameter, then do not use
                 // a temporary variable. Otherwise, do, because
@@ -1685,7 +1687,7 @@ int main(int argc, char* argv[]) {
                 var deadline = instance.resolveTime(reaction.definition.deadline.time)
                 pr(initializeTriggerObjects,
                     reactionStructName(reaction) + '.local_deadline = ' +
-                        deadline + ';')
+                        timeInTargetLanguage(deadline) + ';')
             }
         }
         for (child : instance.children) {
@@ -1729,16 +1731,22 @@ int main(int argc, char* argv[]) {
         // Use "reactionToReactionTName" property of reactionInstance
         // to set the levels.
         for (reactionInstance : reactor.reactions) {
+
             if (federate === null || federate.containsReaction(
-                    reactor.definition.reactorClass,
-                    reactionInstance.definition
+                reactor.definition.reactorClass,
+                reactionInstance.definition
             )) {
                 pr(
                     reactionStructName(reactionInstance) + ".index = " +
-                    reactionInstance.level + ";")
-                pr(        
-                    reactionStructName(reactionInstance) + ".chain_id = " +
+                        reactionInstance.level + ";")
+                pr(reactionStructName(reactionInstance) + ".chain_id = " +
                     reactionInstance.chainID.toString() + ";")
+
+                pr(
+                    reactionStructName(reactionInstance) + ".index = " +
+                        (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).
+                            or(new BigInteger(reactionInstance.level.toString)) + "LL;")
+            // FIXME: add check to validator to make sure no deadline exceeds the maximum
             }
         }
         for (child : reactor.children) {
@@ -2435,5 +2443,5 @@ int main(int argc, char* argv[]) {
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
-    static var DEFAULT_MIN_INTER_ARRIVAL = 'NSEC(1)'
+    static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
 }

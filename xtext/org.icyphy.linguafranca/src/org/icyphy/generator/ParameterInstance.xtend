@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.TimeUnit
 
@@ -101,18 +102,18 @@ class ValueParameter extends ParameterInstance {
 }
 
 class TimeParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, int value, TimeUnit unit) {
+	new(Parameter definition, ReactorInstance parent, long value, TimeUnit unit) {
 		super(definition, parent)
-		this.value = value
-		this.unit = unit
+		this.value = new TimeValue(value, unit)
 		this.type = parent.generator.timeTypeInTargetLanguage()
 	}
-	public var value = 0
+	
+	public TimeValue value
 	
 	public var unit = TimeUnit.NONE
 	
     /** The time value of the parameter in the target language. */
 	override getLiteralValue() {
-		return parent.generator.timeInTargetLanguage(this.value.toString, this.unit)
+		return parent.generator.timeInTargetLanguage(this.value)
 	}
 }
