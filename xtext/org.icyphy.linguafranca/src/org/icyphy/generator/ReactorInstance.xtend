@@ -787,7 +787,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     if (referencedParameter instanceof TimeParameter) {
                         var timeParm = referencedParameter
                         return new TimeParameter(parameter, parent,
-                            timeParm.value.time, timeParm.unit)
+                            timeParm.value.time, timeParm.value.unit)
                     } else {
                         var valParm = referencedParameter as ValueParameter
                         return new ValueParameter(parameter, parent,

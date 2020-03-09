@@ -1415,7 +1415,6 @@ int main(int argc, char* argv[]) {
                     triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
                 pr(initializeTriggerObjects,
                     triggerStructName + '.period = ' + timeInTargetLanguage(period) + ';')
-
                 // Generate a line to go into the __start_timers() function.
                 // Note that the delay, the second argument, is zero because the
                 // offset is already in the trigger struct.
