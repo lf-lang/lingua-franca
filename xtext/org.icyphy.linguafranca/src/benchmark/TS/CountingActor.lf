@@ -1,0 +1,42 @@
+target TypeScript{
+    fast: true
+};
+reactor Counter(limit:number(25000)) {
+    input receive:number;
+    output done:boolean;
+    state count:number(0);
+    reaction (receive) -> done {=
+        count++;
+        if (count == limit -1) {
+            done = true;
+        }
+    =}
+}
+reactor Sender {
+    input start:boolean;
+    output send:number;
+    logical action next;
+    reaction (start, next) -> send, next {=
+        actions.next.schedule(0);
+        send = 1;
+    =}
+}
+main reactor CountingActor {
+    
+    state startTime:{=TimeValue|undefined=}(undefined);
+    
+    s = new Sender();
+    c = new Counter();
+    
+    s.send -> c.receive;
+    
+    reaction (startup) -> s.start {=
+        s.start = true;
+        startTime = util.getCurrentPhysicalTime();
+    =}
+    reaction (c.done) {=
+        let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
+        console.log("Elapsed time: " + elapsedTime);
+        util.requestShutdown();
+    =}
+}
