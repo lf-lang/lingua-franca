@@ -1,0 +1,81 @@
+// See https://shamsimam.github.io/papers/2014-agere-savina.pdf
+target TypeScript {
+    fast: true
+};
+// To prevent a cycle, one node has to schedule an action upon receiving an input
+reactor StartNode(count:number(25000)) {
+    input receive:number;
+    input start:boolean;
+    output send:number;
+    output done:boolean;
+    logical action nextLoop:number;
+    reaction (nextLoop) -> send, done {=
+        nextLoop = nextLoop as number;
+        if ( nextLoop > 0 ) {
+            send = nextLoop - 1;
+        } else {
+            done = true;
+        }
+    =}
+    reaction (start) -> nextLoop {=
+        actions.nextLoop.schedule(0, count);
+    =}
+    reaction (receive) -> nextLoop {=
+        actions.nextLoop.schedule(0, receive);
+    =}
+}
+
+reactor Node {
+    input receive:number;
+    output send:number;
+    output done:boolean;
+    logical action nextLoop:number;
+    reaction (receive) -> send, done {=
+        receive = receive as number;
+        if ( receive > 0 ) {
+            send = receive - 1;
+        } else {
+            done = true;
+        }
+    =}
+}
+
+main reactor ThreadRing {
+    state startTime:{=TimeValue|undefined=}(undefined);
+    logical action end;
+    reaction (startup) -> n1.start {=
+        startTime = util.getCurrentPhysicalTime();
+        n1.start = true;
+    =}
+    reaction (n1.done) -> end {=
+        actions.end.schedule(0);
+    =}
+    reaction (n2.done) -> end {=
+        actions.end.schedule(0);
+    =}
+    reaction (n3.done) -> end {=
+        actions.end.schedule(0);
+    =}
+    reaction (n4.done) -> end {=
+        actions.end.schedule(0);
+    =}
+    reaction (n5.done) -> end {=
+        actions.end.schedule(0);
+    =}
+    reaction (end) {=
+        let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
+        console.log("Elapsed time: " + elapsedTime);
+        util.requestShutdown();
+    =}  
+    n1 = new StartNode();
+    n2 = new Node();
+    n3 = new Node();
+    n4 = new Node();
+    n5 = new Node();
+    
+    n1.send -> n2.receive;
+    n2.send -> n3.receive;
+    n3.send -> n4.receive;
+    n4.send -> n5.receive;
+    n5.send -> n1.receive;
+}

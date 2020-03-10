@@ -1,0 +1,103 @@
+target TypeScript {
+    fast: true
+};
+main reactor ForkJoin {
+    logical action end:boolean;
+    logical action nextWorker:number;
+    state totalWorkers:number(5);
+    state workerCount:number(0);
+    state startTime:{=TimeValue|undefined=}(undefined);
+    
+    reaction (startup) -> nextWorker {=
+        startTime = util.getCurrentPhysicalTime();
+        actions.nextWorker.schedule(0,1);
+    =}
+    
+    reaction (nextWorker) -> w0.receive, w1.receive, w2.receive, w3.receive, w4.receive, nextWorker {=
+        nextWorker = nextWorker as number;
+        switch (nextWorker) { 
+            case 0: {
+                w0.receive = 1;
+                break;
+            }
+            case 1: {
+                w1.receive = 1;
+                break;
+            }
+            case 2: {
+                w2.receive = 1;
+                break;
+            }
+            case 3: {
+                w3.receive = 1;
+                break;
+            }
+            case 4: {
+                w4.receive = 1;
+                break;
+            }
+        }
+        let next = (nextWorker + 1) % 5;
+        actions.nextWorker.schedule(0, next);
+    =}
+    
+    w0 = new Worker();
+    w1 = new Worker();
+    w2 = new Worker();
+    w3 = new Worker();
+    w4 = new Worker();
+    
+    reaction (w0.done) -> end {=
+        workerCount++;
+        if (workerCount == totalWorkers) {
+            actions.end.schedule(0);
+        }
+    =}
+    
+    reaction (w1.done) -> end {=
+        workerCount++;
+        if (workerCount == totalWorkers) {
+            actions.end.schedule(0);
+        }
+    =}
+    
+    reaction (w2.done) -> end {=
+        workerCount++;
+        if (workerCount == totalWorkers) {
+            actions.end.schedule(0);
+        }
+    =}
+    
+    reaction (w3.done) -> end {=
+        workerCount++;
+        if (workerCount == totalWorkers) {
+            actions.end.schedule(0);
+        }
+    =}
+    
+    reaction (w4.done) -> end {=
+        workerCount++;
+        if (workerCount == totalWorkers) {
+            actions.end.schedule(0);
+        }
+    =}
+    
+    reaction (end) {=
+        let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
+        console.log("Elapsed time: " + elapsedTime);
+        util.requestShutdown();
+    =}
+}
+
+reactor Worker(limit:number(25000)) {
+    input receive:number;
+    output done:boolean;
+    state count:number(0);
+    
+    reaction (receive) -> done {=
+        count++;
+        if (count == limit -1) {
+            done = true;
+        }
+    =}
+}
