@@ -254,11 +254,18 @@ abstract class GeneratorBase {
 
         // Find connections, and see whether they have a delay associated with them.
         // For those that do, remove the connection, and replace it with two reactions
-        // and an action.
+        // and an action. Removal of the connection must occur after iterating to avoid
+        // concurrent modification problems.
+        val toRemove = new LinkedList<Connection>()
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
                 desugarDelay(connection, connection.delay)
+                toRemove.add(connection)
             }
+        }
+        for (connection : toRemove) {
+            val parent = (connection.eContainer as Reactor)
+            parent.connections.remove(connection)
         }
     }
     
@@ -401,9 +408,6 @@ abstract class GeneratorBase {
         // Add the reactions to the parent.
         parent.reactions.add(r1)
         parent.reactions.add(r2)
-
-        // Remove the original connection for the parent.
-        parent.connections.remove(connection)
     }
 
 
