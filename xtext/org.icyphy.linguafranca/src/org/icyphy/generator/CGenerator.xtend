@@ -507,8 +507,8 @@ int main(int argc, char* argv[]) {
                             action.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__SHUTDOWN.name
                             action.origin = ActionOrigin.LOGICAL
-                            action.minTime = factory.createTimeOrValue
-                            action.minTime.time = 0
+                            action.minDelay = factory.createTimeOrValue
+                            action.minDelay.time = 0
                             reactor.actions.add(action)
                         }
                     }
@@ -1402,7 +1402,8 @@ int main(int argc, char* argv[]) {
                 )
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
-                var minTime = reactorInstance.resolveTime(trigger.minTime)
+                var minDelay = reactorInstance.resolveTime(trigger.minDelay)
+                var minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival)
                 
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
@@ -1411,8 +1412,8 @@ int main(int argc, char* argv[]) {
                     // if no minimum interarrival time was specified, then
                     // we do not want zero, which is what resolveTime returns,
                     // but rather some non-zero time.
-                    if (trigger.minTime === null) {
-                        minTime = DEFAULT_MIN_INTER_ARRIVAL;
+                    if (trigger.minInterArrival === null) {
+                        minInterArrival = DEFAULT_MIN_INTER_ARRIVAL;
                     }
                     if (trigger.policy == QueuingPolicy.NONE) {
                         trigger.policy = QueuingPolicy.DEFER;
@@ -1422,7 +1423,8 @@ int main(int argc, char* argv[]) {
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        timeInTargetLanguage(minTime) + ', 0LL, NULL, ' + isPhysical + ', NEVER,' + trigger.policy
+                        timeInTargetLanguage(minDelay) + ',' + timeInTargetLanguage(minInterArrival) + 
+                        ', NULL, ' + isPhysical + ', NEVER,' + trigger.policy
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 if ((triggerInstance as ActionInstance).isShutdown) {
