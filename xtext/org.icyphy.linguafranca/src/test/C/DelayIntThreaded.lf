@@ -5,7 +5,7 @@ target C {
 reactor DelayInt(delay:time(100 msec)) {
     input in:int;
     output out:int;
-    logical action d:int;
+    logical action d:int*;
     reaction(in) -> d {=
         // Allocate memory for a copy of the input. Use lf_malloc(),
         // the Lingua Franca specialized version of malloc().
@@ -16,9 +16,8 @@ reactor DelayInt(delay:time(100 msec)) {
     
     reaction(d) -> out {=
         // This will pass the value, so the malloc can be freed.
-        if (d_has_value) {
-            set(out, d_value);
-        }
+        set(out, *d_value);
+        free(d_value);
     =}
 }
 reactor Test {

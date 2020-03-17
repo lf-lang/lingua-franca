@@ -136,10 +136,8 @@ pqueue_t* event_q;     // For sorting by time.
 
 pqueue_t* reaction_q;  // For sorting by deadline.
 pqueue_t* recycle_q;   // For recycling malloc'd events.
-pqueue_t* free_q;      // For free malloc'd values carried by events.
 
 handle_t __handle = 1;
-
 
 // ********** Priority Queue Support Start
 
@@ -243,8 +241,8 @@ void __done_using(token_t* token) {
     if (token->ref_count == 0) {
         // Count frees to issue a warning if this is never freed.
         __count_allocations--;
-        // printf("****** Freeing allocated memory.\n");
         free(token->value);
+        // printf("DEBUG: Freed allocated memory %p\n", token->value);
     }
 }
 
@@ -410,6 +408,7 @@ void schedule_output_reactions(reaction_t* reaction) {
 void* __set_new_array_impl(token_t* token, int length) {
     // FIXME: Error checking needed.
     token->value = malloc(token->element_size * length);
+    printf("DEBUG: Allocated %p\n", token->value);
     token->ref_count = token->initial_ref_count;
     // Count allocations to issue a warning if this is never freed.
     __count_allocations++;
@@ -594,9 +593,6 @@ void initialize() {
             get_event_position, set_event_position, event_matches, print_event);
 	// NOTE: The recycle queue does not need to be sorted. But here it is.
     recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
-            get_event_position, set_event_position, event_matches, print_event);
-	// NOTE: The free queue does not need to be sorted. But here it is.
-    free_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
 
     // Initialize the trigger table.

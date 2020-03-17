@@ -4,19 +4,17 @@ target C;
 reactor Delay(delay:time(100 msec)) {
     input in:int;
     output out:int;
-    logical action a:int;
+    logical action a:int*;
     reaction(in) -> a {=
-        // Allocate memory for a copy of the input. Use lf_malloc(),
-        // the Lingua Franca specialized version of malloc().
-        int* value = lf_malloc(sizeof(int));
+        // Allocate memory for a copy of the input.
+        int* value = malloc(sizeof(int));
         *value = in;
         schedule(a, self->delay, value);
     =}
     reaction(a) -> out {=
-        // This will pass the value, so the lf_malloc can be freed.
-        if (a_has_value) {
-            set(out, a_value);
-        }
+        // This will pass the value, so the malloc can be freed.
+        set(out, *a_value);
+        free(a_value);
     =}
 }
 reactor Test {

@@ -195,17 +195,16 @@ int next() {
         // reactions can access it.
         event->trigger->value = event->value;
         
-        // If the value is non-null, record the event to free the value
-        // at the end of the current logical time. Otherwise, recycle the event.
-        // In either case, so that sorting doesn't cost anything,
+        // Recycle the event.
+        // So that sorting doesn't cost anything,
         // give all recycled events the same zero time stamp.
         event->time = 0LL;
-        if (event->value == NULL) {
-       		pqueue_insert(recycle_q, event);
-       	} else {
-       		pqueue_insert(free_q, event);
-       	}
-		// Peek at the next event in the event queue.
+        // Also remove pointers that will be replaced.
+        event->value = NULL;
+        event->trigger = NULL;
+   		pqueue_insert(recycle_q, event);
+
+   		// Peek at the next event in the event queue.
         event = pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
@@ -263,23 +262,7 @@ int next() {
     
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
-    
-    // Free any values that need to be freed and recycle the event
-    // carrying them.
-    event_t* free_event = pqueue_pop(free_q);
-    while (free_event != NULL) {
-        if (free_event->value != NULL) {
-        	// This is where an action payload gets freed.
-    	    free(free_event->value);
-    	}
-    	if (free_event->trigger != NULL) {
-    	    // Make sure the trigger is not pointing to freed memory.
-    	    free_event->trigger->value = NULL;
-    	}
-    	pqueue_insert(recycle_q, free_event);
-    	free_event = pqueue_pop(free_q);
-    }
-    
+
     if (stop_time > 0LL && current_time >= stop_time) {
     	stop_requested = true;
         return 0;
