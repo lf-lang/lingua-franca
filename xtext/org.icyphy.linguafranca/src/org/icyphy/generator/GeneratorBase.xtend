@@ -964,9 +964,16 @@ abstract class GeneratorBase {
         if (mode == Mode.INTEGRATED) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
-            val pattern = Pattern.compile(
+            var pattern = Pattern.compile("");
+            if (File.separator.equals("/")) { //linux file separator
+				Pattern.compile(
                 "platform:" + File.separator + "resource" + File.separator +
                     id + File.separator);
+			}else{ //windows file separator
+				pattern = Pattern.compile(
+                "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
+                    id + File.separator + File.separator );
+			}
             val matcher = pattern.matcher(code);
             var projName = ""
             if (matcher.find()) {
@@ -1245,12 +1252,12 @@ abstract class GeneratorBase {
             System.err.println(
                 "ERROR: Source file protocol is not recognized: " + path);
         }
-        var lastSlash = sourceFile.lastIndexOf('/')
-        if (lastSlash >= 0) {
-            filename = sourceFile.substring(lastSlash + 1)
-            directory = sourceFile.substring(0, lastSlash)
-        }
+        
         // Strip the filename of the extension.
+        var File f = new File(sourceFile);
+        filename = f.getName();
+        directory = f.getParent();
+       
         if (filename.endsWith('.lf')) {
             filename = filename.substring(0, filename.length - 3)
         }
