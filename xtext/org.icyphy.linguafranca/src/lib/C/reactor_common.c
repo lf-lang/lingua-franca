@@ -408,7 +408,7 @@ void schedule_output_reactions(reaction_t* reaction) {
 void* __set_new_array_impl(token_t* token, int length) {
     // FIXME: Error checking needed.
     token->value = malloc(token->element_size * length);
-    printf("DEBUG: Allocated %p\n", token->value);
+    // printf("DEBUG: Allocated %p\n", token->value);
     token->ref_count = token->initial_ref_count;
     // Count allocations to issue a warning if this is never freed.
     __count_allocations++;

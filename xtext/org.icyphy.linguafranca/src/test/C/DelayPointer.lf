@@ -1,0 +1,66 @@
+// This is "polymorphic" delay reactor.
+// It delays by a logical time any pointer datatype.
+target C;
+reactor DelayPointer(delay:time(100 msec)) {
+    mutable input in:void*;
+    output out:void*;
+    logical action a:void*;
+    reaction(in) -> a {=
+        // mutable input guarantees *in will not be freed.
+        schedule(a, self->delay, in);
+    =}
+    reaction(a) -> out {=
+        // Using set_token delegates responsibility for
+        // freeing the allocated memory downstream.
+        if (a_has_value) {
+            set_token(out, a_value);
+        }
+    =}
+}
+reactor Source {
+    output out:int*;
+    reaction(startup) -> out {=
+        set_new(out);
+        *out = 42;
+    =}
+}
+reactor Test {
+    input in:int*;
+    state start_time:time(0);
+    state received_value:bool(false);
+    reaction(startup) {=
+        // Record the logical time at the start.
+        self->start_time = get_logical_time();
+    =} 
+    reaction(in) {=
+        printf("Received: %d.\n", *in);
+        self->received_value = true;
+        // Check the time of the input.
+        instant_t current_time = get_logical_time();
+        interval_t elapsed = current_time - self->start_time;
+        printf("After %lld nsec of logical time.\n", elapsed);
+        if (elapsed != 100000000LL) {
+            printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
+            exit(1);
+        }
+        if (*in != 42) {
+            printf("ERROR: Expected input value to be 42. It was %d.\n", *in);
+            exit(2);            
+        }
+    =}
+    reaction(shutdown) {=
+        printf("Checking that communication occurred.\n");
+        if (!self->received_value) {
+            printf("ERROR: No communication occurred!\n");
+            exit(3);            
+        }
+    =}
+}
+
+main reactor DelayPointerTest { 
+    s = new Source();
+    d = new DelayPointer();
+    t = new Test();
+    s.out -> d.in;
+    d.out -> t.in; 
+}
