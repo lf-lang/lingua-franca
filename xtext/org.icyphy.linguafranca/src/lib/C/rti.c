@@ -373,16 +373,19 @@ void start_rti(int port) {
 
     int socket_descriptor = create_server(port);
 
+    printf("RTI: Listening for federates on port %d.\n", port);
+
     // Wait for connections from federates and create a thread for each.
     connect_to_federates(socket_descriptor);
 
     // All federates have connected.
+    printf("RTI: All expected federates have connected. Starting execution.\n");
 
     // Wait for federate threads to exit.
     void* thread_exit_status;
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         pthread_join(federates[i].thread_id, &thread_exit_status);
-        // printf("DEBUG: Federate thread exited.\n");
+        printf("RTI: Federate thread exited.\n");
     }
     close(socket_descriptor);
 }

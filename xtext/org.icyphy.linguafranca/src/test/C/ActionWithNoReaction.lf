@@ -8,7 +8,7 @@ target C {
 reactor foo {
     input x:int;
     output y:int;
-    logical action a:int;
+    logical action a:int*;
     reaction(x) -> y, a {=
         set(y, 2*x);
         schedule(a, MSEC(500), NULL);

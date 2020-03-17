@@ -77,7 +77,7 @@ class CGenerator extends GeneratorBase {
     
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newHashSet('C')
-
+    
     // Additional sources to add to the compile command if appropriate.
     var compileAdditionalSources = null as ArrayList<String>
 
@@ -247,6 +247,39 @@ class CGenerator extends GeneratorBase {
                 pr('void __start_time_step() {\n')
                 indent()
                 pr(startTimeStep.toString)
+                unindent()
+                pr('}\n')
+
+                // Generate function to return a pointer to the action trigger_t
+                // that handles incoming network messages destined to the specified
+                // port. This will only be used if there are federates.
+                pr('trigger_t* __action_for_port(int port_id) {\n')
+                indent()
+                if (federate.networkMessageActions.size > 0) {
+                    // Create a static array of trigger_t pointers.
+                    // networkMessageActions is a list of Actions, but we
+                    // need a list of trigger struct names for ActionInstances.
+                    // There should be exactly one ActionInstance in the
+                    // main reactor for each Action.
+                    val triggers = new LinkedList<String>()
+                    for (action : federate.networkMessageActions) {
+                        // Find the corresponding ActionInstance.
+                        val actionInstance = main.getActionInstance(action)
+                        triggers.add(triggerStructName(actionInstance))
+                    }
+                    pr('''
+                    static trigger_t* action_table[] = {
+                        &«triggers.join(', &')»
+                    };
+                    if (port_id < «federate.networkMessageActions.size») {
+                        return action_table[port_id];
+                    } else {
+                        return NULL;
+                    }
+                    ''')
+                } else {
+                    pr('return NULL;')
+                }
                 unindent()
                 pr('}\n')
 
@@ -798,7 +831,7 @@ int main(int argc, char* argv[]) {
                         pr(
                             reactionInitialization,
                             'if (' + trigger.variable.name + '_has_value) ' + trigger.variable.name +
-                                '_value = *(' + '(' + type + '*)' + valuePointer + ');'
+                                '_value = (' + type + ')' + valuePointer + ';'
                         );
                     }
                 }
@@ -1776,14 +1809,24 @@ int main(int argc, char* argv[]) {
     override generateDelayBody(Action action, VarRef port) { 
         val ref = generateVarRef(port);
         val tmp = action.name + "_to_" + port.variable.name
+        // Note that the action.type set by the base class is actually
+        // the port type. The action type needs to be corrected to be a pointer.
+        // However, this is deferred to generateForwardBody so that we still
+        // have access to the port type there.
         // FIXME: the following check is not detecting pointer types masked by a typedef
-        '''«IF !action.type.trim.endsWith("*")»
+        if (isTokenType(action.type)) {
+            // FIXME: Not right.
+            '''
+            «action.type» «tmp» = &«ref»;
+            schedule(«action.name», 0, «tmp»);
+            '''
+        } else {
+            '''
             «action.type»* «tmp» = malloc(sizeof(«action.type»));
             *«tmp» = «ref»;
-        «ELSE»
-            «action.type»* «tmp» = &«ref»;
-        «ENDIF»
-        schedule(«action.name», 0, «tmp»);'''
+            schedule(«action.name», 0, «tmp»);
+            '''
+        }
     }
     
     /**
@@ -1792,9 +1835,17 @@ int main(int argc, char* argv[]) {
      * @param action The action that triggers the reaction
      * @param port The port to write to
      */
-    override generateForwardBody(Action action, VarRef port) '''
-        set(«generateVarRef(port)», «action.name»_value);
+    override generateForwardBody(Action action, VarRef port) {
+        // Note that the action.type set by the base class is actually
+        // the port type. The action type needs to be corrected to be a pointer.
+        val portType = action.type
+        action.type = portType + '*'
+        
     '''
+        set(«generateVarRef(port)», *«action.name»_value);
+        free(«action.name»_value);
+    '''
+    }
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -1816,9 +1867,15 @@ int main(int argc, char* argv[]) {
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         String type
-    ) { 
-        val sendRef = generateVarRef(sendingPort);
-        val receiveRef = generateVarRef(receivingPort);
+    ) {
+        // Adjust the type of the action.
+        // If it is "string", then change it to "char".
+        // Pointer types in actions are declared without the "*" (perhaps oddly).
+        if (action.type == "string") {
+            action.type = "char"
+        }
+        val sendRef = generateVarRef(sendingPort)
+        val receiveRef = generateVarRef(receivingPort)
         '''
         // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
@@ -1931,7 +1988,7 @@ int main(int argc, char* argv[]) {
 
     // //////////////////////////////////////////
     // // Private methods.
-
+    
     /** Perform deferred initializations in initialize_trigger_objects.
      *  @param federate The federate for which we are doing this.
      */
