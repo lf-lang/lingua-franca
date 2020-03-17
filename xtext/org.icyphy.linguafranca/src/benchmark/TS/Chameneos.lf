@@ -1,0 +1,296 @@
+// See https://shamsimam.github.io/papers/2014-agere-savina.pdf
+// The original source of the chameneos problem is https://cedric.cnam.fr/fichiers/RC474.pdf
+
+// Benchmark for many-to-many communication inspired by color changing lizards.
+
+// All chameneos (lizards) constantly send messages to a mall reactor.
+// The mall assigns lizards a friend to meet with
+// The lizards exchange state (their color) and return to the mall.
+target TypeScript {
+    fast: true
+};
+
+main reactor Chameneos {
+    
+// Conversions for updateColor from https://wiki.haskell.org/Shootout/Chameneos
+   preamble {=
+        enum Color {RED, YELLOW, BLUE};
+        function updateColor(a : Color, b : Color) : Color {
+            // console.log("Got a: " + a + ", b: " + b);
+            if (a == Color.RED && b == Color.RED) return Color.RED;
+            if (a == Color.RED && b == Color.YELLOW) return Color.BLUE;
+            if (a == Color.RED && b == Color.BLUE) return Color.YELLOW;
+            if (a == Color.YELLOW && b == Color.RED) return Color.BLUE;
+            if (a == Color.YELLOW && b == Color.YELLOW) return Color.YELLOW;
+            if (a == Color.YELLOW && b == Color.BLUE) return Color.RED;
+            if (a == Color.BLUE && b == Color.RED) return Color.YELLOW;
+            if (a == Color.BLUE && b == Color.YELLOW) return Color.RED;
+            if (a == Color.BLUE && b == Color.BLUE) return Color.BLUE;
+            return null as never;
+        }
+    =}
+   state startTime:{=TimeValue|undefined=}(undefined);
+   reaction (startup) -> m.start {=
+        m.start = true;
+        startTime = util.getCurrentPhysicalTime();
+    =}
+   reaction (m.done) {=
+        let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
+        console.log("Elapsed time: " + elapsedTime);
+        util.requestShutdown();
+   =}
+   m = new Mall();
+   
+   l0 = new Lizard(initialColor = {= Color.RED =});
+   l1 = new Lizard(initialColor = {= Color.BLUE =});
+   l2 = new Lizard(initialColor = {= Color.RED =});
+   l3 = new Lizard(initialColor = {= Color.YELLOW =});
+   l4 = new Lizard(initialColor = {= Color.BLUE =});
+   
+   m.l0instruction -> l0.instruction;
+   l0.ready -> m.ready0;
+   l0.toFriend1 -> l1.fromFriend0;
+   l0.toFriend2 -> l2.fromFriend0;
+   l0.toFriend3 -> l3.fromFriend0;
+   l0.toFriend4 -> l4.fromFriend0;
+   l0.ackFriend1 -> l1.responseFriend0;
+   l0.ackFriend2 -> l2.responseFriend0;
+   l0.ackFriend3 -> l3.responseFriend0;
+   l0.ackFriend4 -> l4.responseFriend0;
+   
+   m.l1instruction -> l1.instruction;
+   l1.ready -> m.ready1;
+   l1.toFriend0 -> l0.fromFriend1;
+   l1.toFriend2 -> l2.fromFriend1;
+   l1.toFriend3 -> l3.fromFriend1;
+   l1.toFriend4 -> l4.fromFriend1;
+   l1.ackFriend0 -> l0.responseFriend1;
+   l1.ackFriend2 -> l2.responseFriend1;
+   l1.ackFriend3 -> l3.responseFriend1;
+   l1.ackFriend4 -> l4.responseFriend1;
+   
+   m.l2instruction -> l2.instruction;
+   l2.ready -> m.ready2;
+   l2.toFriend0 -> l0.fromFriend2;
+   l2.toFriend1 -> l1.fromFriend2;
+   l2.toFriend3 -> l3.fromFriend2;
+   l2.toFriend4 -> l4.fromFriend2;
+   l2.ackFriend0 -> l0.responseFriend2;
+   l2.ackFriend1 -> l1.responseFriend2;
+   l2.ackFriend3 -> l3.responseFriend2;
+   l2.ackFriend4 -> l4.responseFriend2;
+   
+   m.l3instruction -> l3.instruction;
+   l3.ready -> m.ready3;
+   l3.toFriend0 -> l0.fromFriend3;
+   l3.toFriend1 -> l1.fromFriend3;
+   l3.toFriend2 -> l2.fromFriend3;
+   l3.toFriend4 -> l4.fromFriend3;
+   l3.ackFriend0 -> l0.responseFriend3;
+   l3.ackFriend1 -> l1.responseFriend3;
+   l3.ackFriend2 -> l2.responseFriend3;
+   l3.ackFriend4 -> l4.responseFriend3;
+   
+   m.l4instruction -> l4.instruction;
+   l4.ready -> m.ready4;
+   l4.toFriend0 -> l0.fromFriend4;
+   l4.toFriend1 -> l1.fromFriend4;
+   l4.toFriend2 -> l2.fromFriend4;
+   l4.toFriend3 -> l3.fromFriend4;
+   l4.ackFriend0 -> l0.responseFriend4;
+   l4.ackFriend1 -> l1.responseFriend4;
+   l4.ackFriend2 -> l2.responseFriend4;
+   l4.ackFriend3 -> l3.responseFriend4;
+}
+
+reactor Mall(limit:number(25000)) {
+    input start:boolean;
+    input ready0:boolean;
+    input ready1:boolean;
+    input ready2:boolean;
+    input ready3:boolean;
+    input ready4:boolean;
+    output done:boolean;
+    output l0instruction:number;
+    output l1instruction:number;
+    output l2instruction:number;
+    output l3instruction:number;
+    output l4instruction:number;
+    
+    state count:number(0);
+    timer t(0, 1); // used to track the iteration limit
+    
+    // Randomly pick a lizard and randomly assign it a friend.
+    // Then repeat for every other available pair of lizards.
+    reaction (ready0, ready1, ready2, ready3, ready4) -> l0instruction, l1instruction, l2instruction, l3instruction, l4instruction, done {=
+        
+        function permuteLizards(freeLizards: Array<number>): Array<number> {
+            let permutedLizards = new Array<number>();
+            
+            while (freeLizards.length > 0) {
+                let index = Math.floor(Math.random()*freeLizards.length);
+                let nextLizard = freeLizards[index];
+                freeLizards.splice(index, 1);
+                permutedLizards.push(nextLizard);
+            }
+            return permutedLizards;
+        }
+        
+        if (count == limit - 1) {
+            done = true;
+        } else {
+            // Randomly permute the ready lizards, then assign pairs as friends
+            
+            // First assemble a list of ready lizards
+            let readyLizards = new Array<number>();
+            if (ready0 !== undefined) readyLizards.push(0);
+            if (ready1 !== undefined) readyLizards.push(1);
+            if (ready2 !== undefined) readyLizards.push(2);
+            if (ready3 !== undefined) readyLizards.push(3);
+            if (ready4 !== undefined) readyLizards.push(4);
+          
+            let permutation = permuteLizards(readyLizards);
+            while (permutation.length >= 2) {
+                let lizardA = permutation.pop();
+                let lizardB = permutation.pop();
+                
+                switch (lizardA) {
+                    case 0: {
+                        l0instruction = lizardB;
+                        break;
+                    }
+                    case 1: {
+                        l1instruction = lizardB;
+                        break;
+                    }
+                    case 2: {
+                        l2instruction = lizardB;
+                        break;
+                    }
+                    case 3: {
+                        l3instruction = lizardB;
+                        break;
+                    }
+                    case 4: {
+                        l4instruction = lizardB;
+                        break;
+                    }
+                }
+            }
+        }
+        count++;
+    =}
+    
+}
+
+reactor Lizard (initialColor:Color({=Color.BLUE=})) {
+    input instruction:number;
+    input fromFriend0:Color;
+    input fromFriend1:Color;
+    input fromFriend2:Color;
+    input fromFriend3:Color;
+    input fromFriend4:Color;
+    input responseFriend0:Color;
+    input responseFriend1:Color;
+    input responseFriend2:Color;
+    input responseFriend3:Color;
+    input responseFriend4:Color;
+    output ready:boolean;
+    output toFriend0:Color;
+    output toFriend1:Color;
+    output toFriend2:Color;
+    output toFriend3:Color;
+    output toFriend4:Color;
+    output ackFriend0:Color;
+    output ackFriend1:Color;
+    output ackFriend2:Color;
+    output ackFriend3:Color;
+    output ackFriend4:Color;
+    state color:Color(initialColor);
+    
+    timer t(0,1 sec);
+    
+    // Tell the mall this lizard is ready for friend assignment
+    reaction (t) -> ready {=
+        ready = true;
+    =}
+    
+    // Send this lizard's color to the friend designated by the instruction 
+    reaction (instruction) -> toFriend0, toFriend1, toFriend2, toFriend3, toFriend4 {=
+        switch (instruction) { 
+            case 0: {
+                toFriend0 = color;
+                break;
+            }
+            case 1: {
+                toFriend1 = color;
+                break;
+            }
+            case 2: {
+                toFriend2 = color;
+                break;
+            }
+            case 3: {
+                toFriend3 = color;
+                break;
+            }
+            case 4: {
+                toFriend4 = color;
+                break;
+            }
+        }
+    =}
+    
+    // When a lizard receives a color from a friend because
+    // the friend got a Mall instruction,
+    // send this lizard's color back as an acknowledgement.
+    // Next update this lizard to its new color.
+    reaction (fromFriend0) -> ackFriend0 {=
+        ackFriend0 = color;
+        color = updateColor(color, fromFriend0 as Color);
+    =}
+    
+    reaction (fromFriend1) -> ackFriend1 {=
+        ackFriend1 = color;
+        color = updateColor(color, fromFriend1 as Color);
+    =}
+    
+    reaction (fromFriend2) -> ackFriend2 {=
+        ackFriend2 = color;
+        color = updateColor(color, fromFriend2 as Color);
+    =}
+    
+    reaction (fromFriend3) -> ackFriend3 {=
+        ackFriend3 = color;
+        color = updateColor(color, fromFriend3 as Color);
+    =}
+    
+    reaction (fromFriend4) -> ackFriend4 {=
+        ackFriend4 = color;
+        color = updateColor(color, fromFriend4 as Color);
+    =}
+    
+    // When a lizard gets a response back from the lizard it was instructed to communicate
+    // with, update this lizard's color.
+    reaction (responseFriend0) {=
+        color = updateColor(color, responseFriend0 as Color);
+    =}
+    
+    reaction (responseFriend1) {=
+        color = updateColor(color, responseFriend1 as Color);
+    =}
+    
+    reaction (responseFriend2) {=
+        color = updateColor(color, responseFriend2 as Color);
+    =}
+    
+    reaction (responseFriend3) {=
+        color = updateColor(color, responseFriend3 as Color);
+    =}
+    
+    reaction (responseFriend4) {=
+        color = updateColor(color, responseFriend4 as Color);
+    =}
+}
+
+

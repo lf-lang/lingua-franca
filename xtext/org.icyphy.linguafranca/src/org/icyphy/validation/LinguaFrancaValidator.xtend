@@ -21,6 +21,8 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.eclipse.xtext.validation.EValidatorRegistrar
+import java.util.Arrays
 
 /**
  * This class contains custom validation rules. 
@@ -61,6 +63,229 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'threads',
         'timeout'
     }
+    
+    // List via: https://github.com/Microsoft/TypeScript/issues/2536
+    var TSKeywordsList = Arrays.asList(
+        
+        // Reserved Words
+        "break",
+        "case",
+        "catch",
+        "class",
+        "const",
+        "continue",
+        "debugger",
+        "default",
+        "delete",
+        "do",
+        "else",
+        "enum",
+        "export",
+        "extends",
+        "false",
+        "finally",
+        "for",
+        "function",
+        "if",
+        "import",
+        "in",
+        "instanceof",
+        "new",
+        "null",
+        "return",
+        "super",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "typeof",
+        "var",
+        "void",
+        "while",
+        "with",
+        
+        //Strict Mode Reserved Words
+        "as",
+        "implements",
+        "interface",
+        "let",
+        "package",
+        "private",
+        "protected",
+        "public",
+        "static",
+        "yield",
+        
+        // Contextual Keywords
+        "any",
+        "boolean",
+        "constructor",
+        "declare",
+        "get",
+        "module",
+        "require",
+        "number",
+        "set",
+        "string",
+        "symbol",
+        "type",
+        "from",
+        "of"
+    )
+    
+    // via: https://en.cppreference.com/w/c/keyword
+    var CKeywordsList = Arrays.asList(
+        "auto",
+        "break",
+        "case",
+        "char",
+        "const",
+        "continue",
+        "default",
+        "do",
+        "double",
+        "else",
+        "enum",
+        "extern",
+        "float",
+        "for",
+        "goto",
+        "if",
+        "inline", // (since C99)
+        "int",
+        "long",
+        "register",
+        "restrict", // (since C99)
+        "return",
+        "short",
+        "signed",
+        "sizeof",
+        "static",
+        "struct",
+        "switch",
+        "typedef",
+        "union",
+        "unsigned",
+        "void",
+        "volatile",
+        "while",
+        "_Alignas", // (since C11)
+        "_Alignof", // (since C11)
+        "_Atomic", // (since C11)
+        "_Bool", // (since C99)
+        "_Complex", // (since C99)
+        "_Generic", // (since C11)
+        "_Imaginary", // (since C99)
+        "_Noreturn", // (since C11)
+        "_Static_assert", // (since C11)
+        "_Thread_local" // (since C11)
+    )
+    
+    // via: https://en.cppreference.com/w/cpp/keyword
+    var CppKeywordsList = Arrays.asList(
+        "alignas", // (since C++11)
+        "alignof", // (since C++11)
+        "and",
+        "and_eq",
+        "asm",
+        "atomic_cancel", // (TM TS)
+        "atomic_commit", // (TM TS)
+        "atomic_noexcept", // (TM TS)
+        "auto(1)",
+        "bitand",
+        "bitor",
+        "bool",
+        "break",
+        "case",
+        "catch",
+        "char",
+        "char8_t", // (since C++20)
+        "char16_t", // (since C++11)
+        "char32_t", // (since C++11)
+        "class(1)",
+        "compl",
+        "concept", // (since C++20)
+        "const",
+        "consteval", // (since C++20)
+        "constexpr", // (since C++11)
+        "constinit", // (since C++20)
+        "const_cast",
+        "continue",
+        "co_await", // (since C++20)
+        "co_return", // (since C++20)
+        "co_yield", // (since C++20)
+        "decltype", // (since C++11)
+        "default(1)",
+        "delete(1)",
+        "do",
+        "double",
+        "dynamic_cast",
+        "else",
+        "enum",
+        "explicit",
+        "export(1)(3)",
+        "extern(1)",
+        "false",
+        "float",
+        "for",
+        "friend",
+        "goto",
+        "if",
+        "inline(1)",
+        "int",
+        "long",
+        "mutable(1)",
+        "namespace",
+        "new",
+        "noexcept", // (since C++11)
+        "not",
+        "not_eq",
+        "nullptr", // (since C++11)
+        "operator",
+        "or",
+        "or_eq",
+        "private",
+        "protected",
+        "public",
+        "reflexpr", // (reflection TS)
+        "register(2)",
+        "reinterpret_cast",
+        "requires", // (since C++20)
+        "return",
+        "short",
+        "signed",
+        "sizeof(1)",
+        "static",
+        "static_assert", // (since C++11)
+        "static_cast",
+        "struct(1)",
+        "switch",
+        "synchronized", // (TM TS)
+        "template",
+        "this",
+        "thread_local", // (since C++11)
+        "throw",
+        "true",
+        "try",
+        "typedef",
+        "typeid",
+        "typename",
+        "union",
+        "unsigned",
+        "using(1)",
+        "virtual",
+        "void",
+        "volatile",
+        "wchar_t",
+        "while",
+        "xor",
+        "xor_eq"
+    )
+    
+    var TSKeywords = newHashSet()
+    var CKeywords = newHashSet()
+    var CppKeywords = newHashSet()
 
     var reactorClasses = newHashSet()
     var parameters = newHashSet()
@@ -82,9 +307,55 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             error(UNDERSCORE_MESSAGE + name, feature)
         }
         
-        if (this.target.equals("TypeScript") && name.equals("actions")) {
-            error(ACTIONS_MESSAGE + name, feature)
+        if (this.target.equals("TypeScript")) {
+            // "actions" is a reserved word within a TS reaction
+            if (this.target.equals("TypeScript") && name.equals("actions")) {
+                error(ACTIONS_MESSAGE + name, feature)
+            }
+        
+            // Raise an error if the name is a TypeScript reserved word
+            if (TSKeywords.contains(name)) {
+                error(RESERVED_MESSAGE + name, feature)
+            }
         }
+        
+        if (this.target.equals("C")) {
+            // Raise an error if the name is a TypeScript reserved word
+            if (CKeywords.contains(name)) {
+                error(RESERVED_MESSAGE + name, feature)
+            }
+        }
+        
+        if (this.target.equals("Cpp")) {
+            // Raise an error if the name is a TypeScript reserved word
+            if (CppKeywords.contains(name)) {
+                error(RESERVED_MESSAGE + name, feature)
+            }
+        }
+    }
+    
+    // Initialize should be called when the validator is registered
+    // Use this function to set up data structures using 
+    // common data. 
+    def initialize() {
+        for (word : TSKeywordsList) {
+            TSKeywords.add(word)
+        }
+        for (word : CKeywordsList) {
+            CKeywords.add(word)
+        }
+        for (word : CppKeywordsList) {
+            CppKeywords.add(word)
+        }
+    }
+    
+    // The xtext validator doesn't have an initialize function
+    // for common data, so override the register function
+    // to call the locally defined initialize function.
+    // See: https://www.eclipse.org/forums/index.php/t/1039065/
+    override register(EValidatorRegistrar registrar) {
+        super.register(registrar)
+        initialize()
     }
     
     // //////////////////////////////////////////////////
@@ -488,5 +759,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
-    static val ACTIONS_MESSAGE = "\"actions\" is a reserved name for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation)." 
+    static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
+    static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): " 
 }
