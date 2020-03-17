@@ -378,7 +378,7 @@ abstract class GeneratorBase {
 
         // Name the newly created action; set its delay and type.
         action.name = getUniqueIdentifier(parent, "delay")
-        action.minTime = connection.delay.time
+        action.minDelay = connection.delay.time
         action.type = type
         action.origin = ActionOrigin.LOGICAL
 
