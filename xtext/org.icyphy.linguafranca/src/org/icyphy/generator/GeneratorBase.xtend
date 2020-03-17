@@ -964,15 +964,14 @@ abstract class GeneratorBase {
         if (mode == Mode.INTEGRATED) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
-            var pattern = Pattern.compile("");
-            if (File.separator.equals("/")) { //linux file separator
+            var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
 				Pattern.compile(
                 "platform:" + File.separator + "resource" + File.separator +
                     id + File.separator);
-			}else{ //windows file separator
-				pattern = Pattern.compile(
+			} else { // Windows file separator
+				Pattern.compile(
                 "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
-                    id + File.separator + File.separator );
+                id + File.separator + File.separator );
 			}
             val matcher = pattern.matcher(code);
             var projName = ""
