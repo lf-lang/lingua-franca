@@ -1810,19 +1810,22 @@ int main(int argc, char* argv[]) {
      */
     override generateDelayBody(Action action, VarRef port) { 
         val ref = generateVarRef(port);
-        val tmp = action.name + "_to_" + port.variable.name
         // Note that the action.type set by the base class is actually
         // the port type. The action type needs to be corrected to be a pointer.
         // However, this is deferred to generateForwardBody so that we still
         // have access to the port type there.
         // FIXME: the following check is not detecting pointer types masked by a typedef
         if (isTokenType(action.type)) {
-            // FIXME: Not right.
             '''
-            «action.type» «tmp» = &«ref»;
-            schedule(«action.name», 0, «tmp»);
+            // Get a copy of the input that we own (won't be freed).
+            if («ref»_is_present) {
+                «ref».value = writable_copy(«ref»);
+            }
+            // FIXME: What to do about the length? Special version of schedule()?
+            schedule(«action.name», 0, «ref».value);
             '''
         } else {
+            val tmp = action.name + "_to_" + port.variable.name
             '''
             «action.type»* «tmp» = malloc(sizeof(«action.type»));
             *«tmp» = «ref»;
@@ -1842,11 +1845,20 @@ int main(int argc, char* argv[]) {
         // the port type. The action type needs to be corrected to be a pointer.
         val portType = action.type
         action.type = portType + '*'
+        val ref = generateVarRef(port)
         
-    '''
-        set(«generateVarRef(port)», *«action.name»_value);
-        free(«action.name»_value);
-    '''
+        if (isTokenType(portType)) {
+            '''
+            «ref»->initial_ref_count = 1;
+            set_token(«ref», «action.name»_value);
+            '''
+        } else {
+            // Primitive type. Memory was malloc'd above.
+            '''
+            set(«ref», *«action.name»_value);
+            free(«action.name»_value);
+            '''
+        }
     }
 
     /**
