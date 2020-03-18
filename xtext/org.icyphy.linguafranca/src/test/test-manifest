@@ -28,6 +28,7 @@ DelayIntThreaded.lf
 DelayPointer.lf
 DelayString.lf
 DelayStruct.lf
+DelayStructWithAfter.lf
 Determinism.lf
 DeterminismThreaded.lf
 DoubleInvocation.lf
