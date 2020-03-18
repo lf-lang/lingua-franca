@@ -188,6 +188,10 @@ do { \
 
 #define LEVEL(index) (index & 0xFFFF)
 
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+
 #define OVERLAPPING(chain1, chain2) ((chain1 & chain2) != 0)
 
 #define DEADLINE(index) (index & 0x7FFFFFFFFFFF0000)
