@@ -301,13 +301,14 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
             tag = physical_time;
         }
 
-        interval_t min_inter_arrival = trigger->offset + extra_delay;
+        interval_t min_inter_arrival = trigger->period;
+        interval_t delay = trigger->offset;
         // Compute the earliest time that this event can be scheduled.
         instant_t earliest_time;
         if (trigger->scheduled == NEVER) {
-            earliest_time = start_time + min_inter_arrival;
+            earliest_time = start_time + delay;
         } else {
-            earliest_time = trigger->scheduled + min_inter_arrival;
+            earliest_time = trigger->scheduled + MAX(delay, min_inter_arrival);
         }
         
         if (earliest_time > tag) {
