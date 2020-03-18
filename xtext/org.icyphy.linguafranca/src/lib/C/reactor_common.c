@@ -423,10 +423,7 @@ void* __set_new_array_impl(token_t* token, int length) {
  */
 void* __writable_copy_impl(token_t* token) {
     // printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
-    // FIXME: Weirdly, the following test can't be token->ref_count > 1.
-    // The wrong branch is taken when token->ref_count == 0.
-    // This looks like a compiler bug.
-    if (token->ref_count == 1 || token->ref_count == 0) {
+    if (token->ref_count < 2) {
         // printf("****** Avoided copy because reference count is less than two.\n");
         // Decrement the reference count to avoid the automatic free().
         token->ref_count--;
