@@ -259,9 +259,12 @@ void __done_using(token_t* token) {
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
 	// The trigger argument could be null, meaning that nothing is triggered.
 	if (trigger == NULL) return 0;
+    
     // Compute the tag.  How we do that depends on whether
     // this is a logical or physical action.
     interval_t tag = current_time;
+    interval_t delay = trigger->offset + extra_delay;
+    interval_t min_inter_arrival = trigger->period;
     event_t* existing = NULL;
 
     // Recycle event_t structs, if possible.    
@@ -275,7 +278,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     // For logical actions, the logical time of the new event is just
     // the current logical time plus the minimum offset (action parameter)
     // plus the extra delay specified in the call to schedule.
-    e->time = tag + trigger->offset + extra_delay;
+    e->time = tag + delay;
 
     if (trigger->is_physical) {
         // If the trigger is physical, then we need to use
@@ -301,8 +304,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
             tag = physical_time;
         }
 
-        interval_t min_inter_arrival = trigger->period;
-        interval_t delay = trigger->offset;
+        
         // Compute the earliest time that this event can be scheduled.
         instant_t earliest_time;
         if (trigger->scheduled == NEVER) {
