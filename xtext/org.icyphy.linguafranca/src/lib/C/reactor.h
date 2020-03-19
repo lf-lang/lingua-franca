@@ -229,6 +229,8 @@ typedef struct token_t {
     int length;
     /** The number of input ports that have not already reacted to the message. */
     int ref_count;
+    /** Indicator that when the value is freed, this token should also be freed. */
+    bool ok_to_free;
 } token_t;
 
 /** Reaction activation record to push onto the reaction queue. */
