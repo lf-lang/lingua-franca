@@ -420,7 +420,11 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (action.minDelay !== null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    actionArgs+= ", " + timeInTargetLanguage(new TimeValue(action.minDelay.time, action.minDelay.unit))
+                    if (action.minDelay.parameter !== null) {
+                        actionArgs+= ", " + action.minDelay.parameter.name
+                    } else {
+                        actionArgs+= ", " + timeInTargetLanguage(new TimeValue(action.minDelay.time, action.minDelay.unit))    
+                    }
                 }
                 pr(reactorConstructor, "this." + 
                     action.name + " = new Action<" + getActionType(action) +
