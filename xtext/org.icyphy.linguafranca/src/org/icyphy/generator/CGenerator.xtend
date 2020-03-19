@@ -652,8 +652,10 @@ int main(int argc, char* argv[]) {
                 if (containedSource !== null) {
                     pr(body, 'bool* __' + output.name + '_inside_is_present;')
                 }
+                pr(body, 'int __' + output.name + '_num_destinations;')
             }
         }
+        
         // If there are contained reactors that either receive inputs
         // from reactions of this reactor or produce outputs that trigger
         // reactions of this reactor, then we need to create a struct
@@ -1710,7 +1712,7 @@ int main(int argc, char* argv[]) {
                 )
                 // Set the initial reference count equal to the number of destinations.
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + ".__" + output.name + ".initial_ref_count = "
+                    nameOfSelfStruct + ".__" + output.name + "_num_destinations = "
                     + output.dependentPorts.size + ";"
                 )
             }
@@ -1848,9 +1850,13 @@ int main(int argc, char* argv[]) {
         val ref = generateVarRef(port)
         
         if (isTokenType(portType)) {
+            // This is similar to set_token macro except for
+            // handling of reference counts.
             '''
-            «ref»->initial_ref_count = 1;
-            set_token(«ref», «action.name»_value);
+            self->__«ref».value = «action.name»_value; \
+            self->__«ref».length = 1; \
+            self->__«ref».ref_count = 1; \
+            self->__«ref»_is_present = true; \
             '''
         } else {
             // Primitive type. Memory was malloc'd above.
@@ -2261,10 +2267,11 @@ int main(int argc, char* argv[]) {
                 structs.put(port.container, structBuilder)
             }
             val reactorName = port.container.name
-            // First define the struct containing the output value and indicator
-            // of its presence.
+            // First define the struct containing the output value, indicator
+            // of its presence, and number of destinations.
             pr(structBuilder, portType + ' ' + portName + '; ')
             pr(structBuilder, 'bool ' + portName + '_is_present;')
+            pr(structBuilder, 'int ' + portName + '_num_destinations;')
 
             // Next, initialize the struct with the current values.
             pr(
@@ -2274,7 +2281,7 @@ int main(int argc, char* argv[]) {
             )
             pr(
                 builder,
-                reactorName + '.' + portName + '_is_present' + ' = *(self->__' +
+                reactorName + '.' + portName + '_is_present = *(self->__' +
                     reactorName + '.' + portName + '_is_present);'
             )
         }
@@ -2352,7 +2359,8 @@ int main(int argc, char* argv[]) {
             structs.put(definition, structBuilder)
         }
         pr(structBuilder, lfTypeToTokenType(input.type) + '* ' + input.name + ';')
-        pr(structBuilder, ' bool ' + input.name + '_is_present;')
+        pr(structBuilder, ' bool ' + input.name + '_is_present;')        
+        pr(structBuilder, ' int ' + input.name + '_num_destinations;')
         
         pr(builder,
             definition.name + '.' + input.name + ' = &(self->__' +
