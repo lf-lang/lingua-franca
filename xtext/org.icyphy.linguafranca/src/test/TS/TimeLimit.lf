@@ -4,35 +4,29 @@
 // Correct output for this 1, 2, 3, 4.
 // Failure for this test is failing to halt or getting the wrong data.
 
-// FIXME: BELOW COMMENTS ARE WRONG
-// On a 2.6 GHz Intel Core i7 running MacOS Mojave, using a single core,
-// this executes 10,000,000 cycles (two reactions in each cycle) in 0.85 seconds,
-// for over 23 million reactions per second.
-// This translates to 43 nanoseconds per reaction invocation.
 target TypeScript {
-	fast: true,
-	logging: INFO
-//	timeout: 3 sec
+    fast: true,
+    logging: INFO
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
-	output y:number;
-	timer t(offset, period);
-	state count:number(0);
-	reaction(t) -> y {=
-	    count++;
-	    y = count;
-	=}
+    output y:number;
+    timer t(offset, period);
+    state count:number(0);
+    reaction(t) -> y {=
+        count++;
+        y = count;
+    =}
 }
 reactor Destination {
-	input x:number;
-	state s:number(1);
-	reaction(x) {=
+    input x:number;
+    state s:number(1);
+    reaction(x) {=
         if (x != s) {
             console.log("Error: Expected " + s + " and got " + x + ".")
             util.failure()
         }
-        s++;		
-	=}
+        s++;        
+    =}
 }
 
 // FIXME: the TS target is currently too slow for usecs
@@ -40,14 +34,12 @@ reactor Destination {
 
 //main reactor TimeLimit(period:time(1 usec)) {
 main reactor TimeLimit(period:time(1 sec)) {
-	timer stop(1000000 secs);
-	reaction(stop) {=
-//	    console.log("$$$$$$ before requesting shutdown");
-		util.requestShutdown();
-//		console.log("$$$$$$ finished requesting shutdown.");
-	=}
+    timer stop(10 secs);
+    reaction(stop) {=
+        util.requestShutdown();
+    =}
 
-	c = new Clock(period = period);
-	d = new Destination();
-	c.y -> d.x;
+    c = new Clock(period = period);
+    d = new Destination();
+    c.y -> d.x;
 }
