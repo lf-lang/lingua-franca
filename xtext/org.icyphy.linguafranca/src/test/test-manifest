@@ -29,6 +29,7 @@ DelayPointer.lf
 DelayString.lf
 DelayStruct.lf
 DelayStructWithAfter.lf
+DelayStructWithAfterOverlapped.lf
 Determinism.lf
 DeterminismThreaded.lf
 DoubleInvocation.lf

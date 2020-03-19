@@ -253,7 +253,13 @@ void __done_using(token_t** token) {
         __count_payload_allocations--;
         free((*token)->value);
         (*token)->ref_count = 0;
-        // printf("DEBUG: Freed allocated memory %p\n", token->value);
+        // printf("DEBUG: Freed allocated memory for messages: %p\n", token->value);
+        if ((*token)->ok_to_free) {
+            // Need to free the token_t struct also.
+            // printf("DEBUG: Freeing allocated memory for token: %p\n", token);
+            free(*token);
+            __count_token_allocations--;
+        }
     }
 }
 
@@ -270,6 +276,7 @@ token_t* __create_token(int element_size) {
     token->length = 0;
     token->element_size = element_size;
     token->ref_count = 0;
+    token->ok_to_free = false;
     return token;
 }
 
@@ -295,6 +302,8 @@ void __initialize_token(token_t** token, void* value, int length, int num_destin
         result = malloc(sizeof(token_t));
         // Count these mallocs because they are expected to be freed.
         __count_token_allocations++;
+        // Mark the original token as OK to be freed when its payload is freed.
+        (*token)->ok_to_free = true;
     }
     result->value = value;
     result->length = length;
@@ -679,12 +688,20 @@ void initialize() {
 // Check that memory allocated by set_new, set_new_array, or writable_copy
 // has been freed and print a warning message if not.
 void termination() {
-    if (__count_payload_allocations != 0) {
-        printf("**** WARNING: Memory allocated for messages by set_new, set_new_array, or writable_copy has not been freed!\n");
-        printf("**** Number of unfreed tokens: %d.\n", __count_payload_allocations);
+    // Issue a warning if a memory leak has been detected.
+    // NOTE: This is approximate. Do not issue the warning if the
+    // number of unfreed objects does not exceed the number of events
+    // still on the event queue. Those objects on the event queue
+    // may contain malloc'd payloads or token_t structs, and there
+    // is no way that I can see to tell whether that is what they are.
+    if (__count_payload_allocations > event_q->size) {
+        printf("**** WARNING: Memory allocated for messages has not been freed.\n");
+        printf("**** Number of future events on the event queue: %zu\n", event_q->size);
+        printf("**** Number of unfreed messages: %d.\n", __count_payload_allocations);
     }
-    if (__count_token_allocations != 0) {
-        printf("**** WARNING: Memory allocated for tokens by set_new, set_new_array, or writable_copy has not been freed!\n");
+    if (__count_token_allocations > event_q->size) {
+        printf("**** WARNING: Memory allocated for tokens has not been freed!\n");
+        printf("**** Number of future events on the event queue: %zu\n", event_q->size);
         printf("**** Number of unfreed tokens: %d.\n", __count_token_allocations);
     }
     // Print elapsed times.
