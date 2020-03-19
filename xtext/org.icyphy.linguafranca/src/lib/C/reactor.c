@@ -42,7 +42,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // because it will be freed after having been delivered to
 // all relevant destinations unless it is NULL, in which case
 // it will be ignored.
-// NOTE: There is multithreading support in this implementation, so
+// NOTE: There is no multithreading support in this implementation, so
 // asynchronous calls to this function should not be made. The calls
 // should only be made within reactions.
 // If you need asynchronous calls, then use reactor_threaded.c.
