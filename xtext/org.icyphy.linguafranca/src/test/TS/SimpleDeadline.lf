@@ -36,7 +36,7 @@ main reactor SimpleDeadline {
         let startTime = util.getCurrentPhysicalTime();
         let finishTime = startTime.add(sleep_time)
         // Busy wait
-        while(util.getCurrentPhysicalTime().isSmallerThan(finishTime));
+        while(util.getCurrentPhysicalTime().isEarlierThan(finishTime));
         d.x = 42;
     =}
 } 

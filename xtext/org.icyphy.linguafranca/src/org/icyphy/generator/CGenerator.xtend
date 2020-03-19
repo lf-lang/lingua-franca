@@ -583,7 +583,10 @@ int main(int argc, char* argv[]) {
                 val matcher = arrayPatternFixed.matcher(inputType)
                 if (matcher.find()) {
                     // NOTE: Slightly obfuscate input name to help prevent accidental use.
-                    pr(body, matcher.group(1) + '(* __' + input.name + ')' + matcher.group(2) + ';');
+                    // for int[10], the first match is int, the second [10].
+                    // The following results in: int(* __foo)[10];
+                    // FIXME: Are the parentheses here necessary or correct?  Check test ArrayAsType.lf
+                    pr(body, '''«matcher.group(1)»(* __«input.name»)«matcher.group(2)»;''');
                 } else {
                     // NOTE: Slightly obfuscate input name to help prevent accidental use.
                     pr(body, inputType + '* __' + input.name + ';');
@@ -621,7 +624,7 @@ int main(int argc, char* argv[]) {
                 reportError(output,
                     "Output is required to have a type: " + output.name)
             } else {
-                // If the output type has the form type[] or type*, then change it to token_t.
+                // If the output type has the form type[] or type*, then change it to token_t*.
                 val outputType = lfTypeToTokenType(output.type)
                 // If there are contained reactors that send data via this output,
                 // then create a place to put the pointers to the sources of that data.
@@ -638,9 +641,9 @@ int main(int argc, char* argv[]) {
                         pr(body, matcher.group(1) + '(* __' + output.name + '_inside)' + matcher.group(2) + ';')
                     }
                 } else {
-                    // Normal case.
+                    // Normal case or token_t* case.
                     // NOTE: Slightly obfuscate output name to help prevent accidental use.
-                    pr(body, outputType + ' __' + output.name +';')
+                    pr(body, outputType + ' __' + output.name + ';')
                     // If there are contained reactors that send data via this output,
                     // then create a place to put the pointers to the sources of that data.
                     if (containedSource !== null) {
@@ -712,9 +715,8 @@ int main(int argc, char* argv[]) {
             indent(body)
             for (variable : structs.get(containedReactor)) {
                 if (variable instanceof Input) {
-                    val port = variable as Input
-                    pr(body, lfTypeToTokenType(port.type) + ' ' + port.name + ';')
-                    pr(body, 'bool ' + port.name + '_is_present;')
+                    pr(body, lfTypeToTokenType(variable.type) + ' ' + variable.name + ';')
+                    pr(body, 'bool ' + variable.name + '_is_present;')
                 } else {
                     // Must be an output entry.
                     val port = variable as Output
@@ -1697,23 +1699,22 @@ int main(int argc, char* argv[]) {
             )
         }
         // Next, generate the code to initialize outputs and inputs at the start
-        // of a time step to be absent. This will also set the element_size
-        // and initial_reference_count fields of any outputs that are carried
-        // by a token_t struct.
+        // of a time step to be absent. This will also set the number of destinations,
+        // which is used to initialize reference counts.
         for (output : instance.outputs) {
             pr(
                 startTimeStep,
                 nameOfSelfStruct + '.__' + output.name + '_is_present = false;'
             )
             if (isTokenType((output.definition as Port).type)) {
+                val rootType = rootType((output.definition as Port).type)
+                // Create a token_t struct and initialize its element_size
+                // and num_destinations fields.
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + ".__" + output.name + ".element_size = sizeof(" +
-                    rootType((output.definition as Port).type) + ");"
-                )
-                // Set the initial reference count equal to the number of destinations.
-                pr(initializeTriggerObjects,
-                    nameOfSelfStruct + ".__" + output.name + "_num_destinations = "
-                    + output.dependentPorts.size + ";"
+                    '''
+                    «nameOfSelfStruct».__«output.name» = __create_token(sizeof(«rootType»));
+                    «nameOfSelfStruct».__«output.name»_num_destinations = «output.dependentPorts.size»;
+                    '''
                 )
             }
         }
@@ -1819,12 +1820,13 @@ int main(int argc, char* argv[]) {
         // FIXME: the following check is not detecting pointer types masked by a typedef
         if (isTokenType(action.type)) {
             '''
-            // Get a copy of the input that we own (won't be freed).
+            // Increment the reference count to prevent freeing prematurely.
             if («ref»_is_present) {
-                «ref».value = writable_copy(«ref»);
+                «ref»->ref_count++;
+                // Put the whole token on the event queue, not just the payload.
+                // This way, the length and element_size are transported.
+                schedule(«action.name», 0, «ref»);
             }
-            // FIXME: What to do about the length? Special version of schedule()?
-            schedule(«action.name», 0, «ref».value);
             '''
         } else {
             val tmp = action.name + "_to_" + port.variable.name
@@ -1840,26 +1842,24 @@ int main(int argc, char* argv[]) {
      * Generate code for the body of a reaction that is triggered by the
      * given action and writes its value to the given port.
      * @param action The action that triggers the reaction
-     * @param port The port to write to
+     * @param port The port to write to.
      */
     override generateForwardBody(Action action, VarRef port) {
-        // Note that the action.type set by the base class is actually
-        // the port type. The action type needs to be corrected to be a pointer.
-        val portType = action.type
-        action.type = portType + '*'
         val ref = generateVarRef(port)
-        
-        if (isTokenType(portType)) {
-            // This is similar to set_token macro except for
-            // handling of reference counts.
+        if (isTokenType(action.type)) {
+            // Note that the action.type set by the base class is actually
+            // the port type. The action type needs to be corrected to be a token_t*.
+            // Do this here rather than in generateDelayBody() so that we still
+            // have access to the portType.
+            action.type = 'token_t*'
             '''
-            self->__«ref».value = «action.name»_value; \
-            self->__«ref».length = 1; \
-            self->__«ref».ref_count = 1; \
-            self->__«ref»_is_present = true; \
+            self->__«ref» = «action.name»_value;
+            self->__«ref»_is_present = true;
             '''
         } else {
             // Primitive type. Memory was malloc'd above.
+            // Add a level of indirection to the type.
+            action.type = action.type + '*'
             '''
             set(«ref», *«action.name»_value);
             free(«action.name»_value);
@@ -2212,11 +2212,13 @@ int main(int argc, char* argv[]) {
         
         if (isTokenType(input.type)) {
             pr(builder, rootType(input.type) + '* ' + input.name + ';')
+            pr(builder, 'int ' + input.name + '_length = 0;')
             pr(builder, 'if(' + present + ') {')
             indent(builder)
+            pr(builder, input.name + '_length = (*(self->__' + input.name + '))->length;')
             pr(builder, input.name + ' = ('
                 + rootType(input.type)
-                + '*)(self->__' + input.name + '->value);')
+                + '*)((*(self->__' + input.name + '))->value);')
             // If the input is declared mutable, create a writable copy.
             // Note that this will not copy if the reference count is exactly one.
             if (input.isMutable) {
@@ -2236,9 +2238,6 @@ int main(int argc, char* argv[]) {
         }
         unindent(builder)
         pr(builder, '}')
-        if (isTokenType(input.type)) {
-            pr(builder, 'int ' + input.name + '_length = self->__' + input.name + '->length;')
-        }
     }
 
     /** Generate into the specified string builder the code to
@@ -2267,11 +2266,10 @@ int main(int argc, char* argv[]) {
                 structs.put(port.container, structBuilder)
             }
             val reactorName = port.container.name
-            // First define the struct containing the output value, indicator
-            // of its presence, and number of destinations.
+            // First define the struct containing the output value and indicator
+            // of its presence.
             pr(structBuilder, portType + ' ' + portName + '; ')
             pr(structBuilder, 'bool ' + portName + '_is_present;')
-            pr(structBuilder, 'int ' + portName + '_num_destinations;')
 
             // Next, initialize the struct with the current values.
             pr(
@@ -2360,7 +2358,6 @@ int main(int argc, char* argv[]) {
         }
         pr(structBuilder, lfTypeToTokenType(input.type) + '* ' + input.name + ';')
         pr(structBuilder, ' bool ' + input.name + '_is_present;')        
-        pr(structBuilder, ' int ' + input.name + '_num_destinations;')
         
         pr(builder,
             definition.name + '.' + input.name + ' = &(self->__' +
@@ -2467,14 +2464,14 @@ int main(int argc, char* argv[]) {
     }
 
     /** Convert a type specification of the form type[], type[num]
-     *  or type* to token_t. Otherwise, remove the code delimiter,
+     *  or type* to token_t*. Otherwise, remove the code delimiter,
      *  if there is one, and otherwise just return the argument
      *  unmodified.
      */
     private def lfTypeToTokenType(String type) {
         var result = removeCodeDelimiter(type)
         if(isTokenType(type)) {
-            result = 'token_t'
+            result = 'token_t*'
         }
         result
     }
@@ -2513,9 +2510,13 @@ int main(int argc, char* argv[]) {
     }
     
     // Regular expression pattern for array types with specified length.
+    // \s is whitespace, \w is a word character (letter, number, or underscore).
+    // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
     static final Pattern arrayPatternFixed = Pattern.compile("^\\s*+(\\w+)\\s*(\\[[0-9]+\\])\\s*$");
     
     // Regular expression pattern for array types with unspecified length.
+    // \s is whitespace, \w is a word character (letter, number, or underscore).
+    // For example, for "foo[]", the first match will be "foo".
     static final Pattern arrayPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\[\\]\\s*$");
     
     static var DISABLE_REACTION_INITIALIZATION_MARKER

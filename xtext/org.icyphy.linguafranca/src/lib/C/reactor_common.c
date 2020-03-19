@@ -228,22 +228,88 @@ static void print_event(FILE *out, void *event) {
 
 // ********** Priority Queue Support End
 
-/** Counter used to issue a warning if memory is allocated and never freed. */
-static int __count_allocations;
+/**
+ * Counter used to issue a warning if memory is
+ * allocated for message payloads and never freed.
+ */
+static int __count_payload_allocations;
+
+/**
+ * Counter used to issue a warning if memory is
+ * allocated for tokens and never freed.
+ */
+static int __count_token_allocations;
 
 /**
  * Library function to decrement the reference count and free the memory, if
  * appropriate, for messages carried by a token_t struct.
+ * @param token Pointer to the pointer to the token_t in the self struct.
  */
-void __done_using(token_t* token) {
-    token->ref_count--;
+void __done_using(token_t** token) {
+    (*token)->ref_count--;
     // printf("****** After reacting, ref_count = %d.\n", token->ref_count);
-    if (token->ref_count == 0) {
+    if ((*token)->ref_count == 0) {
         // Count frees to issue a warning if this is never freed.
-        __count_allocations--;
-        free(token->value);
-        // printf("DEBUG: Freed allocated memory %p\n", token->value);
+        __count_payload_allocations--;
+        free((*token)->value);
+        (*token)->ref_count = 0;
+        // printf("DEBUG: Freed allocated memory for messages: %p\n", token->value);
+        if ((*token)->ok_to_free) {
+            // Need to free the token_t struct also.
+            // printf("DEBUG: Freeing allocated memory for token: %p\n", token);
+            free(*token);
+            __count_token_allocations--;
+        }
     }
+}
+
+/**
+ * Create a new token_t struct and initialize it.
+ * The value pointer will be NULL and the length will be 0.
+ * @param element_size The size of each element of the array or the single struct.
+ * @param num_destinations The number of destinations to initialize the reference count.
+ * @return The new token_t struct.
+ */
+token_t* __create_token(int element_size) {
+    token_t* token = malloc(sizeof(token_t));
+    token->value = NULL;
+    token->length = 0;
+    token->element_size = element_size;
+    token->ref_count = 0;
+    token->ok_to_free = false;
+    return token;
+}
+
+/**
+ * Initialize the token_t pointer of an output's field of the self struct.
+ * If the reference count of the token is not 0, then allocate a new token
+ * struct and then initialize it using the element_size and num_destinations
+ * of the previous one. Update the token argument to point to the newly
+ * allocated struct.
+ * @param token Pointer to the pointer to the token_t struct on the self struct.
+ * @param value The value to be carried by the token.
+ * @param length The length of the array, or 1 if it is not an array.
+ * @param num_destinations The number of destinations (for initializing the reference count).
+ */
+void __initialize_token(token_t** token, void* value, int length, int num_destinations) {
+    // assert(token != NULL && (*token) != null);
+
+    // If necessary, allocate memory for a new token_t struct.
+    // This assumes that the token_t* in the self struct has been initialized to NULL.
+    token_t* result = (*token);
+    if (result->ref_count > 0) {
+        // There is a token there, but its reference count is not zero.
+        result = malloc(sizeof(token_t));
+        // Count these mallocs because they are expected to be freed.
+        __count_token_allocations++;
+        // Mark the original token as OK to be freed when its payload is freed.
+        (*token)->ok_to_free = true;
+    }
+    result->value = value;
+    result->length = length;
+    result->element_size = (*token)->element_size;
+    result->ref_count = num_destinations;
+    (*token) = result;
 }
 
 /** 
@@ -407,38 +473,39 @@ void schedule_output_reactions(reaction_t* reaction) {
 /**
  * Library function for allocating memory for an array output.
  * This turns over "ownership" of the allocated memory to the output.
+ * @param token Pointer to the pointer to the token_t struct in the self struct.
+ * @param length The length of the array.
+ * @param num_destinations The number of destinations (for initializing the reference count).
  */
-void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
-    // FIXME: Error checking needed.
-    token->value = malloc(token->element_size * length);
-    // printf("DEBUG: Allocated %p\n", token->value);
-    token->ref_count = num_destinations;
+void* __set_new_array_impl(token_t** token, int length, int num_destinations) {
+    // First, initialize the token_t pointer.
+    __initialize_token(token, malloc((*token)->element_size * length), length, num_destinations);
+    // printf("DEBUG: Allocated %p\n", (*token)->value);
     // Count allocations to issue a warning if this is never freed.
-    __count_allocations++;
-    // printf("****** Allocated object with starting ref_count = %d.\n", token->ref_count);
-    token->length = length;
-    return token->value;
+    __count_payload_allocations++;
+    // printf("****** Allocated object with starting ref_count = %d.\n", (*token)->ref_count);
+    return (*token)->value;
 }
 
 /**
  * Library function for returning a writable copy of a token.
  * If the reference count is 1, it returns the original rather than a copy.
  */
-void* __writable_copy_impl(token_t* token) {
+void* __writable_copy_impl(token_t** token) {
     // printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
     // NOTE: A ref_count of 0 occurs for actions with payloads.
-    if (token->ref_count < 2) {
+    if ((*token)->ref_count < 2) {
         // printf("****** Avoided copy because reference count is less than two.\n");
-        // Decrement the reference count to avoid the automatic free().
-        token->ref_count--;
-        return token->value;
+        // Set the reference count to 0 avoid the automatic free().
+        (*token)->ref_count = 0;
+        return (*token)->value;
     } else {
         // printf("****** Copying array because reference count is greater than 1. It is %d.\n", token->ref_count);
-        int size = token->element_size * token->length;
+        int size = (*token)->element_size * (*token)->length;
         void* copy = malloc(size);
-        memcpy(copy, token->value, size);
+        memcpy(copy, (*token)->value, size);
         // Count allocations to issue a warning if this is never freed.
-        __count_allocations++;
+        __count_payload_allocations++;
         return copy;
     }
 }
@@ -575,7 +642,8 @@ int process_args(int argc, char* argv[]) {
  * physical time. This also prints a message reporting the start time.
  */
 void initialize() {
-    __count_allocations = 0;
+    __count_payload_allocations = 0;
+    __count_token_allocations = 0;
 #if _WIN32 || WIN32
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (ntdll) {
@@ -620,9 +688,21 @@ void initialize() {
 // Check that memory allocated by set_new, set_new_array, or writable_copy
 // has been freed and print a warning message if not.
 void termination() {
-    if (__count_allocations != 0) {
-        printf("**** WARNING: Memory allocated by set_new, set_new_array, or writable_copy has not been freed!\n");
-        printf("**** Number of unfreed tokens: %d.\n", __count_allocations);
+    // Issue a warning if a memory leak has been detected.
+    // NOTE: This is approximate. Do not issue the warning if the
+    // number of unfreed objects does not exceed the number of events
+    // still on the event queue. Those objects on the event queue
+    // may contain malloc'd payloads or token_t structs, and there
+    // is no way that I can see to tell whether that is what they are.
+    if (__count_payload_allocations > event_q->size) {
+        printf("**** WARNING: Memory allocated for messages has not been freed.\n");
+        printf("**** Number of future events on the event queue: %zu\n", event_q->size);
+        printf("**** Number of unfreed messages: %d.\n", __count_payload_allocations);
+    }
+    if (__count_token_allocations > event_q->size) {
+        printf("**** WARNING: Memory allocated for tokens has not been freed!\n");
+        printf("**** Number of future events on the event queue: %zu\n", event_q->size);
+        printf("**** Number of unfreed tokens: %d.\n", __count_token_allocations);
     }
     // Print elapsed times.
     interval_t elapsed_logical_time

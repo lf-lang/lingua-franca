@@ -41,12 +41,20 @@ function incompatible_file() {
     fatal_error "incompatible input file"
 }
 
+# Report that a value is missing after a given flag.
+function missing_value() {
+    1>&2 echo "missing value after flag: '"$1"'"
+    fatal_error "malformed arguments"
+}
+
 # Print message explaining the CLI args.
 function usage() {
-    echo "Usage: lfc [options] file..."
+    echo "Usage: lfc [options] file... [target-options]"
     echo "Options:"
-    echo "  -h | --help           Display this information."
-    echo "  -r | --rebuild        Rebuild the compiler first."
+    echo "  -c | --target-compiler  Target compiler to invoke."
+    echo "  -h | --help             Display this information."
+    echo "  -n | --no-target        Do not invoke target compiler."
+    echo "  -r | --rebuild          Rebuild the compiler first."
 }
 
 if [[ $(type -p java) != "" ]]; then
@@ -74,32 +82,63 @@ fi
 # Process CLI args.
 rebuild=0
 files=()
+group=0
+targs=""
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -f | --file )
+        -c | --target-compiler )
+            opt=$1
             shift
-            filename=$1
+            if [[ $1 == -* ]]; then
+                missing_value $opt
+                error_exit
+            else
+                targs=$targs" --target-compiler "$1
+            fi
+        ;;
+        -f | --file )
+            opt=$1
+            shift
+            if [[ $1 == -* ]]; then
+                missing_value $opt
+                error_exit
+            else
+                filename=$1
+            fi
+        ;;
+	-h | --help )
+            usage
+            exit 0
         ;;
         -r | --rebuild )
             rebuild=1
         ;;
-        -h | --help )
-            usage
-            exit 0
+        -n | --no-target )
+            targs=$targs" --no-target"
         ;;
         -* ) 
-            1>&2 echo "Unknown parameter passed: $1"
-            usage
-            error_exit
+            if [[ $group < 1 ]]; then
+                1>&2 echo "Unknown parameter passed: $1"
+                usage
+                error_exit
+            else
+                targs=$targs" "$1
+                group=2
+            fi
         ;;
         * ) 
             if [[ ! -f "$1" ]]; then
-                file_not_found $1
-                error_exit
+                if [[ $group < 2 ]]; then
+                    file_not_found $1
+                    error_exit
+                else
+                    targs=$targs" "$1
+                fi
             else
                 if [[ $1 == *.lf ]]; then
                     files+=( $1 )
+                    group=1
                 else
                     incompatible_file $1
                     error_exit
@@ -130,11 +169,16 @@ base="${base}../xtext/"
 lfbase="${base}org.icyphy.linguafranca/"
 jarpath="${lfbase}build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar"
 
+# Report target options being overridden.
+if [[ $targs != "" ]]; then
+    echo "Target compiler flags:""${targs}"
+fi
+
 # Compile the given file entries.
 for (( i=0; i<$entries; i++ )); do
     if [ $java_version -gt 001008 ]; then
-        java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "${files[$i]}";
+        java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "${files[$i]}""${targs}";
     else
-        java -jar "${jarpath}" "${files[$i]}";
+        java -jar "${jarpath}" "${files[$i]}""${targs}";
     fi
 done
