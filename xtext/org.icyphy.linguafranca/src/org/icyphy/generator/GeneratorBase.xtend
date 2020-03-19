@@ -586,7 +586,7 @@ abstract class GeneratorBase {
             var stderr = readStream(process.getErrorStream())
             if (stderr.length() > 0) {
                 reportError("---Command reports errors:\n" + stderr.toString
-                        + "\n--- End of standard standard error.")
+                        + "\n--- End of standard error.")
             }
             if (returnCode !== 0) {
                 // Throw an exception, which will be caught below for a second attempt.
