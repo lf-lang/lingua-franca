@@ -17,7 +17,7 @@ reactor Source(period:time(1 sec)) {
             // Busy wait 0.2 sconds to cause a deadline violation.
             let initialElapsedTime = util.getElapsedPhysicalTime();
             console.log("****: " + initialElapsedTime);
-            while (util.getElapsedPhysicalTime().isSmallerThan(initialElapsedTime.add(new UnitBasedTimeValue(200, TimeUnit.msec))));
+            while (util.getElapsedPhysicalTime().isEarlierThan(initialElapsedTime.add(new UnitBasedTimeValue(200, TimeUnit.msec))));
             console.log("****: " + util.getElapsedPhysicalTime());
         }
         console.log("Source sends: " + count);
