@@ -1853,10 +1853,10 @@ int main(int argc, char* argv[]) {
             // This is similar to set_token macro except for
             // handling of reference counts.
             '''
-            self->__«ref».value = «action.name»_value; \
-            self->__«ref».length = 1; \
-            self->__«ref».ref_count = 1; \
-            self->__«ref»_is_present = true; \
+            self->__«ref».value = «action.name»_value;
+            self->__«ref».length = 1;
+            self->__«ref».ref_count = 1;
+            self->__«ref»_is_present = true;
             '''
         } else {
             // Primitive type. Memory was malloc'd above.
