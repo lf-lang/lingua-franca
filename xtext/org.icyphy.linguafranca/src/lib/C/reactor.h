@@ -107,9 +107,7 @@ do { \
 #define set_array(out, val, len) \
 do { \
     out ## _is_present = true; \
-    self->__ ## out.value = val; \
-    self->__ ## out.length = len; \
-    self->__ ## out.ref_count = self->__ ## out_num_destinations; \
+    __initialize_token(&(self->__ ## out), val, len, self->__ ## out ## _num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -126,7 +124,7 @@ do { \
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(&(self->__ ## out), 1, self->__ ## out_num_destinations); \
+    out = __set_new_array_impl(&(self->__ ## out), 1, self->__ ## out ## _num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -144,7 +142,7 @@ do { \
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(&(self->__ ## out), length, self->__ ## out_num_destinations); \
+    out = __set_new_array_impl(&(self->__ ## out), length, self->__ ## out ## _num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -171,13 +169,11 @@ do { \
 #define set_token(out, val) \
 do { \
     out ## _is_present = true; \
-    self->__ ## out.value = val; \
-    self->__ ## out.length = 1; \
-    self->__ ## out.ref_count = self->__ ## out ## _num_destinations; \
+    __initialize_token(&(self->__ ## out), val, 1, self->__ ## out ## _num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
-/** Return a writable copy of the specified input, which must be
+/** Return a writable copy of the specified input value, which must be
  *  a message carried by a token_t struct. If the reference count
  *  is exactly one, this returns the message itself without copying.
  *  Otherwise, it returns a copy.
