@@ -470,7 +470,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // The prologue to the react function writes state
             // and parameters to local variables of the same name
             var reactPrologue = new StringBuilder()
-            pr(reactPrologue, "let util = this.util;")
+            pr(reactPrologue, "const util = this.util;")
             
             // The epilogue to the react function writes local
             // state variables back to the state
