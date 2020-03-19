@@ -109,7 +109,7 @@ do { \
     out ## _is_present = true; \
     self->__ ## out.value = val; \
     self->__ ## out.length = len; \
-    self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
+    self->__ ## out.ref_count = self->__ ## out_num_destinations; \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -126,7 +126,7 @@ do { \
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(&(self->__ ## out), 1); \
+    out = __set_new_array_impl(&(self->__ ## out), 1, self->__ ## out_num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -144,7 +144,7 @@ do { \
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(&(self->__ ## out), length); \
+    out = __set_new_array_impl(&(self->__ ## out), length, self->__ ## out_num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -173,7 +173,7 @@ do { \
     out ## _is_present = true; \
     self->__ ## out.value = val; \
     self->__ ## out.length = 1; \
-    self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
+    self->__ ## out.ref_count = self->__ ## out ## _num_destinations; \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -231,8 +231,6 @@ typedef struct token_t {
     int element_size;
     /** Length of the array or 1 for a struct. */
     int length;
-    /** The number of destination input ports for the message. */
-    int initial_ref_count;
     /** The number of input ports that have not already reacted to the message. */
     int ref_count;
 } token_t;

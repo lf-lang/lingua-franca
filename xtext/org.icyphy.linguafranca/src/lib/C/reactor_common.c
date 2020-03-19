@@ -408,11 +408,11 @@ void schedule_output_reactions(reaction_t* reaction) {
  * Library function for allocating memory for an array output.
  * This turns over "ownership" of the allocated memory to the output.
  */
-void* __set_new_array_impl(token_t* token, int length) {
+void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
     // FIXME: Error checking needed.
     token->value = malloc(token->element_size * length);
     // printf("DEBUG: Allocated %p\n", token->value);
-    token->ref_count = token->initial_ref_count;
+    token->ref_count = num_destinations;
     // Count allocations to issue a warning if this is never freed.
     __count_allocations++;
     // printf("****** Allocated object with starting ref_count = %d.\n", token->ref_count);
@@ -426,6 +426,7 @@ void* __set_new_array_impl(token_t* token, int length) {
  */
 void* __writable_copy_impl(token_t* token) {
     // printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
+    // NOTE: A ref_count of 0 occurs for actions with payloads.
     if (token->ref_count < 2) {
         // printf("****** Avoided copy because reference count is less than two.\n");
         // Decrement the reference count to avoid the automatic free().

@@ -13,7 +13,7 @@ target C {
     timeout: 1 sec
 };
 main reactor SlowingClockPhysical {
-    physical action a(100 msec);
+    physical action a(100 msec, 100 msec); // first offset and minimum interarrival time.
     state interval:time(100 msec);
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
@@ -26,7 +26,7 @@ main reactor SlowingClockPhysical {
             elapsed_logical_time
         );
         if (elapsed_logical_time < self->expected_time) {
-            printf("ERROR: Expected logical time to be: \%lld nsec.\n",
+            printf("ERROR: Expected logical time to be at least: \%lld nsec.\n",
                 self->expected_time
             );
             exit(1);
@@ -34,6 +34,7 @@ main reactor SlowingClockPhysical {
         self->interval += MSEC(100);
         self->expected_time = MSEC(100) + self->interval;
         schedule(a, self->interval, NULL);
+        printf("Scheduling next to occur after: \%lld nsec.\n", self->interval);
     =}
     reaction(shutdown) {=
         if (self->expected_time < MSEC(500)) {
