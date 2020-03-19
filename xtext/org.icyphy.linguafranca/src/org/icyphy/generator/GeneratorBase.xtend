@@ -278,10 +278,20 @@ abstract class GeneratorBase {
      *  then a subsequent call to errorsOccurred() will return true.
      *  @param resource The resource containing the source code.
      *  @param fsa The file system access (used to write the result).
-     *  @param context FIXME: What is this?
+     *  @param context Context relating a specific invocation of the code generator. 
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
+
+        if (context instanceof StandaloneContext) {
+            println("Standlone>>>>>>>>>>>>>>>>>>")
+            if (context.args.containsKey("no-target")) {
+                println("No target!")
+            }
+            if (context.args.containsKey("target_args")) {
+                println("Target args:" + context.args.get("target_args"))
+            }
+        }
 
         println("Generating code for: " + resource.getURI.toString)
         

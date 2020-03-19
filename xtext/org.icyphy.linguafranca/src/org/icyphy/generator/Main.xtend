@@ -11,7 +11,6 @@ import java.io.FileReader
 import java.io.IOException
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.resource.ResourceSet
-import org.eclipse.xtext.generator.GeneratorContext
 import org.eclipse.xtext.generator.GeneratorDelegate
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess
 import org.eclipse.xtext.util.CancelIndicator
@@ -19,29 +18,27 @@ import org.eclipse.xtext.validation.CheckMode
 import org.eclipse.xtext.validation.IResourceValidator
 import org.icyphy.LinguaFrancaStandaloneSetup
 import java.io.FileNotFoundException
+import java.util.Properties
 
 class Main {
 
 	def static main(String[] args) {
-		// FIXME: perhaps accept a `-o` flag here
-		
+	    		
 		val injector = new LinguaFrancaStandaloneSetup().createInjectorAndDoEMFRegistration
 		val main = injector.getInstance(Main)
 		try {
-		    main.runGenerator(args.get(0))    
+		    val arr = args.get(0).split(" ")
+		    main.runGenerator(arr.get(0), getProps(arr))
 		} catch(FileNotFoundException e) {
 		    System::err.println('lfc: fatal error: no input file.')
-            // System::err.println(e.toString);
             e.printStackTrace();
 		    System.exit(1);
 		} catch(IOException e) {
             System::err.println('lfc: error reading input file.')
-            // System::err.println(e.toString);
             e.printStackTrace();
             System.exit(1);
         } catch(RuntimeException e) {
             System::err.println('lfc: unexpected error.');
-            // System::err.println(e.toString);
             e.printStackTrace();
             System.exit(1);
         }
@@ -56,7 +53,30 @@ class Main {
 
 	@Inject JavaIoFileSystemAccess fileAccess
 
-	def protected runGenerator(String string) {
+    /**
+     * Store arguments as properties, passed on in the context given to the generator.
+     */
+    def static protected getProps(String[] args) {
+        val len = args.length
+        val props = new Properties()
+        props.setProperty("target_args", "")
+        if (len < 2) {
+            return props
+        } else {
+            for (var i = 1; i < len; i++) {
+                val k = args.get(i)
+                if (k.trim().equals("--no-target")) {
+                    props.setProperty("no-target", "")
+                } else {
+                    var argStr = props.getProperty("target_args").trim + " " + k
+                    props.setProperty("target_args", argStr)
+                }
+            }
+        }
+        props
+    }
+
+	def protected runGenerator(String string, Properties properties) {
 		// Load the resource
 		val set = resourceSetProvider.get
 		val fileRoot = (new File("")).getAbsolutePath()
@@ -90,10 +110,11 @@ class Main {
 
 		// Configure and start the generator
 		fileAccess.outputPath = 'src-gen'
-		val context = new GeneratorContext => [
+		val context = new StandaloneContext => [
 			cancelIndicator = CancelIndicator.NullImpl
+			args = properties;
 		]
-		// FIXME: perhaps use context to pass in additional arguments?
+		
 		generator.generate(resource, fileAccess, context)
 		System.out.println('Code generation finished.')
 	}
