@@ -1,15 +1,20 @@
 {
-    "name": "DefaultLinguaFrancaProject",
+    "name": "LinguaFrancaDefault",
     "version": "0.0.1",
-    "description": "The default dependencies for a Lingua Franca project generated for the TypeScript target",
+    "description": "A default Lingua Franca project for the TypeScript target",
+    "repository": {
+        "type" : "git",
+        "url" : "https://github.com/icyphy/lingua-franca"
+    },
+    "license" : "BSD-2-Clause",
     "dependencies": {
         "microtime": "^3.0.0",
         "nanotimer": "^0.3.15",
         "ulog": "^1.1.0"
     },
     "devDependencies": {
-        "@babel/cli": "^7.4.3",
-        "@babel/core": "^7.4.3",
+        "@babel/cli": "^7.8.4",
+        "@babel/core": "^7.8.7",
         "@babel/node": "^7.2.2",
         "@babel/plugin-proposal-class-properties": "^7.7.4",
         "@babel/plugin-proposal-object-rest-spread": "^7.7.7",
