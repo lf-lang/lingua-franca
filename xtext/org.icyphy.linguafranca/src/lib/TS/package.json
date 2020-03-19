@@ -10,20 +10,20 @@
     "dependencies": {
         "microtime": "^3.0.0",
         "nanotimer": "^0.3.15",
-        "ulog": "^1.1.0"
+        "ulog": "^2.0.0-beta.7"
     },
     "devDependencies": {
         "@babel/cli": "^7.8.4",
         "@babel/core": "^7.8.7",
-        "@babel/node": "^7.2.2",
-        "@babel/plugin-proposal-class-properties": "^7.7.4",
-        "@babel/plugin-proposal-object-rest-spread": "^7.7.7",
-        "@babel/plugin-proposal-optional-chaining": "^7.8.0",
-        "@babel/plugin-transform-modules-commonjs": "^7.7.5",
-        "@babel/preset-env": "^7.4.3",
-        "@babel/preset-typescript": "^7.7.7",
-        "@types/node": "^13.1.2",
-        "typescript": "^3.7.3"
+        "@babel/node": "^7.8.7",
+        "@babel/plugin-proposal-class-properties": "^7.8.3",
+        "@babel/plugin-proposal-object-rest-spread": "^7.8.3",
+        "@babel/plugin-proposal-optional-chaining": "^7.8.3",
+        "@babel/plugin-transform-modules-commonjs": "^7.8.3",
+        "@babel/preset-env": "^7.8.7",
+        "@babel/preset-typescript": "^7.8.3",
+        "@types/node": "^13.9.2",
+        "typescript": "^3.8.3"
     },
     "scripts": {
         "check-types": "tsc",
