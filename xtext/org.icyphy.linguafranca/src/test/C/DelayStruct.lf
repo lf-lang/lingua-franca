@@ -1,0 +1,54 @@
+// This tests the use of the "polymorphic" delay reactor on a struct.
+// It delays by a logical time any pointer datatype.
+target C;
+reactor DelayPointer(delay:time(100 msec)) {
+    mutable input in:void*;
+    output out:void*;
+    logical action a:void*;
+    reaction(in) -> a {=
+        // mutable input guarantees *in will not be freed.
+        schedule(a, self->delay, in);
+    =}
+    reaction(a) -> out {=
+        // Using set_token delegates responsibility for
+        // freeing the allocated memory downstream.
+        if (a_has_value) {
+            set_token(out, a_value);
+        }
+    =}
+}
+reactor Source {
+    preamble {=
+        typedef struct hello_t {
+            char* name;
+            int value;
+        } hello_t;
+    =}
+    output out:hello_t*;
+    reaction(startup) -> out {=
+        // Dynamically allocate an output struct.
+        set_new(out);
+        
+        // Above allocates a struct, which then must be populated.
+        out->name = "Earth";
+        out->value = 42;
+    =}
+}
+// expected parameter is for testing.
+reactor Print(expected:int(42)) {
+    input in:hello_t*;
+    reaction(in) {=
+        printf("Received: name = %s, value = %d\n", in->name, in->value);
+        if (in->value != self->expected) {
+            printf("ERROR: Expected value to be %d.\n", self->expected);
+            exit(1);
+        }
+    =}
+}
+main reactor DelayStruct {
+    s = new Source();
+    d = new DelayPointer();
+    p = new Print();
+    s.out -> d.in;
+    d.out -> p.in;
+}

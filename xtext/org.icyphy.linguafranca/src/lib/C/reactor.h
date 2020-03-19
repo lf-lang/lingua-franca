@@ -109,7 +109,7 @@ do { \
     out ## _is_present = true; \
     self->__ ## out.value = val; \
     self->__ ## out.length = len; \
-    self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
+    self->__ ## out.ref_count = self->__ ## out_num_destinations; \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -126,7 +126,7 @@ do { \
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(&(self->__ ## out), 1); \
+    out = __set_new_array_impl(&(self->__ ## out), 1, self->__ ## out_num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -144,7 +144,7 @@ do { \
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(&(self->__ ## out), length); \
+    out = __set_new_array_impl(&(self->__ ## out), length, self->__ ## out_num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -173,7 +173,7 @@ do { \
     out ## _is_present = true; \
     self->__ ## out.value = val; \
     self->__ ## out.length = 1; \
-    self->__ ## out.ref_count = self->__ ## out.initial_ref_count; \
+    self->__ ## out.ref_count = self->__ ## out ## _num_destinations; \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -187,6 +187,10 @@ do { \
 #define writable_copy(input) __writable_copy_impl(self->__ ## input)
 
 #define LEVEL(index) (index & 0xFFFF)
+
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 #define OVERLAPPING(chain1, chain2) ((chain1 & chain2) != 0)
 
@@ -227,8 +231,6 @@ typedef struct token_t {
     int element_size;
     /** Length of the array or 1 for a struct. */
     int length;
-    /** The number of destination input ports for the message. */
-    int initial_ref_count;
     /** The number of input ports that have not already reacted to the message. */
     int ref_count;
 } token_t;
@@ -285,8 +287,8 @@ typedef enum queuing_policy_t {
 struct trigger_t {
     reaction_t** reactions;   // Reactions sensitive to this trigger.
     int number_of_reactions;  // Number of reactions sensitive to this trigger.
-	interval_t offset;        // For a logical action, this will be a minimum delay. For physical, it is the minimum interarrival time.
-	interval_t period;        // For an action, this is not used.
+	interval_t offset;        // For an action, this will be a minimum delay.
+	interval_t period;        // For an action, this denotes the minimal interarrival time. // FIXME: add a field to distinguish between actions and timers.
     void* value;              // Pointer to malloc'd value (or NULL).
     bool is_physical;         // Indicator that this denotes a physical action (i.e., to be scheduled relative to physical time).
     instant_t scheduled;      // Tag of the last event that was scheduled for this action.

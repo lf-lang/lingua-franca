@@ -1,0 +1,40 @@
+// This tests actions with immutable payloads that are neither malloc'd nor freed.
+target C;
+reactor Delay(delay:time(100 msec)) {
+    input in:string;
+    output out:string;
+    logical action a:string;
+    reaction(in) -> a {=
+        schedule(a, self->delay, in);
+    =}
+    reaction(a) -> out {=
+        set(out, a_value);
+    =}
+}
+reactor Test {
+    input in:string;
+    state start_time:time(0);
+    reaction(in) {=
+        printf("Received: %s.\n", in);
+        // Check the time of the input.
+        interval_t elapsed = get_elapsed_logical_time();
+        printf("After %lld nsec of logical time.\n", elapsed);
+        if (elapsed != 100000000LL) {
+            printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
+            exit(1);
+        }
+        if (strcmp(in, "Hello") != 0) {
+            printf("ERROR: Expected input value to be \"Hello\". It was \"%s\".\n", in);
+            exit(2);            
+        }
+    =}
+}
+
+main reactor DelayString { 
+    d = new Delay();
+    t = new Test();
+    d.out -> t.in; 
+    reaction(startup) -> d.in {=
+        set(d.in, "Hello");
+    =}
+}

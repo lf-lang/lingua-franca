@@ -1,24 +1,31 @@
-// This tests actions with payloads by delaying an input by a fixed amount.
-// This is a start at handling dynamic memory allocation for such actions.
+// This is "polymorphic" delay reactor.
+// It delays by a logical time any pointer datatype.
 target C;
-reactor Delay(delay:time(100 msec)) {
-    input in:int;
-    output out:int;
-    logical action a:int*;
+reactor DelayPointer(delay:time(100 msec)) {
+    mutable input in:void*;
+    output out:void*;
+    logical action a:void*;
     reaction(in) -> a {=
-        // Allocate memory for a copy of the input.
-        int* value = malloc(sizeof(int));
-        *value = in;
-        schedule(a, self->delay, value);
+        // mutable input guarantees *in will not be freed.
+        schedule(a, self->delay, in);
     =}
     reaction(a) -> out {=
-        // This will pass the value, so the malloc can be freed.
-        set(out, *a_value);
-        free(a_value);
+        // Using set_token delegates responsibility for
+        // freeing the allocated memory downstream.
+        if (a_has_value) {
+            set_token(out, a_value);
+        }
+    =}
+}
+reactor Source {
+    output out:int*;
+    reaction(startup) -> out {=
+        set_new(out);
+        *out = 42;
     =}
 }
 reactor Test {
-    input in:int;
+    input in:int*;
     state start_time:time(0);
     state received_value:bool(false);
     reaction(startup) {=
@@ -26,7 +33,7 @@ reactor Test {
         self->start_time = get_logical_time();
     =} 
     reaction(in) {=
-        printf("Received: %d.\n", in);
+        printf("Received: %d.\n", *in);
         self->received_value = true;
         // Check the time of the input.
         instant_t current_time = get_logical_time();
@@ -36,8 +43,8 @@ reactor Test {
             printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
             exit(1);
         }
-        if (in != 42) {
-            printf("ERROR: Expected input value to be 42. It was %d.\n", in);
+        if (*in != 42) {
+            printf("ERROR: Expected input value to be 42. It was %d.\n", *in);
             exit(2);            
         }
     =}
@@ -50,11 +57,10 @@ reactor Test {
     =}
 }
 
-main reactor DelayInt { 
-    d = new Delay();
+main reactor DelayPointerTest { 
+    s = new Source();
+    d = new DelayPointer();
     t = new Test();
+    s.out -> d.in;
     d.out -> t.in; 
-    reaction(startup) -> d.in {=
-        set(d.in, 42);
-    =}
 }

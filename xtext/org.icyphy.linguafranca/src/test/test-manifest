@@ -1,8 +1,11 @@
 ActionDelay.lf
 ActionWithNoReaction.lf
 After.lf
+AfterOverlapped.lf
 AsyncCallback.lf
 AsyncCallback2.lf
+AsyncCallbackDrop.lf
+AsyncCallbackUpdate.lf
 ArrayAsParameter.lf
 ArrayAsType.lf
 ArrayParallel.lf
@@ -17,10 +20,15 @@ Deadline.lf
 DeadlineHandledAbove.lf
 DeadlineHandledAboveThreaded.lf
 DeadlineThreaded.lf
+DelayArray.lf
 DelayedAction.lf
 DelayedReaction.lf
 DelayInt.lf
 DelayIntThreaded.lf
+DelayPointer.lf
+DelayString.lf
+DelayStruct.lf
+DelayStructWithAfter.lf
 Determinism.lf
 DeterminismThreaded.lf
 DoubleInvocation.lf

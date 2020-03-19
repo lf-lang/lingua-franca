@@ -136,10 +136,8 @@ pqueue_t* event_q;     // For sorting by time.
 
 pqueue_t* reaction_q;  // For sorting by deadline.
 pqueue_t* recycle_q;   // For recycling malloc'd events.
-pqueue_t* free_q;      // For free malloc'd values carried by events.
 
 handle_t __handle = 1;
-
 
 // ********** Priority Queue Support Start
 
@@ -243,8 +241,8 @@ void __done_using(token_t* token) {
     if (token->ref_count == 0) {
         // Count frees to issue a warning if this is never freed.
         __count_allocations--;
-        // printf("****** Freeing allocated memory.\n");
         free(token->value);
+        // printf("DEBUG: Freed allocated memory %p\n", token->value);
     }
 }
 
@@ -261,9 +259,12 @@ void __done_using(token_t* token) {
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
 	// The trigger argument could be null, meaning that nothing is triggered.
 	if (trigger == NULL) return 0;
+    
     // Compute the tag.  How we do that depends on whether
     // this is a logical or physical action.
     interval_t tag = current_time;
+    interval_t delay = trigger->offset + extra_delay;
+    interval_t min_inter_arrival = trigger->period;
     event_t* existing = NULL;
 
     // Recycle event_t structs, if possible.    
@@ -277,7 +278,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
     // For logical actions, the logical time of the new event is just
     // the current logical time plus the minimum offset (action parameter)
     // plus the extra delay specified in the call to schedule.
-    e->time = tag + trigger->offset + extra_delay;
+    e->time = tag + delay;
 
     if (trigger->is_physical) {
         // If the trigger is physical, then we need to use
@@ -303,13 +304,13 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
             tag = physical_time;
         }
 
-        interval_t min_inter_arrival = trigger->offset + extra_delay;
+        
         // Compute the earliest time that this event can be scheduled.
         instant_t earliest_time;
         if (trigger->scheduled == NEVER) {
-            earliest_time = start_time + min_inter_arrival;
+            earliest_time = start_time + delay;
         } else {
-            earliest_time = trigger->scheduled + min_inter_arrival;
+            earliest_time = trigger->scheduled + MAX(delay, min_inter_arrival);
         }
         
         if (earliest_time > tag) {
@@ -407,10 +408,11 @@ void schedule_output_reactions(reaction_t* reaction) {
  * Library function for allocating memory for an array output.
  * This turns over "ownership" of the allocated memory to the output.
  */
-void* __set_new_array_impl(token_t* token, int length) {
+void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
     // FIXME: Error checking needed.
     token->value = malloc(token->element_size * length);
-    token->ref_count = token->initial_ref_count;
+    // printf("DEBUG: Allocated %p\n", token->value);
+    token->ref_count = num_destinations;
     // Count allocations to issue a warning if this is never freed.
     __count_allocations++;
     // printf("****** Allocated object with starting ref_count = %d.\n", token->ref_count);
@@ -424,13 +426,14 @@ void* __set_new_array_impl(token_t* token, int length) {
  */
 void* __writable_copy_impl(token_t* token) {
     // printf("****** Requesting writable copy with reference count %d.\n", token->ref_count);
-    if (token->ref_count == 1) {
-        // printf("****** Avoided copy because reference count is exactly one.\n");
+    // NOTE: A ref_count of 0 occurs for actions with payloads.
+    if (token->ref_count < 2) {
+        // printf("****** Avoided copy because reference count is less than two.\n");
         // Decrement the reference count to avoid the automatic free().
         token->ref_count--;
         return token->value;
     } else {
-        // printf("****** Copying array because reference count is not one.\n");
+        // printf("****** Copying array because reference count is greater than 1. It is %d.\n", token->ref_count);
         int size = token->element_size * token->length;
         void* copy = malloc(size);
         memcpy(copy, token->value, size);
@@ -594,9 +597,6 @@ void initialize() {
             get_event_position, set_event_position, event_matches, print_event);
 	// NOTE: The recycle queue does not need to be sorted. But here it is.
     recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
-            get_event_position, set_event_position, event_matches, print_event);
-	// NOTE: The free queue does not need to be sorted. But here it is.
-    free_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
 
     // Initialize the trigger table.

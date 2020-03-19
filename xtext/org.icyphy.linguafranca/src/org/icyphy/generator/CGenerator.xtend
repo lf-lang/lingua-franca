@@ -77,7 +77,7 @@ class CGenerator extends GeneratorBase {
     
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newHashSet('C')
-
+    
     // Additional sources to add to the compile command if appropriate.
     var compileAdditionalSources = null as ArrayList<String>
 
@@ -247,6 +247,39 @@ class CGenerator extends GeneratorBase {
                 pr('void __start_time_step() {\n')
                 indent()
                 pr(startTimeStep.toString)
+                unindent()
+                pr('}\n')
+
+                // Generate function to return a pointer to the action trigger_t
+                // that handles incoming network messages destined to the specified
+                // port. This will only be used if there are federates.
+                pr('trigger_t* __action_for_port(int port_id) {\n')
+                indent()
+                if (federate.networkMessageActions.size > 0) {
+                    // Create a static array of trigger_t pointers.
+                    // networkMessageActions is a list of Actions, but we
+                    // need a list of trigger struct names for ActionInstances.
+                    // There should be exactly one ActionInstance in the
+                    // main reactor for each Action.
+                    val triggers = new LinkedList<String>()
+                    for (action : federate.networkMessageActions) {
+                        // Find the corresponding ActionInstance.
+                        val actionInstance = main.getActionInstance(action)
+                        triggers.add(triggerStructName(actionInstance))
+                    }
+                    pr('''
+                    static trigger_t* action_table[] = {
+                        &«triggers.join(', &')»
+                    };
+                    if (port_id < «federate.networkMessageActions.size») {
+                        return action_table[port_id];
+                    } else {
+                        return NULL;
+                    }
+                    ''')
+                } else {
+                    pr('return NULL;')
+                }
                 unindent()
                 pr('}\n')
 
@@ -474,8 +507,8 @@ int main(int argc, char* argv[]) {
                             action.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__SHUTDOWN.name
                             action.origin = ActionOrigin.LOGICAL
-                            action.minTime = factory.createTimeOrValue
-                            action.minTime.time = 0
+                            action.minDelay = factory.createTimeOrValue
+                            action.minDelay.time = 0
                             reactor.actions.add(action)
                         }
                     }
@@ -619,8 +652,10 @@ int main(int argc, char* argv[]) {
                 if (containedSource !== null) {
                     pr(body, 'bool* __' + output.name + '_inside_is_present;')
                 }
+                pr(body, 'int __' + output.name + '_num_destinations;')
             }
         }
+        
         // If there are contained reactors that either receive inputs
         // from reactions of this reactor or produce outputs that trigger
         // reactions of this reactor, then we need to create a struct
@@ -798,7 +833,7 @@ int main(int argc, char* argv[]) {
                         pr(
                             reactionInitialization,
                             'if (' + trigger.variable.name + '_has_value) ' + trigger.variable.name +
-                                '_value = *(' + '(' + type + '*)' + valuePointer + ');'
+                                '_value = (' + type + ')' + valuePointer + ';'
                         );
                     }
                 }
@@ -1369,7 +1404,8 @@ int main(int argc, char* argv[]) {
                 )
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
-                var minTime = reactorInstance.resolveTime(trigger.minTime)
+                var minDelay = reactorInstance.resolveTime(trigger.minDelay)
+                var minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival)
                 
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
@@ -1378,8 +1414,8 @@ int main(int argc, char* argv[]) {
                     // if no minimum interarrival time was specified, then
                     // we do not want zero, which is what resolveTime returns,
                     // but rather some non-zero time.
-                    if (trigger.minTime === null) {
-                        minTime = DEFAULT_MIN_INTER_ARRIVAL;
+                    if (trigger.minInterArrival === null) {
+                        minInterArrival = DEFAULT_MIN_INTER_ARRIVAL;
                     }
                     if (trigger.policy == QueuingPolicy.NONE) {
                         trigger.policy = QueuingPolicy.DEFER;
@@ -1389,7 +1425,8 @@ int main(int argc, char* argv[]) {
                     result,
                     triggerStructName + '_reactions, ' +
                         numberOfReactionsTriggered + ', ' +
-                        timeInTargetLanguage(minTime) + ', 0LL, NULL, ' + isPhysical + ', NEVER,' + trigger.policy
+                        timeInTargetLanguage(minDelay) + ',' + timeInTargetLanguage(minInterArrival) + 
+                        ', NULL, ' + isPhysical + ', NEVER,' + trigger.policy
                 )
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 if ((triggerInstance as ActionInstance).isShutdown) {
@@ -1675,7 +1712,7 @@ int main(int argc, char* argv[]) {
                 )
                 // Set the initial reference count equal to the number of destinations.
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + ".__" + output.name + ".initial_ref_count = "
+                    nameOfSelfStruct + ".__" + output.name + "_num_destinations = "
                     + output.dependentPorts.size + ";"
                 )
             }
@@ -1775,15 +1812,28 @@ int main(int argc, char* argv[]) {
      */
     override generateDelayBody(Action action, VarRef port) { 
         val ref = generateVarRef(port);
-        val tmp = action.name + "_to_" + port.variable.name
+        // Note that the action.type set by the base class is actually
+        // the port type. The action type needs to be corrected to be a pointer.
+        // However, this is deferred to generateForwardBody so that we still
+        // have access to the port type there.
         // FIXME: the following check is not detecting pointer types masked by a typedef
-        '''«IF !action.type.trim.endsWith("*")»
+        if (isTokenType(action.type)) {
+            '''
+            // Get a copy of the input that we own (won't be freed).
+            if («ref»_is_present) {
+                «ref».value = writable_copy(«ref»);
+            }
+            // FIXME: What to do about the length? Special version of schedule()?
+            schedule(«action.name», 0, «ref».value);
+            '''
+        } else {
+            val tmp = action.name + "_to_" + port.variable.name
+            '''
             «action.type»* «tmp» = malloc(sizeof(«action.type»));
             *«tmp» = «ref»;
-        «ELSE»
-            «action.type»* «tmp» = &«ref»;
-        «ENDIF»
-        schedule(«action.name», 0, «tmp»);'''
+            schedule(«action.name», 0, «tmp»);
+            '''
+        }
     }
     
     /**
@@ -1792,9 +1842,30 @@ int main(int argc, char* argv[]) {
      * @param action The action that triggers the reaction
      * @param port The port to write to
      */
-    override generateForwardBody(Action action, VarRef port) '''
-        set(«generateVarRef(port)», «action.name»_value);
-    '''
+    override generateForwardBody(Action action, VarRef port) {
+        // Note that the action.type set by the base class is actually
+        // the port type. The action type needs to be corrected to be a pointer.
+        val portType = action.type
+        action.type = portType + '*'
+        val ref = generateVarRef(port)
+        
+        if (isTokenType(portType)) {
+            // This is similar to set_token macro except for
+            // handling of reference counts.
+            '''
+            self->__«ref».value = «action.name»_value; \
+            self->__«ref».length = 1; \
+            self->__«ref».ref_count = 1; \
+            self->__«ref»_is_present = true; \
+            '''
+        } else {
+            // Primitive type. Memory was malloc'd above.
+            '''
+            set(«ref», *«action.name»_value);
+            free(«action.name»_value);
+            '''
+        }
+    }
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -1816,9 +1887,15 @@ int main(int argc, char* argv[]) {
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         String type
-    ) { 
-        val sendRef = generateVarRef(sendingPort);
-        val receiveRef = generateVarRef(receivingPort);
+    ) {
+        // Adjust the type of the action.
+        // If it is "string", then change it to "char".
+        // Pointer types in actions are declared without the "*" (perhaps oddly).
+        if (action.type == "string") {
+            action.type = "char"
+        }
+        val sendRef = generateVarRef(sendingPort)
+        val receiveRef = generateVarRef(receivingPort)
         '''
         // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
@@ -1931,7 +2008,7 @@ int main(int argc, char* argv[]) {
 
     // //////////////////////////////////////////
     // // Private methods.
-
+    
     /** Perform deferred initializations in initialize_trigger_objects.
      *  @param federate The federate for which we are doing this.
      */
@@ -2190,10 +2267,11 @@ int main(int argc, char* argv[]) {
                 structs.put(port.container, structBuilder)
             }
             val reactorName = port.container.name
-            // First define the struct containing the output value and indicator
-            // of its presence.
+            // First define the struct containing the output value, indicator
+            // of its presence, and number of destinations.
             pr(structBuilder, portType + ' ' + portName + '; ')
             pr(structBuilder, 'bool ' + portName + '_is_present;')
+            pr(structBuilder, 'int ' + portName + '_num_destinations;')
 
             // Next, initialize the struct with the current values.
             pr(
@@ -2203,7 +2281,7 @@ int main(int argc, char* argv[]) {
             )
             pr(
                 builder,
-                reactorName + '.' + portName + '_is_present' + ' = *(self->__' +
+                reactorName + '.' + portName + '_is_present = *(self->__' +
                     reactorName + '.' + portName + '_is_present);'
             )
         }
@@ -2281,7 +2359,8 @@ int main(int argc, char* argv[]) {
             structs.put(definition, structBuilder)
         }
         pr(structBuilder, lfTypeToTokenType(input.type) + '* ' + input.name + ';')
-        pr(structBuilder, ' bool ' + input.name + '_is_present;')
+        pr(structBuilder, ' bool ' + input.name + '_is_present;')        
+        pr(structBuilder, ' int ' + input.name + '_num_destinations;')
         
         pr(builder,
             definition.name + '.' + input.name + ' = &(self->__' +
