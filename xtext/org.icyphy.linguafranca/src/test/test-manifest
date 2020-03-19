@@ -21,6 +21,7 @@ DeadlineHandledAbove.lf
 DeadlineHandledAboveThreaded.lf
 DeadlineThreaded.lf
 DelayArray.lf
+DelayArrayWithAfter.lf
 DelayedAction.lf
 DelayedReaction.lf
 DelayInt.lf
@@ -29,6 +30,7 @@ DelayPointer.lf
 DelayString.lf
 DelayStruct.lf
 DelayStructWithAfter.lf
+DelayStructWithAfterOverlapped.lf
 Determinism.lf
 DeterminismThreaded.lf
 DoubleInvocation.lf

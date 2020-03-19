@@ -1,0 +1,43 @@
+// This tests delaying a struct using after.
+target C {
+    timeout: 5 sec,
+    fast: true
+};
+reactor Source {
+    preamble {=
+        typedef struct hello_t {
+            char* name;
+            int value;
+        } hello_t;
+    =}
+    output out:hello_t*;
+    timer t(0, 1 sec);
+    state s:int(0);
+    reaction(t) -> out {=
+        self->s++;
+        // Dynamically allocate an output struct.
+        set_new(out);
+        
+        // Above allocates a struct, which then must be populated.
+        out->name = "Earth";
+        out->value = 42 * self->s;
+    =}
+}
+// expected parameter is for testing.
+reactor Print {
+    input in:hello_t*;
+    state s:int(0);
+    reaction(in) {=
+        self->s++;
+        printf("Received: name = %s, value = %d\n", in->name, in->value);
+        if (in->value != 42 * self->s) {
+            printf("ERROR: Expected value to be %d.\n", 42 * self->s);
+            exit(1);
+        }
+    =}
+}
+main reactor DelayStruct {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in after 1500 msec;
+}
