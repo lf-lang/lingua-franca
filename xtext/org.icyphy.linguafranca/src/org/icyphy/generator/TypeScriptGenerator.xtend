@@ -161,8 +161,17 @@ class TypeScriptGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + "microtime.d.ts"));
         fOut.write(readFileInClasspath(reactorCorePath + "microtime.d.ts").getBytes())
 
+        // Only run npm install if we had to copy over the defaul package.json.
+        var boolean runNpmInstall
+        var File packageJSONFile = new File(directory + File.separator + "package.json")
+        if (packageJSONFile.exists()) {
+            runNpmInstall = false
+        } else {
+            runNpmInstall = true
+        }
+
         // Copy default versions of config files into project if
-        // they don't exist.
+        // they don't exist.       
         createDefaultConfigFile(directory, "package.json")
         createDefaultConfigFile(projectPath, "tsconfig.json")
         createDefaultConfigFile(projectPath, "babel.config.js")
@@ -175,14 +184,17 @@ class TypeScriptGenerator extends GeneratorBase {
         // ~/.bash_profile file that specifies suitable paths, the command should
         // work.
         
-        // Install npm modules.
-        var installCmd = newArrayList();
-        installCmd.addAll("npm", "install")
+        // Install npm modules only if the default package.json was copied over.
         
-        if (executeCommand(installCmd, directory) !== 0) {
-            reportError(resource.findTarget, "ERROR: npm install command failed."
-                + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
-            return
+        if (runNpmInstall) {
+            var installCmd = newArrayList();
+            installCmd.addAll("npm", "install")
+            
+            if (executeCommand(installCmd, directory) !== 0) {
+                reportError(resource.findTarget, "ERROR: npm install command failed."
+                    + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+                return
+            }
         }
         
         refreshProject()
