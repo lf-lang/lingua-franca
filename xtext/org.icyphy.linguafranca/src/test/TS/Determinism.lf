@@ -11,10 +11,10 @@ reactor Destination {
     input y:number;
     reaction(x, y) {=
         let sum = 0;
-        if (x) {
+        if (x !== undefined) {
             sum += x;
         }
-        if (y) {
+        if (y !== undefined) {
             sum += y;
         }
         console.log("Received " + sum);
