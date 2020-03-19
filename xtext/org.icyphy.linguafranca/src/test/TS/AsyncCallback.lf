@@ -36,7 +36,7 @@ main reactor AsyncCallback {
         console.log("Asynchronous callback " + i
             + ": Assigned logical time greater than start time by " + elapsed_time + " nsec."
         ); 
-		if (elapsed_time.isSmallerThan(expected_time)) {
+		if (elapsed_time.isEarlierThan(expected_time)) {
 		    console.log("ERROR: Expected logical time to be larger than " + expected_time + ".");
 		    util.failure();
 		}
