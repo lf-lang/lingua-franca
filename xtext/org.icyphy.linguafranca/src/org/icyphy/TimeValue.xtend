@@ -122,6 +122,7 @@ class TimeValue {
         
     /**
      * Determine whether this time value is earlier than another.
+     * @returns true if this time value is earlier than the other, false otherwise.
      */
     def isEarlierThan(TimeValue other) {
         if (this.toNanoSeconds < other.toNanoSeconds)

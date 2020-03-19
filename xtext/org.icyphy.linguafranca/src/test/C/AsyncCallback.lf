@@ -37,7 +37,7 @@ main reactor AsyncCallback {
 	state expected_time:time(100 msec);
 	state toggle:bool(false);
 	
-    physical action a(100 msec):int;
+    physical action a(100 msec):int*;
     state i:int(0);
   
 	reaction(t) -> a {=

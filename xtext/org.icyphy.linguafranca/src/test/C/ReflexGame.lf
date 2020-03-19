@@ -22,7 +22,7 @@ main reactor KeyListener {
     state request_time:time(0);
     // NOTE: The following will get the default 1 nsec minimum
     // interarrival time.
-    physical action a:char;
+    physical action a:char*;
 
     reaction(startup) -> a {=
         // Start listening for key strokes.
@@ -33,16 +33,17 @@ main reactor KeyListener {
     =}
    
     reaction(a) {=
-        if (a_value == EOF) {
+        if (*a_value == EOF) {
             printf("\nEnd of file received.\n");
             stop();
-        } else if (a_value == '\n') {
+        } else if (*a_value == '\n') {
             printf("Enter character(s) followed by return: ");
             self->request_time = get_logical_time();
             fflush(stdout);
         } else {
             interval_t elapsed = get_logical_time() - self->request_time;
-            printf("Character entered: %c after %lld nsec.\n", a_value, elapsed);
+            printf("Character entered: %c after %lld nsec.\n", *a_value, elapsed);
         }
+        free(a_value);
     =}
 }

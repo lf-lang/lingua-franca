@@ -221,6 +221,14 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     return timestamp;
 }
 
+/**
+ * Placeholder for a generated function that returns a pointer to the
+ * trigger_t struct for the action corresponding to the specified port ID.
+ * @param port_id The port ID.
+ * @return A pointer to a trigger_t struct or null if the ID is out of range.
+ */
+trigger_t* __action_for_port(int port_id);
+
 /** Handle a message being received from a remote federate via the RTI.
  *  @param receiving_socket The identifier for the sending socket.
  *  @param buffer The message (or at least the start of it).
@@ -269,7 +277,8 @@ void handle_message(int receiving_socket, unsigned char* buffer, int bytes_read)
     }
     printf("DEBUG: Message received by federate: %s.\n", message_contents);
 
-    // FIXME: Call schedule!!
+    schedule(__action_for_port(port_id), 0LL, message_contents);
+    printf("DEBUG: Called schedule\n");
 }
 
 /** Thread that listens for inputs from the RTI.

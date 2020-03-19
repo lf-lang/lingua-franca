@@ -39,7 +39,7 @@ main reactor AsyncCallback {
 	state expected_time:time(100 msec);
 	state toggle:bool(false);
 	
-    physical action a(100 msec, DROP):int;
+    physical action a(100 msec, 0, DROP):int*;
     state i:int(0);
   
 	reaction(t) -> a {=
@@ -54,8 +54,8 @@ main reactor AsyncCallback {
 		    printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
 		    exit(1);
 		}
-		if (a_value != 0) {
-			printf("ERROR: Received:%d, expected 0 because the second event should have been dropped.\n", a_value);
+		if (*a_value != 0) {
+			printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", *a_value);
 		}
         if (self->toggle) {
             self->toggle = false;

@@ -468,8 +468,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			nodes += node
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
-			if (action.minTime !== null) {
-				node.addOutsideBottomCenteredNodeLabel(action.minTime.toText, 7)
+			if (action.minDelay !== null) {
+				node.addOutsideBottomCenteredNodeLabel(action.minDelay.toText, 7)
 			}
 			
 			// connect source
