@@ -249,21 +249,16 @@ abstract class GeneratorBase {
             }
         }
         
-        // FIXME: call method for processing target-specific properties?
-
+        // Override target properties if specified as command line arguments.
         if (context instanceof StandaloneContext) {
-            println("Standalone>>>>>>>>>>>>>>>>>>")
             if (context.args.containsKey("no-compile")) {
-                println("Skip target compilation!")
                 targetNoCompile = true
             }
             if (context.args.containsKey("target-compiler")) {
-                println("Compiler specified: " + context.args.getProperty("target-compiler"))
                 targetCompiler = context.args.getProperty("target-compiler")
             }
             if (context.args.containsKey("target-flags")) {
                 targetCompilerFlags = context.args.getProperty("target-flags")
-                println("Target flags:" + context.args.get("target-flags"))
             }
         }
 
