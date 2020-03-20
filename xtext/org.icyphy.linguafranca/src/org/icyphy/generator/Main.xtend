@@ -58,20 +58,26 @@ class Main {
      */
     def static protected getProps(String[] args) {
         val len = args.length
+        var flags = ""
         val props = new Properties()
-        props.setProperty("target_args", "")
         if (len < 2) {
             return props
         } else {
             for (var i = 1; i < len; i++) {
                 val k = args.get(i)
-                if (k.trim().equals("--no-target")) {
-                    props.setProperty("no-target", "")
-                } else {
-                    var argStr = props.getProperty("target_args").trim + " " + k
-                    props.setProperty("target_args", argStr)
+                if (k.trim().equals("--no-compile")) {
+                    props.setProperty("no-compile", "")
+                } else if (k.trim().equals("--target-compiler") && i+1 < len) {
+                    props.setProperty("target-compiler", args.get(i+1))
+                    i++
+                } 
+                else {
+                    flags = flags.trim + " " + k
                 }
             }
+        }
+        if (flags != "") {
+            props.setProperty("target-flags", flags)
         }
         props
     }
@@ -105,7 +111,7 @@ class Main {
 		if (!issues.empty) {
 			System::err.println('Aborting. Unable to validate resource.');
 			issues.forEach[System.err.println(it)]
-			return
+			System::exit(1)
 		}
 
 		// Configure and start the generator

@@ -53,12 +53,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     // Allowed target parameters, in alphabetical order.
     public static val TARGET_PARAMETERS = #{
         'cmake_include',
-        'compile', 
+        'compiler', 
         'fast',
+        'flags',
         'federates',
         'hosts',
         'keepalive',
         'logging',
+        'no-compile',
         'run', 
         'threads',
         'timeout'

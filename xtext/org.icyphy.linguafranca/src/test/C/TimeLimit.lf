@@ -8,7 +8,7 @@
 // for over 23 million reactions per second.
 // This translates to 43 nanoseconds per reaction invocation.
 target C {
-    compile: "gcc -O2 src-gen/TimeLimit.c -o bin/TimeLimit",
+        flags: "-O2",
 	fast: true
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
