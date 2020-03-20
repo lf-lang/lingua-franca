@@ -53,7 +53,7 @@ function usage() {
     echo "Options:"
     echo "  -c | --target-compiler  Target compiler to invoke."
     echo "  -h | --help             Display this information."
-    echo "  -n | --no-target        Do not invoke target compiler."
+    echo "  -n | --no-compile       Do not invoke target compiler."
     echo "  -r | --rebuild          Rebuild the compiler first."
 }
 
@@ -114,8 +114,8 @@ while [[ "$#" -gt 0 ]]; do
         -r | --rebuild )
             rebuild=1
         ;;
-        -n | --no-target )
-            targs=$targs" --no-target"
+        -n | --no-compile )
+            targs=$targs" --no-compile"
         ;;
         -* ) 
             if [[ $group < 1 ]]; then

@@ -108,6 +108,14 @@ class CGenerator extends GeneratorBase {
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
 
+
+    new () {
+        super()
+        // set defaults
+        this.targetCompiler = "gcc"
+        this.targetCompilerFlags = "-O2"
+    }
+
     ////////////////////////////////////////////
     //// Public methods
 
@@ -310,20 +318,17 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
-
-        compileCode()
+        
+        if (!targetNoCompile) {
+            compileCode()
+        } else {
+            println("Exiting before invoking target compiler.")
+        }
     }
     
     /** Invoke the compiler on the generated code. */
     def compileCode() {
-        // If the target directive gives a compile command, use that.
-        if (targetCompile !== null) {
-            val command = targetCompile.split(' ')
-            var compileCommand = newArrayList
-            compileCommand.addAll(command)
-            executeCommand(compileCommand, directory)
-            return
-        }
+
         // If there is more than one federate, compile each one.
         val baseFilename = filename
         for (federate : federates) {
@@ -332,20 +337,29 @@ class CGenerator extends GeneratorBase {
             if (!federate.isSingleton) {
                 filename = baseFilename + '_' + federate.name
             }
+            
             // Derive target filename from the .lf filename.
             val cFilename = filename + ".c";            
             val relativeSrcFilename = "src-gen" + File.separator + cFilename;
             val relativeBinFilename = "bin" + File.separator + filename;
             
             var compileCommand = newArrayList
-            compileCommand.addAll("gcc", "-O2", relativeSrcFilename)
+            compileCommand.add(targetCompiler)
+            val flags = targetCompilerFlags.split(' ')
+            compileCommand.addAll(flags)
+            compileCommand.add(relativeSrcFilename)
             if (compileAdditionalSources !== null) {
                 compileCommand.addAll(compileAdditionalSources)
             }
             if (compileLibraries !== null) {
                 compileCommand.addAll(compileLibraries)
             }
-            compileCommand.addAll("-o", relativeBinFilename)
+            // Only set the output file name if it hasn't already been set
+            // using a target property or command line flag.
+            if (compileCommand.forall[it.trim != "-o"]) {
+                compileCommand.addAll("-o", relativeBinFilename)    
+            }
+            
             // If threaded computation is requested, add a -pthread option.
             if (targetThreads !== 0) {
                 compileCommand.add("-pthread")
@@ -355,7 +369,7 @@ class CGenerator extends GeneratorBase {
             // Then again, I think this only makes sense when we can do linking.
             // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
             if (main === null) {
-                compileCommand.add("-c")
+                compileCommand.add("-c") // FIXME: revisit
                 if (mode === Mode.STANDALONE) {
                     reportError(
                         "ERROR: Did not output executable; no main reactor found.")
