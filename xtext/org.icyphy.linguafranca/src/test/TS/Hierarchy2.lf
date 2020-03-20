@@ -1,8 +1,7 @@
 // Test data transport across hierarchy.
 target TypeScript {
     timeout: 5 sec,
-    fast: true,
-    logging: DEBUG
+    fast: true
 };
 reactor Source {
     output out:number;
