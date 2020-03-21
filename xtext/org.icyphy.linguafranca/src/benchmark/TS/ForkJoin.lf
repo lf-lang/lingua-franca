@@ -50,35 +50,35 @@ main reactor ForkJoin {
     reaction (w0.done) -> end {=
         workerCount++;
         if (workerCount == totalWorkers) {
-            actions.end.schedule(0);
+            actions.end.schedule(0, null);
         }
     =}
     
     reaction (w1.done) -> end {=
         workerCount++;
         if (workerCount == totalWorkers) {
-            actions.end.schedule(0);
+            actions.end.schedule(0, null);
         }
     =}
     
     reaction (w2.done) -> end {=
         workerCount++;
         if (workerCount == totalWorkers) {
-            actions.end.schedule(0);
+            actions.end.schedule(0, null);
         }
     =}
     
     reaction (w3.done) -> end {=
         workerCount++;
         if (workerCount == totalWorkers) {
-            actions.end.schedule(0);
+            actions.end.schedule(0, null);
         }
     =}
     
     reaction (w4.done) -> end {=
         workerCount++;
         if (workerCount == totalWorkers) {
-            actions.end.schedule(0);
+            actions.end.schedule(0, null);
         }
     =}
     

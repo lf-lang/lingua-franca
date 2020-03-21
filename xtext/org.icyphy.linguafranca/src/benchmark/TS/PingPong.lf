@@ -21,9 +21,9 @@ reactor Ping(count:number(100000)) {
     =}
     reaction (receive) -> serve, done {=
         if (pingsLeft > 0) {
-            actions.serve.schedule(0);
+            actions.serve.schedule(0, null);
         } else {
-            actions.done.schedule(0);
+            actions.done.schedule(0, null);
         }
     =}
     reaction (done) {=

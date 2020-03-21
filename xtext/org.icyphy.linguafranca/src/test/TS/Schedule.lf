@@ -4,7 +4,7 @@ reactor Schedule {
     input x:number;
     logical action a;
     reaction(x) -> a {=
-        actions.a.schedule( new UnitBasedTimeValue(200, TimeUnit.msec))
+        actions.a.schedule( new UnitBasedTimeValue(200, TimeUnit.msec), null)
     =}
     reaction(a) {=
         let elapsedTime = util.getElapsedLogicalTime();

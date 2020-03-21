@@ -18,7 +18,7 @@ main reactor SlowingClockPhysical {
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
         expected_time = new UnitBasedTimeValue(100, TimeUnit.msec);
-        actions.a.schedule(0);
+        actions.a.schedule(0, null);
     =}
     reaction(a) -> a {=
         let elapsed_logical_time = util.getElapsedLogicalTime();
@@ -29,7 +29,7 @@ main reactor SlowingClockPhysical {
         }
         interval = interval.add(new UnitBasedTimeValue(100, TimeUnit.msec));
         expected_time = (new UnitBasedTimeValue(100, TimeUnit.msec)).add(interval);
-        actions.a.schedule(interval);
+        actions.a.schedule(interval, null);
     =}
     reaction(shutdown) {=
         if (expected_time.isEarlierThan(new UnitBasedTimeValue(500, TimeUnit.msec))) {
