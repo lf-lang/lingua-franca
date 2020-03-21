@@ -2,7 +2,8 @@
 // trigger it only once.
 // Correct output for this 2, 4, 6, 8, etc.
 target Cpp {
-	run: "bin/DoubleReaction --fast --timeout 10"
+    timeout: 10 sec,
+    fast: true
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
     output y:int;
