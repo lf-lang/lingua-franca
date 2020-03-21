@@ -25,13 +25,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.icyphy.generator
 
-import java.io.File
-import java.util.Hashtable
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Target
 
 /**
@@ -40,23 +37,15 @@ import org.icyphy.linguaFranca.Target
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
 class LinguaFrancaGenerator extends AbstractGenerator {
-	val importTable = new Hashtable<String,String>
 
     // Indicator of whether generator errors occurred.
     protected var generatorErrorsOccurred = false
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		// First collect all the imports.
-		for (import : resource.allContents.toIterable.filter(Import)) {
-			val pieces = import.importURI.split("\\.")
-    		val root = pieces.last
-    		val filename = pieces.join(File.separator)
-			importTable.put(root, filename)
-		}
 		// Determine which target is desired.
 		for (target : resource.allContents.toIterable.filter(Target)) {
-		    var generator = null as GeneratorBase;
-			// FIXME: Use reflection here?
+		    var GeneratorBase generator
+			
 			if (target.name.equalsIgnoreCase("C")) {
 				generator = new CGenerator()
 			} else if (target.name.equalsIgnoreCase("Cpp")) {
@@ -64,9 +53,10 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 			} else if (target.name.equalsIgnoreCase("TypeScript")) {
                 generator = new TypeScriptGenerator()
 			} else {
-                System.err.println("Warning: No recognized target.")
-			    throw new Exception("No recognized target.")
+                System.err.println("Warning: Unrecognized target.")
+			    throw new Exception("Unrecognized target.")
 			}
+			
             generator.doGenerate(resource, fsa, context)
             generatorErrorsOccurred = generator.errorsOccurred()
 		}

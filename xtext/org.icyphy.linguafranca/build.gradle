@@ -49,6 +49,9 @@ task generateStandaloneCompiler() {
  			resource = 'plugin.properties'
  		}
 	}
+        compileJava {
+                options.compilerArgs << '-Xlint:unchecked'
+	}
 }
 
 generateStandaloneCompiler.finalizedBy shadowJar
