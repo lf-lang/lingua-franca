@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #==========================================================
-# Description: 	Build the lfc compiler.
+# Description: 	        Build the lfc compiler.
 # Authors:		Marten Lohstroh, Mehrdad Niknami
 # Usage:		build-lfc [options]
 #==========================================================

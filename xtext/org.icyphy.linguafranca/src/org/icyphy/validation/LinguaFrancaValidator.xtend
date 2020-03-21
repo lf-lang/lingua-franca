@@ -61,7 +61,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'keepalive',
         'logging',
         'no-compile',
-        'run', 
         'threads',
         'timeout'
     }

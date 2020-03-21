@@ -178,9 +178,6 @@ abstract class GeneratorBase {
     /** The level of logging or null if not given. */
     protected String targetLoggingLevel
 
-    /** The run target parameter, or null if there is none. */
-    protected String targetRun
-
     /** The threads target parameter, or the default 0 if there is none. */
     protected int targetThreads = 0
 
@@ -237,8 +234,6 @@ abstract class GeneratorBase {
                         }
                     case "logging":
                         targetLoggingLevel = param.value.id
-                    case "run": // FIXME: remove. Also move stuff to an enum so that these things don't linger
-                        targetRun = param.value.literal.withoutQuotes
                     case "threads":
                         targetThreads = Integer.decode(param.value.literal)
                     case "timeout": {
