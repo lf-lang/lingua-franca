@@ -15,8 +15,8 @@ main reactor AsyncCallback {
             // then they cause two separate triggerings with close but not
             // equal time stamps. The minimum time between these is determined
             // by the argument in the physical action definition.
-	        a.schedule(0);
-	        a.schedule(0);
+	        a.schedule(0, null);
+	        a.schedule(0, null);
 	    }
 	=}
 	timer t(0, 200 msec);

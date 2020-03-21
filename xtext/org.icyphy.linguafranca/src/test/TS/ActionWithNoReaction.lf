@@ -8,10 +8,10 @@ target TypeScript {
 reactor foo {
     input x:number;
     output y:number;
-    logical action a:number;
+    logical action a;
     reaction(x) -> y, a {=
         y = 2 * (x as number);
-        actions.a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec))
+        actions.a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec), null)
     =}
 }
 reactor print {
@@ -30,4 +30,4 @@ main reactor top {
         f.x = 42;
     =}
     f.y -> p.x after 10 msec;
-}
+} 

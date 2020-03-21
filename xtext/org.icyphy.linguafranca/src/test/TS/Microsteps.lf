@@ -30,7 +30,7 @@ main reactor Microsteps {
     d = new Destination();
     reaction(start) -> d.x, repeat {=
         d.x = 1;
-        actions.repeat.schedule(0);
+        actions.repeat.schedule(0, null);
     =}
     reaction(repeat) -> d.y {=
         d.y = 1;

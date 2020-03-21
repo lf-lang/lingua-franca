@@ -7,12 +7,12 @@ target TypeScript {
 reactor foo {
     input x:number;
     output y:number;
-    logical action a:number;
+    logical action a;
     reaction(x) -> y, a {=
         x = x as number;
         y  = 2 * x;
         // The following uses physical time, incorrectly.
-        actions.a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec));
+        actions.a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec), null);
     =}
     reaction(a) -> y {=
         y = -42;
