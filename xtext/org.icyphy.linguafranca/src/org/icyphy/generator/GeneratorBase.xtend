@@ -237,7 +237,7 @@ abstract class GeneratorBase {
                         }
                     case "logging":
                         targetLoggingLevel = param.value.id
-                    case "run":
+                    case "run": // FIXME: remove. Also move stuff to an enum so that these things don't linger
                         targetRun = param.value.literal.withoutQuotes
                     case "threads":
                         targetThreads = Integer.decode(param.value.literal)
