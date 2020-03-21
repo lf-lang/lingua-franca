@@ -2,7 +2,7 @@
 target Cpp {
     threads: 2,
     timeout: 2 sec,
-    keepalive: true    // Not really needed here because there is a timer.
+    keepalive: true,
     cmake_include: "AsyncCallback.cmake"
 };
 
