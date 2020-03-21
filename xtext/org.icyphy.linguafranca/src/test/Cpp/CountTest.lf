@@ -1,5 +1,6 @@
 target Cpp {
-    run: "bin/CountTest --timeout 3 --fast"
+    timeout: 3 sec,
+    fast: true
 };
 import Count.lf;
 reactor Test {
