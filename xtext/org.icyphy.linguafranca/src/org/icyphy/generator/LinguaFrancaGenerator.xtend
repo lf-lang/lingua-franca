@@ -68,4 +68,7 @@ class LinguaFrancaGenerator extends AbstractGenerator {
     def errorsOccurred() {
         return generatorErrorsOccurred;
     }
+    
 }
+
+    

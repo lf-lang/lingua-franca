@@ -17,12 +17,11 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.eclipse.xtext.validation.EValidatorRegistrar
-import java.util.Arrays
+import org.icyphy.linguaFranca.Target
 
 /**
  * This class contains custom validation rules. 
@@ -31,13 +30,19 @@ import java.util.Arrays
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
-    public static val KNOWN_TARGETS = #{
+    /**
+     * Immutable set of known targets.
+     */
+    public static val KNOWN_TARGETS = #{ // FIXME: turn this into enum to avoid string matching problems.
         'C', 
         'Cpp',
         'TypeScript'
     }
-    
-    public static val LOGGING_LEVELS = #{
+
+    /**
+     * Immutable set of logging levels supported in TypeScript.
+     */    
+    public static val LOGGING_LEVELS = #{ // FIXME: turn this into enum to avoid string matching problems.
         'ERROR',
         'WARN',
         'INFO',
@@ -45,13 +50,19 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'DEBUG'
     }
     
-    public static val TARGET_REQUIRES_TYPES = #{
+    /**
+     * Immutable mapping from known targets to a boolean indicating whether they require types.
+     */
+    public static val TARGET_REQUIRES_TYPES = #{ // FIXME: use enum keys to avoid string matching problems.
         'C' -> true,
         'Cpp' -> true,
         'TypeScript' -> false
     }
-    // Allowed target parameters, in alphabetical order.
-    public static val TARGET_PARAMETERS = #{
+    
+    /**
+     * Immutable set of target properties in alphabetical order. 
+     */    
+    public static val TARGET_PARAMETERS = #{// FIXME: turn this into enum to avoid string matching problems.
         'cmake_include',
         'compiler', 
         'fast',
@@ -65,8 +76,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         'timeout'
     }
     
-    // List via: https://github.com/Microsoft/TypeScript/issues/2536
-    var TSKeywordsList = Arrays.asList(
+    /**
+     * Immutable set of TypeScript keywords.
+     * List via: https://github.com/Microsoft/TypeScript/issues/2536 
+     */
+    public static val TS_KEYWORDS = #{
         
         // Reserved Words
         "break",
@@ -133,10 +147,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         "type",
         "from",
         "of"
-    )
+    }
     
-    // via: https://en.cppreference.com/w/c/keyword
-    var CKeywordsList = Arrays.asList(
+    /**
+     * Immutable set of C keywords.
+     * List via: https://en.cppreference.com/w/c/keyword
+     */
+    public static val C_KEYWORDS = #{
         "auto",
         "break",
         "case",
@@ -181,10 +198,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         "_Noreturn", // (since C11)
         "_Static_assert", // (since C11)
         "_Thread_local" // (since C11)
-    )
+    }
     
-    // via: https://en.cppreference.com/w/cpp/keyword
-    var CppKeywordsList = Arrays.asList(
+    /**
+     * Immutable set of TypeScript keywords.
+     * List via: https://en.cppreference.com/w/cpp/keyword
+     */
+    public static val CPP_KEYWORDS = #{
         "alignas", // (since C++11)
         "alignof", // (since C++11)
         "and",
@@ -282,12 +302,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         "while",
         "xor",
         "xor_eq"
-    )
+    }
     
-    var TSKeywords = newHashSet()
-    var CKeywords = newHashSet()
-    var CppKeywords = newHashSet()
-
     var reactorClasses = newHashSet()
     var parameters = newHashSet()
     var inputs = newHashSet()
@@ -303,6 +319,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     // Check the name of a feature for illegal substrings.
     def checkName(String name, EStructuralFeature feature) {
+        
         // Raises an error if the string starts with two underscores.
         if (name.length() >= 2 && name.substring(0,2).equals("__")) {
             error(UNDERSCORE_MESSAGE + name, feature)
@@ -315,48 +332,32 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         
             // Raise an error if the name is a TypeScript reserved word
-            if (TSKeywords.contains(name)) {
+            if (org.icyphy.validation.LinguaFrancaValidator.TS_KEYWORDS.contains(name)) {
                 error(RESERVED_MESSAGE + name, feature)
             }
         }
         
         if (this.target.equals("C")) {
             // Raise an error if the name is a TypeScript reserved word
-            if (CKeywords.contains(name)) {
+            if (org.icyphy.validation.LinguaFrancaValidator.C_KEYWORDS.contains(name)) {
                 error(RESERVED_MESSAGE + name, feature)
             }
         }
         
         if (this.target.equals("Cpp")) {
             // Raise an error if the name is a TypeScript reserved word
-            if (CppKeywords.contains(name)) {
+            if (org.icyphy.validation.LinguaFrancaValidator.CPP_KEYWORDS.contains(name)) {
                 error(RESERVED_MESSAGE + name, feature)
             }
         }
     }
-    
-    // Initialize should be called when the validator is registered
-    // Use this function to set up data structures using 
-    // common data. 
-    def initialize() {
-        for (word : TSKeywordsList) {
-            TSKeywords.add(word)
-        }
-        for (word : CKeywordsList) {
-            CKeywords.add(word)
-        }
-        for (word : CppKeywordsList) {
-            CppKeywords.add(word)
-        }
-    }
-    
+        
     // The xtext validator doesn't have an initialize function
     // for common data, so override the register function
     // to call the locally defined initialize function.
     // See: https://www.eclipse.org/forums/index.php/t/1039065/
     override register(EValidatorRegistrar registrar) {
         super.register(registrar)
-        initialize()
     }
     
     // //////////////////////////////////////////////////
