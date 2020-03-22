@@ -2,12 +2,11 @@
 // It delays by a logical time any pointer datatype.
 target C;
 reactor DelayPointer(delay:time(100 msec)) {
-    mutable input in:void*;
+    input in:void*;
     output out:void*;
     logical action a:void*;
     reaction(in) -> a {=
-        // mutable input guarantees *in will not be freed.
-        schedule(a, self->delay, in);
+        schedule(a, self->delay, get_input_token(in));
     =}
     reaction(a) -> out {=
         // Using set_token delegates responsibility for

@@ -11,25 +11,22 @@ main reactor AsyncCallback {
 	
 	preamble {= 
 		#include <pthread.h>
-		void callback(void* a) {
+		void callback(trigger_t* a) {
 		    // Schedule twice. If the action is not physical, these should
 		    // get consolidated into a single action triggering. If it is,
 		    // then they cause two separate triggerings with close but not
 		    // equal time stamps. The minimum time between these is determined
 		    // by the argument in the physical action definition.
-			int* v = malloc(sizeof(int));
-			*v = 0;
-			schedule(a, 0, v);
-			v = malloc(sizeof(int));
-			*v = 1;
-            schedule(a, 0, v);
+		    int value = 0;
+			schedule_with_copy(a, 0, &value);
+            schedule_with_copy(a, 0, &value);
 		}
 		// Simulate time passing before a callback occurs.
 		void* take_time(void* a) {
 			struct timespec sleep_time = {(time_t) 0, (long)100000000};
 			struct timespec remaining_time;
 			nanosleep(&sleep_time, &remaining_time);
-			callback(a);
+			callback((trigger_t*)a);
 			return NULL;
 		}
 		pthread_t threadId;
@@ -39,7 +36,7 @@ main reactor AsyncCallback {
 	state expected_time:time(100 msec);
 	state toggle:bool(false);
 	
-    physical action a(100 msec, 0, DROP):int*;
+    physical action a(100 msec, 0, DROP):int;
     state i:int(0);
   
 	reaction(t) -> a {=
@@ -54,8 +51,8 @@ main reactor AsyncCallback {
 		    printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
 		    exit(1);
 		}
-		if (*a_value != 0) {
-			printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", *a_value);
+		if (a_value != 0) {
+			printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", a_value);
 		}
         if (self->toggle) {
             self->toggle = false;

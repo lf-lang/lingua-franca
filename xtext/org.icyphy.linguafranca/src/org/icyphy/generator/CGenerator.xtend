@@ -288,7 +288,7 @@ class CGenerator extends GeneratorBase {
                 pr('bool __wrapup() {\n')
                 indent()
                 for (instance : shutdownActionInstances) {
-                    pr('schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
+                    pr('__schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
                 }
                 if (shutdownActionInstances.length === 0) {
                     pr('return false;')
@@ -385,26 +385,38 @@ class CGenerator extends GeneratorBase {
      *  reference count hits zero.
      */
     def addReferenceCountReaction(Reactor reactor) {
-        var triggers = newArrayList
+        var triggersForReaction = newArrayList
         var body = new StringBuilder
         // This is a bit of a hack, but preface the body with
         // a comment that the preamble should not not be included.
         // Including the preamble could result in multiple writable
         // copies being made if an input is mutable.
         pr(body, CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
+        pr(body, '// Generated reaction for recycling allocated memory.')
         for(input : reactor.inputs) {
             if (isTokenType(input.type)) {
-                triggers.add(input)
-                pr(body, 'if(self->__' + input.name 
-                    + '_is_present) {__done_using(self->__' + input.name
-                    + ');}'
-                )
+                triggersForReaction.add(input)
+                pr(body, '''
+                    if(self->__«input.name»_is_present) {
+                        __done_using(*self->__«input.name»);
+                    }
+                ''')
             }
         }
-        if (!triggers.isEmpty) {
+        for (action : reactor.actions) {
+            // If there is a payload to be freed, free it.
+            pr(body, '''
+                if (self->__«action.name»__triggered) {
+                    self->__«action.name»__triggered = false;
+                    __done_using(self->__«action.name»->token);
+                }
+                ''')
+            triggersForReaction.add(action)
+        }
+        if (!triggersForReaction.isEmpty) {
             var reaction = LinguaFrancaFactory.eINSTANCE.createReaction
             // Populate the triggers for the reaction.
-            for(input: triggers) {
+            for(input: triggersForReaction) {
                 var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
                 variableReference.setVariable(input)
                 reaction.triggers.add(variableReference)
@@ -569,6 +581,8 @@ int main(int argc, char* argv[]) {
             prSourceLineNumber(a)
             // NOTE: Slightly obfuscate output name to help prevent accidental use.
             pr(body, "trigger_t* __" + a.name + ";")
+            // Indicator of whether this action triggered and hence its payload should be freed.
+            pr(body, "bool __" + a.name + "__triggered;")
         }
         // Next handle inputs.
         for (input : reactor.inputs) {
@@ -821,23 +835,8 @@ int main(int argc, char* argv[]) {
                     generatePortVariablesInReaction(reactionInitialization,
                         fieldsForStructsForContainedReactors, trigger)
                 } else if (trigger.variable instanceof Action) {
+                    generateActionVariablesInReaction(reactionInitialization, trigger.variable as Action)
                     actionsAsTriggers.add(trigger.variable as Action);
-                    // If the action has a type, create variables for accessing the value.
-                    val type = (trigger.variable as Action).type
-                    val valuePointer = 'self->__' + trigger.variable.name + '->value'
-                    // Create the _has_value variable.
-                    pr(reactionInitialization,
-                        'bool ' + trigger.variable.name + '_has_value = (' + valuePointer + ' != NULL);')
-                    // Create the _value variable if there is a type.
-                    if (type !== null) {
-                        // Create the value variable, but initialize it only if the pointer is not null.
-                        pr(reactionInitialization, type + ' ' + trigger.variable.name + '_value;')
-                        pr(
-                            reactionInitialization,
-                            'if (' + trigger.variable.name + '_has_value) ' + trigger.variable.name +
-                                '_value = (' + type + ')' + valuePointer + ';'
-                        );
-                    }
                 }
             }
         }
@@ -1718,6 +1717,31 @@ int main(int argc, char* argv[]) {
                 )
             }
         }
+        // Next, initialize actions by creating a token_t in the self struct.
+        // This has the information required to allocate memory for the action payload.
+        for (action : instance.actions) {
+            // Actions may not have a type, in which case there is no payload.
+            var type = (action.definition as Action).type
+            if (type !== null) {
+                // If the type ends in * or [], get the root type.
+                if (isTokenType(type)) {
+                    type = rootType(type)
+                }
+                pr(initializeTriggerObjects,
+                    '''
+                    «nameOfSelfStruct».__«action.name»->token = __create_token(sizeof(«type»));
+                    «nameOfSelfStruct».__«action.name»__triggered = false;
+                    '''
+                )
+            } else {
+                pr(initializeTriggerObjects,
+                    '''
+                    «nameOfSelfStruct».__«action.name»->token = NULL;
+                    «nameOfSelfStruct».__«action.name»__triggered = false;
+                    '''
+                )
+            }
+        }
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
             if (reaction.definition.deadline !== null) {
@@ -1814,10 +1838,7 @@ int main(int argc, char* argv[]) {
     override generateDelayBody(Action action, VarRef port) { 
         val ref = generateVarRef(port);
         // Note that the action.type set by the base class is actually
-        // the port type. The action type needs to be corrected to be a pointer.
-        // However, this is deferred to generateForwardBody so that we still
-        // have access to the port type there.
-        // FIXME: the following check is not detecting pointer types masked by a typedef
+        // the port type.
         if (isTokenType(action.type)) {
             '''
             // Increment the reference count to prevent freeing prematurely.
@@ -1829,40 +1850,37 @@ int main(int argc, char* argv[]) {
             }
             '''
         } else {
-            val tmp = action.name + "_to_" + port.variable.name
             '''
-            «action.type»* «tmp» = malloc(sizeof(«action.type»));
-            *«tmp» = «ref»;
-            schedule(«action.name», 0, «tmp»);
+            schedule(«action.name», 0, «ref»);
             '''
         }
     }
     
     /**
      * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port.
+     * given action and writes its value to the given port. This realizes
+     * the receiving end of a logical delay specified with the 'after'
+     * keyword.
      * @param action The action that triggers the reaction
      * @param port The port to write to.
      */
     override generateForwardBody(Action action, VarRef port) {
         val ref = generateVarRef(port)
         if (isTokenType(action.type)) {
-            // Note that the action.type set by the base class is actually
-            // the port type. The action type needs to be corrected to be a token_t*.
-            // Do this here rather than in generateDelayBody() so that we still
-            // have access to the portType.
-            action.type = 'token_t*'
+            // Forward the entire token and prevent freeing.
+            // Decrement the reference count to account for it being
+            // incremented at the sending end of the 'after'.
+            // We leave the ref_count alone. It should be 1.
             '''
-            self->__«ref» = «action.name»_value;
+            «DISABLE_REACTION_INITIALIZATION_MARKER»
+            self->__«ref» = (token_t*)self->__«action.name»->token;
+            // Enable downstream freeing of the token_t struct itself.
+            ((token_t*)self->__«action.name»->token)->ok_to_free = true;
             self->__«ref»_is_present = true;
             '''
         } else {
-            // Primitive type. Memory was malloc'd above.
-            // Add a level of indirection to the type.
-            action.type = action.type + '*'
             '''
-            set(«ref», *«action.name»_value);
-            free(«action.name»_value);
+            set(«ref», «action.name»_value);
             '''
         }
     }
@@ -2195,6 +2213,40 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    /** Generate action variables for a reaction.
+     *  @param builder The string builder into which to write the code.
+     *  @param action The action.
+     */
+    private def generateActionVariablesInReaction(StringBuilder builder, Action action) {
+        // If the action has a type, create variables for accessing the value.
+        val type = action.type
+        // Pointer to the token_t sent as the payload in the trigger.
+        val tokenPointer = '''((token_t*)self->__«action.name»->token)'''
+        // Create the _has_value variable.
+        pr(builder,
+            '''
+            bool «action.name»_has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
+            ''')
+        // Create the _value variable if there is a type.
+        if (type !== null) {
+            // Create the value variable, but initialize it only if the pointer is not null.
+            // NOTE: The token_t objects will get recycled automatically using
+            // this scheme and never freed. The total number of token_t structs created
+            // will equal the maximum number of actions that are simultaneously in
+            // the event queue.
+            pr(builder, '''
+                «type» «action.name»_value;
+                if («action.name»_has_value) {
+                     «action.name»_value = *((«type»*)«tokenPointer»->value);
+                }
+                if («tokenPointer» != NULL) {
+                    self->__«action.name»__triggered = true;
+                }
+                '''
+            )
+        }
+    }
+    
     /** Generate into the specified string builder the code to
      *  initialize local variables for ports in a reaction function
      *  from the "self" struct. The port may be an input of the

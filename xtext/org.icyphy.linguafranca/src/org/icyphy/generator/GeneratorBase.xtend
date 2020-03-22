@@ -408,16 +408,21 @@ abstract class GeneratorBase {
         // Configure the first reaction.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
+        // FIXME: Why the extra semicolon?
         r1.code = generateDelayBody(action, inRef) + ";\n"
 
         // Configure the second reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
+        // FIXME: Why the extra semicolon?
         r2.code = generateForwardBody(action, outRef) + ";\n"
 
         // Add the reactions to the parent.
-        parent.reactions.add(r1)
+        // These need to go in the opposite order in case
+        // a new input arrives at the same time the delayed
+        // output is delivered!
         parent.reactions.add(r2)
+        parent.reactions.add(r1)
     }
 
 

@@ -49,20 +49,42 @@ pthread_cond_t event_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t reaction_or_executing_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t number_of_idle_threads_changed = PTHREAD_COND_INITIALIZER;
 
-// Schedule the specified trigger at current_time plus the
-// offset declared in the trigger plus the extra_delay.
-// If the offset of the trigger and the extra_delay are both zero,
-// then schedule the trigger to occur one microstep later in superdense time.
-// If this call occurs between logical times, then instead of adding
-// the offset and the extra_delay to the current_time, add them to the
-// greater of the current_physical time and the current logical time (current_time).
-// The value is required to be a pointer returned by malloc
-// because it will be freed after having been delivered to
-// all relevant destinations unless it is NULL, in which case
-// it will be ignored.
-handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
+/**
+ * Schedule the specified trigger at current_time plus the offset of the
+ * specified trigger plus the delay. If the offset of the trigger and
+ * the extra_delay are both zero, then the event will occur one
+ * microstep later in superdense time (it gets put on the event queue,
+ * which will not be examined until all events on the reaction queue
+ * have been processed).
+ *
+ * The value is required to be either
+ * NULL or a pointer to a token wrapping the payload. The token carries
+ * a reference count, and when the reference count decrements to 0,
+ * the will be freed. Hence, it is essential that the payload be in
+ * memory allocated using malloc.
+ *
+ * There are three conditions under which this function will not
+ * actually put an event on the event queue and decrement the reference count
+ * of the token (if there is one), which could result in the payload being
+ * freed. In all three cases, this function returns 0. Otherwise,
+ * it returns a handle to the scheduled trigger, which is an integer
+ * greater than 0.
+ *
+ * The first condition is that a stop has been requested and the trigger
+ * offset plus the extra delay is greater than zero.
+ * The second condition is that the trigger offset plus the extra delay
+ * is greater that the requested stop time (timeout).
+ * The third condition is that the trigger argument is null.
+ *
+ * @param trigger The trigger to be invoked at a later logical time.
+ * @param extra_delay The logical time delay, which gets added to the
+ *  trigger's minimum delay, if it has one.
+ * @param token The token wrapping the payload.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token) {
     pthread_mutex_lock(&mutex);
-	int return_value = __schedule(trigger, extra_delay, value);
+	int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
  	pthread_mutex_unlock(&mutex);
@@ -307,14 +329,14 @@ bool __next() {
         }
         // Copy the value pointer into the trigger struct so that the
         // reactions can access it.
-        event->trigger->value = event->value;
+        event->trigger->token = event->token;
         
         // Recycle the event.
         // So that sorting doesn't cost anything,
         // give all recycled events the same zero time stamp.
         event->time = 0LL;
         // Also remove pointers that will be replaced.
-        event->value = NULL;
+        event->token = NULL;
         event->trigger = NULL;
         pqueue_insert(recycle_q, event);
 
