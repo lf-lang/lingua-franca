@@ -62,6 +62,7 @@ reactor NetworkReceiver(D:time(10 msec), E:time(1 msec), L:time(10 msec)) {
 		
 		void wait_for_message(void* a) {
 		    valread = read(sock , buffer, 1024); // FIXME: is this blocking or not?
+		    // FIXME: payload needs to wrapped in token.
             schedule(a, 0, &buffer);
 		}	
 	=}

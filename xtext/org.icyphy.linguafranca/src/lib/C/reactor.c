@@ -34,20 +34,47 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reactor_common.c"
 //#include <assert.h>
 
-// Schedule the specified trigger at current_time plus the
-// offset declared in the trigger plus the extra_delay.
-// If the offset of the trigger and the extra_delay are both zero,
-// then schedule the trigger to occur one microstep later in superdense time.
-// The value is required to be a pointer returned by malloc
-// because it will be freed after having been delivered to
-// all relevant destinations unless it is NULL, in which case
-// it will be ignored.
-// NOTE: There is no multithreading support in this implementation, so
-// asynchronous calls to this function should not be made. The calls
-// should only be made within reactions.
-// If you need asynchronous calls, then use reactor_threaded.c.
-handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value) {
-    return __schedule(trigger, extra_delay, value);
+/**
+ * Schedule the specified trigger at current_time plus the offset of the
+ * specified trigger plus the delay. If the offset of the trigger and
+ * the extra_delay are both zero, then the event will occur one
+ * microstep later in superdense time (it gets put on the event queue,
+ * which will not be examined until all events on the reaction queue
+ * have been processed).
+ *
+ * The value is required to be either
+ * NULL or a pointer to a token wrapping the payload. The token carries
+ * a reference count, and when the reference count decrements to 0,
+ * the will be freed. Hence, it is essential that the payload be in
+ * memory allocated using malloc.
+ *
+ * There are three conditions under which this function will not
+ * actually put an event on the event queue and decrement the reference count
+ * of the token (if there is one), which could result in the payload being
+ * freed. In all three cases, this function returns 0. Otherwise,
+ * it returns a handle to the scheduled trigger, which is an integer
+ * greater than 0.
+ *
+ * The first condition is that a stop has been requested and the trigger
+ * offset plus the extra delay is greater than zero.
+ * The second condition is that the trigger offset plus the extra delay
+ * is greater that the requested stop time (timeout).
+ * The third condition is that the trigger argument is null.
+ *
+ * NOTE: There is no multithreading support in this implementation, so
+ * asynchronous calls to this function should not be made. The calls
+ * should only be made within reactions.
+ * If you need asynchronous calls, then use reactor_threaded.c.
+ *
+ * @param trigger The trigger to be invoked at a later logical time.
+ * @param extra_delay The logical time delay, which gets added to the
+ *  trigger's minimum delay, if it has one.
+ * @param token The token wrapping the payload.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+
+handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+    return __schedule(trigger, extra_delay, token);
 }
 
 // Advance logical time to the lesser of the specified time or the
@@ -66,7 +93,7 @@ int wait_until(instant_t logical_time_ns) {
         return_value = -1;
     }
     if (!fast) {
-        // printf("-------- Waiting for logical time %lld.\n", logical_time_ns);
+        // printf("DEBUG: Waiting for logical time %lld.\n", logical_time_ns);
     
         // Get the current physical time.
         struct timespec current_physical_time;
@@ -84,7 +111,7 @@ int wait_until(instant_t logical_time_ns) {
     
         // timespec is seconds and nanoseconds.
         struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
-        // printf("-------- Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
+        // printf("DEBUG: Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
         struct timespec remaining_time;
         // FIXME: If the wait time is less than the time resolution, don't sleep.
         if (nanosleep(&wait_time, &remaining_time) != 0) {
@@ -159,13 +186,13 @@ int next() {
             // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
             if ((stop_time > 0LL && current_time >= stop_time) || new_event == NULL) {
-            	stop_requested = true;
+                stop_requested = true;
                 return 0;
             }
         } else {
-        	// Handle the new event.
-        	event = new_event;
-        	next_time = event->time;
+            // Handle the new event.
+            event = new_event;
+            next_time = event->time;
         }
     }
     
@@ -181,7 +208,7 @@ int next() {
         // Load reactions triggered by this event onto the reaction queue.
 
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            //printf("Pushed on reaction_q reaction with level: %lld\n", event->trigger->reactions[i]->index);
+            // printf("DEBUG: Pushed on reaction_q reaction with level: %lld\n", event->trigger->reactions[i]->index);
             pqueue_insert(reaction_q, event->trigger->reactions[i]);
         }
         if (!(event->trigger->is_physical) && event->trigger->period > 0) {
@@ -193,26 +220,26 @@ int next() {
         }
         // Copy the value pointer into the trigger struct so that the
         // reactions can access it.
-        event->trigger->value = event->value;
+        event->trigger->token = event->token;
         
         // Recycle the event.
         // So that sorting doesn't cost anything,
         // give all recycled events the same zero time stamp.
         event->time = 0LL;
         // Also remove pointers that will be replaced.
-        event->value = NULL;
+        event->token = NULL;
         event->trigger = NULL;
-   		pqueue_insert(recycle_q, event);
+        pqueue_insert(recycle_q, event);
 
-   		// Peek at the next event in the event queue.
+        // Peek at the next event in the event queue.
         event = pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         reaction_t* reaction = pqueue_pop(reaction_q);
-        // printf("Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
-        // printf("Address of reaction: %p\n", reaction);
+        // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->local_deadline);
+        // printf("DEBUG: Address of reaction: %p\n", reaction);
 
         // If the reaction has a deadline, compare to current physical time
         // and invoke the deadline violation reaction instead of the reaction function
@@ -264,7 +291,7 @@ int next() {
     //assert(pqueue_size(blocked_q) == 0);
 
     if (stop_time > 0LL && current_time >= stop_time) {
-    	stop_requested = true;
+        stop_requested = true;
         return 0;
     }
     return 1;
@@ -296,9 +323,9 @@ int main(int argc, char* argv[]) {
         while (next() != 0 && !stop_requested);
         wrapup();
         termination();
-    	return 0;
+        return 0;
     } else {
         termination();
-    	return -1;
+        return -1;
     }
 }

@@ -78,11 +78,59 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // problems with if ... else statements that do not use braces around the
 // two branches.
 
-/** Set the specified output (or input of a contained reacor) 
+////////////////////////////////////////////////////////////
+//// Functions for scheduling actions.
+
+// FIXME: The WARNING below is serious. Find a way to check.
+
+/** Get a pointer to the token that wraps the value of the
+ *  specified trigger for a reaction (an input or the output of a
+ *  contained reactor). This is a macro that can used only in
+ *  the body of a reaction that is triggered by the specified
+ *  trigger.
+ *  WARNING: Using this for inputs that are not tokens
+ *  will result in errors, likely a segmentation fault.
+ *  An input will be a token if its type ends in '*' or '[]'.
+ *  This is not currently checked.
+ *  @param trigger The trigger (by name).
+ */
+#define get_input_token(trigger) (* self->__ ## trigger)
+
+/** Schedule an action to occur with the specified time offset and
+ *  a copy of the specified value. The value will be copied into
+ *  newly allocated memory and is assumed to have the same type
+ *  as the action type (this is not checked). This is a macro
+ *  that can accept any type of value, but the value argument
+ *  cannot be NULL. To schedule a pure event (with no value),
+ *  use schedule_pure().
+ *  @param action The action (by name).
+ *  @param offset The time offset.
+ *  @param value The value to copy.
+ *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+#define schedule(action, offset, value) \
+    __schedule_impl(&action, offset, &value)
+
+/** Schedule a pure action (one with no value) to occur with
+ *  the specified time offset.
+ *  @param action The action (by name).
+ *  @param offset The time offset.
+ *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+#define schedule_pure(action, offset) \
+    __schedule_impl(&action, offset, NULL)
+
+////////////////////////////////////////////////////////////
+//// Functions for producing outputs.
+
+/** Set the specified output (or input of a contained reactor)
  *  to the specified value.
- *  This copies the value into the field in the self struct designated
- *  for this produced value. This also sets the _is_present variable
- *  in the self struct to true (which causes the message to be sent).
+ *  This version is used for primitive type such as int,
+ *  double, etc. as well as the built-in types bool and string.
+ *  The value is copied and therefore the variable carrying the
+ *  value can be subsequently modified without changing the output.
+ *  This can also be used for structs with a type defined by a typedef
+ *  so that the type designating string does not end in '*'.
  *  @param port The output port (by name) or input of a contained
  *   reactor in form input_name.port_name.
  *  @param value The value to insert into the self struct.
@@ -119,7 +167,7 @@ do { \
  *  object so that the user code can then populate it.
  *  The freeing of the dynamically allocated object will be handled automatically
  *  when the last downstream reader of the message has finished.
- *  @param out The name of the output.
+ *  @param out The output port (by name).
  */
 #define set_new(out) \
 do { \
@@ -136,7 +184,7 @@ do { \
  *  user code can populate the array. The freeing of the dynamically
  *  allocated array will be handled automatically
  *  when the last downstream reader of the message has finished.
- *  @param out The name of the output.
+ *  @param out The output port (by name).
  *  @param length The length of the array to be sent.
  */
 #define set_new_array(out, length) \
@@ -151,7 +199,7 @@ do { \
  *  to true (which causes the array message to be sent). The values in the 
  *  output are normally written directly to the array or struct before or
  *  after this is called.
- *  @param out A pointer to the output in the self struct.
+ *  @param out The output port (by name).
  */
 #define set_present(out) \
 do { \
@@ -163,7 +211,7 @@ do { \
  *  to send a previously dynamically object of the specified type.
  *  The deallocation is delegated to downstream reactors, which
  *  automatically deallocate when the reference count drops to zero.
- *  @param out A pointer to the output in the self struct.
+ *  @param out The output port (by name).
  *  @param val A pointer to the object to send.
  */
 #define set_token(out, val) \
@@ -287,7 +335,7 @@ struct trigger_t {
     int number_of_reactions;  // Number of reactions sensitive to this trigger.
 	interval_t offset;        // For an action, this will be a minimum delay.
 	interval_t period;        // For an action, this denotes the minimal interarrival time. // FIXME: add a field to distinguish between actions and timers.
-    void* value;              // Pointer to malloc'd value (or NULL).
+    token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action (i.e., to be scheduled relative to physical time).
     instant_t scheduled;      // Tag of the last event that was scheduled for this action.
     queuing_policy_t policy;  // Indicates the policy for handling events that succeed one another more rapidly than allowable by the specified min. interarrival time. Only applies to physical actions.
@@ -298,7 +346,7 @@ typedef struct event_t {
     instant_t time;           // Time of release.
     trigger_t* trigger;       // Associated trigger.
     size_t pos;               // Position in the priority queue.
-    void* value;              // Pointer to malloc'd value (or NULL).
+    token_t* token;           // Pointer to the token wrapping the value.
 } event_t;
 
 //  ======== Function Declarations ========  //
@@ -356,9 +404,10 @@ void __initialize_trigger_objects();
  * __start_timers() function. 
  * @param trigger The action or timer to be triggered.
  * @param delay Offset of the event release.
- * @param value The malloc'd value.
+ * @param token The token payload.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __schedule(trigger_t* trigger, interval_t delay, void* value);
+handle_t __schedule(trigger_t* trigger, interval_t delay, token_t* token);
 
 /**
  * Function (to be code generated) to start timers.
@@ -384,9 +433,9 @@ int number_of_threads;
  * External version of schedule, callable from within reactors.
  * @param trigger The action or timer to be triggered.
  * @param delay Extra offset of the event release.
- * @param value The malloc'd value.
+ * @param token The token wrapping the payload or NULL.
 */
-handle_t schedule(trigger_t* trigger, interval_t extra_delay, void* value);
+handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token);
 
 /**
  * Specialized version of malloc used by Lingua Franca for action values
