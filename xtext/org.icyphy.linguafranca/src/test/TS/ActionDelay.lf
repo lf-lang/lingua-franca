@@ -9,7 +9,7 @@ reactor GeneratedDelay {
 
     reaction(y_in) -> act {=
         y_state = y_in as number;
-        actions.act.schedule(0);
+        actions.act.schedule(0, null);
     =}
 
     reaction(act) -> y_out {=

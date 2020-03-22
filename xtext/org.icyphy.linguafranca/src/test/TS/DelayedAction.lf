@@ -6,7 +6,7 @@ main reactor DelayedAction {
     logical action a;
     state count:number(0);
     reaction(t) -> a {=
-        actions.a.schedule(new UnitBasedTimeValue(100, TimeUnit.msec));
+        actions.a.schedule(new UnitBasedTimeValue(100, TimeUnit.msec), null);
     =}
     
     reaction(a) {=

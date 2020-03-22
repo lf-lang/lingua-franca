@@ -48,26 +48,26 @@ main reactor ThreadRing {
         n1.start = true;
     =}
     reaction (n1.done) -> end {=
-        actions.end.schedule(0);
+        actions.end.schedule(0, null);
     =}
     reaction (n2.done) -> end {=
-        actions.end.schedule(0);
+        actions.end.schedule(0, null);
     =}
     reaction (n3.done) -> end {=
-        actions.end.schedule(0);
+        actions.end.schedule(0, null);
     =}
     reaction (n4.done) -> end {=
-        actions.end.schedule(0);
+        actions.end.schedule(0, null);
     =}
     reaction (n5.done) -> end {=
-        actions.end.schedule(0);
+        actions.end.schedule(0, null);
     =}
     reaction (end) {=
         let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
         console.log("Elapsed time: " + elapsedTime);
         util.requestShutdown();
     =}  
-    n1 = new StartNode();
+    n1 = new StartNode(count = 10000000);
     n2 = new Node();
     n3 = new Node();
     n4 = new Node();
