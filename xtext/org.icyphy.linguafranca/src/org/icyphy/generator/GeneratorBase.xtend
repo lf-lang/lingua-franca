@@ -160,9 +160,15 @@ abstract class GeneratorBase {
     /** The cmake_include target parameter, or null if there is none. */
     protected String targetCmakeInclude
     
-    /** The compile target parameter, or null if there is none. */
-    protected String targetCompile
-    
+    /** The compiler target parameter, or null if there is none. */
+    protected String targetCompiler
+
+    /** The compiler flags target parameter, or null if there is none. */
+    protected String targetCompilerFlags
+
+    /** The compiler target no-compile parameter, or false if there is none. */
+    protected boolean targetNoCompile = false
+        
     /** The fast target parameter, or false if there is none. */
     protected boolean targetFast = false
     
@@ -171,9 +177,6 @@ abstract class GeneratorBase {
     
     /** The level of logging or null if not given. */
     protected String targetLoggingLevel
-
-    /** The run target parameter, or null if there is none. */
-    protected String targetRun
 
     /** The threads target parameter, or the default 0 if there is none. */
     protected int targetThreads = 0
@@ -213,24 +216,24 @@ abstract class GeneratorBase {
                 switch param.name {
                     case "cmake_include":
                         targetCmakeInclude = param.value.literal.withoutQuotes
-                    case "compile":
-                        targetCompile = param.value.literal.withoutQuotes
+                    case "compiler":
+                        targetCompiler = param.value.literal.withoutQuotes
                     case "fast":
                         if (param.value.id.equals('true')) {
                             targetFast = true
-                        } else {
-                            targetFast = false
+                        }
+                    case "flags":
+                        targetCompilerFlags = param.value.literal.withoutQuotes
+                    case "no-compile":
+                        if (param.value.id.equals('true')) {
+                            targetNoCompile = true
                         }
                     case "keepalive":
                         if (param.value.id.equals('true')) {
                             targetKeepalive = true
-                        } else {
-                            targetKeepalive = false
                         }
                     case "logging":
                         targetLoggingLevel = param.value.id
-                    case "run":
-                        targetRun = param.value.literal.withoutQuotes
                     case "threads":
                         targetThreads = Integer.decode(param.value.literal)
                     case "timeout": {
@@ -240,6 +243,33 @@ abstract class GeneratorBase {
                 }
             }
         }
+        
+        // Override target properties if specified as command line arguments.
+        if (context instanceof StandaloneContext) {
+            if (context.args.containsKey("no-compile")) {
+                targetNoCompile = true
+            }
+            if (context.args.containsKey("target-compiler")) {
+                targetCompiler = context.args.getProperty("target-compiler")
+            }
+            if (context.args.containsKey("target-flags")) {
+                targetCompilerFlags = context.args.getProperty("target-flags")
+            }
+        }
+
+        println("Generating code for: " + resource.getURI.toString)
+        
+        // Find the main reactor and create an AST node for its instantiation.
+        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+            if (reactor.isMain) {
+                // Creating an definition for the main reactor because there isn't one.
+                this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
+                this.mainDef.setName(reactor.name)
+                this.mainDef.setReactorClass(reactor)
+            }
+        }
+        
+        
         
         this.resource = resource
         // Figure out the file name for the target code from the source file name.
@@ -282,28 +312,6 @@ abstract class GeneratorBase {
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
-
-        if (context instanceof StandaloneContext) {
-            println("Standlone>>>>>>>>>>>>>>>>>>")
-            if (context.args.containsKey("no-target")) {
-                println("No target!")
-            }
-            if (context.args.containsKey("target_args")) {
-                println("Target args:" + context.args.get("target_args"))
-            }
-        }
-
-        println("Generating code for: " + resource.getURI.toString)
-        
-        // Find the main reactor and create an AST node for its instantiation.
-        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            if (reactor.isMain) {
-                // Creating an definition for the main reactor because there isn't one.
-                this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
-                this.mainDef.setName(reactor.name)
-                this.mainDef.setReactorClass(reactor)
-            }
-        }
 
         analyzeModel(resource, fsa, context)
 

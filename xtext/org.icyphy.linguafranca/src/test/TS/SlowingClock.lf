@@ -6,7 +6,7 @@ main reactor SlowingClock {
     state interval:time(100 msec);
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
-        actions.a.schedule(0);
+        actions.a.schedule(0, null);
     =}
     reaction(a) -> a {=
         let elapsed_logical_time : TimeValue = util.getElapsedLogicalTime();
@@ -16,7 +16,7 @@ main reactor SlowingClock {
             util.failure();
             //throw new Error("ERROR: Expected time to be: " + (this.state as any).expected_time);
         }
-        actions.a.schedule(interval);
+        actions.a.schedule(interval, null);
         expected_time = expected_time.add(new UnitBasedTimeValue(100 , TimeUnit.msec))
         expected_time = expected_time.add(interval);
         interval = interval.add(new UnitBasedTimeValue(100 , TimeUnit.msec));

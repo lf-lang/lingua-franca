@@ -1,6 +1,7 @@
 // Test data transport across hierarchy.
 target Cpp {
-    run: "bin/Hierarchy2 --fast --timeout 5"
+    timeout: 5 sec,
+    fast: true
 };
 reactor Source {
     output out:int;

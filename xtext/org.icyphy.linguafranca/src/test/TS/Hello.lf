@@ -14,7 +14,7 @@ reactor Reschedule(period:time(2 secs), message:string("Hello TypeScript")) {
 	logical action a;
 	reaction(t) -> a {=
 		console.log(message);
-		actions.a.schedule(new UnitBasedTimeValue(200, TimeUnit.msec));
+		actions.a.schedule(new UnitBasedTimeValue(200, TimeUnit.msec), null);
 		// Print the current time.
 		previous_time = util.getCurrentLogicalTime();
 		console.log("Current time is " + previous_time);

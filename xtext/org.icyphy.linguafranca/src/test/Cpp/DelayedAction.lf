@@ -1,5 +1,6 @@
 target Cpp {
-    run: "bin/DelayedAction --fast --timeout 5"
+    timeout: 5 sec,
+    fast: true
 };
 main reactor DelayedAction {
     preamble {=

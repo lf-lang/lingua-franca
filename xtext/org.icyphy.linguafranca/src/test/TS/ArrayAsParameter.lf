@@ -9,7 +9,7 @@ reactor Source(sequence:{=Array<number>=}({= [0, 1, 2] =})) {
         out = sequence[count];
         count++;
         if (count < sequence.length) {
-            actions.next.schedule(0);
+            actions.next.schedule(0, null);
         }
     =}
 }

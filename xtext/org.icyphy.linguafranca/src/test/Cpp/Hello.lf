@@ -4,7 +4,8 @@
 // reactions. The first instance has a period of 4 seconds, the second
 // of 2 seconds, and the third (composite) or 1 second.
 target Cpp {
-	run: "bin/Hello --fast --timeout 10"
+    timeout: 10 sec,
+    fast: true
 };
 reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
     preamble {=
