@@ -7,20 +7,21 @@ main reactor DelayedAction {
         #include <iostream>
         #include <cstdlib>
     =}
-    timer t(0, 1 sec);
+    timer t({=reactor::Duration::zero()=}, 1 sec);
     logical action a:void;
     state count:int(0);
     reaction(t) -> a {=
-        a.schedule(100_ms);
+        a.schedule(100ms);
     =}
     reaction(a) {=
         auto elapsed = get_elapsed_logical_time();
-        std::cout << "Nanoseconds since start: " << elapsed << std::endl;
-        auto expected = ((long long) count) * 1000000000LL + 100000000LL;
+        std::cout << "Nanoseconds since start: " << elapsed.count() << std::endl;
+
+        auto expected = count * 1s + 100ms;
         count++;
         if (elapsed != expected) {
-            std::cerr << "Expected " << expected << " but got "
-                      << elapsed << std::endl;
+            std::cerr << "Expected " << expected.count() << " but got "
+                      << elapsed.count() << std::endl;
             exit(1);
         }
     =}

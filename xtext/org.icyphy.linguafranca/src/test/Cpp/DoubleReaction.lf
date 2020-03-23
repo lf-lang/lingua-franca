@@ -5,7 +5,7 @@ target Cpp {
     timeout: 10 sec,
     fast: true
 };
-reactor Clock(offset:time(0), period:time(1 sec)) {
+reactor Clock(offset:{=reactor::Duration=}({=reactor::Duration::zero()=}), period:time(1 sec)) {
     output y:int;
     timer t(offset, period);
     state count:int(0);

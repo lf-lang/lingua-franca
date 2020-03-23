@@ -8,17 +8,18 @@ main reactor GetTime {
     preamble {=
         #include <iostream>
     =}
-    timer t(0, 1 sec);
+    timer t({=reactor::Duration::zero()=}, 1 sec);
     reaction(t) {=
         auto logical = get_logical_time();
-        std::cout << "Logical time is " << logical << std::endl;
+        std::cout << "Logical time is " << logical.time_since_epoch().count() << std::endl;
 
         auto elapsed = get_elapsed_logical_time();
-        std::cout << "Elapsed logical time is " << elapsed << std::endl;
+        std::cout << "Elapsed logical time is " << elapsed.count() << std::endl;
  
         auto physical = get_physical_time();
-        std::cout << "Physical time is " << physical << std::endl;
+        std::cout << "Physical time is " << physical.time_since_epoch().count() << std::endl;
 
-        std::cout << "Time lag is " << physical - logical << std::endl;
+        auto diff = physical - logical;
+        std::cout << "Time lag is " << diff.count() << std::endl;
     =}
 }
