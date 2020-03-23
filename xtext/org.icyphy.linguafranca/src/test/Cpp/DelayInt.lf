@@ -16,10 +16,9 @@ reactor Delay(delay:time(100 msec)) {
 reactor Test {
     preamble {=
         #include <iostream>
-        #include <cstdlib>
     =}
     input in:int;
-    state start_time:{=reactor::time_t=}(0);
+    state start_time:{=reactor::TimePoint=}({==});
     timer start;
     reaction(start) {=
         // Record the logical time at the start.
@@ -30,10 +29,10 @@ reactor Test {
         // Check the time of the input.
         auto current_time = get_logical_time();
         auto elapsed = current_time - start_time;
-        std::cout << "After " << elapsed << " nsec of logical time." << std::endl;
-        if (elapsed != 100000000LL) {
+        std::cout << "After " << elapsed.count() << " nsec of logical time." << std::endl;
+        if (elapsed != 100ms) {
             std::cerr << "ERROR: Expected elapsed time to be 100000000. "
-                      << "It was " << elapsed << std::endl;
+                      << "It was " << elapsed.count() << std::endl;
             exit(1);
         }
         if (*in.get() != 42) {

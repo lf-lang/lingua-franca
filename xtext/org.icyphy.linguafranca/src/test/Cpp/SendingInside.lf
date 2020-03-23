@@ -7,7 +7,6 @@ target Cpp {
 reactor Printer {
     preamble {=
         #include <iostream>
-        #include <cstdlib>
     =}
     input x:int;
     state count:int(1);
@@ -22,7 +21,7 @@ reactor Printer {
 }
 main reactor SendingInside {
     state count:int(0);
-    timer t(0, 1 sec);
+    timer t({=reactor::Duration::zero()=}, 1 sec);
     p = new Printer();
     reaction(t) -> p.x {=
         count++;

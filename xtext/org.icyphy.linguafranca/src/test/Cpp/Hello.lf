@@ -10,32 +10,31 @@ target Cpp {
 reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
     preamble {=
         #include <iostream>
-        #include <cstdlib>
     =}
     state count:int(0);
-    state previous_time:{=long long=}(0);
+    state previous_time:{=reactor::TimePoint=}({==});
     timer t(1 secs, period);
     logical action a:void;
     reaction(t) -> a {=
         std::cout << message << std::endl;
-        a.schedule(200_ms); // No payload.
+        a.schedule(200ms); // No payload.
         // Print the current time.
         previous_time = get_logical_time();
-        time_t secs = previous_time / 1'000'000'000;
-        long long ns = previous_time % 1'000'000'000;
-        std::cout << "Current time is " << previous_time << std::endl;
-        std::cout << "Which is " << ctime(&secs);
-        std::cout << "Plus " << ns << " nanoseconds" << std::endl;
+        auto timepoint_ns = previous_time.time_since_epoch().count();
+        std::cout << "Current time is " << timepoint_ns << std::endl;
+        std::cout << "Which is " << timepoint_ns / 1000000000ULL << " seconds"
+                  << " plus " << timepoint_ns % 1000000000ULL << " nanoseconds" 
+                  << std::endl;
      =}
      reaction(a) {=
          count++;
-	 std::cout << "***** action " << count << " at time " 
-                   << get_logical_time() << std::endl;
-         // Check if a has a value
          auto time = get_logical_time();
-         if (time - previous_time != 200000000ull) {
+	 	std::cout << "***** action " << count << " at time "
+                   << time.time_since_epoch().count() << std::endl;
+         auto diff = time - previous_time;
+         if (diff != 200ms) {
              std::cerr << "FAILURE: Expected 200ms of logical time to elapse "
-                       << "but got " << time - previous_time << " nanoseconds"
+                       << "but got " << diff.count() << " nanoseconds"
                        << std::endl;
              exit(1);
         }
