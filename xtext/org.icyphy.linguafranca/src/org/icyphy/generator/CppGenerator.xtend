@@ -667,14 +667,14 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "90bb6e4e24e4f6dc3cf0844072fb72cc28b4eaca"
+          GIT_TAG "1bb7510936d47d4757e26ba9276b00de2db243ac"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
         )
         
         set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
-        file(DOWNLOAD "https://github.com/CLIUtils/CLI11/releases/download/v1.8.0/CLI11.hpp" "${CLI11_PATH}")
+        file(DOWNLOAD "https://github.com/CLIUtils/CLI11/releases/download/v1.9.0/CLI11.hpp" "${CLI11_PATH}")
         add_custom_target(dep-CLI11 DEPENDS "${CLI11_PATH}")
         
         set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
