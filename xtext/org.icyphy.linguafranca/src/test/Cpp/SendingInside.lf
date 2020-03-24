@@ -21,7 +21,7 @@ reactor Printer {
 }
 main reactor SendingInside {
     state count:int(0);
-    timer t({=reactor::Duration::zero()=}, 1 sec);
+    timer t(0, 1 sec);
     p = new Printer();
     reaction(t) -> p.x {=
         count++;

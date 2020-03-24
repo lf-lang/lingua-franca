@@ -8,7 +8,7 @@ main reactor GetTime {
     preamble {=
         #include <iostream>
     =}
-    timer t({=reactor::Duration::zero()=}, 1 sec);
+    timer t(0, 1 sec);
     reaction(t) {=
         auto logical = get_logical_time();
         std::cout << "Logical time is " << logical.time_since_epoch().count() << std::endl;
