@@ -20,7 +20,6 @@ import java.util.WeakHashMap
 import org.eclipse.emf.ecore.EObject
 
 import static extension com.google.common.base.Preconditions.*
-import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
 
 class MemorizingExpandCollapseAction implements IAction {

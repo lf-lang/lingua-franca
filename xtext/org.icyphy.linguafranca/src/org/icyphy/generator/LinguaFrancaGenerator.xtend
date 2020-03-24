@@ -30,6 +30,7 @@ import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Target
+import org.icyphy.Targets
 
 /**
  * Generates code from your model files on save.
@@ -44,17 +45,23 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		// Determine which target is desired.
 		for (target : resource.allContents.toIterable.filter(Target)) {
+		    
 		    var GeneratorBase generator
-			
-			if (target.name.equalsIgnoreCase("C")) {
-				generator = new CGenerator()
-			} else if (target.name.equalsIgnoreCase("Cpp")) {
-				generator = new CppGenerator()
-			} else if (target.name.equalsIgnoreCase("TypeScript")) {
-                generator = new TypeScriptGenerator()
-			} else {
-                System.err.println("Warning: Unrecognized target.")
-			    throw new Exception("Unrecognized target.")
+			val t = Targets.get(target.name)
+			if (t === null) {
+			    System.err.println("Warning: Unrecognized target.")
+                throw new Exception("Unrecognized target.")
+			}
+			switch(t) {
+                case C: {
+                    generator = new CGenerator()
+                }
+                case CPP: {
+                    generator = new CppGenerator()
+                }
+                case TS: {
+                    generator = new TypeScriptGenerator()
+                }
 			}
 			
             generator.doGenerate(resource, fsa, context)

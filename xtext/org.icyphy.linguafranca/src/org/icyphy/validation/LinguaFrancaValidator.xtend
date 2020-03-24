@@ -22,6 +22,10 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.eclipse.xtext.validation.EValidatorRegistrar
 import org.icyphy.linguaFranca.Target
+import org.icyphy.Targets
+import org.icyphy.Targets.TargetProperties
+import org.icyphy.Targets.LoggingLevels
+import java.util.Arrays
 
 /**
  * This class contains custom validation rules. 
@@ -29,281 +33,7 @@ import org.icyphy.linguaFranca.Target
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
-
-    /**
-     * Immutable set of known targets.
-     */
-    public static val KNOWN_TARGETS = #{ // FIXME: turn this into enum to avoid string matching problems.
-        'C', 
-        'Cpp',
-        'TypeScript'
-    }
-
-    /**
-     * Immutable set of logging levels supported in TypeScript.
-     */    
-    public static val LOGGING_LEVELS = #{ // FIXME: turn this into enum to avoid string matching problems.
-        'ERROR',
-        'WARN',
-        'INFO',
-        'LOG',
-        'DEBUG'
-    }
-    
-    /**
-     * Immutable mapping from known targets to a boolean indicating whether they require types.
-     */
-    public static val TARGET_REQUIRES_TYPES = #{ // FIXME: use enum keys to avoid string matching problems.
-        'C' -> true,
-        'Cpp' -> true,
-        'TypeScript' -> false
-    }
-    
-    /**
-     * Immutable set of target properties in alphabetical order. 
-     */    
-    public static val TARGET_PARAMETERS = #{// FIXME: turn this into enum to avoid string matching problems.
-        'cmake_include',
-        'compiler', 
-        'fast',
-        'flags',
-        'federates',
-        'hosts',
-        'keepalive',
-        'logging',
-        'no-compile',
-        'threads',
-        'timeout'
-    }
-    
-    /**
-     * Immutable set of TypeScript keywords.
-     * List via: https://github.com/Microsoft/TypeScript/issues/2536 
-     */
-    public static val TS_KEYWORDS = #{
         
-        // Reserved Words
-        "break",
-        "case",
-        "catch",
-        "class",
-        "const",
-        "continue",
-        "debugger",
-        "default",
-        "delete",
-        "do",
-        "else",
-        "enum",
-        "export",
-        "extends",
-        "false",
-        "finally",
-        "for",
-        "function",
-        "if",
-        "import",
-        "in",
-        "instanceof",
-        "new",
-        "null",
-        "return",
-        "super",
-        "switch",
-        "this",
-        "throw",
-        "true",
-        "try",
-        "typeof",
-        "var",
-        "void",
-        "while",
-        "with",
-        
-        //Strict Mode Reserved Words
-        "as",
-        "implements",
-        "interface",
-        "let",
-        "package",
-        "private",
-        "protected",
-        "public",
-        "static",
-        "yield",
-        
-        // Contextual Keywords
-        "any",
-        "boolean",
-        "constructor",
-        "declare",
-        "get",
-        "module",
-        "require",
-        "number",
-        "set",
-        "string",
-        "symbol",
-        "type",
-        "from",
-        "of"
-    }
-    
-    /**
-     * Immutable set of C keywords.
-     * List via: https://en.cppreference.com/w/c/keyword
-     */
-    public static val C_KEYWORDS = #{
-        "auto",
-        "break",
-        "case",
-        "char",
-        "const",
-        "continue",
-        "default",
-        "do",
-        "double",
-        "else",
-        "enum",
-        "extern",
-        "float",
-        "for",
-        "goto",
-        "if",
-        "inline", // (since C99)
-        "int",
-        "long",
-        "register",
-        "restrict", // (since C99)
-        "return",
-        "short",
-        "signed",
-        "sizeof",
-        "static",
-        "struct",
-        "switch",
-        "typedef",
-        "union",
-        "unsigned",
-        "void",
-        "volatile",
-        "while",
-        "_Alignas", // (since C11)
-        "_Alignof", // (since C11)
-        "_Atomic", // (since C11)
-        "_Bool", // (since C99)
-        "_Complex", // (since C99)
-        "_Generic", // (since C11)
-        "_Imaginary", // (since C99)
-        "_Noreturn", // (since C11)
-        "_Static_assert", // (since C11)
-        "_Thread_local" // (since C11)
-    }
-    
-    /**
-     * Immutable set of TypeScript keywords.
-     * List via: https://en.cppreference.com/w/cpp/keyword
-     */
-    public static val CPP_KEYWORDS = #{
-        "alignas", // (since C++11)
-        "alignof", // (since C++11)
-        "and",
-        "and_eq",
-        "asm",
-        "atomic_cancel", // (TM TS)
-        "atomic_commit", // (TM TS)
-        "atomic_noexcept", // (TM TS)
-        "auto(1)",
-        "bitand",
-        "bitor",
-        "bool",
-        "break",
-        "case",
-        "catch",
-        "char",
-        "char8_t", // (since C++20)
-        "char16_t", // (since C++11)
-        "char32_t", // (since C++11)
-        "class(1)",
-        "compl",
-        "concept", // (since C++20)
-        "const",
-        "consteval", // (since C++20)
-        "constexpr", // (since C++11)
-        "constinit", // (since C++20)
-        "const_cast",
-        "continue",
-        "co_await", // (since C++20)
-        "co_return", // (since C++20)
-        "co_yield", // (since C++20)
-        "decltype", // (since C++11)
-        "default(1)",
-        "delete(1)",
-        "do",
-        "double",
-        "dynamic_cast",
-        "else",
-        "enum",
-        "explicit",
-        "export(1)(3)",
-        "extern(1)",
-        "false",
-        "float",
-        "for",
-        "friend",
-        "goto",
-        "if",
-        "inline(1)",
-        "int",
-        "long",
-        "mutable(1)",
-        "namespace",
-        "new",
-        "noexcept", // (since C++11)
-        "not",
-        "not_eq",
-        "nullptr", // (since C++11)
-        "operator",
-        "or",
-        "or_eq",
-        "private",
-        "protected",
-        "public",
-        "reflexpr", // (reflection TS)
-        "register(2)",
-        "reinterpret_cast",
-        "requires", // (since C++20)
-        "return",
-        "short",
-        "signed",
-        "sizeof(1)",
-        "static",
-        "static_assert", // (since C++11)
-        "static_cast",
-        "struct(1)",
-        "switch",
-        "synchronized", // (TM TS)
-        "template",
-        "this",
-        "thread_local", // (since C++11)
-        "throw",
-        "true",
-        "try",
-        "typedef",
-        "typeid",
-        "typename",
-        "union",
-        "unsigned",
-        "using(1)",
-        "virtual",
-        "void",
-        "volatile",
-        "wchar_t",
-        "while",
-        "xor",
-        "xor_eq"
-    }
-    
     var reactorClasses = newHashSet()
     var parameters = newHashSet()
     var inputs = newHashSet()
@@ -312,7 +42,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var actions = newHashSet()
     var allNames = newHashSet() // Names of contained objects must be unique.
     var depGraph = new AnnotatedDependencyGraph()
-    var target = "";
+    var Targets target;
     
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
@@ -325,31 +55,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             error(UNDERSCORE_MESSAGE + name, feature)
         }
         
-        if (this.target.equals("TypeScript")) {
+        if (this.target.keywords.contains(name)) {
+                error(RESERVED_MESSAGE + name, feature)
+        }
+        
+        if (this.target == Targets.TS) {
             // "actions" is a reserved word within a TS reaction
-            if (this.target.equals("TypeScript") && name.equals("actions")) {
+            if (name.equals("actions")) {
                 error(ACTIONS_MESSAGE + name, feature)
-            }
-        
-            // Raise an error if the name is a TypeScript reserved word
-            if (org.icyphy.validation.LinguaFrancaValidator.TS_KEYWORDS.contains(name)) {
-                error(RESERVED_MESSAGE + name, feature)
-            }
+            }    
         }
         
-        if (this.target.equals("C")) {
-            // Raise an error if the name is a TypeScript reserved word
-            if (org.icyphy.validation.LinguaFrancaValidator.C_KEYWORDS.contains(name)) {
-                error(RESERVED_MESSAGE + name, feature)
-            }
-        }
-        
-        if (this.target.equals("Cpp")) {
-            // Raise an error if the name is a TypeScript reserved word
-            if (org.icyphy.validation.LinguaFrancaValidator.CPP_KEYWORDS.contains(name)) {
-                error(RESERVED_MESSAGE + name, feature)
-            }
-        }
     }
         
     // The xtext validator doesn't have an initialize function
@@ -469,7 +185,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         inputs.add(input.name)
         allNames.add(input.name)
-        if (TARGET_REQUIRES_TYPES.get(this.target)) {
+        if (target.requiresTypes) {
             if (input.type === null) {
                 error("Input must have a type.", Literals.PORT__TYPE)
             }
@@ -513,29 +229,45 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkKeyValuePair(KeyValuePair param) {
         // Check only if the container's container is a Target.
         if (param.eContainer.eContainer instanceof Target) {
-            if (!TARGET_PARAMETERS.contains(param.name)) {
+            
+            if (!TargetProperties.isValidName(param.name)) {
                 warning(
                     "Unrecognized target parameter: " + param.name +
-                    ". Recognized parameters are " + TARGET_PARAMETERS,
+                    ". Recognized parameters are " + TargetProperties.values(),
                     Literals.KEY_VALUE_PAIR__NAME)
             }
-            switch param.name {
-            case "cmake_include":
+            val prop = TargetProperties.get(param.name)
+            
+            if (!prop.supportedBy.contains(this.target)) {
+                    warning(
+                    "The target parameter: " + param.name +
+                        " is not supported by the " + this.target +
+                        " and will thus be ignored.",
+                    Literals.KEY_VALUE_PAIR__NAME)
+            }
+            
+            switch prop { // FIXME: what to do with "hosts" property?
+            case CMAKE_INCLUDE:
                 if (param.value.literal === null) {
                     error("Target property cmake_include is required to be a string.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
-            case "compile":
+            case COMPILER:
                 if (param.value.literal === null) {
                     error("Target property compile is required to be a string.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
-            case "fast":
+            case FLAGS:
+                if (param.value.literal === null) {
+                    error("Target property flags is required to be a string.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case FAST:
                 if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
                     error("Target property fast is required to be true or false.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
-            case "federates":
+            case FEDERATES:
                 if (param.value.keyvalue === null) {
                     error("Target property federates is required to be a set of key-value pairs.",
                         Literals.KEY_VALUE_PAIR__VALUE)
@@ -549,7 +281,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             // Check port and host parameter form.
                             for (property : federate.value.keyvalue.pairs) {
                                 switch property.name {
-                                case "port":
+                                case "port": // FIXME: use enum
                                     if (property.value.literal === null) {
                                         error("port property needs to be a number.",
                                             Literals.KEY_VALUE_PAIR__VALUE)
@@ -596,23 +328,23 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         }
                     }
                 }
-            case "keepalive":
+            case KEEPALIVE:
                 if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
                     error("Target property keepalive is required to be true or false.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
-            case "logging":
-                if (!LOGGING_LEVELS.contains(param.value.id)) {
+            case LOGGING:
+                if (!Arrays.asList(LoggingLevels.values()).exists[it.toString.equals(param.value.id)]) {
                     error("Target property logging is required to be one of " +
-                        LOGGING_LEVELS,
+                        LoggingLevels.values(),
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
-            case "run":
-                if (param.value.literal === null) {
-                    error("Target property run is required to be a string.",
+            case NO_COMPILE:
+                 if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                    error("Target property no-compile is required to be true or false.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
-            case "threads": {
+            case THREADS: {
                 if (param.value.literal === null) {
                     error("Target property threads is required to be a non-negative integer.",
                         Literals.KEY_VALUE_PAIR__VALUE)
@@ -628,7 +360,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             }
-            case "timeout":
+            case TIMEOUT:
                 if (param.value.unit === null) {
                     error("Target property timeout requires a time unit. Should be one of " +
                         TimeUnit.VALUES.filter[it != TimeUnit.NONE],
@@ -652,7 +384,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         outputs.add(output.name);
         allNames.add(output.name)
-        if (TARGET_REQUIRES_TYPES.get(this.target)) {
+        if (this.target.requiresTypes) {
             if (output.type === null) {
                 error("Output must have a type.", Literals.PORT__TYPE)
             }
@@ -679,7 +411,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         parameters.add(param.name)
         allNames.add(param.name)
-        if (TARGET_REQUIRES_TYPES.get(this.target)) {
+        if (this.target.requiresTypes) {
             if (!param.ofTimeType && param.type === null) {
                 error("Parameters must have a type.", Literals.PARAMETER__TYPE)
             }
@@ -696,7 +428,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
         reactorClasses.add(reactor.name);
-        if (this.target.equals('Cpp') && reactor.isMain && reactor.name.equalsIgnoreCase("main")) {
+        if (this.target == Targets.CPP && reactor.isMain && reactor.name.equalsIgnoreCase("main")) {
             error(
                 "Main reactor cannot be named '" + reactor.name + "'",
                 Literals.REACTOR__NAME
@@ -715,7 +447,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         inputs.add(state.name);
         allNames.add(state.name)
-        if (TARGET_REQUIRES_TYPES.get(this.target)) {
+        if (this.target.requiresTypes) {
             if (!state.ofTimeType && state.parameter === null && state.type === null) {
                 error("State must have a type.", Literals.STATE__TYPE)
             }
@@ -724,11 +456,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkTarget(Target target) {
-        if (!KNOWN_TARGETS.contains(target.name)) {
+        if (!Targets.isValidName(target.name)) {
             warning("Unrecognized target: " + target.name,
                 Literals.TARGET__NAME)
         } else {
-            this.target = target.name;
+            this.target = Targets.get(target.name);
         }
     }
     
