@@ -371,9 +371,9 @@ public enum Targets {
          * @return a matching target property, null otherwise.
          */
         public final static TargetProperties get(String name) {
-            for (TargetProperties t : TargetProperties.values()) {
-                if (t.toString().equalsIgnoreCase(name))
-                    return t;
+            for (TargetProperties p : TargetProperties.values()) {
+                if (p.toString().equalsIgnoreCase(name))
+                    return p;
             }
             return null;
         }
@@ -388,7 +388,7 @@ public enum Targets {
     }
     
     /**
-     * Log levels in order of severity.
+     * Log levels in descending order of severity.
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum LoggingLevels {
