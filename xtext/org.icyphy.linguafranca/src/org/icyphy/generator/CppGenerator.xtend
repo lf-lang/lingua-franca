@@ -106,7 +106,11 @@ class CppGenerator extends GeneratorBase {
             fsa.generateFile(filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
         }
 
-        doCompile()
+        if (!targetNoCompile && !errorsOccurred()) {
+            doCompile()
+        } else {
+            println("Exiting before invoking target compiler.")
+        }
     }
 
     def extractDir(String path) {
