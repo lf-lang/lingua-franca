@@ -7,7 +7,7 @@ target Cpp {
 reactor Count(stride:int(1)) {
     state count:int(0);
     output y:int;
-    timer t({=reactor::Duration::zero()=}, 100 msec);
+    timer t(0, 100 msec);
     reaction(t) -> y {=
         y.set(count);
         count += stride;

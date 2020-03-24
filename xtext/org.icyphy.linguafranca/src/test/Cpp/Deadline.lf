@@ -11,7 +11,7 @@ reactor Source(period:time(1 sec)) {
         #include <thread>
     =}
     output y:int;
-    timer t({=reactor::Duration::zero()=}, period);
+    timer t(0, period);
     state count:int(0);
     reaction(t) -> y {=
         if (count % 2 == 1) {

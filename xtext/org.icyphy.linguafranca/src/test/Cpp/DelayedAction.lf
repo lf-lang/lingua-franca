@@ -5,9 +5,8 @@ target Cpp {
 main reactor DelayedAction {
     preamble {=
         #include <iostream>
-        #include <cstdlib>
     =}
-    timer t({=reactor::Duration::zero()=}, 1 sec);
+    timer t(0, 1 sec);
     logical action a:void;
     state count:int(0);
     reaction(t) -> a {=

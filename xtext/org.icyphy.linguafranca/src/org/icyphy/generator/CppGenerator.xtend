@@ -348,7 +348,7 @@ class CppGenerator extends GeneratorBase {
             '''
                 «r.name»(const std::string& name,
                     «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «p.trimmedValue»«ENDFOR»
+                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «IF p.ofTimeType»«p.trimmedTime»«ELSE»«p.trimmedValue»«ENDIF»«ENDFOR»
             '''
         } else {
             if (r == mainReactor) {
@@ -405,27 +405,63 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedValue(Parameter p) {
         if (p.ofTimeType) {
-            if (p.unit !== null) {
-                '''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
-            } else {
-                '''«p.time»'''
-            }
+        	'''/* «p.reportError("Did not expect a parameter of type time!")» */'''
         } else {
             '''«p.value.removeCodeDelimiter»'''
         }
     }
 
+    def trimmedTime(Parameter p) {
+        if (p.ofTimeType) {
+            if (p.unit === null || p.unit === TimeUnit.NONE) {
+            	if (p.time == 0) {
+                    '''reactor::Duration::zero()'''
+                } else {
+                	'''/* «p.reportError("Time values need to be 0 or have a unit!")» */'''
+                }
+            } else {
+                '''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
+            }
+        } else {
+            '''/* «p.reportError("Expected a parameter of type time!")» */'''
+        }
+    }
+
     def trimmedValue(TimeOrValue tv) {
         if (tv.parameter !== null) {
-            '''«tv.parameter.name»'''
+            if (tv.parameter.ofTimeType) {
+                '''/* «tv.reportError("Did not expect a parameter of time type")» */'''
+            } else {
+                '''«tv.parameter.name»'''
+            }
         } else if (tv.value !== null) {
             '''«tv.value.removeCodeDelimiter»'''
+        } else {
+        	'''/* «tv.reportError("Expected a value or a parameter, not a time")» */'''
+        }
+    }
+
+    def trimmedTime(TimeOrValue tv) {
+    	if (tv.parameter !== null) {
+    		if (tv.parameter.ofTimeType) {
+    			'''«tv.parameter.name»'''
+    		} else {
+    			'''/* «tv.reportError("Expected a parameter of time type!")» */'''
+    		}
+        } else if (tv.value !== null) {
+        	if (tv.value == '0') {
+         		'''reactor::Duration::zero()'''
+        	} else {
+            	'''/* «tv.reportError("Time values need to be 0 or have a unit!")» */'''
+            }
         } else {
             '''«tv.time»«timeUnitsToCppUnits.get(tv.unit)»'''
         }
     }
 
     def trimmedValue(Assignment a) '''«a.rhs.trimmedValue»'''
+
+    def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
     def trimmedValue(State s) { s.value.removeCodeDelimiter }
 
@@ -477,10 +513,10 @@ class CppGenerator extends GeneratorBase {
         var String period = "reactor::Duration::zero()"
         var String offset = "reactor::Duration::zero()"
         if (t.offset !== null) {
-          offset = '''«t.offset.trimmedValue»'''
+          offset = '''«t.offset.trimmedTime»'''
         }
         if (t.period !== null) {
-            period = '''«t.period.trimmedValue»'''
+            period = '''«t.period.trimmedTime»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
@@ -491,11 +527,19 @@ class CppGenerator extends GeneratorBase {
             var String value = null
             for (a : i.parameters ?: emptyList) {
                 if (a.lhs.name == p.name) {
-                    value = '''«a.trimmedValue»'''
+                	if (p.ofTimeType) {
+                        value = '''«a.trimmedTime»'''
+                    } else {
+                        value = '''«a.trimmedValue»'''
+                    }
                 }
             }
             if (value === null) {
-                value = '''«p.trimmedValue»'''
+                if (p.ofTimeType) {
+                    value = '''«p.trimmedTime»'''
+                } else {
+                    value = '''«p.trimmedValue»'''
+                }
             }
             values.add(value)
         }
@@ -508,7 +552,7 @@ class CppGenerator extends GeneratorBase {
         «n.declareDependencies»
         «n.declareAntidependencies»
         «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.time.trimmedValue», [this]() { «n.name»_deadline_handler(); });
+            «n.name».set_deadline(«n.deadline.time.trimmedTime», [this]() { «n.name»_deadline_handler(); });
         «ENDIF»
     '''
 
