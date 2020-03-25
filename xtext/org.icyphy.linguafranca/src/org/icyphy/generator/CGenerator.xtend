@@ -1859,7 +1859,7 @@ int main(int argc, char* argv[]) {
             '''
         } else {
             '''
-            schedule(«action.name», 0, «ref»);
+            schedule_copy(«action.name», 0, &«ref», 1);  // Length is 1.
             '''
         }
     }

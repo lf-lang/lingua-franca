@@ -17,10 +17,8 @@ main reactor AsyncCallback {
 		    // timestamps will not be sufficiently separated.
 		    // The minimum time between these is determined
 		    // by the argument in the physical action definition.
-		    int value1 = 0;
-		    int value2 = 1;
-			schedule(a, 0, value1);
-            schedule(a, 0, value2);
+			schedule_int(a, 0, 0);
+            schedule_int(a, 0, 1);
 		}
 		// Simulate time passing before a callback occurs.
 		void* take_time(void* a) {

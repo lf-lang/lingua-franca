@@ -19,8 +19,8 @@ main reactor AsyncCallback {
 		    // then they cause two separate triggerings with close but not
 		    // equal time stamps. The minimum time between these is determined
 		    // by the argument in the physical action definition.
-			schedule_pure_event(a, 0);
-            schedule_pure_event(a, 0);
+			schedule(a, 0);
+            schedule(a, 0);
 		}
 		// Simulate time passing before a callback occurs.
 		void* take_time(void* a) {

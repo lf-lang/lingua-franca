@@ -79,33 +79,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // two branches.
 
 ////////////////////////////////////////////////////////////
-//// Functions for scheduling actions.
-
-/** Schedule an action to occur with the specified time offset with
- *  a copy of the specified value. The value will be copied into
- *  newly allocated memory and is assumed to have the same type
- *  as the action type (this is not checked). This is a macro
- *  that can accept any type of value, but the value argument
- *  cannot be NULL. To schedule a pure event (with no value),
- *  use schedule_pure().
- *  @param action The action (by name).
- *  @param offset The time offset.
- *  @param value The value to copy.
- *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
- */
-#define schedule(action, offset, value) \
-    __schedule_with_copy_impl(action, offset, &value)
-
-/** Schedule a pure action (one with no value) to occur with
- *  the specified time offset.
- *  @param action The action (by name).
- *  @param offset The time offset.
- *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
- */
-#define schedule_pure_event(action, offset) \
-    schedule_token(action, offset, NULL)
-
-////////////////////////////////////////////////////////////
 //// Functions for producing outputs.
 
 /** Set the specified output (or input of a contained reactor)
@@ -489,6 +462,21 @@ handle_t schedule_token(trigger_t* action, interval_t extra_delay, token_t* toke
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule_value(trigger_t* action, interval_t extra_delay, void* value, int length);
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value. If the value is non-null,
+ * then it will be copied into newly allocated memory under the assumption
+ * that its size given in the trigger's token object's element_size field
+ * multiplied by the specified length.
+ * See schedule_token(), which this uses, for details.
+ * @param trigger Pointer to a trigger object (typically an action on a self struct).
+ * @param offset The time offset over and above that in the action.
+ * @param value A pointer to the value to copy.
+ * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length);
 
 /**
  * Specialized version of malloc used by Lingua Franca for action values

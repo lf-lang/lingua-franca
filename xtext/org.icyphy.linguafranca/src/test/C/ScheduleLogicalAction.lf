@@ -11,7 +11,7 @@ reactor foo {
     reaction(x) -> y, a {=
         set(y, 2*x);
         // The following uses physical time, incorrectly.
-        schedule_pure_event(a, MSEC(500));
+        schedule(a, MSEC(500));
     =}
     reaction(a) -> y {=
         set(y, -42);

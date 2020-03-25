@@ -11,7 +11,7 @@ main reactor KeyListener {
             while(1) {
                 char* c = malloc(sizeof(char));
                 *c = getchar();
-                schedule(a, 0, c);
+                schedule_value(a, 0, c);
                 if (*c == EOF) break;
             }
             return NULL;

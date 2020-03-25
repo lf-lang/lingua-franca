@@ -14,7 +14,7 @@ reactor Reschedule(period:time(2 secs), message:string("Hello C")) {
 	logical action a;
 	reaction(t) -> a {=
 		printf("%s\n", self->message);
-		schedule_pure_event(a, MSEC(200));
+		schedule(a, MSEC(200));
 		// Print the current time.
 		self->previous_time = get_logical_time();
 		time_t secs = self->previous_time/BILLION;

@@ -10,7 +10,7 @@ reactor ROSReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
 		char str[BUFF_SIZE];		
 		void wait_for_message(void* a) {
 		    // put event loop for receiving ROS messages here 
-            schedule(a, 0, &str);
+            schedule_copy(a, 0, &str, BUFF_SIZE);
 		}	
 	=}
 	
@@ -28,7 +28,7 @@ reactor ROSReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
 	
 	reaction(interrupt) -> safe_to_process {=
 		// delay should be message_time_stamp + E (clock sync error) + L (latency) + D (deadline of the sender) - current_logical_time
-		schedule(safe_to_process, 0, interrupt->value);
+		schedule_value(safe_to_process, 0, interrupt->value);
 	=}
 	
 	reaction(safe_to_process) -> out {=

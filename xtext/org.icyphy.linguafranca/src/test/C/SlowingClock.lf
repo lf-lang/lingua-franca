@@ -14,7 +14,7 @@ main reactor SlowingClock {
     state interval:time(100 msec);
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
-        schedule_pure_event(a, 0);
+        schedule(a, 0);
     =}
     reaction(a) -> a {=
         instant_t elapsed_logical_time = get_elapsed_logical_time();
@@ -27,7 +27,7 @@ main reactor SlowingClock {
             );
             exit(1);
         }
-        schedule_pure_event(a, self->interval);
+        schedule(a, self->interval);
         self->expected_time += MSEC(100) + self->interval;
         self->interval += MSEC(100);
     =}

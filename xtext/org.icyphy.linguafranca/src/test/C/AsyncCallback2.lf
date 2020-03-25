@@ -18,8 +18,8 @@ main reactor AsyncCallback2 {
             // equal time stamps. To ensure they occur at the same logical time,
             // acquire the one global mutex.
             pthread_mutex_lock(&mutex);
-            schedule_pure_event(a, 0);
-            schedule_pure_event(a, 0);
+            schedule(a, 0);
+            schedule(a, 0);
             pthread_mutex_unlock(&mutex);
         }
         // Simulate time passing before a callback occurs.
