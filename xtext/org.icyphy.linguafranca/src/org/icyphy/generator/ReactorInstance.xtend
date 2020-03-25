@@ -779,7 +779,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     }
                     if (!found) {
                         throw new InternalError(
-                            "Incorrect reference to parameter :" +
+                            "Incorrect reference to parameter:" +
                                 parameter.name);
                     }
                     var referencedParameter = instance.
@@ -829,7 +829,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 var resolved = this.resolveParameter(timeOrValue.parameter)
                 if (resolved === null || !(resolved instanceof TimeParameter)) {
                     throw new InternalError(
-                        "Incorrect reference to parameter :" +
+                        "Incorrect reference to parameter:" +
                             timeOrValue.parameter.name);
                 }
                 return (resolved as TimeParameter).value
