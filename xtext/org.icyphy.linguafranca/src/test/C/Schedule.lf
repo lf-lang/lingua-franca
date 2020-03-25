@@ -4,7 +4,7 @@ reactor Schedule {
     input x:int;
     logical action a;
     reaction(x) -> a {=
-        schedule(a, MSEC(200), NULL);
+        schedule_pure_event(a, MSEC(200));
     =}
     reaction(a) {=
         interval_t elapsed_time = get_elapsed_logical_time();

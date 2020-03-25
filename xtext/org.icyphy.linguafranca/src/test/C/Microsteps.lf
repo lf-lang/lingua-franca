@@ -30,7 +30,7 @@ main reactor Microsteps {
     d = new Destination();
     reaction(start) -> d.x, repeat {=
         set(d.x, 1);
-        schedule(repeat, 0, NULL);
+        schedule_pure_event(repeat, 0);
     =}
     reaction(repeat) -> d.y {=
         set(d.y, 1);

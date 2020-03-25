@@ -81,22 +81,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////
 //// Functions for scheduling actions.
 
-// FIXME: The WARNING below is serious. Find a way to check.
-
-/** Get a pointer to the token that wraps the value of the
- *  specified trigger for a reaction (an input or the output of a
- *  contained reactor). This is a macro that can used only in
- *  the body of a reaction that is triggered by the specified
- *  trigger.
- *  WARNING: Using this for inputs that are not tokens
- *  will result in errors, likely a segmentation fault.
- *  An input will be a token if its type ends in '*' or '[]'.
- *  This is not currently checked.
- *  @param trigger The trigger (by name).
- */
-#define get_input_token(trigger) (* self->__ ## trigger)
-
-/** Schedule an action to occur with the specified time offset and
+/** Schedule an action to occur with the specified time offset with
  *  a copy of the specified value. The value will be copied into
  *  newly allocated memory and is assumed to have the same type
  *  as the action type (this is not checked). This is a macro
@@ -109,7 +94,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 #define schedule(action, offset, value) \
-    __schedule_impl(&action, offset, &value)
+    __schedule_with_copy_impl(action, offset, &value)
 
 /** Schedule a pure action (one with no value) to occur with
  *  the specified time offset.
@@ -117,8 +102,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  @param offset The time offset.
  *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-#define schedule_pure(action, offset) \
-    __schedule_impl(&action, offset, NULL)
+#define schedule_pure_event(action, offset) \
+    schedule_token(action, offset, NULL)
 
 ////////////////////////////////////////////////////////////
 //// Functions for producing outputs.
@@ -155,7 +140,7 @@ do { \
 #define set_array(out, val, len) \
 do { \
     out ## _is_present = true; \
-    __initialize_token(&(self->__ ## out), val, len, self->__ ## out ## _num_destinations); \
+    __initialize_token(self->__ ## out, val, self->__ ## out->element_size, len, self->__ ## out ## _num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -172,7 +157,7 @@ do { \
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(&(self->__ ## out), 1, self->__ ## out ## _num_destinations); \
+    out = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -190,7 +175,7 @@ do { \
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(&(self->__ ## out), length, self->__ ## out ## _num_destinations); \
+    out = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
@@ -207,28 +192,20 @@ do { \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
-/** Version of set() for output types given as 'type*' where you want
- *  to send a previously dynamically object of the specified type.
- *  The deallocation is delegated to downstream reactors, which
+/** Version of set() for output types given as 'type*' or 'type[]'where you want
+ *  to forward an input or action without copying it.
+ *  The deallocation of memory is delegated to downstream reactors, which
  *  automatically deallocate when the reference count drops to zero.
  *  @param out The output port (by name).
- *  @param val A pointer to the object to send.
+ *  @param token A pointer to token obtained from an input or action.
  */
-#define set_token(out, val) \
+#define set_token(out, token) \
 do { \
     out ## _is_present = true; \
-    __initialize_token(&(self->__ ## out), val, 1, self->__ ## out ## _num_destinations); \
+    self->__ ## out = token; \
+    token->ref_count += self->__ ## out ## _num_destinations; \
     self->__ ## out ## _is_present = true; \
 } while(0)
-
-/** Return a writable copy of the specified input value, which must be
- *  a message carried by a token_t struct. If the reference count
- *  is exactly one, this returns the message itself without copying.
- *  Otherwise, it returns a copy.
- *  This is a macro that converts an input name into a reference
- *  in the self struct.
- */
-#define writable_copy(input) __writable_copy_impl(self->__ ## input)
 
 #define LEVEL(index) (index & 0xFFFF)
 
@@ -267,22 +244,25 @@ typedef pqueue_pri_t index_t;
 /** Reaction function type. */
 typedef void(*reaction_function_t)(void*);
 
+/** Trigger struct representing an output, timer, action, or input. */
+typedef struct trigger_t trigger_t;
+
 /** Token type for dynamically allocated arrays and structs sent as messages. */
 typedef struct token_t {
     /** Pointer to a struct or array to be sent as a message. Must be first. */
     void* value;
     /** Size of the struct or array element. */
-    int element_size;
+    size_t element_size;
     /** Length of the array or 1 for a struct. */
     int length;
     /** The number of input ports that have not already reacted to the message. */
     int ref_count;
-    /** Indicator that when the value is freed, this token should also be freed. */
+    /** Indicator of whether this token is expected to be freed.
+     *  Tokens that are created at the start of execution and associated with output
+     *  ports or actions are not expected to be freed. They can be reused instead.
+     */
     bool ok_to_free;
 } token_t;
-
-/** Reaction activation record to push onto the reaction queue. */
-typedef struct trigger_t trigger_t;
 
 /** Reaction activation record to push onto the reaction queue. */
 typedef struct reaction_t reaction_t;
@@ -329,7 +309,7 @@ typedef enum queuing_policy_t {
     UPDATE
 } queuing_policy_t;
 
-/** Reaction activation record to push onto the reaction queue. */
+/** Trigger struct representing an output, timer, action, or input. */
 struct trigger_t {
     reaction_t** reactions;   // Reactions sensitive to this trigger.
     int number_of_reactions;  // Number of reactions sensitive to this trigger.
@@ -339,6 +319,9 @@ struct trigger_t {
     bool is_physical;         // Indicator that this denotes a physical action (i.e., to be scheduled relative to physical time).
     instant_t scheduled;      // Tag of the last event that was scheduled for this action.
     queuing_policy_t policy;  // Indicates the policy for handling events that succeed one another more rapidly than allowable by the specified min. interarrival time. Only applies to physical actions.
+    size_t element_size;      // The size of the payload, if there is one, zero otherwise.
+                              // If the payload is an array, then this is the size of an element of the array.
+    bool is_present;          // Indicator at any given logical time of whether the trigger is present.
 };
 
 /** Event activation record to push onto the event queue. */
@@ -346,7 +329,7 @@ typedef struct event_t {
     instant_t time;           // Time of release.
     trigger_t* trigger;       // Associated trigger.
     size_t pos;               // Position in the priority queue.
-    token_t* token;           // Pointer to the token wrapping the value.
+    token_t* token;           // Pointer to the token wrapping the value or a template token for a trigger.
 } event_t;
 
 //  ======== Function Declarations ========  //
@@ -430,12 +413,36 @@ bool True;
 int number_of_threads;
 
 /**
- * External version of schedule, callable from within reactors.
- * @param trigger The action or timer to be triggered.
+ * Schedule the specified action with logical time
+ * delay equal to its offset plus the specified extra_delay.
+ * The action can carry a value wrapped in the specified token.
+ * The token can be obtained from an input or a previous triggering
+ * of this action (using the name_token syntax).
+ * To create a new token, use schedule_value instead.
+ * @param action The action or timer to be triggered.
  * @param delay Extra offset of the event release.
- * @param token The token wrapping the payload or NULL.
-*/
-handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token);
+ * @param token The token wrapping the payload or NULL for no payload.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule_token(trigger_t* action, interval_t extra_delay, token_t* token);
+
+/**
+ * Schedule the specified action with logical time
+ * delay equal to its offset plus the specified extra_delay.
+ * The action can carry a value pointed to by the value argument.
+ * That value is required to have be dynamically allocated memory
+ * of the correct size to contain the data type of the trigger.
+ * If that data type is an array, then you must also specify
+ * the length of the array (otherwise, the length is 1
+ * for a scalar and 0 for no payload).
+ * @param action The action or timer to be triggered.
+ * @param delay Extra offset of the event release.
+ * @param value Dynamically allocated memory containing the value to send.
+ * @param length The length of the array, if it is an array, or 1 for a
+ *  scalar and 0 for no payload.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule_value(trigger_t* action, interval_t extra_delay, void* value, int length);
 
 /**
  * Specialized version of malloc used by Lingua Franca for action values

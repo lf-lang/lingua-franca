@@ -295,6 +295,7 @@ class CGenerator extends GeneratorBase {
                 // reactors have reactions to shutdown.
                 pr('bool __wrapup() {\n')
                 indent()
+                pr('__start_time_step();   // To free memory allocated for actions.')
                 for (instance : shutdownActionInstances) {
                     pr('__schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
                 }
@@ -398,7 +399,7 @@ class CGenerator extends GeneratorBase {
      *  reference count and frees allocated memory when the
      *  reference count hits zero.
      */
-    def addReferenceCountReaction(Reactor reactor) {
+    def addReferenceCountReaction(Reactor reactor) {        
         var triggersForReaction = newArrayList
         var body = new StringBuilder
         // This is a bit of a hack, but preface the body with
@@ -416,16 +417,6 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')
             }
-        }
-        for (action : reactor.actions) {
-            // If there is a payload to be freed, free it.
-            pr(body, '''
-                if (self->__«action.name»__triggered) {
-                    self->__«action.name»__triggered = false;
-                    __done_using(self->__«action.name»->token);
-                }
-                ''')
-            triggersForReaction.add(action)
         }
         if (!triggersForReaction.isEmpty) {
             var reaction = LinguaFrancaFactory.eINSTANCE.createReaction
@@ -595,8 +586,6 @@ int main(int argc, char* argv[]) {
             prSourceLineNumber(a)
             // NOTE: Slightly obfuscate output name to help prevent accidental use.
             pr(body, "trigger_t* __" + a.name + ";")
-            // Indicator of whether this action triggered and hence its payload should be freed.
-            pr(body, "bool __" + a.name + "__triggered;")
         }
         // Next handle inputs.
         for (input : reactor.inputs) {
@@ -834,9 +823,9 @@ int main(int argc, char* argv[]) {
         // Next, add the triggers (input and actions; timers are not needed).
         // This defines a local variable in the reaction function whose
         // name matches that of the trigger. If the trigger is an input
-        // (not an action), then it also defines a local variable whose
-        // name is the input name with suffix "_is_present", a boolean
-        // that indicates whether the input is present.
+        // or an action, then it also defines a local variable whose
+        // name is the input/action name with suffix "_is_present", a boolean
+        // that indicates whether the input/action is present.
         // If the trigger is an output, then it is an output of a
         // contained reactor. In this case, a struct with the name
         // of the contained reactor is created with two fields.
@@ -1210,8 +1199,7 @@ int main(int argc, char* argv[]) {
                 val functionName = output.parent.definition.reactorClass.name.
                     toLowerCase + "_xfer_outs_" + "_" + output.name
 
-                pr(
-                    result,
+                pr(result,
                     "// --- Reaction and trigger objects for transfer outputs for " +
                         output.getFullName
                 )
@@ -1332,12 +1320,13 @@ int main(int argc, char* argv[]) {
                     'reaction_t* ' + structName + '_reactions[1] = {&' +
                         reactionInstanceName + '};')
 
-                pr(result, 'trigger_t ' + structName + ' = {')
-                indent(result)
-                pr(result, structName + '_reactions, 1, 0LL, 0LL, NULL, false, NEVER, NONE')
-                unindent(result)
-                pr(result, '};')
-
+                val rootType = rootType((output.definition as Port).type)
+                pr(result, '''
+                    trigger_t «structName» = {
+                        «structName»_reactions, 1, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
+                    };
+                ''')
+                
                 triggerCount++
             }
             outputCount++
@@ -1410,13 +1399,15 @@ int main(int argc, char* argv[]) {
             // value is a struct.
             pr(result, 'trigger_t ' + triggerStructName + ' = {')
             indent(result)
-            if (trigger instanceof Timer || trigger instanceof Port) {
-                pr(
-                    result,
-                    triggerStructName + '_reactions, ' +
-                        numberOfReactionsTriggered + ', ' +
-                        '0LL, 0LL, NULL, false, NEVER, NONE'
-                )
+            if (trigger instanceof Timer) {
+                pr(result, '''
+                    «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, 0
+                ''')
+            } else if (trigger instanceof Port) {
+                val rootType = rootType(trigger.type)
+                pr(result, '''
+                    «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
+                ''')
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
                 var minDelay = reactorInstance.resolveTime(trigger.minDelay)
@@ -1436,13 +1427,19 @@ int main(int argc, char* argv[]) {
                         trigger.policy = QueuingPolicy.DEFER;
                     }
                 }
-                pr(
-                    result,
-                    triggerStructName + '_reactions, ' +
-                        numberOfReactionsTriggered + ', ' +
-                        timeInTargetLanguage(minDelay) + ',' + timeInTargetLanguage(minInterArrival) + 
-                        ', NULL, ' + isPhysical + ', NEVER,' + trigger.policy
-                )
+                var element_size = "0"
+                if (trigger.type !== null) element_size = '''sizeof(«rootType(trigger.type)»)'''
+                pr(result, '''
+                    «triggerStructName»_reactions,
+                    «numberOfReactionsTriggered»,
+                    «timeInTargetLanguage(minDelay)»,
+                    «timeInTargetLanguage(minInterArrival)»,
+                    NULL,
+                    «isPhysical»,
+                    NEVER,
+                    «trigger.policy»,
+                    «element_size»
+                ''')
                 // If this is a shutdown action, add it to the list of shutdown actions.
                 if ((triggerInstance as ActionInstance).isShutdown) {
                     shutdownActionInstances.add(
@@ -1456,6 +1453,7 @@ int main(int argc, char* argv[]) {
             }
             unindent(result)
             pr(result, '};')
+            
             // Assignment of the offset and period have to occur after creating
             // the struct because the value assigned may not be a compile-time constant.
             if (trigger instanceof Timer) {
@@ -1711,49 +1709,47 @@ int main(int argc, char* argv[]) {
                 nameOfSelfStruct + '.__' + action.name + ' = ' + triggerStruct + ';'
             )
         }
-        // Next, generate the code to initialize outputs and inputs at the start
-        // of a time step to be absent. This will also set the number of destinations,
+        // Next, generate the code to initialize outputs at the start
+        // of a time step to be absent.
+        // This will also set the number of destinations,
         // which is used to initialize reference counts.
         for (output : instance.outputs) {
-            pr(
-                startTimeStep,
-                nameOfSelfStruct + '.__' + output.name + '_is_present = false;'
-            )
-            if (isTokenType((output.definition as Port).type)) {
-                val rootType = rootType((output.definition as Port).type)
-                // Create a token_t struct and initialize its element_size
-                // and num_destinations fields.
-                pr(initializeTriggerObjects,
-                    '''
-                    «nameOfSelfStruct».__«output.name» = __create_token(sizeof(«rootType»));
-                    «nameOfSelfStruct».__«output.name»_num_destinations = «output.dependentPorts.size»;
-                    '''
-                )
-            }
+            pr(startTimeStep, '''«nameOfSelfStruct».__«output.name»_is_present = false;''')
+            pr(initializeTriggerObjects, '''«nameOfSelfStruct».__«output.name»_num_destinations = «output.dependentPorts.size»;''')
         }
+        
         // Next, initialize actions by creating a token_t in the self struct.
         // This has the information required to allocate memory for the action payload.
         for (action : instance.actions) {
-            // Actions may not have a type, in which case there is no payload.
-            var type = (action.definition as Action).type
-            if (type !== null) {
-                // If the type ends in * or [], get the root type.
+            // Skip this step if the action is not in use. 
+            if (triggersInUse.contains(action)) {
+                var type = (action.definition as Action).type
                 if (isTokenType(type)) {
                     type = rootType(type)
                 }
+                var payloadSize = "0"
+                if (type !== null && !type.equals("")) {
+                    payloadSize = '''sizeof(«type»)'''
+                }
+            
+                // Create a reference token initialized to the payload size.
+                // This token is marked to not be freed so that the trigger_t struct
+                // always has a reference token.
                 pr(initializeTriggerObjects,
                     '''
-                    «nameOfSelfStruct».__«action.name»->token = __create_token(sizeof(«type»));
-                    «nameOfSelfStruct».__«action.name»__triggered = false;
+                    «nameOfSelfStruct».__«action.name»->token = __create_token(«payloadSize»);
+                    «nameOfSelfStruct».__«action.name»->is_present = false;
                     '''
                 )
-            } else {
-                pr(initializeTriggerObjects,
-                    '''
-                    «nameOfSelfStruct».__«action.name»->token = NULL;
-                    «nameOfSelfStruct».__«action.name»__triggered = false;
-                    '''
-                )
+                // At the start of each time step, initialize the is_present field
+                // of each action's trigger object to false and free a previously
+                // allocated token if appropriate.
+                pr(startTimeStep, '''
+                    if («nameOfSelfStruct».__«action.name»->is_present) {
+                        «nameOfSelfStruct».__«action.name»->is_present = false;
+                        __done_using(«nameOfSelfStruct».__«action.name»->token);
+                    }
+                ''')
             }
         }
         // Handle reaction local deadlines.
@@ -1855,12 +1851,10 @@ int main(int argc, char* argv[]) {
         // the port type.
         if (isTokenType(action.type)) {
             '''
-            // Increment the reference count to prevent freeing prematurely.
             if («ref»_is_present) {
-                «ref»->ref_count++;
                 // Put the whole token on the event queue, not just the payload.
                 // This way, the length and element_size are transported.
-                schedule(«action.name», 0, «ref»);
+                schedule_token(«action.name», 0, «ref»);
             }
             '''
         } else {
@@ -1879,22 +1873,19 @@ int main(int argc, char* argv[]) {
      * @param port The port to write to.
      */
     override generateForwardBody(Action action, VarRef port) {
-        val ref = generateVarRef(port)
+        val outputName = generateVarRef(port)
         if (isTokenType(action.type)) {
+            // FIXME: FOllowing could be set_token(outputName, token);
             // Forward the entire token and prevent freeing.
-            // Decrement the reference count to account for it being
-            // incremented at the sending end of the 'after'.
             // We leave the ref_count alone. It should be 1.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->__«ref» = (token_t*)self->__«action.name»->token;
-            // Enable downstream freeing of the token_t struct itself.
-            ((token_t*)self->__«action.name»->token)->ok_to_free = true;
-            self->__«ref»_is_present = true;
+            self->__«outputName» = (token_t*)self->__«action.name»->token;
+            self->__«outputName»_is_present = true;
             '''
         } else {
             '''
-            set(«ref», «action.name»_value);
+            set(«outputName», «action.name»_value);
             '''
         }
     }
@@ -2085,9 +2076,13 @@ int main(int argc, char* argv[]) {
         }
         // Set all inputs _is_present variables to point to False by default.
         setInputsAbsentByDefault(main, federate)
+        
+        // For outputs that are not primitive types (of form type* or type[]),
+        // create a default token on the self struct.
+        createDefaultTokens(main, federate)
 
         // Next, for every input port, populate its "self" struct
-        // fields with pointers to the output port that send it data.
+        // fields with pointers to the output port that sends it data.
         connectInputsToOutputs(main, federate)
     }
 
@@ -2235,11 +2230,13 @@ int main(int argc, char* argv[]) {
         // If the action has a type, create variables for accessing the value.
         val type = action.type
         // Pointer to the token_t sent as the payload in the trigger.
-        val tokenPointer = '''((token_t*)self->__«action.name»->token)'''
+        val tokenPointer = '''(self->__«action.name»->token)'''
         // Create the _has_value variable.
         pr(builder,
             '''
+            bool «action.name»_is_present = self->__«action.name»->is_present;
             bool «action.name»_has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
+            token_t* «action.name»_token = «tokenPointer»;
             ''')
         // Create the _value variable if there is a type.
         if (type !== null) {
@@ -2252,9 +2249,6 @@ int main(int argc, char* argv[]) {
                 «type» «action.name»_value;
                 if («action.name»_has_value) {
                      «action.name»_value = *((«type»*)«tokenPointer»->value);
-                }
-                if («tokenPointer» != NULL) {
-                    self->__«action.name»__triggered = true;
                 }
                 '''
             )
@@ -2277,18 +2271,27 @@ int main(int argc, char* argv[]) {
             'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
         
         if (isTokenType(input.type)) {
-            pr(builder, rootType(input.type) + '* ' + input.name + ';')
+            // FIXME: Redo the following with smart strings '''
+            val rootType = rootType(input.type)
+            pr(builder, rootType + '* ' + input.name + ';')
             pr(builder, 'int ' + input.name + '_length = 0;')
+            // Create the name_token variable.
+            pr(builder, '''token_t* «input.name»_token = *(self->__«input.name»);''')
             pr(builder, 'if(' + present + ') {')
             indent(builder)
             pr(builder, input.name + '_length = (*(self->__' + input.name + '))->length;')
-            pr(builder, input.name + ' = ('
-                + rootType(input.type)
-                + '*)((*(self->__' + input.name + '))->value);')
             // If the input is declared mutable, create a writable copy.
             // Note that this will not copy if the reference count is exactly one.
             if (input.isMutable) {
-                pr(builder, input.name + ' = writable_copy(' + input.name + ');')
+                pr(builder, '''
+                    «input.name»_token = writable_copy(*(self->__«input.name»));
+                    «input.name» = («rootType»*)(«input.name»_token->value);
+                ''')
+            } else {
+                pr(builder, '''
+                    «input.name» = («rootType»*)((*(self->__«input.name»))->value);
+                ''')
+                
             }
         } else if (input.type !== null) {
             // Look for array type of form type[number].
@@ -2516,7 +2519,8 @@ int main(int argc, char* argv[]) {
     /** If the type specification of the form type[] or
      *  type*, return the type. Otherwise remove the code delimiter,
      *  if there is one, and otherwise just return the argument
-     *  unmodified. This should only be called on token types.
+     *  unmodified.
+     *  @param type A string describing the type.
      */
     private def rootType(String type) {
         if(type.endsWith(']')) {
@@ -2553,7 +2557,35 @@ int main(int argc, char* argv[]) {
 
     }
 
-    /** Set inputs _is_present variables to the default to point to False.
+    /** For each output that has a token type (type* or type[]),
+     *  create a default token and put it on the self struct.
+     *  @param parent The container reactor.
+     *  @param federate The federate, or null if there is no federation.
+     */
+    private def void createDefaultTokens(ReactorInstance parent, FederateInstance federate) {
+        for (containedReactor : parent.children) {
+            // Do this only for reactors in the federate.
+            if (reactorBelongsToFederate(containedReactor, federate)) {
+                var nameOfSelfStruct = selfStructName(containedReactor)
+                for (output : containedReactor.outputs) {
+                    val type = (output.definition as Output).type
+                    if (isTokenType(type)) {
+                        // Create the template token that goes in the trigger struct.
+                        // Its reference count is zero, enabling it to be used immediately.
+                        var rootType = rootType(type)
+                        pr('''
+                            «nameOfSelfStruct».__«output.name» = __create_token(sizeof(«rootType»));
+                        ''')
+                    }
+                }
+                // In case this is a composite, handle its contained reactors.
+                createDefaultTokens(containedReactor, federate)
+            }
+        }
+    }
+    
+    /** Set inputs _is_present variables to the default false.
+     *  This is useful in case the input is left unconnected.
      *  @param parent The container reactor.
      *  @param federate The federate, or null if there is no federation.
      */
@@ -2564,10 +2596,9 @@ int main(int argc, char* argv[]) {
         for (containedReactor : parent.children) {
             // Do this only for reactors in the federate.
             if (reactorBelongsToFederate(containedReactor, federate)) {
+                var selfStructName = selfStructName(containedReactor)
                 for (input : containedReactor.inputs) {
-                    var inputSelfStructName = selfStructName(containedReactor)
-                    pr(inputSelfStructName + '.__' + input.definition.name +
-                        '_is_present = &False;')
+                    pr('''«selfStructName».__«input.definition.name»_is_present = &False;''')
                 }
                 // In case this is a composite, handle its assignments.
                 setInputsAbsentByDefault(containedReactor, federate)

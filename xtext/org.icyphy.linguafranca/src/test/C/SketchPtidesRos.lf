@@ -80,7 +80,7 @@ reactor DisarmAndOpen {
 	
 	reaction(button) -> message, microstep {=
 		set(message, DISARM);
-		schedule(microstep, 0, NULL);
+		schedule(microstep, 0);
 	=}
 	
 	reaction(microstep) -> message {=

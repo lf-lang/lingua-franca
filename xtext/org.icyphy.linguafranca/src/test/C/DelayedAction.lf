@@ -7,7 +7,7 @@ main reactor DelayedAction {
     logical action a;
     state count:int(0);
     reaction(t) -> a {=
-        schedule(a, MSEC(100), NULL);
+        schedule_pure_event(a, MSEC(100));
     =}
     
     reaction(a) {=

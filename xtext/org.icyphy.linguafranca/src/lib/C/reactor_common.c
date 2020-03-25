@@ -149,7 +149,7 @@ static int in_reverse_order(pqueue_pri_t this, pqueue_pri_t that) {
 }
 
 /**
- * Return whether or not the given events have matching tags.
+ * Return whether or not the given events have matching triggers.
  */
 static int event_matches(void* next, void* curr) {
     return (((event_t*)next)->trigger == ((event_t*)curr)->trigger);
@@ -236,7 +236,10 @@ static int __count_payload_allocations;
 
 /**
  * Counter used to issue a warning if memory is
- * allocated for tokens and never freed.
+ * allocated for tokens and never freed. Note that
+ * every trigger will have one token allocated for
+ * it. That token is not counted because it is not
+ * expected to be freed.
  */
 static int __count_token_allocations;
 
@@ -250,30 +253,37 @@ typedef enum token_freed {
 /**
  * Decrement the reference count of the specified token.
  * If the reference count hits 0, free the memory for the value
- * carried by the token, and, if the ok_to_free field of the token
- * itself is true, free the token.
- * appropriate, for messages carried by a token_t struct.
+ * carried by the token, and, if the token is not also the template
+ * token of its trigger, free the token.
  * @param token Pointer to a token.
  * @return NOT_FREED if nothing was freed, VALUE_FREED if the value
  *  was freed, and TOKEN_FREED if both the value and the token were
  *  freed.
  */
 token_freed __done_using(token_t* token) {
-    if (token == NULL) return NOT_FREED;
-    token->ref_count--;
     token_freed result = NOT_FREED;
-    printf("DEBUG: __done_using: ref_count = %d.\n", token->ref_count);
+    if (token == NULL) return result;
+    if (token->ref_count == 0) {
+        fprintf(stderr, "WARNING: Token being freed that has already been freed: %p\n", token);
+    } else {
+        token->ref_count--;
+    }
+    // printf("DEBUG: __done_using: ref_count = %d.\n", token->ref_count);
     if (token->ref_count == 0) {
         if (token->value != NULL) {
             // Count frees to issue a warning if this is never freed.
             __count_payload_allocations--;
-            printf("DEBUG: __done_using: Freeing allocated memory for payload (token value): %p\n", token->value);
+            // printf("DEBUG: __done_using: Freeing allocated memory for payload (token value): %p\n", token->value);
             free(token->value);
+            token->value = NULL;
             result = VALUE_FREED;
         }
+        // Tokens that are created at the start of execution and associated with
+        // output ports or actions are pointed to by those actions and output
+        // ports and should not be freed. They are expected to be reused instead.
         if (token->ok_to_free) {
             // Need to free the token_t struct also.
-            printf("DEBUG: __done_using: Freeing allocated memory for token: %p\n", token);
+            // printf("DEBUG: __done_using: Freeing allocated memory for token: %p\n", token);
             free(token);
             __count_token_allocations--;
             result = TOKEN_FREED;
@@ -283,16 +293,18 @@ token_freed __done_using(token_t* token) {
 }
 
 /**
- * Create a new token_t struct and initialize it.
+ * Create a new token_t struct and initialize it for assignment to a trigger.
  * The value pointer will be NULL and the length will be 0.
- * This new token will be set with ok_to_free = false.
- * @param element_size The size of each element of the array or the single struct.
- * @param num_destinations The number of destinations to initialize the reference count.
+ * The element size will be determined from the specified trigger's element size.
+ * This function is for tokens that are not expected to be freed
+ * (specifically, one per trigger).
+ * @param trigger The trigger associated with this token.
  * @return The new token_t struct.
  */
-token_t* __create_token(int element_size) {
-    token_t* token = malloc(sizeof(token_t));
-    printf("DEBUG: __create_token: Allocated memory for token (not expected to be freed): %p\n", token);
+token_t* __create_token(size_t element_size) {
+    // FIXME: Recycle tokens!
+    token_t* token = (token_t*)malloc(sizeof(token_t));
+    // printf("DEBUG: __create_token: Allocated memory for token: %p\n", token);
     token->value = NULL;
     token->length = 0;
     token->element_size = element_size;
@@ -302,46 +314,53 @@ token_t* __create_token(int element_size) {
 }
 
 /**
- * Initialize the token_t pointer of an output's field of the self struct.
- * If the reference count of the token is not 0, then allocate a new token
- * struct and then initialize it using the element_size and num_destinations
- * of the previous one. Update the token argument to point to the newly
- * allocated struct.
- *
- * The strategy here is that we assume that if the reference count is not
- * zero for the token, then that token is the payload of an event on the event
- * queue that will later be dequeued. We mark that token ok_to_free so that when
- * it is dequeued, its memory will be recovered, compensating for the malloc
- * that occurs here.
- *
- * @param token Pointer to the pointer to the token_t struct on the trigger struct.
- * @param value The value to be carried by the token.
- * @param length The length of the array, or 1 if it is not an array.
- * @param num_destinations The number of destinations (for initializing the reference count).
+ * Create a new token and initialize it.
+ * The value pointer will be NULL and the length will be 0.
+ * The element size will be determined from the provided token's element size.
+ * This function is for creating tokens that are expected to be freed.
+ * @param element_size The size of memory for storing the token payload.
+ * @return The new token_t struct.
  */
-void __initialize_token(token_t** token, void* value, int length, int num_destinations) {
-    // assert(token != NULL && (*token) != null);
+token_t* __create_token_dynamic(size_t element_size) {
+    // printf("DEBUG: __create_token_dynamic: element_size: %zu\n", element_size);
+    __count_token_allocations++;
+    token_t* result = __create_token(element_size);
+    result->ok_to_free = true;
+    return result;
+}
+
+/**
+ * If the specified token is available (its reference count is 0),
+ * then initialize it with the specified value, length (number of array
+ * elements or 1 if it is not an array), and reference count.
+ * Otherwise, create a new token and initialize it.
+ * The new token will point to the same trigger and element_size
+ * as the specified token. Return either the specified token, or,
+ * if a new one was created, the new token.
+ *
+ * @param token The token to populate, if it is available or null to create a new token.
+ * @param value The value to be carried by the token or NULL for none.
+ * @param element_size The size of memory for the token payload.
+ * @param length The length of the array, or 1 if it is not an array.
+ * @param ref_count The initial reference count.
+ * @return Either the specified token or a new one carrying the value.
+ */
+token_t* __initialize_token(token_t* token, void* value, size_t element_size, int length, int ref_count) {
+    // assert(token != NULL);
 
     // If necessary, allocate memory for a new token_t struct.
     // This assumes that the token_t* in the self struct has been initialized to NULL.
-    token_t* result = (*token);
-    if (result->ref_count > 0) {
-        // There is a token there, but its reference count is not zero.
-        result = malloc(sizeof(token_t));
-        printf("DEBUG: __initialize_token: Allocated memory for token: %p\n", result);
-        // Count these mallocs because they are expected to be freed.
-        __count_token_allocations++;
-        // Mark the original token as OK to be freed when its payload is freed.
-        (*token)->ok_to_free = true;
+    token_t* result = token;
+    // printf("DEBUG: initializing a token %p with ref_count %d.\n", token, token->ref_count);
+    if (token == NULL || token->ref_count > 0) {
+        // The specified token is not available.
+        result = __create_token_dynamic(element_size);
     }
     result->value = value;
     result->length = length;
-    result->element_size = (*token)->element_size;
-    result->ref_count = num_destinations;
-    // This new token will replace the old as the master copy for
-    // the port or action. This way, it is recycled.
-    (*token) = result;
-    result->ok_to_free = false;
+    // printf("DEBUG: setting ref_count to %d.\n", ref_count);
+    result->ref_count = ref_count;
+    return result;
 }
 
 /**
@@ -374,19 +393,26 @@ void __initialize_token(token_t** token, void* value, int length, int num_destin
  * @param trigger The trigger to be invoked at a later logical time.
  * @param extra_delay The logical time delay, which gets added to the
  *  trigger's minimum delay, if it has one.
- * @param token The token wrapping the payload.
+ * @param token The token wrapping the payload or NULL for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
-    // Increment the reference count of the token.
-    if (token != NULL) token->ref_count++;
+
+    // printf("DEBUG: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
 
 	// The trigger argument could be null, meaning that nothing is triggered.
+    // Doing this after incrementing the reference count ensures that the
+    // payload will be freed, if there is one.
 	if (trigger == NULL) {
 	    __done_using(token);
 	    return 0;
 	}
-    
+
+    // Increment the reference count of the token.
+	if (token != NULL) {
+	    token->ref_count++;
+	}
+
     // Compute the tag (the logical timestamp for the future event).
 	// How we do that depends on whether this is a logical or physical action.
     interval_t tag = current_time;
@@ -401,8 +427,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         e = malloc(sizeof(struct event_t));
     }
     
-    e->trigger = trigger;
+    // Set the payload.
     e->token = token;
+    // Make sure the event points to this trigger so when it is
+    // dequeued, it will trigger this trigger.
+    e->trigger = trigger;
 
     // Calculate the tag (logical timestamp) of the future event.
     // For logical actions, the logical time of the new event is just
@@ -434,7 +463,6 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             tag = physical_time;
         }
 
-        
         // Compute the earliest time that this event can be scheduled.
         instant_t earliest_time;
         if (trigger->scheduled == NEVER) {
@@ -458,9 +486,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                     existing->token = token;
                 }
             }
-            if (trigger->policy == DROP || existing != NULL) {
+            if (trigger->policy == DROP || (trigger->policy == UPDATE && existing == NULL)) {
                 // Recycle the new event and the token.
-                if (existing->token != token) __done_using(token);
+                if (existing == NULL || existing->token != token) __done_using(token);
                 e->token = NULL;
                 pqueue_insert(recycle_q, e);
                 return(0);
@@ -482,6 +510,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // allowed), or if the event time is past the requested stop time.
     if ((stop_requested && e->time != current_time)
             || (stop_time > 0LL && e->time > stop_time)) {
+        // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
         pqueue_insert(recycle_q, e);
         return 0;
@@ -521,29 +550,30 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  *  with a copy of the specified value. If the value is non-null,
  *  then it will be copied into newly allocated memory under the assumption
  *  that its size given in the trigger's token object's element_size field.
- *  @param trigger Pointer to a pointer to a trigger object
+ *  @param trigger Pointer to a trigger object
  *   (typically an action on a self struct).
  *  @param offset The time offset.
  *  @param value A pointer to the value to copy.
  *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __schedule_impl(trigger_t** trigger, interval_t offset, void* value) {
+handle_t __schedule_with_copy_impl(trigger_t* trigger, interval_t offset, void* value) {
     if (value == NULL) {
-        return schedule_token(*trigger, offset, NULL);
+        return schedule_token(trigger, offset, NULL);
     }
-    if (trigger == NULL || (*trigger)->token == NULL || (*trigger)->token->element_size < 0) {
+    if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
         return -1;
     }
-    int element_size = (*trigger)->token->element_size;
-    void* container = malloc(element_size);
+    int element_size = trigger->token->element_size;
+    int length = trigger->token->length;
+    void* container = malloc(element_size * length);
     __count_payload_allocations++;
-    printf("DEBUG: __schedule_impl: Allocating memory for payload (token value): %p\n", container);
+    // printf("DEBUG: __schedule_with_copy_impl: Allocating memory for payload (token value): %p\n", container);
     memcpy(container, value, element_size);
     // Initialize token with an array size of 1 (a scalar) and a reference count of 0.
-    __initialize_token(&((*trigger)->token), container, 1, 0);
+    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, 1, 0);
     // The schedule function will increment the reference count.
-    return schedule_token(*trigger, offset, (*trigger)->token);
+    return schedule_token(trigger, offset, token);
 }
 
 /**
@@ -575,43 +605,124 @@ void schedule_output_reactions(reaction_t* reaction) {
 }
 
 /**
- * Library function for allocating memory for an array to be sent on an output.
- * This turns over "ownership" of the allocated memory to the output, so
- * the allocated memory will be freed downstream.
- * @param token Pointer to the pointer to the token_t struct in the self struct.
- * @param length The length of the array.
- * @param num_destinations The number of destinations (for initializing the reference count).
+ * Schedule the specified action at a later logical time that depends
+ * on whether the action is logical or physical and what its parameter
+ * values are.
+ *
+ * logical action: A logical action has an offset (default is zero)
+ * and a minimum interarrival time (MIT), which also defaults to zero.
+ * The logical time at which this scheduled event will trigger is
+ * the current time plus the offset plus the delay argument given to
+ * this function. If, however, that time is not greater than a prior
+ * triggering of this logical action by at least the MIT, then the
+ * one of two things can happen depending on the policy specified
+ * for the action. If the action's policy is DROP (default), then the
+ * action is simply dropped and the memory pointed to by value argument
+ * is freed. If the policy is DEFER, then the time will be increased
+ * to equal the time of the most recent triggering plus the MIT.
+ *
+ * For the above, "current time" means the logical time of the
+ * reaction that is calling this function, or if this function is
+ * being called from outside a reaction (asynchronously), then the
+ * most recent logical time relevant to the reactor that owns the
+ * action.
+ *
+ * physical action: A physical action has all the same parameters
+ * as a logical action, but instead of "current time" being a logical
+ * time, current time is defined as the larger of the current logical
+ * time (as above) and the time of the physical clock on the currently
+ * executing platform.
+ *
+ * The value is required to be either NULL or a pointer to
+ * memory dynamically allocated using malloc (it will be freed when
+ * its reference count decrements to zero).
+ *
+ * There are three conditions under which this function will not
+ * actually put an event on the event queue and decrement the reference count
+ * of the token (if there is one), which could result in the payload being
+ * freed. In all three cases, this function returns 0. Otherwise,
+ * it returns a handle to the scheduled trigger, which is an integer
+ * greater than 0.
+ *
+ * The first condition is that a stop has been requested and the time offset
+ * of this event is greater than zero.
+ * The second condition is that the logical time of the event
+ * is greater that the requested stop time (timeout).
+ * The third condition is that the trigger argument is null.
+ *
+ * @param action The action or timer to be triggered.
+ * @param delay Extra offset of the event release.
+ * @param value Dynamically allocated memory containing the value to send.
+ * @param length The length of the array, if it is an array, or 1 for a
+ *  scalar and 0 for no payload.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-void* __set_new_array_impl(token_t** token, int length, int num_destinations) {
-    // First, initialize the token_t pointer.
-    __initialize_token(token, malloc((*token)->element_size * length), length, num_destinations);
-    printf("DEBUG: __set_new_array_impl: Allocated %p\n", (*token)->value);
-    // Count allocations to issue a warning if this is never freed.
-    __count_payload_allocations++;
-    printf("DEBUG: __set_new_array_impl: Allocated object with starting ref_count = %d.\n", (*token)->ref_count);
-    return (*token)->value;
+handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+    token_t* token = __create_token_dynamic(trigger->element_size);
+    token->value = value;
+    return schedule_token(trigger, extra_delay, token);
 }
 
 /**
- * Return a writable copy of the value of a token.
- * If the reference count is 1, this returns the original rather than a copy.
- * It is up to the caller to either wrap this value in a new token or free it.
+ * Schedule the specified action with an integer value at a later logical
+ * time that depends on whether the action is logical or physical and
+ * what its parameter values are. See schedule_value().
  */
-void* __writable_copy_impl(token_t** token) {
-    printf("DEBUG: __writable_copy_impl: Requesting writable copy with reference count %d.\n", (*token)->ref_count);
-    if ((*token)->ref_count == 1) {
-        printf("DEBUG: __writable_copy_impl: Avoided copy because reference count is %d.\n", (*token)->ref_count);
-        // Set the reference count to 0 avoid the automatic free().
-        (*token)->ref_count = 0;
-        return (*token)->value;
-    } else {
-        printf("DEBUG: __writable_copy_impl: Copying array because reference count is greater than 1. It is %d.\n", (*token)->ref_count);
-        int size = (*token)->element_size * (*token)->length;
+handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
+    if (trigger->element_size != sizeof(int)) {
+        fprintf(stderr, "Action type is not an integer.");
+        return -1;
+    }
+    int* container = malloc(sizeof(int));
+    *container = value;
+    return schedule_value(trigger, extra_delay, container, 1);
+}
+
+/**
+ * Library function for allocating memory for an array to be sent on an output.
+ * This turns over "ownership" of the allocated memory to the output, so
+ * the allocated memory will be freed downstream.
+ * @param token The token to use as a template (or if it is free, to use).
+ * @param length The length of the array.
+ * @param num_destinations The number of destinations (for initializing the reference count).
+ * @return A pointer to the allocated memory.
+ */
+void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
+    // First, initialize the token, reusing the one given if possible.
+    token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
+    // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", token->value);
+    // Count allocations to issue a warning if this is never freed.
+    __count_payload_allocations++;
+    return new_token->value;
+}
+
+/**
+ * Return a writable copy of the specified token.
+ * If the reference count is 1, this returns the original token rather than a copy.
+ * The reference count will still be 1.
+ * Otherwise, this returns a new token with a reference count of 0.
+ * To ensure that the allocated memory is not leaked, this new token must be
+ * either passed to an output using set_token() or scheduled with a action
+ * using schedule_token().
+ */
+token_t* writable_copy(token_t* token) {
+    // printf("DEBUG: writable_copy: Requesting writable copy of token %p with reference count %d.\n", token, token->ref_count);
+    if (token->ref_count == 1) {
+        // printf("DEBUG: writable_copy: Avoided copy because reference count is %d.\n", token->ref_count);
+        return token;
+   } else {
+        // printf("DEBUG: writable_copy: Copying array because reference count is greater than 1. It is %d.\n", token->ref_count);
+        size_t size = token->element_size * token->length;
         void* copy = malloc(size);
-        memcpy(copy, (*token)->value, size);
+        // printf("DEBUG: Allocating memory for writable copy %p.\n", copy);
+        memcpy(copy, token->value, size);
         // Count allocations to issue a warning if this is never freed.
         __count_payload_allocations++;
-        return copy;
+        // Create a new, dynamically allocated token.
+        token_t* result = __create_token_dynamic(token->element_size);
+        result->length = token->length;
+        result->value = copy;
+        return result;
     }
 }
 
@@ -787,8 +898,6 @@ void initialize() {
         stop_time = current_time + duration;
     }
 }
-
-
 
 // Check that memory allocated by set_new, set_new_array, or writable_copy
 // has been freed and print a warning message if not.

@@ -1,4 +1,4 @@
-target C;
+target C; 
 reactor HelloWorld {
     timer t;
     reaction(t) {=

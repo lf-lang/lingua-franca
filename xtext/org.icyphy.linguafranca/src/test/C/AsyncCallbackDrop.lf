@@ -1,5 +1,5 @@
-// Test asynchronous callbacks that trigger a physical action.
-// This test case assumes that target is multithreaded.
+// Test asynchronous callbacks that trigger a physical action with a DROP policy.
+// This test case assumes that the target is multithreaded.
 // This test will not work with the unthreaded C target because that target
 // does not implement any mutex protecting the event queue.
 target C {
@@ -12,14 +12,15 @@ main reactor AsyncCallback {
 	preamble {= 
 		#include <pthread.h>
 		void callback(trigger_t* a) {
-		    // Schedule twice. If the action is not physical, these should
-		    // get consolidated into a single action triggering. If it is,
-		    // then they cause two separate triggerings with close but not
-		    // equal time stamps. The minimum time between these is determined
+		    // Schedule twice in rapid succession.
+		    // The second value should be dropped because the
+		    // timestamps will not be sufficiently separated.
+		    // The minimum time between these is determined
 		    // by the argument in the physical action definition.
-		    int value = 0;
-			schedule_with_copy(a, 0, &value);
-            schedule_with_copy(a, 0, &value);
+		    int value1 = 0;
+		    int value2 = 1;
+			schedule(a, 0, value1);
+            schedule(a, 0, value2);
 		}
 		// Simulate time passing before a callback occurs.
 		void* take_time(void* a) {
@@ -53,6 +54,7 @@ main reactor AsyncCallback {
 		}
 		if (a_value != 0) {
 			printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", a_value);
+			exit(2);
 		}
         if (self->toggle) {
             self->toggle = false;

@@ -12,7 +12,7 @@ reactor Scale(scale:int(2)) {
     output out:hello_t*;
     reaction(in) -> out {=
         in->value *= self->scale;
-        set_token(out, in);
+        set_token(out, in_token);
     =}
 }
 main reactor StructScale {
