@@ -262,6 +262,8 @@ typedef struct token_t {
      *  ports or actions are not expected to be freed. They can be reused instead.
      */
     bool ok_to_free;
+    /** For recycling, a pointer to the next token in the recycling bin. */
+    struct token_t* next_free;
 } token_t;
 
 /** Reaction activation record to push onto the reaction queue. */
