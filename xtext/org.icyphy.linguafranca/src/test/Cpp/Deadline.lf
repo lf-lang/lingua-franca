@@ -17,7 +17,7 @@ reactor Source(period:time(1 sec)) {
         if (count % 2 == 1) {
             // The count variable is odd.
             // Take time to cause a deadline violation.
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            std::this_thread::sleep_for(200ms);
         }
         std::cout << "Source sends: " << count << std::endl;
         y.set(count);
@@ -27,7 +27,6 @@ reactor Source(period:time(1 sec)) {
 reactor Destination(timeout:time(1 sec)) {
     preamble {=
         #include <iostream>
-        #include <cstdlib>
     =}
     input x:int;
     state count:int(0);

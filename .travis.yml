@@ -14,6 +14,13 @@ cache:
 # The node_js property doesn't work if the language is java
 before_install:
   - nvm install 10.4.0
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-7
+      - g++-7
 #env:  
 # global:  
 #  - DISPLAY=:99.0  
@@ -22,10 +29,12 @@ before_install:
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
+ - export CC=/usr/bin/gcc-7
+ - export CXX=/usr/bin/g++-7
  - pushd xtext
  - ./gradlew test
  - popd
- - bin/build-lfc --clean
+# - bin/build-lfc --clean
  - bin/run-lf-tests TS
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp

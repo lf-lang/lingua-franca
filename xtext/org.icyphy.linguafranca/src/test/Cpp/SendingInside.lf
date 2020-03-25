@@ -7,7 +7,6 @@ target Cpp {
 reactor Printer {
     preamble {=
         #include <iostream>
-        #include <cstdlib>
     =}
     input x:int;
     state count:int(1);

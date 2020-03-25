@@ -1,4 +1,4 @@
-/* Instance of an action. */
+/* Annotated node in a dependency graph. */
 
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
