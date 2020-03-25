@@ -15,7 +15,7 @@ main reactor AsyncCallback {
     
     timer t(0, 200 msec);
     state thread:{=std::thread=}({==});
-    state expected_time:{=long long=}({=100000000LL=});
+    state expected_time:{=reactor::Duration=}({=1ms=});
     state toggle:bool(false);
     physical action a:void;
     state i:int(0);
@@ -28,7 +28,7 @@ main reactor AsyncCallback {
         // start new thread
         this->thread = std::thread([this] () {
              // Simulate time passing before a callback occurs
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(100ms);
             // Schedule twice. If the action is not physical, these should
             // get consolidated into a single action triggering. If it is,
             // then they cause two separate triggerings with close but not
@@ -41,16 +41,16 @@ main reactor AsyncCallback {
     reaction(a) {=
         auto elapsed_time = get_elapsed_logical_time();
         std::cout << "Asynchronous callback " << i++ << ": Assigned logical "
-                  << "time greater than start time by " << elapsed_time
+                  << "time greater than start time by " << elapsed_time.count()
                   << " nsec." << std::endl;
         if (elapsed_time <= expected_time) {
             std::cerr << "ERROR: Expected logical time to be larger than "
-                      << expected_time;
+                      << expected_time.count() << " nsec";
             exit(1);
         }
         if (toggle) {
             toggle = false;
-            expected_time += 200000000LL;
+            expected_time += 200ms;
         } else {
             toggle = true;
         }

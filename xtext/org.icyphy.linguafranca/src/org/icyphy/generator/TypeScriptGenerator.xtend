@@ -48,6 +48,7 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.Targets.LoggingLevels
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -364,8 +365,6 @@ class TypeScriptGenerator extends GeneratorBase {
                 } else {
                     if (timer.period.parameter !== null) {
                         timerPeriod = timer.period.parameter.name
-                    } else if (Integer.parseInt(timer.period.time.toString) === 0 ) {
-                        timerPeriod = "0"
                     } else {
                         timerPeriod = timeInTargetLanguage(new TimeValue(timer.period.time, timer.period.unit))
                     }
@@ -377,8 +376,6 @@ class TypeScriptGenerator extends GeneratorBase {
                 } else {
                      if (timer.offset.parameter !== null) {
                         timerOffset = timer.offset.parameter.name
-                    } else if (Integer.parseInt(timer.offset.time.toString) === 0 ) {
-                        timerOffset = "0"
                     } else {
                         timerOffset = timeInTargetLanguage(new TimeValue(timer.offset.time, timer.offset.unit))
                     }
@@ -894,7 +891,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getLoggingLevel() {
         if (targetLoggingLevel === null) {
-            'ERROR'
+            LoggingLevels.ERROR.toString
         } else {
             targetLoggingLevel
         }
