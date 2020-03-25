@@ -468,12 +468,24 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkTime(TimeOrValue timeOrValue) {
         // Only parameter assignments are allowed to be target types.
         // Time parameters can go without units only if they are 0.
-        if (!(timeOrValue.eContainer instanceof Assignment) &&
-            timeOrValue.time != 0) {
-            if (timeOrValue.unit == TimeUnit.NONE) {
-                error("Missing time units. Should be one of " +
-                    TimeUnit.VALUES.filter[it != TimeUnit.NONE],
-                    Literals.TIME_OR_VALUE__UNIT)
+        if (!(timeOrValue.eContainer instanceof Assignment)) {
+            
+            if (!timeOrValue.value.isEmpty) {
+                try {
+                    val number = Integer.parseInt(timeOrValue.value)
+                    if (number != 0) {
+                        if (timeOrValue.unit == TimeUnit.NONE) {
+                            error("Missing time units. Should be one of " +
+                                TimeUnit.VALUES.filter[it != TimeUnit.NONE],
+                                Literals.TIME_OR_VALUE__UNIT)
+                        }    
+                    }
+                } catch(NumberFormatException e) {
+                    error("Invalid time literal",
+                        Literals.TIME_OR_VALUE__UNIT)
+                }
+            } else if (timeOrValue.parameter !== null) {
+                // FIXME: resolve the parameter and determine whether it denotes a proper time.
             }
         }
     }
