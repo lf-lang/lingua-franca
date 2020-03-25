@@ -62,22 +62,22 @@ class CppGenerator extends GeneratorBase {
     val acceptableTargetSet = newHashSet('Cpp')
 
     static public var timeUnitsToCppUnits = #{
-        TimeUnit.NSEC -> '_ns',
-        TimeUnit.NSECS -> '_ns',
-        TimeUnit.USEC -> '_us',
-        TimeUnit.USECS -> '_us',
-        TimeUnit.MSEC -> '_ms',
-        TimeUnit.MSECS -> '_ms',
-        TimeUnit.SEC -> '_s',
-        TimeUnit.SECS -> '_s',
-        TimeUnit.MIN -> '_min',
-        TimeUnit.MINS -> '_min',
-        TimeUnit.HOUR -> '_h',
-        TimeUnit.HOURS -> '_h',
-        TimeUnit.DAY -> '_d',
-        TimeUnit.DAYS -> '_d',
-        TimeUnit.WEEK -> '_weeks',
-        TimeUnit.WEEKS -> '_weeks'
+        TimeUnit.NSEC -> 'ns',
+        TimeUnit.NSECS -> 'ns',
+        TimeUnit.USEC -> 'us',
+        TimeUnit.USECS -> 'us',
+        TimeUnit.MSEC -> 'ms',
+        TimeUnit.MSECS -> 'ms',
+        TimeUnit.SEC -> 's',
+        TimeUnit.SECS -> 's',
+        TimeUnit.MIN -> 'min',
+        TimeUnit.MINS -> 'min',
+        TimeUnit.HOUR -> 'h',
+        TimeUnit.HOURS -> 'h',
+        TimeUnit.DAY -> 'd',
+        TimeUnit.DAYS -> 'd',
+        TimeUnit.WEEK -> 'd*7',
+        TimeUnit.WEEKS -> 'd*7'
     }
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
@@ -106,7 +106,11 @@ class CppGenerator extends GeneratorBase {
             fsa.generateFile(filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
         }
 
-        doCompile()
+        if (!targetNoCompile && !errorsOccurred()) {
+            doCompile()
+        } else {
+            println("Exiting before invoking target compiler.")
+        }
     }
 
     def extractDir(String path) {
@@ -344,7 +348,7 @@ class CppGenerator extends GeneratorBase {
             '''
                 «r.name»(const std::string& name,
                     «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «p.trimmedValue»«ENDFOR»
+                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «IF p.ofTimeType»«p.trimmedTime»«ELSE»«p.trimmedValue»«ENDIF»«ENDFOR»
             '''
         } else {
             if (r == mainReactor) {
@@ -356,13 +360,11 @@ class CppGenerator extends GeneratorBase {
     }
 
     def trimmedType(Parameter p) {
-        val const = "const " // All parameters must be constants
         if (p.ofTimeType) {
-            '''«const»reactor::time_t'''
+            '''const reactor::Duration'''
         } else {
             if (p.type !== null) {
-
-                '''«const»«p.type.removeCodeDelimiter»'''
+                '''const «p.type.removeCodeDelimiter»'''
             } else {
                 '''/* «p.reportError("Parameter has no type")» */'''
             }
@@ -403,27 +405,63 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedValue(Parameter p) {
         if (p.ofTimeType) {
-            if (p.unit !== null) {
-                '''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
-            } else {
-                '''«p.time»'''
-            }
+        	'''/* «p.reportError("Did not expect a parameter of type time!")» */'''
         } else {
             '''«p.value.removeCodeDelimiter»'''
         }
     }
 
+    def trimmedTime(Parameter p) {
+        if (p.ofTimeType) {
+            if (p.unit === null || p.unit === TimeUnit.NONE) {
+            	if (p.time == 0) {
+                    '''reactor::Duration::zero()'''
+                } else {
+                	'''/* «p.reportError("Time values need to be 0 or have a unit!")» */'''
+                }
+            } else {
+                '''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
+            }
+        } else {
+            '''/* «p.reportError("Expected a parameter of type time!")» */'''
+        }
+    }
+
     def trimmedValue(TimeOrValue tv) {
         if (tv.parameter !== null) {
-            '''«tv.parameter.name»'''
+            if (tv.parameter.ofTimeType) {
+                '''/* «tv.reportError("Did not expect a parameter of time type")» */'''
+            } else {
+                '''«tv.parameter.name»'''
+            }
         } else if (tv.value !== null) {
             '''«tv.value.removeCodeDelimiter»'''
+        } else {
+        	'''/* «tv.reportError("Expected a value or a parameter, not a time")» */'''
+        }
+    }
+
+    def trimmedTime(TimeOrValue tv) {
+    	if (tv.parameter !== null) {
+    		if (tv.parameter.ofTimeType) {
+    			'''«tv.parameter.name»'''
+    		} else {
+    			'''/* «tv.reportError("Expected a parameter of time type!")» */'''
+    		}
+        } else if (tv.value !== null) {
+        	if (tv.value == '0') {
+         		'''reactor::Duration::zero()'''
+        	} else {
+            	'''/* «tv.reportError("Time values need to be 0 or have a unit!")» */'''
+            }
         } else {
             '''«tv.time»«timeUnitsToCppUnits.get(tv.unit)»'''
         }
     }
 
     def trimmedValue(Assignment a) '''«a.rhs.trimmedValue»'''
+
+    def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
     def trimmedValue(State s) { s.value.removeCodeDelimiter }
 
@@ -472,13 +510,13 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initialize(Timer t) {
-        var String period = "0"
-        var String offset = "0"
+        var String period = "reactor::Duration::zero()"
+        var String offset = "reactor::Duration::zero()"
         if (t.offset !== null) {
-          offset = '''«t.offset.trimmedValue»'''
+          offset = '''«t.offset.trimmedTime»'''
         }
         if (t.period !== null) {
-            period = '''«t.period.trimmedValue»'''
+            period = '''«t.period.trimmedTime»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
@@ -489,11 +527,19 @@ class CppGenerator extends GeneratorBase {
             var String value = null
             for (a : i.parameters ?: emptyList) {
                 if (a.lhs.name == p.name) {
-                    value = '''«a.trimmedValue»'''
+                	if (p.ofTimeType) {
+                        value = '''«a.trimmedTime»'''
+                    } else {
+                        value = '''«a.trimmedValue»'''
+                    }
                 }
             }
             if (value === null) {
-                value = '''«p.trimmedValue»'''
+                if (p.ofTimeType) {
+                    value = '''«p.trimmedTime»'''
+                } else {
+                    value = '''«p.trimmedValue»'''
+                }
             }
             values.add(value)
         }
@@ -506,7 +552,7 @@ class CppGenerator extends GeneratorBase {
         «n.declareDependencies»
         «n.declareAntidependencies»
         «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.time.trimmedValue», [this]() { «n.name»_deadline_handler(); });
+            «n.name».set_deadline(«n.deadline.time.trimmedTime», [this]() { «n.name»_deadline_handler(); });
         «ENDIF»
     '''
 
@@ -519,7 +565,7 @@ class CppGenerator extends GeneratorBase {
         
         «r.includeInstances»
         «r.generatePreamble»
-        using namespace reactor::literals;
+        using namespace std::chrono_literals;
         
         class «r.getName()» : public reactor::Reactor {
          private:
@@ -599,9 +645,9 @@ class CppGenerator extends GeneratorBase {
                                     [this]() { environment()->sync_shutdown(); }};
         
          public:
-          Timeout(const std::string& name, reactor::Environment* env, reactor::time_t timeout)
+          Timeout(const std::string& name, reactor::Environment* env, reactor::Duration timeout)
               : reactor::Reactor(name, env)
-              , timer{"timer", this, 0, timeout} {}
+              , timer{"timer", this, reactor::Duration::zero(), timeout} {}
         
           void assemble() override { r_timer.declare_trigger(&timer); }
         };
@@ -627,7 +673,7 @@ class CppGenerator extends GeneratorBase {
           std::unique_ptr<Timeout> t{nullptr};
           if (opt_timeout->count() > 0) {
               std::cout << "timeout: " << timeout << std::endl;
-              t = std::make_unique<Timeout>("Timeout", &e, timeout * 1'000'000'000ULL);
+              t = std::make_unique<Timeout>("Timeout", &e, std::chrono::seconds(timeout));
           }
 
           // execute the reactor program
@@ -643,8 +689,8 @@ class CppGenerator extends GeneratorBase {
         cmake_minimum_required(VERSION 3.5)
         project(«filename» VERSION 1.0.0 LANGUAGES CXX)
         
-        # require C++ 14
-        set(CMAKE_CXX_STANDARD 14)
+        # require C++ 17
+        set(CMAKE_CXX_STANDARD 17)
         set(CMAKE_CXX_STANDARD_REQUIRED ON)
         set(CMAKE_CXX_EXTENSIONS OFF)
         
@@ -667,14 +713,14 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "90bb6e4e24e4f6dc3cf0844072fb72cc28b4eaca"
+          GIT_TAG "1bb7510936d47d4757e26ba9276b00de2db243ac"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
         )
         
         set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
-        file(DOWNLOAD "https://github.com/CLIUtils/CLI11/releases/download/v1.8.0/CLI11.hpp" "${CLI11_PATH}")
+        file(DOWNLOAD "https://github.com/CLIUtils/CLI11/releases/download/v1.9.0/CLI11.hpp" "${CLI11_PATH}")
         add_custom_target(dep-CLI11 DEPENDS "${CLI11_PATH}")
         
         set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")

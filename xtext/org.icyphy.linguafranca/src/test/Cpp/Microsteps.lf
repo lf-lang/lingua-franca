@@ -2,16 +2,15 @@ target Cpp;
 reactor Destination {
     preamble {=
         #include <iostream>
-        #include <cstdlib>
     =}
     input x:int;
     input y:int;
     reaction(x, y) {=
         auto elapsed = get_elapsed_logical_time();
-        std::cout << "Time since start: " << elapsed << std::endl;
-        if (elapsed != 0LL) {
+        std::cout << "Time since start: " << elapsed.count() << std::endl;
+        if (elapsed != reactor::Duration::zero()) {
             std::cerr << "Expected elapsed time to be 0, but it was " <<
-                         elapsed << std::endl;
+                         elapsed.count() << std::endl;
             exit(1);
         }
         int count{0};

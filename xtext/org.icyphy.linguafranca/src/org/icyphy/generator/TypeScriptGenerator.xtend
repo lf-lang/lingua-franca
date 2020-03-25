@@ -365,6 +365,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 } else {
                     if (timer.period.parameter !== null) {
                         timerPeriod = timer.period.parameter.name
+                    } else if (timer.period.value !== null) {
+                        timerPeriod = removeCodeDelimiter(timer.period.value)
                     } else if (Integer.parseInt(timer.period.time.toString) === 0 ) {
                         timerPeriod = "0"
                     } else {
@@ -378,6 +380,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 } else {
                      if (timer.offset.parameter !== null) {
                         timerOffset = timer.offset.parameter.name
+                    } else if (timer.offset.value !== null) {
+                        timerOffset = removeCodeDelimiter(timer.offset.value)
                     } else if (Integer.parseInt(timer.offset.time.toString) === 0 ) {
                         timerOffset = "0"
                     } else {
