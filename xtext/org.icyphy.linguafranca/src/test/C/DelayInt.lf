@@ -1,12 +1,12 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
-// This is a start at handling dynamic memory allocation for such actions.
 target C;
 reactor Delay(delay:time(100 msec)) {
     input in:int;
     output out:int;
     logical action a:int;
     reaction(in) -> a {=
-        schedule(a, self->delay, in);
+        // Use specialized form of schedule for integer payloads.
+        schedule_int(a, self->delay, in);
     =}
     reaction(a) -> out {=
         set(out, a_value);

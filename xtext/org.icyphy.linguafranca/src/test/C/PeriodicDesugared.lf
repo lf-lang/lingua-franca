@@ -8,14 +8,14 @@ main reactor Periodic(
     reaction(startup) -> init, recur {=
         if (self->offset == 0) {
             printf("Hello World!\n");
-            schedule(recur, 0, NULL);		
+            schedule_pure_event(recur, 0);		
         } else {
-            schedule(init, 0, NULL);
+            schedule_pure_event(init, 0);
         }
     =}
   
     reaction(init, recur) -> recur {=
         printf("Hello World!\n");
-        schedule(recur, 0, NULL);
+        schedule_pure_event(recur, 0);
     =}
 }

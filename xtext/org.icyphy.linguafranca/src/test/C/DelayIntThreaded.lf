@@ -1,23 +1,17 @@
-// This tests actions with values by delaying an input by a fixed amount.
+// This tests actions with payloads by delaying an input by a fixed amount.
 target C {
     threads: 1 
 };
-reactor DelayInt(delay:time(100 msec)) {
+reactor Delay(delay:time(100 msec)) {
     input in:int;
     output out:int;
-    logical action d:int*;
-    reaction(in) -> d {=
-        // Allocate memory for a copy of the input. Use lf_malloc(),
-        // the Lingua Franca specialized version of malloc().
-        int* value = lf_malloc(sizeof(int));
-        *value = in;
-        schedule(d, self->delay, value);
+    logical action a:int;
+    reaction(in) -> a {=
+        // Use specialized form of schedule for integer payloads.
+        schedule_int(a, self->delay, in);
     =}
-    
-    reaction(d) -> out {=
-        // This will pass the value, so the malloc can be freed.
-        set(out, *d_value);
-        free(d_value);
+    reaction(a) -> out {=
+        set(out, a_value);
     =}
 }
 reactor Test {
@@ -27,7 +21,7 @@ reactor Test {
     reaction(startup) {=
         // Record the logical time at the start.
         self->start_time = get_logical_time();
-    =}
+    =} 
     reaction(in) {=
         printf("Received: %d.\n", in);
         self->received_value = true;
@@ -52,10 +46,11 @@ reactor Test {
         }
     =}
 }
-main reactor DelayIntThreaded {
-    d = new DelayInt();
+
+main reactor DelayInt { 
+    d = new Delay();
     t = new Test();
-    d.out -> t.in;
+    d.out -> t.in; 
     reaction(startup) -> d.in {=
         set(d.in, 42);
     =}

@@ -12,7 +12,7 @@ reactor GeneratedDelay {
 
   reaction(y_in) -> act {=
     self->y_state = y_in;
-    schedule(act, MSEC(100), NULL);
+    schedule_pure_event(act, MSEC(100));
 =}
 
   reaction(act) -> y_out {=
