@@ -243,6 +243,22 @@ static int __count_payload_allocations;
  */
 static int __count_token_allocations;
 
+/**
+ * Tokens always have the same size in memory so they are easily recycled.
+ * When a token is freed, this pointer will be updated to point to it.
+ * Freed tokens are chained using their next_free field.
+ */
+token_t* __token_recycling_bin = NULL;
+
+/** Count of the number of tokens in the recycling bin. */
+int __token_recycling_bin_size = 0;
+
+/**
+ * To allow a system to recover from burst of activity, the token recycling
+ * bin has a limited size. When it becomes full, token are freed using free().
+ */
+#define __TOKEN_RECYCLING_BIN_SIZE_LIMIT 512
+
 /** Possible return values for __done_using. */
 typedef enum token_freed {
     NOT_FREED,     // Nothing was freed.
@@ -283,9 +299,17 @@ token_freed __done_using(token_t* token) {
         // ports and should not be freed. They are expected to be reused instead.
         if (token->ok_to_free) {
             // Need to free the token_t struct also.
-            // printf("DEBUG: __done_using: Freeing allocated memory for token: %p\n", token);
-            free(token);
+            if (__token_recycling_bin_size < __TOKEN_RECYCLING_BIN_SIZE_LIMIT) {
+                // Recycle instead of freeing.
+                token->next_free = __token_recycling_bin;
+                __token_recycling_bin = token;
+                __token_recycling_bin_size++;
+            } else {
+                // Recycling bin is full.
+                free(token);
+            }
             __count_token_allocations--;
+            // printf("DEBUG: __done_using: Freeing allocated memory for token: %p\n", token);
             result = TOKEN_FREED;
         }
     }
@@ -302,14 +326,22 @@ token_freed __done_using(token_t* token) {
  * @return The new token_t struct.
  */
 token_t* __create_token(size_t element_size) {
-    // FIXME: Recycle tokens!
-    token_t* token = (token_t*)malloc(sizeof(token_t));
+    token_t* token;
+    // Check the recycling bin.
+    if (__token_recycling_bin != NULL) {
+        token = __token_recycling_bin;
+        __token_recycling_bin = token->next_free;
+        __token_recycling_bin_size--;
+    } else {
+        token = (token_t*)malloc(sizeof(token_t));
+    }
     // printf("DEBUG: __create_token: Allocated memory for token: %p\n", token);
     token->value = NULL;
     token->length = 0;
     token->element_size = element_size;
     token->ref_count = 0;
     token->ok_to_free = false;
+    token->next_free = NULL;
     return token;
 }
 
