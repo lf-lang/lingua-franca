@@ -415,30 +415,74 @@ bool True;
 int number_of_threads;
 
 /**
- * Schedule the specified action with logical time
- * delay equal to its offset plus the specified extra_delay.
- * The action can carry a value wrapped in the specified token.
- * The token can be obtained from an input or a previous triggering
- * of this action (using the name_token syntax).
- * To create a new token, use schedule_value instead.
- * @param action The action or timer to be triggered.
- * @param delay Extra offset of the event release.
- * @param token The token wrapping the payload or NULL for no payload.
+ * Create a new token and initialize it.
+ * The value pointer will be NULL and the length will be 0.
+ * @param element_size The size of an element carried in the payload or
+ *  0 if there is no payload.
+ * @return A new or recycled token_t struct.
+ */
+token_t* create_token(size_t element_size);
+
+/**
+ * Schedule the specified action with the specified token as a payload.
+ * This will trigger an event at a later logical time that depends
+ * on whether the action is logical or physical and what its parameter
+ * values are.
+ *
+ * logical action: A logical action has an offset (default is zero)
+ * and a minimum interarrival time (MIT), which also defaults to zero.
+ * The logical time at which this scheduled event will trigger is
+ * the current time plus the offset plus the delay argument given to
+ * this function. If, however, that time is not greater than a prior
+ * triggering of this logical action by at least the MIT, then the
+ * one of two things can happen depending on the policy specified
+ * for the action. If the action's policy is DROP (default), then the
+ * action is simply dropped and the memory pointed to by value argument
+ * is freed. If the policy is DEFER, then the time will be increased
+ * to equal the time of the most recent triggering plus the MIT.
+ *
+ * For the above, "current time" means the logical time of the
+ * reaction that is calling this function, or if this function is
+ * being called from outside a reaction (asynchronously), then the
+ * most recent logical time relevant to the reactor that owns the
+ * action.
+ *
+ * physical action: A physical action has all the same parameters
+ * as a logical action, but instead of "current time" being a logical
+ * time, current time is defined as the larger of the current logical
+ * time (as above) and the time of the physical clock on the currently
+ * executing platform.
+ *
+ * The token is required to be either NULL or a pointer to
+ * a token created using create_token().
+ *
+ * There are three conditions under which this function will not
+ * actually put an event on the event queue and decrement the reference count
+ * of the token (if there is one), which could result in the payload being
+ * freed. In all three cases, this function returns 0. Otherwise,
+ * it returns a handle to the scheduled trigger, which is an integer
+ * greater than 0.
+ *
+ * The first condition is that a stop has been requested and the time offset
+ * of this event is greater than zero.
+ * The second condition is that the logical time of the event
+ * is greater that the requested stop time (timeout).
+ * The third condition is that the trigger argument is null.
+ *
+ * @param action The action to be triggered.
+ * @param extra_delay Extra offset of the event release above that in the action.
+ * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule_token(trigger_t* action, interval_t extra_delay, token_t* token);
 
 /**
- * Schedule the specified action with logical time
- * delay equal to its offset plus the specified extra_delay.
- * The action can carry a value pointed to by the value argument.
- * That value is required to have be dynamically allocated memory
- * of the correct size to contain the data type of the trigger.
- * If that data type is an array, then you must also specify
- * the length of the array (otherwise, the length is 1
- * for a scalar and 0 for no payload).
- * @param action The action or timer to be triggered.
- * @param delay Extra offset of the event release.
+ * Variant of schedule_token that creates a token to carry the specified value.
+ * The value is required to be malloc'd memory with a size equal to the
+ * element_size of the specifies action times the length parameter.
+ * See schedule_token() for details.
+ * @param action The action to be triggered.
+ * @param extra_delay Extra offset of the event release above that in the action.
  * @param value Dynamically allocated memory containing the value to send.
  * @param length The length of the array, if it is an array, or 1 for a
  *  scalar and 0 for no payload.

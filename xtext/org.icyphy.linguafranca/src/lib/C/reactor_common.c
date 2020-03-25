@@ -319,11 +319,12 @@ token_freed __done_using(token_t* token) {
 /**
  * Create a new token_t struct and initialize it for assignment to a trigger.
  * The value pointer will be NULL and the length will be 0.
- * The element size will be determined from the specified trigger's element size.
- * This function is for tokens that are not expected to be freed
- * (specifically, one per trigger).
- * @param trigger The trigger associated with this token.
- * @return The new token_t struct.
+ * This function is for tokens that are not expected to be freed, and
+ * reactors are not expected to use it. It is used by the code generator
+ * to initialize actions with tokens.
+ * @param element_size The size of an element carried in the payload or
+ *  0 if there is no payload.
+ * @return A new or recycled token_t struct.
  */
 token_t* __create_token(size_t element_size) {
     token_t* token;
@@ -348,13 +349,12 @@ token_t* __create_token(size_t element_size) {
 /**
  * Create a new token and initialize it.
  * The value pointer will be NULL and the length will be 0.
- * The element size will be determined from the provided token's element size.
- * This function is for creating tokens that are expected to be freed.
- * @param element_size The size of memory for storing the token payload.
- * @return The new token_t struct.
+ * @param element_size The size of an element carried in the payload or
+ *  0 if there is no payload.
+ * @return A new or recycled token_t struct.
  */
-token_t* __create_token_dynamic(size_t element_size) {
-    // printf("DEBUG: __create_token_dynamic: element_size: %zu\n", element_size);
+token_t* create_token(size_t element_size) {
+    // printf("DEBUG: create_token: element_size: %zu\n", element_size);
     __count_token_allocations++;
     token_t* result = __create_token(element_size);
     result->ok_to_free = true;
@@ -386,7 +386,7 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
     // printf("DEBUG: initializing a token %p with ref_count %d.\n", token, token->ref_count);
     if (token == NULL || token->ref_count > 0) {
         // The specified token is not available.
-        result = __create_token_dynamic(element_size);
+        result = create_token(element_size);
     }
     result->value = value;
     result->length = length;
@@ -683,14 +683,14 @@ void schedule_output_reactions(reaction_t* reaction) {
  * The third condition is that the trigger argument is null.
  *
  * @param action The action or timer to be triggered.
- * @param delay Extra offset of the event release.
+ * @param extra_delay Extra offset of the event release.
  * @param value Dynamically allocated memory containing the value to send.
  * @param length The length of the array, if it is an array, or 1 for a
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
-    token_t* token = __create_token_dynamic(trigger->element_size);
+    token_t* token = create_token(trigger->element_size);
     token->value = value;
     return schedule_token(trigger, extra_delay, token);
 }
@@ -751,7 +751,7 @@ token_t* writable_copy(token_t* token) {
         // Count allocations to issue a warning if this is never freed.
         __count_payload_allocations++;
         // Create a new, dynamically allocated token.
-        token_t* result = __create_token_dynamic(token->element_size);
+        token_t* result = create_token(token->element_size);
         result->length = token->length;
         result->value = copy;
         return result;
