@@ -26,6 +26,8 @@ import org.icyphy.Targets
 import org.icyphy.Targets.TargetProperties
 import org.icyphy.Targets.LoggingLevels
 import java.util.Arrays
+import org.icyphy.Traversals
+import java.util.Set
 
 /**
  * This class contains custom validation rules. 
@@ -43,6 +45,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var allNames = newHashSet() // Names of contained objects must be unique.
     var depGraph = new AnnotatedDependencyGraph()
     var Targets target;
+    
+    
+    Set<Parameter> deadlineParms
+    
+    Set<Parameter> timeParms
+    
     
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
@@ -246,7 +254,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     Literals.KEY_VALUE_PAIR__NAME)
             }
             
-            switch prop { // FIXME: what to do with "hosts" property?
+            switch prop {
             case CMAKE_INCLUDE:
                 if (param.value.literal === null) {
                     error("Target property cmake_include is required to be a string.",
@@ -393,6 +401,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(NORMAL)
     def checkModel(Model model) {
+        
+        this.deadlineParms = Traversals.collectDeadlineParameters(model)
+        this.timeParms = Traversals.collectTimeParameters(model)
+        
         this.depGraph = new AnnotatedDependencyGraph()
         for (instantiation : model.eAllContents.toIterable.filter(Instantiation)) {
             this.depGraph.addEdge(new AnnotatedNode(instantiation.eContainer as Reactor), new AnnotatedNode(instantiation.reactorClass))    
@@ -470,7 +482,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // Time parameters can go without units only if they are 0.
         if (!(timeOrValue.eContainer instanceof Assignment)) {
             
-            if (!timeOrValue.value.isEmpty) {
+            // If a literal value is provided, check that it is zero.
+            if (timeOrValue.value !== null && !timeOrValue.value.isEmpty) {
                 try {
                     val number = Integer.parseInt(timeOrValue.value)
                     if (number != 0) {
@@ -484,8 +497,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     error("Invalid time literal",
                         Literals.TIME_OR_VALUE__UNIT)
                 }
-            } else if (timeOrValue.parameter !== null) {
-                // FIXME: resolve the parameter and determine whether it denotes a proper time.
+            }
+            // If parameter is referenced, check that it is of the correct type.
+            if (timeOrValue.parameter !== null) {
+                if (!timeOrValue.parameter.isOfTimeType) {
+                    error("Parameter is not of time type",
+                        Literals.TIME_OR_VALUE__PARAMETER)
+                }
             }
         }
     }
@@ -506,5 +524,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
-    static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): " 
+    static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
+    
 }
