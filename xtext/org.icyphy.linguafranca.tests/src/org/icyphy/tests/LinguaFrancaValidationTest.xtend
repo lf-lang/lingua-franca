@@ -13,6 +13,7 @@ import org.icyphy.linguaFranca.Model
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
+import org.icyphy.linguaFranca.TimeUnit
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -337,4 +338,74 @@ class LinguaFrancaValidationTest {
             null, 'Instantiation is part of a cycle: Intermediate')
     }
     
+    /**
+     * Report non-zero time value without units.
+     */
+    @Test
+    def void nonZeroTimeValueWithoutUnits() {
+        val model = '''
+            target C;
+              main reactor HelloWorld {
+                  timer t(42, 1 sec);
+                  reaction(t) {=
+                      printf("Hello World.\n");
+                  =}
+             }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.timeOrValue,
+            null, "Missing time units. Should be one of " +
+                                TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+    }    
+    
+    /**
+     * Report reference to non-time parameter in time argument.
+     */
+    @Test
+    def void parameterTypeMismatch() {
+        val model = '''
+            target C;
+              main reactor HelloWorld(p:int(0)) {
+                  timer t(p, 1 sec);
+                  reaction(t) {=
+                      printf("Hello World.\n");
+                  =}
+             }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.timeOrValue,
+            null, 'Parameter is not of time type')
+        
+    }
+    
+    /**
+     * Report inappropriate literal in time argument.
+     */
+    @Test
+    def void targetCodeInTimeArgument() {
+        val model = '''
+            target C;
+              main reactor HelloWorld {
+                  timer t({=foo()=}, 1 sec);
+                  reaction(t) {=
+                      printf("Hello World.\n");
+                  =}
+             }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.timeOrValue,
+            null, 'Invalid time literal')
+    }    
 }
