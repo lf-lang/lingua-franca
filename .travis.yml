@@ -35,6 +35,6 @@ script:
  - ./gradlew test
  - popd
 # - bin/build-lfc --clean
- - bin/run-lf-tests TS
  - bin/run-lf-tests C
  - bin/run-lf-tests Cpp
+ - bin/run-lf-tests TS
