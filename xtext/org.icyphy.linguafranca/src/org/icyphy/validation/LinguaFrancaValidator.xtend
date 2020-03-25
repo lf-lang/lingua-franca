@@ -1,9 +1,14 @@
 package org.icyphy.validation
 
+import java.util.Arrays
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
+import org.eclipse.xtext.validation.EValidatorRegistrar
 import org.icyphy.AnnotatedDependencyGraph
 import org.icyphy.AnnotatedNode
+import org.icyphy.Targets
+import org.icyphy.Targets.LoggingLevels
+import org.icyphy.Targets.TargetProperties
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
@@ -17,17 +22,10 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.eclipse.xtext.validation.EValidatorRegistrar
-import org.icyphy.linguaFranca.Target
-import org.icyphy.Targets
-import org.icyphy.Targets.TargetProperties
-import org.icyphy.Targets.LoggingLevels
-import java.util.Arrays
-import org.icyphy.Traversals
-import java.util.Set
 
 /**
  * This class contains custom validation rules. 
@@ -47,9 +45,9 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var Targets target;
     
     
-    Set<Parameter> deadlineParms
-    
-    Set<Parameter> timeParms
+//    Set<Parameter> deadlineParms
+//    
+//    Set<Parameter> timeParms
     
     
     // //////////////////////////////////////////////////
@@ -402,8 +400,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(NORMAL)
     def checkModel(Model model) {
         
-        this.deadlineParms = Traversals.collectDeadlineParameters(model)
-        this.timeParms = Traversals.collectTimeParameters(model)
+//        this.deadlineParms = Traversals.collectDeadlineParameters(model)
+//        this.timeParms = Traversals.collectTimeParameters(model)
         
         this.depGraph = new AnnotatedDependencyGraph()
         for (instantiation : model.eAllContents.toIterable.filter(Instantiation)) {
