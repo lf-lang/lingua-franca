@@ -17,7 +17,7 @@ reactor RandomSource {
         // Set a seed for random number generation based on the current time.
         srand(time(0));
 
-        schedule(prompt, random_time(), NULL);
+        schedule(prompt, random_time());
     =}
     reaction(prompt) -> out, prompt {=
         printf("Hit Return!");
@@ -25,7 +25,7 @@ reactor RandomSource {
         set(out, true);
     =}
     reaction(another) -> prompt {=
-        schedule(prompt, random_time(), NULL);
+        schedule(prompt, random_time());
     =}
 }
 reactor GetUserInput {
@@ -42,7 +42,7 @@ reactor GetUserInput {
                         break;
                     }
                 }
-                schedule(response, 0, NULL);
+                schedule(response, 0);
                 if (c == EOF) {
                     break;
                 }

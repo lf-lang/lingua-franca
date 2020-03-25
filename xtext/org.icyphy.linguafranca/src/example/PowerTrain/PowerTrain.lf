@@ -76,13 +76,13 @@ reactor RightPedal {
    
     // Assume all valid pedal values are non-negative.
     state pedal:int(-1);
-    logical action response(30); //msec
+    logical action response(30 msec);
     input check:int;
     output angle:int;
     reaction(check) -> response {=
         self->pedal = -1;
         init_poll();
-        schedule(response);
+        schedule(response, 0);
     =}
     
     reaction(response) -> angle {=

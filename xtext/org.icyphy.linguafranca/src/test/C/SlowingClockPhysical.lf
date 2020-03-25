@@ -18,7 +18,7 @@ main reactor SlowingClockPhysical {
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
         self->expected_time = MSEC(100);
-        schedule_pure_event(a, 0);
+        schedule(a, 0);
     =}
     reaction(a) -> a {=
         instant_t elapsed_logical_time = get_elapsed_logical_time();
@@ -33,7 +33,7 @@ main reactor SlowingClockPhysical {
         }
         self->interval += MSEC(100);
         self->expected_time = MSEC(100) + self->interval;
-        schedule_pure_event(a, self->interval);
+        schedule(a, self->interval);
         printf("Scheduling next to occur after: \%lld nsec.\n", self->interval);
     =}
     reaction(shutdown) {=

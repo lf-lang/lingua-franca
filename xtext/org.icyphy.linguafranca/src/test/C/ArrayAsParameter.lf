@@ -10,7 +10,7 @@ reactor Source(sequence:int[]({= {0, 1, 2} =}), n_sequence:int(3)) {
         set(out, self->sequence[self->count]);
         self->count++;
         if (self->count < self->n_sequence) {
-            schedule_pure_event(next, 0);
+            schedule(next, 0);
         }
     =}
 }

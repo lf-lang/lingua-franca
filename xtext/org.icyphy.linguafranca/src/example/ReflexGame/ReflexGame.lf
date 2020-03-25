@@ -34,7 +34,7 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
         srand(time(0));
         
         // Schedule the next event.
-        schedule(prompt, additional_time(self->min_time, self->max_time), NULL);
+        schedule(prompt, additional_time(self->min_time, self->max_time));
     =}
     reaction(prompt) -> out, prompt {=
         self->count++;
@@ -44,7 +44,7 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
     =}
     reaction(another) -> prompt {=
         // Schedule the next event.
-        schedule(prompt, additional_time(self->min_time, self->max_time), NULL);
+        schedule(prompt, additional_time(self->min_time, self->max_time));
     =}
 }
 reactor GetUserInput {
@@ -58,16 +58,14 @@ reactor GetUserInput {
                 while((c = getchar()) != '\n') {
                     if (c == EOF) break;
                 }
-                char* value = malloc(sizeof(char));
-                *value = c;
-                schedule(response, 0, value);
+                schedule_copy(response, 0, &c, 1);
                 if (c == EOF) break;
             }
             return NULL;
         }
     =}
 
-    physical action response:char*;
+    physical action response:char;
     state prompt_time:time(0);
     state total_time_in_ms:int(0);
     state count:int(0);
@@ -86,7 +84,7 @@ reactor GetUserInput {
     =}
     
     reaction(response) -> another {=
-        if (*response_value == EOF) {
+        if (response_value == EOF) {
             stop();
             return;
         }
@@ -105,7 +103,6 @@ reactor GetUserInput {
             // Trigger another prompt.
             set(another, 42);
         }
-        free(response_value);
     =}
     
     reaction(shutdown) {=

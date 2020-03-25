@@ -5,7 +5,8 @@ reactor Delay(delay:time(100 msec)) {
     output out:string;
     logical action a:string;
     reaction(in) -> a {=
-        schedule(a, self->delay, in);
+        // The following copies the char*, not the string.
+        schedule_copy(a, self->delay, &in, 1);
     =}
     reaction(a) -> out {=
         set(out, a_value);

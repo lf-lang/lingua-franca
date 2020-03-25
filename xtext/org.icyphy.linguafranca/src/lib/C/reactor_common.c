@@ -397,11 +397,9 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
 
 /**
  * Schedule the specified trigger at current_time plus the offset of the
- * specified trigger plus the delay. If the offset of the trigger and
- * the extra_delay are both zero, then the event will occur one
- * microstep later in superdense time (it gets put on the event queue,
- * which will not be examined until all events on the reaction queue
- * have been processed).
+ * specified trigger plus the delay. See schedule_token() for details.
+ * This is the internal implementation shared by both the threaded
+ * and non-threaded versions.
  *
  * The value is required to be either
  * NULL or a pointer to a token wrapping the payload. The token carries
@@ -578,36 +576,6 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     return return_value;
 }
 
-/** Schedule an action to occur with the specified value and time offset
- *  with a copy of the specified value. If the value is non-null,
- *  then it will be copied into newly allocated memory under the assumption
- *  that its size given in the trigger's token object's element_size field.
- *  @param trigger Pointer to a trigger object
- *   (typically an action on a self struct).
- *  @param offset The time offset.
- *  @param value A pointer to the value to copy.
- *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
- */
-handle_t __schedule_with_copy_impl(trigger_t* trigger, interval_t offset, void* value) {
-    if (value == NULL) {
-        return schedule_token(trigger, offset, NULL);
-    }
-    if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
-        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
-        return -1;
-    }
-    int element_size = trigger->token->element_size;
-    int length = trigger->token->length;
-    void* container = malloc(element_size * length);
-    __count_payload_allocations++;
-    // printf("DEBUG: __schedule_with_copy_impl: Allocating memory for payload (token value): %p\n", container);
-    memcpy(container, value, element_size);
-    // Initialize token with an array size of 1 (a scalar) and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, 1, 0);
-    // The schedule function will increment the reference count.
-    return schedule_token(trigger, offset, token);
-}
-
 /**
  * For the specified reaction, if it has produced outputs, insert the
  * resulting triggered reactions into the reaction queue.
@@ -634,6 +602,50 @@ void schedule_output_reactions(reaction_t* reaction) {
             }
         }
 	}
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with no payload (no value conveyed).
+ * See schedule_token(), which this uses, for details.
+ * @param trigger Pointer to a trigger object (typically an action on a self struct).
+ * @param offset The time offset over and above that in the action.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule(trigger_t* trigger, interval_t offset) {
+    return schedule_token(trigger, offset, NULL);
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value. If the value is non-null,
+ * then it will be copied into newly allocated memory under the assumption
+ * that its size given in the trigger's token object's element_size field
+ * multiplied by the specified length.
+ * See schedule_token(), which this uses, for details.
+ * @param trigger Pointer to a trigger object (typically an action on a self struct).
+ * @param offset The time offset over and above that in the action.
+ * @param value A pointer to the value to copy.
+ * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
+    if (value == NULL) {
+        return schedule_token(trigger, offset, NULL);
+    }
+    if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
+        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
+        return -1;
+    }
+    int element_size = trigger->token->element_size;
+    void* container = malloc(element_size * length);
+    __count_payload_allocations++;
+    // printf("DEBUG: __schedule_with_copy_impl: Allocating memory for payload (token value): %p\n", container);
+    memcpy(container, value, element_size);
+    // Initialize token with an array size of 1 (a scalar) and a reference count of 0.
+    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, 1, 0);
+    // The schedule function will increment the reference count.
+    return schedule_token(trigger, offset, token);
 }
 
 /**
