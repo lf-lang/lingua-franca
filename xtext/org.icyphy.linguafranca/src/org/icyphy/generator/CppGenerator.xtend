@@ -721,6 +721,7 @@ class CppGenerator extends GeneratorBase {
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+            -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         )
         
         set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
@@ -797,6 +798,11 @@ class CppGenerator extends GeneratorBase {
         println("--- Running: " + cmakeCmd.join(' '))
         var cmakeBuilder = new ProcessBuilder(cmakeCmd)
         cmakeBuilder.directory(buildDir)
+        var cmakeEnv = cmakeBuilder.environment();
+        if(targetCompiler !== null) {
+        	cmakeEnv.put("CXX", targetCompiler);
+        }
+
         var cmakeProcess = cmakeBuilder.start()
         val returnCode = cmakeProcess.waitFor()
 
