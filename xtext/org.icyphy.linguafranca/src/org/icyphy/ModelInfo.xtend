@@ -37,6 +37,7 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Assignment
+import org.icyphy.linguaFranca.Target
 
 /**
  * A helper class for analyzing the AST.
@@ -86,9 +87,22 @@ class ModelInfo {
      */
     def update(Model model) {
         this.model = model
+        
+        // Perform generic traversals.
         this.refreshInstantiationMap()
-        this.collectOverflowingNodes()
         this.refreshInstantiationGraph()
+        
+        // Find the target. A target must exist because the grammar requires it.
+        var Targets target
+        for (t : model.eAllContents.toIterable.filter(Target)) {
+            target = Targets.get(target.name)
+        }
+        
+        // Perform C-specific traversals.
+        if (target == Targets.C) {
+            this.collectOverflowingNodes()
+        }
+                
     }
     
     /**
