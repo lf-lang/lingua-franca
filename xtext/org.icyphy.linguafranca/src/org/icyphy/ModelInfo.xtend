@@ -46,7 +46,7 @@ class ModelInfo {
     /**
      * 
      */
-    public AnnotatedDependencyGraph<Instantiation> instantiationGraph
+    public AnnotatedDependencyGraph<Reactor> instantiationGraph
 
     /**
      * 

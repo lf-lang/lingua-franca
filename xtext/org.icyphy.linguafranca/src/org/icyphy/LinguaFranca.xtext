@@ -146,7 +146,7 @@ KeyValuePairs:
     '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
 
 KeyValuePair:
-    name=KEY ':' value=Element;
+    name=ID ':' value=Element;
 
 Array:
     '[' elements+=Element (',' (elements+=Element))* ']';
