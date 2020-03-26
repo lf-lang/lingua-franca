@@ -41,11 +41,10 @@ main reactor AsyncCallback {
     reaction(a) {=
         auto elapsed_time = get_elapsed_logical_time();
         std::cout << "Asynchronous callback " << i++ << ": Assigned logical "
-                  << "time greater than start time by " << elapsed_time.count()
-                  << " nsec." << std::endl;
+                  << "time greater than start time by " << elapsed_time << std::endl;
         if (elapsed_time <= expected_time) {
             std::cerr << "ERROR: Expected logical time to be larger than "
-                      << expected_time.count() << " nsec";
+                      << expected_time << std::endl;
             exit(1);
         }
         if (toggle) {
