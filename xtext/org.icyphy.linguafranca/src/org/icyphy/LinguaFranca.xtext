@@ -213,7 +213,7 @@ terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 @Override
 terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
 
-// Target properties are required to be in Kebab case
+// Allow target properties to be expressed in Kebab case.
 Key: ID(ID|'-')*;
 
 terminal NEGINT:
