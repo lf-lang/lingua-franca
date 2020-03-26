@@ -8,10 +8,6 @@ reactor Contained {
     =}
 }
 main reactor ReadOutputOfContainedReactor {
-    preamble {= 
-        #include <iostream>
-        #include <cstdlib>
-    =}
     c = new Contained();
     state count:int(0);
     reaction(startup) c.out {=

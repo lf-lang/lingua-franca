@@ -4,9 +4,6 @@ target Cpp {
 };
 import Count.lf;
 reactor Test {
-    preamble {=
-        #include <iostream>
-    =}
     input c:int;
     state i:int(0);
     reaction(c) {=
