@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * Enumeration of targets and their associated properties. These classes are
  * written in Java, not Xtend, because the enum implementation in Xtend more
- * primitive. It is saver to use enums rather than string values since it allows
+ * primitive. It is safer to use enums rather than string values since it allows
  * faulty references to be caught at compile time. Switch statements that take
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
