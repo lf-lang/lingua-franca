@@ -164,8 +164,8 @@ class ModelInfo {
     
     /**
      * Given a parameter that is used in a deadline specification, recursively
-     * track down its definition check whether it is overflowing. Also detect 
-     * and report overrides that are overflowing.
+     * track down its definition and check whether it is overflowing. Also 
+     * detect and report overrides that are overflowing.
      */
     private def boolean detectOverflow(Set<Instantiation> visited,
         Parameter current) {
