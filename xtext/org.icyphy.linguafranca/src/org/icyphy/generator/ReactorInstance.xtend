@@ -755,7 +755,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /** Return a parameter instance given a parameter definition.
-     *  FIXME: ....
+     *  FIXME: This assumes that all referenced parameters themselves are already resolved!
      * @param parameter AST node that describes the parameter
      */
     def ParameterInstance resolveParameter(Parameter parameter) {
@@ -782,17 +782,17 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                             "Incorrect reference to parameter:" +
                                 parameter.name);
                     }
-                    var referencedParameter = instance.
-                        getParameterInstance(rhs.parameter)
-                    if (referencedParameter instanceof TimeParameter) {
-                        var timeParm = referencedParameter
-                        return new TimeParameter(parameter, parent,
-                            timeParm.value.time, timeParm.value.unit)
-                    } else {
-                        var valParm = referencedParameter as ValueParameter
-                        return new ValueParameter(parameter, parent,
-                            valParm.value, valParm.type)
-                    }
+                    
+                    return instance.getParameterInstance(rhs.parameter)
+//                    if (referencedParameter instanceof TimeParameter) {
+//                        var timeParm = referencedParameter
+//                        return new TimeParameter(parameter, parent,
+//                            timeParm.value.time, timeParm.value.unit)
+//                    } else {
+//                        var valParm = referencedParameter as ValueParameter
+//                        return new ValueParameter(parameter, parent,
+//                            valParm.value, valParm.type)
+//                    }
                 } else {
                     // Parameter is overridden by a type or value 
                     if (parameter.isOfTimeType) {
