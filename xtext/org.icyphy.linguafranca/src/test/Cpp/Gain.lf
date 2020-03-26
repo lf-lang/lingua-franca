@@ -8,9 +8,6 @@ reactor Scale(scale:int(2)) {
     =}
 }
 reactor Test {
-    preamble {=
-        #include <iostream>
-    =}
     input x:int;
     reaction(x) {=
         auto value = *x.get();

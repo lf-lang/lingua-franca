@@ -8,9 +8,6 @@ target Cpp {
     fast: true
 };
 reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
-    preamble {=
-        #include <iostream>
-    =}
     state count:int(0);
     state previous_time:{=reactor::TimePoint=}({==});
     timer t(1 secs, period);

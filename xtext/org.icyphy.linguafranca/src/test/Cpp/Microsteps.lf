@@ -1,8 +1,5 @@
 target Cpp;
 reactor Destination {
-    preamble {=
-        #include <iostream>
-    =}
     input x:int;
     input y:int;
     reaction(x, y) {=

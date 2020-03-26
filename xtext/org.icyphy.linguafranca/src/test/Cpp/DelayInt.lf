@@ -14,9 +14,6 @@ reactor Delay(delay:time(100 msec)) {
     =}
 }
 reactor Test {
-    preamble {=
-        #include <iostream>
-    =}
     input in:int;
     state start_time:{=reactor::TimePoint=}({==});
     timer start;

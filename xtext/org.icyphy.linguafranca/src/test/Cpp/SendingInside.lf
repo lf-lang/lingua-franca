@@ -5,9 +5,6 @@ target Cpp {
     fast: true
 };
 reactor Printer {
-    preamble {=
-        #include <iostream>
-    =}
     input x:int;
     state count:int(1);
     reaction(x) {=

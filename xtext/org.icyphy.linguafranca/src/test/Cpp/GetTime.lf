@@ -5,9 +5,6 @@ target Cpp {
     fast: true
 };
 main reactor GetTime {
-    preamble {=
-        #include <iostream>
-    =}
     timer t(0, 1 sec);
     reaction(t) {=
         auto logical = get_logical_time();

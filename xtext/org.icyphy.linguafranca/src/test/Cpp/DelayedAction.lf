@@ -3,9 +3,6 @@ target Cpp {
     fast: true
 };
 main reactor DelayedAction {
-    preamble {=
-        #include <iostream>
-    =}
     timer t(0, 1 sec);
     logical action a:void;
     state count:int(0);

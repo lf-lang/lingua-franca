@@ -9,9 +9,6 @@ reactor Source {
     =}
 }
 reactor Gain {
-    preamble {=
-        #include <iostream>
-    =}
     input in:int;
     output out:int;
     reaction(in) -> out {=
