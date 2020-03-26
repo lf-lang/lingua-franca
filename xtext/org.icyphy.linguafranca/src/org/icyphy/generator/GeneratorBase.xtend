@@ -214,7 +214,7 @@ abstract class GeneratorBase {
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
                 switch param.name {
-                    case "cmake_include":
+                    case "cmake-include":
                         targetCmakeInclude = param.value.literal.withoutQuotes
                     case "compiler":
                         targetCompiler = param.value.literal.withoutQuotes
