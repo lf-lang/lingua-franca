@@ -316,12 +316,12 @@ public enum Targets {
         /**
          * Directive to specify the grain at which to report log messages during execution.
          */
-        LOGGING("logging", Arrays.asList(Targets.TS)),
+        LOGGING("logging", Arrays.asList(Targets.TS, Targets.CPP)),
         
         /**
          * Directive to not invoke the target compiler.
          */
-        NO_COMPILE("no-compile", Arrays.asList(Targets.C)),
+        NO_COMPILE("no-compile", Arrays.asList(Targets.C, Targets.CPP)),
         
         /**
          * Directive to specify the number of threads.
