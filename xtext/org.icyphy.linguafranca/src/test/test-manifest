@@ -61,6 +61,7 @@ SendingInside.lf
 SendingInside2.lf
 SendingInsideThreaded.lf
 SendsPointerTest.lf
+SetToken.lf
 SimpleDeadline.lf
 SimpleImport.lf
 SlowingClock.lf
