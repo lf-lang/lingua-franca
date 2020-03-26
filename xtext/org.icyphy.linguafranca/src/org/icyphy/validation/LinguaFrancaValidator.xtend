@@ -198,7 +198,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkDeadline(Deadline deadline) {
         if (this.target == Targets.C && this.info.overflowingDeadlines.contains(deadline)) {
-            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.DEADLINE__TIME)
+            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.DEADLINE__INTERVAL)
         }
     }
 

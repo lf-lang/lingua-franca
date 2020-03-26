@@ -116,7 +116,7 @@ Delay:
     'after' time=TimeOrValue;
 
 Deadline:
-    'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE;
+    'deadline' '(' interval=TimeOrValue ')' code=CODE;
 
 Mutation:
     ('mutation')

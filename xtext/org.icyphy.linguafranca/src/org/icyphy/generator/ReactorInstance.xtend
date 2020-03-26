@@ -542,8 +542,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def propagateDeadlines() {
         // Assume the graph is acyclic.
         for (r : reactionsWithDeadline) {
-            if (r.definition.deadline !== null && r.definition.deadline.time !== null) {
-                r.deadline = this.resolveTime(r.definition.deadline.time)
+            if (r.definition.deadline !== null && r.definition.deadline.interval !== null) {
+                r.deadline = this.resolveTime(r.definition.deadline.interval)
             }
             propagateDeadline(r)
         }

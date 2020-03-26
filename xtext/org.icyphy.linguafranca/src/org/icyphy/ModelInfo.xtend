@@ -149,14 +149,14 @@ class ModelInfo {
         // Visit all deadlines in the model; detect possible overflow.
         for (deadline : model.eAllContents.toIterable.filter(Deadline)) {
             // If the time value overflows, mark this deadline as overflowing.
-            if (deadline.time.unit != TimeUnit.NONE && isTooLarge(
-                new TimeValue(deadline.time.time, deadline.time.unit))) {
+            if (deadline.interval.unit != TimeUnit.NONE && isTooLarge(
+                new TimeValue(deadline.interval.time, deadline.interval.unit))) {
                 this.overflowingDeadlines.add(deadline)
             }
 
             // If any of the upstream parameters overflow, report this deadline.
             if (detectOverflow(new HashSet<Instantiation>(),
-                deadline.time.parameter)) {
+                deadline.interval.parameter)) {
                 this.overflowingDeadlines.add(deadline)
             }
         }
