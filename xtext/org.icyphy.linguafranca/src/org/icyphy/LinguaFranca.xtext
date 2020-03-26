@@ -146,7 +146,7 @@ KeyValuePairs:
     '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
 
 KeyValuePair:
-    name=ID ':' value=Element;
+    name=Key ':' value=Element;
 
 Array:
     '[' elements+=Element (',' (elements+=Element))* ']';
@@ -208,10 +208,13 @@ Literal:
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
 
 @Override
-terminal SL_COMMENT : ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
+terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 
 @Override
-terminal ML_COMMENT : ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
+terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
+
+// Allow target properties to be expressed in Kebab case.
+Key: ID(ID|'-')*;
 
 terminal NEGINT:
     '-' ('0'..'9')+;
