@@ -3,7 +3,7 @@ target Cpp {
     threads: 2,
     timeout: 2 sec,
     keepalive: true,
-    cmake-include: "AsyncCallback.cmake"
+    cmake_include: "AsyncCallback.cmake"
 };
 
 main reactor AsyncCallback {    
