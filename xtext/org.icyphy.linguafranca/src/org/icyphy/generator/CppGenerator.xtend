@@ -283,7 +283,7 @@ class CppGenerator extends GeneratorBase {
     def implementReactionDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
             void «r.name»::«n.name»_deadline_handler() {
-              «n.deadline.deadlineCode.removeCodeDelimiter»
+              «n.deadline.code.removeCodeDelimiter»
             }
         «ENDFOR»
     '''
@@ -560,7 +560,7 @@ class CppGenerator extends GeneratorBase {
         «n.declareDependencies»
         «n.declareAntidependencies»
         «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.time.trimmedTime», [this]() { «n.name»_deadline_handler(); });
+            «n.name».set_deadline(«n.deadline.interval.trimmedTime», [this]() { «n.name»_deadline_handler(); });
         «ENDIF»
     '''
 
