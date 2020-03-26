@@ -290,7 +290,7 @@ class LinguaFrancaValidationTest {
             "Cannot connect: Port named 'inp' is already effect of a reaction.")
     }
     
-        /**
+    /**
      * Detect cycles in the instantiation graph.
      */
     @Test

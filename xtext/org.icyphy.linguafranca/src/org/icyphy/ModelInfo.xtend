@@ -76,6 +76,7 @@ class ModelInfo {
      * 
      */
     private def refreshInstantiationGraph() {
+        this.instantiationGraph = new AnnotatedDependencyGraph()
         for (instantiation : this.model.eAllContents.toIterable.filter(
             Instantiation)) {
             this.instantiationGraph.addEdge(
