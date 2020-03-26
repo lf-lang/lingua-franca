@@ -15,10 +15,6 @@ reactor Gain {
     =}
 }
 reactor Print {
-    preamble {=
-        #include <iostream>
-        #include <cstdlib>
-    =}
     input in:int;
     reaction(in) {=
         auto value = *in.get();

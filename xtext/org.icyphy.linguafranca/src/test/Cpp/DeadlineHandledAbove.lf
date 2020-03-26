@@ -2,10 +2,6 @@
 // an output and the container reacts to that output.
 target Cpp;
 reactor Deadline(threshold:time(100 msec)) {
-    preamble {=
-        #include <iostream>
-        #include <cstdlib>
-    =}
     input x:int;
     output deadline_violation:bool;
     reaction(x) -> deadline_violation {=

@@ -6,8 +6,6 @@ target Cpp {
 };
 reactor Source(period:time(1 sec)) {
     preamble {=
-        #include <iostream>
-        #include <chrono>
         #include <thread>
     =}
     output y:int;
@@ -25,9 +23,6 @@ reactor Source(period:time(1 sec)) {
     =}
 }
 reactor Destination(timeout:time(1 sec)) {
-    preamble {=
-        #include <iostream>
-    =}
     input x:int;
     state count:int(0);
     reaction(x) {=

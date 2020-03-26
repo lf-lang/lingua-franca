@@ -15,9 +15,6 @@ reactor Count(stride:int(1), period:time(100 msec), start:int(0)) {
     =}
 }
 reactor Display {
-    preamble {=
-         #include <iostream>
-    =}
     input x:int;
     reaction(x) {=
     	std::cout << "Received " << *x.get() << std::endl;

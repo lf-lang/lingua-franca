@@ -1,8 +1,5 @@
 target Cpp;
 reactor HelloWorld {
-    preamble {=
-        #include <iostream>
-    =}
     timer t;
     reaction(t) {=
         std::cout << "Hello World." << std::endl;

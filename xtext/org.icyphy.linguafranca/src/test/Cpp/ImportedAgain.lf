@@ -2,10 +2,6 @@
 // that itself imports a reactor definition.
 target Cpp;
 reactor ImportedAgain {
-    preamble {=
-        #include <iostream>
-        #include <cstdlib>
-    =}
     input x:int;
     reaction(x) {=
         auto value = *x.get();

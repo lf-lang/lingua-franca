@@ -26,6 +26,13 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import java.util.Map
+import java.util.HashMap
+import org.icyphy.linguaFranca.Deadline
+import org.icyphy.TimeValue
+import java.util.Set
+import java.util.HashSet
+import org.icyphy.ModelInfo
 
 /**
  * This class contains custom validation rules. 
@@ -41,15 +48,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var timers = newHashSet()
     var actions = newHashSet()
     var allNames = newHashSet() // Names of contained objects must be unique.
-    var depGraph = new AnnotatedDependencyGraph()
     var Targets target;
     
-    
-//    Set<Parameter> deadlineParms
-//    
-//    Set<Parameter> timeParms
+    var info = new ModelInfo()
     
     
+
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
 
@@ -154,6 +158,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         Literals.ASSIGNMENT__RHS)
                 }
             }
+            // If this assignment overrides a parameter that is used in a deadline,
+            // report possible overflow.
+            if (this.info.overflowingAssignments.contains(assignment)) {
+                error("Time value used to specify a deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.ASSIGNMENT__RHS)
+            }
         }
     }
 
@@ -169,16 +178,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
     }
 
-// FIXME: We need a parameter resolver in order to detect problems with
-// parameterized deadlines
-
-//    @Check(FAST)
-//    def checkDeadline(Deadline deadline) {
-//        
-//        if (deadline.time.unit != TimeUnit.NONE && (new TimeValue(deadline.time.time, deadline.time.unit)).toNanoSeconds > TimeValue.MAX_BIGINT_DEADLINE) {
-//            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + "nanoseconds.", Literals.DEADLINE__TIME)
-//        }
-//    }
+    @Check(FAST)
+    def checkDeadline(Deadline deadline) {
+        if (this.info.overflowingDeadlines.contains(deadline)) {
+            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.DEADLINE__TIME)
+        }
+    }
 
     @Check(FAST)
     def checkInput(Input input) {
@@ -216,8 +221,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
         // Report error if this instantiation is part of a cycle.
-        if (this.depGraph.cycles.size > 0) {
-            for (cycle : this.depGraph.cycles) {
+        if (this.info.instantiationGraph.cycles.size > 0) {
+            for (cycle : this.info.instantiationGraph.cycles) {
                 val instance = new AnnotatedNode(instantiation.reactorClass)
                 val reactor = new AnnotatedNode(instantiation.eContainer as Reactor)
                 if (cycle.contains(reactor) && cycle.contains(instance)) {
@@ -399,15 +404,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(NORMAL)
     def checkModel(Model model) {
-        
-//        this.deadlineParms = Traversals.collectDeadlineParameters(model)
-//        this.timeParms = Traversals.collectTimeParameters(model)
-        
-        this.depGraph = new AnnotatedDependencyGraph()
-        for (instantiation : model.eAllContents.toIterable.filter(Instantiation)) {
-            this.depGraph.addEdge(new AnnotatedNode(instantiation.eContainer as Reactor), new AnnotatedNode(instantiation.reactorClass))    
-        }
-        this.depGraph.detectCycles
+        info.update(model)
     }
     
     @Check(FAST)
@@ -425,6 +422,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (!param.ofTimeType && param.type === null) {
                 error("Parameters must have a type.", Literals.PARAMETER__TYPE)
             }
+        }
+        
+        if (this.info.overflowingParameters.contains(param)) {
+            error("Time value used to specify a deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.PARAMETER__TIME)
         }
     }
 

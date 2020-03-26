@@ -1,10 +1,6 @@
 // Example from Schedule section of the C++ Reactor Target wiki page.
 target Cpp;
 reactor ScheduleTest {
-    preamble {=
-        #include <iostream>
-        #include <cstdlib>
-    =}
     input x:int;
     logical action a:void;
     reaction(x) -> a {=
