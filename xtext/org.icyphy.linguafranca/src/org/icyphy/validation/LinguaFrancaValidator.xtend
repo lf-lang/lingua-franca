@@ -239,7 +239,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (!TargetProperties.isValidName(param.name)) {
                 warning(
                     "Unrecognized target parameter: " + param.name +
-                    ". Recognized parameters are " + TargetProperties.values(),
+                    ". Recognized parameters are " + TargetProperties.values().join(", "),
                     Literals.KEY_VALUE_PAIR__NAME)
             }
             val prop = TargetProperties.get(param.name)
