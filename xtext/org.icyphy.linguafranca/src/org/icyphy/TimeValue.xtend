@@ -1,10 +1,37 @@
+/* A helper class that represents of a time value. */
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
+
 package org.icyphy
 
 import java.math.BigInteger
 import org.icyphy.linguaFranca.TimeUnit
 
 /**
- * Helper class that represents of a time value.
+ * A helper class that represents of a time value.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class TimeValue {
@@ -15,8 +42,8 @@ class TimeValue {
     var BigInteger nanoSecs
     
     /**
-     * Primitive numerical representation of this time value, to be interpreted in terms
-     * the associated time unit.
+     * Primitive numerical representation of this time value, to be interpreted
+     * in terms the associated time unit.
      */
     public long time = 0L
     
@@ -72,10 +99,12 @@ class TimeValue {
      * NOTE: if we were to use an unsigned data type the this would be
      * 0xFFFFFFFFFFFF
      */
-    public static BigInteger MAX_BIGINT_DEADLINE = new BigInteger("7FFFFFFFFFFF", 16)
+    public static BigInteger MAX_BIGINT_DEADLINE = 
+            new BigInteger("7FFFFFFFFFFF", 16)
     
     /**
-     * Create a new time value. Throws an exception time is non-zero and no units are given.
+     * Create a new time value. Throws an exception time is non-zero and no
+     * units are given.
      */
     new(long time, TimeUnit unit) {
         this.time = time
@@ -122,7 +151,8 @@ class TimeValue {
         
     /**
      * Determine whether this time value is earlier than another.
-     * @returns true if this time value is earlier than the other, false otherwise.
+     * @returns true if this time value is earlier than the other, false
+     * otherwise.
      */
     def isEarlierThan(TimeValue other) {
         if (this.toNanoSeconds < other.toNanoSeconds)
