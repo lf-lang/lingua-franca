@@ -397,7 +397,9 @@ int number_of_threads;
 token_t* create_token(size_t element_size);
 
 /**
- * FIXME
+ * Schedule the specified action with an integer value at a later logical
+ * time that depends on whether the action is logical or physical and
+ * what its parameter values are. See schedule_value().
  */
 handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value);
 
