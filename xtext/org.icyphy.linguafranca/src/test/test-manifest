@@ -5,7 +5,7 @@ AfterOverlapped.lf
 AsyncCallback.lf
 AsyncCallback2.lf
 AsyncCallbackDrop.lf
-AsyncCallbackUpdate.lf
+#AsyncCallbackUpdate.lf
 ArrayAsParameter.lf
 ArrayAsType.lf
 ArrayParallel.lf
