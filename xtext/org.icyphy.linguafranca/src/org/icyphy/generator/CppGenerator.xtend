@@ -659,13 +659,15 @@ class CppGenerator extends GeneratorBase {
           unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
           unsigned timeout;
-          auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
+          auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted.");
           bool fast{false};
-          app.add_flag("-f,--fast", fast, "allow logical time to run faster than physical time"); 
+          app.add_flag("-f,--fast", fast, "allow logical time to run faster than physical time");
+          bool keepalive{«targetKeepalive»};
+          app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
           
           CLI11_PARSE(app, argc, argv);
           
-          reactor::Environment e{threads, fast};
+          reactor::Environment e{threads, keepalive, fast};
         
           // instantiate the main reactor
           «main.name» main{"«main.name»", &e};
