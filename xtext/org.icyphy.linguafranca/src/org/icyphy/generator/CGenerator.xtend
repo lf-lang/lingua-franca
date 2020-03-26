@@ -1875,7 +1875,6 @@ int main(int argc, char* argv[]) {
     override generateForwardBody(Action action, VarRef port) {
         val outputName = generateVarRef(port)
         if (isTokenType(action.type)) {
-            // FIXME: FOllowing could be set_token(outputName, token);
             // Forward the entire token and prevent freeing.
             // We leave the ref_count alone. It should be 1.
             '''
