@@ -4,7 +4,6 @@ import java.util.Arrays
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.eclipse.xtext.validation.EValidatorRegistrar
-import org.icyphy.AnnotatedDependencyGraph
 import org.icyphy.AnnotatedNode
 import org.icyphy.Targets
 import org.icyphy.Targets.LoggingLevels
@@ -26,12 +25,8 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import java.util.Map
-import java.util.HashMap
 import org.icyphy.linguaFranca.Deadline
 import org.icyphy.TimeValue
-import java.util.Set
-import java.util.HashSet
 import org.icyphy.ModelInfo
 
 /**
