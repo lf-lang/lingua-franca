@@ -566,6 +566,7 @@ class CppGenerator extends GeneratorBase {
         «r.includeInstances»
         «r.generatePreamble»
         using namespace std::chrono_literals;
+        using namespace reactor::operators;
         
         class «r.getName()» : public reactor::Reactor {
          private:
