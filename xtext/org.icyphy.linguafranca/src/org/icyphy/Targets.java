@@ -288,7 +288,7 @@ public enum Targets {
          *
          * This gives full control over the C++ build as any cmake parameters can be adjusted in the included file.
          */
-        CMAKE_INCLUDE("cmake_include", Arrays.asList(Targets.CPP)),
+        CMAKE_INCLUDE("cmake-include", Arrays.asList(Targets.CPP)),
         /**
          * Directive to specify the target compiler.
          */
