@@ -146,7 +146,7 @@ KeyValuePairs:
     '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
 
 KeyValuePair:
-    name=ID ':' value=Element;
+    name=Key ':' value=Element;
 
 Array:
     '[' elements+=Element (',' (elements+=Element))* ']';
@@ -214,7 +214,7 @@ terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
 
 // Target properties are required to be in Kebab case
-terminal KEY: '^'?('a'..'z') ('a'..'z'|'-')*;
+Key: ID(ID|'-')*;
 
 terminal NEGINT:
     '-' ('0'..'9')+;
