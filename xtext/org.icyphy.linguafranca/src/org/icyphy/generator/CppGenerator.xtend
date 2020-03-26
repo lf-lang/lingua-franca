@@ -658,7 +658,7 @@ class CppGenerator extends GeneratorBase {
           
           unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
-          unsigned timeout;
+          unsigned timeout = 0;
           auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted.");
           bool fast{«targetFast»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
@@ -675,9 +675,10 @@ class CppGenerator extends GeneratorBase {
           // optionally instantiate the timeout reactor
           std::unique_ptr<Timeout> t{nullptr};
           if (opt_timeout->count() > 0) {
-              std::cout << "timeout: " << timeout << std::endl;
-              t = std::make_unique<Timeout>("Timeout", &e, std::chrono::seconds(timeout));
-          }
+            t = std::make_unique<Timeout>("Timeout", &e, std::chrono::seconds(timeout));
+          } «IF targetTimeout >= 0»else {
+          	t = std::make_unique<Timeout>("Timeout", &e, «targetTimeout»«timeUnitsToCppUnits.get(targetTimeoutUnit)»);
+          }«ENDIF»
 
           // execute the reactor program
           e.assemble();
