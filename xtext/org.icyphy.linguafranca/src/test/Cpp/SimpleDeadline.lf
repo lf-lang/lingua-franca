@@ -4,9 +4,6 @@
 target Cpp;
 reactor Deadline(threshold:time(100 msec)) {
     preamble {= 
-        #include <iostream>
-        #include <cstdlib>
-        #include <chrono>
         #include <thread>
     =}
     input x:int;
@@ -20,9 +17,6 @@ reactor Deadline(threshold:time(100 msec)) {
     =}
 }
 reactor Print {
-    preamble {= 
-        #include <iostream>
-    =}
     input in:bool;
     reaction(in) {=
         if (*in.get()) {

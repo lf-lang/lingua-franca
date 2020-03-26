@@ -284,9 +284,11 @@ public enum Targets {
      */
     public enum TargetProperties {
         /**
-         * FIXME
+         * Directive to specify a cmake to be included by the generated build systems.
+         *
+         * This gives full control over the C++ build as any cmake parameters can be adjusted in the included file.
          */
-        CMAKE_INCLUDE("cmake_include", Arrays.asList(Targets.CPP)), // FIXME: change this to "cmake-include" for uniformity?
+        CMAKE_INCLUDE("cmake_include", Arrays.asList(Targets.CPP)),
         /**
          * Directive to specify the target compiler.
          */
@@ -314,12 +316,12 @@ public enum Targets {
         /**
          * Directive to specify the grain at which to report log messages during execution.
          */
-        LOGGING("logging", Arrays.asList(Targets.TS)),
+        LOGGING("logging", Arrays.asList(Targets.TS, Targets.CPP)),
         
         /**
          * Directive to not invoke the target compiler.
          */
-        NO_COMPILE("no-compile", Arrays.asList(Targets.C)),
+        NO_COMPILE("no-compile", Arrays.asList(Targets.C, Targets.CPP)),
         
         /**
          * Directive to specify the number of threads.

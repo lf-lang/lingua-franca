@@ -79,6 +79,14 @@ class CppGenerator extends GeneratorBase {
         TimeUnit.WEEK -> 'd*7',
         TimeUnit.WEEKS -> 'd*7'
     }
+    
+    static public var logLevelsToInts = #{
+    	"ERROR" -> 1,
+    	"WARN" -> 2,
+    	"INFO" -> 3,
+    	"LOG" -> 3,
+    	"DEBUG" -> 4
+    }
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
@@ -566,6 +574,7 @@ class CppGenerator extends GeneratorBase {
         «r.includeInstances»
         «r.generatePreamble»
         using namespace std::chrono_literals;
+        using namespace reactor::operators;
         
         class «r.getName()» : public reactor::Reactor {
          private:
@@ -655,16 +664,18 @@ class CppGenerator extends GeneratorBase {
         int main(int argc, char **argv) {
           CLI::App app("«filename» Reactor Program");
           
-          unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»4«ENDIF»;
+          unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
-          unsigned timeout;
-          auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
-          bool fast{false};
-          app.add_flag("-f,--fast", fast, "allow logical time to run faster than physical time"); 
+          unsigned timeout = 0;
+          auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted.");
+          bool fast{«targetFast»};
+          app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
+          bool keepalive{«targetKeepalive»};
+          app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
           
           CLI11_PARSE(app, argc, argv);
           
-          reactor::Environment e{threads, fast};
+          reactor::Environment e{threads, keepalive, fast};
         
           // instantiate the main reactor
           «main.name» main{"«main.name»", &e};
@@ -672,9 +683,10 @@ class CppGenerator extends GeneratorBase {
           // optionally instantiate the timeout reactor
           std::unique_ptr<Timeout> t{nullptr};
           if (opt_timeout->count() > 0) {
-              std::cout << "timeout: " << timeout << std::endl;
-              t = std::make_unique<Timeout>("Timeout", &e, std::chrono::seconds(timeout));
-          }
+            t = std::make_unique<Timeout>("Timeout", &e, std::chrono::seconds(timeout));
+          } «IF targetTimeout >= 0»else {
+          	t = std::make_unique<Timeout>("Timeout", &e, «targetTimeout»«timeUnitsToCppUnits.get(targetTimeoutUnit)»);
+          }«ENDIF»
 
           // execute the reactor program
           e.assemble();
@@ -713,10 +725,12 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "1bb7510936d47d4757e26ba9276b00de2db243ac"
+          GIT_TAG "90a4fa906331937174076a4e378067eea653131d"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+            -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+            «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
         )
         
         set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
@@ -793,6 +807,11 @@ class CppGenerator extends GeneratorBase {
         println("--- Running: " + cmakeCmd.join(' '))
         var cmakeBuilder = new ProcessBuilder(cmakeCmd)
         cmakeBuilder.directory(buildDir)
+        var cmakeEnv = cmakeBuilder.environment();
+        if(targetCompiler !== null) {
+        	cmakeEnv.put("CXX", targetCompiler);
+        }
+
         var cmakeProcess = cmakeBuilder.start()
         val returnCode = cmakeProcess.waitFor()
 
