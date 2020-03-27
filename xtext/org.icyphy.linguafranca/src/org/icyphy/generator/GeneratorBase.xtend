@@ -157,7 +157,7 @@ abstract class GeneratorBase {
     /** The federation RTI port, which defaults to "15045". */
     protected var federationRTIPort = "15045"
 
-    /** The cmake_include target parameter, or null if there is none. */
+    /** The cmake-include target parameter, or null if there is none. */
     protected String targetCmakeInclude
     
     /** The compiler target parameter, or null if there is none. */

@@ -277,7 +277,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             switch prop {
             case CMAKE_INCLUDE:
                 if (param.value.literal === null) {
-                    error("Target property cmake_include is required to be a string.",
+                    error("Target property cmake-include is required to be a string.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case COMPILER:
