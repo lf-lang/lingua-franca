@@ -13,11 +13,11 @@ main reactor Server {
     reaction (startup) -> serverRequest {=
         let options = {};
         server = http.createServer(options, (req : http.IncomingMessage, res : http.ServerResponse) => {
-            serverRequest.schedule(0, [req, res])
+            actions.serverRequest.schedule(0, [req, res])
         }).listen(8000);
     =}
     reaction (serverRequest) {=
-        let requestArray = serverRequest.get();
+        let requestArray = serverRequest;
         if (requestArray) {
             let req = requestArray[0];
             let res = requestArray[1];
