@@ -381,7 +381,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(State s) {
         if (s.ofTimeType) {
-            '''const reactor::Duration'''
+            '''reactor::Duration'''
         } else {
             if (s.type !== null) {
                 s.type.removeCodeDelimiter
