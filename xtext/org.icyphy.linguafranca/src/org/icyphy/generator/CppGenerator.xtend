@@ -380,10 +380,16 @@ class CppGenerator extends GeneratorBase {
     }
 
     def trimmedType(State s) {
-        if (s.type !== null) {
-            s.type.removeCodeDelimiter
+        if (s.ofTimeType) {
+            '''const reactor::Duration'''
         } else {
-            '''/* «s.reportError("State variable has no type")» */'''
+            if (s.type !== null) {
+                s.type.removeCodeDelimiter
+            } else if (s.parameter !== null) {
+            	s.parameter.trimmedType
+            } else {
+                '''/* «s.reportError("State has no type")» */'''
+            }
         }
     }
 
@@ -434,6 +440,33 @@ class CppGenerator extends GeneratorBase {
             '''/* «p.reportError("Expected a parameter of type time!")» */'''
         }
     }
+    
+    def trimmedValue(State s) {
+        if (s.ofTimeType) {
+        	'''/* «s.reportError("Did not expect a state of type time!")» */'''
+        } else if (s.parameter !== null) {
+        	s.parameter.name
+        } else {
+            s.value.removeCodeDelimiter
+        }
+    }
+    
+    def trimmedTime(State s) {
+        if (s.ofTimeType) {
+            if (s.unit === null || s.unit === TimeUnit.NONE) {
+            	if (s.time == 0) {
+                    '''reactor::Duration::zero()'''
+                } else {
+                	'''/* «s.reportError("Time values need to be 0 or have a unit!")» */'''
+                }
+            } else {
+                '''«s.time»«timeUnitsToCppUnits.get(s.unit)»'''
+            }
+        } else {
+            '''/* «s.reportError("Expected a state of type time!")» */'''
+        }
+    }
+    
 
     def trimmedValue(TimeOrValue tv) {
         if (tv.parameter !== null) {
@@ -471,8 +504,6 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
-    def trimmedValue(State s) { s.value.removeCodeDelimiter }
-
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
@@ -500,8 +531,8 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializeStateVariables(Reactor r) '''
-        «FOR s : r.states BEFORE "// state variables\n"»
-            , «s.name»(«s.trimmedValue»)
+        «FOR s : r.states BEFORE "// state variables blub\n"»
+            , «s.name»(«IF s.ofTimeType»«s.trimmedTime»«ELSE»«s.trimmedValue»«ENDIF»)
         «ENDFOR»
     '''
 
