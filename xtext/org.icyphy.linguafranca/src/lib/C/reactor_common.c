@@ -538,12 +538,13 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
     // allowed), or if the event time is past the requested stop time.
+    // printf("DEBUG: Scheduling an event with elapsed time %lld.\n", e->time - start_time);
     if ((stop_requested && e->time != current_time)
             || (stop_time > 0LL && e->time > stop_time)) {
         // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
         pqueue_insert(recycle_q, e);
-        return 0;
+        return(0);
     }
 
     // Handle duplicate events for logical actions.
@@ -566,6 +567,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // and any new events added at this tag will go into the reaction_q
     // rather than the event_q, so anything put in the event_q with this
     // same time will automatically be executed at the next microstep.
+    printf("DEBUG: Inserting event in the event queue with elapsed time %lld.\n", e->time - start_time);
     pqueue_insert(event_q, e);
     // FIXME: make a record of handle and implement unschedule.
     // NOTE: Rather than wrapping around to get a negative number,
@@ -949,6 +951,9 @@ void termination() {
     // If the event queue still has events on it, report that.
     if (event_q->size > 0) {
         printf("---- There are %zu unprocessed future events on the event queue.\n", event_q->size);
+        event_t* event = pqueue_peek(event_q);
+        interval_t event_time = event->time - start_time;
+        printf("---- The first future event has timestamp %lld after start time.\n", event_time);
     }
     // Issue a warning if a memory leak has been detected.
     if (__count_payload_allocations > 0) {
