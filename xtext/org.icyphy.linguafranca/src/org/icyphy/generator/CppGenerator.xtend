@@ -667,7 +667,7 @@ class CppGenerator extends GeneratorBase {
           unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
           unsigned timeout = 0;
-          auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted.");
+          auto opt_timeout = app.add_option("-o,--timeout", timeout, "Number of seconds after which the execution is aborted.");
           bool fast{«targetFast»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
           bool keepalive{«targetKeepalive»};
