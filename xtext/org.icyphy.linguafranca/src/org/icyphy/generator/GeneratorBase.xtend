@@ -157,6 +157,9 @@ abstract class GeneratorBase {
     /** The federation RTI port, which defaults to "15045". */
     protected var federationRTIPort = "15045"
 
+	/** The build-type target parameter, or null if there is none. */
+    protected String targetBuildType
+
     /** The cmake-include target parameter, or null if there is none. */
     protected String targetCmakeInclude
     
@@ -217,6 +220,8 @@ abstract class GeneratorBase {
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
                 switch param.name {
+                	case "build-type":
+                	    targetBuildType = param.value.id
                     case "cmake-include":
                         targetCmakeInclude = param.value.literal.withoutQuotes
                     case "compiler":

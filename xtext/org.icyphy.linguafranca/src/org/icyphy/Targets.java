@@ -283,6 +283,12 @@ public enum Targets {
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum TargetProperties {
+        
+        /**
+         * Directive to specify the target build type such as 'Release' or 'Debug'.
+         */
+        BUILD_TYPE("build-type", Arrays.asList(Targets.CPP)),
+        
         /**
          * Directive to specify a cmake to be included by the generated build systems.
          *
@@ -392,6 +398,13 @@ public enum Targets {
         public String toString() {
             return this.name;
         }
+    }
+    
+    /**
+     * Build types
+     */
+    public enum BuildTypes {
+        Release, Debug, RelWithDebInfo, MinSizeRel;
     }
     
     /**
