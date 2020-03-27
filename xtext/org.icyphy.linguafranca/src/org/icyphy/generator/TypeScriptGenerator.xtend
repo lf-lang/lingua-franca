@@ -728,10 +728,10 @@ class TypeScriptGenerator extends GeneratorBase {
             } else {
                 pr(reactorConstructor, "},")
                 var deadlineArgs = ""
-                if (reaction.deadline.time.parameter !== null) {
-                    deadlineArgs += "this." + reaction.deadline.time.parameter.name + ".get()"; 
+                if (reaction.deadline.interval.parameter !== null) {
+                    deadlineArgs += "this." + reaction.deadline.interval.parameter.name + ".get()"; 
                 } else {
-                    deadlineArgs += timeInTargetLanguage(new TimeValue(reaction.deadline.time.time, reaction.deadline.time.unit))
+                    deadlineArgs += timeInTargetLanguage(new TimeValue(reaction.deadline.interval.time, reaction.deadline.interval.unit))
                 }
                 pr(reactorConstructor, deadlineArgs + "," )
                 pr(reactorConstructor, "function(" + reactSignature + ") {")
@@ -741,7 +741,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 pr(reactorConstructor, "// =============== END deadline prologue")
                 pr(reactorConstructor, "try {")
                 reactorConstructor.indent()
-                pr(reactorConstructor, removeCodeDelimiter(reaction.deadline.deadlineCode))
+                pr(reactorConstructor, removeCodeDelimiter(reaction.deadline.code))
                 reactorConstructor.unindent()
                 pr(reactorConstructor, "} finally {")
                 reactorConstructor.indent()

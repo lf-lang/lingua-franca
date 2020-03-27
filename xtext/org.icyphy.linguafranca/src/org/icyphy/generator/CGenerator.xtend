@@ -935,8 +935,8 @@ int main(int argc, char* argv[]) {
             indent();
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline.time)
-            pr(removeCodeDelimiter(reaction.deadline.deadlineCode))
+            prSourceLineNumber(reaction.deadline.interval)
+            pr(removeCodeDelimiter(reaction.deadline.code))
             unindent()
             pr("}")
         }
@@ -1755,7 +1755,7 @@ int main(int argc, char* argv[]) {
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
             if (reaction.definition.deadline !== null) {
-                var deadline = instance.resolveTime(reaction.definition.deadline.time)
+                var deadline = instance.resolveTime(reaction.definition.deadline.interval)
                 pr(initializeTriggerObjects,
                     reactionStructName(reaction) + '.local_deadline = ' +
                         timeInTargetLanguage(deadline) + ';')

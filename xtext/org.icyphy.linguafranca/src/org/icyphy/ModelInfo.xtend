@@ -37,6 +37,7 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Assignment
+import org.icyphy.linguaFranca.Target
 
 /**
  * A helper class for analyzing the AST.
@@ -86,9 +87,22 @@ class ModelInfo {
      */
     def update(Model model) {
         this.model = model
+        
+        // Perform generic traversals.
         this.refreshInstantiationMap()
-        this.collectOverflowingNodes()
         this.refreshInstantiationGraph()
+        
+        // Find the target. A target must exist because the grammar requires it.
+        var Targets target
+        for (t : model.eAllContents.toIterable.filter(Target)) {
+            target = Targets.get(t.name)
+        }
+        
+        // Perform C-specific traversals.
+        if (target == Targets.C) {
+            this.collectOverflowingNodes()
+        }
+                
     }
     
     /**
@@ -135,14 +149,14 @@ class ModelInfo {
         // Visit all deadlines in the model; detect possible overflow.
         for (deadline : model.eAllContents.toIterable.filter(Deadline)) {
             // If the time value overflows, mark this deadline as overflowing.
-            if (deadline.time.unit != TimeUnit.NONE && isTooLarge(
-                new TimeValue(deadline.time.time, deadline.time.unit))) {
+            if (deadline.interval.unit != TimeUnit.NONE && isTooLarge(
+                new TimeValue(deadline.interval.time, deadline.interval.unit))) {
                 this.overflowingDeadlines.add(deadline)
             }
 
             // If any of the upstream parameters overflow, report this deadline.
             if (detectOverflow(new HashSet<Instantiation>(),
-                deadline.time.parameter)) {
+                deadline.interval.parameter)) {
                 this.overflowingDeadlines.add(deadline)
             }
         }
