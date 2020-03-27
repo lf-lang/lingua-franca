@@ -324,6 +324,11 @@ public enum Targets {
         NO_COMPILE("no-compile", Arrays.asList(Targets.C, Targets.CPP)),
         
         /**
+         * Directive to disable validation of reactor rules at runtime.
+         */
+        NO_RUNTIME_VALIDATION("no-runtime-validation", Arrays.asList(Targets.CPP)),
+        
+        /**
          * Directive to specify the number of threads.
          */
         THREADS("threads", Arrays.asList(Targets.C, Targets.CPP)),

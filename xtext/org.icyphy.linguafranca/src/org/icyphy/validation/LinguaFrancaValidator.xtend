@@ -368,8 +368,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case NO_COMPILE:
-                 if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
                     error("Target property no-compile is required to be true or false.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case NO_RUNTIME_VALIDATION:
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                    error("Target property no-runtime-validation is required to be true or false.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case THREADS: {

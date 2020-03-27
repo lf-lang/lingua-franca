@@ -168,6 +168,9 @@ abstract class GeneratorBase {
 
     /** The compiler target no-compile parameter, or false if there is none. */
     protected boolean targetNoCompile = false
+    
+    /** The compiler target no-runtime-validation parameter, or false if there is none. */
+    protected boolean targetNoRuntimeValidation = false
         
     /** The fast target parameter, or false if there is none. */
     protected boolean targetFast = false
@@ -227,6 +230,10 @@ abstract class GeneratorBase {
                     case "no-compile":
                         if (param.value.id.equals('true')) {
                             targetNoCompile = true
+                        }
+                    case "no-runtime-validation":
+                        if (param.value.id.equals('true')) {
+                            targetNoRuntimeValidation = true
                         }
                     case "keepalive":
                         if (param.value.id.equals('true')) {
