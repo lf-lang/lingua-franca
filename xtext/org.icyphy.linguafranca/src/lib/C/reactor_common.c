@@ -949,8 +949,8 @@ void initialize() {
 // has been freed and print a warning message if not.
 void termination() {
     // If the event queue still has events on it, report that.
-    if (event_q->size > 0) {
-        printf("---- There are %zu unprocessed future events on the event queue.\n", event_q->size);
+    if (pqueue_size(event_q) > 0) {
+        printf("---- There are %zu unprocessed future events on the event queue.\n", pqueue_size(event_q));
         event_t* event = pqueue_peek(event_q);
         interval_t event_time = event->time - start_time;
         printf("---- The first future event has timestamp %lld after start time.\n", event_time);
