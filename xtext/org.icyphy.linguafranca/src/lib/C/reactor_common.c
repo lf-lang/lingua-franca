@@ -567,7 +567,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // and any new events added at this tag will go into the reaction_q
     // rather than the event_q, so anything put in the event_q with this
     // same time will automatically be executed at the next microstep.
-    printf("DEBUG: Inserting event in the event queue with elapsed time %lld.\n", e->time - start_time);
+    // printf("DEBUG: Inserting event in the event queue with elapsed time %lld.\n", e->time - start_time);
     pqueue_insert(event_q, e);
     // FIXME: make a record of handle and implement unschedule.
     // NOTE: Rather than wrapping around to get a negative number,
