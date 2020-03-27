@@ -46,6 +46,7 @@ import org.icyphy.linguaFranca.VarRef
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class FederateInstance {
+    
 
     /** Construct a new instance with the specified definition
      *  and parent. The definition has a name (the federate name)

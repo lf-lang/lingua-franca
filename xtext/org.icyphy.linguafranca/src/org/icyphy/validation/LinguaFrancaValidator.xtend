@@ -1,9 +1,34 @@
+/* Validation checks for Lingua Franca code. */
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
 package org.icyphy.validation
 
 import java.util.Arrays
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
-import org.eclipse.xtext.validation.EValidatorRegistrar
 import org.icyphy.AnnotatedNode
 import org.icyphy.ModelInfo
 import org.icyphy.Targets
@@ -30,8 +55,11 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 
 /**
- * This class contains custom validation rules. 
- * 
+ * Custom validation checks for Lingua Franca programs.
+ *  
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
@@ -47,13 +75,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     var info = new ModelInfo()
     
-    
 
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
 
     // Check the name of a feature for illegal substrings.
-    def checkName(String name, EStructuralFeature feature) {
+    private def checkName(String name, EStructuralFeature feature) {
         
         // Raises an error if the string starts with two underscores.
         if (name.length() >= 2 && name.substring(0,2).equals("__")) {
@@ -72,20 +99,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         
     }
-        
-    // The xtext validator doesn't have an initialize function
-    // for common data, so override the register function
-    // to call the locally defined initialize function.
-    // See: https://www.eclipse.org/forums/index.php/t/1039065/
-    override register(EValidatorRegistrar registrar) {
-        super.register(registrar)
-    }
-    
+
     // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
     // FAST ensures that these checks run whenever a file is modified.
     // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
-    // FIXME: Only checking uniqueness of reactor class definitions per file
     @Check(FAST)
     def reset(Model model) {
         reactorClasses.clear()
@@ -155,8 +173,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
-            if (this.info.overflowingAssignments.contains(assignment)) {
-                error("Time value used to specify a deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.ASSIGNMENT__RHS)
+            if (this.target == Targets.C &&
+                this.info.overflowingAssignments.contains(assignment)) {
+                error(
+                    "Time value used to specify a deadline exceeds the maximum of " +
+                        TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                    Literals.ASSIGNMENT__RHS)
             }
         }
     }
@@ -175,8 +197,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkDeadline(Deadline deadline) {
-        if (this.info.overflowingDeadlines.contains(deadline)) {
-            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.DEADLINE__TIME)
+        if (this.target == Targets.C && this.info.overflowingDeadlines.contains(deadline)) {
+            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.DEADLINE__INTERVAL)
         }
     }
 
@@ -419,7 +441,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
         
-        if (this.info.overflowingParameters.contains(param)) {
+        if (this.target == Targets.C && this.info.overflowingParameters.contains(param)) {
             error("Time value used to specify a deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.PARAMETER__TIME)
         }
     }
