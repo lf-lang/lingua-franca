@@ -55,11 +55,11 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 
 /**
- * This class contains custom validation rules.
+ * Custom validation checks for Lingua Franca programs.
  *  
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
- * 
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {

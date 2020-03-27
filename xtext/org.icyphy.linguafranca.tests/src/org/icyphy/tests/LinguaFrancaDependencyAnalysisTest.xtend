@@ -1,4 +1,4 @@
-/* Unit tests of circular dependency checks. */
+/* Dependency analysis unit tests. */
 
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
