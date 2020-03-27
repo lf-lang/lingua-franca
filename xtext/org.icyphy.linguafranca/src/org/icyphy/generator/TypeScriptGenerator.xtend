@@ -239,11 +239,11 @@ class TypeScriptGenerator extends GeneratorBase {
     }
     
     override generateDelayBody(Action action, VarRef port) {
-        '''actions.«action.name».schedule(0, «generateVarRef(port)» as «getActionType(action)»)'''
+        '''actions.«action.name».schedule(0, «generateVarRef(port)» as «getActionType(action)»);'''
     }
 
     override generateForwardBody(Action action, VarRef port) {
-        '''«generateVarRef(port)» = «action.name» as «getActionType(action)»'''
+        '''«generateVarRef(port)» = «action.name» as «getActionType(action)»;'''
     }
  
     // //////////////////////////////////////////
