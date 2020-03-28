@@ -1,0 +1,85 @@
+/**
+ * Reactor that subscribes to a specified MQTT topic on which
+ * string messages are published.
+ * See MQTTTest for prerequisites and an example usage.
+ * 
+ * @author Ravi Akella
+ * @author Edward A. Lee
+ */
+target C;
+reactor MQTTSubscriber (
+    address:string("tcp://localhost:1883"),
+    clientID:string("DefaultSubscriber"),
+    topic:string("DefaultTopic")
+) {
+    // Use type char* rather than string because it is not
+    // a static string, but rather dynamically allocated memory.
+    output message:char*;
+    // Use a physical action here so that the logical time when
+    // action is triggered is the physical time of arrival of the
+    // message.
+    physical action incomingMessage:char*;
+    preamble {=
+        #include "MQTTClient.h"
+        #define QOS         2
+        #define TIMEOUT     10000L
+        
+        // FIXME: These should not be a global.
+        MQTTClient client;
+        MQTTClient_connectOptions sub_connect_options = MQTTClient_connectOptions_initializer;
+                
+        /** Callback function invoked by MQTT when a message arrives. */
+        int message_arrived(void *incomingMessage, char *topicName, int topicLen, MQTTClient_message *message) {
+            // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
+
+            // The following will copy the message.
+            // FIXME: We could avoid the copy, but then we can't call MQTTClient_freeMessage()
+            // because it will free the payload as well. Instead, we would have to replicate the
+            // freeing that is otherwise done by MQTTClient_freeMessage().
+            schedule_copy(incomingMessage, 0, (char*)message->payload, message->payloadlen);
+            
+            MQTTClient_freeMessage(&message);
+            MQTTClient_free(topicName);
+            return 1;
+        }
+        
+        /** Callback invoked if the connection is lost. */
+        void sub_connection_lost(void *incomingMessage, char *cause) {
+            printf("\nConnection lost\n");
+            printf("  cause: %s\n", cause);
+        }
+    =}
+    
+    reaction(startup) -> incomingMessage {=
+        MQTTClient_create(&client, self->address, self->clientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        sub_connect_options.keepAliveInterval = 20;
+        sub_connect_options.cleansession = 1;
+        
+        // Set up callback functions.
+        // Last argument should be a pointer to a function to
+        // handle notification of delivery of a message.
+        // But this reactor isn't sending any messages.
+        MQTTClient_setCallbacks(client, incomingMessage, sub_connection_lost, message_arrived, NULL);
+        
+        // Connect to the broker.
+        int rc; // response code.
+        if ((rc = MQTTClient_connect(client, &sub_connect_options)) != MQTTCLIENT_SUCCESS) {
+            fprintf(stderr, "MQTTSubscriber: Failed to connect to MQTT broker.\n");
+            fprintf(stderr, "Perhaps one is not running? Return code: %d\n", rc);
+            exit(EXIT_FAILURE);
+        }
+        
+        MQTTClient_subscribe(client, self->topic, QOS);
+    =}
+    
+    reaction(incomingMessage) -> message {=
+        // printf("FIXME: %s, ", self->clientID);
+        set_token(message, incomingMessage_token);
+    =}
+    
+    reaction(shutdown) {=
+        printf("MQTTPublisher: Client ID %s disconnecting.\n", self->clientID);
+        MQTTClient_disconnect(client, 10000);
+        MQTTClient_destroy(&client);
+    =}
+}
