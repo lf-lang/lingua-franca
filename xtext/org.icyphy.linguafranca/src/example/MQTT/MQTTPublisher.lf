@@ -1,0 +1,99 @@
+/**
+ * Reactor that publishes strings to a specified MQTT topic.
+ * See MQTTTest for prerequisites and an example usage.
+ * 
+ * @author Ravi Akella
+ * @author Edward A. Lee
+ */
+target C;
+
+/**
+ * Reactor that publishes strings to a specified MQTT topic.
+ * @param topic The topic name on which to publish.
+ * @param address The IP address of the MQTT broker.
+ * @param clientID The name of the client instance.
+ *  These names are required to be unique.
+ */
+reactor MQTTPublisher (
+    topic:string("DefaultTopic"),
+    address:string("tcp://localhost:1883"),
+    clientID:string("DefaultPublisher")
+) {
+    preamble {=
+        #include "MQTTClient.h"
+        
+        // Timeout for completion of message sending in milliseconds.
+        #define TIMEOUT     10000L
+        
+        // FIXME: These should not be a global.
+        MQTTClient client;
+        MQTTClient_connectOptions pub_connect_options = MQTTClient_connectOptions_initializer;
+        MQTTClient_message mqtt_msg = MQTTClient_message_initializer;
+ 
+        /** Callback invoked once delivery is complete. */
+        void pub_delivered(void *context, MQTTClient_deliveryToken dt) {
+            // printf("DEBUG: Message with token value %d delivery confirmed\n", dt);
+        }
+        /** Callback invoked if the connection is lost. */
+        void pub_connection_lost(void *context, char *cause) {
+            printf("\nMQTTPublisher: Connection lost\n");
+            printf("  cause: %s\n", cause);
+        }
+    =}
+    // Input type char* instead of string is used for dynamically
+    // allocated character arrays (as opposed to static constant strings).
+    input in:char*;
+    reaction(startup){=
+        MQTTClient_create(&client, self->address, self->clientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        pub_connect_options.keepAliveInterval = 20;
+        pub_connect_options.cleansession = 1;
+
+        // Set up callback functions.
+        // Second to last argument should be a pointer to a function
+        // to handle notification of delivery of a message.
+        // But this reactor isn't sending any messages.
+        MQTTClient_setCallbacks(client, NULL, pub_connection_lost, NULL, pub_delivered);
+        
+        // Connect to the broker.
+        int rc; // response code.
+        if ((rc = MQTTClient_connect(client, &pub_connect_options)) != MQTTCLIENT_SUCCESS) {
+            fprintf(stderr, "MQTTPublisher: Failed to connect to MQTT broker.\n");
+            fprintf(stderr, "Perhaps one is not running? Return code: %d\n", rc);
+            exit(EXIT_FAILURE);
+        }
+        // printf("DEBUG: MQTTPublisher connected to broker.\n");
+    =}
+    
+    reaction(in) {=
+        mqtt_msg.payload = in;
+        mqtt_msg.payloadlen = strlen(in) + 1; // Account for null character.
+        
+        // QoS 2 means that the message will be delivered exactly once.
+        mqtt_msg.qos = 2;
+        
+        // Retained messages are held by the server and sent to future new subscribers.
+        // Specify that this message should not be retained.
+        // It will be sent only to subscribers currently subscribed.
+        mqtt_msg.retained = 0;
+        
+        MQTTClient_deliveryToken token;
+        MQTTClient_publishMessage(client, self->topic, &mqtt_msg, &token);
+        
+        // Wait for message delivery to be complete.
+        // FIXME: Do we need to wait?
+        // printf("DEBUG: Waiting for publication of message: %s\n", in);
+        // printf("DEBUG: on topic '%s' for publisher with ClientID: %s\n", self->topic, self->clientID);
+        int rc = MQTTClient_waitForCompletion(client, token, TIMEOUT);
+        if (rc != MQTTCLIENT_SUCCESS) {
+            fprintf(stderr, "ERROR: Message delivery failed with error code %d.\n", rc);
+            fprintf(stderr, "Message: %s\n", in);
+            fprintf(stderr, "On topic '%s' for publisher with ClientID: %s\n", self->topic, self->clientID);
+        }
+    =}
+    
+    reaction(shutdown) {=
+        printf("MQTTPublisher: Client ID %s disconnecting.\n", self->clientID);
+        MQTTClient_disconnect(client, 10000);
+        MQTTClient_destroy(&client);
+    =}
+}
