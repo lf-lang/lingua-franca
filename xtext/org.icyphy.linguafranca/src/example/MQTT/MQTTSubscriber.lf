@@ -32,14 +32,19 @@ reactor MQTTSubscriber (
         int message_arrived(void *incomingMessage, char *topicName, int topicLen, MQTTClient_message *message) {
             // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
 
-            // The following will copy the message.
-            // FIXME: We could avoid the copy, but then we can't call MQTTClient_freeMessage()
-            // because it will free the payload as well. Instead, we would have to replicate the
-            // freeing that is otherwise done by MQTTClient_freeMessage().
+            // The incoming message is in dynamically allocated memory.
+            // We copy the message using schedule_copy() because, unfortunately, Paho MQTT uses its own
+            // version of malloc() and free() (defined in Heap.h and Heap.c).
+            // We could modify Paho MQTT to use the generic malloc() and free(),
+            // and then we could use schedule_value() to avoid the copy.
             schedule_copy(incomingMessage, 0, (char*)message->payload, message->payloadlen);
             
+            // MQTTClient_freeMessage() also frees the memory allocated to the payload,
+            // which is why we have to copy the message here.
             MQTTClient_freeMessage(&message);
             MQTTClient_free(topicName);
+            
+            // Return true to indicate that the message has been successfully handled.
             return 1;
         }
         
@@ -57,7 +62,7 @@ reactor MQTTSubscriber (
         
         // Set up callback functions.
         // Last argument should be a pointer to a function to
-        // handle notification of delivery of a message.
+        // handle notification of delivery of a sent message.
         // But this reactor isn't sending any messages.
         MQTTClient_setCallbacks(client, incomingMessage, sub_connection_lost, message_arrived, NULL);
         
@@ -73,7 +78,8 @@ reactor MQTTSubscriber (
     =}
     
     reaction(incomingMessage) -> message {=
-        // printf("FIXME: %s, ", self->clientID);
+        // The incomingMessage action contains a token that we can just forward.
+        // The allocated memory will be freed when the token's reference count hits 0.
         set_token(message, incomingMessage_token);
     =}
     
