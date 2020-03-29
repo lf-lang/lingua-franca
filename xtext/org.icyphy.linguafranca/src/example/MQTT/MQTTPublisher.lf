@@ -1,24 +1,6 @@
 /**
  * Reactor that publishes strings to a specified MQTT topic.
- * See MQTTTest for prerequisites and an example usage.
- * 
- * This publisher appends to the end of the message the
- * timestamp of the message at the publisher. The receiving
- * end, by default, ignores this, but it can instead a
- * "poor man's version of Ptides," where, by adding a
- * sufficient logical delay, it can assign a deterministic
- * timestamp equal to the publisher's timestamp plus a constant
- * delay.  See MQTTSubscriber.
- * 
- * Notice that the appended timestamp (64 bits or 8 bytes)
- * is easy to ignore because the message is a null-terminated
- * string.
- * 
- * This publisher also ensures in-order delivery messages to
- * subscribers. If an attempt is made to send a message before
- * the delivery of the previous message has completed, then the reaction
- * that sends the message (the reaction to an input 'in') will
- * block until the previous delivery has completed.
+ * See MQTTPhysical and MQTTLogical for prerequisites and an example usage.
  * 
  * @author Ravi Akella
  * @author Edward A. Lee
@@ -27,10 +9,26 @@ target C;
 
 /**
  * Reactor that publishes strings to a specified MQTT topic.
+ * This publisher appends to the end of the message the
+ * timestamp of the message at the publisher. The receiving
+ * end adds to this timestamp a specified offset, and if that
+ * offset is larger than the current physical time at which it
+ * receives the message, assigns that incremented timestamp
+ * to the message.  If the offset is always greater than or
+ * equal to the transport latency plus the clock synchronization
+ * error, then the overall program remains deterministic.
+ * 
+ * This publisher also ensures in-order delivery messages to
+ * subscribers. If an attempt is made to send a message before
+ * the delivery of the previous message has completed, then the reaction
+ * that sends the message (the reaction to an input 'in') will
+ * block until the previous delivery has completed.
+ 
  * @param topic The topic name on which to publish.
  * @param address The IP address of the MQTT broker.
  * @param clientID The name of the client instance.
  *  These names are required to be unique.
+ * @see MQTTSubscriber.
  */
 reactor MQTTPublisher (
     topic:string("DefaultTopic"),
@@ -56,12 +54,14 @@ reactor MQTTPublisher (
         typedef struct inflight_t {
             bool message_in_flight;
             MQTTClient_deliveryToken delivery_token;
+            char* message;
         } inflight_t;
         
         /** Callback invoked once delivery is complete. */
         void pub_delivered(void *inflight, MQTTClient_deliveryToken dt) {
             // printf("DEBUG: Message with token value %d delivery confirmed\n", dt);
             ((inflight_t*)inflight)->message_in_flight = false;
+            free(((inflight_t*)inflight)->message);
         }
         /** Callback invoked if the connection is lost. */
         void pub_connection_lost(void *context, char *cause) {
@@ -75,7 +75,7 @@ reactor MQTTPublisher (
     
     // State variable that keeps track of a message in flight.
     // FIXME: Replace with simple pair of arguments when the grammar supports this.
-    state inflight:inflight_t({={false, 0}=});
+    state inflight:inflight_t({={false, 0, NULL}=});
     
     // Connect to the broker. Exit if this fails.
     reaction(startup){=
@@ -104,11 +104,13 @@ reactor MQTTPublisher (
     // React to an input by sending a message with the value of the input as the payload.
     // If delivery has not yet completed for a previously sent message, then wait for
     // it to complete before proceeding (blocking this reaction).
+    // This copies the message from the input into a buffer, so the input can
+    // freed upon return of this reaction (LF will automatically decrement its
+    // reference count).
     reaction(in) {=
         if(self->inflight.message_in_flight) {
             // Wait for message delivery to be complete.
-            // printf("DEBUG: Waiting for publication of message: %s\n", in);
-            // printf("DEBUG: on topic '%s' for publisher with ClientID: %s\n", self->topic, self->clientID);
+            // printf("DEBUG: Waiting for publication of previous message\n");
             int rc = MQTTClient_waitForCompletion(client, self->inflight.delivery_token, TIMEOUT);
             if (rc != MQTTCLIENT_SUCCESS) {
                 fprintf(stderr, "ERROR: Message delivery failed with error code %d.\n", rc);
@@ -116,8 +118,22 @@ reactor MQTTPublisher (
                 fprintf(stderr, "On topic '%s' for publisher with ClientID: %s\n", self->topic, self->clientID);
             }
         }
-        mqtt_msg.payload = in;
-        mqtt_msg.payloadlen = strlen(in) + 1; // Account for null character.
+        // printf("DEBUG: Publishing message: %s\n", in);
+        // printf("DEBUG: on topic '%s' for publisher with ClientID: %s\n", self->topic, self->clientID);
+        
+        // Allocate memory for a copy of the message.
+        // The length includes the null-terminator of the string and 8 bytes for the timestamp.
+        int length = strlen(in) + 1 + sizeof(instant_t);
+        self->inflight.message = malloc(sizeof(char) * length);
+        memcpy(self->inflight.message, in, length - sizeof(instant_t));
+        
+        // Append the current timestamp to the message.
+        instant_t* timestamp = (instant_t*)(self->inflight.message + length - sizeof(instant_t));
+        *timestamp = get_logical_time();
+        // printf("DEBUG: Timestamp of sending message: %lld.\n", *timestamp);
+
+        mqtt_msg.payload = self->inflight.message;
+        mqtt_msg.payloadlen = length;
         
         // QoS 2 means that the message will be delivered exactly once.
         mqtt_msg.qos = 2;

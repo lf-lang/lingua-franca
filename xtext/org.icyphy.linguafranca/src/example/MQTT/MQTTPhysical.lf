@@ -1,5 +1,13 @@
 /**
- * Test case for MQTT pub/sub.
+ * Test case for MQTT pub/sub. In this version, a sequence of strings
+ * is sent from one part of the LF program to another disconnected
+ * part via MQTTPublisher and MQTTSubscriber reactors. The subscriber
+ * is configured to retimestamp the received message using physical
+ * time. The display shows the (elapsed) timestamps at the originating
+ * and destination reactors. This is a measure of the physical
+ * time it takes for the publish and subscribe to complete.
+ * See MQTTLogical.lf for an example that uses the sender's timestamp
+ * if the latency is small enough.
  * 
  * Prerequisites:
  * 
@@ -36,7 +44,7 @@
 target C {
     threads: 1, // Must use threaded implementation so schedule is thread safe.
     flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c",
-    timeout: 5 secs
+    timeout: 10 secs
 };
 
 import MQTTPublisher.lf;
@@ -54,7 +62,9 @@ reactor MessageGenerator(root:string("")) {
     // allocated character arrays (as opposed to static constant strings).
     output message:char*;
     state count:int(1);
-    timer t(0, 1 sec);
+    // Send first message after 1 sec so that the startup reactions
+    // do not factor into the transport time measurement on the first message.
+    timer t(1 sec, 1 sec);
     reaction(t) -> message {=
         // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
         // Add one for the null terminator.
@@ -63,6 +73,10 @@ reactor MessageGenerator(root:string("")) {
         set_new_array(message, length);
         // Populate the output string and increment the count.
         snprintf(message, length, "%s %d", self->root, self->count++);
+        printf("MessageGenerator: At time %lld, publish message: %s\n",
+            get_elapsed_logical_time(),
+            message
+        );
     =}
 }
 
@@ -71,10 +85,13 @@ reactor MessageGenerator(root:string("")) {
  * @param prefix A prefix for the message.
  * @input message The message.
  */
-reactor PrintMessage(prefix:string("")) {
+reactor PrintMessage {
     input message:char*;
     reaction(message) {=
-        printf("%s%s\n", self->prefix, message);
+        printf("PrintMessage: At (elapsed) time %lld, subscriber receives: %s\n",
+            get_elapsed_logical_time(),
+            message
+        );
     =}
 }
 
@@ -84,6 +101,6 @@ main reactor MQTTTest {
     msg.message->pub.in;
     
     sub = new MQTTSubscriber(address = "tcp://localhost:1883", clientID = "TestSubscriber2", topic = "my/test");
-    dsp = new PrintMessage(prefix = "MQTTSubscriber received message: ");
+    dsp = new PrintMessage();
     sub.message->dsp.message;
 }
