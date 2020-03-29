@@ -12,23 +12,20 @@ reactor MQTTSubscriber (
     clientID:string("DefaultSubscriber"),
     topic:string("DefaultTopic")
 ) {
-    // Use type char* rather than string because it is not
-    // a static string, but rather dynamically allocated memory.
-    output message:char*;
-    // Use a physical action here so that the logical time when
-    // action is triggered is the physical time of arrival of the
-    // message.
-    physical action incomingMessage:char*;
     preamble {=
         #include "MQTTClient.h"
         #define QOS         2
         #define TIMEOUT     10000L
         
-        // FIXME: These should not be a global.
+        // FIXME: This should not be a global. See FIXME below.
         MQTTClient client;
+        
+        // Connection options for the client.
+        // Making this global means that all instances of this reactor have
+        // the same connection options.
         MQTTClient_connectOptions sub_connect_options = MQTTClient_connectOptions_initializer;
                 
-        /** Callback function invoked by MQTT when a message arrives. */
+        // Callback function invoked by MQTT when a message arrives.
         int message_arrived(void *incomingMessage, char *topicName, int topicLen, MQTTClient_message *message) {
             // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
 
@@ -54,6 +51,21 @@ reactor MQTTSubscriber (
             printf("  cause: %s\n", cause);
         }
     =}
+    
+    // Output for sending the incoming MQTT message.
+    // Use type char* rather than string because it is not
+    // a static string, but rather dynamically allocated memory.
+    output message:char*;
+
+    // Action that is triggered when there is an incoming MQTT message.
+    // Use a physical action here so that the logical time when the action
+    // is triggered is the physical time of arrival of the message.
+    physical action incomingMessage:char*;
+    
+    // State variable storing the MQTT client created for each instance of this reactor.
+    // FIXME: When the grammar allows it, replace the global above with a state variable
+    // and replace all references to "client" with "self->client".
+    // state client:MQTTClient;
     
     reaction(startup) -> incomingMessage {=
         MQTTClient_create(&client, self->address, self->clientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
