@@ -483,12 +483,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         // and the start time + minTime + extra_delay.
 
         // Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
-        // Convert to an instant.
-        instant_t physical_time =
-                current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec;
+        instant_t physical_time = get_physical_time();
+
         if (physical_time > current_time) {
             tag = physical_time;
         }
@@ -644,8 +640,8 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
     __count_payload_allocations++;
     // printf("DEBUG: __schedule_with_copy_impl: Allocating memory for payload (token value): %p\n", container);
     memcpy(container, value, element_size * length);
-    // Initialize token with an array size of 1 (a scalar) and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, 1, 0);
+    // Initialize token with an array size of length and a reference count of 0.
+    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
     // The schedule function will increment the reference count.
     return schedule_token(trigger, offset, token);
 }
