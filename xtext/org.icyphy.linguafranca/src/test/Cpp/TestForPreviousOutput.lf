@@ -1,0 +1,37 @@
+// This tests the mechanism for testing whether a previous reaction has
+// produced a given output. The output should always be 42.
+target Cpp;
+reactor Source {
+    output out:int;
+    reaction(startup) -> out {=
+        // Set a seed for random number generation based on the current time.
+        std::srand(std::time(nullptr));
+        // Randomly produce an output or not.
+        if (std::rand() % 2) {
+            out.set(21);
+        }
+    =}
+    reaction(startup) -> out {=
+        if (out.is_present()) {
+            int previous_output = *out.get();
+            out.set(2 * previous_output);
+        } else {
+            out.set(42);
+        }
+    =}
+}
+reactor Sink {
+    input in:int;
+    reaction(in) {=
+        std::cout << "Received: " << *in.get() << '\n';
+        if (*in.get() != 42) {
+            std::cerr << "FAILED: Expected 42.\n";
+            exit(1);
+        }
+    =}
+}
+main reactor TestForPreviousOutput {
+    s = new Source();
+    d = new Sink();
+    s.out -> d.in;
+}
