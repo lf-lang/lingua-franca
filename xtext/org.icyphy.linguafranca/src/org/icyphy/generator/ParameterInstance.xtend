@@ -28,7 +28,6 @@ package org.icyphy.generator
 
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.TimeUnit
 
 /** Representation of a runtime instance of a parameter.
  *  
@@ -87,6 +86,7 @@ class ValueParameter extends ParameterInstance {
 		super(definition, parent)
 		this.type = type
 		this.value = value
+		
 	}
 	public var value = ""
 	
@@ -97,14 +97,14 @@ class ValueParameter extends ParameterInstance {
      *  {= ... =} if they were provided.
      */
 	override getLiteralValue() {
-		return GeneratorBase.removeCodeDelimiter(this.value)
+		return this.value
 	}
 }
 
 class TimeParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, long value, TimeUnit unit) {
+	new(Parameter definition, ReactorInstance parent, TimeValue timeValue) {
 		super(definition, parent)
-		this.value = new TimeValue(value, unit)
+		this.value = timeValue
 		this.type = parent.generator.timeTypeInTargetLanguage()
 	}
 	

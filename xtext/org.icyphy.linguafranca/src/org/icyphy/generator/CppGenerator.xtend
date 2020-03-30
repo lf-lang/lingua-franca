@@ -275,7 +275,7 @@ class CppGenerator extends GeneratorBase {
     def implementReactionBodies(Reactor r) '''
         «FOR n : r.reactions SEPARATOR '\n'»
             void «r.name»::«n.name»_body() {
-              «n.code.removeCodeDelimiter»
+              «n.code.tokens.toString.removeCodeDelimiter»
             }
         «ENDFOR»
     '''
@@ -283,7 +283,7 @@ class CppGenerator extends GeneratorBase {
     def implementReactionDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
             void «r.name»::«n.name»_deadline_handler() {
-              «n.deadline.code.removeCodeDelimiter»
+              «n.deadline.code.tokens.toString.removeCodeDelimiter»
             }
         «ENDFOR»
     '''
@@ -297,7 +297,7 @@ class CppGenerator extends GeneratorBase {
     def generatePreamble(Reactor r) '''
         «FOR p : r.preambles ?: emptyList AFTER '\n'»
             // preamble
-            «removeCodeDelimiter(p.code)»
+            «removeCodeDelimiter(p.code.tokens.toString)»
         «ENDFOR»
     '''
 
@@ -372,7 +372,7 @@ class CppGenerator extends GeneratorBase {
             '''const reactor::Duration'''
         } else {
             if (p.type !== null) {
-                '''const «p.type.removeCodeDelimiter»'''
+                '''const «p.type.typeToString.removeCodeDelimiter»'''
             } else {
                 '''/* «p.reportError("Parameter has no type")» */'''
             }
@@ -381,7 +381,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(State s) {
         if (s.type !== null) {
-            s.type.removeCodeDelimiter
+            s.type.typeToString.removeCodeDelimiter
         } else {
             '''/* «s.reportError("State variable has no type")» */'''
         }
@@ -389,7 +389,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Input i) {
         if (i.type !== null) {
-            i.type.removeCodeDelimiter
+            i.type.typeToString.removeCodeDelimiter
         } else {
             '''/* «i.reportError("Input port has no type.")» */'''
         }
@@ -397,7 +397,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Output o) {
         if (o.type !== null) {
-            o.type.removeCodeDelimiter
+            o.type.typeToString.removeCodeDelimiter
         } else {
             '''/* «o.reportError("Input port has no type.")» */'''
         }
@@ -405,7 +405,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Action a) {
         if (a.type !== null) {
-            a.type.removeCodeDelimiter
+            a.type.typeToString.removeCodeDelimiter
         } else {
             '''/* «a.reportError("Action has no type.")» */'''
         }
@@ -415,7 +415,7 @@ class CppGenerator extends GeneratorBase {
         if (p.ofTimeType) {
         	'''/* «p.reportError("Did not expect a parameter of type time!")» */'''
         } else {
-            '''«p.value.removeCodeDelimiter»'''
+            '''«p.value.literalOrCodeToString»'''
         }
     }
 
@@ -443,7 +443,7 @@ class CppGenerator extends GeneratorBase {
                 '''«tv.parameter.name»'''
             }
         } else if (tv.value !== null) {
-            '''«tv.value.removeCodeDelimiter»'''
+            '''«tv.value.literalOrCodeToString»'''
         } else {
         	'''/* «tv.reportError("Expected a value or a parameter, not a time")» */'''
         }
@@ -471,7 +471,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
-    def trimmedValue(State s) { s.value.removeCodeDelimiter }
+    def trimmedValue(State s) { s.init.value.literalOrCodeToString }
 
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
@@ -869,7 +869,7 @@ class CppGenerator extends GeneratorBase {
     // FIXME: the following implementations are most certainly incorrect.
     
     override generateDelayBody(Action action, VarRef port) '''
-        «IF !action.type.endsWith("*")»
+        «IF !typeToString(action.type).endsWith("*")»
             «action.type»* foo = malloc(sizeof(«action.type»));
             *foo = «generateVarRef(port)»;
         «ELSE»
