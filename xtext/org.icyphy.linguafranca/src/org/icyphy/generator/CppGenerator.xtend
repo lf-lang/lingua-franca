@@ -355,7 +355,7 @@ class CppGenerator extends GeneratorBase {
         if (r.parameters.length > 0) {
             '''
                 «r.name»(const std::string& name,
-                    «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+                    «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
                     «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «IF p.ofTimeType»«p.trimmedTime»«ELSE»«p.trimmedValue»«ENDIF»«ENDFOR»
             '''
         } else {
@@ -507,7 +507,7 @@ class CppGenerator extends GeneratorBase {
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
-                «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+                «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
                 «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
         «ELSE»
             «IF r == mainReactor»
@@ -531,7 +531,7 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializeStateVariables(Reactor r) '''
-        «FOR s : r.states BEFORE "// state variables blub\n"»
+        «FOR s : r.states BEFORE "// state variables\n"»
             , «s.name»(«IF s.ofTimeType»«s.trimmedTime»«ELSE»«s.trimmedValue»«ENDIF»)
         «ENDFOR»
     '''
