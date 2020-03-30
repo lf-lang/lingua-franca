@@ -21,6 +21,12 @@ target C;
  * If the offset is always greater than or
  * equal to the transport latency plus the clock synchronization
  * error, then the overall program remains deterministic.
+ * Hence, a good practice, if the application can tolerate the
+ * latency, is to set the offset to be larger than the expected
+ * communication latency between a publisher and a subscriber.
+ * To help the programmer do that, this reactor will report at
+ * the end of execution the average and maximum communication
+ * latencies.
  * 
  * By default, the offset is 0, so the assigned timestamp will
  * be the physical time at which the message is received.
@@ -57,6 +63,23 @@ reactor MQTTSubscriber (
         ) {
             // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
             
+            // Extract the timestamp and calculate extra delay.
+            // Note that if this subscriber's current time is ahead of current time
+            // at the publisher (something that should not happen even in a distributed
+            // implementation), then this extra delay may be negative. If it becomes
+            // less than -offset, the the schedule_copy() function will complain
+            // by printing a warning to stderr and revise the timestamp to current time.
+            instant_t* timestamp = (instant_t*)((char*)message->payload + message->payloadlen - sizeof(instant_t));
+            instant_t current_time = get_logical_time();
+            interval_t delay = *timestamp - current_time;
+            // printf("DEBUG: MQTTSubscriber: extra delay: %lld.\n", delay);
+            
+            // Schedule the event. Since incoming_message is a physical action,
+            // the offset specified in the second argument will be added to current_time
+            // and then compared to physical time. If the sum is greater than physical time
+            // (i.e. if the offset is large enough), then the event will be scheduled at
+            // exactly the logical time at the publisher plus the offset.
+            // Otherwise, it will be scheduled at the current physical time.
             // The incoming message is in dynamically allocated memory.
             // We copy the message using schedule_copy() because, unfortunately, Paho MQTT uses its own
             // version of malloc() and free() (defined in Heap.h and Heap.c).
@@ -65,7 +88,7 @@ reactor MQTTSubscriber (
             // Note that the last 8 bytes of the message are the sender's timestamp.
             // We include that in the copy so that the reaction to the physical action
             // can measure the latency.
-            schedule_copy(incoming_message, 0, (char*)message->payload, message->payloadlen);
+            schedule_copy(incoming_message, delay, (char*)message->payload, message->payloadlen);
             
             // MQTTClient_freeMessage() also frees the memory allocated to the payload,
             // which is why we have to copy the message here.
@@ -95,7 +118,7 @@ reactor MQTTSubscriber (
      * Use a physical action here so that the logical time when the action
      * is triggered is the physical time of arrival of the message.
      */
-    physical action incoming_message:char*;
+    physical action incoming_message(offset):char*;
     
     /**
      * State variable storing the MQTT client created for each instance of this reactor.
