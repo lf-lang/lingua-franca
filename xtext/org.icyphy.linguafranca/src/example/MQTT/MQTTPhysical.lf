@@ -100,7 +100,12 @@ main reactor MQTTTest {
     msg = new MessageGenerator(root = "Hello World");
     msg.message->pub.in;
     
-    sub = new MQTTSubscriber(address = "tcp://localhost:1883", clientID = "TestSubscriber2", topic = "my/test");
+    sub = new MQTTSubscriber(
+        address = "tcp://localhost:1883",
+        clientID = "TestSubscriber2",
+        topic = "my/test",
+        offset = 10 msec
+    );
     dsp = new PrintMessage();
     sub.message->dsp.message;
 }

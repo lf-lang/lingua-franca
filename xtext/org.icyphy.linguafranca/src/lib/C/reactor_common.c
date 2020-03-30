@@ -96,6 +96,7 @@ interval_t get_elapsed_logical_time() {
 
 /** Return the current logical time in nanoseconds since January 1, 1970. */
 instant_t get_logical_time() {
+    // FIXME: Does this need acquire the mutex?
     return current_time;
 }
 
@@ -447,6 +448,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 	// We first do this assuming it is logical action and then, if it is a
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
+    if (delay < 0LL) {
+        fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %dll nsec!\n"
+                "Scheduling instead at the current time.\n", -delay);
+        delay = 0LL;
+    }
     interval_t tag = current_time + delay;
     interval_t min_inter_arrival = trigger->period;
 
@@ -471,6 +477,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         instant_t physical_time = get_physical_time();
 
         if (physical_time > tag) {
+            // FIXME: In some circumstances (like Ptides), this is an
+            // error condition because it introduces nondeterminism.
+            // Do we want another kind of action, say a ptides action,
+            // that is physical but flags or handles this error here
+            // in some way?
             tag = physical_time;
         }
     }
