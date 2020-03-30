@@ -260,7 +260,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
         for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
-            pr(removeCodeDelimiter(p.code))
+            pr(p.code.assembleTokens)
             pr("\n// *********** End of preamble.")
         }
 
@@ -291,8 +291,8 @@ class TypeScriptGenerator extends GeneratorBase {
                  arguments.add(parameter.name + ": " + getParameterType(parameter)
                     +" = " + timeInTargetLanguage(new TimeValue(parameter.time, parameter.unit)))
             } else {
-                 arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + removeCodeDelimiter(parameter.value))
+                arguments.add(parameter.name + ": " + getParameterType(parameter)
+                    +" = " + literalOrCodeToString(parameter.value))
             }
         }
         
@@ -330,7 +330,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         if (parameterAssignment.rhs.parameter !== null) {
                             childReactorArguments.add(parameterAssignment.rhs.parameter.name)
                         } else if (parameterAssignment.rhs.value !== null) {
-                            childReactorArguments.add(removeCodeDelimiter(parameterAssignment.rhs.value))
+                            childReactorArguments.add(literalOrCodeToString(parameterAssignment.rhs.value))
                         } else {
                             childReactorArguments.add(
                                 timeInTargetLanguage(new TimeValue(parameterAssignment.rhs.time, parameterAssignment.rhs.unit)))
@@ -398,18 +398,18 @@ class TypeScriptGenerator extends GeneratorBase {
         for (state : reactor.states) {
             pr(state.name + ': ' +
                     "State<" + getStateType(state) +  '>;');
-            if (state.parameter !== null) {
+            if (state.init.parameter !== null) {
                 // State is a parameter
                 pr(reactorConstructor, "this." + state.name + " = "
-                        + "new State(" + state.parameter.name + ");" )
+                        + "new State(" + state.init.parameter.name + ");" )
             } else if (state.ofTimeType) {  
                 // State is a time type
                 pr(reactorConstructor, "this." + state.name + " = "
                     + "new State(" + timeInTargetLanguage(new TimeValue(state.time, state.unit)) + ");" )
-            } else if (state.value !== null) {
-                // State is a literal 
+            } else if (state.init.value !== null) {
+                // State is a literal or code
                 pr(reactorConstructor, "this." + state.name + " = "
-                    + "new State(" +removeCodeDelimiter(state.value) + ");" )
+                    + "new State(" + state.init.value.literalOrCodeToString + ");" ) // FIXME: support lists
             } else {
                 // State has an undefined value
                  pr(reactorConstructor, "this." + state.name + " = "
@@ -713,7 +713,7 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactorConstructor, "// =============== END react prologue")
             pr(reactorConstructor, "try {")
             reactorConstructor.indent()
-            pr(reactorConstructor, removeCodeDelimiter(reaction.code))
+            pr(reactorConstructor, assembleTokens(reaction.code))
             reactorConstructor.unindent()
             pr(reactorConstructor, "} finally {")
             reactorConstructor.indent()
@@ -741,7 +741,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 pr(reactorConstructor, "// =============== END deadline prologue")
                 pr(reactorConstructor, "try {")
                 reactorConstructor.indent()
-                pr(reactorConstructor, removeCodeDelimiter(reaction.deadline.code))
+                pr(reactorConstructor, assembleTokens(reaction.deadline.code))
                 reactorConstructor.unindent()
                 pr(reactorConstructor, "} finally {")
                 reactorConstructor.indent()
@@ -778,7 +778,7 @@ class TypeScriptGenerator extends GeneratorBase {
             
         var arguments = new StringJoiner(", ")
         for (parameter : defn.parameters) {
-            arguments.add(removeCodeDelimiter(parameter.rhs.value))
+            arguments.add(literalOrCodeToString(parameter.rhs.value))
         }
 
         // Get target properties for the app
@@ -934,9 +934,9 @@ class TypeScriptGenerator extends GeneratorBase {
         if (state.isOfTimeType) {
             type = timeTypeInTargetLanguage
         } else if (state.type !== null) {
-            type = removeCodeDelimiter(state.type)
-        } else if (state.parameter !== null) {
-            type = getParameterType(state.parameter)
+            type = typeToString(state.type)
+        } else if (state.init.parameter !== null) {
+            type = getParameterType(state.init.parameter)
         } else {
             type = 'unknown'
         }
@@ -952,7 +952,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getActionType(Action action) {
         if (action.type !== null) {
-            return removeCodeDelimiter(action.type)
+            return typeToString(action.type)
         } else {
             return "Present"    
         }
@@ -967,7 +967,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getPortType(Port port) {
         if (port.type !== null) {
-            return removeCodeDelimiter(port.type)
+            return typeToString(port.type)
         } else {
             return "Present"    
         }
@@ -981,7 +981,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The TS type.
      */
     private def getParameterType(Parameter parameter) {
-        var type = removeCodeDelimiter(parameter.type)
+        var type = typeToString(parameter.type)
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
             type = 'TimeValue'
         }

@@ -44,6 +44,7 @@ import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.FileLocator
+import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -51,20 +52,21 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.ASTUtils
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
-import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Code
 
 /** Generator base class for shared code between code generators.
  * 
@@ -94,6 +96,9 @@ abstract class GeneratorBase {
         
     ////////////////////////////////////////////
     //// Protected fields.
+    
+    /** */
+    protected var utils = new ASTUtils(this)
     
     /** All code goes into this string buffer. */
     protected var code = new StringBuilder
@@ -219,17 +224,17 @@ abstract class GeneratorBase {
                     case "compiler":
                         targetCompiler = param.value.literal.withoutQuotes
                     case "fast":
-                        if (param.value.id.equals('true')) {
+                        if (param.value.literal == 'true') {
                             targetFast = true
                         }
                     case "flags":
                         targetCompilerFlags = param.value.literal.withoutQuotes
                     case "no-compile":
-                        if (param.value.id.equals('true')) {
+                        if (param.value.literal == 'true') {
                             targetNoCompile = true
                         }
                     case "keepalive":
-                        if (param.value.id.equals('true')) {
+                        if (param.value.literal == 'true') {
                             targetKeepalive = true
                         }
                     case "logging":
@@ -289,7 +294,7 @@ abstract class GeneratorBase {
         val toRemove = new LinkedList<Connection>()
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
-                desugarDelay(connection, connection.delay)
+                this.utils.desugarDelay(connection, connection.delay)
                 toRemove.add(connection)
             }
         }
@@ -343,97 +348,6 @@ abstract class GeneratorBase {
         }
     }
     
-    /**
-     * Produce a unique identifier within a reactor based on a
-     * given based name. If the name does not exists, it is returned;
-     * if does exist, an index is appended that makes the name unique.
-     * @param reactor The reactor to find a unique identifier within.
-     * @param name The name to base the returned identifier on.
-     */
-    def getUniqueIdentifier(Reactor reactor, String name) {
-        val vars = new HashSet<String>();
-        reactor.actions.forEach[it | vars.add(it.name)]
-        reactor.timers.forEach[it | vars.add(it.name)]
-        reactor.parameters.forEach[it | vars.add(it.name)]
-        reactor.inputs.forEach[it | vars.add(it.name)]
-        reactor.outputs.forEach[it | vars.add(it.name)]
-        reactor.states.forEach[it | vars.add(it.name)]
-        reactor.instantiations.forEach[it | vars.add(it.name)]
-        
-        var index = 0;
-        var suffix = ""
-        var exists = true
-        while(exists) {
-            val id = name + suffix
-            if (vars.exists[it | it.equals(id)]) {
-                suffix = "_" + index
-                index++
-            } else {
-                exists = false;
-            }
-        }
-        return name + suffix
-    }
-
-    /**
-     * Take a connection and replace it with an action and two reactions
-     * that implement a delayed transfer between the end points of the 
-     * given connection.
-     * @param connection The connection to replace.
-     * @param delay The delay associated with the connection.
-     */
-    def desugarDelay(Connection connection, Delay delay) {
-        val factory = LinguaFrancaFactory.eINSTANCE
-        var type = (connection.rightPort.variable as Port).type
-        val action = factory.createAction
-        val triggerRef = factory.createVarRef
-        val effectRef = factory.createVarRef
-        val inRef = factory.createVarRef
-        val outRef = factory.createVarRef
-        val parent = (connection.eContainer as Reactor)
-        val r1 = factory.createReaction
-        val r2 = factory.createReaction
-
-        // Name the newly created action; set its delay and type.
-        action.name = getUniqueIdentifier(parent, "delay")
-        action.minDelay = connection.delay.time
-        action.type = type
-        action.origin = ActionOrigin.LOGICAL
-
-        // Establish references to the action.
-        triggerRef.variable = action
-        effectRef.variable = action
-
-        // Establish references to the involved ports.
-        inRef.container = connection.leftPort.container
-        inRef.variable = connection.leftPort.variable
-        outRef.container = connection.rightPort.container
-        outRef.variable = connection.rightPort.variable
-
-        // Add the action to the reactor.
-        parent.actions.add(action)
-
-        // Configure the first reaction.
-        r1.triggers.add(inRef)
-        r1.effects.add(effectRef)
-        // FIXME: Why the extra semicolon?
-        r1.code = generateDelayBody(action, inRef)
-
-        // Configure the second reaction.
-        r2.triggers.add(triggerRef)
-        r2.effects.add(outRef)
-        // FIXME: Why the extra semicolon?
-        r2.code = generateForwardBody(action, outRef)
-
-        // Add the reactions to the parent.
-        // These need to go in the opposite order in case
-        // a new input arrives at the same time the delayed
-        // output is delivered!
-        parent.reactions.add(r2)
-        parent.reactions.add(r1)
-    }
-
-
     /** Return true if errors occurred in the last call to doGenerate().
      *  This will return true if any of the reportError methods was called.
      *  @return True if errors occurred.
@@ -480,20 +394,6 @@ abstract class GeneratorBase {
             prefix = reference.container.name + "." 
         }
         return prefix + reference.variable.name
-    }
-        
-    /** If the argument starts with '{=', then remove it and the last two characters.
-     *  @return The body without the code delimiter or the unmodified argument if it
-     *  is not delimited.
-     */
-    static def String removeCodeDelimiter(String code) {
-        if (code === null) {
-            ""
-        } else if (code.startsWith("{=")) {
-            code.substring(2, code.length - 2).trim();
-        } else {
-            code
-        }
     }
 
     /** Given a representation of time that may possibly include units,
@@ -1086,7 +986,7 @@ abstract class GeneratorBase {
      *  @param time The source time.
      *  @param baseUnit The target unit.
      */
-    protected def unitAdjustment(TimeOrValue timeOrValue, TimeUnit baseUnit) { // FIXME: likelt needs revision
+    protected def unitAdjustment(TimeOrValue timeOrValue, TimeUnit baseUnit) { // FIXME: This isn't called from anywhere???
         if (timeOrValue === null) {
             return '0'
         }
@@ -1099,7 +999,8 @@ abstract class GeneratorBase {
                 timeValue = timeOrValue.parameter.time
             } else {
                 try {
-                    timeValue = Integer.parseInt(timeOrValue.parameter.value)
+                    timeValue = Integer.parseInt(ASTUtils.literalOrCodeToString(
+                        timeOrValue.parameter.value))
                 } catch (NumberFormatException e) {
                     reportError(timeOrValue,
                         "Invalid time value: " + timeOrValue)
@@ -1116,6 +1017,19 @@ abstract class GeneratorBase {
 
     }
 
+    def assembleTokens(Code tokens) {
+        ASTUtils.assembleTokens(tokens)
+    }
+
+    def typeToString(Type type) {
+        ASTUtils.typeToString(type)
+    }
+    
+    def literalOrCodeToString(LiteralOrCode literalOrCode) {
+        ASTUtils.literalOrCodeToString(literalOrCode)
+    }
+    
+    
     ////////////////////////////////////////////////////
     //// Private functions
     
@@ -1242,7 +1156,7 @@ abstract class GeneratorBase {
                         // (which inherits the delay) and two reactions.
                         // The action will be physical if the connection physical and
                         // otherwise will be logical.
-                        makeCommunication(connection,  leftFederate, rightFederate)
+                        this.utils.makeCommunication(connection,  leftFederate, rightFederate)
                         
                         // To avoid concurrent modification exception, collect a list
                         // of connections to remove.
@@ -1289,87 +1203,11 @@ abstract class GeneratorBase {
         println('******** mode: ' + mode)
     }
     
-    /** Replace the specified connection with a communication between federates.
-     *  @param connection The connection.
-     *  @param leftFederate The source federate.
-     *  @param rightFederate The destination federate.
-     */
-    private def makeCommunication(
-        Connection connection, 
-        FederateInstance leftFederate,
-        FederateInstance rightFederate
-    ) {
-        val factory = LinguaFrancaFactory.eINSTANCE
-        var type = (connection.rightPort.variable as Port).type
-        val action = factory.createAction
-        val triggerRef = factory.createVarRef
-        val effectRef = factory.createVarRef
-        val inRef = factory.createVarRef
-        val outRef = factory.createVarRef
-        val parent = (connection.eContainer as Reactor)
-        val r1 = factory.createReaction
-        val r2 = factory.createReaction
-
-        // Name the newly created action; set its delay and type.
-        action.name = getUniqueIdentifier(parent, "networkMessage")
-        // FIXME: Handle connection delay. E.g.:  
-        // action.minTime = connection.delay.time
-        action.type = type
-        // FIXME: For now, only handling physical connections.
-        action.origin = ActionOrigin.PHYSICAL
-        
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        val receivingPortID = rightFederate.networkMessageActions.length
-        rightFederate.networkMessageActions.add(action)
-
-        // Establish references to the action.
-        triggerRef.variable = action
-        effectRef.variable = action
-
-        // Establish references to the involved ports.
-        inRef.container = connection.leftPort.container
-        inRef.variable = connection.leftPort.variable
-        outRef.container = connection.rightPort.container
-        outRef.variable = connection.rightPort.variable
-
-        // Add the action to the reactor.
-        parent.actions.add(action)
-
-        // Configure the sending reaction.
-        r1.triggers.add(inRef)
-        r1.effects.add(effectRef)
-        r1.code = generateNetworkSenderBody(
-            inRef,
-            outRef,
-            receivingPortID,
-            leftFederate,
-            rightFederate,
-            type
-        )
-
-        // Configure the receiving reaction.
-        r2.triggers.add(triggerRef)
-        r2.effects.add(outRef)
-        r2.code = generateNetworkReceiverBody(
-            action,
-            inRef,
-            outRef,
-            receivingPortID,
-            leftFederate,
-            rightFederate,
-            type
-        )
-
-        // Add the reactions to the parent.
-        parent.reactions.add(r1)
-        parent.reactions.add(r2)
-    }
 
     enum Mode {
         STANDALONE,
         INTEGRATED,
         UNDEFINED
     }
+
 }
