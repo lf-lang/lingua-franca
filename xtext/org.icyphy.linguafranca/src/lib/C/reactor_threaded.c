@@ -181,7 +181,7 @@ bool __next() {
         // Wait for some activity on the reaction and executing queues.
         pthread_cond_wait(&reaction_or_executing_q_changed, &mutex);
     	// printf("DEBUG: next(): number_of_idle_threads = %d\n", number_of_idle_threads);
-    	// printf("DEBUG: next(): ready_q size = %ld\n", pqueue_size(ready_q));
+    	// printf("DEBUG: next(): reaction_q size = %ld\n", pqueue_size(reaction_q));
 	}
  	// printf("DEBUG: next(): continuing.\n");
  	// Previous logical time is complete.
@@ -653,7 +653,6 @@ void wrapup() {
     	// queue.
         if (next()) {
         	// printf("DEBUG: wrapup: next() returned\n");
-        	// printf("DEBUG: ready_q size = %ld, executing_q = %ld\n", pqueue_size(ready_q), pqueue_size(executing_q));
         	// Without relying on the worker threads, execute whatever is on the reaction_q.
         	// NOTE: deadlines on these reactions are ignored.
         	// Is that the right thing to do?
