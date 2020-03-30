@@ -277,7 +277,7 @@ void handle_message(int receiving_socket, unsigned char* buffer, int bytes_read)
     }
     printf("DEBUG: Message received by federate: %s.\n", message_contents);
 
-    schedule(__action_for_port(port_id), 0LL, message_contents);
+    schedule_value(__action_for_port(port_id), 0LL, message_contents, length);
     printf("DEBUG: Called schedule\n");
 }
 
