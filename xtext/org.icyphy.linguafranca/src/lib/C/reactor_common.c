@@ -449,7 +449,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
     if (delay < 0LL) {
-        fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %dll nsec!\n"
+        fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
                 "Scheduling instead at the current time.\n", -delay);
         delay = 0LL;
     }
@@ -707,6 +707,7 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
 handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
     token_t* token = create_token(trigger->element_size);
     token->value = value;
+    token->length = length;
     return schedule_token(trigger, extra_delay, token);
 }
 
