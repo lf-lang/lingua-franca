@@ -397,7 +397,7 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
 
 /**
  * Schedule the specified trigger at current_time plus the offset of the
- * specified trigger plus the delay. See schedule_token() for details.
+ * specified trigger plus the delay. See schedule_token() in reactor.h for details.
  * This is the internal implementation shared by both the threaded
  * and non-threaded versions.
  *
@@ -424,7 +424,7 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
  * @param extra_delay The logical time delay, which gets added to the
  *  trigger's minimum delay, if it has one.
  * @param token The token wrapping the payload or NULL for no payload.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
 
@@ -444,11 +444,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 	}
 
     // Compute the tag (the logical timestamp for the future event).
-	// How we do that depends on whether this is a logical or physical action.
-    interval_t tag = current_time;
+	// We first do this assuming it is logical action and then, if it is a
+	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
+    interval_t tag = current_time + delay;
     interval_t min_inter_arrival = trigger->period;
-    event_t* existing = NULL;
 
     // Get an event_t struct to put on the event queue.
     // Recycle event_t structs, if possible.    
@@ -459,58 +459,50 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     
     // Set the payload.
     e->token = token;
+
     // Make sure the event points to this trigger so when it is
     // dequeued, it will trigger this trigger.
     e->trigger = trigger;
 
-    // Calculate the tag (logical timestamp) of the future event.
-    // For logical actions, the logical time of the new event is just
-    // the current logical time plus the minimum offset (action parameter)
-    // plus the extra delay specified in the call to schedule.
-    e->time = tag + delay;
-
+    // If the trigger is physical, then we need to check whether
+    // physical time is larger than the tag and, if so, update the tag.
     if (trigger->is_physical) {
-        // If the trigger is physical, then we need to use
-        // physical time and the time of the last invocation to adjust the tag.
-        // Specifically, the timestamp assigned to the action event will be
-        // the maximum of the current logical time, the
-        // current physical time, and the time of last
-        // invocation plus the minTime (action parameter) plus the
-        // extra_delay (argument to this function).
-        // If the action has never been scheduled before, then the
-        // timestamp will be the maximum of the current logical time,
-        // the current physical time,
-        // and the start time + minTime + extra_delay.
-
         // Get the current physical time.
         instant_t physical_time = get_physical_time();
 
-        if (physical_time > current_time) {
+        if (physical_time > tag) {
             tag = physical_time;
         }
+    }
 
-        // Compute the earliest time that this event can be scheduled.
-        instant_t earliest_time;
-        if (trigger->scheduled == NEVER) {
-            earliest_time = start_time + delay;
-        } else {
-            earliest_time = trigger->scheduled + MAX(delay, min_inter_arrival);
-        }
-        
+    // Check to see whether the event is early based on the minimum interarrival time.
+    // This check is not needed if this action has had no event.
+    if (trigger->scheduled != NEVER) {
+        instant_t earliest_time = trigger->scheduled + MAX(delay, min_inter_arrival);
+
+        // If the event is early, see which policy applies.
+        event_t* existing = NULL;
         if (earliest_time > tag) {
-            // The event is early. See which policy applies.
             if (trigger->policy == UPDATE) {
-                // Update existing event if it exists.   
-                e->time = tag;
+                // Update existing event if it exists.
                 // See if there is an existing event up to but not including
                 // the earliest time this event can be scheduled.
+                // FIXME: There may be more than one event on the event queue.
+                // This will update the earliest of them, which could result
+                // in values being seen out of order!  I don't think we should
+                // have this UPDATE policy at all.
                 existing = pqueue_find_equal(event_q, e, earliest_time-1);
                 if (existing != NULL) {
-                    // Recycle the old event value.
+                    // Recycle the old value.
                     if (existing->token != token) __done_using(existing->token);
                     // Update the value of the existing event.
                     existing->token = token;
+                    // Discard the new event.
+                    e->token = NULL;
+                    pqueue_insert(recycle_q, e);
+                    return(0);
                 }
+                // If there is no pre-existing event, UPDATE reverts to DROP, oddly.
             }
             if (trigger->policy == DROP || (trigger->policy == UPDATE && existing == NULL)) {
                 // Recycle the new event and the token.
@@ -519,18 +511,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                 pqueue_insert(recycle_q, e);
                 return(0);
             }
-            if (trigger->policy == DEFER 
-                || (trigger->policy == UPDATE && existing == NULL)) {
+            if (trigger->policy == DEFER) {
                 // Adjust the tag.
                 tag = earliest_time;
             }
         }
-
-        // Record the tag.
-        trigger->scheduled = tag;        
-        e->time = tag;                        
     }
-    
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
     // allowed), or if the event time is past the requested stop time.
@@ -543,10 +529,16 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         return(0);
     }
 
-    // Handle duplicate events for logical actions.
+    // Set the tag of the event.
+    e->time = tag;
+
+    // Record the tag for the next check of MIT.
+    trigger->scheduled = tag;
+
+    // Handle duplicate events for logical actions (events with the same tag).
     // This replaces the previous payload with the new one.
     if (!trigger->is_physical) {
-        existing = pqueue_find_equal_same_priority(event_q, e);
+        event_t* existing = pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
             // Free the previous payload.
             if (existing->token != token) __done_using(existing->token);
@@ -557,6 +549,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             return(0);
         }
     }
+    // Queue the event.
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
     // (time and microstep) have been pulled from the queue,
