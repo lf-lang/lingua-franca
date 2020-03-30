@@ -43,16 +43,18 @@ reactor MQTTSubscriber (
         #define QOS         2
         #define TIMEOUT     10000L
         
-        // FIXME: This should not be a global. See FIXME below.
-        MQTTClient client;
-        
         // Connection options for the client.
         // Making this global means that all instances of this reactor have
         // the same connection options.
         MQTTClient_connectOptions sub_connect_options = MQTTClient_connectOptions_initializer;
                 
         // Callback function invoked by MQTT when a message arrives.
-        int message_arrived(void *incoming_message, char *topicName, int topicLen, MQTTClient_message *message) {
+        int message_arrived(
+            void *incoming_message, 
+            char *topicName, 
+            int topicLen, 
+            MQTTClient_message *message
+        ) {
             // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
             
             // The incoming message is in dynamically allocated memory.
@@ -98,9 +100,7 @@ reactor MQTTSubscriber (
     /**
      * State variable storing the MQTT client created for each instance of this reactor.
      */
-    // FIXME: When the grammar allows it, replace the global above with a state variable
-    // and replace all references to "client" with "self->client".
-    // state client:MQTTClient;
+    state client:MQTTClient(NULL);
     
     /**
      * Maximum observed latency from the originator of the message to here.
@@ -118,7 +118,7 @@ reactor MQTTSubscriber (
     state count:int(0);
     
     reaction(startup) -> incoming_message {=
-        MQTTClient_create(&client, self->address, self->clientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        MQTTClient_create(&self->client, self->address, self->clientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
         sub_connect_options.keepAliveInterval = 20;
         sub_connect_options.cleansession = 1;
         
@@ -126,17 +126,17 @@ reactor MQTTSubscriber (
         // Last argument should be a pointer to a function to
         // handle notification of delivery of a sent message.
         // But this reactor isn't sending any messages.
-        MQTTClient_setCallbacks(client, incoming_message, sub_connection_lost, message_arrived, NULL);
+        MQTTClient_setCallbacks(self->client, incoming_message, sub_connection_lost, message_arrived, NULL);
         
         // Connect to the broker.
         int rc; // response code.
-        if ((rc = MQTTClient_connect(client, &sub_connect_options)) != MQTTCLIENT_SUCCESS) {
+        if ((rc = MQTTClient_connect(self->client, &sub_connect_options)) != MQTTCLIENT_SUCCESS) {
             fprintf(stderr, "MQTTSubscriber: Failed to connect to MQTT broker.\n");
             fprintf(stderr, "Perhaps one is not running? Return code: %d\n", rc);
             exit(EXIT_FAILURE);
         }
         
-        MQTTClient_subscribe(client, self->topic, QOS);
+        MQTTClient_subscribe(self->client, self->topic, QOS);
     =}
     
     reaction(incoming_message) -> message {=
@@ -166,12 +166,12 @@ reactor MQTTSubscriber (
     =}
     
     reaction(shutdown) {=
-        printf("MQTTSubscriber: Maximum latency (in nsec): %lld.\n", self->max_latency);
+        printf("MQTTSubscriber: Maximum communication latency (in nsec): %lld.\n", self->max_latency);
         if (self->count > 0) {
-            printf("MQTTSubscriber: Average latency (in nsec): %lld.\n", self->latencies/self->count);
+            printf("MQTTSubscriber: Average communication latency (in nsec): %lld.\n", self->latencies/self->count);
         }
         printf("MQTTSubscriber: Client ID %s disconnecting.\n", self->clientID);
-        MQTTClient_disconnect(client, 10000);
-        MQTTClient_destroy(&client);
+        MQTTClient_disconnect(self->client, 10000);
+        MQTTClient_destroy(&self->client);
     =}
 }
