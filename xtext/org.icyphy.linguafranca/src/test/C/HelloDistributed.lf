@@ -29,7 +29,7 @@ main reactor HelloDistributed {
     s = new Source();      // Reactor 0 in federate 0
     d = new Destination(); // Reactor 0 in federate 1
     // Following action is added by the code generator.
-    physical action a:string; // FIXME: not sure about malloc.
+    // physical action a:string; // FIXME: not sure about malloc.
     // Code generator removes the following connection:
     s.out -> d.in; // physical;
     // Code generator adds the following two reactions:
