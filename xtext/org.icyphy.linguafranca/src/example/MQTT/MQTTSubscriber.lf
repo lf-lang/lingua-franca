@@ -30,6 +30,9 @@ target C;
  * 
  * By default, the offset is 0, so the assigned timestamp will
  * be the physical time at which the message is received.
+ * With this setting, this reactor measures the communication
+ * latency and reports at the end of execution the average and
+ * maximum communication latencies.
  * 
  * @param topic The topic name on which to publish.
  * @param address The IP address of the MQTT broker.
@@ -116,7 +119,11 @@ reactor MQTTSubscriber (
     /**
      * Action that is triggered when there is an incoming MQTT message.
      * Use a physical action here so that the logical time when the action
-     * is triggered is the physical time of arrival of the message.
+     * is triggered is the physical time of arrival of the message if
+     * the offset is 0. If the offset is larger than the communication
+     * latency plus the clock synchronization error,
+     * then the incoming message will have have a timestamp deterministically
+     * larger than the sender's timestamp by the offset.
      */
     physical action incoming_message(offset):char*;
     
