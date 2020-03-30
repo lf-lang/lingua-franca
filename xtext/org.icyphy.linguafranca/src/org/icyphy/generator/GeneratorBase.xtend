@@ -162,7 +162,10 @@ abstract class GeneratorBase {
     /** The federation RTI port, which defaults to "15045". */
     protected var federationRTIPort = "15045"
 
-    /** The cmake_include target parameter, or null if there is none. */
+	/** The build-type target parameter, or null if there is none. */
+    protected String targetBuildType
+
+    /** The cmake-include target parameter, or null if there is none. */
     protected String targetCmakeInclude
     
     /** The compiler target parameter, or null if there is none. */
@@ -173,6 +176,9 @@ abstract class GeneratorBase {
 
     /** The compiler target no-compile parameter, or false if there is none. */
     protected boolean targetNoCompile = false
+    
+    /** The compiler target no-runtime-validation parameter, or false if there is none. */
+    protected boolean targetNoRuntimeValidation = false
         
     /** The fast target parameter, or false if there is none. */
     protected boolean targetFast = false
@@ -219,6 +225,8 @@ abstract class GeneratorBase {
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
                 switch param.name {
+                	case "build-type":
+                	    targetBuildType = param.value.id
                     case "cmake-include":
                         targetCmakeInclude = param.value.literal.withoutQuotes
                     case "compiler":
@@ -232,6 +240,10 @@ abstract class GeneratorBase {
                     case "no-compile":
                         if (param.value.literal == 'true') {
                             targetNoCompile = true
+                        }
+                    case "no-runtime-validation":
+                        if (param.value.id.equals('true')) {
+                            targetNoRuntimeValidation = true
                         }
                     case "keepalive":
                         if (param.value.literal == 'true') {

@@ -667,7 +667,7 @@ class CppGenerator extends GeneratorBase {
           unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
           unsigned timeout = 0;
-          auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted.");
+          auto opt_timeout = app.add_option("-o,--timeout", timeout, "Number of seconds after which the execution is aborted.");
           bool fast{«targetFast»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
           bool keepalive{«targetKeepalive»};
@@ -709,12 +709,9 @@ class CppGenerator extends GeneratorBase {
         include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
         include(GNUInstallDirs)
         
-        set(DEFAULT_BUILD_TYPE "Debug")
+        set(DEFAULT_BUILD_TYPE «IF targetBuildType === null»"Release"«ELSE»"«targetBuildType»"«ENDIF»)
         if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-          message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
           set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
-          # Set the possible values of build type for cmake-gui
-          set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
         endif()
         
         if(NOT REACTOR_CPP_BUILD_DIR)
@@ -730,6 +727,7 @@ class CppGenerator extends GeneratorBase {
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+            -DREACTOR_CPP_VALIDATE=«IF targetNoRuntimeValidation»OFF«ELSE»ON«ENDIF»
             «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
         )
         

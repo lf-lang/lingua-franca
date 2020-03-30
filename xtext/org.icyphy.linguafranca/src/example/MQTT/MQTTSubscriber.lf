@@ -1,0 +1,177 @@
+/**
+ * Reactor that subscribes to a specified MQTT topic on which
+ * string messages are published.
+ * See MQTTPhysical and MQTTLogical for prerequisites and an example usage.
+ * 
+ * @author Ravi Akella
+ * @author Edward A. Lee
+ */
+target C;
+
+/**
+ * Reactor that subscribes to a specified MQTT topic on which
+ * string messages are published.
+ * This reactor extracts the sender's timestamp from the message
+ * and adds to this timestamp the specified offset. If that
+ * offset is larger than the current physical time at which this
+ * reactor receives the message, then it assigns that incremented timestamp
+ * to the message.  Otherwise, the received message gets a timestamp
+ * equal to the physical time at which the message is received.
+ * 
+ * If the offset is always greater than or
+ * equal to the transport latency plus the clock synchronization
+ * error, then the overall program remains deterministic.
+ * 
+ * By default, the offset is 0, so the assigned timestamp will
+ * be the physical time at which the message is received.
+ * 
+ * @param topic The topic name on which to publish.
+ * @param address The IP address of the MQTT broker.
+ * @param clientID The name of the client instance.
+ *  These names are required to be unique.
+ * @param offset The offset to add to the sender's timestamp.
+ * @see MQTTPublisher.
+ */
+reactor MQTTSubscriber (
+    address:string("tcp://localhost:1883"),
+    clientID:string("DefaultSubscriber"),
+    topic:string("DefaultTopic"),
+    offset:time(0)
+) {
+    preamble {=
+        #include "MQTTClient.h"
+        #define QOS         2
+        #define TIMEOUT     10000L
+        
+        // FIXME: This should not be a global. See FIXME below.
+        MQTTClient client;
+        
+        // Connection options for the client.
+        // Making this global means that all instances of this reactor have
+        // the same connection options.
+        MQTTClient_connectOptions sub_connect_options = MQTTClient_connectOptions_initializer;
+                
+        // Callback function invoked by MQTT when a message arrives.
+        int message_arrived(void *incoming_message, char *topicName, int topicLen, MQTTClient_message *message) {
+            // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
+            
+            // The incoming message is in dynamically allocated memory.
+            // We copy the message using schedule_copy() because, unfortunately, Paho MQTT uses its own
+            // version of malloc() and free() (defined in Heap.h and Heap.c).
+            // We could modify Paho MQTT to use the generic malloc() and free(),
+            // and then we could use schedule_value() to avoid the copy.
+            // Note that the last 8 bytes of the message are the sender's timestamp.
+            // We include that in the copy so that the reaction to the physical action
+            // can measure the latency.
+            schedule_copy(incoming_message, 0, (char*)message->payload, message->payloadlen);
+            
+            // MQTTClient_freeMessage() also frees the memory allocated to the payload,
+            // which is why we have to copy the message here.
+            MQTTClient_freeMessage(&message);
+            MQTTClient_free(topicName);
+            
+            // Return true to indicate that the message has been successfully handled.
+            return 1;
+        }
+        
+        /** Callback invoked if the connection is lost. */
+        void sub_connection_lost(void *incoming_message, char *cause) {
+            printf("\nConnection lost\n");
+            printf("  cause: %s\n", cause);
+        }
+    =}
+    
+    /**
+     * Output for sending the incoming MQTT message.
+     * Use type char* rather than string because it is not
+     * a static string, but rather dynamically allocated memory.
+     */
+     output message:char*;
+
+    /**
+     * Action that is triggered when there is an incoming MQTT message.
+     * Use a physical action here so that the logical time when the action
+     * is triggered is the physical time of arrival of the message.
+     */
+    physical action incoming_message:char*;
+    
+    /**
+     * State variable storing the MQTT client created for each instance of this reactor.
+     */
+    // FIXME: When the grammar allows it, replace the global above with a state variable
+    // and replace all references to "client" with "self->client".
+    // state client:MQTTClient;
+    
+    /**
+     * Maximum observed latency from the originator of the message to here.
+     */
+    state max_latency:time(0);
+    
+    /**
+     * Sum of all observed latencies.
+     */
+    state latencies:time(0);
+    
+    /**
+     * Count of messages.
+     */
+    state count:int(0);
+    
+    reaction(startup) -> incoming_message {=
+        MQTTClient_create(&client, self->address, self->clientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        sub_connect_options.keepAliveInterval = 20;
+        sub_connect_options.cleansession = 1;
+        
+        // Set up callback functions.
+        // Last argument should be a pointer to a function to
+        // handle notification of delivery of a sent message.
+        // But this reactor isn't sending any messages.
+        MQTTClient_setCallbacks(client, incoming_message, sub_connection_lost, message_arrived, NULL);
+        
+        // Connect to the broker.
+        int rc; // response code.
+        if ((rc = MQTTClient_connect(client, &sub_connect_options)) != MQTTCLIENT_SUCCESS) {
+            fprintf(stderr, "MQTTSubscriber: Failed to connect to MQTT broker.\n");
+            fprintf(stderr, "Perhaps one is not running? Return code: %d\n", rc);
+            exit(EXIT_FAILURE);
+        }
+        
+        MQTTClient_subscribe(client, self->topic, QOS);
+    =}
+    
+    reaction(incoming_message) -> message {=
+        self->count++;
+        
+        // The incoming_message action contains a token that we can just forward.
+        // The allocated memory will be freed when the token's reference count hits 0.
+        // Note that this token will still contain the sender's timestamp.
+        set_token(message, incoming_message_token);
+                
+        // Get the sender's timestamp.
+        instant_t* timestamp = (instant_t*)(
+            incoming_message_token->value + incoming_message_token->length - sizeof(instant_t)
+        );
+        // printf("DEBUG: Received message carrying timestamp %lld.\n", *timestamp);
+        
+        // The physical latency between creation of the message and sender
+        // and its receipt here is the current logical time minus the timestamp.
+        interval_t latency = get_logical_time() - *timestamp;
+        // printf("DEBUG: Received latency: %lld.\n", latency);
+        
+        self->latencies += latency;
+        
+        if (latency > self->max_latency) {
+            self->max_latency = latency;
+        }
+    =}
+    
+    reaction(shutdown) {=
+        printf("MQTTSubscriber: Maximum latency (in nsec): %lld.\n", self->max_latency);
+        if (self->count > 0) {
+            printf("MQTTSubscriber: Average latency (in nsec): %lld.\n", self->latencies/self->count);
+        }
+        printf("MQTTSubscriber: Client ID %s disconnecting.\n", self->clientID);
+        MQTTClient_disconnect(client, 10000);
+        MQTTClient_destroy(&client);
+    =}
+}
