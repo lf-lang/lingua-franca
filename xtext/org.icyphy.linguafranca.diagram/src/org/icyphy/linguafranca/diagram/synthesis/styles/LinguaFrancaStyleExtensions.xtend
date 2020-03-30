@@ -41,6 +41,13 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 		t.selectionFontBold = true
 	}
 	
+	def errorStyle(KRendering r) {
+		r.foreground = Colors.RED
+		r.lineWidth = 2
+		r.selectionLineWidth = 3
+		//r.background = Colors.TOMATO
+	}
+	
 	static var LabelDecorationConfigurator _onEdgeLabelConfigurator; // ONLY for use in applyOnEdgeStyle
 	def applyOnEdgeStyle(KLabel label) {
 		if (_onEdgeLabelConfigurator === null) {
