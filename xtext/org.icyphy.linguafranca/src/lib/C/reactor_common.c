@@ -517,20 +517,21 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             }
         }
     }
+    // Set the tag of the event.
+    e->time = tag;
+
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
     // allowed), or if the event time is past the requested stop time.
-    // printf("DEBUG: Scheduling an event with elapsed time %lld.\n", e->time - start_time);
+    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
     if ((stop_requested && e->time != current_time)
             || (stop_time > 0LL && e->time > stop_time)) {
         // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
+        e->token = NULL;
         pqueue_insert(recycle_q, e);
         return(0);
     }
-
-    // Set the tag of the event.
-    e->time = tag;
 
     // Record the tag for the next check of MIT.
     trigger->scheduled = tag;
