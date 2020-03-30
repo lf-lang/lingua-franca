@@ -1,0 +1,43 @@
+// Test that the stop function can be used to internally to impose a
+// a time limit.
+// This is also used to test performance (number of reactions per second).
+// Correct output for this 1, 2, 3, 4.
+// Failure for this test is failing to halt or getting the wrong data.
+target Cpp {
+	fast: true
+};
+reactor Clock(offset:time(0), period:time(1 sec)) {
+	output y:int;
+	timer t(offset, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		count++;
+		//std::cout << "Reacting at time " << get_elapsed_logical_time() << '\n';
+		y.set(count);
+	=}
+}
+reactor Destination {
+	input x:int;
+	state s:int(1);
+	reaction(x) {=
+	    //std::cout << "Received " << *x.get() << '\n'; 
+		if (*x.get() != s) {
+		    std::cerr << "Error: Expected " << s << " and got " << *x.get() << '\n';
+		    exit(1);
+		}
+		s++;
+	=}
+}
+
+main reactor TimeLimit(period:time(100 usec)) {
+	timer stop(10 secs);
+	reaction(stop) {=
+		environment()->sync_shutdown();
+	=}
+    reaction(shutdown) {=
+        std::cout << "**** shutdown reaction invoked.\n";
+    =}
+	c = new Clock(period = period);
+	d = new Destination();
+	c.y -> d.x;
+}
