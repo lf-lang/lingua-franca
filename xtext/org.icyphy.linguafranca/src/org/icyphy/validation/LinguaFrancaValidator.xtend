@@ -53,8 +53,9 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.generator.GeneratorBase
 import org.icyphy.ASTUtils
+import org.icyphy.Targets.BuildTypes
+
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -277,9 +278,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
             
             switch prop {
+           	case BUILD_TYPE:
+                if (!Arrays.asList(BuildTypes.values()).exists[it.toString.equals(param.value.id)]) {
+                    error("Target property build-type is required to be one of " +
+                        BuildTypes.values(),
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
             case CMAKE_INCLUDE:
                 if (param.value.literal === null) {
-                    error("Target property cmake_include is required to be a string.",
+                    error("Target property cmake-include is required to be a string.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case COMPILER:
@@ -370,8 +377,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case NO_COMPILE:
-                 if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
                     error("Target property no-compile is required to be true or false.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case NO_RUNTIME_VALIDATION:
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                    error("Target property no-runtime-validation is required to be true or false.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case THREADS: {

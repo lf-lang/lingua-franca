@@ -283,6 +283,12 @@ public enum Targets {
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum TargetProperties {
+        
+        /**
+         * Directive to specify the target build type such as 'Release' or 'Debug'.
+         */
+        BUILD_TYPE("build-type", Arrays.asList(Targets.CPP)),
+        
         /**
          * Directive to specify a cmake to be included by the generated build systems.
          *
@@ -322,6 +328,11 @@ public enum Targets {
          * Directive to not invoke the target compiler.
          */
         NO_COMPILE("no-compile", Arrays.asList(Targets.C, Targets.CPP)),
+        
+        /**
+         * Directive to disable validation of reactor rules at runtime.
+         */
+        NO_RUNTIME_VALIDATION("no-runtime-validation", Arrays.asList(Targets.CPP)),
         
         /**
          * Directive to specify the number of threads.
@@ -387,6 +398,13 @@ public enum Targets {
         public String toString() {
             return this.name;
         }
+    }
+    
+    /**
+     * Build types
+     */
+    public enum BuildTypes {
+        Release, Debug, RelWithDebInfo, MinSizeRel;
     }
     
     /**

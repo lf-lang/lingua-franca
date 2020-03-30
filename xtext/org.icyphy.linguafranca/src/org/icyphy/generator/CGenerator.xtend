@@ -611,7 +611,6 @@ int main(int argc, char* argv[]) {
                     // NOTE: Slightly obfuscate input name to help prevent accidental use.
                     // for int[10], the first match is int, the second [10].
                     // The following results in: int(* __foo)[10];
-                    // FIXME: Are the parentheses here necessary or correct?  Check test ArrayAsType.lf
                     pr(body, '''«matcher.group(1)»(* __«input.name»)«matcher.group(2)»;''');
                 } else {
                     // NOTE: Slightly obfuscate input name to help prevent accidental use.
