@@ -1910,10 +1910,10 @@ int main(int argc, char* argv[]) {
         String type
     ) {
         // Adjust the type of the action.
-        // If it is "string", then change it to "char".
-        // Pointer types in actions are declared without the "*" (perhaps oddly).
+        // If it is "string", then change it to "char*".
+        // The latter is used for dynamically allocated strings.
         if (action.type == "string") {
-            action.type = "char"
+            action.type = "char*"
         }
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -2238,18 +2238,33 @@ int main(int argc, char* argv[]) {
             ''')
         // Create the _value variable if there is a type.
         if (type !== null) {
-            // Create the value variable, but initialize it only if the pointer is not null.
-            // NOTE: The token_t objects will get recycled automatically using
-            // this scheme and never freed. The total number of token_t structs created
-            // will equal the maximum number of actions that are simultaneously in
-            // the event queue.
-            pr(builder, '''
-                «type» «action.name»_value;
-                if («action.name»_has_value) {
-                     «action.name»_value = *((«type»*)«tokenPointer»->value);
-                }
-                '''
-            )
+            if (isTokenType(type)) {
+                // Create the value variable, but initialize it only if the pointer is not null.
+                // NOTE: The token_t objects will get recycled automatically using
+                // this scheme and never freed. The total number of token_t structs created
+                // will equal the maximum number of actions that are simultaneously in
+                // the event queue.
+                pr(builder, '''
+                    «type» «action.name»_value;
+                    if («action.name»_has_value) {
+                        «action.name»_value = ((«type»)«tokenPointer»->value);
+                    }
+                    '''
+                )
+            } else {
+                // Create the value variable, but initialize it only if the pointer is not null.
+                // NOTE: The token_t objects will get recycled automatically using
+                // this scheme and never freed. The total number of token_t structs created
+                // will equal the maximum number of actions that are simultaneously in
+                // the event queue.
+                pr(builder, '''
+                    «type» «action.name»_value;
+                    if («action.name»_has_value) {
+                        «action.name»_value = *((«type»*)«tokenPointer»->value);
+                    }
+                    '''
+                )
+            }
         }
     }
     
