@@ -5,7 +5,7 @@ target Cpp {
     timeout: 2 sec
 };
 reactor Source(period:time(1 sec)) {
-    preamble {=
+    private preamble {=
         #include <thread>
     =}
     output y:int;
