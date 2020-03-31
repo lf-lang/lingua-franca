@@ -54,6 +54,7 @@ MultipleContained.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
 Preamble.lf
+PreambleFile.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
 ScheduleValue.lf

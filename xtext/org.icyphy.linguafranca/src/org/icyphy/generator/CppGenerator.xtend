@@ -52,6 +52,7 @@ import org.icyphy.linguaFranca.VarRef
 import java.util.LinkedList
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Visibility
+import org.icyphy.linguaFranca.Model
 
 /** Generator for C++ target.
  *
@@ -98,6 +99,14 @@ class CppGenerator extends GeneratorBase {
         r.toPath.getFilename
     }
     
+    def preambleHeaderFile(Resource r) {
+    	r.toDir + File.separator + "preamble.hh"
+    }
+    
+    def preambleSourceFile(Resource r) {
+        r.toDir + File.separator + "preamble.cc"
+    }
+    
     def headerFile(Reactor r) {
     	r.eResource.toDir + File.separator + r.name + ".hh"
     }
@@ -128,6 +137,11 @@ class CppGenerator extends GeneratorBase {
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile, r.generateReactorHeader)
             fsa.generateFile(filename + File.separator + r.sourceFile, r.generateReactorSource)
+        }
+        
+        for (r: reactorsByResource.keySet()) {
+        	fsa.generateFile(filename + File.separator + r.preambleSourceFile, r.generatePreambleSource)
+        	fsa.generateFile(filename + File.separator + r.preambleHeaderFile, r.generatePreambleHeader)
         }
 
         if (!targetNoCompile && !errorsOccurred()) {
@@ -632,6 +646,31 @@ class CppGenerator extends GeneratorBase {
         «ENDIF»
     '''
 
+    def generatePreambleHeader(Resource r) '''
+        «r.header»
+        
+        #pragma once
+        
+        #include "reactor-cpp/reactor-cpp.hh"
+        
+        «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
+            «IF p.visibility === Visibility.PUBLIC»«p.code.removeCodeDelimiter»«ENDIF»
+        «ENDFOR»
+    '''
+    
+    def generatePreambleSource(Resource r) '''
+        «r.header»
+        
+        #include "«r.preambleHeaderFile»"
+        
+        using namespace std::chrono_literals;
+        using namespace reactor::operators;
+        
+        «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
+            «IF p.visibility === Visibility.PRIVATE»«p.code.removeCodeDelimiter»«ENDIF»
+        «ENDFOR»
+    '''
+
     def generateReactorHeader(Reactor r) '''
         «r.eResource.header»
         
@@ -639,6 +678,8 @@ class CppGenerator extends GeneratorBase {
         
         #include "reactor-cpp/reactor-cpp.hh"
         
+        #include "«r.eResource.preambleHeaderFile»"
+
         «r.includeInstances»
         «r.publicPreamble»
         using namespace std::chrono_literals;
@@ -811,7 +852,10 @@ class CppGenerator extends GeneratorBase {
         add_executable(«filename»
           main.cc
           «FOR r : reactors»
-              «r.eResource.toDir»«File.separator»«r.getName()».cc
+              «r.sourceFile»
+          «ENDFOR»
+          «FOR r : reactorsByResource.keySet()»
+              «r.preambleSourceFile»
           «ENDFOR»
         )
         target_include_directories(«filename» PUBLIC
