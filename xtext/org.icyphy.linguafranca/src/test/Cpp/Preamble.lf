@@ -1,0 +1,32 @@
+target Cpp;
+
+main reactor Preamble {
+    // This declaration is required on the public reactor interface and
+    // therefore needs to be placed in the generated header. This goes to
+    // Preamble/Preamble.hh.
+    public preamble {=
+        struct MyStruct {
+            int foo;
+            std::string bar;
+        };
+    =}
+    // this is only used inside reactions and therefore goes to the generated source file
+    // This function is only used inside a reaction and therefore is part of the private 
+    // interfac. Moreover, we need to make sure that the function is only defined once
+    // within a source file. This goas to Preamble/Preamble.cc
+    private preamble {=
+        int add_42(int i) {
+            return i + 42;
+        }
+    =}
+    logical action a:MyStruct;
+    
+    reaction(startup) {=
+        a.schedule({add_42(42), "baz"});
+    =}
+
+    reaction(a) {=
+        auto& value = *a.get();
+        std::cout << "Received " << value.foo << " and '" << value.bar << "'\n"; 
+    =}
+}

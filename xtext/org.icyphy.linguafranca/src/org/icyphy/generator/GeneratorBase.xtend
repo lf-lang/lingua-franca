@@ -72,6 +72,7 @@ import org.icyphy.linguaFranca.VarRef
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  *  @author{Chris Gill, <cdgill@wustl.edu>}
+ *  @author{Christian Menard <christian.menard@tu-dresden.de}
  */
 abstract class GeneratorBase {
 
@@ -135,6 +136,10 @@ abstract class GeneratorBase {
      *  full filename with the .lf extension.
      */
     protected var String sourceFile
+    
+    /** A map from resources to the reactors they contain */
+    protected var Map<Resource,List<Reactor>> reactorsByResource
+            = new HashMap<Resource,List<Reactor>>()
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
@@ -352,9 +357,11 @@ abstract class GeneratorBase {
         // non-main reactors that are not instantiated in a particular
         // federate. But it seems harmless to generate it since a good
         // compiler will remove it anyway as dead code.
+        reactorsByResource.put(resource, new LinkedList<Reactor>());
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
             if (!reactor.isMain) {
                 generateReactor(reactor)
+                reactorsByResource.get(resource).add(reactor)
             }
         }
     }
@@ -701,10 +708,12 @@ abstract class GeneratorBase {
                 processImports(importResource)
                 // Call generateReactor for each reactor contained by the import
                 // that is not a main reactor.
+                reactorsByResource.put(importResource, new LinkedList<Reactor>());
                 for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
                     if (!reactor.isMain) {
                         println("Including imported reactor: " + reactor.name)
                         generateReactor(reactor)
+                        reactorsByResource.get(importResource).add(reactor)
                     }
                 }
             }
@@ -1181,23 +1190,49 @@ abstract class GeneratorBase {
         }
     }
     
+    /** Create a string representing the file path of a resource.
+     */
+    protected def toPath(Resource resource) {
+    	var path = resource.getURI.toString
+        if (path.startsWith('platform:')) {
+            mode = Mode.INTEGRATED
+            var fileURL = FileLocator.toFileURL(new URL(path)).toString
+            return Paths.get(fileURL.substring(5)).normalize.toString;
+        } else if (path.startsWith('file:')) {
+            mode = Mode.STANDALONE
+            return Paths.get(path.substring(5)).normalize.toString;
+        } else {
+            System.err.println(
+                "ERROR: Source file protocol is not recognized: " + path);
+        }
+        return null as String;
+    }
+    
+    /** Extract the name of a file from a path represented as a string.
+     *  If the file ends with '.lf', the extension is removed.
+     */
+    protected def getFilename(String path) {
+        var File f = new File(path)
+        var name = f.getName()
+        if (name.endsWith('.lf')) {
+            name = name.substring(0, name.length - 3)
+        }
+        return name
+    }
+    
+    /** Extract the directory from a path represented as a string.
+     */
+    protected def getDirectory(String path) {
+        var File f = new File(path)
+        f.getParent()
+    }
+    
     /** Analyze the resource (the .lf file) that is being parsed
      *  to generate code to set the following variables:
      *  directory, filename, mode, sourceFile.
      */
     private def analyzeResource(Resource resource) {
-        var path = resource.getURI.toString
-        if (path.startsWith('platform:')) {
-            mode = Mode.INTEGRATED
-            var fileURL = FileLocator.toFileURL(new URL(path)).toString
-            sourceFile = Paths.get(fileURL.substring(5)).normalize.toString
-        } else if (path.startsWith('file:')) {
-            mode = Mode.STANDALONE
-            sourceFile = Paths.get(path.substring(5)).normalize.toString
-        } else {
-            System.err.println(
-                "ERROR: Source file protocol is not recognized: " + path);
-        }
+        sourceFile = resource.toPath;
         
         // Strip the filename of the extension.
         var File f = new File(sourceFile);
