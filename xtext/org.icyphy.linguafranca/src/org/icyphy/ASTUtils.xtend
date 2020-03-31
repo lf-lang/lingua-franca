@@ -117,7 +117,6 @@ class ASTUtils {
         parent.reactions.add(r1)
     }
     
-    
     /** Replace the specified connection with a communication between federates.
      *  @param connection The connection.
      *  @param leftFederate The source federate.
@@ -228,6 +227,11 @@ class ASTUtils {
         return name + suffix
     }
     
+    /**
+     * Create a new type based on the given type.
+     * @param type The type to duplicate.
+     * @return A deep copy of the given type.
+     */
     private def duplicateType(Type type) {
         if (type !== null) {
             val newType = factory.createType
@@ -249,9 +253,10 @@ class ASTUtils {
         }
     }
     
-    /** 
-     * Assemble a list of tokens into a string.
-     * @return A code segment consisting of the given tokens.
+    /**
+     * Translate the given code into its textual representation.
+     * @param code AST node to render as string.
+     * @return Textual representation of the given argument.
      */
     def static String toText(Code code) {
         if (code !== null) {
@@ -268,6 +273,11 @@ class ASTUtils {
         return ""
     }
     
+    /**
+     * Translate the given type into its textual representation.
+     * @param type AST node to render as string.
+     * @return Textual representation of the given argument.
+     */
     def static toText(Type type) {
         if (type !== null) {
             if (type.code !== null) {
@@ -289,7 +299,12 @@ class ASTUtils {
         ""
     }
     
-    def static toText(LiteralOrCode literalOrCode) {
+    /**
+     * Translate the given literal or code into a textual representation.
+     * @param literalOrCode AST node to render as string.
+     * @return Textual representation of the given argument.
+     */
+    def static String toText(LiteralOrCode literalOrCode) {
         if (literalOrCode.literal !== null) {
             return literalOrCode.literal
         } else {
@@ -297,9 +312,16 @@ class ASTUtils {
         }
     }
     
+    /**
+     * Report whether the given literal is zero or not.
+     * @param literalOrCode AST node to inspect.
+     * @return True if the given literal denotes the constant `0`, false
+     * otherwise.
+     */
     def static boolean isZero(LiteralOrCode literalOrCode) {
         try {
-            if (literalOrCode !== null && Integer.parseInt(literalOrCode.toText.trim) == 0) {
+            if (literalOrCode !== null &&
+                Integer.parseInt(literalOrCode.toText.trim) == 0) {
                 return true
             }
         } catch (NumberFormatException e) {
