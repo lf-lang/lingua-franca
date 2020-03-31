@@ -1,6 +1,4 @@
-target Cpp{
-    threads: 1
-};
+target Cpp;
 reactor Source {
     output y:int;
     timer t;

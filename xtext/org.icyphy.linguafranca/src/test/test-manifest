@@ -56,6 +56,7 @@ PeriodicDesugared.lf
 Preamble.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
+ScheduleValue.lf
 ScheduleLogicalAction.lf
 SendingInside.lf
 SendingInside2.lf

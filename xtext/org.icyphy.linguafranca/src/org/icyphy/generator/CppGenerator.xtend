@@ -355,7 +355,7 @@ class CppGenerator extends GeneratorBase {
         if (r.parameters.length > 0) {
             '''
                 «r.name»(const std::string& name,
-                    «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+                    «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
                     «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «IF p.ofTimeType»«p.trimmedTime»«ELSE»«p.trimmedValue»«ENDIF»«ENDFOR»
             '''
         } else {
@@ -380,10 +380,21 @@ class CppGenerator extends GeneratorBase {
     }
 
     def trimmedType(State s) {
+<<<<<<< HEAD
         if (s.type !== null) {
             s.type.typeToString.removeCodeDelimiter
+=======
+        if (s.ofTimeType) {
+            '''reactor::Duration'''
+>>>>>>> 327eb715cf75b1b63ea43680258e91b376613516
         } else {
-            '''/* «s.reportError("State variable has no type")» */'''
+            if (s.type !== null) {
+                s.type.removeCodeDelimiter
+            } else if (s.parameter !== null) {
+            	s.parameter.trimmedType
+            } else {
+                '''/* «s.reportError("State has no type")» */'''
+            }
         }
     }
 
@@ -434,6 +445,33 @@ class CppGenerator extends GeneratorBase {
             '''/* «p.reportError("Expected a parameter of type time!")» */'''
         }
     }
+    
+    def trimmedValue(State s) {
+        if (s.ofTimeType) {
+        	'''/* «s.reportError("Did not expect a state of type time!")» */'''
+        } else if (s.parameter !== null) {
+        	s.parameter.name
+        } else {
+            s.value.removeCodeDelimiter
+        }
+    }
+    
+    def trimmedTime(State s) {
+        if (s.ofTimeType) {
+            if (s.unit === null || s.unit === TimeUnit.NONE) {
+            	if (s.time == 0) {
+                    '''reactor::Duration::zero()'''
+                } else {
+                	'''/* «s.reportError("Time values need to be 0 or have a unit!")» */'''
+                }
+            } else {
+                '''«s.time»«timeUnitsToCppUnits.get(s.unit)»'''
+            }
+        } else {
+            '''/* «s.reportError("Expected a state of type time!")» */'''
+        }
+    }
+    
 
     def trimmedValue(TimeOrValue tv) {
         if (tv.parameter !== null) {
@@ -471,12 +509,15 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
+<<<<<<< HEAD
     def trimmedValue(State s) { s.init.value.literalOrCodeToString }
 
+=======
+>>>>>>> 327eb715cf75b1b63ea43680258e91b376613516
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
-                «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+                «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
                 «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
         «ELSE»
             «IF r == mainReactor»
@@ -501,7 +542,7 @@ class CppGenerator extends GeneratorBase {
 
     def initializeStateVariables(Reactor r) '''
         «FOR s : r.states BEFORE "// state variables\n"»
-            , «s.name»(«s.trimmedValue»)
+            , «s.name»(«IF s.ofTimeType»«s.trimmedTime»«ELSE»«s.trimmedValue»«ENDIF»)
         «ENDFOR»
     '''
 
@@ -722,7 +763,7 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "90a4fa906331937174076a4e378067eea653131d"
+          GIT_TAG "c8df5e661a6dad30a801e2d6027a2be15acb4cbe"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
