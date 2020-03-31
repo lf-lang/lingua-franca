@@ -661,7 +661,7 @@ class CppGenerator extends GeneratorBase {
     def generatePreambleSource(Resource r) '''
         «r.header»
         
-        #include "«r.preambleHeaderFile»"
+        #include "reactor-cpp/reactor-cpp.hh"
         
         using namespace std::chrono_literals;
         using namespace reactor::operators;
@@ -682,8 +682,6 @@ class CppGenerator extends GeneratorBase {
 
         «r.includeInstances»
         «r.publicPreamble»
-        using namespace std::chrono_literals;
-        using namespace reactor::operators;
         
         class «r.getName()» : public reactor::Reactor {
          private:
@@ -705,6 +703,11 @@ class CppGenerator extends GeneratorBase {
 
     def generateReactorSource(Reactor r) '''
         «r.eResource.header»
+
+        #include "reactor-cpp/reactor-cpp.hh"
+        
+        using namespace std::chrono_literals;
+        using namespace reactor::operators;
         
         #include "«r.headerFile»"
         
@@ -741,6 +744,9 @@ class CppGenerator extends GeneratorBase {
         #include <memory>
         
         #include "reactor-cpp/reactor-cpp.hh"
+        
+        using namespace std::chrono_literals;
+        using namespace reactor::operators;
         
         #include "CLI/CLI11.hpp"
         
