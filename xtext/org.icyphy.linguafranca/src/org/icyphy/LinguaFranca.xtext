@@ -208,15 +208,13 @@ Port:
 
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (string=ID '*'* ARRAYSIZE?) | code=Code;
+   (id=ID (stars+='*')* (length=ARRAY_LENGTH)?) | code=Code;
 
-// Either [] or [number], where number cannot begin with 0 and is positive.
-terminal ARRAYSIZE:
+terminal ARRAY_LENGTH:
     '[' (('1'..'9')('0'..'9')*)? ']';
-
+    
 terminal BOOL:
-    'true' | 'false'
-;
+    'true' | 'false';
 
 Literal:
     STRING | FLOAT | INT | NEGINT | BOOL;
@@ -283,7 +281,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' |
     // Other terminals
-    FLOAT | NEGINT | ARRAYSIZE | BOOL |
+    FLOAT | NEGINT | BOOL | ARRAY_LENGTH |
     // Queuing policies
     'DEFER' | 'DROP' | 'UPDATE' |
     // Action origins

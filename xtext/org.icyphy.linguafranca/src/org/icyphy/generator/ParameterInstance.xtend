@@ -28,6 +28,7 @@ package org.icyphy.generator
 
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Type
 
 /** Representation of a runtime instance of a parameter.
  *  
@@ -55,7 +56,9 @@ abstract class ParameterInstance extends NamedInstance<Parameter> {
 //    /** The type of the parameter, stripped of the code delimiters
 //     *  {= ... =} if they were provided.
 //     */
-    public var type = "UNTYPED"
+    //public var type = "UNTYPED"
+    protected Type type
+    
     /////////////////////////////////////////////
     //// Public Methods
 
@@ -82,7 +85,7 @@ abstract class ParameterInstance extends NamedInstance<Parameter> {
 }
 
 class ValueParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, String value, String type) {
+	new(Parameter definition, ReactorInstance parent, String value, Type type) {
 		super(definition, parent)
 		this.type = type
 		this.value = value
@@ -105,7 +108,6 @@ class TimeParameter extends ParameterInstance {
 	new(Parameter definition, ReactorInstance parent, TimeValue timeValue) {
 		super(definition, parent)
 		this.value = timeValue
-		this.type = parent.generator.timeTypeInTargetLanguage()
 	}
 	
 	public TimeValue value
@@ -114,4 +116,5 @@ class TimeParameter extends ParameterInstance {
 	override getLiteralValue() {
 		return parent.generator.timeInTargetLanguage(this.value)
 	}
+	
 }

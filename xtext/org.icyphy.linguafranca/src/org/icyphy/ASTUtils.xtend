@@ -27,21 +27,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy
 
-import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.LinguaFrancaFactory
+import java.util.HashSet
+import org.eclipse.xtext.nodemodel.ILeafNode
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.generator.FederateInstance
+import org.icyphy.generator.GeneratorBase
+import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
+import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
-import java.util.HashSet
-import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.generator.GeneratorBase
-import org.icyphy.generator.FederateInstance
-import org.eclipse.emf.common.util.EList
-import org.icyphy.linguaFranca.LiteralOrCode
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.linguaFranca.Code
-import org.eclipse.xtext.nodemodel.ILeafNode
+import org.icyphy.linguaFranca.Type
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -64,7 +63,7 @@ class ASTUtils {
      * @param connection The connection to replace.
      * @param delay The delay associated with the connection.
      */
-    def desugarDelay(Connection connection, Delay delay) {
+    def void desugarDelay(Connection connection, Delay delay) {
         val factory = LinguaFrancaFactory.eINSTANCE
         val type = duplicateType((connection.rightPort.variable as Port).type)
         val action = factory.createAction
@@ -124,7 +123,7 @@ class ASTUtils {
      *  @param leftFederate The source federate.
      *  @param rightFederate The destination federate.
      */
-    def makeCommunication(
+    def void makeCommunication(
         Connection connection, 
         FederateInstance leftFederate,
         FederateInstance rightFederate
@@ -236,12 +235,13 @@ class ASTUtils {
             // Set the type based on the argument type.
             if (type.code !== null) {
                 newType.code = factory.createCode
-                newType.code.tokens.forEach[type.code.tokens.add(it)]
+                type.code.tokens?.forEach[newType.code.tokens.add(it)]
             } else {
-                newType.string = type.string
+                newType.id = type.id
+                type.stars?.forEach[newType.stars.add(it)]
+                newType.length = type.length
             }
-            
-            newType
+            return newType
         }
     }
     
@@ -258,10 +258,10 @@ class ASTUtils {
                     builder.append(leaf.getText());
                 }
                 val str = builder.toString.trim
-                str.substring(2, str.length - 2).trim    
+                return str.substring(2, str.length - 2).trim    
             }
         }
-        ""
+        return ""
     }
     
     def static typeToString(Type type) {
@@ -269,9 +269,14 @@ class ASTUtils {
             if (type.code !== null) {
                 return assembleTokens(type.code)
             } else {
-                return type.string
+                var stars = ""
+                for (s : type.stars ?: emptyList) {
+                    stars += s
+                }
+                return type.id + stars + (type.length ?: "")
             }
         }
+        ""
     }
     
     def static literalOrCodeToString(LiteralOrCode literalOrCode) {
@@ -281,4 +286,5 @@ class ASTUtils {
             return assembleTokens(literalOrCode.code)
         }
     }
+
 }
