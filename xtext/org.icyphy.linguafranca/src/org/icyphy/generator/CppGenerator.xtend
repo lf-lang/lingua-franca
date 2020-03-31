@@ -43,7 +43,6 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.State
-import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
@@ -117,9 +116,6 @@ class CppGenerator extends GeneratorBase {
    
         
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-
-        var target = resource.findTarget
-        
         super.doGenerate(resource, fsa, context)
         mainReactor = this.mainDef?.reactorClass
         
@@ -131,8 +127,8 @@ class CppGenerator extends GeneratorBase {
             reactorsByResource.get(resource).add(mainReactor)
         }
         
-        fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain(target))
-        fsa.generateFile(filename + File.separator + "CMakeLists.txt", target.generateCmake(reactors))
+        fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
+        fsa.generateFile(filename + File.separator + "CMakeLists.txt", generateCmake)
 
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile, r.generateReactorHeader)
@@ -736,7 +732,7 @@ class CppGenerator extends GeneratorBase {
          */
     '''
 
-    def generateMain(Reactor main, Target t) '''
+    def generateMain(Reactor main) '''
         «resource.header»
 
         #include <chrono>        
@@ -803,7 +799,7 @@ class CppGenerator extends GeneratorBase {
         }
     '''
 
-    def generateCmake(Target target, List<Reactor> reactors) '''
+    def generateCmake() '''
         cmake_minimum_required(VERSION 3.5)
         project(«filename» VERSION 1.0.0 LANGUAGES CXX)
         
