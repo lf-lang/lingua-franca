@@ -57,7 +57,7 @@ else
                 eval "$offset""bin/lfc ""$p";
                 echo "================================================================================";
                 if [ $1 == "Cpp" ]; then
-                    command="bin/$name --timeout 1"
+                    command="bin/$name"
                 elif [ $1 == "C" ]; then
                     command="bin/$name --timeout 1 sec"
                 elif [ $1 == "TS" ]; then

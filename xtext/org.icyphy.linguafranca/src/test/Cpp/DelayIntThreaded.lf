@@ -1,7 +1,5 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
-target Cpp{
-    threads: 1
-};
+target Cpp;
 reactor Delay(delay:time(100 msec)) {
     input in:int;
     output out:int;

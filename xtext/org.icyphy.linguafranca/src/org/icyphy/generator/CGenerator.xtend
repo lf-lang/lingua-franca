@@ -1950,7 +1950,7 @@ int main(int argc, char* argv[]) {
         // Pointer types in actions are declared without the "*" (perhaps oddly).
         if (action.type.typeToString == "string") {
             action.type.code = null
-            action.type.id = "char"
+            action.type.id = "char*"
         }
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -2282,6 +2282,7 @@ int main(int argc, char* argv[]) {
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
                 pr(builder, '''
+
                     «type.typeToString» «action.name»_value;
                     if («action.name»_has_value) {
                         «action.name»_value = ((«type.typeToString»)«tokenPointer»->value);

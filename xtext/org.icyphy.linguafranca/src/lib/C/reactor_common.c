@@ -96,6 +96,7 @@ interval_t get_elapsed_logical_time() {
 
 /** Return the current logical time in nanoseconds since January 1, 1970. */
 instant_t get_logical_time() {
+    // FIXME: Does this need acquire the mutex?
     return current_time;
 }
 
@@ -447,6 +448,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 	// We first do this assuming it is logical action and then, if it is a
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
+    if (delay < 0LL) {
+        fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
+                "Scheduling instead at the current time.\n", -delay);
+        delay = 0LL;
+    }
     interval_t tag = current_time + delay;
     interval_t min_inter_arrival = trigger->period;
 
@@ -471,6 +477,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         instant_t physical_time = get_physical_time();
 
         if (physical_time > tag) {
+            // FIXME: In some circumstances (like Ptides), this is an
+            // error condition because it introduces nondeterminism.
+            // Do we want another kind of action, say a ptides action,
+            // that is physical but flags or handles this error here
+            // in some way?
             tag = physical_time;
         }
     }
@@ -517,20 +528,21 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             }
         }
     }
+    // Set the tag of the event.
+    e->time = tag;
+
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
     // allowed), or if the event time is past the requested stop time.
-    // printf("DEBUG: Scheduling an event with elapsed time %lld.\n", e->time - start_time);
+    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
     if ((stop_requested && e->time != current_time)
             || (stop_time > 0LL && e->time > stop_time)) {
         // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
+        e->token = NULL;
         pqueue_insert(recycle_q, e);
         return(0);
     }
-
-    // Set the tag of the event.
-    e->time = tag;
 
     // Record the tag for the next check of MIT.
     trigger->scheduled = tag;
@@ -695,6 +707,7 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
 handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
     token_t* token = create_token(trigger->element_size);
     token->value = value;
+    token->length = length;
     return schedule_token(trigger, extra_delay, token);
 }
 

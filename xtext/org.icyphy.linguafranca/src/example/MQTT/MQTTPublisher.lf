@@ -23,7 +23,7 @@ target C;
  * the delivery of the previous message has completed, then the reaction
  * that sends the message (the reaction to an input 'in') will
  * block until the previous delivery has completed.
- 
+ *
  * @param topic The topic name on which to publish.
  * @param address The IP address of the MQTT broker.
  * @param clientID The name of the client instance.
@@ -40,11 +40,7 @@ reactor MQTTPublisher (
         
         // Timeout for completion of message sending in milliseconds.
         #define TIMEOUT     10000L
-        
-        // FIXME: These should not be a global.
-        MQTTClient client;
-        MQTTClient_message mqtt_msg = MQTTClient_message_initializer;
- 
+         
         // Connection options for the client.
         // Making this global means that all instances of this reactor have
         // the same connection options.
@@ -57,29 +53,37 @@ reactor MQTTPublisher (
             char* message;
         } inflight_t;
         
-        /** Callback invoked once delivery is complete. */
+        // Callback invoked once delivery is complete.
         void pub_delivered(void *inflight, MQTTClient_deliveryToken dt) {
             // printf("DEBUG: Message with token value %d delivery confirmed\n", dt);
             ((inflight_t*)inflight)->message_in_flight = false;
             free(((inflight_t*)inflight)->message);
         }
-        /** Callback invoked if the connection is lost. */
+        // Callback invoked if the connection is lost.
         void pub_connection_lost(void *context, char *cause) {
             printf("\nMQTTPublisher: Connection lost\n");
             printf("  cause: %s\n", cause);
         }
     =}
-    // Input type char* instead of string is used for dynamically
-    // allocated character arrays (as opposed to static constant strings).
+    /**
+     * Input type char* instead of string is used for dynamically
+     * allocated character arrays (as opposed to static constant strings).
+     */
     input in:char*;
     
-    // State variable that keeps track of a message in flight.
-    // FIXME: Replace with simple pair of arguments when the grammar supports this.
+    /** State variable that keeps track of a message in flight. */
     state inflight:inflight_t({={false, 0, NULL}=});
+    // FIXME: Replace with simple pair of arguments when the grammar supports this.
     
-    // Connect to the broker. Exit if this fails.
+    /** The client object. */
+    state client:MQTTClient(NULL);
+    
+    /** The message object. */
+    state mqtt_msg:MQTTClient_message(MQTTClient_message_initializer);
+    
+    /** Connect to the broker. Exit if this fails. */
     reaction(startup){=
-        MQTTClient_create(&client, self->address, self->clientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+        MQTTClient_create(&self->client, self->address, self->clientID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
         pub_connect_options.keepAliveInterval = 20;
         pub_connect_options.cleansession = 1;
 
@@ -89,11 +93,11 @@ reactor MQTTPublisher (
         // But this reactor isn't sending any messages.
         // Second argument is a pointer to context that will be passed to pub_delivered,
         // which in this case is a pointer to the inflight state variable.
-        MQTTClient_setCallbacks(client, &self->inflight, pub_connection_lost, NULL, pub_delivered);
+        MQTTClient_setCallbacks(self->client, &self->inflight, pub_connection_lost, NULL, pub_delivered);
         
         // Connect to the broker.
         int rc; // response code.
-        if ((rc = MQTTClient_connect(client, &pub_connect_options)) != MQTTCLIENT_SUCCESS) {
+        if ((rc = MQTTClient_connect(self->client, &pub_connect_options)) != MQTTCLIENT_SUCCESS) {
             fprintf(stderr, "MQTTPublisher: Failed to connect to MQTT broker.\n");
             fprintf(stderr, "Perhaps one is not running? Return code: %d\n", rc);
             exit(EXIT_FAILURE);
@@ -101,17 +105,19 @@ reactor MQTTPublisher (
         // printf("DEBUG: MQTTPublisher connected to broker.\n");
     =}
     
-    // React to an input by sending a message with the value of the input as the payload.
-    // If delivery has not yet completed for a previously sent message, then wait for
-    // it to complete before proceeding (blocking this reaction).
-    // This copies the message from the input into a buffer, so the input can
-    // freed upon return of this reaction (LF will automatically decrement its
-    // reference count).
+    /**
+     * React to an input by sending a message with the value of the input as the payload.
+     * If delivery has not yet completed for a previously sent message, then wait for
+     * it to complete before proceeding (blocking this reaction).
+     * This copies the message from the input into a buffer, so the input can
+     * freed upon return of this reaction (LF will automatically decrement its
+     * reference count).
+     */
     reaction(in) {=
         if(self->inflight.message_in_flight) {
             // Wait for message delivery to be complete.
             // printf("DEBUG: Waiting for publication of previous message\n");
-            int rc = MQTTClient_waitForCompletion(client, self->inflight.delivery_token, TIMEOUT);
+            int rc = MQTTClient_waitForCompletion(self->client, self->inflight.delivery_token, TIMEOUT);
             if (rc != MQTTCLIENT_SUCCESS) {
                 fprintf(stderr, "ERROR: Message delivery failed with error code %d.\n", rc);
                 fprintf(stderr, "Message: %s\n", in);
@@ -132,24 +138,25 @@ reactor MQTTPublisher (
         *timestamp = get_logical_time();
         // printf("DEBUG: Timestamp of sending message: %lld.\n", *timestamp);
 
-        mqtt_msg.payload = self->inflight.message;
-        mqtt_msg.payloadlen = length;
+        self->mqtt_msg.payload = self->inflight.message;
+        self->mqtt_msg.payloadlen = length;
         
         // QoS 2 means that the message will be delivered exactly once.
-        mqtt_msg.qos = 2;
+        self->mqtt_msg.qos = 2;
         
         // Retained messages are held by the server and sent to future new subscribers.
         // Specify that this message should not be retained.
         // It will be sent only to subscribers currently subscribed.
-        mqtt_msg.retained = 0;
+        self->mqtt_msg.retained = 0;
         
-        MQTTClient_publishMessage(client, self->topic, &mqtt_msg, &self->inflight.delivery_token);
+        MQTTClient_publishMessage(self->client, self->topic, &self->mqtt_msg, &self->inflight.delivery_token);
         self->inflight.message_in_flight = true;        
     =}
     
+    /** Disconnect the client. */
     reaction(shutdown) {=
         printf("MQTTPublisher: Client ID %s disconnecting.\n", self->clientID);
-        MQTTClient_disconnect(client, 10000);
-        MQTTClient_destroy(&client);
+        MQTTClient_disconnect(self->client, 10000);
+        MQTTClient_destroy(&self->client);
     =}
 }

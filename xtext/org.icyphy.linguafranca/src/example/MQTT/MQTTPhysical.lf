@@ -1,13 +1,19 @@
 /**
  * Test case for MQTT pub/sub. In this version, a sequence of strings
  * is sent from one part of the LF program to another disconnected
- * part via MQTTPublisher and MQTTSubscriber reactors. The subscriber
- * is configured to retimestamp the received message using physical
- * time. The display shows the (elapsed) timestamps at the originating
- * and destination reactors. This is a measure of the physical
- * time it takes for the publish and subscribe to complete.
- * See MQTTLogical.lf for an example that uses the sender's timestamp
- * if the latency is small enough.
+ * part via MQTTPublisher and MQTTSubscriber reactors. The offset
+ * parameter gives the logical time increment between the publisher
+ * and the subscriber. If this offset is greater than the physical
+ * latency of communication through MQTT plus the clock synchronization
+ * error, then the timestamps at the receiver will be deterministic.
+ * They are the sender's timestamp plus the offset.
+ * Otherwise, the timestamps will be larger and will match the
+ * physical time at which the subscriber receives the message.
+ * 
+ * To measure the communication latency through MQTT, set the offset
+ * to 0. In this case, the subscriber will always retimestamp the received
+ * message using physical time. At the end of execution, when the
+ * timeout expires, the average and maximum latency will be printed.
  * 
  * Prerequisites:
  * 
@@ -100,7 +106,12 @@ main reactor MQTTTest {
     msg = new MessageGenerator(root = "Hello World");
     msg.message->pub.in;
     
-    sub = new MQTTSubscriber(address = "tcp://localhost:1883", clientID = "TestSubscriber2", topic = "my/test");
+    sub = new MQTTSubscriber(
+        address = "tcp://localhost:1883",
+        clientID = "TestSubscriber2",
+        topic = "my/test",
+        offset = 10 msec
+    );
     dsp = new PrintMessage();
     sub.message->dsp.message;
 }
