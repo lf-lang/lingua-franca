@@ -811,8 +811,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         } else {
                             value = rhs.value.literal
                         }
-                        return new ValueParameter(parameter, this, value,
-                            ASTUtils.typeToString(parameter.type))
+                        return new ValueParameter(parameter, this, value, parameter.type)
                     }
                 }
             }
@@ -827,8 +826,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 value = ASTUtils.literalOrCodeToString(parameter.value)
             }
             
-            return new ValueParameter(parameter, this,
-                value, ASTUtils.typeToString(parameter.type))
+            return new ValueParameter(parameter, this, value, parameter.type)
         }
     }
     

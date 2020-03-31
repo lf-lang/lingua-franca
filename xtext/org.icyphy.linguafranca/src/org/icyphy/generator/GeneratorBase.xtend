@@ -44,7 +44,6 @@ import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.FileLocator
-import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -55,6 +54,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
@@ -66,7 +66,6 @@ import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Code
 
 /** Generator base class for shared code between code generators.
  * 
@@ -1029,18 +1028,17 @@ abstract class GeneratorBase {
 
     }
 
-    def assembleTokens(Code tokens) {
+    protected def assembleTokens(Code tokens) {
         ASTUtils.assembleTokens(tokens)
     }
 
-    def typeToString(Type type) {
+    protected def typeToString(Type type) {
         ASTUtils.typeToString(type)
     }
     
-    def literalOrCodeToString(LiteralOrCode literalOrCode) {
+    protected def literalOrCodeToString(LiteralOrCode literalOrCode) {
         ASTUtils.literalOrCodeToString(literalOrCode)
     }
-    
     
     ////////////////////////////////////////////////////
     //// Private functions

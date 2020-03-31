@@ -45,7 +45,6 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -65,7 +64,6 @@ import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.ASTUtils
 
 /** Generator for C target.
  * 
@@ -596,7 +594,7 @@ int main(int argc, char* argv[]) {
             // NOTE: Slightly obfuscate output name to help prevent accidental use.
             pr(body, "trigger_t* __" + a.name + ";")
         }
-        // Next handle inputs.
+       // Next handle inputs.
         for (input : reactor.inputs) {
             prSourceLineNumber(input)
             if (input.type === null) {
@@ -1625,7 +1623,7 @@ int main(int argc, char* argv[]) {
             // memory allocations.
             
             // Array type parameters have to be handled specially.
-            val matcher = arrayPatternVariable.matcher(parameter.type)
+            val matcher = arrayPatternVariable.matcher(parameter.type.typeToString)
             if (matcher.find()) {
                 val temporaryVariableName = parameter.uniqueID
                 pr(initializeTriggerObjects,
@@ -1698,27 +1696,26 @@ int main(int argc, char* argv[]) {
                         nameOfSelfStruct + "." + state.name + " = " +
                         init.literalOrCodeToString + ";")
                 } else {
-                    val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
-                    var type = state.type.typeToString;
+                   val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
+                    var type = state.type.typeToString
                     val matcher = arrayPatternVariable.matcher(type)
                     if (matcher.find()) {
-                        // FIXME: only assign when initialized
                         // If the state type ends in [], then we have to move the []
                         // because C is very picky about where this goes. It has to go
                         // after the variable name.
                         pr(initializeTriggerObjects,
                             "static " + matcher.group(1) + " " +
-                            temporaryVariableName + "[] = " + init.literalOrCodeToString + ";"
+                            temporaryVariableName + "[] = " + state.init.value.literalOrCodeToString + ";"
                         )
                     } else {
                         pr(initializeTriggerObjects,
                             "static " + type + " " +
-                            temporaryVariableName + " = " + init.literalOrCodeToString + ";" 
+                            temporaryVariableName + " = " + state.init.value.literalOrCodeToString + ";"
                         )
                     }
                     pr(initializeTriggerObjects,
                         nameOfSelfStruct + "." + state.name + " = " + temporaryVariableName + ";"
-                    )                    
+                    ) 
                 }
             }
         }
@@ -1767,7 +1764,7 @@ int main(int argc, char* argv[]) {
                 }
                 var payloadSize = "0"
                 if (typeStr !== null && !typeStr.equals("")) {
-                    payloadSize = '''sizeof(«type.typeToString»)'''
+                    payloadSize = '''sizeof(«typeStr»)'''
                 }
             
                 // Create a reference token initialized to the payload size.
@@ -1953,7 +1950,7 @@ int main(int argc, char* argv[]) {
         // Pointer types in actions are declared without the "*" (perhaps oddly).
         if (action.type.typeToString == "string") {
             action.type.code = null
-            action.type.string = "char"
+            action.type.id = "char"
         }
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -2066,8 +2063,8 @@ int main(int argc, char* argv[]) {
     protected def reactionStructName(ReactionInstance reaction) {
         reaction.uniqueID
     }
-
-    // //////////////////////////////////////////
+    
+        // //////////////////////////////////////////
     // // Private methods.
     
     /** Perform deferred initializations in initialize_trigger_objects.
@@ -2278,18 +2275,33 @@ int main(int argc, char* argv[]) {
             ''')
         // Create the _value variable if there is a type.
         if (type !== null) {
-            // Create the value variable, but initialize it only if the pointer is not null.
-            // NOTE: The token_t objects will get recycled automatically using
-            // this scheme and never freed. The total number of token_t structs created
-            // will equal the maximum number of actions that are simultaneously in
-            // the event queue.
-            pr(builder, '''
-                «type.typeToString» «action.name»_value;
-                if («action.name»_has_value) {
-                     «action.name»_value = *((«type.typeToString»*)«tokenPointer»->value);
-                }
-                '''
-            )
+            if (isTokenType(type)) {
+                // Create the value variable, but initialize it only if the pointer is not null.
+                // NOTE: The token_t objects will get recycled automatically using
+                // this scheme and never freed. The total number of token_t structs created
+                // will equal the maximum number of actions that are simultaneously in
+                // the event queue.
+                pr(builder, '''
+                    «type.typeToString» «action.name»_value;
+                    if («action.name»_has_value) {
+                        «action.name»_value = ((«type.typeToString»)«tokenPointer»->value);
+                    }
+                    '''
+                )
+            } else {
+                // Create the value variable, but initialize it only if the pointer is not null.
+                // NOTE: The token_t objects will get recycled automatically using
+                // this scheme and never freed. The total number of token_t structs created
+                // will equal the maximum number of actions that are simultaneously in
+                // the event queue.
+                pr(builder, '''
+                    «type.typeToString» «action.name»_value;
+                    if («action.name»_has_value) {
+                        «action.name»_value = *((«type.typeToString»*)«tokenPointer»->value);
+                    }
+                    '''
+                )
+            }
         }
     }
     
@@ -2346,7 +2358,6 @@ int main(int argc, char* argv[]) {
         unindent(builder)
         pr(builder, '}')
     }
-
     /** Generate into the specified string builder the code to
      *  initialize local variables for ports in a reaction function
      *  from the "self" struct. The port may be an input of the
@@ -2418,13 +2429,13 @@ int main(int argc, char* argv[]) {
             if (matcher.find()) {
                 pr(
                     builder,
-                    output.type.rootType + '* ' + output.name +
+                    rootType(output.type) + '* ' + output.name +
                         ' = self->__' + output.name + ';'
                 )
-            } else if (output.type.isTokenType) {
+            } else if (isTokenType(output.type)) {
                 pr(
                     builder,
-                    output.type.rootType + '* ' + output.name + ' = NULL;'
+                    rootType(output.type) + '* ' + output.name + ' = NULL;'
                 )
             } else {
                 pr(
@@ -2546,9 +2557,8 @@ int main(int argc, char* argv[]) {
      *  @param type The type specification.
      */
     private def isTokenType(Type type) {
-        var typeStr = type.typeToString
-        if(typeStr !== null && 
-                (typeStr.trim.matches("^\\w*\\[\\s*\\]$") || typeStr.trim.endsWith('*'))) {
+        val typeStr = type.typeToString
+        if (typeStr.trim.matches("^\\w*\\[\\s*\\]$") || typeStr.trim.endsWith('*')) {
             true
         } else {
             false
@@ -2563,7 +2573,7 @@ int main(int argc, char* argv[]) {
      */
     private def rootType(Type type) {
         var str = type.typeToString
-        if(str.endsWith(']')) {
+        if (str.endsWith(']')) {
             val root = str.indexOf('[')
             str.substring(0, root).trim
         } else if (str.endsWith('*')) {
@@ -2580,7 +2590,7 @@ int main(int argc, char* argv[]) {
      */
     private def lfTypeToTokenType(Type type) {
         var result = type.typeToString
-        if(isTokenType(type)) {
+        if (isTokenType(type)) {
             result = 'token_t*'
         }
         result

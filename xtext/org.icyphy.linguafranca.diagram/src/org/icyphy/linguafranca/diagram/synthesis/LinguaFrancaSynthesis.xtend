@@ -60,6 +60,7 @@ import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensi
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import org.icyphy.ASTUtils
 
 @ViewSynthesisShared
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
@@ -576,7 +577,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			b.append("\u2022 ")
 		}
 		b.append(param.name)
-		if (!param.type.string.nullOrEmpty) { // FIXME: account for code!
+		if (!ASTUtils.typeToString(param.type).nullOrEmpty) {
 			b.append(":").append(param.type)
 		} else if (param.ofTimeType) {
 			b.append(":time")
