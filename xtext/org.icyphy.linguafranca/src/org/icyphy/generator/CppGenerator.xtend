@@ -275,7 +275,7 @@ class CppGenerator extends GeneratorBase {
     def implementReactionBodies(Reactor r) '''
         «FOR n : r.reactions SEPARATOR '\n'»
             void «r.name»::«n.name»_body() {
-              «n.code.tokens.toString.removeCodeDelimiter»
+              «n.code.assembleTokens»
             }
         «ENDFOR»
     '''
@@ -283,7 +283,7 @@ class CppGenerator extends GeneratorBase {
     def implementReactionDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
             void «r.name»::«n.name»_deadline_handler() {
-              «n.deadline.code.tokens.toString.removeCodeDelimiter»
+              «n.deadline.code.assembleTokens»
             }
         «ENDFOR»
     '''
@@ -297,7 +297,7 @@ class CppGenerator extends GeneratorBase {
     def generatePreamble(Reactor r) '''
         «FOR p : r.preambles ?: emptyList AFTER '\n'»
             // preamble
-            «removeCodeDelimiter(p.code.tokens.toString)»
+            «removeCodeDelimiter(p.code.assembleTokens)»
         «ENDFOR»
     '''
 
@@ -380,18 +380,13 @@ class CppGenerator extends GeneratorBase {
     }
 
     def trimmedType(State s) {
-<<<<<<< HEAD
-        if (s.type !== null) {
-            s.type.typeToString.removeCodeDelimiter
-=======
         if (s.ofTimeType) {
             '''reactor::Duration'''
->>>>>>> 327eb715cf75b1b63ea43680258e91b376613516
         } else {
             if (s.type !== null) {
-                s.type.removeCodeDelimiter
-            } else if (s.parameter !== null) {
-            	s.parameter.trimmedType
+                s.type.typeToString.removeCodeDelimiter
+            } else if (s.init !== null && s.init.parameter !== null) {
+            	s.init.parameter.trimmedType
             } else {
                 '''/* «s.reportError("State has no type")» */'''
             }
@@ -449,10 +444,10 @@ class CppGenerator extends GeneratorBase {
     def trimmedValue(State s) {
         if (s.ofTimeType) {
         	'''/* «s.reportError("Did not expect a state of type time!")» */'''
-        } else if (s.parameter !== null) {
-        	s.parameter.name
+        } else if (s.init !== null && s.init.parameter !== null) {
+        	s.init.parameter.name
         } else {
-            s.value.removeCodeDelimiter
+            s.init.value.literalOrCodeToString
         }
     }
     
@@ -509,11 +504,6 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
-<<<<<<< HEAD
-    def trimmedValue(State s) { s.init.value.literalOrCodeToString }
-
-=======
->>>>>>> 327eb715cf75b1b63ea43680258e91b376613516
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
