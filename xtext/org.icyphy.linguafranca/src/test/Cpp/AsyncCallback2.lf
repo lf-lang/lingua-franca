@@ -6,7 +6,7 @@ target Cpp {
 };
 
 main reactor AsyncCallback2 {    
-    preamble {= 
+    private preamble {= 
         #include <thread>
     =}
     

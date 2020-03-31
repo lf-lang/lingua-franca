@@ -3,7 +3,7 @@
 // deadline violation.
 target Cpp;
 reactor Deadline(threshold:time(100 msec)) {
-    preamble {= 
+    private preamble {= 
         #include <thread>
     =}
     input x:int;
