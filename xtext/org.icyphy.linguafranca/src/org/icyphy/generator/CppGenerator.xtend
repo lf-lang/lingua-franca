@@ -49,6 +49,9 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
+import java.util.LinkedList
+import org.icyphy.linguaFranca.Preamble
+import org.icyphy.linguaFranca.Visibility
 
 /** Generator for C++ target.
  *
@@ -307,12 +310,33 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
-    def generatePreamble(Reactor r) '''
-        «FOR p : r.preambles ?: emptyList AFTER '\n'»
-            // preamble
-            «removeCodeDelimiter(p.code)»
-        «ENDFOR»
-    '''
+    def publicPreamble(Reactor r) {
+    	val publicPreambles = new LinkedList<Preamble>()
+    	for(p: r.preambles) {
+    		if (p.visibility === Visibility.PUBLIC) {
+    			publicPreambles.add(p)
+    		}
+    	}
+        '''
+            «FOR p : publicPreambles ?: emptyList BEFORE '// public preamble\n' AFTER '\n'»
+                «removeCodeDelimiter(p.code)»
+            «ENDFOR»
+        '''
+    }
+
+    def privatePreamble(Reactor r) {
+        val privatePreambles = new LinkedList<Preamble>()
+        for(p: r.preambles) {
+            if (p.visibility === Visibility.PRIVATE) {
+                privatePreambles.add(p)
+            }
+        }
+        '''
+            «FOR p : privatePreambles ?: emptyList BEFORE '// private preamble\n' AFTER '\n'»
+                «removeCodeDelimiter(p.code)»
+            «ENDFOR»
+        '''
+    }
 
     def declareTriggers(Reaction n) '''
         «FOR t : n.triggers»
@@ -616,7 +640,7 @@ class CppGenerator extends GeneratorBase {
         #include "reactor-cpp/reactor-cpp.hh"
         
         «r.includeInstances»
-        «r.generatePreamble»
+        «r.publicPreamble»
         using namespace std::chrono_literals;
         using namespace reactor::operators;
         
@@ -643,6 +667,7 @@ class CppGenerator extends GeneratorBase {
         
         #include "«r.headerFile»"
         
+        «r.privatePreamble»
         «r.defineConstructor»
         
         void «r.name»::assemble() {
