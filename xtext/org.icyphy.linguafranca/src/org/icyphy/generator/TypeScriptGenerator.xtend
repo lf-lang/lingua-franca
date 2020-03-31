@@ -398,7 +398,7 @@ class TypeScriptGenerator extends GeneratorBase {
         for (state : reactor.states) {
             pr(state.name + ': ' +
                     "State<" + getStateType(state) +  '>;');
-            if (state.init.parameter !== null) {
+            if (state.init !== null && state.init.parameter !== null) {
                 // State is a parameter
                 pr(reactorConstructor, "this." + state.name + " = "
                         + "new State(" + state.init.parameter.name + ");" )
