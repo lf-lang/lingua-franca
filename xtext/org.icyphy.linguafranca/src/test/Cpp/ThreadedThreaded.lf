@@ -21,7 +21,7 @@ reactor Source {
     =}
 }
 reactor Computation {
-    preamble {= 
+    private preamble {= 
         #include <thread>
     =}
     input in:int;

@@ -43,12 +43,15 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.State
-import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
+import java.util.LinkedList
+import org.icyphy.linguaFranca.Preamble
+import org.icyphy.linguaFranca.Visibility
+import org.icyphy.linguaFranca.Model
 
 /** Generator for C++ target.
  *
@@ -90,11 +93,29 @@ class CppGenerator extends GeneratorBase {
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
+   
+    def toDir(Resource r) {
+        r.toPath.getFilename
+    }
+    
+    def preambleHeaderFile(Resource r) {
+    	r.toDir + File.separator + "preamble.hh"
+    }
+    
+    def preambleSourceFile(Resource r) {
+        r.toDir + File.separator + "preamble.cc"
+    }
+    
+    def headerFile(Reactor r) {
+    	r.eResource.toDir + File.separator + r.name + ".hh"
+    }
+    
+    def sourceFile(Reactor r) {
+        r.eResource.toDir + File.separator + r.name + ".cc"
+    }
+   
         
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-
-        var target = resource.findTarget
-        
         super.doGenerate(resource, fsa, context)
         mainReactor = this.mainDef?.reactorClass
         
@@ -103,15 +124,20 @@ class CppGenerator extends GeneratorBase {
             return
         } else {
             generateReactor(mainReactor)
+            reactorsByResource.get(resource).add(mainReactor)
         }
-
-        fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
-        fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain(target))
-        fsa.generateFile(filename + File.separator + "CMakeLists.txt", target.generateCmake(reactors))
+        
+        fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
+        fsa.generateFile(filename + File.separator + "CMakeLists.txt", generateCmake)
 
         for (r : reactors) {
-            fsa.generateFile(filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
-            fsa.generateFile(filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
+            fsa.generateFile(filename + File.separator + r.headerFile, r.generateReactorHeader)
+            fsa.generateFile(filename + File.separator + r.sourceFile, r.generateReactorSource)
+        }
+        
+        for (r: reactorsByResource.keySet()) {
+        	fsa.generateFile(filename + File.separator + r.preambleSourceFile, r.generatePreambleSource)
+        	fsa.generateFile(filename + File.separator + r.preambleHeaderFile, r.generatePreambleHeader)
         }
 
         if (!targetNoCompile && !errorsOccurred()) {
@@ -290,16 +316,37 @@ class CppGenerator extends GeneratorBase {
 
     def includeInstances(Reactor r) '''
         «FOR i : r.instantiations AFTER '\n'»
-            #include "«i.reactorClass.name».hh"
+            #include "«i.reactorClass.headerFile»"
         «ENDFOR»
     '''
 
-    def generatePreamble(Reactor r) '''
-        «FOR p : r.preambles ?: emptyList AFTER '\n'»
-            // preamble
-            «removeCodeDelimiter(p.code.assembleTokens)»
-        «ENDFOR»
-    '''
+    def publicPreamble(Reactor r) {
+    	val publicPreambles = new LinkedList<Preamble>()
+    	for(p: r.preambles) {
+    		if (p.visibility === Visibility.PUBLIC) {
+    			publicPreambles.add(p)
+    		}
+    	}
+        '''
+            «FOR p : publicPreambles ?: emptyList BEFORE '// public preamble\n' AFTER '\n'»
+                «removeCodeDelimiter(p.code.assembleTokens)»
+            «ENDFOR»
+        '''
+    }
+
+    def privatePreamble(Reactor r) {
+        val privatePreambles = new LinkedList<Preamble>()
+        for(p: r.preambles) {
+            if (p.visibility === Visibility.PRIVATE) {
+                privatePreambles.add(p)
+            }
+        }
+        '''
+            «FOR p : privatePreambles ?: emptyList BEFORE '// private preamble\n' AFTER '\n'»
+                «removeCodeDelimiter(p.code.assembleTokens)»
+            «ENDFOR»
+        '''
+    }
 
     def declareTriggers(Reaction n) '''
         «FOR t : n.triggers»
@@ -595,17 +642,42 @@ class CppGenerator extends GeneratorBase {
         «ENDIF»
     '''
 
-    def generateReactorHeader(Reactor r) '''
-        «header()»
+    def generatePreambleHeader(Resource r) '''
+        «r.header»
         
         #pragma once
         
         #include "reactor-cpp/reactor-cpp.hh"
         
-        «r.includeInstances»
-        «r.generatePreamble»
+        «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
+            «IF p.visibility === Visibility.PUBLIC»«p.code.assembleTokens»«ENDIF»
+        «ENDFOR»
+    '''
+    
+    def generatePreambleSource(Resource r) '''
+        «r.header»
+        
+        #include "reactor-cpp/reactor-cpp.hh"
+        
         using namespace std::chrono_literals;
         using namespace reactor::operators;
+        
+        «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
+            «IF p.visibility === Visibility.PRIVATE»«p.code.assembletokens»«ENDIF»
+        «ENDFOR»
+    '''
+
+    def generateReactorHeader(Reactor r) '''
+        «r.eResource.header»
+        
+        #pragma once
+        
+        #include "reactor-cpp/reactor-cpp.hh"
+        
+        #include "«r.eResource.preambleHeaderFile»"
+
+        «r.includeInstances»
+        «r.publicPreamble»
         
         class «r.getName()» : public reactor::Reactor {
          private:
@@ -626,10 +698,16 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def generateReactorSource(Reactor r) '''
-        «header()»
+        «r.eResource.header»
+
+        #include "reactor-cpp/reactor-cpp.hh"
         
-        #include "«r.getName».hh"
+        using namespace std::chrono_literals;
+        using namespace reactor::operators;
         
+        #include "«r.headerFile»"
+        
+        «r.privatePreamble»
         «r.defineConstructor»
         
         void «r.name»::assemble() {
@@ -645,27 +723,17 @@ class CppGenerator extends GeneratorBase {
         «r.implementReactionDeadlineHandlers»
     '''
 
-    def header() '''
+    def header(Resource r) '''
         /*
          * This file was autogenerated by the Lingua Franca Compiler
          *
-         * Source: «resource.getURI()»
+         * Source: «r.URI»
          * Date: «new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())»
          */
     '''
 
-    def generateForwardDeclarations(List<Reactor> reactors) '''
-        «header()»
-        
-        #pragma once
-        
-        «FOR r : reactors»
-            class «r.getName()»;
-        «ENDFOR»
-    '''
-
-    def generateMain(Reactor main, Target t) '''
-        «header()»
+    def generateMain(Reactor main) '''
+        «resource.header»
 
         #include <chrono>        
         #include <thread>
@@ -673,9 +741,12 @@ class CppGenerator extends GeneratorBase {
         
         #include "reactor-cpp/reactor-cpp.hh"
         
+        using namespace std::chrono_literals;
+        using namespace reactor::operators;
+        
         #include "CLI/CLI11.hpp"
         
-        #include "«main.name».hh"
+        #include "«main.headerFile»"
         
         class Timeout : public reactor::Reactor {
          private:
@@ -728,7 +799,7 @@ class CppGenerator extends GeneratorBase {
         }
     '''
 
-    def generateCmake(Target target, List<Reactor> reactors) '''
+    def generateCmake() '''
         cmake_minimum_required(VERSION 3.5)
         project(«filename» VERSION 1.0.0 LANGUAGES CXX)
         
@@ -783,10 +854,16 @@ class CppGenerator extends GeneratorBase {
         add_executable(«filename»
           main.cc
           «FOR r : reactors»
-              «r.getName()».cc
+              «r.sourceFile»
+          «ENDFOR»
+          «FOR r : reactorsByResource.keySet()»
+              «r.preambleSourceFile»
           «ENDFOR»
         )
-        target_include_directories(«filename» PUBLIC "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
+        target_include_directories(«filename» PUBLIC
+            "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}"
+            "${PROJECT_SOURCE_DIR}"
+        )
         target_link_libraries(«filename» reactor-cpp)
         add_dependencies(«filename» dep-CLI11)
 
