@@ -22,7 +22,7 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 		} else if (tov.parameter !== null) {
 			return tov.parameter.name
 		} else if (tov.value !== null) {
-			return ASTUtils.literalOrCodeToString(tov.value)
+			return ASTUtils.toText(tov.value)
 		} else if (tov.unit === TimeUnit.NONE) {
 			return Integer.toString(tov.time)
 		} else {

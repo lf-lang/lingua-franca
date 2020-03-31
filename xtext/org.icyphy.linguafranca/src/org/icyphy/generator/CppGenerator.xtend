@@ -301,7 +301,7 @@ class CppGenerator extends GeneratorBase {
     def implementReactionBodies(Reactor r) '''
         «FOR n : r.reactions SEPARATOR '\n'»
             void «r.name»::«n.name»_body() {
-              «n.code.assembleTokens»
+              «n.code.toText»
             }
         «ENDFOR»
     '''
@@ -309,7 +309,7 @@ class CppGenerator extends GeneratorBase {
     def implementReactionDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
             void «r.name»::«n.name»_deadline_handler() {
-              «n.deadline.code.assembleTokens»
+              «n.deadline.code.toText»
             }
         «ENDFOR»
     '''
@@ -329,7 +329,7 @@ class CppGenerator extends GeneratorBase {
     	}
         '''
             «FOR p : publicPreambles ?: emptyList BEFORE '// public preamble\n' AFTER '\n'»
-                «removeCodeDelimiter(p.code.assembleTokens)»
+                «removeCodeDelimiter(p.code.toText)»
             «ENDFOR»
         '''
     }
@@ -343,7 +343,7 @@ class CppGenerator extends GeneratorBase {
         }
         '''
             «FOR p : privatePreambles ?: emptyList BEFORE '// private preamble\n' AFTER '\n'»
-                «removeCodeDelimiter(p.code.assembleTokens)»
+                «removeCodeDelimiter(p.code.toText)»
             «ENDFOR»
         '''
     }
@@ -419,7 +419,7 @@ class CppGenerator extends GeneratorBase {
             '''const reactor::Duration'''
         } else {
             if (p.type !== null) {
-                '''const «p.type.typeToString.removeCodeDelimiter»'''
+                '''const «p.type.toText.removeCodeDelimiter»'''
             } else {
                 '''/* «p.reportError("Parameter has no type")» */'''
             }
@@ -431,7 +431,7 @@ class CppGenerator extends GeneratorBase {
             '''reactor::Duration'''
         } else {
             if (s.type !== null) {
-                s.type.typeToString.removeCodeDelimiter
+                s.type.toText.removeCodeDelimiter
             } else if (s.init !== null && s.init.parameter !== null) {
             	s.init.parameter.trimmedType
             } else {
@@ -442,7 +442,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Input i) {
         if (i.type !== null) {
-            i.type.typeToString.removeCodeDelimiter
+            i.type.toText.removeCodeDelimiter
         } else {
             '''/* «i.reportError("Input port has no type.")» */'''
         }
@@ -450,7 +450,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Output o) {
         if (o.type !== null) {
-            o.type.typeToString.removeCodeDelimiter
+            o.type.toText.removeCodeDelimiter
         } else {
             '''/* «o.reportError("Input port has no type.")» */'''
         }
@@ -458,7 +458,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Action a) {
         if (a.type !== null) {
-            a.type.typeToString.removeCodeDelimiter
+            a.type.toText.removeCodeDelimiter
         } else {
             '''/* «a.reportError("Action has no type.")» */'''
         }
@@ -468,14 +468,14 @@ class CppGenerator extends GeneratorBase {
         if (p.ofTimeType) {
         	'''/* «p.reportError("Did not expect a parameter of type time!")» */'''
         } else {
-            '''«p.value.literalOrCodeToString»'''
+            '''«p.value.toText»'''
         }
     }
 
     def trimmedTime(Parameter p) {
         if (p.ofTimeType) {
             if (p.unit === null || p.unit === TimeUnit.NONE) {
-            	if (p.time == 0) {
+            	if (p.time == 0 || p.value.isZero) {
                     '''reactor::Duration::zero()'''
                 } else {
                 	'''/* «p.reportError("Time values need to be 0 or have a unit!")» */'''
@@ -494,14 +494,14 @@ class CppGenerator extends GeneratorBase {
         } else if (s.init !== null && s.init.parameter !== null) {
         	s.init.parameter.name
         } else {
-            s.init.value.literalOrCodeToString
+            s.init.value.toText
         }
     }
     
     def trimmedTime(State s) {
         if (s.ofTimeType) {
             if (s.unit === null || s.unit === TimeUnit.NONE) {
-            	if (s.time == 0) {
+            	if (s.time == 0 || s.init.value.isZero) {
                     '''reactor::Duration::zero()'''
                 } else {
                 	'''/* «s.reportError("Time values need to be 0 or have a unit!")» */'''
@@ -523,7 +523,7 @@ class CppGenerator extends GeneratorBase {
                 '''«tv.parameter.name»'''
             }
         } else if (tv.value !== null) {
-            '''«tv.value.literalOrCodeToString»'''
+            '''«tv.value.toText»'''
         } else {
         	'''/* «tv.reportError("Expected a value or a parameter, not a time")» */'''
         }
@@ -537,7 +537,7 @@ class CppGenerator extends GeneratorBase {
     			'''/* «tv.reportError("Expected a parameter of time type!")» */'''
     		}
         } else if (tv.value !== null) {
-        	if (tv.value == '0') {
+        	if (tv.value.isZero) {
          		'''reactor::Duration::zero()'''
         	} else {
             	'''/* «tv.reportError("Time values need to be 0 or have a unit!")» */'''
@@ -650,7 +650,7 @@ class CppGenerator extends GeneratorBase {
         #include "reactor-cpp/reactor-cpp.hh"
         
         «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
-            «IF p.visibility === Visibility.PUBLIC»«p.code.assembleTokens»«ENDIF»
+            «IF p.visibility === Visibility.PUBLIC»«p.code.toText»«ENDIF»
         «ENDFOR»
     '''
     
@@ -663,7 +663,7 @@ class CppGenerator extends GeneratorBase {
         using namespace reactor::operators;
         
         «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
-            «IF p.visibility === Visibility.PRIVATE»«p.code.assembleTokens»«ENDIF»
+            «IF p.visibility === Visibility.PRIVATE»«p.code.toText»«ENDIF»
         «ENDFOR»
     '''
 
@@ -975,7 +975,7 @@ class CppGenerator extends GeneratorBase {
     // FIXME: the following implementations are most certainly incorrect.
     
     override generateDelayBody(Action action, VarRef port) '''
-        «IF !typeToString(action.type).endsWith("*")»
+        «IF !action.type.toText.endsWith("*")»
             «action.type»* foo = malloc(sizeof(«action.type»));
             *foo = «generateVarRef(port)»;
         «ELSE»

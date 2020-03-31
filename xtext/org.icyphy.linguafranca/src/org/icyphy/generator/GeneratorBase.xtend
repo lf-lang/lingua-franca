@@ -1019,8 +1019,7 @@ abstract class GeneratorBase {
                 timeValue = timeOrValue.parameter.time
             } else {
                 try {
-                    timeValue = Integer.parseInt(ASTUtils.literalOrCodeToString(
-                        timeOrValue.parameter.value))
+                    timeValue = Integer.parseInt(timeOrValue.parameter.value.toText)
                 } catch (NumberFormatException e) {
                     reportError(timeOrValue,
                         "Invalid time value: " + timeOrValue)
@@ -1037,18 +1036,21 @@ abstract class GeneratorBase {
 
     }
 
-    protected def assembleTokens(Code tokens) {
-        ASTUtils.assembleTokens(tokens)
+    protected def toText(Code tokens) {
+        ASTUtils.toText(tokens)
     }
 
-    protected def typeToString(Type type) {
-        ASTUtils.typeToString(type)
+    protected def toText(Type type) {
+        ASTUtils.toText(type)
     }
     
-    protected def literalOrCodeToString(LiteralOrCode literalOrCode) {
-        ASTUtils.literalOrCodeToString(literalOrCode)
+    protected def toText(LiteralOrCode literalOrCode) {
+        ASTUtils.toText(literalOrCode)
     }
     
+    protected def isZero(LiteralOrCode literalOrCode) {
+        ASTUtils.isZero(literalOrCode)
+    }
     ////////////////////////////////////////////////////
     //// Private functions
     
