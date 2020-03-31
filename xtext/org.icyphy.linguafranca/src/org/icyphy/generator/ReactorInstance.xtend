@@ -807,7 +807,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     } else {
                         var String value
                         if (rhs.value.code !== null) {
-                            value = ASTUtils.assembleTokens(rhs.value.code)
+                            value = ASTUtils.toText(rhs.value.code)
                         } else {
                             value = rhs.value.literal
                         }
@@ -823,7 +823,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         } else {
             var String value
             if (parameter.value !== null) {
-                value = ASTUtils.literalOrCodeToString(parameter.value)
+                value = ASTUtils.toText(parameter.value)
             }
             
             return new ValueParameter(parameter, this, value, parameter.type)

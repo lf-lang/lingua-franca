@@ -175,7 +175,7 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            typeToString(type)
+            toText(type)
         ))
 
         // Configure the receiving reaction.
@@ -188,7 +188,7 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            typeToString(type)
+            toText(type)
         ))
 
         // Add the reactions to the parent.
@@ -244,8 +244,6 @@ class ASTUtils {
                     newType.arraySpec.ofVariableLength = type.arraySpec.ofVariableLength
                     newType.arraySpec.length = type.arraySpec.length
                 }
-                
-                newType.arraySpec = type.arraySpec
             }
             return newType
         }
@@ -255,7 +253,7 @@ class ASTUtils {
      * Assemble a list of tokens into a string.
      * @return A code segment consisting of the given tokens.
      */
-    def static String assembleTokens(Code code) {
+    def static String toText(Code code) {
         if (code !== null) {
             val node = NodeModelUtils.getNode(code)
             if (node !== null) {
@@ -270,10 +268,10 @@ class ASTUtils {
         return ""
     }
     
-    def static typeToString(Type type) {
+    def static toText(Type type) {
         if (type !== null) {
             if (type.code !== null) {
-                return assembleTokens(type.code)
+                return toText(type.code)
             } else {
                 var stars = ""
                 for (s : type.stars ?: emptyList) {
@@ -291,12 +289,22 @@ class ASTUtils {
         ""
     }
     
-    def static literalOrCodeToString(LiteralOrCode literalOrCode) {
+    def static toText(LiteralOrCode literalOrCode) {
         if (literalOrCode.literal !== null) {
             return literalOrCode.literal
         } else {
-            return assembleTokens(literalOrCode.code)
+            return toText(literalOrCode.code)
         }
     }
-
+    
+    def static boolean isZero(LiteralOrCode literalOrCode) {
+        try {
+            if (literalOrCode !== null && Integer.parseInt(literalOrCode.toText.trim) == 0) {
+                return true
+            }
+        } catch (NumberFormatException e) {
+            // NaN
+        }
+        return false
+    }
 }

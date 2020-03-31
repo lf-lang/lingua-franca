@@ -568,7 +568,7 @@ int main(int argc, char* argv[]) {
         // Preamble code contains state declarations with static initializers.
         for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
-            pr(p.code.assembleTokens)
+            pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
 
@@ -902,7 +902,7 @@ int main(int argc, char* argv[]) {
         }
         pr('void ' + functionName + '(void* instance_args) {')
         indent()
-        var body = reaction.code.assembleTokens
+        var body = reaction.code.toText
 
         // Do not generate the initialization code if the body is marked
         // to not generate it.
@@ -942,7 +942,7 @@ int main(int argc, char* argv[]) {
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
             prSourceLineNumber(reaction.deadline.interval)
-            pr(reaction.deadline.code.assembleTokens)
+            pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
         }
@@ -1623,7 +1623,7 @@ int main(int argc, char* argv[]) {
             // memory allocations.
             
             // Array type parameters have to be handled specially.
-            val matcher = arrayPatternVariable.matcher(parameter.type.typeToString)
+            val matcher = arrayPatternVariable.matcher(parameter.type.toText)
             if (matcher.find()) {
                 val temporaryVariableName = parameter.uniqueID
                 pr(initializeTriggerObjects,
@@ -1694,10 +1694,10 @@ int main(int argc, char* argv[]) {
                 if (parameterized && initialized) {
                     pr(initializeTriggerObjects,
                         nameOfSelfStruct + "." + state.name + " = " +
-                        init.literalOrCodeToString + ";")
+                        init.toText + ";")
                 } else {
                    val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
-                    var type = state.type.typeToString
+                    var type = state.type.toText
                     val matcher = arrayPatternVariable.matcher(type)
                     if (matcher.find()) {
                         // If the state type ends in [], then we have to move the []
@@ -1705,12 +1705,12 @@ int main(int argc, char* argv[]) {
                         // after the variable name.
                         pr(initializeTriggerObjects,
                             "static " + matcher.group(1) + " " +
-                            temporaryVariableName + "[] = " + state.init.value.literalOrCodeToString + ";"
+                            temporaryVariableName + "[] = " + state.init.value.toText + ";"
                         )
                     } else {
                         pr(initializeTriggerObjects,
                             "static " + type + " " +
-                            temporaryVariableName + " = " + state.init.value.literalOrCodeToString + ";"
+                            temporaryVariableName + " = " + state.init.value.toText + ";"
                         )
                     }
                     pr(initializeTriggerObjects,
@@ -1758,7 +1758,7 @@ int main(int argc, char* argv[]) {
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action)) {
                 var type = (action.definition as Action).type
-                var typeStr = type.typeToString
+                var typeStr = type.toText
                 if (isTokenType(type)) {
                     typeStr = type.rootType
                 }
@@ -1948,7 +1948,7 @@ int main(int argc, char* argv[]) {
         // Adjust the type of the action.
         // If it is "string", then change it to "char".
         // Pointer types in actions are declared without the "*" (perhaps oddly).
-        if (action.type.typeToString == "string") {
+        if (action.type.toText == "string") {
             action.type.code = null
             action.type.id = "char*"
         }
@@ -2281,11 +2281,14 @@ int main(int argc, char* argv[]) {
                 // this scheme and never freed. The total number of token_t structs created
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
+                
+                // FIXME: if this is an array type, the type cannot be used verbatim; the trailing `[]`
+                // should be replaced by a `*`
                 pr(builder, '''
 
-                    «type.typeToString» «action.name»_value;
+                    «type.toText» «action.name»_value;
                     if («action.name»_has_value) {
-                        «action.name»_value = ((«type.typeToString»)«tokenPointer»->value);
+                        «action.name»_value = ((«type.toText»)«tokenPointer»->value);
                     }
                     '''
                 )
@@ -2296,9 +2299,9 @@ int main(int argc, char* argv[]) {
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
                 pr(builder, '''
-                    «type.typeToString» «action.name»_value;
+                    «type.toText» «action.name»_value;
                     if («action.name»_has_value) {
-                        «action.name»_value = *((«type.typeToString»*)«tokenPointer»->value);
+                        «action.name»_value = *((«type.toText»*)«tokenPointer»->value);
                     }
                     '''
                 )
@@ -2346,11 +2349,11 @@ int main(int argc, char* argv[]) {
             }
         } else if (input.type !== null) {
             // Look for array type of form type[number].
-            val matcher = arrayPatternFixed.matcher(input.type.typeToString)
+            val matcher = arrayPatternFixed.matcher(input.type.toText)
             if (matcher.find()) {
                 pr(builder, matcher.group(1) + '* ' + input.name + ';')
             } else {
-                pr(builder, input.type.typeToString + ' ' + input.name + ';')
+                pr(builder, input.type.toText + ' ' + input.name + ';')
             }
             pr(builder, 'if(' + present + ') {')
             indent(builder)
@@ -2500,12 +2503,12 @@ int main(int argc, char* argv[]) {
         if (parameter.ofTimeType) {
             return timeTypeInTargetLanguage
         }
-        if (parameter.type === null || parameter.type.typeToString.equals("")) {
+        if (parameter.type === null || parameter.type.toText.equals("")) {
             reportError(parameter,
                 "Parameter is required to have a type: " + parameter.name)
             return "(ERROR: NO TYPE)"
         }
-        var type = parameter.type.typeToString
+        var type = parameter.type.toText
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
             type = 'interval_t'
         } else {
@@ -2529,17 +2532,17 @@ int main(int argc, char* argv[]) {
         // A state variable may directly refer to its initializing parameter,
         // in which case, it inherits the type from the parameter.
         if (state.init !== null && state.init.parameter !== null) {
-            return state.init.parameter.type.typeToString
+            return state.init.parameter.type.toText
         }
         if (state.ofTimeType) {
             return timeTypeInTargetLanguage
         }
-        if (state.type === null || state.type.typeToString.equals("")) {
+        if (state.type === null || state.type.toText.equals("")) {
             reportError(state,
                 "State is required to have a type: " + state.name)
             return "(ERROR: NO TYPE)"
         }
-        var type = state.type.typeToString
+        var type = state.type.toText
         if (state.unit != TimeUnit.NONE || state.isOfTimeType) {
             type = 'interval_t'
         } else {
@@ -2558,7 +2561,7 @@ int main(int argc, char* argv[]) {
      *  @param type The type specification.
      */
     private def isTokenType(Type type) {
-        val typeStr = type.typeToString
+        val typeStr = type.toText
         if (typeStr.trim.matches("^\\w*\\[\\s*\\]$") || typeStr.trim.endsWith('*')) {
             true
         } else {
@@ -2573,7 +2576,7 @@ int main(int argc, char* argv[]) {
      *  @param type A string describing the type.
      */
     private def rootType(Type type) {
-        var str = type.typeToString
+        var str = type.toText
         if (str.endsWith(']')) {
             val root = str.indexOf('[')
             str.substring(0, root).trim
@@ -2590,7 +2593,7 @@ int main(int argc, char* argv[]) {
      *  unmodified.
      */
     private def lfTypeToTokenType(Type type) {
-        var result = type.typeToString
+        var result = type.toText
         if (isTokenType(type)) {
             result = 'token_t*'
         }

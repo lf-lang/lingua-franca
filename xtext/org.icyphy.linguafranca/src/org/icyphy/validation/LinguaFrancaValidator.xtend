@@ -514,7 +514,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             
             // If a value is provided, check that it is zero.
             var String str
-            if (timeOrValue.value !== null && !((str = ASTUtils.literalOrCodeToString(timeOrValue.value)).isEmpty)) {
+            if (timeOrValue.value !== null && !((str = ASTUtils.toText(timeOrValue.value)).isEmpty)) {
                 try {
                     val number = Integer.parseInt(str)
                     if (number != 0) {
