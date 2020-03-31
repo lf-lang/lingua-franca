@@ -663,7 +663,7 @@ class CppGenerator extends GeneratorBase {
         using namespace reactor::operators;
         
         «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
-            «IF p.visibility === Visibility.PRIVATE»«p.code.assembletokens»«ENDIF»
+            «IF p.visibility === Visibility.PRIVATE»«p.code.assembleTokens»«ENDIF»
         «ENDFOR»
     '''
 

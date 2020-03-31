@@ -208,10 +208,10 @@ Port:
 
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (id=ID (stars+='*')* (length=ARRAY_LENGTH)?) | code=Code;
-
-terminal ARRAY_LENGTH:
-    '[' (('1'..'9')('0'..'9')*)? ']';
+   (id=ID (stars+='*')* (arraySpec=ArraySpec)?) | code=Code;
+   
+ArraySpec:
+    ofVariableLength?='[]' | '[' length=INT ']';
     
 terminal BOOL:
     'true' | 'false';
@@ -281,7 +281,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' |
     // Other terminals
-    FLOAT | NEGINT | BOOL | ARRAY_LENGTH |
+    FLOAT | NEGINT | BOOL |
     // Queuing policies
     'DEFER' | 'DROP' | 'UPDATE' |
     // Action origins
@@ -295,7 +295,7 @@ Token:
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets
-    '[' | ']' | '<' | '>' |
+    '[' | ']' | '<' | '>' | '[]' |
     // Punctuation
     ':' | ';' | ',' | '.' |
     // Hyphen

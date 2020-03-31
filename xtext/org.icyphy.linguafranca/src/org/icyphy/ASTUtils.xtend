@@ -239,7 +239,13 @@ class ASTUtils {
             } else {
                 newType.id = type.id
                 type.stars?.forEach[newType.stars.add(it)]
-                newType.length = type.length
+                if (type.arraySpec !== null) {
+                    newType.arraySpec = factory.createArraySpec
+                    newType.arraySpec.ofVariableLength = type.arraySpec.ofVariableLength
+                    newType.arraySpec.length = type.arraySpec.length
+                }
+                
+                newType.arraySpec = type.arraySpec
             }
             return newType
         }
@@ -273,7 +279,13 @@ class ASTUtils {
                 for (s : type.stars ?: emptyList) {
                     stars += s
                 }
-                return type.id + stars + (type.length ?: "")
+                var arraySpec = ""
+                if (type.arraySpec !== null) {
+                    arraySpec = (type.arraySpec.ofVariableLength)? 
+                        "[]" : 
+                        "[" + type.arraySpec.length + "]"  
+                }
+                return type.id + stars + arraySpec
             }
         }
         ""
