@@ -126,10 +126,6 @@ class CppGenerator extends GeneratorBase {
             fsa.generateFile(filename + File.separator + r.headerFile, r.generateReactorHeader)
             fsa.generateFile(filename + File.separator + r.sourceFile, r.generateReactorSource)
         }
-        
-        for(r: reactorsByResource.keySet) {
-            fsa.generateFile(filename + File.separator + r.toDir + File.separator + "fwd.hh", r.generateForwardDeclarations)	
-        }
 
         if (!targetNoCompile && !errorsOccurred()) {
             doCompile()
@@ -669,16 +665,6 @@ class CppGenerator extends GeneratorBase {
          * Source: «r.URI»
          * Date: «new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())»
          */
-    '''
-
-    def generateForwardDeclarations(Resource resource) '''
-        «resource.header»
-        
-        #pragma once
-        
-        «FOR r : reactorsByResource.get(resource)»
-            class «r.name»;
-        «ENDFOR»
     '''
 
     def generateMain(Reactor main, Target t) '''
