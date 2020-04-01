@@ -168,6 +168,9 @@ class CGenerator extends GeneratorBase {
         var commonCode = code;
         var commonStartTimers = startTimers;
         for (federate : federates) {
+            deferredInitialize.clear()
+            shutdownActionInstances.clear()
+            
             // Only generate one output if there is no federation.
             if (!federate.isSingleton) {
                 filename = baseFilename + '_' + federate.name
@@ -1591,6 +1594,10 @@ int main(int argc, char* argv[]) {
      *   contained reactors or null if there are no federates.
      */
     def void generateReactorInstance(ReactorInstance instance, FederateInstance federate) {
+        // If this is not the main reactor and is not in the federate, nothing to do.
+        if (instance !== this.main && !reactorBelongsToFederate(instance, federate)) {
+            return
+        }
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
         pr('// ************* Instance ' + fullName + ' of class ' +
@@ -2104,8 +2111,13 @@ int main(int argc, char* argv[]) {
                 eventualSource = eventualSource.dependsOnPort
             }
             // If the eventual source is still an input, then this is a dangling
-            // connection and we don't need to do anything.
-            if (eventualSource.isOutput) {
+            // connection and we don't need to do anything. We also don't need
+            // to do anything if the reactor does not belong to the federate.
+            // We assume here that all connections across federates have been
+            // broken and replaced by reactions handling the communication.
+            if (eventualSource.isOutput 
+                && reactorBelongsToFederate(eventualSource.parent, federate)
+            ) {
                 var sourceStruct = selfStructName(eventualSource.parent)
                 // Use the source, not the eventualSource here to find the destinations.
                 // If .parent.parent is null, then the source is an input port belonging
