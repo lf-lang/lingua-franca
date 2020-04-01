@@ -47,6 +47,7 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.ASTUtils
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -71,7 +72,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Apply overrides and instantiate parameters for this reactor instance.
         for (parameter : definition.reactorClass.parameters) {
-            parameters.add(resolveParameter(parameter))
+            parameters.add(resolveParameter(parameter)) // FIXME: refactor this into ParameterInstance
         }
 
         // Instantiate children for this reactor instance
@@ -518,7 +519,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         m.chainID = m.chainID.bitwiseOr(n.chainID)
                         first = false
                     } else {
-                        // FIXME: this depends Endianness; we need a target property for it.
                         // Subsequent forks are assigned a fresh ID.
                         m.chainID = m.chainID.bitwiseOr(n.chainID).bitwiseOr(1 << (branch % 64))
                         branch++    
@@ -754,11 +754,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         result
     }
 
-    /** Return a parameter instance given a parameter definition.
+    /** 
+     * Given a parameter definition found in the AST, return a fresh parameter
+     * instance with 
+     * Return a parameter instance given a parameter definition.
      *  FIXME: This assumes that all referenced parameters themselves are already resolved!
      * @param parameter AST node that describes the parameter
      */
-    def ParameterInstance resolveParameter(Parameter parameter) {
+    protected def ParameterInstance resolveParameter(Parameter parameter) {
         // Check for an override.
         for (assignment : this.definition.parameters ?: emptyList) {
             var rhs = assignment.rhs
@@ -783,36 +786,47 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                                 parameter.name);
                     }
                     
-                    return instance.getParameterInstance(rhs.parameter)
-//                    if (referencedParameter instanceof TimeParameter) {
-//                        var timeParm = referencedParameter
-//                        return new TimeParameter(parameter, parent,
-//                            timeParm.value.time, timeParm.value.unit)
-//                    } else {
-//                        var valParm = referencedParameter as ValueParameter
-//                        return new ValueParameter(parameter, parent,
-//                            valParm.value, valParm.type)
-//                    }
+                    val referencedParameter = instance.
+                        getParameterInstance(rhs.parameter)
+                    
+                    if (referencedParameter instanceof TimeParameter) {
+                        var timeParm = referencedParameter
+                        return new TimeParameter(parameter, parent,
+                            new TimeValue(timeParm.value.time,
+                                timeParm.value.unit))
+                    } else {
+                        var valParm = referencedParameter as ValueParameter
+                        return new ValueParameter(parameter, parent,
+                            valParm.value, valParm.type)
+                    }
                 } else {
                     // Parameter is overridden by a type or value 
                     if (parameter.isOfTimeType) {
-                        return new TimeParameter(parameter, this, rhs.time,
-                            rhs.unit)
+                        return new TimeParameter(parameter, this,
+                            new TimeValue(rhs.time, rhs.unit))
                     } else {
-                        return new ValueParameter(parameter, this, rhs.value,
-                            parameter.type)
+                        var String value
+                        if (rhs.value.code !== null) {
+                            value = ASTUtils.toText(rhs.value.code)
+                        } else {
+                            value = rhs.value.literal
+                        }
+                        return new ValueParameter(parameter, this, value, parameter.type)
                     }
                 }
             }
         }
         // If we reached here, the parameter was not overridden. Use its default value.
         if (parameter.isOfTimeType) {
-            return new TimeParameter(parameter, this, parameter.time,
-                parameter.unit)
+            return new TimeParameter(parameter, this, new TimeValue(parameter.time,
+                parameter.unit))
         } else {
-            return new ValueParameter(parameter, this,
-                GeneratorBase.removeCodeDelimiter(parameter.value),
-                GeneratorBase.removeCodeDelimiter(parameter.type))
+            var String value
+            if (parameter.value !== null) {
+                value = ASTUtils.toText(parameter.value)
+            }
+            
+            return new ValueParameter(parameter, this, value, parameter.type)
         }
     }
     

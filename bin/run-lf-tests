@@ -59,7 +59,7 @@ else
                 if [ $1 == "Cpp" ]; then
                     command="bin/$name"
                 elif [ $1 == "C" ]; then
-                    command="bin/$name --timeout 1 sec"
+                    command="bin/$name"
                 elif [ $1 == "TS" ]; then
                     command="node ${name}/dist/${name}"".js"
                 else
@@ -68,8 +68,9 @@ else
                 fi
                 echo "Executing command:"$command;
                 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-                eval $command;
-                if (($? == 0)); then
+                
+                if $command; # timeout 30s 
+                then
                     correct=$((correct + 1))
                 else
                     failed="$name $failed"

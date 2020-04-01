@@ -53,7 +53,9 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.ASTUtils
 import org.icyphy.Targets.BuildTypes
+
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -153,7 +155,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (assignment.lhs.isOfTimeType) {
             if (assignment.rhs.parameter === null) {
                 // This is a value. Check that units are present
-                if (assignment.rhs.unit == TimeUnit.NONE) {
+                if (!ASTUtils.isZero(assignment.rhs.value) &&
+                    assignment.rhs.unit == TimeUnit.NONE) {
                     error(
                         "Invalid time units: " + assignment.rhs.unit +
                             ". Should be one of " + TimeUnit.VALUES.filter [
@@ -488,7 +491,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         inputs.add(state.name);
         allNames.add(state.name)
         if (this.target.requiresTypes) {
-            if (!state.ofTimeType && state.parameter === null && state.type === null) {
+            if (!state.ofTimeType && state.init.parameter === null && state.type === null) {
                 error("State must have a type.", Literals.STATE__TYPE)
             }
         }
@@ -506,14 +509,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     @Check(FAST)
     def checkTime(TimeOrValue timeOrValue) {
-        // Only parameter assignments are allowed to be target types.
+        // Only parameter assignments and state initializations are allowed to be target types.
         // Time parameters can go without units only if they are 0.
-        if (!(timeOrValue.eContainer instanceof Assignment)) {
+        if (!(timeOrValue.eContainer instanceof Assignment) && !(timeOrValue.eContainer instanceof org.icyphy.linguaFranca.State)) {
             
-            // If a literal value is provided, check that it is zero.
-            if (timeOrValue.value !== null && !timeOrValue.value.isEmpty) {
+            // If a value is provided, check that it is zero.
+            var String str
+            if (timeOrValue.value !== null && !((str = ASTUtils.toText(timeOrValue.value)).isEmpty)) {
                 try {
-                    val number = Integer.parseInt(timeOrValue.value)
+                    val number = Integer.parseInt(str)
                     if (number != 0) {
                         if (timeOrValue.unit == TimeUnit.NONE) {
                             error("Missing time units. Should be one of " +

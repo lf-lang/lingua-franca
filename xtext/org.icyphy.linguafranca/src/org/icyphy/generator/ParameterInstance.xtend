@@ -13,22 +13,23 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 package org.icyphy.generator
 
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Type
 
 /** Representation of a runtime instance of a parameter.
  *  
@@ -56,7 +57,9 @@ abstract class ParameterInstance extends NamedInstance<Parameter> {
 //    /** The type of the parameter, stripped of the code delimiters
 //     *  {= ... =} if they were provided.
 //     */
-    public var type = "UNTYPED"
+    //public var type = "UNTYPED"
+    protected Type type
+    
     /////////////////////////////////////////////
     //// Public Methods
 
@@ -83,10 +86,11 @@ abstract class ParameterInstance extends NamedInstance<Parameter> {
 }
 
 class ValueParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, String value, String type) {
+	new(Parameter definition, ReactorInstance parent, String value, Type type) {
 		super(definition, parent)
-		this.type = type
+		this.type = definition.type
 		this.value = value
+		
 	}
 	public var value = ""
 	
@@ -97,15 +101,15 @@ class ValueParameter extends ParameterInstance {
      *  {= ... =} if they were provided.
      */
 	override getLiteralValue() {
-		return GeneratorBase.removeCodeDelimiter(this.value)
+		return this.value
 	}
 }
 
 class TimeParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, long value, TimeUnit unit) {
+	new(Parameter definition, ReactorInstance parent, TimeValue timeValue) {
 		super(definition, parent)
-		this.value = new TimeValue(value, unit)
-		this.type = parent.generator.timeTypeInTargetLanguage()
+		this.type = definition.type
+		this.value = timeValue
 	}
 	
 	public TimeValue value
@@ -114,4 +118,5 @@ class TimeParameter extends ParameterInstance {
 	override getLiteralValue() {
 		return parent.generator.timeInTargetLanguage(this.value)
 	}
+	
 }
