@@ -7,7 +7,9 @@ import Count.lf;
 reactor Test {
     input c:int;
     state i:int(0);
+    state received:int(0);
     reaction(c) {=
+        self->received++;
         printf("Received %d.\n", c);
         (self->i)++;
         if (c != self->i) {
@@ -23,6 +25,12 @@ reactor Test {
                 expected_logical_time, elapsed_time
             );
             exit(1);
+        }
+    =}
+    reaction(shutdown) {=
+        if (self->received == 0) {
+            printf("ERROR: Final reactor received no data.\n");
+            exit(3);
         }
     =}
 }

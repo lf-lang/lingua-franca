@@ -17,13 +17,21 @@ reactor Source(sequence:int[]({= {0, 1, 2} =}), n_sequence:int(3)) {
 reactor Print {
     input in:int;
     state count:int(1);
+    state received:int(0);
     reaction(in) {=
+        self->received++;
         printf("Received: %d\n", in);
         if (in != self->count) {
             printf("ERROR: Expected %d.\n", self->count);
             exit(1);
         }
         self->count++;
+    =}
+    reaction(shutdown) {=
+        if (self->received == 0) {
+            printf("ERROR: Final reactor received no data.\n");
+            exit(3);
+        }
     =}
 }
 main reactor ArrayAsParameter {
