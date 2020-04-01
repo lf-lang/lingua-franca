@@ -2294,13 +2294,17 @@ int main(int argc, char* argv[]) {
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
                 
-                // FIXME: if this is an array type, the type cannot be used verbatim; the trailing `[]`
+                // If this is an array type, the type cannot be used verbatim; the trailing `[]`
                 // should be replaced by a `*`
+                var cType = type.toText
+                val matcher = arrayPatternVariable.matcher(cType)
+                if (matcher.find()) {
+                    cType = matcher.group(1) + '*'
+                }
                 pr(builder, '''
-
-                    «type.toText» «action.name»_value;
+                    «cType» «action.name»_value;
                     if («action.name»_has_value) {
-                        «action.name»_value = ((«type.toText»)«tokenPointer»->value);
+                        «action.name»_value = ((«cType»)«tokenPointer»->value);
                     }
                     '''
                 )
