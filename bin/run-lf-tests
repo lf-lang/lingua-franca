@@ -69,7 +69,7 @@ else
                 echo "Executing command:"$command;
                 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
                 
-                if timeout 30s $command;
+                if $command; # timeout 30s 
                 then
                     correct=$((correct + 1))
                 else
