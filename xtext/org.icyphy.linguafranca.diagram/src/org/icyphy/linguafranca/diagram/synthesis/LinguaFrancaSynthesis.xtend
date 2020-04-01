@@ -38,6 +38,7 @@ import org.eclipse.elk.core.options.PortConstraints
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
+import org.icyphy.ASTUtils
 import org.icyphy.AnnotatedDependencyGraph
 import org.icyphy.AnnotatedNode
 import org.icyphy.linguaFranca.Action
@@ -576,7 +577,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			b.append("\u2022 ")
 		}
 		b.append(param.name)
-		if (!param.type.nullOrEmpty) {
+		if (!ASTUtils.toText(param.type).nullOrEmpty) {
 			b.append(":").append(param.type)
 		} else if (param.ofTimeType) {
 			b.append(":time")

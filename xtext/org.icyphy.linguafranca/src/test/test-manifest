@@ -21,7 +21,7 @@ DeadlineHandledAbove.lf
 DeadlineHandledAboveThreaded.lf
 DeadlineThreaded.lf
 DelayArray.lf
-DelayArrayWithAfter.lf
+#DelayArrayWithAfter.lf
 DelayedAction.lf
 DelayedReaction.lf
 DelayInt.lf

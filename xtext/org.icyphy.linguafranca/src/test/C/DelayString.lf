@@ -1,5 +1,6 @@
 // This tests actions with immutable payloads that are neither malloc'd nor freed.
 target C;
+
 reactor Delay(delay:time(100 msec)) {
     input in:string;
     output out:string;

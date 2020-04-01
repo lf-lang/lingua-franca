@@ -3,6 +3,7 @@ package org.icyphy.linguafranca.diagram.synthesis
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
+import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
@@ -21,7 +22,7 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 		} else if (tov.parameter !== null) {
 			return tov.parameter.name
 		} else if (tov.value !== null) {
-			return tov.value
+			return ASTUtils.toText(tov.value)
 		} else if (tov.unit === TimeUnit.NONE) {
 			return Integer.toString(tov.time)
 		} else {

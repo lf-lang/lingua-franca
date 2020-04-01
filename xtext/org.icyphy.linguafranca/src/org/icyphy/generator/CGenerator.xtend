@@ -50,6 +50,7 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
@@ -60,6 +61,7 @@ import org.icyphy.linguaFranca.State
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
@@ -402,7 +404,8 @@ class CGenerator extends GeneratorBase {
      *  reference count and frees allocated memory when the
      *  reference count hits zero.
      */
-    def addReferenceCountReaction(Reactor reactor) {        
+    def addReferenceCountReaction(Reactor reactor) {    
+        var factory = LinguaFrancaFactory.eINSTANCE    
         var triggersForReaction = newArrayList
         var body = new StringBuilder
         // This is a bit of a hack, but preface the body with
@@ -412,13 +415,15 @@ class CGenerator extends GeneratorBase {
         pr(body, CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
         pr(body, '// Generated reaction for recycling allocated memory.')
         for(input : reactor.inputs) {
-            if (isTokenType(input.type)) {
-                triggersForReaction.add(input)
-                pr(body, '''
-                    if(self->__«input.name»_is_present) {
-                        __done_using(*self->__«input.name»);
-                    }
-                ''')
+            if (input.type !== null) {
+                if (isTokenType(input.type)) {
+                    triggersForReaction.add(input)
+                    pr(body, '''
+                        if(self->__«input.name»_is_present) {
+                            __done_using(*self->__«input.name»);
+                        }
+                    ''')
+                }
             }
         }
         if (!triggersForReaction.isEmpty) {
@@ -429,7 +434,9 @@ class CGenerator extends GeneratorBase {
                 variableReference.setVariable(input)
                 reaction.triggers.add(variableReference)
             }
-            reaction.setCode(body.toString)
+            var code = factory.createCode()
+            code.tokens.add(body.toString) 
+            reaction.setCode(code)
             reactor.reactions.add(reaction)
         }
     }
@@ -564,7 +571,7 @@ int main(int argc, char* argv[]) {
         // Preamble code contains state declarations with static initializers.
         for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
-            pr(removeCodeDelimiter(p.code))
+            pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
 
@@ -590,7 +597,7 @@ int main(int argc, char* argv[]) {
             // NOTE: Slightly obfuscate output name to help prevent accidental use.
             pr(body, "trigger_t* __" + a.name + ";")
         }
-        // Next handle inputs.
+       // Next handle inputs.
         for (input : reactor.inputs) {
             prSourceLineNumber(input)
             if (input.type === null) {
@@ -898,7 +905,7 @@ int main(int argc, char* argv[]) {
         }
         pr('void ' + functionName + '(void* instance_args) {')
         indent()
-        var body = removeCodeDelimiter(reaction.code)
+        var body = reaction.code.toText
 
         // Do not generate the initialization code if the body is marked
         // to not generate it.
@@ -938,7 +945,7 @@ int main(int argc, char* argv[]) {
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
             prSourceLineNumber(reaction.deadline.interval)
-            pr(removeCodeDelimiter(reaction.deadline.code))
+            pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
         }
@@ -1322,7 +1329,7 @@ int main(int argc, char* argv[]) {
                     'reaction_t* ' + structName + '_reactions[1] = {&' +
                         reactionInstanceName + '};')
 
-                val rootType = rootType((output.definition as Port).type)
+                val rootType = ((output.definition as Port).type).rootType
                 pr(result, '''
                     trigger_t «structName» = {
                         «structName»_reactions, 1, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
@@ -1406,7 +1413,7 @@ int main(int argc, char* argv[]) {
                     «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, 0
                 ''')
             } else if (trigger instanceof Port) {
-                val rootType = rootType(trigger.type)
+                val rootType = trigger.type.rootType
                 pr(result, '''
                     «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
                 ''')
@@ -1430,7 +1437,7 @@ int main(int argc, char* argv[]) {
                     }
                 }
                 var element_size = "0"
-                if (trigger.type !== null) element_size = '''sizeof(«rootType(trigger.type)»)'''
+                if (trigger.type !== null) element_size = '''sizeof(«trigger.type.rootType»)'''
                 pr(result, '''
                     «triggerStructName»_reactions,
                     «numberOfReactionsTriggered»,
@@ -1623,7 +1630,7 @@ int main(int argc, char* argv[]) {
             // memory allocations.
             
             // Array type parameters have to be handled specially.
-            val matcher = arrayPatternVariable.matcher(parameter.type)
+            val matcher = arrayPatternVariable.matcher(parameter.type.toText)
             if (matcher.find()) {
                 val temporaryVariableName = parameter.uniqueID
                 pr(initializeTriggerObjects,
@@ -1643,17 +1650,45 @@ int main(int argc, char* argv[]) {
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
+        
         for (state : reactorClass.states) {
             var time = state.time
             var unit = state.unit
-            var value = state.value
-
-            if (state.parameter !== null) {
-                time = state.parameter.time
-                unit = state.parameter.unit
-                value = state.parameter.value
+            var LiteralOrCode init
+            var parameterized = false
+            var initialized = false
+            
+            if (state.init !== null) {
+                if (state.init.parameter !== null) {
+                    time = state.init.parameter.time
+                    unit = state.init.parameter.unit
+                    init = state.init.parameter.value
+                    parameterized = true
+                } else {
+                    init = state.init.value
+                }
+                initialized = true
             }
-            if (state.ofTimeType) {
+            /* FIXME: Work in progress toward supporting lists
+            var elements = new LinkedList<String>();
+            for (element : state.init) {
+                var time = element.time
+                var unit = element.unit
+                var value = element.value
+                if (element.parameter !== null) {
+                    time = element.parameter.time
+                    unit = element.parameter.unit
+                    value = element.parameter.value
+                }
+                if (state.ofTimeType) {
+                    elements.add(timeInTargetLanguage(new TimeValue(time, unit)))
+                } else {
+                    elements.add(GeneratorBase.literalOrCodeToString(value))
+                }
+            }
+            */
+
+            if (state.ofTimeType) { // FIXME: check element list is of size one in validator
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + state.name + " = " +
                         timeInTargetLanguage(new TimeValue(time, unit)) + ";")
@@ -1663,13 +1698,13 @@ int main(int argc, char* argv[]) {
                 // static initializers for arrays and structs have to be handled
                 // this way, and there is no way to tell whether the type of the array
                 // is a struct.
-                if (state.parameter !== null) {
+                if (parameterized && initialized) {
                     pr(initializeTriggerObjects,
                         nameOfSelfStruct + "." + state.name + " = " +
-                        removeCodeDelimiter(value) + ";")
+                        init.toText + ";")
                 } else {
-                    val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
-                    var type = removeCodeDelimiter(state.type);
+                   val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
+                    var type = state.type.toText
                     val matcher = arrayPatternVariable.matcher(type)
                     if (matcher.find()) {
                         // If the state type ends in [], then we have to move the []
@@ -1677,17 +1712,17 @@ int main(int argc, char* argv[]) {
                         // after the variable name.
                         pr(initializeTriggerObjects,
                             "static " + matcher.group(1) + " " +
-                            temporaryVariableName + "[] = " + removeCodeDelimiter(state.value) + ";"
+                            temporaryVariableName + "[] = " + state.init.value.toText + ";"
                         )
                     } else {
                         pr(initializeTriggerObjects,
                             "static " + type + " " +
-                            temporaryVariableName + " = " + removeCodeDelimiter(state.value) + ";"
+                            temporaryVariableName + " = " + state.init.value.toText + ";"
                         )
                     }
                     pr(initializeTriggerObjects,
                         nameOfSelfStruct + "." + state.name + " = " + temporaryVariableName + ";"
-                    )                    
+                    ) 
                 }
             }
         }
@@ -1730,12 +1765,13 @@ int main(int argc, char* argv[]) {
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action)) {
                 var type = (action.definition as Action).type
+                var typeStr = type.toText
                 if (isTokenType(type)) {
-                    type = rootType(type)
+                    typeStr = type.rootType
                 }
                 var payloadSize = "0"
-                if (type !== null && !type.equals("")) {
-                    payloadSize = '''sizeof(«type»)'''
+                if (typeStr !== null && !typeStr.equals("")) {
+                    payloadSize = '''sizeof(«typeStr»)'''
                 }
             
                 // Create a reference token initialized to the payload size.
@@ -1855,7 +1891,7 @@ int main(int argc, char* argv[]) {
         val ref = generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
-        if (isTokenType(action.type)) {
+        if (action.type.isTokenType) {
             '''
             if («ref»_is_present) {
                 // Put the whole token on the event queue, not just the payload.
@@ -1880,7 +1916,7 @@ int main(int argc, char* argv[]) {
      */
     override generateForwardBody(Action action, VarRef port) {
         val outputName = generateVarRef(port)
-        if (isTokenType(action.type)) {
+        if (action.type.isTokenType) {
             // Forward the entire token and prevent freeing.
             // We leave the ref_count alone. It should be 1.
             '''
@@ -1917,10 +1953,11 @@ int main(int argc, char* argv[]) {
         String type
     ) {
         // Adjust the type of the action.
-        // If it is "string", then change it to "char*".
-        // The latter is used for dynamically allocated strings.
-        if (action.type == "string") {
-            action.type = "char*"
+        // If it is "string", then change it to "char".
+        // Pointer types in actions are declared without the "*" (perhaps oddly).
+        if (action.type.toText == "string") {
+            action.type.code = null
+            action.type.id = "char*"
         }
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -2033,8 +2070,8 @@ int main(int argc, char* argv[]) {
     protected def reactionStructName(ReactionInstance reaction) {
         reaction.uniqueID
     }
-
-    // //////////////////////////////////////////
+    
+        // //////////////////////////////////////////
     // // Private methods.
     
     /** Perform deferred initializations in initialize_trigger_objects.
@@ -2256,10 +2293,14 @@ int main(int argc, char* argv[]) {
                 // this scheme and never freed. The total number of token_t structs created
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
+                
+                // FIXME: if this is an array type, the type cannot be used verbatim; the trailing `[]`
+                // should be replaced by a `*`
                 pr(builder, '''
-                    «type» «action.name»_value;
+
+                    «type.toText» «action.name»_value;
                     if («action.name»_has_value) {
-                        «action.name»_value = ((«type»)«tokenPointer»->value);
+                        «action.name»_value = ((«type.toText»)«tokenPointer»->value);
                     }
                     '''
                 )
@@ -2270,9 +2311,9 @@ int main(int argc, char* argv[]) {
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
                 pr(builder, '''
-                    «type» «action.name»_value;
+                    «type.toText» «action.name»_value;
                     if («action.name»_has_value) {
-                        «action.name»_value = *((«type»*)«tokenPointer»->value);
+                        «action.name»_value = *((«type.toText»*)«tokenPointer»->value);
                     }
                     '''
                 )
@@ -2295,9 +2336,9 @@ int main(int argc, char* argv[]) {
         pr(builder,
             'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
         
-        if (isTokenType(input.type)) {
+        if (input.type.isTokenType) {
             // FIXME: Redo the following with smart strings '''
-            val rootType = rootType(input.type)
+            val rootType = input.type.rootType
             pr(builder, rootType + '* ' + input.name + ';')
             pr(builder, 'int ' + input.name + '_length = 0;')
             // Create the name_token variable.
@@ -2320,11 +2361,11 @@ int main(int argc, char* argv[]) {
             }
         } else if (input.type !== null) {
             // Look for array type of form type[number].
-            val matcher = arrayPatternFixed.matcher(input.type)
+            val matcher = arrayPatternFixed.matcher(input.type.toText)
             if (matcher.find()) {
                 pr(builder, matcher.group(1) + '* ' + input.name + ';')
             } else {
-                pr(builder, input.type + ' ' + input.name + ';')
+                pr(builder, input.type.toText + ' ' + input.name + ';')
             }
             pr(builder, 'if(' + present + ') {')
             indent(builder)
@@ -2333,7 +2374,6 @@ int main(int argc, char* argv[]) {
         unindent(builder)
         pr(builder, '}')
     }
-
     /** Generate into the specified string builder the code to
      *  initialize local variables for ports in a reaction function
      *  from the "self" struct. The port may be an input of the
@@ -2475,12 +2515,12 @@ int main(int argc, char* argv[]) {
         if (parameter.ofTimeType) {
             return timeTypeInTargetLanguage
         }
-        if (parameter.type === null || parameter.type.equals("")) {
+        if (parameter.type === null || parameter.type.toText.equals("")) {
             reportError(parameter,
                 "Parameter is required to have a type: " + parameter.name)
             return "(ERROR: NO TYPE)"
         }
-        var type = removeCodeDelimiter(parameter.type)
+        var type = parameter.type.toText
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
             type = 'interval_t'
         } else {
@@ -2503,18 +2543,18 @@ int main(int argc, char* argv[]) {
     private def getStateType(State state) {
         // A state variable may directly refer to its initializing parameter,
         // in which case, it inherits the type from the parameter.
-        if (state.parameter !== null) {
-            return removeCodeDelimiter(state.parameter.type)
+        if (state.init !== null && state.init.parameter !== null) {
+            return state.init.parameter.type.toText
         }
         if (state.ofTimeType) {
             return timeTypeInTargetLanguage
         }
-        if (state.type === null || state.type.equals("")) {
+        if (state.type === null || state.type.toText.equals("")) {
             reportError(state,
                 "State is required to have a type: " + state.name)
             return "(ERROR: NO TYPE)"
         }
-        var type = removeCodeDelimiter(state.type)
+        var type = state.type.toText
         if (state.unit != TimeUnit.NONE || state.isOfTimeType) {
             type = 'interval_t'
         } else {
@@ -2532,9 +2572,9 @@ int main(int argc, char* argv[]) {
      *  (it is a pointer) or [] (it is a array with unspecified length).
      *  @param type The type specification.
      */
-    private def isTokenType(String type) {
-        if(type !== null && 
-                (type.trim.matches("^\\w*\\[\\s*\\]$") || type.trim.endsWith('*'))) {
+    private def isTokenType(Type type) {
+        val typeStr = type.toText
+        if (typeStr.trim.matches("^\\w*\\[\\s*\\]$") || typeStr.trim.endsWith('*')) {
             true
         } else {
             false
@@ -2547,14 +2587,15 @@ int main(int argc, char* argv[]) {
      *  unmodified.
      *  @param type A string describing the type.
      */
-    private def rootType(String type) {
-        if(type.endsWith(']')) {
-            val root = type.indexOf('[')
-            type.substring(0, root).trim
-        } else if (type.endsWith('*')) {
-            type.substring(0, type.length - 1).trim
+    private def rootType(Type type) {
+        var str = type.toText
+        if (str.endsWith(']')) {
+            val root = str.indexOf('[')
+            str.substring(0, root).trim
+        } else if (str.endsWith('*')) {
+            str.substring(0, str.length - 1).trim
         } else {
-            removeCodeDelimiter(type).trim
+            str.trim
         }
     }
 
@@ -2563,9 +2604,9 @@ int main(int argc, char* argv[]) {
      *  if there is one, and otherwise just return the argument
      *  unmodified.
      */
-    private def lfTypeToTokenType(String type) {
-        var result = removeCodeDelimiter(type)
-        if(isTokenType(type)) {
+    private def lfTypeToTokenType(Type type) {
+        var result = type.toText
+        if (isTokenType(type)) {
             result = 'token_t*'
         }
         result
@@ -2594,10 +2635,10 @@ int main(int argc, char* argv[]) {
                 var nameOfSelfStruct = selfStructName(containedReactor)
                 for (output : containedReactor.outputs) {
                     val type = (output.definition as Output).type
-                    if (isTokenType(type)) {
+                    if (type.isTokenType) {
                         // Create the template token that goes in the trigger struct.
                         // Its reference count is zero, enabling it to be used immediately.
-                        var rootType = rootType(type)
+                        var rootType = type.rootType
                         pr('''
                             «nameOfSelfStruct».__«output.name» = __create_token(sizeof(«rootType»));
                         ''')
