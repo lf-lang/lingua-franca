@@ -155,7 +155,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (assignment.lhs.isOfTimeType) {
             if (assignment.rhs.parameter === null) {
                 // This is a value. Check that units are present
-                if (assignment.rhs.unit == TimeUnit.NONE) {
+                if (!ASTUtils.isZero(assignment.rhs.value) &&
+                    assignment.rhs.unit == TimeUnit.NONE) {
                     error(
                         "Invalid time units: " + assignment.rhs.unit +
                             ". Should be one of " + TimeUnit.VALUES.filter [
