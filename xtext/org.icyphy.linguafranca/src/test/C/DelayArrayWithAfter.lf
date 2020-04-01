@@ -23,7 +23,9 @@ reactor Source {
 reactor Print(scale:int(1)) {
     input in:int[];
     state iteration:int(1);
+    state inputs_received:int(0);
     reaction(in) {=
+        self->inputs_received++;
         int count = 1;       // For testing.
         bool failed = false; // For testing.
         printf("Received: [");
@@ -46,6 +48,12 @@ reactor Print(scale:int(1)) {
             exit(2);
         }
         self->iteration++;
+    =}
+    reaction(shutdown) {=
+        if (self->inputs_received == 0) {
+            printf("ERROR: Print reactor received no inputs.\n");
+            exit(3);
+        }
     =}
 }
 main reactor DelayArray {
