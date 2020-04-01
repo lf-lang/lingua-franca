@@ -102,7 +102,12 @@ reactor PrintMessage {
 }
 
 main reactor MQTTTest {
-    pub = new MQTTPublisher(topic = "my/test", address = "tcp://localhost:1883", clientID = "TestPublisher");
+    pub = new MQTTPublisher(
+        topic = "my/test",
+        address = "tcp://localhost:1883",
+        clientID = "TestPublisher",
+        include_physical_timestamp = 1
+    );
     msg = new MessageGenerator(root = "Hello World");
     msg.message->pub.in;
     
