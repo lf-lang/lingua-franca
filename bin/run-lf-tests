@@ -68,7 +68,7 @@ else
                 fi
                 echo "Executing command:"$command;
                 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-                timeout 30s $command;
+                eval timeout 30s $command;
                 if (($? == 0)); then
                     correct=$((correct + 1))
                 else
