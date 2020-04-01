@@ -305,7 +305,9 @@ class ASTUtils {
      * @return Textual representation of the given argument.
      */
     def static String toText(LiteralOrCode literalOrCode) {
-        if (literalOrCode.literal !== null) {
+        if (literalOrCode === null) {
+            return ""
+        } else if (literalOrCode.literal !== null) {
             return literalOrCode.literal
         } else {
             return toText(literalOrCode.code)
