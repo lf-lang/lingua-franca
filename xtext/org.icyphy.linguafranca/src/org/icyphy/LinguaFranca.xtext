@@ -68,26 +68,10 @@ Reactor:
 
 // Types are optional for use in untyped languages.
 
-//State:
-//    'state' name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-//    | ((':' type=Type) '(' value=(Literal | ID) ')') // FIXME: Check that if the ID matches a parameter, no type is given.
-//    | ('(' (value=(Literal)) ')')
-//    | ('(' parameter=[Parameter] ')'))? ';';
-
-//State: // FIXME: change into StateDecl to avoid collision with other classes called State
-//    'state' name=ID 
-//    (
-//        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')') | 
-//        (
-//            (':' type=Type)? ('(' init=TimeOrValue ')' )? // | (init+=LiteralOrCode (',' init+=LiteralOrCode)?)
-//        )
-//    ) ';';
-
 StateVar:
-    'state' name=ID 
-    (
-        (':' (ofTimeType?='time' | type=Type))? ('(' init+=TimeOrValue (',' init+=TimeOrValue)* ')' )?
-
+    'state' name=ID (
+        (':' (ofTimeType?='time' | type=Type))? 
+        ('(' init+=TimeOrValue (',' init+=TimeOrValue)* ')' )?
     ) ';'    
 ;
 
@@ -193,8 +177,6 @@ VarRef:
 Assignment:
     (lhs=[Parameter] '=' rhs=TimeOrValue);
 
-//Property:
-//    name=ID '=' (literal=Literal | (time=INT unit=TimeUnit));
 
 // Single parameter.
 Parameter:
@@ -248,8 +230,6 @@ terminal FLOAT:
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
-//terminal CODE:
-//    '{=' .* '=}';
 
 Code:
     {Code} '{=' (tokens+=Token)* '=}'
