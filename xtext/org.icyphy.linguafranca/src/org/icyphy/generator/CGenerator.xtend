@@ -50,14 +50,13 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.LinguaFrancaPackage
-import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.State
+import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
@@ -584,9 +583,9 @@ int main(int argc, char* argv[]) {
             pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
         }
         // Next handle states.
-        for (state : reactor.states) {
-            prSourceLineNumber(state)
-            pr(body, getStateType(state) + ' ' + state.name + ';');
+        for (stateVar : reactor.stateVars) {
+            prSourceLineNumber(stateVar)
+            pr(body, getStateType(stateVar) + ' ' + stateVar.name + ';');
         }
         // Next handle actions.
         for (a : reactor.actions) {
@@ -1563,7 +1562,7 @@ int main(int argc, char* argv[]) {
      *  @param reactor A reactor class
      */
     def hasEmptySelfStruct(Reactor reactor) {
-        if (!reactor.parameters.isEmpty || !reactor.states.isEmpty ||
+        if (!reactor.parameters.isEmpty || !reactor.stateVars.isEmpty ||
             !reactor.actions.isEmpty || !reactor.inputs.isEmpty ||
             !reactor.outputs.isEmpty) {
             return false
@@ -1644,60 +1643,53 @@ int main(int argc, char* argv[]) {
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
         
-        for (state : reactorClass.states) {
-            var time = state.time
-            var unit = state.unit
-            var LiteralOrCode init
-            var parameterized = false
-            var initialized = false
+        for (stateVar : reactorClass.stateVars) {
+            val init = stateVar.init
+            var initStr = stateVar.init.toText('{', ',', '}',
+                stateVar.ofTimeType)
+//            var list = new LinkedList<String>();
+//            
+//            // Collect strings and put them in a list
+//            for (element : init) {
+//                var time = element.time
+//                var unit = element.unit
+//                var value = element.value
+//                if (element.parameter !== null) {
+//                    time = element.parameter.time
+//                    unit = element.parameter.unit
+//                    value = element.parameter.value
+//                    parameterized = true
+//                }
+//                if (stateVar.ofTimeType) {
+//                    list.add(timeInTargetLanguage(new TimeValue(time, unit)))
+//                } else {
+//                    list.add(value.toText)
+//                }
+//            }
+//            
+//            if (list.size == 1) {
+//                initStr = list.first
+//            } else if (list.size > 1) {
+//                initStr = list.join('{', ',', '}', [it])    
+//            }
             
-            if (state.init !== null) {
-                if (state.init.parameter !== null) {
-                    time = state.init.parameter.time
-                    unit = state.init.parameter.unit
-                    init = state.init.parameter.value
-                    parameterized = true
-                } else {
-                    init = state.init.value
-                }
-                initialized = true
-            }
-            /* FIXME: Work in progress toward supporting lists
-            var elements = new LinkedList<String>();
-            for (element : state.init) {
-                var time = element.time
-                var unit = element.unit
-                var value = element.value
-                if (element.parameter !== null) {
-                    time = element.parameter.time
-                    unit = element.parameter.unit
-                    value = element.parameter.value
-                }
-                if (state.ofTimeType) {
-                    elements.add(timeInTargetLanguage(new TimeValue(time, unit)))
-                } else {
-                    elements.add(GeneratorBase.literalOrCodeToString(value))
-                }
-            }
-            */
-
-            if (state.ofTimeType) { // FIXME: check element list is of size one in validator
+            if (stateVar.ofTimeType) {
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "." + state.name + " = " +
-                        timeInTargetLanguage(new TimeValue(time, unit)) + ";")
+                    nameOfSelfStruct + "." + stateVar.name + " = " +
+                        initStr + ";")
             } else {
                 // If the state is initialized with a parameter, then do not use
                 // a temporary variable. Otherwise, do, because
                 // static initializers for arrays and structs have to be handled
                 // this way, and there is no way to tell whether the type of the array
                 // is a struct.
-                if (parameterized && initialized) {
+                if (stateVar.isParameterized && init.size > 0) {
                     pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "." + state.name + " = " +
-                        init.toText + ";")
+                        nameOfSelfStruct + "." + stateVar.name + " = " +
+                        initStr + ";")
                 } else {
-                   val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
-                    var type = state.type.toText
+                   val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                    var type = stateVar.type.toText
                     val matcher = arrayPatternVariable.matcher(type)
                     if (matcher.find()) {
                         // If the state type ends in [], then we have to move the []
@@ -1705,16 +1697,16 @@ int main(int argc, char* argv[]) {
                         // after the variable name.
                         pr(initializeTriggerObjects,
                             "static " + matcher.group(1) + " " +
-                            temporaryVariableName + "[] = " + state.init.value.toText + ";"
+                            temporaryVariableName + "[] = " + initStr + ";"
                         )
                     } else {
                         pr(initializeTriggerObjects,
                             "static " + type + " " +
-                            temporaryVariableName + " = " + state.init.value.toText + ";"
+                            temporaryVariableName + " = " + initStr + ";"
                         )
                     }
                     pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "." + state.name + " = " + temporaryVariableName + ";"
+                        nameOfSelfStruct + "." + stateVar.name + " = " + temporaryVariableName + ";"
                     ) 
                 }
             }
@@ -2528,11 +2520,13 @@ int main(int argc, char* argv[]) {
      *  @param state The state variable.
      *  @return The C type.
      */
-    private def getStateType(State state) {
+    private def getStateType(StateVar state) {
         // A state variable may directly refer to its initializing parameter,
         // in which case, it inherits the type from the parameter.
-        if (state.init !== null && state.init.parameter !== null) {
-            return state.init.parameter.type.toText
+        if (state.init !== null && state.init.size == 1) {
+            val parm = state.init.get(0).parameter
+            if (parm !== null)
+                return parm.type.toText
         }
         if (state.ofTimeType) {
             return timeTypeInTargetLanguage
@@ -2543,7 +2537,7 @@ int main(int argc, char* argv[]) {
             return "(ERROR: NO TYPE)"
         }
         var type = state.type.toText
-        if (state.unit != TimeUnit.NONE || state.isOfTimeType) {
+        if (state.isOfTimeType) {
             type = 'interval_t'
         } else {
             val matcher = arrayPatternVariable.matcher(type)

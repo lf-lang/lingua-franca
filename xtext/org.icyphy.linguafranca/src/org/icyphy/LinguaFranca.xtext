@@ -53,7 +53,7 @@ Reactor:
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
     ((preambles+=Preamble)
-    | (states+=State)
+    | (stateVars+=StateVar)
     | (inputs+=Input)
     | (outputs+=Output)
     | (timers+=Timer)
@@ -74,14 +74,22 @@ Reactor:
 //    | ('(' (value=(Literal)) ')')
 //    | ('(' parameter=[Parameter] ')'))? ';';
 
-State: // FIXME: change into StateDecl to avoid collision with other classes called State
+//State: // FIXME: change into StateDecl to avoid collision with other classes called State
+//    'state' name=ID 
+//    (
+//        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')') | 
+//        (
+//            (':' type=Type)? ('(' init=TimeOrValue ')' )? // | (init+=LiteralOrCode (',' init+=LiteralOrCode)?)
+//        )
+//    ) ';';
+
+StateVar:
     'state' name=ID 
     (
-        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')') | 
-        (
-            (':' type=Type)? ('(' init=TimeOrValue ')' )? // | (init+=LiteralOrCode (',' init+=LiteralOrCode)?)
-        )
-    ) ';';
+        (':' (ofTimeType?='time' | type=Type))? ('(' init+=TimeOrValue (',' init+=TimeOrValue)* ')' )?
+
+    ) ';'    
+;
 
 Input:
     (mutable?='mutable')? 'input' name=ID (':' type=Type)? ';';

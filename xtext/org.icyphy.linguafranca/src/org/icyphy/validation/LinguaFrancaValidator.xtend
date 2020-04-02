@@ -55,7 +55,7 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.ASTUtils
 import org.icyphy.Targets.BuildTypes
-
+import org.icyphy.linguaFranca.StateVar
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -480,21 +480,42 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     }
 
     @Check(FAST)
-    def checkState(org.icyphy.linguaFranca.State state) {
-        checkName(state.name, Literals.STATE__NAME)
-        if (allNames.contains(state.name)) {
+    def checkState(StateVar stateVar) {
+        checkName(stateVar.name, Literals.STATE_VAR__NAME)
+        if (allNames.contains(stateVar.name)) {
             error(
-                UNIQUENESS_MESSAGE + state.name,
-                Literals.STATE__NAME
+                UNIQUENESS_MESSAGE + stateVar.name,
+                Literals.STATE_VAR__NAME
             )
         }
-        inputs.add(state.name);
-        allNames.add(state.name)
-        if (this.target.requiresTypes) {
-            if (!state.ofTimeType && state.init.parameter === null && state.type === null) {
-                error("State must have a type.", Literals.STATE__TYPE)
+        inputs.add(stateVar.name);
+        allNames.add(stateVar.name)
+        val init = stateVar.init
+        
+        
+        if (stateVar.ofTimeType) {
+            // If the parameter is declared to be of time type, make sure that 
+            // it really is.
+            if (init.size > 1 ||
+                (init.size > 0 && !ASTUtils.isValidTime(init.get(0)))) {
+                error("Value does not denote a valid time.",
+                    Literals.STATE_VAR__INIT)
             }
+        } else if (this.target.requiresTypes &&
+            ASTUtils.getValueType(stateVar) === null) {
+            // Report if a type is missing
+            error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
+        
+        if (this.target == Targets.C && init.size > 1) {
+            // In C, if initialization is done with a list, elements cannot
+            // refer to parameters.
+            if (init.exists[it.parameter !== null]) {
+                error("List items cannot refer to a parameter.",
+                    Literals.STATE_VAR__INIT)
+            } 
+        }
+        
     }
 
     @Check(FAST)
@@ -511,7 +532,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkTime(TimeOrValue timeOrValue) {
         // Only parameter assignments and state initializations are allowed to be target types.
         // Time parameters can go without units only if they are 0.
-        if (!(timeOrValue.eContainer instanceof Assignment) && !(timeOrValue.eContainer instanceof org.icyphy.linguaFranca.State)) {
+        if (!(timeOrValue.eContainer instanceof Assignment) && !(timeOrValue.eContainer instanceof StateVar)) {
             
             // If a value is provided, check that it is zero.
             var String str

@@ -40,7 +40,11 @@ import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.TimeOrValue
+import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
+import org.icyphy.linguaFranca.Parameter
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -209,7 +213,7 @@ class ASTUtils {
         reactor.parameters.forEach[it | vars.add(it.name)]
         reactor.inputs.forEach[it | vars.add(it.name)]
         reactor.outputs.forEach[it | vars.add(it.name)]
-        reactor.states.forEach[it | vars.add(it.name)]
+        reactor.stateVars.forEach[it | vars.add(it.name)]
         reactor.instantiations.forEach[it | vars.add(it.name)]
         
         var index = 0;
@@ -326,6 +330,36 @@ class ASTUtils {
             }
         } catch (NumberFormatException e) {
             // NaN
+        }
+        return false
+    }
+    
+    def static boolean isValidTime(TimeOrValue tv) {
+        if (tv !== null &&
+            ((tv.time == 0 || tv.unit != TimeUnit.NONE) ||
+                (tv.parameter !== null && tv.parameter.isOfTimeType))) {
+            return true
+        }
+        return false
+    }
+    
+    def static Type getValueType(StateVar s) {
+        if (s !== null) {
+            if (s.type !== null) {
+                return s.type
+            } else if (s.init !== null && s.init.size == 1) {
+                // If this parameter is initialized using a list,
+                // then it needs a type.
+                val parm = s.init.get(0).parameter
+                if (parm !== null)
+                    return parm.type
+            }
+        }
+    }
+    
+    def static boolean isParameterized(StateVar v) {
+        if (v.init !== null && v.init.exists[it instanceof Parameter]) {
+            return true
         }
         return false
     }
