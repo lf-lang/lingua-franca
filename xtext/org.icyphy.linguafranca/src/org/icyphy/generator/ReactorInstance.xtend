@@ -822,10 +822,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 parameter.unit))
         } else {
             var String value
-            if (parameter.value !== null) {
-                value = ASTUtils.toText(parameter.value)
-            }
-            
+//            if (parameter.value !== null) {
+//                value = ASTUtils.toText(parameter.value)
+//            }
+            value = this.generator.getParamInitializer(parameter, '{', ', ', '}') // FIXME: delims
             return new ValueParameter(parameter, this, value, parameter.type)
         }
     }

@@ -68,6 +68,7 @@ import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.StateVar
 import org.eclipse.emf.common.util.EList
+import org.icyphy.linguaFranca.Parameter
 
 /** Generator base class for shared code between code generators.
  * 
@@ -1001,42 +1002,42 @@ abstract class GeneratorBase {
         }
     }
 
-    /** Given a representation of time that may possibly include units,
-     *  return a string for the same amount of time
-     *  in terms of the specified baseUnit. If the two units are the
-     *  same, or if no time unit is given, return the number unmodified.
-     *  @param time The source time.
-     *  @param baseUnit The target unit.
-     */
-    protected def unitAdjustment(TimeOrValue timeOrValue, TimeUnit baseUnit) { // FIXME: This isn't called from anywhere???
-        if (timeOrValue === null) {
-            return '0'
-        }
-        var timeValue = timeOrValue.time
-        var timeUnit = timeOrValue.unit
-
-        if (timeOrValue.parameter !== null) {
-            timeUnit = timeOrValue.parameter.unit
-            if (timeOrValue.parameter.unit != TimeUnit.NONE) {
-                timeValue = timeOrValue.parameter.time
-            } else {
-                try {
-                    timeValue = Integer.parseInt(timeOrValue.parameter.value.toText)
-                } catch (NumberFormatException e) {
-                    reportError(timeOrValue,
-                        "Invalid time value: " + timeOrValue)
-                }
-            }
-        }
-
-        if (timeUnit === TimeUnit.NONE || baseUnit.equals(timeUnit)) {
-            return timeValue
-        }
-        // Convert time to nanoseconds, then divide by base scale.
-        return ((timeValue * timeUnitsToNs.get(timeUnit)) /
-            timeUnitsToNs.get(baseUnit)).toString
-
-    }
+//    /** Given a representation of time that may possibly include units,
+//     *  return a string for the same amount of time
+//     *  in terms of the specified baseUnit. If the two units are the
+//     *  same, or if no time unit is given, return the number unmodified.
+//     *  @param time The source time.
+//     *  @param baseUnit The target unit.
+//     */
+//    protected def unitAdjustment(TimeOrValue timeOrValue, TimeUnit baseUnit) {
+//        if (timeOrValue === null) {
+//            return '0'
+//        }
+//        var timeValue = timeOrValue.time
+//        var timeUnit = timeOrValue.unit
+//
+//        if (timeOrValue.parameter !== null) {
+//            timeUnit = timeOrValue.parameter.unit
+//            if (timeOrValue.parameter.unit != TimeUnit.NONE) {
+//                timeValue = timeOrValue.parameter.time
+//            } else {
+//                try {
+//                    timeValue = Integer.parseInt(timeOrValue.parameter.getParamInitializer('{', ',', '}')) // FIXME!!!
+//                } catch (NumberFormatException e) {
+//                    reportError(timeOrValue,
+//                        "Invalid time value: " + timeOrValue)
+//                }
+//            }
+//        }
+//
+//        if (timeUnit === TimeUnit.NONE || baseUnit.equals(timeUnit)) {
+//            return timeValue
+//        }
+//        // Convert time to nanoseconds, then divide by base scale.
+//        return ((timeValue * timeUnitsToNs.get(timeUnit)) /
+//            timeUnitsToNs.get(baseUnit)).toString
+//
+//    }
 
     protected def toText(Code tokens) {
         ASTUtils.toText(tokens)
@@ -1050,26 +1051,47 @@ abstract class GeneratorBase {
         ASTUtils.toText(literalOrCode)
     }
     
-    protected def String toText(EList<TimeOrValue> init, CharSequence before,
-        CharSequence separator, CharSequence after, boolean ofTimeType) {
-        if (init === null || init.size == 0)
+    // FIXME: specify list delimiters and separator statically
+    
+    protected def String getParamInitializer(Parameter param,
+        CharSequence before, CharSequence separator, CharSequence after) {
+        if (param.isOfTimeType) {
+            return (new TimeValue(param.time, param.unit)).timeInTargetLanguage
+        } else {
+            var list = new LinkedList<String>();
+
+            for (element : param?.values) {                
+                list.add(element.toText)
+            }
+
+            if (list.size == 1) {
+                return list.first
+            } else if (list.size > 1) {
+                return list.join(before, separator, after, [it])
+            }
+        }
+    }
+    
+    protected def String getStateInitializer(StateVar stateVar,
+        CharSequence before, CharSequence separator, CharSequence after) {
+        if (stateVar.init === null || stateVar.init.size == 0)
             return ""
         
         var list = new LinkedList<String>();
 
-        for (element : init) {
+        for (element : stateVar.init) {
             var time = element.time
             var unit = element.unit
-            var value = element.value
+            var value = element.value.toText
             if (element.parameter !== null) {
                 time = element.parameter.time
                 unit = element.parameter.unit
-                value = element.parameter.value
+                value = element.parameter.getParamInitializer(before, separator, after)
             }
-            if (ofTimeType) {
+            if (stateVar.ofTimeType) {
                 list.add(timeInTargetLanguage(new TimeValue(time, unit)))
             } else {
-                list.add(value.toText)
+                list.add(value)
             }
         }
 

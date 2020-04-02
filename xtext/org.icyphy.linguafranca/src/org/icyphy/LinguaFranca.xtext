@@ -1,7 +1,7 @@
-/* Grammar for Lingua Franca. */
+/* The Lingua Franca grammar. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2020, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -13,21 +13,22 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-/** Grammar for Lingua Franca.
- *  
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+/** 
+ * Grammar for Lingua Franca.
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 
 grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
@@ -35,6 +36,10 @@ grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
 generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 
 /////////// Overall file
+
+/**
+ * Top-level AST node.
+ */
 Model:
     target=Target
     (imports+=Import)*
@@ -42,33 +47,57 @@ Model:
     (reactors+=Reactor)+;
 
 /////////// Top level elements
+
+/**
+ * Specification of the target language. Target properties can be specified in
+ * YAML format to pass on configuration details to the runtime environment. 
+ */
 Target:
     'target' name=ID (config=KeyValuePairs)? ';';
 
+/**
+ * Import declaration.
+ */
 Import:
     'import' importURI=Path ';';
 
+/**
+ * Declaration of a reactor class.
+ */
 Reactor:
     (main?='main'? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
-    ((preambles+=Preamble)
-    | (stateVars+=StateVar)
-    | (inputs+=Input)
-    | (outputs+=Output)
-    | (timers+=Timer)
-    | (actions+=Action)
-    | (instantiations+=Instantiation)
-    | (connections+=Connection)
-    | (reactions+=Reaction)
-    | (mutations+=Mutation))*
-    '}';
+    (     (preambles+=Preamble)
+        | (stateVars+=StateVar)
+        | (inputs+=Input)
+        | (outputs+=Output)
+        | (timers+=Timer)
+        | (actions+=Action)
+        | (instantiations+=Instantiation)
+        | (connections+=Connection)
+        | (reactions+=Reaction)
+        | (mutations+=Mutation)
+    )* '}';
 
 /////////// Statements
 
-// Types are optional for use in untyped languages.
-
-StateVar:
+/**
+ * Declaration of a state variable. Types are optional, but may be required 
+ * during validation (depending on the target language). Initialization is also 
+ * optional. A state variable can be initialized by assigning a `TimeOrValue`, 
+ * or list of these. Note that a `TimeOrValue` may also be a reference to a 
+ * parameter.
+ * The following checks must be carried out during validation: 
+ *  - if the list of initialization values has more than one element in it, a 
+ *  type must be specified;
+ *  - if the `time` type is specified, there can only be a single initialization
+ *  element, which has to denote a time or a reference to a parameter that
+ *  denotes a time; and
+ *  - if a time is specified, units must be specified as well, unless the time 
+ *  value is zero.
+ */
+ StateVar:
     'state' name=ID (
         (':' (ofTimeType?='time' | type=Type))? 
         ('(' init+=TimeOrValue (',' init+=TimeOrValue)* ')' )?
@@ -178,11 +207,21 @@ Assignment:
     (lhs=[Parameter] '=' rhs=TimeOrValue);
 
 
-// Single parameter.
+/**
+ * Parameter declaration with optional type and mandatory initialization.
+ */
 Parameter:
-    name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-    | ((':' type=Type)? '(' value=LiteralOrCode ')'))?;
-
+    name=ID 
+//    ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
+//    | ((':' type=Type)? '(' value=LiteralOrCode ')'))?;
+    (
+        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
+        | ((':' type=Type)? 
+            '(' values+=LiteralOrCode (',' values+=LiteralOrCode)*  ')'
+          ) 
+    )
+ ;
+ 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
 // If it is a constant, the validator should check that if the value
