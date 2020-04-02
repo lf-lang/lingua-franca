@@ -18,21 +18,35 @@ target C;
  * to the message.  Otherwise, the received message gets a timestamp
  * equal to the physical time at which the message is received.
  * 
- * If the offset is always greater than or
- * equal to the transport latency plus the clock synchronization
- * error, then the overall program remains deterministic.
+ * In addition, if the corresponding MQTTPublisher has its
+ * parameter include_physical_timestamp set to non-zero, then
+ * this reactor measures the physical transport time from the
+ * time of sending (as reported by the physical clock at the sender)
+ * and the time at which this reactor's reaction is invoked
+ * (as reported by the physical clock at this receiver).
+ * 
+ * If the offset is always greater than or equal to the sum of
+ * transport latency, clock synchronization error, and execution
+ * times between creation of the timestamped event at the sender
+ * and its reception at the receiver, then the overall program
+ * remains deterministic.
  * Hence, a good practice, if the application can tolerate the
- * latency, is to set the offset to be larger than the expected
+ * latency, is to set the offset to be larger than this expected
  * communication latency between a publisher and a subscriber.
- * To help the programmer do that, this reactor will report at
- * the end of execution the average and maximum communication
- * latencies.
+ * To determine whether an execution was deterministic in this
+ * sense, set include_physical_timestamp = 0 at the sender,
+ * set a non-zero offset at the receiver, and see if the reported
+ * average latency equals the reported maximum latency. If they
+ * are equal, then execution was deterministic.
  * 
  * By default, the offset is 0, so the assigned timestamp will
- * be the physical time at which the message is received.
- * With this setting, this reactor measures the communication
- * latency and reports at the end of execution the average and
- * maximum communication latencies.
+ * always be the physical time at which the message is received,
+ * assuming the clock synchronization error is less than the
+ * transport latency. With this setting, this timestamp increment
+ * also measures the total communication latency. If the sender has
+ * include_physical_timestamp set to zero, then this reactor
+ * reports at the end of execution the average and
+ * maximum timestamp increments rather than physical latencies.
  * 
  * @param topic The topic name on which to publish.
  * @param address The IP address of the MQTT broker.
@@ -64,23 +78,36 @@ reactor MQTTSubscriber (
             int topicLen, 
             MQTTClient_message *message
         ) {
-            // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
+            instant_t receive_physical_time = get_physical_time();
+            // If a physical timestamp was sent, report the transport time.
+            size_t string_length = strlen((char*)message->payload); // Assumes null-terminated string.
+            if (message->payloadlen == string_length + 1 + 2*sizeof(instant_t)) {
+                instant_t* physical_timestamp = (instant_t*)((char*)message->payload + string_length + 1);
+                printf("DEBUG: MQTTReceiver.message_arrived: Received message after measured latency of %lld nsec (assuming synchronized clocks).\n",
+                    receive_physical_time - *physical_timestamp
+                );
+            }
             
-            // Extract the timestamp and calculate extra delay.
+            // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
+                        
+            // Extract the timestamp and calculate delay from current_time to that timestamp.
             // Note that if this subscriber's current time is ahead of current time
             // at the publisher (something that should not happen even in a distributed
             // implementation), then this extra delay may be negative. If it becomes
-            // less than -offset, the the schedule_copy() function will complain
+            // less than -offset, then the schedule_copy() function will complain
             // by printing a warning to stderr and revise the timestamp to current time.
             instant_t* timestamp = (instant_t*)((char*)message->payload + message->payloadlen - sizeof(instant_t));
             instant_t current_time = get_logical_time();
             interval_t delay = *timestamp - current_time;
-            // printf("DEBUG: MQTTSubscriber: extra delay: %lld.\n", delay);
-            
+            // FIXME: What to do if the delay is negative???
+            printf("DEBUG: MQTTSubscriber.message_arrived: received timestamp that is %lld ahead of current_time %lld.\n", *timestamp - start_time, current_time);
+            printf("DEBUG: MQTTSubscriber.message_arrived: physical time is ahead of current logical time by: %lld.\n", receive_physical_time - current_time);
+                        
             // Schedule the event. Since incoming_message is a physical action,
             // the offset specified in the second argument will be added to current_time
-            // and then compared to physical time. If the sum is greater than physical time
-            // (i.e. if the offset is large enough), then the event will be scheduled at
+            // and to the min_delay in the action and then compared to physical time.
+            // If the sum is greater than physical time
+            // (i.e. if the offset + min_delay is large enough), then the event will be scheduled at
             // exactly the logical time at the publisher plus the offset.
             // Otherwise, it will be scheduled at the current physical time.
             // The incoming message is in dynamically allocated memory.
@@ -130,7 +157,7 @@ reactor MQTTSubscriber (
     /**
      * State variable storing the MQTT client created for each instance of this reactor.
      */
-    state client:MQTTClient(NULL);
+    state client:MQTTClient({=NULL=});
     
     /**
      * Maximum observed latency from the originator of the message to here.
@@ -183,10 +210,25 @@ reactor MQTTSubscriber (
         );
         // printf("DEBUG: Received message carrying timestamp %lld.\n", *timestamp);
         
-        // The physical latency between creation of the message and sender
-        // and its receipt here is the current logical time minus the timestamp.
+        // If the offset is 0, then the latency will be a measure of
+        // the physical latency between creation of the message at the sender
+        // and its receipt here, offset by the clock synchronization error,
+        // assuming that the sender sent the message at a physical time matching its
+        // logical timestamp.
         interval_t latency = get_logical_time() - *timestamp;
-        // printf("DEBUG: Received latency: %lld.\n", latency);
+        printf("DEBUG: MQTTSubscriber.reaction: Received timestamp is larger than sent timestamp by: %lld.\n", latency);
+        
+        // If a physical timestamp was sent, use that to collect
+        // latency stats instead of the logical time increment.
+        size_t string_length = strlen(incoming_message_value); // Assumes null-terminated string.
+        if (incoming_message_token->length == string_length + 1 + 2*sizeof(instant_t)) {
+            instant_t receive_physical_time = get_physical_time();
+            instant_t* physical_timestamp = (instant_t*)(incoming_message_value + string_length + 1);
+            latency = receive_physical_time - *physical_timestamp;
+            printf("DEBUG: MQTTReceiver.reaction: Reacted to message after measured latency of %lld nsec (assuming synchronized clocks).\n",
+                latency
+            );
+        }
         
         self->latencies += latency;
         
@@ -196,9 +238,9 @@ reactor MQTTSubscriber (
     =}
     
     reaction(shutdown) {=
-        printf("MQTTSubscriber: Maximum communication latency (in nsec): %lld.\n", self->max_latency);
+        printf("MQTTSubscriber: Maximum latency measured at receiver (in nsec): %lld.\n", self->max_latency);
         if (self->count > 0) {
-            printf("MQTTSubscriber: Average communication latency (in nsec): %lld.\n", self->latencies/self->count);
+            printf("MQTTSubscriber: Average latency measured at receiver (in nsec): %lld.\n", self->latencies/self->count);
         }
         printf("MQTTSubscriber: Client ID %s disconnecting.\n", self->clientID);
         MQTTClient_disconnect(self->client, 10000);

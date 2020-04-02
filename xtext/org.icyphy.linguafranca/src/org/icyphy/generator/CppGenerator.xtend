@@ -52,6 +52,7 @@ import java.util.LinkedList
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.QueuingPolicy
 
 /** Generator for C++ target.
  *
@@ -270,7 +271,7 @@ class CppGenerator extends GeneratorBase {
 
     def declareActions(Reactor r) '''
         «FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
-            «a.implementationType» «a.name»{"«a.name»", this};
+            «a.implementationType» «a.name»;
         «ENDFOR»
         // default actions
         reactor::StartupAction startup {"startup", this};
@@ -565,6 +566,7 @@ class CppGenerator extends GeneratorBase {
           «r.initializeParameters»
           «r.initializeStateVariables»
           «r.initializeInstances»
+          «r.initializeActions»
           «r.initializeTimers»
         {}
     '''
@@ -586,6 +588,12 @@ class CppGenerator extends GeneratorBase {
             , «i.name»{"«i.name»", this«FOR v : i.trimmedValues», «v»«ENDFOR»}
         «ENDFOR»
     '''
+    
+    def initializeActions(Reactor r) '''
+        «FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
+            «a.initialize»
+        «ENDFOR»
+    '''
 
     def initializeTimers(Reactor r) '''
         «FOR t : r.timers BEFORE "// timers\n"»
@@ -603,6 +611,24 @@ class CppGenerator extends GeneratorBase {
             period = '''«t.period.trimmedTime»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
+    }
+    
+    def initialize(Action a) {
+        if (a.origin == ActionOrigin.LOGICAL) {
+            if (a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
+                a.reportError("minInterArrival and minPolicy are not supported for logical actions!");
+            } else if (a.minDelay !== null) {
+                ''', «a.name»{"«a.name»", this, «a.minDelay.trimmedTime»}'''
+            } else {
+                ''', «a.name»{"«a.name»", this}'''
+            }
+        } else {
+            if( a.minDelay !== null || a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
+                a.reportError("minDelay, minInterArrival and minPolicy are not supported for physical actions!");
+            } else {
+                ''', «a.name»{"«a.name»", this}'''
+            }
+        }
     }
 
     def trimmedValues(Instantiation i) {
@@ -822,7 +848,7 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "c8df5e661a6dad30a801e2d6027a2be15acb4cbe"
+          GIT_TAG "cde6ecfa12ffa2104eb84f55e70daa5171ff4919"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
