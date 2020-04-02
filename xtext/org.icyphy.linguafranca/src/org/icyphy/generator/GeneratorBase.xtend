@@ -206,6 +206,9 @@ abstract class GeneratorBase {
 
     /** Map from builder to its current indentation. */
     var indentation = new HashMap<StringBuilder, String>()
+    
+    /** Recursion stack used to detect cycles in imports */
+    var importRecursionStack = new HashSet<Resource>();
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -820,8 +823,20 @@ abstract class GeneratorBase {
      *   statements.
      */
     protected def void processImports(Resource resource) {
-        // add resource to imported resources
+        // if the resource is in the recursion stack, then there is a cycle in the imports
+        if (importRecursionStack.contains(resource)) {
+            reportError("There is a dependency cycle in the import statements!")
+            return
+        }
+        
+        // abort if the resource was visited already
+        if (allResources.contains(resource)) {
+            return
+        }
+        
+        // add resource to imported resources and to the recoursion stack
         allResources.add(resource);
+        importRecursionStack.add(resource);
 
         for (import : resource.allContents.toIterable.filter(Import)) {
             // Resolve the import as a URI relative to the current resource's URI.
@@ -852,6 +867,9 @@ abstract class GeneratorBase {
                 )
             }
         }
+        
+        // remove this resource from the recursion stack
+        importRecursionStack.remove(resource);
     }
 
     /** Read a text file in the classpath and return its contents as a string.
