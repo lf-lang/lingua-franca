@@ -49,13 +49,24 @@ import org.icyphy.linguaFranca.Parameter
 /**
  * A helper class for modifying and analyzing the AST.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ASTUtils {
     
+    /**
+     * An instance of a Lingua Franca factory for creating new AST nodes.
+     */
     public static val factory = LinguaFrancaFactory.eINSTANCE
     
+    /**
+     * An instance of a Lingua Franca code generator.
+     */
     GeneratorBase generator
     
+    /**
+     * Create a new instance.
+     * @param generator An instance of a Lingua Franca code generator.
+     */
     new(GeneratorBase generator) {
         this.generator = generator
     }
@@ -121,10 +132,11 @@ class ASTUtils {
         parent.reactions.add(r1)
     }
     
-    /** Replace the specified connection with a communication between federates.
-     *  @param connection The connection.
-     *  @param leftFederate The source federate.
-     *  @param rightFederate The destination federate.
+    /** 
+     * Replace the specified connection with a communication between federates.
+     * @param connection The connection.
+     * @param leftFederate The source federate.
+     * @param rightFederate The destination federate.
      */
     def void makeCommunication(
         Connection connection, 
@@ -249,7 +261,8 @@ class ASTUtils {
                 type.stars?.forEach[newType.stars.add(it)]
                 if (type.arraySpec !== null) {
                     newType.arraySpec = factory.createArraySpec
-                    newType.arraySpec.ofVariableLength = type.arraySpec.ofVariableLength
+                    newType.arraySpec.ofVariableLength = type.arraySpec.
+                        ofVariableLength
                     newType.arraySpec.length = type.arraySpec.length
                 }
             }
@@ -266,7 +279,8 @@ class ASTUtils {
         if (code !== null) {
             val node = NodeModelUtils.getNode(code)
             if (node !== null) {
-                val builder = new StringBuilder(Math.max(node.getTotalLength(), 1))
+                val builder = new StringBuilder(
+                    Math.max(node.getTotalLength(), 1))
                 for (ILeafNode leaf : node.getLeafNodes()) {
                     builder.append(leaf.getText());
                 }
@@ -336,6 +350,11 @@ class ASTUtils {
         return false
     }
     
+    /**
+     * Report whether the given time or value denotes a valid time or not.
+     * @param tv A time or value.
+     * @return True if the argument denotes a valid time, false otherwise.
+     */
     def static boolean isValidTime(TimeOrValue tv) {
         if (tv !== null &&
             ((tv.time == 0 || tv.unit != TimeUnit.NONE) ||
@@ -345,6 +364,13 @@ class ASTUtils {
         return false
     }
     
+    /**
+     * Given a state variable, return the AST node that denotes its type.
+     * Caution: if the given state variable is of time type, then this method 
+     * returns null.
+     * @param s A state variable.
+     * @return The type associated with the argument, or null if denotes a time.
+     */
     def static Type getValueType(StateVar s) {
         if (s !== null) {
             if (s.type !== null) {
@@ -359,8 +385,15 @@ class ASTUtils {
         }
     }
     
-    def static boolean isParameterized(StateVar v) {
-        if (v.init !== null && v.init.exists[it instanceof Parameter]) {
+    /**
+     * Report whether the given time state variable is initialized using a 
+     * parameter or not.
+     * @param s A state variable.
+     * @return True if the argument is initialized using a parameter, false 
+     * otherwise.
+     */
+    def static boolean isParameterized(StateVar s) {
+        if (s.init !== null && s.init.exists[it instanceof Parameter]) {
             return true
         }
         return false
