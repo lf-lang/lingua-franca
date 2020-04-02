@@ -1,19 +1,13 @@
 /**
  * Test case for MQTT pub/sub. In this version, a sequence of strings
  * is sent from one part of the LF program to another disconnected
- * part via MQTTPublisher and MQTTSubscriber reactors. The offset
- * parameter gives the logical time increment between the publisher
- * and the subscriber. If this offset is greater than the physical
- * latency of communication through MQTT plus the clock synchronization
- * error, then the timestamps at the receiver will be deterministic.
- * They are the sender's timestamp plus the offset.
- * Otherwise, the timestamps will be larger and will match the
- * physical time at which the subscriber receives the message.
- * 
- * To measure the communication latency through MQTT, set the offset
- * to 0. In this case, the subscriber will always retimestamp the received
- * message using physical time. At the end of execution, when the
- * timeout expires, the average and maximum latency will be printed.
+ * part via MQTTPublisher and MQTTSubscriber reactors. The subscriber
+ * is configured to retimestamp the received message using physical
+ * time. The display shows the (elapsed) timestamps at the originating
+ * and destination reactors. This is a measure of the physical
+ * time it takes for the publish and subscribe to complete.
+ * See MQTTLogical.lf for an example that uses the sender's timestamp
+ * if the latency is small enough.
  * 
  * Prerequisites:
  * 
@@ -50,7 +44,13 @@
 target C {
     threads: 1, // Must use threaded implementation so schedule is thread safe.
     flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c",
-    timeout: 10 secs
+    timeout: 10 secs,
+    keepalive: true, // FIXME: This should be automatic with a physical action.
+    federates: {
+        RTI: {host: "localhost", port: 15044},
+        Publisher: {reactors: [msg, pub]},
+        Subscriber: {reactors: [sub, dsp]}
+    }
 };
 
 import MQTTPublisher.lf;
@@ -94,7 +94,7 @@ reactor MessageGenerator(root:string("")) {
 reactor PrintMessage {
     input message:char*;
     reaction(message) {=
-        printf("PrintMessage: At (elapsed) time %lld, subscriber receives: %s\n",
+        printf("PrintMessage: At (elapsed) logical time %lld, subscriber receives: %s\n",
             get_elapsed_logical_time(),
             message
         );

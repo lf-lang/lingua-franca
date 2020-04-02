@@ -28,12 +28,16 @@ target C;
  * @param address The IP address of the MQTT broker.
  * @param clientID The name of the client instance.
  *  These names are required to be unique.
+ * @param include_physical_timestamp If true, include
+ *  in the message the time of the local physical clock
+ *  when the message is sent.
  * @see MQTTSubscriber.
  */
 reactor MQTTPublisher (
     topic:string("DefaultTopic"),
     address:string("tcp://localhost:1883"),
-    clientID:string("DefaultPublisher")
+    clientID:string("DefaultPublisher"),
+    include_physical_timestamp:int(0)
 ) {
     preamble {=
         #include "MQTTClient.h"
@@ -76,10 +80,10 @@ reactor MQTTPublisher (
     // FIXME: Replace with simple pair of arguments when the grammar supports this.
     
     /** The client object. */
-    state client:MQTTClient(NULL);
+    state client:MQTTClient({=NULL=});
     
     /** The message object. */
-    state mqtt_msg:MQTTClient_message(MQTTClient_message_initializer);
+    state mqtt_msg:MQTTClient_message({=MQTTClient_message_initializer=});
     
     /** Connect to the broker. Exit if this fails. */
     reaction(startup){=
@@ -130,10 +134,14 @@ reactor MQTTPublisher (
         // Allocate memory for a copy of the message.
         // The length includes the null-terminator of the string and 8 bytes for the timestamp.
         int length = strlen(in) + 1 + sizeof(instant_t);
+        if (self->include_physical_timestamp) {
+            length += sizeof(instant_t);
+        }
         self->inflight.message = malloc(sizeof(char) * length);
-        memcpy(self->inflight.message, in, length - sizeof(instant_t));
+        memcpy(self->inflight.message, in, strlen(in) + 1);
         
         // Append the current timestamp to the message.
+        // This is always last, after the physical timestamp if it is included.
         instant_t* timestamp = (instant_t*)(self->inflight.message + length - sizeof(instant_t));
         *timestamp = get_logical_time();
         // printf("DEBUG: Timestamp of sending message: %lld.\n", *timestamp);
@@ -148,6 +156,14 @@ reactor MQTTPublisher (
         // Specify that this message should not be retained.
         // It will be sent only to subscribers currently subscribed.
         self->mqtt_msg.retained = 0;
+        
+        // As close as possible to the publishing of the message, insert
+        // the physical timestamp if it has been requested.
+        if (self->include_physical_timestamp) {
+            instant_t* physical_timestamp = (instant_t*)(self->inflight.message + length - 2 * sizeof(instant_t));
+            instant_t physical_time = get_physical_time();
+            *physical_timestamp = physical_time;
+        }        
         
         MQTTClient_publishMessage(self->client, self->topic, &self->mqtt_msg, &self->inflight.delivery_token);
         self->inflight.message_in_flight = true;        

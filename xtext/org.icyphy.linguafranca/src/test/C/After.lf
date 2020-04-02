@@ -13,8 +13,10 @@ reactor foo {
 }
 reactor print {
     state expected_time:time(10 msec);
+    state received:int(0);
     input x:int;
     reaction(x) {=
+        self->received++;
         interval_t elapsed_time = get_elapsed_logical_time();
         printf("Result is %d\n", x);
         if (x != 84) {
@@ -28,6 +30,12 @@ reactor print {
             exit(2);
         }
         self->expected_time += SEC(1);
+    =}
+    reaction(shutdown) {=
+        if (self->received == 0) {
+            printf("ERROR: Final reactor received no data.\n");
+            exit(3);
+        }
     =}
 }
 main reactor top {
