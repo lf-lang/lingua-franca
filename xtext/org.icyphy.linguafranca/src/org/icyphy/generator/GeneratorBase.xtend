@@ -209,6 +209,9 @@ abstract class GeneratorBase {
     
     /** Recursion stack used to detect cycles in imports */
     var importRecursionStack = new HashSet<Resource>();
+    
+    /** A flag indicating whether a cycle was found while processing imports */
+    var cyclicImports = false;
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -349,6 +352,14 @@ abstract class GeneratorBase {
         // Next process all the imports and call generateReactor on any
         // reactors defined in the imports.
         processImports(resource)
+        
+        // Abort compilation if a dependency cycle was detected while 
+        // processing imports. If compilation would continue, dependency
+        // cycles between reactor instantiations across files could lead
+        // to a stack overflow!
+        if (cyclicImports) {
+            throw new Exception("Aborting compilation due to dependency cycles in imports!") 
+        }
 
         // Recursively generate reactor class code from their definitions
         // NOTE: We do not generate code for the main reactor here
@@ -825,8 +836,8 @@ abstract class GeneratorBase {
     protected def void processImports(Resource resource) {
         // if the resource is in the recursion stack, then there is a cycle in the imports
         if (importRecursionStack.contains(resource)) {
-            reportError("There is a dependency cycle in the import statements!")
-            return
+            cyclicImports = true
+            throw new Exception("There is a dependency cycle in the import statements!")
         }
         
         // abort if the resource was visited already
