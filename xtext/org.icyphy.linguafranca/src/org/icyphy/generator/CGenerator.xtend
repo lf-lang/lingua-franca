@@ -1652,8 +1652,7 @@ int main(int argc, char* argv[]) {
         
         for (stateVar : reactorClass.stateVars) {
             val init = stateVar.init
-            var initStr = stateVar.init.toText('{', ',', '}',
-                stateVar.ofTimeType)
+            var initStr = stateVar.getStateInitializer('{', ',', '}')
 
             if (stateVar.ofTimeType) {
                 pr(initializeTriggerObjects,
