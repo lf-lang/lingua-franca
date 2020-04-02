@@ -62,7 +62,7 @@ instant_t current_time = 0LL;
 interval_t start_time = 0LL;
 
 /** Physical time at the start of the execution. */
-struct timespec physicalStartTime;
+instant_t physical_start_time = 0LL;
 
 /**
  * Indicator that the execution should stop after the completion of the
@@ -111,8 +111,7 @@ instant_t get_physical_time() {
 instant_t get_elapsed_physical_time() {
     struct timespec physicalTime;
     clock_gettime(CLOCK_REALTIME, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec -
-    (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
 }
 
 /**
@@ -334,10 +333,11 @@ token_t* __create_token(size_t element_size) {
         token = __token_recycling_bin;
         __token_recycling_bin = token->next_free;
         __token_recycling_bin_size--;
+        // printf("DEBUG: __create_token: Retrieved token from the recycling bin: %p\n", token);
     } else {
         token = (token_t*)malloc(sizeof(token_t));
+        // printf("DEBUG: __create_token: Allocated memory for token: %p\n", token);
     }
-    // printf("DEBUG: __create_token: Allocated memory for token: %p\n", token);
     token->value = NULL;
     token->length = 0;
     token->element_size = element_size;
@@ -429,7 +429,10 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
 
-    // printf("DEBUG: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
+    // printf("DEBUG: __schedule: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
+    if (token != NULL) {
+        // printf("DEBUG: __schedule: payload at %p.\n", token->value);
+    }
 
 	// The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
@@ -448,12 +451,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 	// We first do this assuming it is logical action and then, if it is a
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
-    if (delay < 0LL) {
-        fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
-                "Scheduling instead at the current time.\n", -delay);
-        delay = 0LL;
-    }
     interval_t tag = current_time + delay;
+    // printf("DEBUG: __schedule: current_time = %lld.\n", current_time);
+    // printf("DEBUG: __schedule: total logical delay = %lld.\n", delay);
     interval_t min_inter_arrival = trigger->period;
 
     // Get an event_t struct to put on the event queue.
@@ -477,6 +477,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         instant_t physical_time = get_physical_time();
 
         if (physical_time > tag) {
+            // printf("DEBUG: Physical time %lld is larger than the tag by %lld. Using physical time.\n", physical_time, physical_time - tag);
             // FIXME: In some circumstances (like Ptides), this is an
             // error condition because it introduces nondeterminism.
             // Do we want another kind of action, say a ptides action,
@@ -528,6 +529,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             }
         }
     }
+    if (tag < current_time) {
+        fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
+                "Revising request to the current time %lld.\n", current_time - tag, current_time);
+        tag = current_time;
+    }
+
     // Set the tag of the event.
     e->time = tag;
 
@@ -733,15 +740,16 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
  * @param token The token to use as a template (or if it is free, to use).
  * @param length The length of the array.
  * @param num_destinations The number of destinations (for initializing the reference count).
- * @return A pointer to the allocated memory.
+ * @return A pointer to the new or reused token.
  */
 void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
     // First, initialize the token, reusing the one given if possible.
+    // FIXME: This token gets lost!!!!
     token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
-    // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", token->value);
+    // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
     // Count allocations to issue a warning if this is never freed.
     __count_payload_allocations++;
-    return new_token->value;
+    return new_token;
 }
 
 /**
@@ -935,10 +943,13 @@ void initialize() {
     __initialize_trigger_objects();
 
     // Initialize logical time to match physical time.
-    clock_gettime(CLOCK_REALTIME, &physicalStartTime);
+    struct timespec actualStartTime;
+    clock_gettime(CLOCK_REALTIME, &actualStartTime);
+    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
+
     printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
-            ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
-    current_time = physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec;
+            ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);
+    current_time = physical_start_time;
     start_time = current_time;
     
     if (duration >= 0LL) {
@@ -967,15 +978,14 @@ void termination() {
         printf("**** Number of unfreed tokens: %d.\n", __count_token_allocations);
     }
     // Print elapsed times.
-    interval_t elapsed_logical_time
-        = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    interval_t elapsed_logical_time = current_time - physical_start_time;
     printf("---- Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
     
     struct timespec physicalEndTime;
     clock_gettime(CLOCK_REALTIME, &physicalEndTime);
     interval_t elapsed_physical_time
         = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
-        - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+        - physical_start_time;
     printf("---- Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
 }
 
