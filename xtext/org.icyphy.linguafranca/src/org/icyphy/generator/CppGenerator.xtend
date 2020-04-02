@@ -125,7 +125,6 @@ class CppGenerator extends GeneratorBase {
             return
         } else {
             generateReactor(mainReactor)
-            reactorsByResource.get(resource).add(mainReactor)
         }
         
         fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
@@ -136,7 +135,7 @@ class CppGenerator extends GeneratorBase {
             fsa.generateFile(filename + File.separator + r.sourceFile, r.generateReactorSource)
         }
         
-        for (r: reactorsByResource.keySet()) {
+        for (r: allResources) {
         	fsa.generateFile(filename + File.separator + r.preambleSourceFile, r.generatePreambleSource)
         	fsa.generateFile(filename + File.separator + r.preambleHeaderFile, r.generatePreambleHeader)
         }
@@ -882,7 +881,7 @@ class CppGenerator extends GeneratorBase {
           «FOR r : reactors»
               «r.sourceFile»
           «ENDFOR»
-          «FOR r : reactorsByResource.keySet()»
+          «FOR r : allResources»
               «r.preambleSourceFile»
           «ENDFOR»
         )

@@ -137,9 +137,8 @@ abstract class GeneratorBase {
      */
     protected var String sourceFile
     
-    /** A map from resources to the reactors they contain */
-    protected var Map<Resource,List<Reactor>> reactorsByResource
-            = new HashMap<Resource,List<Reactor>>()
+    /** The set of all imported Resources */
+    protected var Set<Resource> allResources = new HashSet<Resource>();
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
@@ -357,11 +356,9 @@ abstract class GeneratorBase {
         // non-main reactors that are not instantiated in a particular
         // federate. But it seems harmless to generate it since a good
         // compiler will remove it anyway as dead code.
-        reactorsByResource.put(resource, new LinkedList<Reactor>());
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
             if (!reactor.isMain) {
                 generateReactor(reactor)
-                reactorsByResource.get(resource).add(reactor)
             }
         }
     }
@@ -708,12 +705,10 @@ abstract class GeneratorBase {
                 processImports(importResource)
                 // Call generateReactor for each reactor contained by the import
                 // that is not a main reactor.
-                reactorsByResource.put(importResource, new LinkedList<Reactor>());
                 for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
                     if (!reactor.isMain) {
                         println("Including imported reactor: " + reactor.name)
                         generateReactor(reactor)
-                        reactorsByResource.get(importResource).add(reactor)
                     }
                 }
             }
@@ -825,6 +820,9 @@ abstract class GeneratorBase {
      *   statements.
      */
     protected def void processImports(Resource resource) {
+        // add resource to imported resources
+        allResources.add(resource);
+
         for (import : resource.allContents.toIterable.filter(Import)) {
             // Resolve the import as a URI relative to the current resource's URI.
             val URI currentURI = resource?.getURI;
