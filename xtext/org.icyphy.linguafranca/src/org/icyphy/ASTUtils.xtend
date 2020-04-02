@@ -136,7 +136,7 @@ class ASTUtils {
      * Replace the specified connection with a communication between federates.
      * @param connection The connection.
      * @param leftFederate The source federate.
-     * @param rightFederate The destination federate.
+     *  @param rightFederate The destination federate.
      */
     def void makeCommunication(
         Connection connection, 
