@@ -1654,32 +1654,7 @@ int main(int argc, char* argv[]) {
             val init = stateVar.init
             var initStr = stateVar.init.toText('{', ',', '}',
                 stateVar.ofTimeType)
-//            var list = new LinkedList<String>();
-//            
-//            // Collect strings and put them in a list
-//            for (element : init) {
-//                var time = element.time
-//                var unit = element.unit
-//                var value = element.value
-//                if (element.parameter !== null) {
-//                    time = element.parameter.time
-//                    unit = element.parameter.unit
-//                    value = element.parameter.value
-//                    parameterized = true
-//                }
-//                if (stateVar.ofTimeType) {
-//                    list.add(timeInTargetLanguage(new TimeValue(time, unit)))
-//                } else {
-//                    list.add(value.toText)
-//                }
-//            }
-//            
-//            if (list.size == 1) {
-//                initStr = list.first
-//            } else if (list.size > 1) {
-//                initStr = list.join('{', ',', '}', [it])    
-//            }
-            
+
             if (stateVar.ofTimeType) {
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + stateVar.name + " = " +
