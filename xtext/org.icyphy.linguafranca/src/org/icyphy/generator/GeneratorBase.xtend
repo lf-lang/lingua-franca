@@ -66,6 +66,8 @@ import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.StateVar
+import org.eclipse.emf.common.util.EList
 
 /** Generator base class for shared code between code generators.
  * 
@@ -1048,9 +1050,49 @@ abstract class GeneratorBase {
         ASTUtils.toText(literalOrCode)
     }
     
+    protected def String toText(EList<TimeOrValue> init, CharSequence before,
+        CharSequence separator, CharSequence after, boolean ofTimeType) {
+        if (init === null || init.size == 0)
+            return ""
+        
+        var list = new LinkedList<String>();
+
+        for (element : init) {
+            var time = element.time
+            var unit = element.unit
+            var value = element.value
+            if (element.parameter !== null) {
+                time = element.parameter.time
+                unit = element.parameter.unit
+                value = element.parameter.value
+            }
+            if (ofTimeType) {
+                list.add(timeInTargetLanguage(new TimeValue(time, unit)))
+            } else {
+                list.add(value.toText)
+            }
+        }
+
+        if (list.size == 1) {
+            return list.first
+        } else if (list.size > 1) {
+            return list.join(before, separator, after, [it])
+        }
+    }
+    
     protected def isZero(LiteralOrCode literalOrCode) {
         ASTUtils.isZero(literalOrCode)
     }
+    
+    protected def isParameterized(StateVar v) {
+        ASTUtils.isParameterized(v)
+    }
+    
+    protected def Type getValueType(StateVar s) {
+        ASTUtils.getValueType(s) 
+    }
+    
+    
     ////////////////////////////////////////////////////
     //// Private functions
     

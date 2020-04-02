@@ -42,7 +42,7 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.State
+import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
@@ -230,7 +230,7 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def declareStateVariables(Reactor r) '''
-        «FOR s : r.states BEFORE '// state variables\n' AFTER '\n'»
+        «FOR s : r.stateVars BEFORE '// state variables\n' AFTER '\n'»
             «s.trimmedType» «s.name»;
         «ENDFOR»
     '''
@@ -426,14 +426,13 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def trimmedType(State s) {
+    def trimmedType(StateVar s) {
         if (s.ofTimeType) {
             '''reactor::Duration'''
         } else {
-            if (s.type !== null) {
-                s.type.toText.removeCodeDelimiter
-            } else if (s.init !== null && s.init.parameter !== null) {
-            	s.init.parameter.trimmedType
+            val type = s.valueType
+            if (type !== null) {
+               type.toText
             } else {
                 '''/* «s.reportError("State has no type")» */'''
             }
@@ -488,27 +487,26 @@ class CppGenerator extends GeneratorBase {
         }
     }
     
-    def trimmedValue(State s) {
+    def trimmedValue(StateVar s) {
         if (s.ofTimeType) {
         	'''/* «s.reportError("Did not expect a state of type time!")» */'''
-        } else if (s.init !== null && s.init.parameter !== null) {
-        	s.init.parameter.name
         } else {
-            s.init.value.toText
+            s.init.toText('{', ',', '}', s.ofTimeType)
         }
     }
     
-    def trimmedTime(State s) {
+    def trimmedTime(StateVar s) {
         if (s.ofTimeType) {
-            if (s.unit === null || s.unit === TimeUnit.NONE) {
-            	if (s.time == 0 || s.init.value.isZero) {
-                    '''reactor::Duration::zero()'''
-                } else {
-                	'''/* «s.reportError("Time values need to be 0 or have a unit!")» */'''
-                }
-            } else {
-                '''«s.time»«timeUnitsToCppUnits.get(s.unit)»'''
-            }
+            // FIXME:
+//            if (s.unit === null || s.unit === TimeUnit.NONE) {
+//            	if (s.time == 0 || s.init.value.isZero) {
+//                    '''reactor::Duration::zero()'''
+//                } else {
+//                	'''/* «s.reportError("Time values need to be 0 or have a unit!")» */'''
+//                }
+//            } else {
+//                '''«s.time»«timeUnitsToCppUnits.get(s.unit)»'''
+//            }
         } else {
             '''/* «s.reportError("Expected a state of type time!")» */'''
         }
@@ -578,7 +576,7 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializeStateVariables(Reactor r) '''
-        «FOR s : r.states BEFORE "// state variables\n"»
+        «FOR s : r.stateVars BEFORE "// state variables\n"»
             , «s.name»(«IF s.ofTimeType»«s.trimmedTime»«ELSE»«s.trimmedValue»«ENDIF»)
         «ENDFOR»
     '''

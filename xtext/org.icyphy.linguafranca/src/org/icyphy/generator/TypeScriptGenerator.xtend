@@ -44,7 +44,7 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.State
+import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
@@ -395,27 +395,29 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         // Next handle states.
-        for (state : reactor.states) {
-            pr(state.name + ': ' +
-                    "State<" + getStateType(state) +  '>;');
-            if (state.init !== null && state.init.parameter !== null) {
-                // State is a parameter
-                pr(reactorConstructor, "this." + state.name + " = "
-                        + "new State(" + state.init.parameter.name + ");" )
-            } else if (state.ofTimeType) {  
-                // State is a time type
-                pr(reactorConstructor, "this." + state.name + " = "
-                    + "new State(" + timeInTargetLanguage(new TimeValue(state.time, state.unit)) + ");" )
-            } else if (state.init.value !== null) {
-                // State is a literal or code
-                pr(reactorConstructor, "this." + state.name + " = "
-                    + "new State(" + state.init.value.toText + ");" ) // FIXME: support lists
-            } else {
-                // State has an undefined value
-                 pr(reactorConstructor, "this." + state.name + " = "
-                    + "new State(undefined);" )
-            }
-        }
+        // FIXME
+        
+//        for (state : reactor.stateVars) {
+//            pr(state.name + ': ' +
+//                    "State<" + getStateType(state) +  '>;');
+//            if (state.init !== null && state.init.parameter !== null) {
+//                // State is a parameter
+//                pr(reactorConstructor, "this." + state.name + " = "
+//                        + "new State(" + state.init.parameter.name + ");" )
+//            } else if (state.ofTimeType) {  
+//                // State is a time type
+//                pr(reactorConstructor, "this." + state.name + " = "
+//                    + "new State(" + timeInTargetLanguage(new TimeValue(state.time, state.unit)) + ");" )
+//            } else if (state.init.value !== null) {
+//                // State is a literal or code
+//                pr(reactorConstructor, "this." + state.name + " = "
+//                    + "new State(" + state.init.value.toText + ");" ) // FIXME: support lists
+//            } else {
+//                // State has an undefined value
+//                 pr(reactorConstructor, "this." + state.name + " = "
+//                    + "new State(undefined);" )
+//            }
+//        }
         // Next handle actions.
         for (action : reactor.actions) {
             // Shutdown actions are handled internally by the
@@ -635,7 +637,7 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             
             // Add state to the react function
-            for (state : reactor.states) {
+            for (state : reactor.stateVars) {
                 // Underscores are added to state names to prevent conflict with prologue
                 reactSignature.add("__" + state.name + ": State<"
                     + getStateType(state) + ">")
@@ -929,17 +931,18 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @param state The state.
      *  @return The TS type.
      */
-    private def getStateType(State state) {
+    private def getStateType(StateVar state) {
         var String type
-        if (state.isOfTimeType) {
-            type = timeTypeInTargetLanguage
-        } else if (state.type !== null) {
-            type = state.type.toText
-        } else if (state.init.parameter !== null) {
-            type = getParameterType(state.init.parameter)
-        } else {
-            type = 'unknown'
-        }
+        // FIXME
+//        if (state.isOfTimeType) {
+//            type = timeTypeInTargetLanguage
+//        } else if (state.type !== null) {
+//            type = state.type.toText
+//        } else if (state.init.parameter !== null) {
+//            type = getParameterType(state.init.parameter)
+//        } else {
+//            type = 'unknown'
+//        }
         type
     }
     
