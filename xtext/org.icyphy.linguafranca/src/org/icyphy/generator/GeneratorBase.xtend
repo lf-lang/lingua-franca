@@ -522,19 +522,9 @@ abstract class GeneratorBase {
         var builder = new ProcessBuilder(command);
         builder.directory(new File(directory));
         try {
-            var process = builder.start()
-            var returnCode = process.waitFor()
-            var stdout = readStream(process.getInputStream())
-            if (stdout.length() > 0) {
-                println("--- Standard output from command:")
-                println(stdout)
-                println("--- End of standard output.")
-            }
-            var stderr = readStream(process.getErrorStream())
-            if (stderr.length() > 0) {
-                reportError("---Command reports errors:\n" + stderr.toString
-                        + "\n--- End of standard error.")
-            }
+            println("--- Standard output and error from command:")
+            val returnCode = builder.runSubprocess()
+            println("--- End of standard output and error.")
             if (returnCode !== 0) {
                 // Throw an exception, which will be caught below for a second attempt.
                 throw new Exception("Command returns error code " + returnCode)
@@ -551,21 +541,12 @@ abstract class GeneratorBase {
             // bashCommand.addAll("bash", "--login", "-c", 'ls', '-a')
             println("--- Attempting instead to run: " + bashCommand.join(" "))
             builder.command(bashCommand)
-            var process = builder.start()
-            var returnCode = process.waitFor()
-            var stdout = readStream(process.getInputStream())
-            if (stdout.length() > 0) {
-                println("--- Standard output from bash command:")
-                println(stdout)
-                println("--- End of standard output.")
-            }
+            println("--- Standard output and error from bash command:")
+            val returnCode = builder.runSubprocess()
+            println("--- End of standard output and error.")
+            
             if (returnCode !== 0) {
                 reportError("Bash command returns error code " + returnCode)
-            }
-            var stderr = readStream(process.getErrorStream())
-            if (stderr.length() > 0) {
-                reportError("---Bash command reports errors:\n" + stderr.toString
-                        + "\n--- End of standard standard error.")
             }
             return returnCode
         }
