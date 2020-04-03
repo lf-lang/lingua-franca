@@ -148,11 +148,7 @@ void connect_to_rti(int id, char* hostname, int port) {
 
     // Send the ID.
     int message = swap_bytes_if_big_endian_int(id);
-    /*
-    for (int i = 0; i < sizeof(int); i++) {
-        printf("DEBUG: sending %d: %u\n", i, ((unsigned char*)(&message))[i]);
-    }
-    */
+
     bytes_written = write(rti_socket, (void*)(&message), sizeof(int));
     if (bytes_written < 0) error("ERROR sending federate ID to RTI");
 }
@@ -174,11 +170,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 
     // Send the timestamp.
     long long message = swap_bytes_if_big_endian_ll(my_physical_time);
-    /*
-    for (int i = 0; i < sizeof(long long); i++) {
-        printf("DEBUG: sending %d: %u\n", i, ((unsigned char*)(&message))[i]);
-    }
-    */
+
     bytes_written = write(rti_socket, (void*)(&message), sizeof(long long));
     if (bytes_written < 0) error("ERROR sending message to RTI");
 
@@ -200,14 +192,9 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
         }
         bytes_read += more;
     }
-    /*
-    printf("DEBUG: federate read %d bytes.\n", bytes_read);
-    for (int i = 0; i < sizeof(long long) + 1; i++) {
-        printf("DEBUG: federate received byte %d: %u\n", i, buffer[i]);
-    }
-    */
+    // printf("DEBUG: federate read %d bytes.\n", bytes_read);
 
-    // First byte received in the message ID.
+    // First byte received is the message ID.
     if (buffer[0] != TIMESTAMP) {
         fprintf(stderr,
                 "ERROR: Federate expected a TIMESTAMP message from the RTI. Got %u (see rti.h).\n",
@@ -264,7 +251,7 @@ void handle_message(int receiving_socket, unsigned char* buffer, int bytes_read)
             = swap_bytes_if_big_endian_int(
               *((unsigned int*)(buffer + 5)));
 
-    printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
+    // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 
     // Allocate memory for the message contents.
     unsigned char* message_contents = malloc(length);
@@ -275,10 +262,10 @@ void handle_message(int receiving_socket, unsigned char* buffer, int bytes_read)
         if (more < 0) error("ERROR on federate reading from RTI socket");
         bytes_read += more;
     }
-    printf("DEBUG: Message received by federate: %s.\n", message_contents);
+    // printf("DEBUG: Message received by federate: %s.\n", message_contents);
 
     schedule_value(__action_for_port(port_id), 0LL, message_contents, length);
-    printf("DEBUG: Called schedule\n");
+    // printf("DEBUG: Called schedule\n");
 }
 
 /** Thread that listens for inputs from the RTI.
@@ -342,8 +329,8 @@ void synchronize_with_other_federates(int id, char* hostname, int port) {
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time.
     wait_until(current_time);
-    printf("DEBUG: Done waiting for start time %lld.\n", current_time);
-    printf("DEBUG: Physical time is ahead of current time by %lld.\n", get_physical_time() - current_time);
+    // printf("DEBUG: Done waiting for start time %lld.\n", current_time);
+    // printf("DEBUG: Physical time is ahead of current time by %lld.\n", get_physical_time() - current_time);
 
     // Reinitialize the physical start time to match the current physical time.
     // This will be the same on each federate.

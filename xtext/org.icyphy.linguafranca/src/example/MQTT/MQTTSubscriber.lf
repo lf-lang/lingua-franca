@@ -83,9 +83,7 @@ reactor MQTTSubscriber (
             size_t string_length = strlen((char*)message->payload); // Assumes null-terminated string.
             if (message->payloadlen == string_length + 1 + 2*sizeof(instant_t)) {
                 instant_t* physical_timestamp = (instant_t*)((char*)message->payload + string_length + 1);
-                printf("DEBUG: MQTTReceiver.message_arrived: Received message after measured latency of %lld nsec (assuming synchronized clocks).\n",
-                    receive_physical_time - *physical_timestamp
-                );
+                // printf("DEBUG: MQTTReceiver.message_arrived: Received message after measured latency of %lld nsec (assuming synchronized clocks).\n", receive_physical_time - *physical_timestamp);
             }
             
             // printf("DEBUG: MQTTSubscriber: Message arrived on topic %s: %s\n", topicName, (char*)message->payload);
@@ -100,8 +98,8 @@ reactor MQTTSubscriber (
             instant_t current_time = get_logical_time();
             interval_t delay = *timestamp - current_time;
             // FIXME: What to do if the delay is negative???
-            printf("DEBUG: MQTTSubscriber.message_arrived: received timestamp that is %lld ahead of current_time %lld.\n", *timestamp - start_time, current_time);
-            printf("DEBUG: MQTTSubscriber.message_arrived: physical time is ahead of current logical time by: %lld.\n", receive_physical_time - current_time);
+            // printf("DEBUG: MQTTSubscriber.message_arrived: received timestamp that is %lld ahead of current_time %lld.\n", *timestamp - start_time, current_time);
+            // printf("DEBUG: MQTTSubscriber.message_arrived: physical time is ahead of current logical time by: %lld.\n", receive_physical_time - current_time);
                         
             // Schedule the event. Since incoming_message is a physical action,
             // the offset specified in the second argument will be added to current_time
@@ -216,7 +214,7 @@ reactor MQTTSubscriber (
         // assuming that the sender sent the message at a physical time matching its
         // logical timestamp.
         interval_t latency = get_logical_time() - *timestamp;
-        printf("DEBUG: MQTTSubscriber.reaction: Received timestamp is larger than sent timestamp by: %lld.\n", latency);
+        // printf("DEBUG: MQTTSubscriber.reaction: Received timestamp is larger than sent timestamp by: %lld.\n", latency);
         
         // If a physical timestamp was sent, use that to collect
         // latency stats instead of the logical time increment.
@@ -225,9 +223,7 @@ reactor MQTTSubscriber (
             instant_t receive_physical_time = get_physical_time();
             instant_t* physical_timestamp = (instant_t*)(incoming_message_value + string_length + 1);
             latency = receive_physical_time - *physical_timestamp;
-            printf("DEBUG: MQTTReceiver.reaction: Reacted to message after measured latency of %lld nsec (assuming synchronized clocks).\n",
-                latency
-            );
+            // printf("DEBUG: MQTTReceiver.reaction: Reacted to message after measured latency of %lld nsec (assuming synchronized clocks).\n", latency);
         }
         
         self->latencies += latency;
