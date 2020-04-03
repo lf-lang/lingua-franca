@@ -128,6 +128,7 @@ class CppGenerator extends GeneratorBase {
         }
         
         fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
+        fsa.generateFile(filename + File.separator + "lfutil.hh", generateLfutil)
         fsa.generateFile(filename + File.separator + "CMakeLists.txt", generateCmake)
 
         for (r : reactors) {
@@ -742,6 +743,7 @@ class CppGenerator extends GeneratorBase {
         using namespace reactor::operators;
         
         #include "«r.headerFile»"
+        #include "lfutil.hh"
         
         «r.privatePreamble»
         «r.defineConstructor»
@@ -979,6 +981,39 @@ class CppGenerator extends GeneratorBase {
         }
     }
     
+    /** Generate code for a LF utility header.
+     * 
+     *  The functions defined in the generated code are required for
+     *  the implementation of the after keyword.
+     */
+    def generateLfutil() '''
+        #pragma once
+        
+        #include <reactor-cpp/reactor-cpp.hh>
+        
+        namespace lfutil {
+
+        template<class T>
+        void after_delay(reactor::Action<T>* action, reactor::Port<T>* port) {
+            if constexpr(std::is_void<T>::value) {
+                action->schedule();
+            } else {
+                action->schedule(std::move(port->get()));
+            }
+        }
+        
+        template<class T>
+        void after_forward(reactor::Action<T>* action, reactor::Port<T>* port) {
+            if constexpr(std::is_void<T>::value) {
+                port->set();
+            } else {
+                port->set(std::move(action->get()));
+            }
+        }
+
+        }
+    '''
+    
     ////////////////////////////////////////////////
     //// Protected methods
     
@@ -998,10 +1033,15 @@ class CppGenerator extends GeneratorBase {
      * @param the action to schedule
      * @param the port to read from
      */
-    override generateDelayBody(Action action, VarRef port) '''
+    override generateDelayBody(Action action, VarRef port) {
+        // Since we cannot easily decide whether a given type evaluates
+        // to void, we leave this job to the target compiler, by calling
+        // the template function below.
+        '''
         // delay body for «action.name»
-        «action.name».schedule(std::move(«port.name».get()));
-    '''
+        lfutil::after_delay(&«action.name», &«port.name»);
+        '''
+    }
 
     /**
      * Generate code for the body of a reaction that is triggered by the
@@ -1009,8 +1049,12 @@ class CppGenerator extends GeneratorBase {
      * @param the action that triggers the reaction
      * @param the port to write to
      */
-    override generateForwardBody(Action action, VarRef port) '''
+    override generateForwardBody(Action action, VarRef port)
+        // Since we cannot easily decide whether a given type evaluates
+        // to void, we leave this job to the target compiler, by calling
+        // the template function below.
+        '''
         // forward body for «action.name»
-        «port.name».set(std::move(«action.name».get()));
-    '''
+        lfutil::after_forward(&«action.name», &«port.name»);
+        '''
 }
