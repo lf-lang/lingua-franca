@@ -463,9 +463,11 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
     def KRoundedRectangle addCommentFigure(KNode node, String message) {
         node.addRoundedRectangle(1, 1, 1) => [
+        	gridPlacement = 1
             addText(message) => [
-            	fontSize = 7
-            	setSurroundingSpace(3, 0)
+            	fontSize = 6
+            	setGridPlacementData().from(LEFT, 3, 0, TOP, 3, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
+            	noSelectionStyle()
             ]
         ]
     }
