@@ -238,7 +238,7 @@ class CppGenerator extends GeneratorBase {
 
     def declareParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
-            «p.trimmedTypeWithConst» «p.name»;
+            std::add_const<«p.trimmedType»>::type «p.name»;
         «ENDFOR»
     '''
 
@@ -403,7 +403,7 @@ class CppGenerator extends GeneratorBase {
             '''
                 «r.name»(const std::string& name,
                     «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedTypeWithConst» «p.name» = «IF p.ofTimeType»«p.trimmedTime»«ELSE»«p.trimmedValue»«ENDIF»«ENDFOR»
+                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.trimmedType»>::type>::type «p.name» = «IF p.ofTimeType»«p.trimmedTime»«ELSE»«p.trimmedValue»«ENDIF»«ENDFOR»
             '''
         } else {
             if (r == mainReactor) {
@@ -420,18 +420,6 @@ class CppGenerator extends GeneratorBase {
         } else {
             if (p.type !== null) {
                 '''«p.type.toText.removeCodeDelimiter»'''
-            } else {
-                '''/* «p.reportError("Parameter has no type")» */'''
-            }
-        }
-    }
-    
-    def trimmedTypeWithConst(Parameter p) {
-        if (p.ofTimeType) {
-            '''const reactor::Duration'''
-        } else {
-            if (p.type !== null) {
-                '''typename std::add_const<«p.type.toText.removeCodeDelimiter»>::type'''
             } else {
                 '''/* «p.reportError("Parameter has no type")» */'''
             }
@@ -567,7 +555,7 @@ class CppGenerator extends GeneratorBase {
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
                 «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedTypeWithConst» «p.name»«ENDFOR»
+                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.trimmedType»>::type>::type «p.name»«ENDFOR»
         «ELSE»
             «IF r == mainReactor»
                 «r.name»::«r.name»(const std::string& name, reactor::Environment* environment)
