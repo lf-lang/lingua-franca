@@ -47,6 +47,7 @@ import org.icyphy.TimeValue
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresen.de>}
  */
 class LinguaFrancaValidationTest {
 	@Inject extension ParseHelper<Model>
@@ -519,5 +520,84 @@ class LinguaFrancaValidationTest {
         model.assertError(LinguaFrancaPackage::eINSTANCE.assignment, null,
             "Time value used to specify a deadline exceeds the maximum of " +
                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
-    }  
+    }
+    
+    /**
+     * Report array in parameter for C++.
+     */
+    @Test
+    def void arrayInParameterCpp() {
+        val model = '''
+            target Cpp;
+            reactor Test(array:int[]({==})) {
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.type, null,
+            "Plain arrays are not supported in C++. Consider using std::vector or std::array.")
+    }
+    
+    /**
+     * Report array in state for C++.
+     */
+    @Test
+    def void arrayInStateCpp() {
+        val model = '''
+            target Cpp;
+            reactor Test {
+                state array:int[4]({==});
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.type, null,
+            "Plain arrays are not supported in C++. Consider using std::vector or std::array.")
+    }
+    
+    /**
+     * Report array in state for C++.
+     */
+    @Test
+    def void arrayInActionCpp() {
+        val model = '''
+            target Cpp;
+            reactor Test {
+                action array:int[42];
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.type, null,
+            "Plain arrays are not supported in C++. Consider using std::vector or std::array.")
+    }
+    
+    /**
+     * Report array in port for C++.
+     */
+    @Test
+    def void arrayInPortCpp() {
+        val model = '''
+            target Cpp;
+            reactor Test {
+                output array:int[];
+            }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.type, null,
+            "Plain arrays are not supported in C++. Consider using std::vector or std::array.")
+    }
 }
