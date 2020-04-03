@@ -1,0 +1,122 @@
+/**
+ * Test case for MQTT pub/sub. In this version, a sequence of strings
+ * is sent from one part of the LF program to another disconnected
+ * part via MQTTPublisher and MQTTSubscriber reactors. The subscriber
+ * is configured to retimestamp the received message using physical
+ * time. The display shows the (elapsed) timestamps at the originating
+ * and destination reactors. This is a measure of the physical
+ * time it takes for the publish and subscribe to complete.
+ * See MQTTLogical.lf for an example that uses the sender's timestamp
+ * if the latency is small enough.
+ * 
+ * Prerequisites:
+ * 
+ * To get this example to compile, you will need to install the Paho
+ * MQTT client library, which requires that you first install
+ * openSSL. To run the compiled code, you will need to have an
+ * MQTT broker, such as mosquitto, running.
+ * 
+ * The Eclipse Paho library for MQTT clients can be obtained here:
+ * https://github.com/eclipse/paho.mqtt.c.
+ * 
+ * This openSSL library (see https://www.openssl.org) is here:
+ * https://github.com/openssl/openssl.git
+ * 
+ * Finally, you need an MQTT broker to be running. For example,
+ * the Mosquitto Eclipse project provides one that can be downloaded
+ * at https://mosquitto.org/download/.
+ * Alternatively, on a Mac, you can use homebrew:
+ * 
+ *     brew install mosquitto
+ * 
+ * To start the broker and test it, you can do this:
+ * 
+ * 1. Start the broker in the background:
+ *     > mosquitto &
+ * 2. Start a command-line subscriber:
+ *     > mosquitto_sub -v -t 'test/topic'
+ * 3. In another terminal window, publish a message:
+ *     > mosquitto_pub -t 'test/topic' -m 'Hello World'
+ * 
+ * @author Ravi Akella
+ * @author Edward A. Lee
+ */
+target C {
+    threads: 1, // Must use threaded implementation so schedule is thread safe.
+    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c",
+    timeout: 10 secs,
+    keepalive: true, // FIXME: This should be automatic with a physical action.
+    federates: {
+        RTI: {host: "localhost", port: 15044},
+        Publisher: {reactors: [msg, pub]},
+        Subscriber: {reactors: [sub, dsp]}
+    }
+};
+
+import MQTTPublisher.lf;
+import MQTTSubscriber.lf;
+
+/**
+ * Reactor that generates a sequence of messages, one per second.
+ * The message will be a string consisting of a root string followed
+ * by a count.
+ * @param root The root string.
+ * @output message The message.
+ */
+reactor MessageGenerator(root:string("")) {
+    // Output type char* instead of string is used for dynamically
+    // allocated character arrays (as opposed to static constant strings).
+    output message:char*;
+    state count:int(1);
+    // Send first message after 1 sec so that the startup reactions
+    // do not factor into the transport time measurement on the first message.
+    timer t(1 sec, 1 sec);
+    reaction(t) -> message {=
+        // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
+        // Add one for the null terminator.
+        int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
+        // Dynamically allocate memory for the output.
+        set_new_array(message, length);
+        // Populate the output string and increment the count.
+        snprintf(message, length, "%s %d", self->root, self->count++);
+        printf("MessageGenerator: At time %lld, publish message: %s\n",
+            get_elapsed_logical_time(),
+            message
+        );
+    =}
+}
+
+/**
+ * Reactor that prints an incoming string.
+ * @param prefix A prefix for the message.
+ * @input message The message.
+ */
+reactor PrintMessage {
+    input message:char*;
+    reaction(message) {=
+        printf("PrintMessage: At (elapsed) logical time %lld, subscriber receives: %s\n",
+            get_elapsed_logical_time(),
+            message
+        );
+    =}
+}
+
+main reactor MQTTTest {
+    pub = new MQTTPublisher(
+        topic = "my/test",
+        address = "tcp://localhost:1883",
+        clientID = "TestPublisher",
+        include_physical_timestamp = 1
+    );
+    msg = new MessageGenerator(root = "Hello World");
+    msg.message->pub.in;
+    
+    sub = new MQTTSubscriber(
+        address = "tcp://localhost:1883",
+        clientID = "TestSubscriber2",
+        topic = "my/test",
+        offset = 10 msec
+    );
+    dsp = new PrintMessage();
+    sub.message->dsp.message;
+}

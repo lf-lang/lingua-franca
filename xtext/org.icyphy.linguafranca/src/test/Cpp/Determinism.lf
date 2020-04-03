@@ -1,4 +1,6 @@
-target Cpp;
+target Cpp{
+    threads: 1
+};
 reactor Source {
     output y:int;
     timer t;
@@ -7,10 +9,6 @@ reactor Source {
     =}
 } 
 reactor Destination {
-    preamble {=
-        #include <iostream>
-        #include <cstdlib>
-    =}
     input x:int;
     input y:int;
     reaction(x, y) {=

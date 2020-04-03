@@ -1,6 +1,7 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
 target Cpp {
+    threads: 1,
     fast: true,
     timeout: 10 sec
 };
@@ -14,10 +15,6 @@ reactor Source(period:time(2 sec)) {
     =}
 }
 reactor Test {
-    preamble {=
-        #include <iostream>
-        #include <cstdlib>
-    =}
     input x:int;
     state count:int(0);
     reaction(x) {=

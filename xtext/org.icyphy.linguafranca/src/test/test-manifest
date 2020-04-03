@@ -21,7 +21,7 @@ DeadlineHandledAbove.lf
 DeadlineHandledAboveThreaded.lf
 DeadlineThreaded.lf
 DelayArray.lf
-DelayArrayWithAfter.lf
+#DelayArrayWithAfter.lf
 DelayedAction.lf
 DelayedReaction.lf
 DelayInt.lf
@@ -54,13 +54,16 @@ MultipleContained.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
 Preamble.lf
+PreambleFile.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
+ScheduleValue.lf
 ScheduleLogicalAction.lf
 SendingInside.lf
 SendingInside2.lf
 SendingInsideThreaded.lf
 SendsPointerTest.lf
+SetToken.lf
 SimpleDeadline.lf
 SimpleImport.lf
 SlowingClock.lf

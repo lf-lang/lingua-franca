@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * Enumeration of targets and their associated properties. These classes are
  * written in Java, not Xtend, because the enum implementation in Xtend more
- * primitive. It is saver to use enums rather than string values since it allows
+ * primitive. It is safer to use enums rather than string values since it allows
  * faulty references to be caught at compile time. Switch statements that take
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
@@ -283,10 +283,18 @@ public enum Targets {
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum TargetProperties {
+        
         /**
-         * FIXME
+         * Directive to specify the target build type such as 'Release' or 'Debug'.
          */
-        CMAKE_INCLUDE("cmake_include", Arrays.asList(Targets.CPP)), // FIXME: change this to "cmake-include" for uniformity?
+        BUILD_TYPE("build-type", Arrays.asList(Targets.CPP)),
+        
+        /**
+         * Directive to specify a cmake to be included by the generated build systems.
+         *
+         * This gives full control over the C++ build as any cmake parameters can be adjusted in the included file.
+         */
+        CMAKE_INCLUDE("cmake-include", Arrays.asList(Targets.CPP)),
         /**
          * Directive to specify the target compiler.
          */
@@ -314,12 +322,17 @@ public enum Targets {
         /**
          * Directive to specify the grain at which to report log messages during execution.
          */
-        LOGGING("logging", Arrays.asList(Targets.TS)),
+        LOGGING("logging", Arrays.asList(Targets.TS, Targets.CPP)),
         
         /**
          * Directive to not invoke the target compiler.
          */
-        NO_COMPILE("no-compile", Arrays.asList(Targets.C)),
+        NO_COMPILE("no-compile", Arrays.asList(Targets.C, Targets.CPP)),
+        
+        /**
+         * Directive to disable validation of reactor rules at runtime.
+         */
+        NO_RUNTIME_VALIDATION("no-runtime-validation", Arrays.asList(Targets.CPP)),
         
         /**
          * Directive to specify the number of threads.
@@ -385,6 +398,13 @@ public enum Targets {
         public String toString() {
             return this.name;
         }
+    }
+    
+    /**
+     * Build types
+     */
+    public enum BuildTypes {
+        Release, Debug, RelWithDebInfo, MinSizeRel;
     }
     
     /**

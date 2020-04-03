@@ -1,12 +1,9 @@
 target Cpp;
 
 reactor Foo(bar:int(42)) {
-    preamble {= 
-        #include <iostream>
-    =}
-    state baz:int(bar);
+    state baz(bar);
     reaction (startup) {=
-        std::cout << "Baz: " << bar << std::endl;
+        std::cout << "Baz: " << baz << std::endl;
     =}
 }
 main reactor ParameterizedState {

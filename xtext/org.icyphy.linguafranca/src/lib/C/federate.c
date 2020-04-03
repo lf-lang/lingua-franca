@@ -133,7 +133,7 @@ void connect_to_rti(int id, char* hostname, int port) {
             struct timespec remaining_time;
             if (nanosleep(&wait_time, &remaining_time) != 0) {
                 // Sleep was interrupted.
-                break;
+                continue;
             }
         }
     }
@@ -216,7 +216,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     }
 
     instant_t timestamp = swap_bytes_if_big_endian_ll(*((long long*)(&(buffer[1]))));
-    printf("Federate: starting timestamp is: %llx\n", timestamp);
+    printf("Federate: starting timestamp is: %lld\n", timestamp);
 
     return timestamp;
 }
@@ -277,7 +277,7 @@ void handle_message(int receiving_socket, unsigned char* buffer, int bytes_read)
     }
     printf("DEBUG: Message received by federate: %s.\n", message_contents);
 
-    schedule(__action_for_port(port_id), 0LL, message_contents);
+    schedule_value(__action_for_port(port_id), 0LL, message_contents, length);
     printf("DEBUG: Called schedule\n");
 }
 
@@ -326,7 +326,7 @@ void synchronize_with_other_federates(int id, char* hostname, int port) {
     connect_to_rti(id, hostname, port);
 
     // Reset the start time to the coordinated start time for all federates.
-    current_time = get_start_time_from_rti(current_time);
+    current_time = get_start_time_from_rti(get_physical_time());
 
     start_time = current_time;
 
@@ -342,5 +342,16 @@ void synchronize_with_other_federates(int id, char* hostname, int port) {
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time.
     wait_until(current_time);
-    printf("DEBUG: Done waiting for start time.\n");
+    printf("DEBUG: Done waiting for start time %lld.\n", current_time);
+    printf("DEBUG: Physical time is ahead of current time by %lld.\n", get_physical_time() - current_time);
+
+    // Reinitialize the physical start time to match the current physical time.
+    // This will be the same on each federate.
+    physical_start_time = current_time;
+
+    /* To make it different on each federate, use this:
+    struct timespec actualStartTime;
+    clock_gettime(CLOCK_REALTIME, &actualStartTime);
+    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
+    */
 }

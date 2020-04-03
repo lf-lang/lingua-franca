@@ -149,9 +149,9 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		}
 
 		// optional code content
-		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty
+		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.code.tokens.nullOrEmpty
 		if (hasCode) {
-			contentContainer.addText(reaction.code.trimCode) => [
+			contentContainer.addText(reaction.code.tokens.toString.trimCode) => [
 				associateWith(reaction)
 				fontSize = 6
 				fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
@@ -163,7 +163,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		}
 		
 		if (reaction.deadline !== null) {
-			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.deadline.deadlineCode.nullOrEmpty
+			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.deadline.code.tokens.nullOrEmpty
 			if (hasCode || hasDeadlineCode) {
 				contentContainer.addHorizontalLine(0) => [
 					setGridPlacementData().from(LEFT, 5, 0, TOP, 3, 0).to(RIGHT, 5, 0, BOTTOM, 6, 0)
@@ -178,8 +178,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			labelContainer.addStopwatchFigure() => [
 				setLeftTopAlignedPointPlacementData(0, 0, 0, 0)
 			]
-			labelContainer.addText(reaction.deadline.time.toText) => [
-				associateWith(reaction.deadline.time)
+			labelContainer.addText(reaction.deadline.interval.toText) => [
+				associateWith(reaction.deadline.interval)
 				foreground = Colors.BROWN
 				fontBold = true
 				fontSize = 7
@@ -189,7 +189,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 			// optional code content
 			if (hasDeadlineCode) {
-				contentContainer.addText(reaction.deadline.deadlineCode.trimCode) => [
+				contentContainer.addText(reaction.deadline.code.tokens.toString.trimCode) => [
 					associateWith(reaction.deadline)
 					foreground = Colors.BROWN
 					fontSize = 6
