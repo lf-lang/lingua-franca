@@ -350,11 +350,11 @@ class CppGenerator extends GeneratorBase {
 
     def declareTriggers(Reaction n) '''
         «FOR t : n.triggers»
-            «n.name».declare_trigger(&«t.triggerName»);
+            «n.name».declare_trigger(&«t.name»);
         «ENDFOR»
     '''
 
-    def fullName(VarRef v) {
+    def name(VarRef v) {
         if (v.container !== null) {
             '''«v.container.name».«v.variable.name»'''
         } else {
@@ -362,9 +362,9 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def triggerName(TriggerRef t) {
+    def name(TriggerRef t) {
         if (t instanceof VarRef) {
-            fullName(t)
+            t.name
         } else {
             if (t.isShutdown) {
                 '''«LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name»'''
@@ -716,7 +716,7 @@ class CppGenerator extends GeneratorBase {
         «r.includeInstances»
         «r.publicPreamble»
         
-        class «r.getName()» : public reactor::Reactor {
+        class «r.name» : public reactor::Reactor {
          private:
           «r.declareParameters»
           «r.declareStateVariables»
@@ -752,7 +752,7 @@ class CppGenerator extends GeneratorBase {
               «r.assembleReaction(n)»
           «ENDFOR»
           «FOR c : r.connections BEFORE "  // connections\n"»
-            «'''  «c.leftPort.fullName».bind_to(&«c.rightPort.fullName»);'''»
+            «'''  «c.leftPort.name».bind_to(&«c.rightPort.name»);'''»
             «ENDFOR»
         }
         
