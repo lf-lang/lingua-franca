@@ -1,19 +1,31 @@
 /**
- * Test case for MQTT pub/sub. In this version, a sequence of strings
- * is sent from one part of the LF program to another disconnected
- * part via MQTTPublisher and MQTTSubscriber reactors. The offset
- * parameter gives the logical time increment between the publisher
- * and the subscriber. If this offset is greater than the physical
+ * Test case for MQTT pub/sub. In this version, the publisher and
+ * subscriber are running in the same single executable program.
+ * See MQTTDistributed for the more interesting case where they
+ * are in separate programs.
+ * 
+ * The publisher sends a sequence of strings, and at the MQTTSubscriber
+ * reactor, the offset parameter gives the logical time increment
+ * between the publisher and the subscriber.
+ * If this offset is greater than the physical
  * latency of communication through MQTT plus the clock synchronization
  * error, then the timestamps at the receiver will be deterministic.
  * They are the sender's timestamp plus the offset.
  * Otherwise, the timestamps will be larger and will match the
  * physical time at which the subscriber receives the message.
+ * Since the publisher and subscriber are running in the same
+ * executable, there is no clock synchronization error and the
+ * communication latency should be relatively low. One to five
+ * milliseconds seems typical.
  * 
- * To measure the communication latency through MQTT, set the offset
- * to 0. In this case, the subscriber will always retimestamp the received
+ * To measure the total communication latency from the MessageGenerator,
+ * through the publisher and through MQTT, set the offset to 0.
+ * In this case, the subscriber will always retimestamp the received
  * message using physical time. At the end of execution, when the
  * timeout expires, the average and maximum latency will be printed.
+ * 
+ * To get deterministic timestamps, the offset needs to be larger
+ * than the total latency. An offset of 10 msec will likely be enough.
  * 
  * Prerequisites:
  * 

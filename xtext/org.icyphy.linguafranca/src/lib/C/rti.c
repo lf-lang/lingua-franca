@@ -58,7 +58,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reactor.h"    // Defines instant_t.
 
 /** Delay the start of all federates by this amount. */
-#define DELAY_START SEC(3)
+#define DELAY_START SEC(1)
 
 // The one and only mutex lock.
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -163,7 +163,7 @@ void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
             = swap_bytes_if_big_endian_int(
               *((unsigned int*)(buffer + 5)));
 
-    printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
+    // printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
 
     unsigned int bytes_to_read = length + min_bytes;
     // Prevent a buffer overflow.
@@ -174,7 +174,7 @@ void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
         if (more < 0) error("ERROR on RTI reading from federate socket");
         bytes_read += more;
     }
-    printf("DEBUG: Message received by RTI: %s.\n", &(buffer[9]));
+    // printf("DEBUG: Message received by RTI: %s.\n", &(buffer[9]));
 
     // Forward the message or message chunk.
     int destination_socket = federates[federate_id].socket;
@@ -225,12 +225,7 @@ void* federate(void* fed_socket_descriptor) {
         if (more == 0) return NULL;
         bytes_read += more;
     }
-    /*
-    printf("DEBUG: read %d bytes.\n", bytes_read);
-    for (int i = 0; i < sizeof(long long) + 1; i++) {
-        printf("DEBUG: received byte %d: %u\n", i, buffer[i]);
-    }
-    */
+    // printf("DEBUG: read %d bytes.\n", bytes_read);
 
     // First byte received is the message ID.
     if (buffer[0] != TIMESTAMP) {
@@ -324,12 +319,7 @@ void connect_to_federates(int socket_descriptor) {
             if (more == 0) return;
             bytes_read += more;
         }
-        /*
-        printf("DEBUG: read %d bytes.\n", bytes_read);
-        for (int i = 0; i < sizeof(long long) + 1; i++) {
-            printf("DEBUG: received byte %d: %u\n", i, buffer[i]);
-        }
-        */
+        // printf("DEBUG: read %d bytes.\n", bytes_read);
 
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
@@ -337,7 +327,7 @@ void connect_to_federates(int socket_descriptor) {
         }
 
         int fed_id = swap_bytes_if_big_endian_int(*((int*)(&(buffer[1]))));
-        printf("DEBUG: RTI received federate ID: %d\n", fed_id);
+        // printf("DEBUG: RTI received federate ID: %d\n", fed_id);
 
         if (federates[fed_id].state != NOT_CONNECTED) {
             fprintf(stderr, "Duplicate federate ID: %d.\n", fed_id);
