@@ -214,7 +214,7 @@ class LinguaFrancaValidationTest {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.state,
+        model.assertError(LinguaFrancaPackage::eINSTANCE.stateVar,
             null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
