@@ -38,13 +38,15 @@ import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.LiteralOrCode
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.ParamTimeOrValue
+import org.icyphy.linguaFranca.TimeOrValue
+import org.icyphy.linguaFranca.Time
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -350,28 +352,110 @@ class ASTUtils {
         return false
     }
     
-    /**
-     * Report whether the given time or value denotes a valid time or not.
-     * @param tv A time or value.
-     * @return True if the argument denotes a valid time, false otherwise.
-     */
+//    /**
+//     * Report whether the given time or value denotes a valid time or not.
+//     * @param tv A time or value.
+//     * @return True if the argument denotes a valid time, false otherwise.
+//     */
+//    def static boolean isValidTime(TimeOrValue tv) {
+//        if (tv !== null &&
+//            ((tv.time == 0 || tv.unit != TimeUnit.NONE) ||
+//                (tv.parameter !== null && tv.parameter.isOfTimeType))) {
+//            return true
+//        }
+//        return false
+//    }
+//  
+
+    def static boolean isValidTime(ParamTimeOrValue ptv) {
+        if (ptv !== null){
+            if (ptv.parameter !== null) {
+                if (ptv.parameter.isOfTimeType) {
+                    return true
+                }
+            } else {
+                if (ptv.timeOrValue.isValidTime) {
+                    return true
+                }
+            }    
+        }
+        return false
+    }
+
     def static boolean isValidTime(TimeOrValue tv) {
-        if (tv !== null &&
-            ((tv.time == 0 || tv.unit != TimeUnit.NONE) ||
-                (tv.parameter !== null && tv.parameter.isOfTimeType))) {
+        if (tv !== null) {
+            if ((tv.time !== null && tv.time.isValidTime) || tv.value.isZero) {
+                return true
+            }    
+        }
+        return false
+    }
+
+    def static boolean isValidTime(Time t) {
+        if (t !== null && t.unit != TimeUnit.NONE) {
             return true
+        }
+        return false
+    }
+
+    /**
+     * Report whether the given parameter has been declared a type or has been
+     * inferred to be a type. Note that if the parameter was declared to be a
+     * time, its initialization may still be faulty (assigning a value that is 
+     * not actually a valid time).
+     * @param A parameter
+     * @return True if the argument denotes a time, false otherwise.
+     */
+    def static boolean isOfTimeType(Parameter p) {
+        if (p !== null) {
+            // Either the type has to be declared as a time.
+            if (p.type !== null && p.type.isTime) {
+                return true
+            }
+            // Or it has to be initialized as a proper time with units.
+            if (p.init !== null && p.init.size == 1) {
+                val time = p.init.get(0).time
+                if (time !== null && time.unit != TimeUnit.NONE) {
+                    return true
+                }
+            } 
+            // In other words, one can write:
+            // - `x:time(0)` -OR- 
+            // - `x:(0 msec)`, `x:(0 sec)`, etc.     
+        }
+        return false
+    }
+
+    /**
+     * Report whether the given state variable denotes a time or not.
+     * @param A state variable
+     * @return True if the argument denotes a time, false otherwise.
+     */
+    def static boolean isOfTimeType(StateVar s) {
+        if (s !== null) {
+            // Either the type has to be declared as a time.
+            if (s.type !== null && s.type.isTime)
+                return true
+            // Or the it has to be initialized as a time.
+            if (s.init !== null && s.init.size == 1) {
+                val init = s.init.get(0)
+                if (init.isValidTime)
+                    return true
+            }   
+            // In other words, one can write:
+            // - `x:time(0)` -OR- 
+            // - `x:(0 msec)`, `x:(0 sec)`, etc. -OR-
+            // - `x:(p)` where p is defined as above.
         }
         return false
     }
     
     /**
      * Given a state variable, return the AST node that denotes its type.
-     * Caution: if the given state variable is of time type, then this method 
-     * returns null.
      * @param s A state variable.
      * @return The type associated with the argument, or null if denotes a time.
      */
-    def static Type getValueType(StateVar s) {
+    def static Type getType(StateVar s) {
         if (s !== null) {
             if (s.type !== null) {
                 return s.type
@@ -385,6 +469,19 @@ class ASTUtils {
         }
     }
     
+    def static TimeValue getTimeValue(TimeOrValue tv) {
+        if (tv !== null && tv.time !== null) {
+            return new TimeValue(tv.time.interval, tv.time.unit)
+        }
+    }
+    
+    def static TimeValue getTimeValue(Parameter p) {
+        if (p !== null && p.isOfTimeType) {
+            val init = p.init.get(0)
+            return init.timeValue
+        }
+    }
+    
     /**
      * Report whether the given time state variable is initialized using a 
      * parameter or not.
@@ -393,7 +490,7 @@ class ASTUtils {
      * otherwise.
      */
     def static boolean isParameterized(StateVar s) {
-        if (s.init !== null && s.init.exists[it instanceof Parameter]) {
+        if (s.init !== null && s.init.exists[it.parameter !== null]) {
             return true
         }
         return false
