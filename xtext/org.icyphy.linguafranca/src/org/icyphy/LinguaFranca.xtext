@@ -99,8 +99,10 @@ Reactor:
  */
  StateVar:
     'state' name=ID (
-        (':' (ofTimeType?='time' | type=Type))? 
-        ('(' init+=TimeOrValue (',' init+=TimeOrValue)* ')' )?
+        (':' (type=Type))? 
+        (emptyInit?=EMPTY_INIT
+            | ('(' init+=ParamTimeOrValue (',' init+=ParamTimeOrValue)* ')' )
+        )?
     ) ';'    
 ;
 
@@ -115,7 +117,7 @@ Output:
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID ('(' offset=TimeOrValue (',' period=TimeOrValue)? ')')? ';';
+    'timer' name=ID ('(' offset=ParamTimeOrValue (',' period=ParamTimeOrValue)? ')')? ';';
 
 // Action that has either a physical or logical origin.
 // 
@@ -129,7 +131,7 @@ Timer:
 // to elapse between action occurrences.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=TimeOrValue (',' minInterArrival=TimeOrValue (',' policy=QueuingPolicy)? )? ')')?
+    ('(' minDelay=ParamTimeOrValue (',' minInterArrival=ParamTimeOrValue (',' policy=QueuingPolicy)? )? ')')?
     (':' type=Type)? ';';
 
 Reaction:
@@ -144,10 +146,10 @@ TriggerRef:
     VarRef | startup?='startup' | shutdown?='shutdown';
 
 Delay:
-    'after' time=TimeOrValue;
+    'after' time=ParamTimeOrValue;
 
 Deadline:
-    'deadline' '(' interval=TimeOrValue ')' code=Code;
+    'deadline' '(' delay=ParamTimeOrValue ')' code=Code;
 
 Mutation:
     ('mutation')
@@ -204,7 +206,7 @@ VarRef:
     | container=[Instantiation] '.' variable=[Variable];
 
 Assignment:
-    (lhs=[Parameter] '=' rhs=TimeOrValue);
+    (lhs=[Parameter] '=' rhs=ParamTimeOrValue);
 
 
 /**
@@ -214,20 +216,30 @@ Parameter:
     name=ID 
 //    ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
 //    | ((':' type=Type)? '(' value=LiteralOrCode ')'))?;
-    (
-        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-        | ((':' type=Type)? 
-            '(' values+=LiteralOrCode (',' values+=LiteralOrCode)*  ')'
-          ) 
-    )
- ;
+//    (
+//        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
+//        | ((':' type=Type)? 
+//            '(' values+=LiteralOrCode (',' values+=LiteralOrCode)*  ')'
+//          ) 
+//    )
+
+(':' (type=Type))? ('(' init+=TimeOrValue (',' init+=TimeOrValue)* ')' )
+;
  
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
 // If it is a constant, the validator should check that if the value
 // is non-zero, it is accompanied by a unit.
+ParamTimeOrValue:
+    (parameter=[Parameter] | timeOrValue=TimeOrValue);
+
 TimeOrValue:
-    (parameter=[Parameter] | value=LiteralOrCode | (time=INT unit=TimeUnit));
+    time=Time | value=LiteralOrCode
+;
+
+Time:
+    (interval=INT unit=TimeUnit)
+;
 
 LiteralOrCode:
     literal=Literal | code=Code;
@@ -237,14 +249,17 @@ Port:
 
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (id=ID (stars+='*')* (arraySpec=ArraySpec)?) | code=Code;
-   
+   (time?='time' (arraySpec=ArraySpec)?) | ((id=ID (stars+='*')* (arraySpec=ArraySpec)?) | code=Code);
+
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
     
 terminal BOOL:
     'true' | 'false';
 
+terminal EMPTY_INIT:
+    '(' ')'
+;
 Literal:
     STRING | FLOAT | INT | NEGINT | BOOL;
 
@@ -308,7 +323,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' |
     // Other terminals
-    FLOAT | NEGINT | BOOL |
+    FLOAT | NEGINT | BOOL | EMPTY_INIT |
     // Queuing policies
     'DEFER' | 'DROP' | 'UPDATE' |
     // Action origins
