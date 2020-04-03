@@ -60,7 +60,7 @@ typedef void (*pqueue_print_entry_f)(FILE *out, void *a);
 /** the priority queue handle */
 typedef struct pqueue_t
 {
-    size_t size;                /**< number of elements in this queue */
+    size_t size;                /**< number of elements in this queue plus 1 */
     size_t avail;               /**< slots available in this queue */
     size_t step;                /**< growth stepping setting */
     pqueue_cmp_pri_f cmppri;    /**< callback to compare priorities */

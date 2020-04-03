@@ -9,7 +9,7 @@ reactor Delay(delay:time(100 msec)) {
         schedule_int(a, self->delay, in);
     =}
     reaction(a) -> out {=
-        set(out, a_value);
+        if (a_has_value && a_is_present) set(out, a_value);
     =}
 }
 reactor Test {

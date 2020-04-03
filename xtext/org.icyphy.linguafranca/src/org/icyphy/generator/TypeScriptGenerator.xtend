@@ -35,6 +35,7 @@ import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.icyphy.Targets.LoggingLevels
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
@@ -48,7 +49,6 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.Targets.LoggingLevels
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -239,11 +239,11 @@ class TypeScriptGenerator extends GeneratorBase {
     }
     
     override generateDelayBody(Action action, VarRef port) {
-        '''actions.«action.name».schedule(0, «generateVarRef(port)» as «getActionType(action)»)'''
+        '''actions.«action.name».schedule(0, «generateVarRef(port)» as «getActionType(action)»);'''
     }
 
     override generateForwardBody(Action action, VarRef port) {
-        '''«generateVarRef(port)» = «action.name» as «getActionType(action)»'''
+        '''«generateVarRef(port)» = «action.name» as «getActionType(action)»;'''
     }
  
     // //////////////////////////////////////////
@@ -260,7 +260,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
         for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
-            pr(removeCodeDelimiter(p.code))
+            pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
 
@@ -291,8 +291,8 @@ class TypeScriptGenerator extends GeneratorBase {
                  arguments.add(parameter.name + ": " + getParameterType(parameter)
                     +" = " + timeInTargetLanguage(new TimeValue(parameter.time, parameter.unit)))
             } else {
-                 arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + removeCodeDelimiter(parameter.value))
+                arguments.add(parameter.name + ": " + getParameterType(parameter)
+                    +" = " + parameter.value.toText)
             }
         }
         
@@ -330,7 +330,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         if (parameterAssignment.rhs.parameter !== null) {
                             childReactorArguments.add(parameterAssignment.rhs.parameter.name)
                         } else if (parameterAssignment.rhs.value !== null) {
-                            childReactorArguments.add(removeCodeDelimiter(parameterAssignment.rhs.value))
+                            childReactorArguments.add(parameterAssignment.rhs.value.toText)
                         } else {
                             childReactorArguments.add(
                                 timeInTargetLanguage(new TimeValue(parameterAssignment.rhs.time, parameterAssignment.rhs.unit)))
@@ -398,18 +398,18 @@ class TypeScriptGenerator extends GeneratorBase {
         for (state : reactor.states) {
             pr(state.name + ': ' +
                     "State<" + getStateType(state) +  '>;');
-            if (state.parameter !== null) {
+            if (state.init !== null && state.init.parameter !== null) {
                 // State is a parameter
                 pr(reactorConstructor, "this." + state.name + " = "
-                        + "new State(" + state.parameter.name + ");" )
+                        + "new State(" + state.init.parameter.name + ");" )
             } else if (state.ofTimeType) {  
                 // State is a time type
                 pr(reactorConstructor, "this." + state.name + " = "
                     + "new State(" + timeInTargetLanguage(new TimeValue(state.time, state.unit)) + ");" )
-            } else if (state.value !== null) {
-                // State is a literal 
+            } else if (state.init.value !== null) {
+                // State is a literal or code
                 pr(reactorConstructor, "this." + state.name + " = "
-                    + "new State(" +removeCodeDelimiter(state.value) + ");" )
+                    + "new State(" + state.init.value.toText + ");" ) // FIXME: support lists
             } else {
                 // State has an undefined value
                  pr(reactorConstructor, "this." + state.name + " = "
@@ -658,7 +658,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     var containedArgElement = ""
                     var containedPrologueElement = ""
                     if (containedVariable instanceof Input) {
-                        containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type + ">"
+                        containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type.toText + ">"
                         containedArgElement += containedVariable.name + ": " + "this.getWritable(" + functArg + ")"
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                         pr(reactEpilogue, "if (" + container.name + "." + containedVariable.name + " !== undefined) {")
@@ -668,7 +668,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         reactEpilogue.unindent()
                         pr(reactEpilogue, "}")
                     } else if(containedVariable instanceof Output) {
-                        containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type + ">"
+                        containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type.toText + ">"
                         containedArgElement += containedVariable.name + ": " + functArg
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                     }
@@ -713,7 +713,7 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactorConstructor, "// =============== END react prologue")
             pr(reactorConstructor, "try {")
             reactorConstructor.indent()
-            pr(reactorConstructor, removeCodeDelimiter(reaction.code))
+            pr(reactorConstructor, toText(reaction.code))
             reactorConstructor.unindent()
             pr(reactorConstructor, "} finally {")
             reactorConstructor.indent()
@@ -728,10 +728,10 @@ class TypeScriptGenerator extends GeneratorBase {
             } else {
                 pr(reactorConstructor, "},")
                 var deadlineArgs = ""
-                if (reaction.deadline.time.parameter !== null) {
-                    deadlineArgs += "this." + reaction.deadline.time.parameter.name + ".get()"; 
+                if (reaction.deadline.interval.parameter !== null) {
+                    deadlineArgs += "this." + reaction.deadline.interval.parameter.name + ".get()"; 
                 } else {
-                    deadlineArgs += timeInTargetLanguage(new TimeValue(reaction.deadline.time.time, reaction.deadline.time.unit))
+                    deadlineArgs += timeInTargetLanguage(new TimeValue(reaction.deadline.interval.time, reaction.deadline.interval.unit))
                 }
                 pr(reactorConstructor, deadlineArgs + "," )
                 pr(reactorConstructor, "function(" + reactSignature + ") {")
@@ -741,7 +741,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 pr(reactorConstructor, "// =============== END deadline prologue")
                 pr(reactorConstructor, "try {")
                 reactorConstructor.indent()
-                pr(reactorConstructor, removeCodeDelimiter(reaction.deadline.deadlineCode))
+                pr(reactorConstructor, toText(reaction.deadline.code))
                 reactorConstructor.unindent()
                 pr(reactorConstructor, "} finally {")
                 reactorConstructor.indent()
@@ -778,7 +778,7 @@ class TypeScriptGenerator extends GeneratorBase {
             
         var arguments = new StringJoiner(", ")
         for (parameter : defn.parameters) {
-            arguments.add(removeCodeDelimiter(parameter.rhs.value))
+            arguments.add(parameter.rhs.value.toText)
         }
 
         // Get target properties for the app
@@ -934,9 +934,9 @@ class TypeScriptGenerator extends GeneratorBase {
         if (state.isOfTimeType) {
             type = timeTypeInTargetLanguage
         } else if (state.type !== null) {
-            type = removeCodeDelimiter(state.type)
-        } else if (state.parameter !== null) {
-            type = getParameterType(state.parameter)
+            type = state.type.toText
+        } else if (state.init.parameter !== null) {
+            type = getParameterType(state.init.parameter)
         } else {
             type = 'unknown'
         }
@@ -952,7 +952,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getActionType(Action action) {
         if (action.type !== null) {
-            return removeCodeDelimiter(action.type)
+            return action.type.toText
         } else {
             return "Present"    
         }
@@ -967,7 +967,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getPortType(Port port) {
         if (port.type !== null) {
-            return removeCodeDelimiter(port.type)
+            return port.type.toText
         } else {
             return "Present"    
         }
@@ -981,7 +981,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The TS type.
      */
     private def getParameterType(Parameter parameter) {
-        var type = removeCodeDelimiter(parameter.type)
+        var type = parameter.type.toText
         if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
             type = 'TimeValue'
         }

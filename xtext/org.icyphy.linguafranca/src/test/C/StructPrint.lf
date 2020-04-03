@@ -18,6 +18,7 @@ reactor Source {
         out->value = 42;
     =}
 }
+
 // expected parameter is for testing.
 reactor Print(expected:int(42)) {
     input in:hello_t*;

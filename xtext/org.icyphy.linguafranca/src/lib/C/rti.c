@@ -57,6 +57,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
 
+/** Delay the start of all federates by this amount. */
+#define DELAY_START SEC(3)
+
 // The one and only mutex lock.
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -267,7 +270,9 @@ void* federate(void* fed_socket_descriptor) {
     if (bytes_written < 0) error("ERROR sending message ID to federate");
 
     // Send the timestamp.
-    long long message = swap_bytes_if_big_endian_ll(max_start_time);
+    // FIXME: Add an offset to this start time to get everyone starting together.
+    // Adding one second here.
+    long long message = swap_bytes_if_big_endian_ll(max_start_time + DELAY_START);
     bytes_written = write(fed_socket, (void*)(&message), sizeof(long long));
     if (bytes_written < 0) error("ERROR sending start time to federate");
 
@@ -326,7 +331,7 @@ void connect_to_federates(int socket_descriptor) {
         }
         */
 
-        // First byte received in the message ID.
+        // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
             fprintf(stderr, "ERROR: RTI expected a FED_ID message. Got %u (see rti.h).\n", buffer[0]);
         }

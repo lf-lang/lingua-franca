@@ -43,12 +43,16 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.State
-import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
+import java.util.LinkedList
+import org.icyphy.linguaFranca.Preamble
+import org.icyphy.linguaFranca.Visibility
+import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.QueuingPolicy
 
 /** Generator for C++ target.
  *
@@ -79,14 +83,40 @@ class CppGenerator extends GeneratorBase {
         TimeUnit.WEEK -> 'd*7',
         TimeUnit.WEEKS -> 'd*7'
     }
+    
+    static public var logLevelsToInts = #{
+    	"ERROR" -> 1,
+    	"WARN" -> 2,
+    	"INFO" -> 3,
+    	"LOG" -> 3,
+    	"DEBUG" -> 4
+    }
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
+   
+    def toDir(Resource r) {
+        r.toPath.getFilename
+    }
+    
+    def preambleHeaderFile(Resource r) {
+    	r.toDir + File.separator + "preamble.hh"
+    }
+    
+    def preambleSourceFile(Resource r) {
+        r.toDir + File.separator + "preamble.cc"
+    }
+    
+    def headerFile(Reactor r) {
+    	r.eResource.toDir + File.separator + r.name + ".hh"
+    }
+    
+    def sourceFile(Reactor r) {
+        r.eResource.toDir + File.separator + r.name + ".cc"
+    }
+   
         
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-
-        var target = resource.findTarget
-        
         super.doGenerate(resource, fsa, context)
         mainReactor = this.mainDef?.reactorClass
         
@@ -96,14 +126,18 @@ class CppGenerator extends GeneratorBase {
         } else {
             generateReactor(mainReactor)
         }
-
-        fsa.generateFile(filename + File.separator + "fwd.hh", reactors.generateForwardDeclarations)
-        fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain(target))
-        fsa.generateFile(filename + File.separator + "CMakeLists.txt", target.generateCmake(reactors))
+        
+        fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
+        fsa.generateFile(filename + File.separator + "CMakeLists.txt", generateCmake)
 
         for (r : reactors) {
-            fsa.generateFile(filename + File.separator + r.getName() + ".hh", r.generateReactorHeader)
-            fsa.generateFile(filename + File.separator + r.getName() + ".cc", r.generateReactorSource)
+            fsa.generateFile(filename + File.separator + r.headerFile, r.generateReactorHeader)
+            fsa.generateFile(filename + File.separator + r.sourceFile, r.generateReactorSource)
+        }
+        
+        for (r: allResources) {
+        	fsa.generateFile(filename + File.separator + r.preambleSourceFile, r.generatePreambleSource)
+        	fsa.generateFile(filename + File.separator + r.preambleHeaderFile, r.generatePreambleHeader)
         }
 
         if (!targetNoCompile && !errorsOccurred()) {
@@ -236,7 +270,7 @@ class CppGenerator extends GeneratorBase {
 
     def declareActions(Reactor r) '''
         «FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
-            «a.implementationType» «a.name»{"«a.name»", this};
+            «a.implementationType» «a.name»;
         «ENDFOR»
         // default actions
         reactor::StartupAction startup {"startup", this};
@@ -267,7 +301,7 @@ class CppGenerator extends GeneratorBase {
     def implementReactionBodies(Reactor r) '''
         «FOR n : r.reactions SEPARATOR '\n'»
             void «r.name»::«n.name»_body() {
-              «n.code.removeCodeDelimiter»
+              «n.code.toText»
             }
         «ENDFOR»
     '''
@@ -275,23 +309,44 @@ class CppGenerator extends GeneratorBase {
     def implementReactionDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
             void «r.name»::«n.name»_deadline_handler() {
-              «n.deadline.deadlineCode.removeCodeDelimiter»
+              «n.deadline.code.toText»
             }
         «ENDFOR»
     '''
 
     def includeInstances(Reactor r) '''
         «FOR i : r.instantiations AFTER '\n'»
-            #include "«i.reactorClass.name».hh"
+            #include "«i.reactorClass.headerFile»"
         «ENDFOR»
     '''
 
-    def generatePreamble(Reactor r) '''
-        «FOR p : r.preambles ?: emptyList AFTER '\n'»
-            // preamble
-            «removeCodeDelimiter(p.code)»
-        «ENDFOR»
-    '''
+    def publicPreamble(Reactor r) {
+    	val publicPreambles = new LinkedList<Preamble>()
+    	for(p: r.preambles) {
+    		if (p.visibility === Visibility.PUBLIC) {
+    			publicPreambles.add(p)
+    		}
+    	}
+        '''
+            «FOR p : publicPreambles ?: emptyList BEFORE '// public preamble\n' AFTER '\n'»
+                «removeCodeDelimiter(p.code.toText)»
+            «ENDFOR»
+        '''
+    }
+
+    def privatePreamble(Reactor r) {
+        val privatePreambles = new LinkedList<Preamble>()
+        for(p: r.preambles) {
+            if (p.visibility === Visibility.PRIVATE) {
+                privatePreambles.add(p)
+            }
+        }
+        '''
+            «FOR p : privatePreambles ?: emptyList BEFORE '// private preamble\n' AFTER '\n'»
+                «removeCodeDelimiter(p.code.toText)»
+            «ENDFOR»
+        '''
+    }
 
     def declareTriggers(Reaction n) '''
         «FOR t : n.triggers»
@@ -347,7 +402,7 @@ class CppGenerator extends GeneratorBase {
         if (r.parameters.length > 0) {
             '''
                 «r.name»(const std::string& name,
-                    «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+                    «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
                     «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «IF p.ofTimeType»«p.trimmedTime»«ELSE»«p.trimmedValue»«ENDIF»«ENDFOR»
             '''
         } else {
@@ -364,7 +419,7 @@ class CppGenerator extends GeneratorBase {
             '''const reactor::Duration'''
         } else {
             if (p.type !== null) {
-                '''const «p.type.removeCodeDelimiter»'''
+                '''const «p.type.toText.removeCodeDelimiter»'''
             } else {
                 '''/* «p.reportError("Parameter has no type")» */'''
             }
@@ -372,16 +427,22 @@ class CppGenerator extends GeneratorBase {
     }
 
     def trimmedType(State s) {
-        if (s.type !== null) {
-            s.type.removeCodeDelimiter
+        if (s.ofTimeType) {
+            '''reactor::Duration'''
         } else {
-            '''/* «s.reportError("State variable has no type")» */'''
+            if (s.type !== null) {
+                s.type.toText.removeCodeDelimiter
+            } else if (s.init !== null && s.init.parameter !== null) {
+            	s.init.parameter.trimmedType
+            } else {
+                '''/* «s.reportError("State has no type")» */'''
+            }
         }
     }
 
     def trimmedType(Input i) {
         if (i.type !== null) {
-            i.type.removeCodeDelimiter
+            i.type.toText.removeCodeDelimiter
         } else {
             '''/* «i.reportError("Input port has no type.")» */'''
         }
@@ -389,7 +450,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Output o) {
         if (o.type !== null) {
-            o.type.removeCodeDelimiter
+            o.type.toText.removeCodeDelimiter
         } else {
             '''/* «o.reportError("Input port has no type.")» */'''
         }
@@ -397,7 +458,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Action a) {
         if (a.type !== null) {
-            a.type.removeCodeDelimiter
+            a.type.toText.removeCodeDelimiter
         } else {
             '''/* «a.reportError("Action has no type.")» */'''
         }
@@ -407,14 +468,14 @@ class CppGenerator extends GeneratorBase {
         if (p.ofTimeType) {
         	'''/* «p.reportError("Did not expect a parameter of type time!")» */'''
         } else {
-            '''«p.value.removeCodeDelimiter»'''
+            '''«p.value.toText»'''
         }
     }
 
     def trimmedTime(Parameter p) {
         if (p.ofTimeType) {
             if (p.unit === null || p.unit === TimeUnit.NONE) {
-            	if (p.time == 0) {
+            	if (p.time == 0 || p.value.isZero) {
                     '''reactor::Duration::zero()'''
                 } else {
                 	'''/* «p.reportError("Time values need to be 0 or have a unit!")» */'''
@@ -426,6 +487,33 @@ class CppGenerator extends GeneratorBase {
             '''/* «p.reportError("Expected a parameter of type time!")» */'''
         }
     }
+    
+    def trimmedValue(State s) {
+        if (s.ofTimeType) {
+        	'''/* «s.reportError("Did not expect a state of type time!")» */'''
+        } else if (s.init !== null && s.init.parameter !== null) {
+        	s.init.parameter.name
+        } else {
+            s.init.value.toText
+        }
+    }
+    
+    def trimmedTime(State s) {
+        if (s.ofTimeType) {
+            if (s.unit === null || s.unit === TimeUnit.NONE) {
+            	if (s.time == 0 || s.init.value.isZero) {
+                    '''reactor::Duration::zero()'''
+                } else {
+                	'''/* «s.reportError("Time values need to be 0 or have a unit!")» */'''
+                }
+            } else {
+                '''«s.time»«timeUnitsToCppUnits.get(s.unit)»'''
+            }
+        } else {
+            '''/* «s.reportError("Expected a state of type time!")» */'''
+        }
+    }
+    
 
     def trimmedValue(TimeOrValue tv) {
         if (tv.parameter !== null) {
@@ -435,7 +523,7 @@ class CppGenerator extends GeneratorBase {
                 '''«tv.parameter.name»'''
             }
         } else if (tv.value !== null) {
-            '''«tv.value.removeCodeDelimiter»'''
+            '''«tv.value.toText»'''
         } else {
         	'''/* «tv.reportError("Expected a value or a parameter, not a time")» */'''
         }
@@ -449,7 +537,7 @@ class CppGenerator extends GeneratorBase {
     			'''/* «tv.reportError("Expected a parameter of time type!")» */'''
     		}
         } else if (tv.value !== null) {
-        	if (tv.value == '0') {
+        	if (tv.value.isZero) {
          		'''reactor::Duration::zero()'''
         	} else {
             	'''/* «tv.reportError("Time values need to be 0 or have a unit!")» */'''
@@ -463,12 +551,10 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
-    def trimmedValue(State s) { s.value.removeCodeDelimiter }
-
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
-                «IF r == mainReactor»reactor::Environment* environment,«ELSE»reactor::Reactor* container«ENDIF»,
+                «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
                 «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»«p.trimmedType» «p.name»«ENDFOR»
         «ELSE»
             «IF r == mainReactor»
@@ -481,6 +567,7 @@ class CppGenerator extends GeneratorBase {
           «r.initializeParameters»
           «r.initializeStateVariables»
           «r.initializeInstances»
+          «r.initializeActions»
           «r.initializeTimers»
         {}
     '''
@@ -493,13 +580,19 @@ class CppGenerator extends GeneratorBase {
 
     def initializeStateVariables(Reactor r) '''
         «FOR s : r.states BEFORE "// state variables\n"»
-            , «s.name»(«s.trimmedValue»)
+            , «s.name»(«IF s.ofTimeType»«s.trimmedTime»«ELSE»«s.trimmedValue»«ENDIF»)
         «ENDFOR»
     '''
 
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
             , «i.name»{"«i.name»", this«FOR v : i.trimmedValues», «v»«ENDFOR»}
+        «ENDFOR»
+    '''
+    
+    def initializeActions(Reactor r) '''
+        «FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
+            «a.initialize»
         «ENDFOR»
     '''
 
@@ -519,6 +612,24 @@ class CppGenerator extends GeneratorBase {
             period = '''«t.period.trimmedTime»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
+    }
+    
+    def initialize(Action a) {
+        if (a.origin == ActionOrigin.LOGICAL) {
+            if (a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
+                a.reportError("minInterArrival and minPolicy are not supported for logical actions!");
+            } else if (a.minDelay !== null) {
+                ''', «a.name»{"«a.name»", this, «a.minDelay.trimmedTime»}'''
+            } else {
+                ''', «a.name»{"«a.name»", this}'''
+            }
+        } else {
+            if( a.minDelay !== null || a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
+                a.reportError("minDelay, minInterArrival and minPolicy are not supported for physical actions!");
+            } else {
+                ''', «a.name»{"«a.name»", this}'''
+            }
+        }
     }
 
     def trimmedValues(Instantiation i) {
@@ -552,20 +663,46 @@ class CppGenerator extends GeneratorBase {
         «n.declareDependencies»
         «n.declareAntidependencies»
         «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.time.trimmedTime», [this]() { «n.name»_deadline_handler(); });
+            «n.name».set_deadline(«n.deadline.interval.trimmedTime», [this]() { «n.name»_deadline_handler(); });
         «ENDIF»
     '''
 
-    def generateReactorHeader(Reactor r) '''
-        «header()»
+    def generatePreambleHeader(Resource r) '''
+        «r.header»
         
         #pragma once
         
         #include "reactor-cpp/reactor-cpp.hh"
         
-        «r.includeInstances»
-        «r.generatePreamble»
+        «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
+            «IF p.visibility === Visibility.PUBLIC»«p.code.toText»«ENDIF»
+        «ENDFOR»
+    '''
+    
+    def generatePreambleSource(Resource r) '''
+        «r.header»
+        
+        #include "reactor-cpp/reactor-cpp.hh"
+        
         using namespace std::chrono_literals;
+        using namespace reactor::operators;
+        
+        «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
+            «IF p.visibility === Visibility.PRIVATE»«p.code.toText»«ENDIF»
+        «ENDFOR»
+    '''
+
+    def generateReactorHeader(Reactor r) '''
+        «r.eResource.header»
+        
+        #pragma once
+        
+        #include "reactor-cpp/reactor-cpp.hh"
+        
+        #include "«r.eResource.preambleHeaderFile»"
+
+        «r.includeInstances»
+        «r.publicPreamble»
         
         class «r.getName()» : public reactor::Reactor {
          private:
@@ -586,10 +723,16 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def generateReactorSource(Reactor r) '''
-        «header()»
+        «r.eResource.header»
+
+        #include "reactor-cpp/reactor-cpp.hh"
         
-        #include "«r.getName».hh"
+        using namespace std::chrono_literals;
+        using namespace reactor::operators;
         
+        #include "«r.headerFile»"
+        
+        «r.privatePreamble»
         «r.defineConstructor»
         
         void «r.name»::assemble() {
@@ -605,27 +748,17 @@ class CppGenerator extends GeneratorBase {
         «r.implementReactionDeadlineHandlers»
     '''
 
-    def header() '''
+    def header(Resource r) '''
         /*
          * This file was autogenerated by the Lingua Franca Compiler
          *
-         * Source: «resource.getURI()»
+         * Source: «r.URI»
          * Date: «new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())»
          */
     '''
 
-    def generateForwardDeclarations(List<Reactor> reactors) '''
-        «header()»
-        
-        #pragma once
-        
-        «FOR r : reactors»
-            class «r.getName()»;
-        «ENDFOR»
-    '''
-
-    def generateMain(Reactor main, Target t) '''
-        «header()»
+    def generateMain(Reactor main) '''
+        «resource.header»
 
         #include <chrono>        
         #include <thread>
@@ -633,9 +766,12 @@ class CppGenerator extends GeneratorBase {
         
         #include "reactor-cpp/reactor-cpp.hh"
         
+        using namespace std::chrono_literals;
+        using namespace reactor::operators;
+        
         #include "CLI/CLI11.hpp"
         
-        #include "«main.name».hh"
+        #include "«main.headerFile»"
         
         class Timeout : public reactor::Reactor {
          private:
@@ -655,16 +791,18 @@ class CppGenerator extends GeneratorBase {
         int main(int argc, char **argv) {
           CLI::App app("«filename» Reactor Program");
           
-          unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»4«ENDIF»;
+          unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
-          unsigned timeout;
-          auto opt_timeout = app.add_option("--timeout", timeout, "Number of seconds after which the execution is aborted");
-          bool fast{false};
-          app.add_flag("-f,--fast", fast, "allow logical time to run faster than physical time"); 
+          unsigned timeout = 0;
+          auto opt_timeout = app.add_option("-o,--timeout", timeout, "Number of seconds after which the execution is aborted.");
+          bool fast{«targetFast»};
+          app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
+          bool keepalive{«targetKeepalive»};
+          app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
           
           CLI11_PARSE(app, argc, argv);
           
-          reactor::Environment e{threads, fast};
+          reactor::Environment e{threads, keepalive, fast};
         
           // instantiate the main reactor
           «main.name» main{"«main.name»", &e};
@@ -672,9 +810,10 @@ class CppGenerator extends GeneratorBase {
           // optionally instantiate the timeout reactor
           std::unique_ptr<Timeout> t{nullptr};
           if (opt_timeout->count() > 0) {
-              std::cout << "timeout: " << timeout << std::endl;
-              t = std::make_unique<Timeout>("Timeout", &e, std::chrono::seconds(timeout));
-          }
+            t = std::make_unique<Timeout>("Timeout", &e, std::chrono::seconds(timeout));
+          } «IF targetTimeout >= 0»else {
+          	t = std::make_unique<Timeout>("Timeout", &e, «targetTimeout»«timeUnitsToCppUnits.get(targetTimeoutUnit)»);
+          }«ENDIF»
 
           // execute the reactor program
           e.assemble();
@@ -685,7 +824,7 @@ class CppGenerator extends GeneratorBase {
         }
     '''
 
-    def generateCmake(Target target, List<Reactor> reactors) '''
+    def generateCmake() '''
         cmake_minimum_required(VERSION 3.5)
         project(«filename» VERSION 1.0.0 LANGUAGES CXX)
         
@@ -697,12 +836,9 @@ class CppGenerator extends GeneratorBase {
         include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
         include(GNUInstallDirs)
         
-        set(DEFAULT_BUILD_TYPE "Debug")
+        set(DEFAULT_BUILD_TYPE «IF targetBuildType === null»"Release"«ELSE»"«targetBuildType»"«ENDIF»)
         if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-          message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
           set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
-          # Set the possible values of build type for cmake-gui
-          set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
         endif()
         
         if(NOT REACTOR_CPP_BUILD_DIR)
@@ -713,10 +849,13 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "1bb7510936d47d4757e26ba9276b00de2db243ac"
+          GIT_TAG "cde6ecfa12ffa2104eb84f55e70daa5171ff4919"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+            -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+            -DREACTOR_CPP_VALIDATE=«IF targetNoRuntimeValidation»OFF«ELSE»ON«ENDIF»
+            «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
         )
         
         set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
@@ -740,10 +879,16 @@ class CppGenerator extends GeneratorBase {
         add_executable(«filename»
           main.cc
           «FOR r : reactors»
-              «r.getName()».cc
+              «r.sourceFile»
+          «ENDFOR»
+          «FOR r : allResources»
+              «r.preambleSourceFile»
           «ENDFOR»
         )
-        target_include_directories(«filename» PUBLIC "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
+        target_include_directories(«filename» PUBLIC
+            "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}"
+            "${PROJECT_SOURCE_DIR}"
+        )
         target_link_libraries(«filename» reactor-cpp)
         add_dependencies(«filename» dep-CLI11)
 
@@ -793,43 +938,32 @@ class CppGenerator extends GeneratorBase {
         println("--- Running: " + cmakeCmd.join(' '))
         var cmakeBuilder = new ProcessBuilder(cmakeCmd)
         cmakeBuilder.directory(buildDir)
-        var cmakeProcess = cmakeBuilder.start()
-        val returnCode = cmakeProcess.waitFor()
+        var cmakeEnv = cmakeBuilder.environment();
+        if(targetCompiler !== null) {
+        	cmakeEnv.put("CXX", targetCompiler);
+        }
 
-        var stdout = readStream(cmakeProcess.getInputStream())
-        var stderr = readStream(cmakeProcess.getErrorStream())
-        if (stdout.length() > 0) {
-            println("------ Standard output from cmake command:")
-            println(stdout)
-            println("------ End of standard output from cmake command.")
-        }
-        if (returnCode != 0) {
-            reportError("cmake returns error code " + returnCode)
-        }
-        if (stderr.length() > 0) {
-            reportError("ERROR: cmake reports errors:\n" + stderr.toString)
-        }
-        // If cmake succeeded, run make.
-        if (returnCode == 0) {
+        val cmakeReturnCode = cmakeBuilder.runSubprocess();
+        if (cmakeReturnCode != 0) {
+            reportError("cmake terminated with an error code!")
+        } else if (cmakeReturnCode == 0) {
+            // If cmake succeeded, run make.
             println("--- In directory: " + buildDir)
             println("--- Running: " + makeCmd.join(" "))
             var makeBuilder = new ProcessBuilder(makeCmd)
             makeBuilder.directory(buildDir)
-            var makeProcess = makeBuilder.start()
-            var makeReturnCode = makeProcess.waitFor()
-            stdout = readStream(makeProcess.getInputStream())
-            stderr = readStream(makeProcess.getErrorStream())
+            val makeReturnCode = makeBuilder.runSubprocess()
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
-                println("Generated code is in "
+                println("Generated source code is in "
+                    + directory + File.separator + "src-gen" + File.separator + filename
+                )
+                println("Compiled binary is in "
                     + directory + File.separator + "bin" + File.separator + filename
                 )
             } else {
-                reportError("make returns error code " + makeReturnCode)
-                if (stderr.length() > 0) {
-                	reportError("make reports errors:\n" + stderr.toString)
-            	}
+                reportError("make terminated with an error code!")
             }
         }
     }
@@ -850,7 +984,7 @@ class CppGenerator extends GeneratorBase {
     // FIXME: the following implementations are most certainly incorrect.
     
     override generateDelayBody(Action action, VarRef port) '''
-        «IF !action.type.endsWith("*")»
+        «IF !action.type.toText.endsWith("*")»
             «action.type»* foo = malloc(sizeof(«action.type»));
             *foo = «generateVarRef(port)»;
         «ELSE»

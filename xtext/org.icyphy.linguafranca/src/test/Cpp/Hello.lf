@@ -5,12 +5,10 @@
 // of 2 seconds, and the third (composite) or 1 second.
 target Cpp {
     timeout: 10 sec,
+    threads: 1,
     fast: true
 };
 reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
-    preamble {=
-        #include <iostream>
-    =}
     state count:int(0);
     state previous_time:{=reactor::TimePoint=}({==});
     timer t(1 secs, period);
@@ -20,22 +18,17 @@ reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
         a.schedule(200ms); // No payload.
         // Print the current time.
         previous_time = get_logical_time();
-        auto timepoint_ns = previous_time.time_since_epoch().count();
-        std::cout << "Current time is " << timepoint_ns << std::endl;
-        std::cout << "Which is " << timepoint_ns / 1000000000ULL << " seconds"
-                  << " plus " << timepoint_ns % 1000000000ULL << " nanoseconds" 
-                  << std::endl;
+        std::cout << "Current time is " << previous_time << std::endl;
      =}
      reaction(a) {=
          count++;
          auto time = get_logical_time();
 	 	std::cout << "***** action " << count << " at time "
-                   << time.time_since_epoch().count() << std::endl;
+                   << time << std::endl;
          auto diff = time - previous_time;
          if (diff != 200ms) {
-             std::cerr << "FAILURE: Expected 200ms of logical time to elapse "
-                       << "but got " << diff.count() << " nanoseconds"
-                       << std::endl;
+             std::cerr << "FAILURE: Expected 200 msecs of logical time to elapse "
+                       << "but got " << diff << std::endl;
              exit(1);
         }
     =}

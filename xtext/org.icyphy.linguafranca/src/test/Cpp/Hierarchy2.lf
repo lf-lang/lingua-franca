@@ -31,10 +31,6 @@ reactor Add {
     =}
 }
 reactor Print {
-    preamble {=
-        #include <iostream>
-        #include <cstdlib>
-    =}
     input in:int;
     state expected:int(2);
     reaction(in) {=

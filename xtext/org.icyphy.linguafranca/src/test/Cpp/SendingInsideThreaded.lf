@@ -1,0 +1,27 @@
+// This tests a reactor that contains another reactor and also
+// has its own reaction that routes inputs to the contained reactor.
+target Cpp {
+    timeout: 10 sec,
+    fast: true
+};
+reactor Printer {
+    input x:int;
+    state count:int(1);
+    reaction(x) {=
+        std::cout << "Inside reactor received: " << *x.get() << std::endl;
+        if (*x.get() != count) {
+            std::cerr << "FAILURE: Expected " << count << std::endl;
+	    exit(1);
+        }
+        count++;
+    =}
+}
+main reactor SendingInside {
+    state count:int(0);
+    timer t(0, 1 sec);
+    p = new Printer();
+    reaction(t) -> p.x {=
+        count++;
+	p.x.set(count);
+    =}
+}

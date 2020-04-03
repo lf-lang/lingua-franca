@@ -1,0 +1,36 @@
+// Test a deadline where the deadline violation produces
+// an output and the container reacts to that output.
+target Cpp;
+reactor Deadline(threshold:time(100 msec)) {
+    input x:int;
+    output deadline_violation:bool;
+    reaction(x) -> deadline_violation {=
+        std::cerr << "ERROR: Deadline violation was not detected!" << std::endl;
+        exit(1);
+    =} deadline(threshold) {=
+        std::cout << "Deadline violation detected." << std::endl;
+        deadline_violation.set(true);
+    =}
+}
+main reactor DeadlineHandledAbove {
+    state violation_detected:bool({=false=});
+    d = new Deadline(threshold = 10 msec);
+    reaction(startup) -> d.x {=
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        d.x.set(42);
+    =}
+    reaction(d.deadline_violation) {=
+        if (*d.deadline_violation.get()) {
+            std::cout << "Output successfully produced by deadline miss handler." << std::endl;
+            violation_detected = true;
+        }
+    =}
+    reaction(shutdown) {=
+        if (violation_detected) {
+            std::cout << "SUCCESS. Test passes." << std::endl;
+        } else {
+            std::cerr << "ERROR. Container did not react to deadline violation." << std::endl;
+            exit(2);
+        }
+    =}
+} 

@@ -1,18 +1,45 @@
+/* Validation checks for Lingua Franca code. */
+
+/*************
+Copyright (c) 2019, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
 package org.icyphy.validation
 
 import java.util.Arrays
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
-import org.eclipse.xtext.validation.EValidatorRegistrar
-import org.icyphy.AnnotatedDependencyGraph
 import org.icyphy.AnnotatedNode
+import org.icyphy.ModelInfo
 import org.icyphy.Targets
 import org.icyphy.Targets.LoggingLevels
 import org.icyphy.Targets.TargetProperties
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Deadline
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
@@ -26,17 +53,16 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import java.util.Map
-import java.util.HashMap
-import org.icyphy.linguaFranca.Deadline
-import org.icyphy.TimeValue
-import java.util.Set
-import java.util.HashSet
-import org.icyphy.ModelInfo
+import org.icyphy.ASTUtils
+import org.icyphy.Targets.BuildTypes
+
 
 /**
- * This class contains custom validation rules. 
- * 
+ * Custom validation checks for Lingua Franca programs.
+ *  
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
@@ -52,13 +78,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     var info = new ModelInfo()
     
-    
 
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
 
     // Check the name of a feature for illegal substrings.
-    def checkName(String name, EStructuralFeature feature) {
+    private def checkName(String name, EStructuralFeature feature) {
         
         // Raises an error if the string starts with two underscores.
         if (name.length() >= 2 && name.substring(0,2).equals("__")) {
@@ -77,20 +102,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         
     }
-        
-    // The xtext validator doesn't have an initialize function
-    // for common data, so override the register function
-    // to call the locally defined initialize function.
-    // See: https://www.eclipse.org/forums/index.php/t/1039065/
-    override register(EValidatorRegistrar registrar) {
-        super.register(registrar)
-    }
-    
+
     // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
     // FAST ensures that these checks run whenever a file is modified.
     // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
-    // FIXME: Only checking uniqueness of reactor class definitions per file
     @Check(FAST)
     def reset(Model model) {
         reactorClasses.clear()
@@ -139,7 +155,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (assignment.lhs.isOfTimeType) {
             if (assignment.rhs.parameter === null) {
                 // This is a value. Check that units are present
-                if (assignment.rhs.unit == TimeUnit.NONE) {
+                if (!ASTUtils.isZero(assignment.rhs.value) &&
+                    assignment.rhs.unit == TimeUnit.NONE) {
                     error(
                         "Invalid time units: " + assignment.rhs.unit +
                             ". Should be one of " + TimeUnit.VALUES.filter [
@@ -160,8 +177,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
-            if (this.info.overflowingAssignments.contains(assignment)) {
-                error("Time value used to specify a deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.ASSIGNMENT__RHS)
+            if (this.target == Targets.C &&
+                this.info.overflowingAssignments.contains(assignment)) {
+                error(
+                    "Time value used to specify a deadline exceeds the maximum of " +
+                        TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                    Literals.ASSIGNMENT__RHS)
             }
         }
     }
@@ -180,8 +201,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkDeadline(Deadline deadline) {
-        if (this.info.overflowingDeadlines.contains(deadline)) {
-            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.DEADLINE__TIME)
+        if (this.target == Targets.C && this.info.overflowingDeadlines.contains(deadline)) {
+            error("Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.DEADLINE__INTERVAL)
         }
     }
 
@@ -244,7 +265,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (!TargetProperties.isValidName(param.name)) {
                 warning(
                     "Unrecognized target parameter: " + param.name +
-                    ". Recognized parameters are " + TargetProperties.values(),
+                    ". Recognized parameters are " + TargetProperties.values().join(", "),
                     Literals.KEY_VALUE_PAIR__NAME)
             }
             val prop = TargetProperties.get(param.name)
@@ -258,9 +279,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
             
             switch prop {
+           	case BUILD_TYPE:
+                if (!Arrays.asList(BuildTypes.values()).exists[it.toString.equals(param.value.id)]) {
+                    error("Target property build-type is required to be one of " +
+                        BuildTypes.values(),
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
             case CMAKE_INCLUDE:
                 if (param.value.literal === null) {
-                    error("Target property cmake_include is required to be a string.",
+                    error("Target property cmake-include is required to be a string.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case COMPILER:
@@ -351,8 +378,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case NO_COMPILE:
-                 if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
                     error("Target property no-compile is required to be true or false.",
+                        Literals.KEY_VALUE_PAIR__VALUE)
+                }
+            case NO_RUNTIME_VALIDATION:
+                if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                    error("Target property no-runtime-validation is required to be true or false.",
                         Literals.KEY_VALUE_PAIR__VALUE)
                 }
             case THREADS: {
@@ -424,7 +456,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
         
-        if (this.info.overflowingParameters.contains(param)) {
+        if (this.target == Targets.C && this.info.overflowingParameters.contains(param)) {
             error("Time value used to specify a deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.", Literals.PARAMETER__TIME)
         }
     }
@@ -459,7 +491,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         inputs.add(state.name);
         allNames.add(state.name)
         if (this.target.requiresTypes) {
-            if (!state.ofTimeType && state.parameter === null && state.type === null) {
+            if (!state.ofTimeType && state.init.parameter === null && state.type === null) {
                 error("State must have a type.", Literals.STATE__TYPE)
             }
         }
@@ -477,14 +509,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     @Check(FAST)
     def checkTime(TimeOrValue timeOrValue) {
-        // Only parameter assignments are allowed to be target types.
+        // Only parameter assignments and state initializations are allowed to be target types.
         // Time parameters can go without units only if they are 0.
-        if (!(timeOrValue.eContainer instanceof Assignment)) {
+        if (!(timeOrValue.eContainer instanceof Assignment) && !(timeOrValue.eContainer instanceof org.icyphy.linguaFranca.State)) {
             
-            // If a literal value is provided, check that it is zero.
-            if (timeOrValue.value !== null && !timeOrValue.value.isEmpty) {
+            // If a value is provided, check that it is zero.
+            var String str
+            if (timeOrValue.value !== null && !((str = ASTUtils.toText(timeOrValue.value)).isEmpty)) {
                 try {
-                    val number = Integer.parseInt(timeOrValue.value)
+                    val number = Integer.parseInt(str)
                     if (number != 0) {
                         if (timeOrValue.unit == TimeUnit.NONE) {
                             error("Missing time units. Should be one of " +

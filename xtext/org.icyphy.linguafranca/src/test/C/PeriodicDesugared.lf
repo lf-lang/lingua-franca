@@ -1,4 +1,7 @@
-target C;
+target C {
+    fast: true,
+    timeout: 5 secs
+};
 main reactor Periodic(
         offset:time(0), 
         period:time(500 msec)) {

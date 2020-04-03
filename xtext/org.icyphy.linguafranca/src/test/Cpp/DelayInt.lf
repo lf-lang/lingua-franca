@@ -1,5 +1,7 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
-target Cpp;
+target Cpp{
+    threads: 1
+};
 reactor Delay(delay:time(100 msec)) {
     input in:int;
     output out:int;
@@ -14,9 +16,6 @@ reactor Delay(delay:time(100 msec)) {
     =}
 }
 reactor Test {
-    preamble {=
-        #include <iostream>
-    =}
     input in:int;
     state start_time:{=reactor::TimePoint=}({==});
     timer start;
@@ -29,10 +28,10 @@ reactor Test {
         // Check the time of the input.
         auto current_time = get_logical_time();
         auto elapsed = current_time - start_time;
-        std::cout << "After " << elapsed.count() << " nsec of logical time." << std::endl;
+        std::cout << "After " << elapsed << " of logical time." << std::endl;
         if (elapsed != 100ms) {
-            std::cerr << "ERROR: Expected elapsed time to be 100000000. "
-                      << "It was " << elapsed.count() << std::endl;
+            std::cerr << "ERROR: Expected elapsed time to be 100000000 nsecs. "
+                      << "It was " << elapsed << std::endl;
             exit(1);
         }
         if (*in.get() != 42) {

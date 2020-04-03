@@ -67,11 +67,21 @@ Reactor:
 /////////// Statements
 
 // Types are optional for use in untyped languages.
-State:
-    'state' name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-    | ((':' type=Type) '(' value=(Literal | ID) ')')
-    | ('(' (value=(Literal)) ')')
-    | ('(' parameter=[Parameter] ')'))? ';';
+
+//State:
+//    'state' name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
+//    | ((':' type=Type) '(' value=(Literal | ID) ')') // FIXME: Check that if the ID matches a parameter, no type is given.
+//    | ('(' (value=(Literal)) ')')
+//    | ('(' parameter=[Parameter] ')'))? ';';
+
+State: // FIXME: change into StateDecl to avoid collision with other classes called State
+    'state' name=ID 
+    (
+        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')') | 
+        (
+            (':' type=Type)? ('(' init=TimeOrValue ')' )? // | (init+=LiteralOrCode (',' init+=LiteralOrCode)?)
+        )
+    ) ';';
 
 Input:
     (mutable?='mutable')? 'input' name=ID (':' type=Type)? ';';
@@ -106,7 +116,7 @@ Reaction:
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRef (',' effects+=VarRef)*)?
-    code=CODE
+    code=Code
     (deadline=Deadline)?;
 
 TriggerRef:
@@ -116,17 +126,17 @@ Delay:
     'after' time=TimeOrValue;
 
 Deadline:
-    'deadline' '(' time=TimeOrValue ')' deadlineCode=CODE;
+    'deadline' '(' interval=TimeOrValue ')' code=Code;
 
 Mutation:
     ('mutation')
     ('(' (triggers+=[Trigger] (',' triggers+=[Trigger])*)? ')')?
     (sources+=[Input] (',' sources+=[Input])*)?
     ('->' effects+=[Effect] (',' effects+=[Effect])*)?
-    code=CODE;
+    code=Code;
 
 Preamble:
-    (visibility=Visibility)? 'preamble' code=CODE;
+    (visibility=Visibility)? 'preamble' code=Code;
 
 Instantiation:
     name=ID '=' 'new' 
@@ -137,8 +147,8 @@ Instantiation:
 Connection:
     leftPort=VarRef '->' rightPort=VarRef (delay=Delay)? ';';
 
-KEYWORD:
-    'input' | 'state' | 'output' | 'timer' | 'action';
+//KEYWORD:
+//    'input' | 'state' | 'output' | 'timer' | 'action';
     
 /////////// For target parameters
 
@@ -146,7 +156,7 @@ KeyValuePairs:
     '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
 
 KeyValuePair:
-    name=ID ':' value=Element;
+    name=Key ':' value=Element;
 
 Array:
     '[' elements+=Element (',' (elements+=Element))* ']';
@@ -175,43 +185,51 @@ VarRef:
 Assignment:
     (lhs=[Parameter] '=' rhs=TimeOrValue);
 
-Property:
-    name=ID '=' (literal=Literal | (time=INT unit=TimeUnit));
+//Property:
+//    name=ID '=' (literal=Literal | (time=INT unit=TimeUnit));
 
 // Single parameter.
 Parameter:
     name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-    | ((':' type=Type)? '(' value=Literal ')'))?;
+    | ((':' type=Type)? '(' value=LiteralOrCode ')'))?;
 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
 // If it is a constant, the validator should check that if the value
 // is non-zero, it is accompanied by a unit.
 TimeOrValue:
-    (parameter=[Parameter] | value=Literal | (time=INT unit=TimeUnit));
+    (parameter=[Parameter] | value=LiteralOrCode | (time=INT unit=TimeUnit));
+
+LiteralOrCode:
+    literal=Literal | code=Code;
 
 Port:
     Input | Output;
 
 // A type is in the target language, hence either an ID or target code.
 Type:
-    ID '*'* ARRAYSIZE? | CODE;
-
-// Either [] or [number], where number cannot begin with 0 and is positive.
-terminal ARRAYSIZE:
-    '[' (('1'..'9')('0'..'9')*)? ']';
+   (id=ID (stars+='*')* (arraySpec=ArraySpec)?) | code=Code;
+   
+ArraySpec:
+    ofVariableLength?='[]' | '[' length=INT ']';
     
+terminal BOOL:
+    'true' | 'false';
+
 Literal:
-    STRING | CODE | FLOAT | INT | NEGINT;
+    STRING | FLOAT | INT | NEGINT | BOOL;
 
 /////////// Elementary components
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
 
 @Override
-terminal SL_COMMENT : ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
+terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 
 @Override
-terminal ML_COMMENT : ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
+terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
+
+// Allow target properties to be expressed in Kebab case.
+Key: ID(ID|'-')*;
 
 terminal NEGINT:
     '-' ('0'..'9')+;
@@ -222,9 +240,13 @@ terminal FLOAT:
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
-terminal CODE:
-    '{=' .* '=}';
-    
+//terminal CODE:
+//    '{=' .* '=}';
+
+Code:
+    {Code} '{=' (tokens+=Token)* '=}'
+;
+
 // The following cannot be terminal because it overlaps ID.
 Path: 
     ID ('.' ID)*;
@@ -249,4 +271,39 @@ enum TimeUnit:
     HOUR='hour' | HOURS='hours' |
     DAY='day' | DAYS='days' |
     WEEK='week' | WEEKS='weeks';
-    
+
+Token:
+    // Imported terminals
+    ID | INT | STRING | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER | 
+    // Keywords
+    'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
+    'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
+    'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
+    'new' |
+    // Other terminals
+    FLOAT | NEGINT | BOOL |
+    // Queuing policies
+    'DEFER' | 'DROP' | 'UPDATE' |
+    // Action origins
+    'logical' | 'physical' |
+    // Visibility modifiers
+    'private' | 'public' |
+    // Time units
+    'nsec' | 'nsecs' | 'usec' | 'usecs' | 'msec' | 'msecs' | 'sec' | 'secs' | 
+    'second' | 'seconds' | 'min' | 'mins' | 'minute' | 'minutes' | 'hour' |
+    'hours' | 'day' | 'days' | 'week' | 'weeks' |
+    // Braces
+    '(' | ')' | '{' | '}' |
+    // Brackets
+    '[' | ']' | '<' | '>' | '[]' |
+    // Punctuation
+    ':' | ';' | ',' | '.' |
+    // Hyphen
+    '-' |
+    // Arrow
+    '->' | 
+    // Assignment
+    '=' |
+    // Asterisk
+    '*'
+;
