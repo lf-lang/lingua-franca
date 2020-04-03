@@ -943,43 +943,27 @@ class CppGenerator extends GeneratorBase {
         	cmakeEnv.put("CXX", targetCompiler);
         }
 
-        var cmakeProcess = cmakeBuilder.start()
-        val returnCode = cmakeProcess.waitFor()
-
-        var stdout = readStream(cmakeProcess.getInputStream())
-        var stderr = readStream(cmakeProcess.getErrorStream())
-        if (stdout.length() > 0) {
-            println("------ Standard output from cmake command:")
-            println(stdout)
-            println("------ End of standard output from cmake command.")
-        }
-        if (returnCode != 0) {
-            reportError("cmake returns error code " + returnCode)
-        }
-        if (stderr.length() > 0) {
-            reportError("ERROR: cmake reports errors:\n" + stderr.toString)
-        }
-        // If cmake succeeded, run make.
-        if (returnCode == 0) {
+        val cmakeReturnCode = cmakeBuilder.runSubprocess();
+        if (cmakeReturnCode != 0) {
+            reportError("cmake terminated with an error code!")
+        } else if (cmakeReturnCode == 0) {
+            // If cmake succeeded, run make.
             println("--- In directory: " + buildDir)
             println("--- Running: " + makeCmd.join(" "))
             var makeBuilder = new ProcessBuilder(makeCmd)
             makeBuilder.directory(buildDir)
-            var makeProcess = makeBuilder.start()
-            var makeReturnCode = makeProcess.waitFor()
-            stdout = readStream(makeProcess.getInputStream())
-            stderr = readStream(makeProcess.getErrorStream())
+            val makeReturnCode = makeBuilder.runSubprocess()
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
-                println("Generated code is in "
+                println("Generated source code is in "
+                    + directory + File.separator + "src-gen" + File.separator + filename
+                )
+                println("Compiled binary is in "
                     + directory + File.separator + "bin" + File.separator + filename
                 )
             } else {
-                reportError("make returns error code " + makeReturnCode)
-                if (stderr.length() > 0) {
-                	reportError("make reports errors:\n" + stderr.toString)
-            	}
+                reportError("make terminated with an error code!")
             }
         }
     }
