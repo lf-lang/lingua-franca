@@ -273,9 +273,8 @@ class CppGenerator extends GeneratorBase {
             «a.implementationType» «a.name»;
         «ENDFOR»
         // default actions
-        reactor::StartupAction startup {"startup", this};
-        reactor::ShutdownAction shutdown {"shutdown", this};
-        
+        reactor::StartupAction «LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name» {"startup", this};
+        reactor::ShutdownAction «LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name» {"shutdown", this};
     '''
 
     def implementationType(Action a) {
@@ -367,9 +366,9 @@ class CppGenerator extends GeneratorBase {
             t.name
         } else {
             if (t.isShutdown) {
-                '''«LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name»'''
+                LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name
             } else if (t.isStartup) {
-                '''«LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name»'''
+                LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name
             }
         }
     }
