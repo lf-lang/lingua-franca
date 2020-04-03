@@ -579,7 +579,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		b.append(param.name)
 		if (!ASTUtils.toText(param.type).nullOrEmpty) {
 			b.append(":").append(param.type)
-		} else if (param.ofTimeType) {
+		} else if (ASTUtils.isOfTimeType(param)) {
 			b.append(":time")
 		}
 		return b.toString()

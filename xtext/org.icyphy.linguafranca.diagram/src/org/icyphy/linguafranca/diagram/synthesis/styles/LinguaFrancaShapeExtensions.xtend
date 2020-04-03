@@ -175,8 +175,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			labelContainer.addStopwatchFigure() => [
 				setLeftTopAlignedPointPlacementData(0, 0, 0, 0)
 			]
-			labelContainer.addText(reaction.deadline.interval.toText) => [
-				associateWith(reaction.deadline.interval)
+			labelContainer.addText(reaction.deadline.delay.toText) => [
+				associateWith(reaction.deadline.delay)
 				foreground = Colors.BROWN
 				fontBold = true
 				fontSize = 7
