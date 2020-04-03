@@ -66,6 +66,7 @@ import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
+import java.io.OutputStream
 
 /** Generator base class for shared code between code generators.
  * 
@@ -1277,6 +1278,64 @@ abstract class GeneratorBase {
         println('******** mode: ' + mode)
     }
     
+    /** Execute a process while forwarding output and error to system streams.
+     *
+     *  Executing a process directly with `processBuiler.start()` could
+     *  lead to a deadlock as the subprocess blocks when output or error
+     *  buffers are full. This method ensures that output and error messages
+     *  are continuously read and forwards them to the system's output and
+     *  error streams.
+     *
+     *  @param processBuilder The process to be executed.
+     *  @author{Christian Menard <christian.menard@tu-dresden.de}
+     */
+    protected def runSubprocess(ProcessBuilder processBuilder) {
+        return runSubprocess(processBuilder, System.out, System.err);
+    }
+
+    /** Execute a process while forwarding output and error streams.
+     *
+     *  Executing a process directly with `processBuiler.start()` could
+     *  lead to a deadlock as the subprocess blocks when output or error
+     *  buffers are full. This method ensures that output and error messages
+     *  are continuously read and forwards them to the given streams.
+     *
+     *  @param processBuilder The process to be executed.
+     *  @param outStream The stream to forward the process' output to.
+     *  @param errStream The stream to forward the process' error messages to.
+     *  @author{Christian Menard <christian.menard@tu-dresden.de}
+     */
+    protected def runSubprocess(ProcessBuilder processBuilder,
+                                OutputStream outStream,
+                                OutputStream errStream) {
+        val process = processBuilder.start()
+
+        var outThread = new Thread([|
+                var buffer = newByteArrayOfSize(64)
+                var len = process.getInputStream().read(buffer)
+                while(len != -1) {
+                    outStream.write(buffer, 0, len)
+                    len = process.getInputStream().read(buffer)
+                }
+            ])
+        outThread.start()
+
+        var errThread = new Thread([|
+                var buffer = newByteArrayOfSize(64)
+                var len = process.getErrorStream().read(buffer)
+                while(len != -1) {
+                    errStream.write(buffer, 0, len)
+                    len = process.getErrorStream().read(buffer)
+                }
+            ])
+        errThread.start()
+
+        val returnCode = process.waitFor()
+        outThread.join()
+        errThread.join()
+
+        return returnCode
+    }
 
     enum Mode {
         STANDALONE,
