@@ -172,7 +172,7 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            toText(type)
+            type
         ))
 
         // Configure the receiving reaction.
@@ -185,7 +185,7 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            toText(type)
+            type
         ))
 
         // Add the reactions to the parent.

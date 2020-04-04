@@ -397,50 +397,7 @@ class CGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Code generators.
-    
-    /** If any input is conveyed using the token_t struct,
-     *  then add a reaction at the end of the list of reactions
-     *  that is triggered by that input that decrements the
-     *  reference count and frees allocated memory when the
-     *  reference count hits zero.
-     */
-    def addReferenceCountReaction(Reactor reactor) {    
-        var factory = LinguaFrancaFactory.eINSTANCE    
-        var triggersForReaction = newArrayList
-        var body = new StringBuilder
-        // This is a bit of a hack, but preface the body with
-        // a comment that the preamble should not not be included.
-        // Including the preamble could result in multiple writable
-        // copies being made if an input is mutable.
-        pr(body, CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
-        pr(body, '// Generated reaction for recycling allocated memory.')
-        for(input : reactor.inputs) {
-            if (input.type !== null) {
-                if (isTokenType(input.type)) {
-                    triggersForReaction.add(input)
-                    pr(body, '''
-                        if(self->__«input.name»_is_present) {
-                            __done_using(*self->__«input.name»);
-                        }
-                    ''')
-                }
-            }
-        }
-        if (!triggersForReaction.isEmpty) {
-            var reaction = LinguaFrancaFactory.eINSTANCE.createReaction
-            // Populate the triggers for the reaction.
-            for(input: triggersForReaction) {
-                var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
-                variableReference.setVariable(input)
-                reaction.triggers.add(variableReference)
-            }
-            var code = factory.createCode()
-            code.tokens.add(body.toString) 
-            reaction.setCode(code)
-            reactor.reactions.add(reaction)
-        }
-    }
-    
+        
     /** Create a file  */
     def createFederateRTI() {
         // Derive target filename from the .lf filename.
@@ -558,12 +515,6 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-
-        // Add a reaction, if necessary, to decrement the reference
-        // count for any input that is conveyed using the token_t struct.
-        // This will also free malloc'd memory when the reference count
-        // hits zero.
-        addReferenceCountReaction(reactor)
 
         pr("// =============== START reactor class " + reactor.name)
 
@@ -1139,6 +1090,68 @@ int main(int argc, char* argv[]) {
         pr(result.toString())
     }
 
+    /** Produce the code to decrement reference counts and mark outputs absent
+     *  between time steps.
+     */
+    def generateStartTimeStep(ReactorInstance instance, FederateInstance federate) {
+        // First, decrement reference counts for each token type
+        // input of a contained reactor that is present.
+        for (child : instance.children) {
+            if (reactorBelongsToFederate(child, federate)) {
+                var nameOfSelfStruct = selfStructName(child)
+                for (input : child.inputs) {
+                    if (isTokenType((input.definition as Input).type)) {
+                        pr(startTimeStep, '''
+                            if (*«nameOfSelfStruct».__«input.name»_is_present) {
+                                __done_using(*«nameOfSelfStruct».__«input.name»);
+                            }
+                        ''')
+                    }
+                }
+            }
+        }
+        var containerSelfStructName = selfStructName(instance)
+        // Handle inputs that get sent data from a reaction rather than from
+        // another contained reactor and reactions that are triggered by an
+        // output of a contained reactor.
+        for (reaction : instance.reactions) {
+            for (port : reaction.dependentPorts) {
+                if (port.definition instanceof Input) {
+                    // This reaction is sending to an input. Must be
+                    // the input of a contained reactor in the federate.
+                    if (reactorBelongsToFederate(port.parent, federate)) {
+                        pr(startTimeStep,
+                            containerSelfStructName + '.__' +
+                                port.parent.definition.name + '.' +
+                                port.definition.name + '_is_present = false;'
+                        )
+                    }
+                }
+            }
+            for (port : reaction.dependsOnPorts) {
+                if (port.definition instanceof Output) {
+                    // This reaction is receiving data from the port.
+                    if (isTokenType((port.definition as Output).type)) {
+                        pr(startTimeStep, '''
+                            if (*«containerSelfStructName».__«port.parent.name».«port.name»_is_present) {
+                                __done_using(*«containerSelfStructName».__«port.parent.name».«port.name»);
+                            }
+                        ''')
+                    }
+                }
+            }
+        }
+        // Next, mark each output of each contained reactor absent.
+        for (child : instance.children) {
+            if (reactorBelongsToFederate(child, federate)) {
+                var nameOfSelfStruct = selfStructName(child)
+                for (output : child.outputs) {
+                    pr(startTimeStep, '''«nameOfSelfStruct».__«output.name»_is_present = false;''')
+                }
+            }
+        }
+    }
+    
     /** Generate one reaction function definition for each output of
      *  a reactor that relays data from the output of a contained reactor.
      *  This reaction function transfers the data from the output of the
@@ -1750,13 +1763,30 @@ int main(int argc, char* argv[]) {
                 nameOfSelfStruct + '.__' + action.name + ' = ' + triggerStruct + ';'
             )
         }
-        // Next, generate the code to initialize outputs at the start
-        // of a time step to be absent.
-        // This will also set the number of destinations,
+        // Next, set the number of destinations,
         // which is used to initialize reference counts.
+        // Reference counts are decremented by each destination reactor
+        // at the conclusion of a time step. Hence, the initial reference
+        // count should equal the number of destination _reactors_, not the
+        // number of destination ports nor the number of destination reactions.
+        // One of the destination reactors may be the container of this
+        // instance because it may have a reaction to an output of this instance. 
         for (output : instance.outputs) {
-            pr(startTimeStep, '''«nameOfSelfStruct».__«output.name»_is_present = false;''')
-            pr(initializeTriggerObjects, '''«nameOfSelfStruct».__«output.name»_num_destinations = «output.dependentPorts.size»;''')
+            // Count the number of destination reactors that receive data from
+            // this output port. Do this by building a set of the containers
+            // of all dependent ports and reactions. The dependentReactions
+            // includes reactions of the container that listen to this port.
+            val destinationReactors = new HashSet<ReactorInstance>()
+            for (destinationPort : output.dependentPorts) {
+                destinationReactors.add(destinationPort.parent)
+            }
+            for (destinationReaction : output.dependentReactions) {
+                destinationReactors.add(destinationReaction.parent)
+            }
+            var numDestinations = destinationReactors.size
+            pr(initializeTriggerObjects, '''
+                «nameOfSelfStruct».__«output.name»_num_destinations = «numDestinations»;
+            ''')
         }
         
         // Next, initialize actions by creating a token_t in the self struct.
@@ -1808,6 +1838,11 @@ int main(int argc, char* argv[]) {
                 generateReactorInstance(child, federate)
             }
         }
+        
+        // For this instance, define what must be done at the start of
+        // each time step. Note that this is also run once at the end
+        // so that it can deallocate any memory.
+        generateStartTimeStep(instance, federate)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
@@ -1918,10 +1953,12 @@ int main(int argc, char* argv[]) {
         val outputName = generateVarRef(port)
         if (action.type.isTokenType) {
             // Forward the entire token and prevent freeing.
-            // We leave the ref_count alone. It should be 1.
+            // Increment the ref_count because it will be decremented
+            // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
             self->__«outputName» = (token_t*)self->__«action.name»->token;
+            ((token_t*)self->__«action.name»->token)->ref_count++;
             self->__«outputName»_is_present = true;
             '''
         } else {
@@ -1950,23 +1987,33 @@ int main(int argc, char* argv[]) {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        Type type
     ) {
         // Adjust the type of the action.
         // If it is "string", then change it to "char".
-        // Pointer types in actions are declared without the "*" (perhaps oddly).
         if (action.type.toText == "string") {
             action.type.code = null
             action.type.id = "char*"
         }
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
-        '''
-        // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-        // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-        // So passing it downstream should be OK.
-        set(«receiveRef», «action.name»_value);
-        '''
+        val result = new StringBuilder()
+        result.append('''
+            // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+        ''')
+        if (isTokenType(type)) {
+            result.append('''
+                set(«receiveRef», «action.name»_token);
+                «action.name»_token->ref_count++;
+            ''')
+        } else {
+            // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
+            // So passing it downstream should be OK.
+            result.append('''
+                set(«receiveRef», «action.name»_value);
+            ''')
+        }
+        return result.toString
     }
 
     /**
@@ -1985,16 +2032,30 @@ int main(int argc, char* argv[]) {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        Type type
     ) { 
-        val sendRef = generateVarRef(sendingPort);
-        val receiveRef = generateVarRef(receivingPort);
-        '''
-        // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-        // FIXME: Only supporting string type right now.
-        int message_length = strlen(«sendRef») + 1;
-        send_physical(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
-        '''
+        val sendRef = generateVarRef(sendingPort)
+        val receiveRef = generateVarRef(receivingPort)
+        val result = new StringBuilder()
+        result.append('''
+            // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+        ''')
+        if (isTokenType(type)) {
+            // NOTE: Transporting token types this way is likely to only work if the sender and receiver
+            // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
+            result.append('''
+                int message_length = «sendRef»->length * «sendRef»->element_size;
+                send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                __done_using(«sendRef»);
+            ''')
+        } else {
+            // FIXME: Only supporting string type right now.
+            result.append('''
+            int message_length = strlen(«sendRef») + 1;
+            send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
+            ''')
+        }
+        return result.toString
     }
 
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
@@ -2232,12 +2293,6 @@ int main(int argc, char* argv[]) {
                                 '_is_present = &' + containerSelfStructName +
                                 '.__' + port.parent.definition.name + '.' +
                                 port.definition.name + '_is_present;'
-                        )
-                        pr(
-                            startTimeStep,
-                            containerSelfStructName + '.__' +
-                                port.parent.definition.name + '.' +
-                                port.definition.name + '_is_present = false;'
                         )
                     }
                 }
