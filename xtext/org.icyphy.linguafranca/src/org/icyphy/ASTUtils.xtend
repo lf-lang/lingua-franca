@@ -166,6 +166,7 @@ class ASTUtils {
         // Configure the sending reaction.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
+        r1.code = factory.createCode()
         r1.code.tokens.add(generator.generateNetworkSenderBody(
             inRef,
             outRef,
@@ -178,6 +179,7 @@ class ASTUtils {
         // Configure the receiving reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
+        r2.code = factory.createCode()
         r2.code.tokens.add(generator.generateNetworkReceiverBody(
             action,
             inRef,

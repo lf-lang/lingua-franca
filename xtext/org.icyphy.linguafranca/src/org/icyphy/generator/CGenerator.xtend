@@ -1115,6 +1115,8 @@ int main(int argc, char* argv[]) {
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
         for (reaction : instance.reactions) {
+            // Include reaction only if it is part of the federate.
+            if (federate.containsReaction(instance.definition.reactorClass, reaction.definition)) {
             for (port : reaction.dependentPorts) {
                 if (port.definition instanceof Input) {
                     // This reaction is sending to an input. Must be
@@ -1139,6 +1141,7 @@ int main(int argc, char* argv[]) {
                         ''')
                     }
                 }
+            }
             }
         }
         // Next, mark each output of each contained reactor absent.
@@ -2045,6 +2048,7 @@ int main(int argc, char* argv[]) {
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 int message_length = «sendRef»->length * «sendRef»->element_size;
+                «sendRef»->ref_count++;
                 send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»);
             ''')
