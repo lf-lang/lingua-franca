@@ -53,15 +53,16 @@ int rti_socket = -1;
 /** Send the specified message to the specified port in the
  *  specified federate via the RTI. The port should be an
  *  input port of a reactor in the destination federate.
+ *  The caller can reuse or free the memory after this returns.
  *  @param port The ID of the destination port.
  *  @param federate The ID of the destination federate.
  *  @param length The message length.
  *  @param message The message.
  */
-void send_physical(int port, int federate, int length, unsigned char* message) {
+void send_via_rti(int port, int federate, int length, unsigned char* message) {
     assert(port < 65536);
     assert(federate < 65536);
-    unsigned char buffer[BUFFER_SIZE];
+    unsigned char buffer[9];
     buffer[0] = MESSAGE;
     // NOTE: Send messages little endian, not big endian.
     buffer[1] = port & 0xff;
@@ -73,16 +74,11 @@ void send_physical(int port, int federate, int length, unsigned char* message) {
     buffer[7] = length & 0xff0000;
     buffer[8] = length & 0xff000000;
 
-    // FIXME: Handle messages that are too long for the buffer!
-    // For now, error out.
-    if (length > BUFFER_SIZE - 9) {
-        fprintf(stderr, "FIXME: Messages longer than %d are not yet supported.\n", BUFFER_SIZE - 9);
-        return;
-    }
-    memcpy(&(buffer[9]), message, length);
-    int total_bytes = length + 9;
-    int bytes_written = write(rti_socket, buffer, total_bytes);
-    if (bytes_written != total_bytes) error("ERROR sending message to federate via RTI");
+    int bytes_written = write(rti_socket, buffer, 9);
+    if (bytes_written != 9) error("ERROR sending header information to federate via RTI");
+
+    bytes_written = write(rti_socket, message, length);
+    if (bytes_written != length) error("ERROR sending message to federate via RTI");
 }
 
 /** Connect to the RTI at the specified host and port and return
