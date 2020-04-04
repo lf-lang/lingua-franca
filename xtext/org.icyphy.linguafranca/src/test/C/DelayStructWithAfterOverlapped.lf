@@ -35,6 +35,12 @@ reactor Print {
             exit(1);
         }
     =}
+    reaction(shutdown) {=
+        if (self->s == 0) {
+            printf("ERROR: Print received no data.\n");
+            exit(2);
+        }
+    =}
 }
 main reactor DelayStruct {
     s = new Source();

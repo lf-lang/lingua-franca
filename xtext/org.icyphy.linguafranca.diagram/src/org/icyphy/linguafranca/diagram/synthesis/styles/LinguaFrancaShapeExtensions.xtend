@@ -35,6 +35,9 @@ import org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjus
 import static org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
+import de.cau.cs.kieler.klighd.kgraph.KEdge
+import de.cau.cs.kieler.klighd.krendering.LineStyle
 
 @ViewSynthesisShared
 class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
@@ -146,9 +149,9 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		}
 
 		// optional code content
-		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.code.nullOrEmpty
+		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.code.tokens.nullOrEmpty
 		if (hasCode) {
-			contentContainer.addText(reaction.code.trimCode) => [
+			contentContainer.addText(reaction.code.tokens.toString.trimCode) => [
 				associateWith(reaction)
 				fontSize = 6
 				fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
@@ -160,7 +163,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		}
 		
 		if (reaction.deadline !== null) {
-			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.deadline.code.nullOrEmpty
+			val hasDeadlineCode = SHOW_REACTION_CODE.booleanValue && !reaction.deadline.code.tokens.nullOrEmpty
 			if (hasCode || hasDeadlineCode) {
 				contentContainer.addHorizontalLine(0) => [
 					setGridPlacementData().from(LEFT, 5, 0, TOP, 3, 0).to(RIGHT, 5, 0, BOTTOM, 6, 0)
@@ -186,7 +189,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 			// optional code content
 			if (hasDeadlineCode) {
-				contentContainer.addText(reaction.deadline.code.trimCode) => [
+				contentContainer.addText(reaction.deadline.code.tokens.toString.trimCode) => [
 					associateWith(reaction.deadline)
 					foreground = Colors.BROWN
 					fontSize = 6
@@ -457,5 +460,23 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             ]
 		]
 	}
+	
+    def KRoundedRectangle addCommentFigure(KNode node, String message) {
+        node.addRoundedRectangle(1, 1, 1) => [
+        	gridPlacement = 1
+            addText(message) => [
+            	fontSize = 6
+            	setGridPlacementData().from(LEFT, 3, 0, TOP, 3, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
+            	noSelectionStyle()
+            ]
+        ]
+    }
+    
+    def KPolyline addCommentPolyline(KEdge edge) {
+        edge.addPolyline => [
+            lineWidth = 1
+        	lineStyle = LineStyle.DOT
+        ]
+    }
 
 }

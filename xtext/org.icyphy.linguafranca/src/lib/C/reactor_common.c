@@ -62,7 +62,7 @@ instant_t current_time = 0LL;
 interval_t start_time = 0LL;
 
 /** Physical time at the start of the execution. */
-struct timespec physicalStartTime;
+instant_t physical_start_time = 0LL;
 
 /**
  * Indicator that the execution should stop after the completion of the
@@ -96,6 +96,7 @@ interval_t get_elapsed_logical_time() {
 
 /** Return the current logical time in nanoseconds since January 1, 1970. */
 instant_t get_logical_time() {
+    // FIXME: Does this need acquire the mutex?
     return current_time;
 }
 
@@ -110,8 +111,7 @@ instant_t get_physical_time() {
 instant_t get_elapsed_physical_time() {
     struct timespec physicalTime;
     clock_gettime(CLOCK_REALTIME, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec -
-    (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
 }
 
 /**
@@ -333,10 +333,11 @@ token_t* __create_token(size_t element_size) {
         token = __token_recycling_bin;
         __token_recycling_bin = token->next_free;
         __token_recycling_bin_size--;
+        // printf("DEBUG: __create_token: Retrieved token from the recycling bin: %p\n", token);
     } else {
         token = (token_t*)malloc(sizeof(token_t));
+        // printf("DEBUG: __create_token: Allocated memory for token: %p\n", token);
     }
-    // printf("DEBUG: __create_token: Allocated memory for token: %p\n", token);
     token->value = NULL;
     token->length = 0;
     token->element_size = element_size;
@@ -397,7 +398,7 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
 
 /**
  * Schedule the specified trigger at current_time plus the offset of the
- * specified trigger plus the delay. See schedule_token() for details.
+ * specified trigger plus the delay. See schedule_token() in reactor.h for details.
  * This is the internal implementation shared by both the threaded
  * and non-threaded versions.
  *
@@ -424,11 +425,14 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
  * @param extra_delay The logical time delay, which gets added to the
  *  trigger's minimum delay, if it has one.
  * @param token The token wrapping the payload or NULL for no payload.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
 
-    // printf("DEBUG: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
+    // printf("DEBUG: __schedule: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
+    if (token != NULL) {
+        // printf("DEBUG: __schedule: payload at %p.\n", token->value);
+    }
 
 	// The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
@@ -444,11 +448,13 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 	}
 
     // Compute the tag (the logical timestamp for the future event).
-	// How we do that depends on whether this is a logical or physical action.
-    interval_t tag = current_time;
+	// We first do this assuming it is logical action and then, if it is a
+	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
+    interval_t tag = current_time + delay;
+    // printf("DEBUG: __schedule: current_time = %lld.\n", current_time);
+    // printf("DEBUG: __schedule: total logical delay = %lld.\n", delay);
     interval_t min_inter_arrival = trigger->period;
-    event_t* existing = NULL;
 
     // Get an event_t struct to put on the event queue.
     // Recycle event_t structs, if possible.    
@@ -459,62 +465,56 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     
     // Set the payload.
     e->token = token;
+
     // Make sure the event points to this trigger so when it is
     // dequeued, it will trigger this trigger.
     e->trigger = trigger;
 
-    // Calculate the tag (logical timestamp) of the future event.
-    // For logical actions, the logical time of the new event is just
-    // the current logical time plus the minimum offset (action parameter)
-    // plus the extra delay specified in the call to schedule.
-    e->time = tag + delay;
-
+    // If the trigger is physical, then we need to check whether
+    // physical time is larger than the tag and, if so, update the tag.
     if (trigger->is_physical) {
-        // If the trigger is physical, then we need to use
-        // physical time and the time of the last invocation to adjust the tag.
-        // Specifically, the timestamp assigned to the action event will be
-        // the maximum of the current logical time, the
-        // current physical time, and the time of last
-        // invocation plus the minTime (action parameter) plus the
-        // extra_delay (argument to this function).
-        // If the action has never been scheduled before, then the
-        // timestamp will be the maximum of the current logical time,
-        // the current physical time,
-        // and the start time + minTime + extra_delay.
-
         // Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
-        // Convert to an instant.
-        instant_t physical_time =
-                current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec;
-        if (physical_time > current_time) {
+        instant_t physical_time = get_physical_time();
+
+        if (physical_time > tag) {
+            // printf("DEBUG: Physical time %lld is larger than the tag by %lld. Using physical time.\n", physical_time, physical_time - tag);
+            // FIXME: In some circumstances (like Ptides), this is an
+            // error condition because it introduces nondeterminism.
+            // Do we want another kind of action, say a ptides action,
+            // that is physical but flags or handles this error here
+            // in some way?
             tag = physical_time;
         }
+    }
 
-        // Compute the earliest time that this event can be scheduled.
-        instant_t earliest_time;
-        if (trigger->scheduled == NEVER) {
-            earliest_time = start_time + delay;
-        } else {
-            earliest_time = trigger->scheduled + MAX(delay, min_inter_arrival);
-        }
-        
+    // Check to see whether the event is early based on the minimum interarrival time.
+    // This check is not needed if this action has had no event.
+    if (trigger->scheduled != NEVER) {
+        instant_t earliest_time = trigger->scheduled + MAX(delay, min_inter_arrival);
+
+        // If the event is early, see which policy applies.
+        event_t* existing = NULL;
         if (earliest_time > tag) {
-            // The event is early. See which policy applies.
             if (trigger->policy == UPDATE) {
-                // Update existing event if it exists.   
-                e->time = tag;
+                // Update existing event if it exists.
                 // See if there is an existing event up to but not including
                 // the earliest time this event can be scheduled.
+                // FIXME: There may be more than one event on the event queue.
+                // This will update the earliest of them, which could result
+                // in values being seen out of order!  I don't think we should
+                // have this UPDATE policy at all.
                 existing = pqueue_find_equal(event_q, e, earliest_time-1);
                 if (existing != NULL) {
-                    // Recycle the old event value.
+                    // Recycle the old value.
                     if (existing->token != token) __done_using(existing->token);
                     // Update the value of the existing event.
                     existing->token = token;
+                    // Discard the new event.
+                    e->token = NULL;
+                    pqueue_insert(recycle_q, e);
+                    return(0);
                 }
+                // If there is no pre-existing event, UPDATE reverts to DROP, oddly.
             }
             if (trigger->policy == DROP || (trigger->policy == UPDATE && existing == NULL)) {
                 // Recycle the new event and the token.
@@ -523,34 +523,41 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                 pqueue_insert(recycle_q, e);
                 return(0);
             }
-            if (trigger->policy == DEFER 
-                || (trigger->policy == UPDATE && existing == NULL)) {
+            if (trigger->policy == DEFER) {
                 // Adjust the tag.
                 tag = earliest_time;
             }
         }
-
-        // Record the tag.
-        trigger->scheduled = tag;        
-        e->time = tag;                        
     }
-    
+    if (tag < current_time) {
+        fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
+                "Revising request to the current time %lld.\n", current_time - tag, current_time);
+        tag = current_time;
+    }
+
+    // Set the tag of the event.
+    e->time = tag;
+
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
     // allowed), or if the event time is past the requested stop time.
-    // printf("DEBUG: Scheduling an event with elapsed time %lld.\n", e->time - start_time);
+    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
     if ((stop_requested && e->time != current_time)
             || (stop_time > 0LL && e->time > stop_time)) {
         // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
+        e->token = NULL;
         pqueue_insert(recycle_q, e);
         return(0);
     }
 
-    // Handle duplicate events for logical actions.
+    // Record the tag for the next check of MIT.
+    trigger->scheduled = tag;
+
+    // Handle duplicate events for logical actions (events with the same tag).
     // This replaces the previous payload with the new one.
     if (!trigger->is_physical) {
-        existing = pqueue_find_equal_same_priority(event_q, e);
+        event_t* existing = pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
             // Free the previous payload.
             if (existing->token != token) __done_using(existing->token);
@@ -561,6 +568,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             return(0);
         }
     }
+    // Queue the event.
     // NOTE: There is no need for an explicit microstep because
     // when this is called, all events at the current tag
     // (time and microstep) have been pulled from the queue,
@@ -643,9 +651,9 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
     void* container = malloc(element_size * length);
     __count_payload_allocations++;
     // printf("DEBUG: __schedule_with_copy_impl: Allocating memory for payload (token value): %p\n", container);
-    memcpy(container, value, element_size);
-    // Initialize token with an array size of 1 (a scalar) and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, 1, 0);
+    memcpy(container, value, element_size * length);
+    // Initialize token with an array size of length and a reference count of 0.
+    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
     // The schedule function will increment the reference count.
     return schedule_token(trigger, offset, token);
 }
@@ -706,6 +714,7 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
 handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
     token_t* token = create_token(trigger->element_size);
     token->value = value;
+    token->length = length;
     return schedule_token(trigger, extra_delay, token);
 }
 
@@ -731,15 +740,16 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
  * @param token The token to use as a template (or if it is free, to use).
  * @param length The length of the array.
  * @param num_destinations The number of destinations (for initializing the reference count).
- * @return A pointer to the allocated memory.
+ * @return A pointer to the new or reused token.
  */
 void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
     // First, initialize the token, reusing the one given if possible.
+    // FIXME: This token gets lost!!!!
     token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
-    // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", token->value);
+    // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
     // Count allocations to issue a warning if this is never freed.
     __count_payload_allocations++;
-    return new_token->value;
+    return new_token;
 }
 
 /**
@@ -933,10 +943,13 @@ void initialize() {
     __initialize_trigger_objects();
 
     // Initialize logical time to match physical time.
-    clock_gettime(CLOCK_REALTIME, &physicalStartTime);
+    struct timespec actualStartTime;
+    clock_gettime(CLOCK_REALTIME, &actualStartTime);
+    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
+
     printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
-            ctime(&physicalStartTime.tv_sec), physicalStartTime.tv_nsec);
-    current_time = physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec;
+            ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);
+    current_time = physical_start_time;
     start_time = current_time;
     
     if (duration >= 0LL) {
@@ -965,15 +978,14 @@ void termination() {
         printf("**** Number of unfreed tokens: %d.\n", __count_token_allocations);
     }
     // Print elapsed times.
-    interval_t elapsed_logical_time
-        = current_time - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+    interval_t elapsed_logical_time = current_time - physical_start_time;
     printf("---- Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
     
     struct timespec physicalEndTime;
     clock_gettime(CLOCK_REALTIME, &physicalEndTime);
     interval_t elapsed_physical_time
         = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
-        - (physicalStartTime.tv_sec * BILLION + physicalStartTime.tv_nsec);
+        - physical_start_time;
     printf("---- Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
 }
 

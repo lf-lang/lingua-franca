@@ -11,7 +11,7 @@ main reactor KeyListener {
             while(1) {
                 char* c = malloc(sizeof(char));
                 *c = getchar();
-                schedule_value(a, 0, c);
+                schedule_value(a, 0, c, 1);
                 if (*c == EOF) break;
             }
             return NULL;
@@ -44,6 +44,5 @@ main reactor KeyListener {
             interval_t elapsed = get_logical_time() - self->request_time;
             printf("Character entered: %c after %lld nsec.\n", *a_value, elapsed);
         }
-        free(a_value);
     =}
 }

@@ -11,6 +11,7 @@ reactor Source {
     reaction(t) -> out {=
         // Dynamically allocate an output array of length 3.
         set_new_array(out, 3);
+        printf("At time %lld, sending array at address %p\n", get_elapsed_logical_time(), out); 
         
         // Above allocates the array, which then must be populated.
         out[0] = 1 * self->iteration;
@@ -23,9 +24,12 @@ reactor Source {
 reactor Print(scale:int(1)) {
     input in:int[];
     state iteration:int(1);
+    state inputs_received:int(0);
     reaction(in) {=
+        self->inputs_received++;
         int count = 1;       // For testing.
         bool failed = false; // For testing.
+        printf("At time %lld, received array at address %p\n", get_elapsed_logical_time(), in);
         printf("Received: [");
         for (int i = 0; i < in_length; i++) {
             if (i > 0) printf(", ");
@@ -46,6 +50,12 @@ reactor Print(scale:int(1)) {
             exit(2);
         }
         self->iteration++;
+    =}
+    reaction(shutdown) {=
+        if (self->inputs_received == 0) {
+            printf("ERROR: Print reactor received no inputs.\n");
+            exit(3);
+        }
     =}
 }
 main reactor DelayArray {

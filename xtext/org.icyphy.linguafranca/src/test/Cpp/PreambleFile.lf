@@ -1,0 +1,51 @@
+target Cpp;
+
+// These declarations are used by multiple reactors within this file
+// and should be placed in a header. This goes to PreampleFile/preamble.hh.
+public preamble {=
+    struct MyStruct {
+        int foo;
+        std::string bar;
+    };
+    
+    int add_42(int i);
+=}
+
+// This definition is used by multiple reactors within this file. Since
+// the same function can only be defined once, this needs to go to a
+// source file. This goes to PreampleFile/preamble.cc.
+private preamble {=
+    int add_42(int i) {
+        return i + 42;
+    }
+=}
+
+reactor Source {
+    output x:MyStruct;
+    reaction(startup) -> x {=
+        int a = add_42(0);
+        x.set({a, "baz"});
+    =}
+}
+
+reactor Print {
+    // This helper function is only used within the Print reactor and is 
+    // therefore part of its private interface. This goes to PreambleFile/Print.cc
+    private preamble {=
+        void print(const MyStruct& x) {
+            std::cout << "Received " << x.foo << " and '" << x.bar << "'\n";
+        }
+    =}
+    input x:MyStruct;
+    reaction(x) {=
+        auto& value = *x.get();
+        value.foo = add_42(value.foo);
+        print(value);
+    =}
+}
+
+main reactor PreambleFile {
+    s = new Source();
+    p = new Print();
+    s.x -> p.x;
+}

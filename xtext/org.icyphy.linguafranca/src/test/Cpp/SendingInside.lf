@@ -2,6 +2,7 @@
 // has its own reaction that routes inputs to the contained reactor.
 target Cpp {
     timeout: 10 sec,
+    threads: 1,
     fast: true
 };
 reactor Printer {

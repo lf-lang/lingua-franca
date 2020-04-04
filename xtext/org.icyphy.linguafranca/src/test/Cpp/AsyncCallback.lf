@@ -1,24 +1,25 @@
 // Test asynchronous callbacks that trigger a physical action.
 target Cpp {
-    threads: 2,
     timeout: 2 sec,
     keepalive: true,
     cmake-include: "AsyncCallback.cmake"
 };
 
 main reactor AsyncCallback {    
-    preamble {= 
+    public preamble {= 
         #include <thread>
     =}
     
     timer t(0, 200 msec);
     state thread:{=std::thread=}({==});
-    state expected_time:{=reactor::Duration=}({=1ms=});
+    state expected_time:time(100 msec);
     state toggle:bool(false);
-    physical action a:void;
+
+    physical action a:int;
     state i:int(0);
-    reaction(t) {=
-        // make sure to join the old thread
+
+    reaction(t) -> a {=
+        // make sure to join the old thread first
         if(thread.joinable()) {
             thread.join();
         }
@@ -31,8 +32,8 @@ main reactor AsyncCallback {
             // get consolidated into a single action triggering. If it is,
             // then they cause two separate triggerings with close but not
             // equal time stamps.
-            a.schedule();
-            a.schedule();
+            a.schedule(0);
+            a.schedule(0);
         });
     =}
     

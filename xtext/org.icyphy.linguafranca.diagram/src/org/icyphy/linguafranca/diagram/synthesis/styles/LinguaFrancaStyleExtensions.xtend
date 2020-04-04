@@ -1,6 +1,7 @@
 package org.icyphy.linguafranca.diagram.synthesis.styles
 
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
+import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KLabel
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
@@ -39,6 +40,20 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 		
 	def boldTextSelectionStyle(KText t) {
 		t.selectionFontBold = true
+	}
+	
+	def errorStyle(KRendering r) {
+		r.foreground = Colors.RED
+		r.lineWidth = 2
+		r.selectionLineWidth = 3
+		//r.background = Colors.TOMATO
+		
+		if (r.eContainer instanceof KEdge) { // also color potential arrow heads
+			r.background = Colors.RED
+			r.background.propagateToChildren = true
+			r.foreground.propagateToChildren = true
+			r.lineWidth.propagateToChildren = true
+		}
 	}
 	
 	static var LabelDecorationConfigurator _onEdgeLabelConfigurator; // ONLY for use in applyOnEdgeStyle

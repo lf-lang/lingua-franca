@@ -1,0 +1,44 @@
+// Test asynchronous callbacks that trigger a non-physical action.
+target Cpp {
+    timeout: 2 sec,
+    keepalive: true,
+    cmake-include: "AsyncCallback2.cmake"
+};
+
+main reactor AsyncCallback2 {    
+    private preamble {= 
+        #include <thread>
+    =}
+    
+    timer t(0, 200 msec);
+    state expected_time:time(0);
+
+    logical action a:int;
+    state i:int(0);
+
+    reaction(t) -> a {=
+        // start new thread
+        auto thread = std::thread([this] () {
+             // Simulate time passing before a callback occurs
+            std::this_thread::sleep_for(100ms);
+            // Schedule twice. If the action is not physical, these should
+            // get consolidated into a single action triggering. If it is,
+            // then they cause two separate triggerings with close but not
+            // equal time stamps.
+            a.schedule(0);
+            a.schedule(0);
+        });
+        thread.join();
+    =}
+    
+    reaction(a) {=
+        auto elapsed_time = get_elapsed_logical_time();
+        std::cout << "Asynchronous callback " << i++ << ": Assigned logical "
+                  << "time greater than start time by " << elapsed_time << std::endl;
+        if (elapsed_time != expected_time) {
+            std::cerr << "ERROR: Expected logical time to be " << expected_time << std::endl;
+            exit(1);
+        }
+        expected_time += 200ms;
+    =}
+}
