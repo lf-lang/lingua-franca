@@ -130,8 +130,10 @@ do { \
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
+    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
+    out = token->value; \
     self->__ ## out ## _is_present = true; \
+    self->__ ## out = token; \
 } while(0)
 
 /** Version of set() for output types given as 'type[]'.
@@ -148,8 +150,10 @@ do { \
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
+    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
+    out = token->value; \
     self->__ ## out ## _is_present = true; \
+    self->__ ## out = token; \
 } while(0)
 
 /** Version of set() for output types given as 'type[number]'.
@@ -428,10 +432,9 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value);
  * action.
  *
  * physical action: A physical action has all the same parameters
- * as a logical action, but instead of "current time" being a logical
- * time, current time is defined as the larger of the current logical
- * time (as above) and the time of the physical clock on the currently
- * executing platform.
+ * as a logical action, but its timestamp will be the larger of the
+ * current physical time and the time it would be assigned if it
+ * were a logical action.
  *
  * The token is required to be either NULL or a pointer to
  * a token created using create_token().

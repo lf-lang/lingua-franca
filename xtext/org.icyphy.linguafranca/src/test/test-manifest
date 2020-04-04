@@ -2,6 +2,7 @@ ActionDelay.lf
 ActionWithNoReaction.lf
 After.lf
 AfterOverlapped.lf
+AfterVoid.lf
 AsyncCallback.lf
 AsyncCallback2.lf
 AsyncCallbackDrop.lf
@@ -21,7 +22,7 @@ DeadlineHandledAbove.lf
 DeadlineHandledAboveThreaded.lf
 DeadlineThreaded.lf
 DelayArray.lf
-DelayArrayWithAfter.lf
+#DelayArrayWithAfter.lf
 DelayedAction.lf
 DelayedReaction.lf
 DelayInt.lf
@@ -54,8 +55,10 @@ MultipleContained.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
 Preamble.lf
+PreambleFile.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
+ScheduleValue.lf
 ScheduleLogicalAction.lf
 SendingInside.lf
 SendingInside2.lf

@@ -23,6 +23,7 @@ reactor print {
         printf("Current physical time is: %lld\n", get_elapsed_physical_time());
     =}
 }
+
 main reactor top {
     f = new foo();
     p = new print();

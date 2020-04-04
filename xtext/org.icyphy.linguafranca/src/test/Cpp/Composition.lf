@@ -1,6 +1,7 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
 target Cpp {
+    threads: 1,
     fast: true,
     timeout: 10 sec
 };

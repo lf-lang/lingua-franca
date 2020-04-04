@@ -51,26 +51,29 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.ASTUtils
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
-import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
+import java.io.OutputStream
 
 /** Generator base class for shared code between code generators.
  * 
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  *  @author{Chris Gill, <cdgill@wustl.edu>}
+ *  @author{Christian Menard <christian.menard@tu-dresden.de}
  */
 abstract class GeneratorBase {
 
@@ -94,6 +97,9 @@ abstract class GeneratorBase {
         
     ////////////////////////////////////////////
     //// Protected fields.
+    
+    /** */
+    protected var utils = new ASTUtils(this)
     
     /** All code goes into this string buffer. */
     protected var code = new StringBuilder
@@ -131,6 +137,9 @@ abstract class GeneratorBase {
      *  full filename with the .lf extension.
      */
     protected var String sourceFile
+    
+    /** The set of all imported Resources */
+    protected var Set<Resource> allResources = new HashSet<Resource>();
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
@@ -198,6 +207,12 @@ abstract class GeneratorBase {
 
     /** Map from builder to its current indentation. */
     var indentation = new HashMap<StringBuilder, String>()
+    
+    /** Recursion stack used to detect cycles in imports */
+    var importRecursionStack = new HashSet<Resource>();
+    
+    /** A flag indicating whether a cycle was found while processing imports */
+    var cyclicImports = false;
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -227,13 +242,13 @@ abstract class GeneratorBase {
                     case "compiler":
                         targetCompiler = param.value.literal.withoutQuotes
                     case "fast":
-                        if (param.value.id.equals('true')) {
+                        if (param.value.literal == 'true') {
                             targetFast = true
                         }
                     case "flags":
                         targetCompilerFlags = param.value.literal.withoutQuotes
                     case "no-compile":
-                        if (param.value.id.equals('true')) {
+                        if (param.value.literal == 'true') {
                             targetNoCompile = true
                         }
                     case "no-runtime-validation":
@@ -241,7 +256,7 @@ abstract class GeneratorBase {
                             targetNoRuntimeValidation = true
                         }
                     case "keepalive":
-                        if (param.value.id.equals('true')) {
+                        if (param.value.literal == 'true') {
                             targetKeepalive = true
                         }
                     case "logging":
@@ -301,7 +316,7 @@ abstract class GeneratorBase {
         val toRemove = new LinkedList<Connection>()
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
-                desugarDelay(connection, connection.delay)
+                this.utils.desugarDelay(connection, connection.delay)
                 toRemove.add(connection)
             }
         }
@@ -338,6 +353,14 @@ abstract class GeneratorBase {
         // Next process all the imports and call generateReactor on any
         // reactors defined in the imports.
         processImports(resource)
+        
+        // Abort compilation if a dependency cycle was detected while 
+        // processing imports. If compilation would continue, dependency
+        // cycles between reactor instantiations across files could lead
+        // to a stack overflow!
+        if (cyclicImports) {
+            throw new Exception("Aborting compilation due to dependency cycles in imports!") 
+        }
 
         // Recursively generate reactor class code from their definitions
         // NOTE: We do not generate code for the main reactor here
@@ -355,97 +378,6 @@ abstract class GeneratorBase {
         }
     }
     
-    /**
-     * Produce a unique identifier within a reactor based on a
-     * given based name. If the name does not exists, it is returned;
-     * if does exist, an index is appended that makes the name unique.
-     * @param reactor The reactor to find a unique identifier within.
-     * @param name The name to base the returned identifier on.
-     */
-    def getUniqueIdentifier(Reactor reactor, String name) {
-        val vars = new HashSet<String>();
-        reactor.actions.forEach[it | vars.add(it.name)]
-        reactor.timers.forEach[it | vars.add(it.name)]
-        reactor.parameters.forEach[it | vars.add(it.name)]
-        reactor.inputs.forEach[it | vars.add(it.name)]
-        reactor.outputs.forEach[it | vars.add(it.name)]
-        reactor.states.forEach[it | vars.add(it.name)]
-        reactor.instantiations.forEach[it | vars.add(it.name)]
-        
-        var index = 0;
-        var suffix = ""
-        var exists = true
-        while(exists) {
-            val id = name + suffix
-            if (vars.exists[it | it.equals(id)]) {
-                suffix = "_" + index
-                index++
-            } else {
-                exists = false;
-            }
-        }
-        return name + suffix
-    }
-
-    /**
-     * Take a connection and replace it with an action and two reactions
-     * that implement a delayed transfer between the end points of the 
-     * given connection.
-     * @param connection The connection to replace.
-     * @param delay The delay associated with the connection.
-     */
-    def desugarDelay(Connection connection, Delay delay) {
-        val factory = LinguaFrancaFactory.eINSTANCE
-        var type = (connection.rightPort.variable as Port).type
-        val action = factory.createAction
-        val triggerRef = factory.createVarRef
-        val effectRef = factory.createVarRef
-        val inRef = factory.createVarRef
-        val outRef = factory.createVarRef
-        val parent = (connection.eContainer as Reactor)
-        val r1 = factory.createReaction
-        val r2 = factory.createReaction
-
-        // Name the newly created action; set its delay and type.
-        action.name = getUniqueIdentifier(parent, "delay")
-        action.minDelay = connection.delay.time
-        action.type = type
-        action.origin = ActionOrigin.LOGICAL
-
-        // Establish references to the action.
-        triggerRef.variable = action
-        effectRef.variable = action
-
-        // Establish references to the involved ports.
-        inRef.container = connection.leftPort.container
-        inRef.variable = connection.leftPort.variable
-        outRef.container = connection.rightPort.container
-        outRef.variable = connection.rightPort.variable
-
-        // Add the action to the reactor.
-        parent.actions.add(action)
-
-        // Configure the first reaction.
-        r1.triggers.add(inRef)
-        r1.effects.add(effectRef)
-        // FIXME: Why the extra semicolon?
-        r1.code = generateDelayBody(action, inRef)
-
-        // Configure the second reaction.
-        r2.triggers.add(triggerRef)
-        r2.effects.add(outRef)
-        // FIXME: Why the extra semicolon?
-        r2.code = generateForwardBody(action, outRef)
-
-        // Add the reactions to the parent.
-        // These need to go in the opposite order in case
-        // a new input arrives at the same time the delayed
-        // output is delivered!
-        parent.reactions.add(r2)
-        parent.reactions.add(r1)
-    }
-
-
     /** Return true if errors occurred in the last call to doGenerate().
      *  This will return true if any of the reportError methods was called.
      *  @return True if errors occurred.
@@ -492,20 +424,6 @@ abstract class GeneratorBase {
             prefix = reference.container.name + "." 
         }
         return prefix + reference.variable.name
-    }
-        
-    /** If the argument starts with '{=', then remove it and the last two characters.
-     *  @return The body without the code delimiter or the unmodified argument if it
-     *  is not delimited.
-     */
-    static def String removeCodeDelimiter(String code) {
-        if (code === null) {
-            ""
-        } else if (code.startsWith("{=")) {
-            code.substring(2, code.length - 2).trim();
-        } else {
-            code
-        }
     }
 
     /** Given a representation of time that may possibly include units,
@@ -604,19 +522,9 @@ abstract class GeneratorBase {
         var builder = new ProcessBuilder(command);
         builder.directory(new File(directory));
         try {
-            var process = builder.start()
-            var returnCode = process.waitFor()
-            var stdout = readStream(process.getInputStream())
-            if (stdout.length() > 0) {
-                println("--- Standard output from command:")
-                println(stdout)
-                println("--- End of standard output.")
-            }
-            var stderr = readStream(process.getErrorStream())
-            if (stderr.length() > 0) {
-                reportError("---Command reports errors:\n" + stderr.toString
-                        + "\n--- End of standard error.")
-            }
+            println("--- Standard output and error from command:")
+            val returnCode = builder.runSubprocess()
+            println("--- End of standard output and error.")
             if (returnCode !== 0) {
                 // Throw an exception, which will be caught below for a second attempt.
                 throw new Exception("Command returns error code " + returnCode)
@@ -633,21 +541,12 @@ abstract class GeneratorBase {
             // bashCommand.addAll("bash", "--login", "-c", 'ls', '-a')
             println("--- Attempting instead to run: " + bashCommand.join(" "))
             builder.command(bashCommand)
-            var process = builder.start()
-            var returnCode = process.waitFor()
-            var stdout = readStream(process.getInputStream())
-            if (stdout.length() > 0) {
-                println("--- Standard output from bash command:")
-                println(stdout)
-                println("--- End of standard output.")
-            }
+            println("--- Standard output and error from bash command:")
+            val returnCode = builder.runSubprocess()
+            println("--- End of standard output and error.")
+            
             if (returnCode !== 0) {
                 reportError("Bash command returns error code " + returnCode)
-            }
-            var stderr = readStream(process.getErrorStream())
-            if (stderr.length() > 0) {
-                reportError("---Bash command reports errors:\n" + stderr.toString
-                        + "\n--- End of standard standard error.")
             }
             return returnCode
         }
@@ -917,6 +816,21 @@ abstract class GeneratorBase {
      *   statements.
      */
     protected def void processImports(Resource resource) {
+        // if the resource is in the recursion stack, then there is a cycle in the imports
+        if (importRecursionStack.contains(resource)) {
+            cyclicImports = true
+            throw new Exception("There is a dependency cycle in the import statements!")
+        }
+        
+        // abort if the resource was visited already
+        if (allResources.contains(resource)) {
+            return
+        }
+        
+        // add resource to imported resources and to the recoursion stack
+        allResources.add(resource);
+        importRecursionStack.add(resource);
+
         for (import : resource.allContents.toIterable.filter(Import)) {
             // Resolve the import as a URI relative to the current resource's URI.
             val URI currentURI = resource?.getURI;
@@ -946,6 +860,9 @@ abstract class GeneratorBase {
                 )
             }
         }
+        
+        // remove this resource from the recursion stack
+        importRecursionStack.remove(resource);
     }
 
     /** Read a text file in the classpath and return its contents as a string.
@@ -1098,7 +1015,7 @@ abstract class GeneratorBase {
      *  @param time The source time.
      *  @param baseUnit The target unit.
      */
-    protected def unitAdjustment(TimeOrValue timeOrValue, TimeUnit baseUnit) { // FIXME: likelt needs revision
+    protected def unitAdjustment(TimeOrValue timeOrValue, TimeUnit baseUnit) { // FIXME: This isn't called from anywhere???
         if (timeOrValue === null) {
             return '0'
         }
@@ -1111,7 +1028,7 @@ abstract class GeneratorBase {
                 timeValue = timeOrValue.parameter.time
             } else {
                 try {
-                    timeValue = Integer.parseInt(timeOrValue.parameter.value)
+                    timeValue = Integer.parseInt(timeOrValue.parameter.value.toText)
                 } catch (NumberFormatException e) {
                     reportError(timeOrValue,
                         "Invalid time value: " + timeOrValue)
@@ -1128,6 +1045,21 @@ abstract class GeneratorBase {
 
     }
 
+    protected def toText(Code tokens) {
+        ASTUtils.toText(tokens)
+    }
+
+    protected def toText(Type type) {
+        ASTUtils.toText(type)
+    }
+    
+    protected def toText(LiteralOrCode literalOrCode) {
+        ASTUtils.toText(literalOrCode)
+    }
+    
+    protected def isZero(LiteralOrCode literalOrCode) {
+        ASTUtils.isZero(literalOrCode)
+    }
     ////////////////////////////////////////////////////
     //// Private functions
     
@@ -1254,7 +1186,7 @@ abstract class GeneratorBase {
                         // (which inherits the delay) and two reactions.
                         // The action will be physical if the connection physical and
                         // otherwise will be logical.
-                        makeCommunication(connection,  leftFederate, rightFederate)
+                        this.utils.makeCommunication(connection,  leftFederate, rightFederate)
                         
                         // To avoid concurrent modification exception, collect a list
                         // of connections to remove.
@@ -1269,23 +1201,49 @@ abstract class GeneratorBase {
         }
     }
     
+    /** Create a string representing the file path of a resource.
+     */
+    protected def toPath(Resource resource) {
+    	var path = resource.getURI.toString
+        if (path.startsWith('platform:')) {
+            mode = Mode.INTEGRATED
+            var fileURL = FileLocator.toFileURL(new URL(path)).toString
+            return Paths.get(fileURL.substring(5)).normalize.toString;
+        } else if (path.startsWith('file:')) {
+            mode = Mode.STANDALONE
+            return Paths.get(path.substring(5)).normalize.toString;
+        } else {
+            System.err.println(
+                "ERROR: Source file protocol is not recognized: " + path);
+        }
+        return null as String;
+    }
+    
+    /** Extract the name of a file from a path represented as a string.
+     *  If the file ends with '.lf', the extension is removed.
+     */
+    protected def getFilename(String path) {
+        var File f = new File(path)
+        var name = f.getName()
+        if (name.endsWith('.lf')) {
+            name = name.substring(0, name.length - 3)
+        }
+        return name
+    }
+    
+    /** Extract the directory from a path represented as a string.
+     */
+    protected def getDirectory(String path) {
+        var File f = new File(path)
+        f.getParent()
+    }
+    
     /** Analyze the resource (the .lf file) that is being parsed
      *  to generate code to set the following variables:
      *  directory, filename, mode, sourceFile.
      */
     private def analyzeResource(Resource resource) {
-        var path = resource.getURI.toString
-        if (path.startsWith('platform:')) {
-            mode = Mode.INTEGRATED
-            var fileURL = FileLocator.toFileURL(new URL(path)).toString
-            sourceFile = Paths.get(fileURL.substring(5)).normalize.toString
-        } else if (path.startsWith('file:')) {
-            mode = Mode.STANDALONE
-            sourceFile = Paths.get(path.substring(5)).normalize.toString
-        } else {
-            System.err.println(
-                "ERROR: Source file protocol is not recognized: " + path);
-        }
+        sourceFile = resource.toPath;
         
         // Strip the filename of the extension.
         var File f = new File(sourceFile);
@@ -1301,82 +1259,63 @@ abstract class GeneratorBase {
         println('******** mode: ' + mode)
     }
     
-    /** Replace the specified connection with a communication between federates.
-     *  @param connection The connection.
-     *  @param leftFederate The source federate.
-     *  @param rightFederate The destination federate.
+    /** Execute a process while forwarding output and error to system streams.
+     *
+     *  Executing a process directly with `processBuiler.start()` could
+     *  lead to a deadlock as the subprocess blocks when output or error
+     *  buffers are full. This method ensures that output and error messages
+     *  are continuously read and forwards them to the system's output and
+     *  error streams.
+     *
+     *  @param processBuilder The process to be executed.
+     *  @author{Christian Menard <christian.menard@tu-dresden.de}
      */
-    private def makeCommunication(
-        Connection connection, 
-        FederateInstance leftFederate,
-        FederateInstance rightFederate
-    ) {
-        val factory = LinguaFrancaFactory.eINSTANCE
-        var type = (connection.rightPort.variable as Port).type
-        val action = factory.createAction
-        val triggerRef = factory.createVarRef
-        val effectRef = factory.createVarRef
-        val inRef = factory.createVarRef
-        val outRef = factory.createVarRef
-        val parent = (connection.eContainer as Reactor)
-        val r1 = factory.createReaction
-        val r2 = factory.createReaction
+    protected def runSubprocess(ProcessBuilder processBuilder) {
+        return runSubprocess(processBuilder, System.out, System.err);
+    }
 
-        // Name the newly created action; set its delay and type.
-        action.name = getUniqueIdentifier(parent, "networkMessage")
-        // FIXME: Handle connection delay. E.g.:  
-        // action.minTime = connection.delay.time
-        action.type = type
-        // FIXME: For now, only handling physical connections.
-        action.origin = ActionOrigin.PHYSICAL
-        
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        val receivingPortID = rightFederate.networkMessageActions.length
-        rightFederate.networkMessageActions.add(action)
+    /** Execute a process while forwarding output and error streams.
+     *
+     *  Executing a process directly with `processBuiler.start()` could
+     *  lead to a deadlock as the subprocess blocks when output or error
+     *  buffers are full. This method ensures that output and error messages
+     *  are continuously read and forwards them to the given streams.
+     *
+     *  @param processBuilder The process to be executed.
+     *  @param outStream The stream to forward the process' output to.
+     *  @param errStream The stream to forward the process' error messages to.
+     *  @author{Christian Menard <christian.menard@tu-dresden.de}
+     */
+    protected def runSubprocess(ProcessBuilder processBuilder,
+                                OutputStream outStream,
+                                OutputStream errStream) {
+        val process = processBuilder.start()
 
-        // Establish references to the action.
-        triggerRef.variable = action
-        effectRef.variable = action
+        var outThread = new Thread([|
+                var buffer = newByteArrayOfSize(64)
+                var len = process.getInputStream().read(buffer)
+                while(len != -1) {
+                    outStream.write(buffer, 0, len)
+                    len = process.getInputStream().read(buffer)
+                }
+            ])
+        outThread.start()
 
-        // Establish references to the involved ports.
-        inRef.container = connection.leftPort.container
-        inRef.variable = connection.leftPort.variable
-        outRef.container = connection.rightPort.container
-        outRef.variable = connection.rightPort.variable
+        var errThread = new Thread([|
+                var buffer = newByteArrayOfSize(64)
+                var len = process.getErrorStream().read(buffer)
+                while(len != -1) {
+                    errStream.write(buffer, 0, len)
+                    len = process.getErrorStream().read(buffer)
+                }
+            ])
+        errThread.start()
 
-        // Add the action to the reactor.
-        parent.actions.add(action)
+        val returnCode = process.waitFor()
+        outThread.join()
+        errThread.join()
 
-        // Configure the sending reaction.
-        r1.triggers.add(inRef)
-        r1.effects.add(effectRef)
-        r1.code = generateNetworkSenderBody(
-            inRef,
-            outRef,
-            receivingPortID,
-            leftFederate,
-            rightFederate,
-            type
-        )
-
-        // Configure the receiving reaction.
-        r2.triggers.add(triggerRef)
-        r2.effects.add(outRef)
-        r2.code = generateNetworkReceiverBody(
-            action,
-            inRef,
-            outRef,
-            receivingPortID,
-            leftFederate,
-            rightFederate,
-            type
-        )
-
-        // Add the reactions to the parent.
-        parent.reactions.add(r1)
-        parent.reactions.add(r2)
+        return returnCode
     }
 
     enum Mode {
@@ -1384,4 +1323,5 @@ abstract class GeneratorBase {
         INTEGRATED,
         UNDEFINED
     }
+
 }

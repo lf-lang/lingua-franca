@@ -1,5 +1,7 @@
 // Example in the Wiki.
-target Cpp;
+target Cpp{
+    threads: 1
+};
 reactor Scale(scale:int(2)) {
     input x:int;
     output y:int;

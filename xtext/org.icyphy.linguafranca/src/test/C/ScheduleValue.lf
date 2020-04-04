@@ -1,0 +1,19 @@
+/** Test of schedule_value. */
+target C {
+    timeout: 3 sec
+};
+main reactor ScheduleValue {
+    logical action a:char*;
+    reaction(startup) -> a {=
+        char* value = malloc(6);
+        strcpy(value, "Hello");
+        schedule_value(a, 0, value, 6);
+    =}
+    reaction(a) {=
+        printf("Received: %s\n", a_value);
+        if (strcmp(a_value, "Hello") != 0) {
+            fprintf(stderr, "FAILURE: Should have received 'Hello'\n");
+            exit(1);
+        }
+    =}
+}

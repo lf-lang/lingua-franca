@@ -3,6 +3,9 @@ package org.icyphy.linguafranca.diagram.synthesis
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
+import java.util.Map
+import java.util.function.Supplier
+import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
@@ -21,7 +24,7 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 		} else if (tov.parameter !== null) {
 			return tov.parameter.name
 		} else if (tov.value !== null) {
-			return tov.value
+			return ASTUtils.toText(tov.value)
 		} else if (tov.unit === TimeUnit.NONE) {
 			return Integer.toString(tov.time)
 		} else {
@@ -98,6 +101,18 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	
 	def setID(KGraphElement kge, String id) {
 		kge.data.add(createKIdentifier => [it.setId(id)])
+	}
+	
+	def <K,V> V getOrInit(Map<K, V> map, K key, Supplier<V> init) {
+		if (map === null) {
+			return null
+		} else if (map.containsKey(key)) {
+			return map.get(key)
+		} else {
+			val value = init.get()
+			map.put(key, value)
+			return value
+		}
 	}
 
 }

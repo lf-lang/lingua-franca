@@ -5,6 +5,7 @@
 // of 2 seconds, and the third (composite) or 1 second.
 target Cpp {
     timeout: 10 sec,
+    threads: 1,
     fast: true
 };
 reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {

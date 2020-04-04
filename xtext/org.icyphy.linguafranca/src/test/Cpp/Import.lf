@@ -1,6 +1,8 @@
 // This tests the ability to import a reactor definition
 // that itself imports a reactor definition.
-target Cpp;
+target Cpp{
+    threads: 1
+};
 import Imported.lf;
 main reactor Import {
      timer t;
