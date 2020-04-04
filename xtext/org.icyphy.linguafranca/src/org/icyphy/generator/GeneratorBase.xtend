@@ -586,7 +586,7 @@ abstract class GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        Type type
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -608,7 +608,7 @@ abstract class GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        Type type
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
