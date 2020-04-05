@@ -34,7 +34,7 @@ DelayStructWithAfter.lf
 DelayStructWithAfterOverlapped.lf
 Determinism.lf
 DeterminismThreaded.lf
-DistributedToken.lf
+#DistributedToken.lf
 DoubleInvocation.lf
 DoubleReaction.lf
 DoubleReactionThreaded.lf
