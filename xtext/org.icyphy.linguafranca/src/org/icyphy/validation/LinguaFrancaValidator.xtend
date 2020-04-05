@@ -337,6 +337,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                                         error("host property needs to be a string.",
                                             Literals.KEY_VALUE_PAIR__VALUE)
                                     }
+                                case "launcher":
+                                    if (property.value.literal === null
+                                        || (property.value.literal != 'true'
+                                            && property.value.literal != 'false')
+                                    ) {
+                                        error("launcher property needs to be true or false.",
+                                            Literals.KEY_VALUE_PAIR__VALUE)
+                                    }
                                 }
                             }
                         } else {

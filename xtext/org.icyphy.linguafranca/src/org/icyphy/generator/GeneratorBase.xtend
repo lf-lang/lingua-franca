@@ -160,11 +160,14 @@ abstract class GeneratorBase {
     /** A map from reactor names to the federate instance that contains the reactor. */
     protected var Map<String,FederateInstance> federateByReactor
 
-    /** The federation RTI host, which defaults to "localhost". */
-    protected var federationRTIHost = "localhost"
-    
-    /** The federation RTI port, which defaults to "15045". */
-    protected var federationRTIPort = "15045"
+    /** The federation RTI properties, which defaults to
+     *  {host: "localhost", port: 15045, launcher: false}
+     */
+    protected val federationRTIProperties = newLinkedHashMap(
+        'host' -> 'localhost',
+        'port' -> 15045,
+        'launcher' -> false
+    ) 
 
 	/** The build-type target parameter, or null if there is none. */
     protected String targetBuildType
@@ -1096,17 +1099,17 @@ abstract class GeneratorBase {
                 for (federate : param.value.keyvalue.pairs) {
                     if (federate.name == "RTI") {
                         for (property : federate.value.keyvalue.pairs) {
+                            // Validator has checked the form of these entries.
                             switch property.name {
                             case "host": 
-                                federationRTIHost = 
-                                    if (property.value.literal !== null) {
-                                        property.value.literal.withoutQuotes
-                                    } else {
-                                        property.value.id
-                                    }
+                                federationRTIProperties.put('host',
+                                        property.value.literal.withoutQuotes)
                             case "port":
-                                federationRTIPort
-                                    = property.value.literal.withoutQuotes
+                                federationRTIProperties.put('port',
+                                        Integer.parseInt(property.value.literal))
+                            case "launcher":
+                                federationRTIProperties.put('launcher',
+                                        Boolean.parseBoolean(property.value.literal))
                             }
                         }
                     } else {

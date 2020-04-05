@@ -44,7 +44,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>      // Defined perror(), errno
+#include <errno.h>      // Defines perror(), errno
 #include <sys/socket.h>
 #include <sys/types.h>  // Provides select() function to read from multiple sockets.
 #include <netinet/in.h> // Defines struct sockaddr_in
@@ -203,7 +203,7 @@ void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
     }
 }
 
-/** Thread for a federate.
+/** Thread handling communication with a federate.
  *  @param fed_socket_descriptor A pointer to an int that is the
  *   socket descriptor for the federate.
  */
@@ -278,7 +278,7 @@ void* federate(void* fed_socket_descriptor) {
         // FIXME: Need more robust error handling. This will kill the RTI.
         if (bytes_read < 0) error("ERROR on RTI reading from federate socket");
         if (bytes_read == 0 || buffer[0] == RESIGN) {
-            printf("Federate has resigned.\n");
+            printf("RTI: Federate has resigned.\n");
             break;
         } else if (buffer[0] == MESSAGE) {
             handle_message(fed_socket, buffer, bytes_read);
@@ -356,20 +356,49 @@ void initialize_federate(int id) {
     federates[id].num_downstream = 0;
 }
 
-/** Start a runtime infrastructure (RTI) for the specified number of
- *  federates that listens for socket connections on the specified port.
+/** Launch the specified executable by forking the calling process and converting
+ *  the forked process into the specified executable.
+ *  If forking the process fails, this will return -1.
+ *  Otherwise, it will return the process ID of the created process.
+ *  @param executable The executable program.
+ *  @return The PID of the created process or -1 if the fork fails.
+ */
+pid_t federate_launcher(char* executable) {
+    char* command[2];
+    command[0] = executable;
+    command[1] = NULL;
+    pid_t pid = fork();
+    if (pid == 0) {
+        // This the newly created process. Replace it.
+        printf("Federate launcher starting executable: %s.\n", executable);
+        execv(executable, command);
+        // Remaining part of this function is ignored.
+    }
+    if (pid == -1) {
+        fprintf(stderr, "ERROR forking the RTI process to start the executable: %s\n", executable);
+    }
+    return pid;
+}
+
+/** Start the socket server for the runtime infrastructure (RTI) and
+ *  return the socket descriptor.
  *  @param num_feds Number of federates.
  *  @param port The port on which to listen for socket connections.
  */
-void start_rti(int port) {
+int start_rti_server(int port) {
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         initialize_federate(i);
     }
-
     int socket_descriptor = create_server(port);
-
     printf("RTI: Listening for federates on port %d.\n", port);
+    return socket_descriptor;
+}
 
+/** Start the runtime infrastructure (RTI) interaction with the federates
+ *  and wait for the federates to exit.
+ *  @param socket_descriptor The socket descriptor returned by start_rti_server().
+ */
+void wait_for_federates(int socket_descriptor) {
     // Wait for connections from federates and create a thread for each.
     connect_to_federates(socket_descriptor);
 

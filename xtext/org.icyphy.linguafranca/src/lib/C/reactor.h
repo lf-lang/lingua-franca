@@ -377,6 +377,12 @@ handle_t __schedule(trigger_t* trigger, interval_t delay, token_t* token);
 void __start_timers();
 
 /**
+ * Function (to be code generated) to terminate execution.
+ * This will be invoked after all shutdown actions have completed.
+ */
+void __termination();
+
+/**
  * Function (to be code generated) to wrap up execution.
  * If this returns true, then one more invocation of next()
  * be executed in order to invoke reactions that are triggered
