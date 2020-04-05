@@ -185,8 +185,8 @@ class CGenerator extends GeneratorBase {
                 pr(startTimers, 'synchronize_with_other_federates('
                     + federate.id
                     + ', "'
-                    + federationRTIHost 
-                    + '", ' + federationRTIPort
+                    + federationRTIProperties.get('host') 
+                    + '", ' + federationRTIProperties.get('port')
                     + ");"
                 )
             }
@@ -311,6 +311,19 @@ class CGenerator extends GeneratorBase {
                 }
                 unindent()
                 pr('}\n')
+                
+                // Generate the termination function.
+                // If there are federates, this will resign from the federation.
+                if (federates.length > 1) {
+                    pr('''
+                        void __termination() {
+                            unsigned char message_marker = RESIGN;
+                            write(rti_socket, &message_marker, 1);
+                        }
+                    ''')
+                } else {
+                    pr("void __termination() {}");
+                }
             }
 
             // Write the generated code to the output file.
@@ -336,18 +349,18 @@ class CGenerator extends GeneratorBase {
     def compileCode() {
 
         // If there is more than one federate, compile each one.
-        val baseFilename = filename
+        var fileToCompile = filename // base file name.
         for (federate : federates) {
             // Empty string means no federates were defined, so we only
             // compile one file.
             if (!federate.isSingleton) {
-                filename = baseFilename + '_' + federate.name
+                fileToCompile = filename + '_' + federate.name
             }
             
             // Derive target filename from the .lf filename.
-            val cFilename = filename + ".c";            
+            val cFilename = fileToCompile + ".c";            
             val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-            val relativeBinFilename = "bin" + File.separator + filename;
+            val relativeBinFilename = "bin" + File.separator + fileToCompile;
             
             var compileCommand = newArrayList
             compileCommand.add(targetCompiler)
@@ -385,11 +398,15 @@ class CGenerator extends GeneratorBase {
         }
         // Also compile the RTI if there is more than one federate.
         if (federates.length > 1) {
-            filename = baseFilename + '_RTI'
+            if (federationRTIProperties.get('launcher') as Boolean) {
+                fileToCompile = filename                
+            } else {
+                fileToCompile = filename + '_RTI'
+            }
             var compileCommand = newArrayList
             compileCommand.addAll("gcc", "-O2", 
-                    "src-gen" + File.separator + filename + '.c',
-                    "-o", "bin" + File.separator + filename,
+                    "src-gen" + File.separator + fileToCompile + '.c',
+                    "-o", "bin" + File.separator + fileToCompile,
                     "-pthread")
             executeCommand(compileCommand, directory)
         }
@@ -401,7 +418,12 @@ class CGenerator extends GeneratorBase {
     /** Create a file  */
     def createFederateRTI() {
         // Derive target filename from the .lf filename.
-        val cFilename = filename + "_RTI.c";
+        var cFilename = filename + "_RTI.c"
+        
+        // If the RTI is to launch all the federates, omit the '_RTI'.
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            cFilename = filename + ".c"              
+        }
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
 
@@ -417,15 +439,49 @@ class CGenerator extends GeneratorBase {
             file.delete
         }
         
+        val rtiCode = new StringBuilder()
+        pr(rtiCode, '''
+            #define NUMBER_OF_FEDERATES «federates.length»
+            #include "rti.c"
+            int main(int argc, char* argv[]) {
+        ''')
+        indent(rtiCode)
+        
+        // Start the RTI server before launching the federates because if it
+        // fails, e.g. because the port is not available, then we don't want to
+        // launch the federates.
+        pr(rtiCode, '''
+            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
+        ''')
+
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            for (federate : federates) {
+                pr(rtiCode, '''
+                    if (federate_launcher("«outPath»«File.separator»«filename»_«federate.name»") == -1) exit(-1);
+                ''')
+            }
+        }
+        
+        // Generate code that blocks until the federates resign.
+        pr(rtiCode, "wait_for_federates(socket_descriptor);")
+        
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            pr(rtiCode, '''
+                int exit_code = 0;
+                for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                    int subprocess_exit_code;
+                    wait(&subprocess_exit_code);
+                    if (subprocess_exit_code != 0) exit_code = subprocess_exit_code;
+                }
+                exit(exit_code);
+            ''')
+        }
+        unindent(rtiCode)
+        pr(rtiCode, "}")
+        
         var fOut = new FileOutputStream(
                 new File(srcGenPath + File.separator + cFilename));
-        fOut.write('''
-#define NUMBER_OF_FEDERATES «federates.length»
-#include "rti.c"
-int main(int argc, char* argv[]) {
-    start_rti(«federationRTIPort»);
-}
-        '''.toString().getBytes())
+        fOut.write(rtiCode.toString().getBytes())
         fOut.close()
     }
     
