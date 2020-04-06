@@ -504,7 +504,7 @@ class CppGenerator extends GeneratorBase {
 
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            , «i.name»{"«i.name»", this«FOR v : i.trimmedValues», «v»«ENDFOR»}
+            , «i.name»{"«i.name»", this«FOR v : i.paramInitializers», «v»«ENDFOR»}
         «ENDFOR»
     '''
     
@@ -550,29 +550,33 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def trimmedValues(Instantiation i) {
+    def paramInitializers(Instantiation i) {
         var List<String> values = newArrayList
-        // FIXME
-//        for (p : i.reactorClass.parameters) {
-//            var String value = null
-//            for (a : i.parameters ?: emptyList) {
-//                if (a.lhs.name == p.name) {
-//                	if (p.ofTimeType) {
-//                        value = '''«a.trimmedTime»'''
-//                    } else {
-//                        value = '''«a.trimmedValue»'''
-//                    }
-//                }
-//            }
-//            if (value === null) {
-//                if (p.ofTimeType) {
-//                    value = '''«p.trimmedTime»'''
-//                } else {
-//                    value = '''«p.trimmedValue»'''
-//                }
-//            }
-//            values.add(value)
-//        }
+        for (p : i.reactorClass.parameters) {
+            var String value = null
+            for (a : i.parameters ?: emptyList) {
+                if (a.lhs.name == p.name) {
+                	if (p.ofTimeType) {
+                        value = '''«a.rhs.asTime»'''
+                    } else {
+                        value = '''«a.rhs.toText»'''
+                    }
+                }
+            }
+            if (value === null) {
+                if (p.init !== null && p.init.size == 1) {
+                    if (p.ofTimeType) {
+                        value = '''«p.init.get(0).asTime»'''
+                    } else {
+                        value = '''«p.init.get(0).toText»'''
+                    }
+                } else {
+                    // FIXME:
+                    value = '''/* «i.reportError("Parameters with multiple initializers are currently not supported!")» */'''
+                }
+            }
+            values.add(value)
+        }
         values
     }
 
