@@ -65,8 +65,10 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
+import java.io.OutputStream
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Type
 
 /** Generator base class for shared code between code generators.
  * 
@@ -135,9 +137,8 @@ abstract class GeneratorBase {
      */
     protected var String sourceFile
     
-    /** A map from resources to the reactors they contain */
-    protected var Map<Resource,List<Reactor>> reactorsByResource
-            = new HashMap<Resource,List<Reactor>>()
+    /** The set of all imported Resources */
+    protected var Set<Resource> allResources = new HashSet<Resource>();
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
@@ -158,11 +159,14 @@ abstract class GeneratorBase {
     /** A map from reactor names to the federate instance that contains the reactor. */
     protected var Map<String,FederateInstance> federateByReactor
 
-    /** The federation RTI host, which defaults to "localhost". */
-    protected var federationRTIHost = "localhost"
-    
-    /** The federation RTI port, which defaults to "15045". */
-    protected var federationRTIPort = "15045"
+    /** The federation RTI properties, which defaults to
+     *  {host: "localhost", port: 15045, launcher: false}
+     */
+    protected val federationRTIProperties = newLinkedHashMap(
+        'host' -> 'localhost',
+        'port' -> 15045,
+        'launcher' -> false
+    ) 
 
 	/** The build-type target parameter, or null if there is none. */
     protected String targetBuildType
@@ -205,6 +209,12 @@ abstract class GeneratorBase {
 
     /** Map from builder to its current indentation. */
     var indentation = new HashMap<StringBuilder, String>()
+    
+    /** Recursion stack used to detect cycles in imports */
+    var importRecursionStack = new HashSet<Resource>();
+    
+    /** A flag indicating whether a cycle was found while processing imports */
+    var cyclicImports = false;
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -345,6 +355,14 @@ abstract class GeneratorBase {
         // Next process all the imports and call generateReactor on any
         // reactors defined in the imports.
         processImports(resource)
+        
+        // Abort compilation if a dependency cycle was detected while 
+        // processing imports. If compilation would continue, dependency
+        // cycles between reactor instantiations across files could lead
+        // to a stack overflow!
+        if (cyclicImports) {
+            throw new Exception("Aborting compilation due to dependency cycles in imports!") 
+        }
 
         // Recursively generate reactor class code from their definitions
         // NOTE: We do not generate code for the main reactor here
@@ -355,11 +373,9 @@ abstract class GeneratorBase {
         // non-main reactors that are not instantiated in a particular
         // federate. But it seems harmless to generate it since a good
         // compiler will remove it anyway as dead code.
-        reactorsByResource.put(resource, new LinkedList<Reactor>());
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
             if (!reactor.isMain) {
                 generateReactor(reactor)
-                reactorsByResource.get(resource).add(reactor)
             }
         }
     }
@@ -513,19 +529,9 @@ abstract class GeneratorBase {
         var builder = new ProcessBuilder(command);
         builder.directory(new File(directory));
         try {
-            var process = builder.start()
-            var returnCode = process.waitFor()
-            var stdout = readStream(process.getInputStream())
-            if (stdout.length() > 0) {
-                println("--- Standard output from command:")
-                println(stdout)
-                println("--- End of standard output.")
-            }
-            var stderr = readStream(process.getErrorStream())
-            if (stderr.length() > 0) {
-                reportError("---Command reports errors:\n" + stderr.toString
-                        + "\n--- End of standard error.")
-            }
+            println("--- Standard output and error from command:")
+            val returnCode = builder.runSubprocess()
+            println("--- End of standard output and error.")
             if (returnCode !== 0) {
                 // Throw an exception, which will be caught below for a second attempt.
                 throw new Exception("Command returns error code " + returnCode)
@@ -542,21 +548,12 @@ abstract class GeneratorBase {
             // bashCommand.addAll("bash", "--login", "-c", 'ls', '-a')
             println("--- Attempting instead to run: " + bashCommand.join(" "))
             builder.command(bashCommand)
-            var process = builder.start()
-            var returnCode = process.waitFor()
-            var stdout = readStream(process.getInputStream())
-            if (stdout.length() > 0) {
-                println("--- Standard output from bash command:")
-                println(stdout)
-                println("--- End of standard output.")
-            }
+            println("--- Standard output and error from bash command:")
+            val returnCode = builder.runSubprocess()
+            println("--- End of standard output and error.")
+            
             if (returnCode !== 0) {
                 reportError("Bash command returns error code " + returnCode)
-            }
-            var stderr = readStream(process.getErrorStream())
-            if (stderr.length() > 0) {
-                reportError("---Bash command reports errors:\n" + stderr.toString
-                        + "\n--- End of standard standard error.")
             }
             return returnCode
         }
@@ -596,7 +593,7 @@ abstract class GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        Type type
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -618,7 +615,7 @@ abstract class GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        Type type
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -711,12 +708,10 @@ abstract class GeneratorBase {
                 processImports(importResource)
                 // Call generateReactor for each reactor contained by the import
                 // that is not a main reactor.
-                reactorsByResource.put(importResource, new LinkedList<Reactor>());
                 for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
                     if (!reactor.isMain) {
                         println("Including imported reactor: " + reactor.name)
                         generateReactor(reactor)
-                        reactorsByResource.get(importResource).add(reactor)
                     }
                 }
             }
@@ -828,6 +823,21 @@ abstract class GeneratorBase {
      *   statements.
      */
     protected def void processImports(Resource resource) {
+        // if the resource is in the recursion stack, then there is a cycle in the imports
+        if (importRecursionStack.contains(resource)) {
+            cyclicImports = true
+            throw new Exception("There is a dependency cycle in the import statements!")
+        }
+        
+        // abort if the resource was visited already
+        if (allResources.contains(resource)) {
+            return
+        }
+        
+        // add resource to imported resources and to the recoursion stack
+        allResources.add(resource);
+        importRecursionStack.add(resource);
+
         for (import : resource.allContents.toIterable.filter(Import)) {
             // Resolve the import as a URI relative to the current resource's URI.
             val URI currentURI = resource?.getURI;
@@ -857,6 +867,9 @@ abstract class GeneratorBase {
                 )
             }
         }
+        
+        // remove this resource from the recursion stack
+        importRecursionStack.remove(resource);
     }
 
     /** Read a text file in the classpath and return its contents as a string.
@@ -1140,17 +1153,17 @@ abstract class GeneratorBase {
                 for (federate : param.value.keyvalue.pairs) {
                     if (federate.name == "RTI") {
                         for (property : federate.value.keyvalue.pairs) {
+                            // Validator has checked the form of these entries.
                             switch property.name {
                             case "host": 
-                                federationRTIHost = 
-                                    if (property.value.literal !== null) {
-                                        property.value.literal.withoutQuotes
-                                    } else {
-                                        property.value.id
-                                    }
+                                federationRTIProperties.put('host',
+                                        property.value.literal.withoutQuotes)
                             case "port":
-                                federationRTIPort
-                                    = property.value.literal.withoutQuotes
+                                federationRTIProperties.put('port',
+                                        Integer.parseInt(property.value.literal))
+                            case "launcher":
+                                federationRTIProperties.put('launcher',
+                                        Boolean.parseBoolean(property.value.literal))
                             }
                         }
                     } else {
@@ -1303,6 +1316,64 @@ abstract class GeneratorBase {
         println('******** mode: ' + mode)
     }
     
+    /** Execute a process while forwarding output and error to system streams.
+     *
+     *  Executing a process directly with `processBuiler.start()` could
+     *  lead to a deadlock as the subprocess blocks when output or error
+     *  buffers are full. This method ensures that output and error messages
+     *  are continuously read and forwards them to the system's output and
+     *  error streams.
+     *
+     *  @param processBuilder The process to be executed.
+     *  @author{Christian Menard <christian.menard@tu-dresden.de}
+     */
+    protected def runSubprocess(ProcessBuilder processBuilder) {
+        return runSubprocess(processBuilder, System.out, System.err);
+    }
+
+    /** Execute a process while forwarding output and error streams.
+     *
+     *  Executing a process directly with `processBuiler.start()` could
+     *  lead to a deadlock as the subprocess blocks when output or error
+     *  buffers are full. This method ensures that output and error messages
+     *  are continuously read and forwards them to the given streams.
+     *
+     *  @param processBuilder The process to be executed.
+     *  @param outStream The stream to forward the process' output to.
+     *  @param errStream The stream to forward the process' error messages to.
+     *  @author{Christian Menard <christian.menard@tu-dresden.de}
+     */
+    protected def runSubprocess(ProcessBuilder processBuilder,
+                                OutputStream outStream,
+                                OutputStream errStream) {
+        val process = processBuilder.start()
+
+        var outThread = new Thread([|
+                var buffer = newByteArrayOfSize(64)
+                var len = process.getInputStream().read(buffer)
+                while(len != -1) {
+                    outStream.write(buffer, 0, len)
+                    len = process.getInputStream().read(buffer)
+                }
+            ])
+        outThread.start()
+
+        var errThread = new Thread([|
+                var buffer = newByteArrayOfSize(64)
+                var len = process.getErrorStream().read(buffer)
+                while(len != -1) {
+                    errStream.write(buffer, 0, len)
+                    len = process.getErrorStream().read(buffer)
+                }
+            ])
+        errThread.start()
+
+        val returnCode = process.waitFor()
+        outThread.join()
+        errThread.join()
+
+        return returnCode
+    }
 
     enum Mode {
         STANDALONE,

@@ -1,0 +1,42 @@
+// This checks that the after keyword also works with void ports
+target Cpp {
+    fast: false,
+    timeout: 3 sec
+};
+
+reactor foo {
+    timer t(0, 1 sec);
+    output y:void;
+    reaction(t) -> y {=
+        y.set();
+    =}
+}
+
+reactor print {
+    state expected_time:time(10 msec);
+    state i:int(0);
+    input x:void;
+    reaction(x) {=
+        i++;
+        auto elapsed_time = get_elapsed_logical_time();
+        std::cout << "Current logical time is: " << elapsed_time << '\n';
+        std::cout << "Current physical time is: " << get_elapsed_physical_time() << '\n';
+        if (elapsed_time != expected_time) {
+            std::cerr << "ERROR: Expected logical time to be " << expected_time << '\n';
+            exit(2);
+        }
+        expected_time += 1s;
+    =}
+    reaction(shutdown) {=
+        if (i == 0) {
+            std::cerr << "ERROR: Final reactor received no data.\n";
+            exit(3);
+        }
+    =}
+}
+main reactor top {
+    f = new foo();
+    p = new print();
+    
+    f.y -> p.x after 10 msec;
+}

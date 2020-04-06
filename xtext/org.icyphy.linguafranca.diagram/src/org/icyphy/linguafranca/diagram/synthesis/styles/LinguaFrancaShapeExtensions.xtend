@@ -35,6 +35,9 @@ import org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjus
 import static org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
+import de.cau.cs.kieler.klighd.kgraph.KEdge
+import de.cau.cs.kieler.klighd.krendering.LineStyle
 
 @ViewSynthesisShared
 class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
@@ -457,5 +460,23 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             ]
 		]
 	}
+	
+    def KRoundedRectangle addCommentFigure(KNode node, String message) {
+        node.addRoundedRectangle(1, 1, 1) => [
+        	gridPlacement = 1
+            addText(message) => [
+            	fontSize = 6
+            	setGridPlacementData().from(LEFT, 3, 0, TOP, 3, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
+            	noSelectionStyle()
+            ]
+        ]
+    }
+    
+    def KPolyline addCommentPolyline(KEdge edge) {
+        edge.addPolyline => [
+            lineWidth = 1
+        	lineStyle = LineStyle.DOT
+        ]
+    }
 
 }

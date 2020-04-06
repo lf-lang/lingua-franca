@@ -44,7 +44,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>      // Defined perror(), errno
+#include <errno.h>      // Defines perror(), errno
 #include <sys/socket.h>
 #include <sys/types.h>  // Provides select() function to read from multiple sockets.
 #include <netinet/in.h> // Defines struct sockaddr_in
@@ -56,6 +56,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "util.c"       // Defines error() and swap_bytes_if_big_endian().
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
+
+/** Delay the start of all federates by this amount. */
+#define DELAY_START SEC(1)
 
 // The one and only mutex lock.
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -160,7 +163,7 @@ void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
             = swap_bytes_if_big_endian_int(
               *((unsigned int*)(buffer + 5)));
 
-    printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
+    // printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
 
     unsigned int bytes_to_read = length + min_bytes;
     // Prevent a buffer overflow.
@@ -171,7 +174,7 @@ void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
         if (more < 0) error("ERROR on RTI reading from federate socket");
         bytes_read += more;
     }
-    printf("DEBUG: Message received by RTI: %s.\n", &(buffer[9]));
+    // printf("DEBUG: Message received by RTI: %s.\n", &(buffer[9]));
 
     // Forward the message or message chunk.
     int destination_socket = federates[federate_id].socket;
@@ -200,7 +203,7 @@ void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
     }
 }
 
-/** Thread for a federate.
+/** Thread handling communication with a federate.
  *  @param fed_socket_descriptor A pointer to an int that is the
  *   socket descriptor for the federate.
  */
@@ -222,12 +225,7 @@ void* federate(void* fed_socket_descriptor) {
         if (more == 0) return NULL;
         bytes_read += more;
     }
-    /*
-    printf("DEBUG: read %d bytes.\n", bytes_read);
-    for (int i = 0; i < sizeof(long long) + 1; i++) {
-        printf("DEBUG: received byte %d: %u\n", i, buffer[i]);
-    }
-    */
+    // printf("DEBUG: read %d bytes.\n", bytes_read);
 
     // First byte received is the message ID.
     if (buffer[0] != TIMESTAMP) {
@@ -267,7 +265,9 @@ void* federate(void* fed_socket_descriptor) {
     if (bytes_written < 0) error("ERROR sending message ID to federate");
 
     // Send the timestamp.
-    long long message = swap_bytes_if_big_endian_ll(max_start_time);
+    // FIXME: Add an offset to this start time to get everyone starting together.
+    // Adding one second here.
+    long long message = swap_bytes_if_big_endian_ll(max_start_time + DELAY_START);
     bytes_written = write(fed_socket, (void*)(&message), sizeof(long long));
     if (bytes_written < 0) error("ERROR sending start time to federate");
 
@@ -278,7 +278,7 @@ void* federate(void* fed_socket_descriptor) {
         // FIXME: Need more robust error handling. This will kill the RTI.
         if (bytes_read < 0) error("ERROR on RTI reading from federate socket");
         if (bytes_read == 0 || buffer[0] == RESIGN) {
-            printf("Federate has resigned.\n");
+            printf("RTI: Federate has resigned.\n");
             break;
         } else if (buffer[0] == MESSAGE) {
             handle_message(fed_socket, buffer, bytes_read);
@@ -319,20 +319,15 @@ void connect_to_federates(int socket_descriptor) {
             if (more == 0) return;
             bytes_read += more;
         }
-        /*
-        printf("DEBUG: read %d bytes.\n", bytes_read);
-        for (int i = 0; i < sizeof(long long) + 1; i++) {
-            printf("DEBUG: received byte %d: %u\n", i, buffer[i]);
-        }
-        */
+        // printf("DEBUG: read %d bytes.\n", bytes_read);
 
-        // First byte received in the message ID.
+        // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
             fprintf(stderr, "ERROR: RTI expected a FED_ID message. Got %u (see rti.h).\n", buffer[0]);
         }
 
         int fed_id = swap_bytes_if_big_endian_int(*((int*)(&(buffer[1]))));
-        printf("DEBUG: RTI received federate ID: %d\n", fed_id);
+        // printf("DEBUG: RTI received federate ID: %d\n", fed_id);
 
         if (federates[fed_id].state != NOT_CONNECTED) {
             fprintf(stderr, "Duplicate federate ID: %d.\n", fed_id);
@@ -361,20 +356,49 @@ void initialize_federate(int id) {
     federates[id].num_downstream = 0;
 }
 
-/** Start a runtime infrastructure (RTI) for the specified number of
- *  federates that listens for socket connections on the specified port.
+/** Launch the specified executable by forking the calling process and converting
+ *  the forked process into the specified executable.
+ *  If forking the process fails, this will return -1.
+ *  Otherwise, it will return the process ID of the created process.
+ *  @param executable The executable program.
+ *  @return The PID of the created process or -1 if the fork fails.
+ */
+pid_t federate_launcher(char* executable) {
+    char* command[2];
+    command[0] = executable;
+    command[1] = NULL;
+    pid_t pid = fork();
+    if (pid == 0) {
+        // This the newly created process. Replace it.
+        printf("Federate launcher starting executable: %s.\n", executable);
+        execv(executable, command);
+        // Remaining part of this function is ignored.
+    }
+    if (pid == -1) {
+        fprintf(stderr, "ERROR forking the RTI process to start the executable: %s\n", executable);
+    }
+    return pid;
+}
+
+/** Start the socket server for the runtime infrastructure (RTI) and
+ *  return the socket descriptor.
  *  @param num_feds Number of federates.
  *  @param port The port on which to listen for socket connections.
  */
-void start_rti(int port) {
+int start_rti_server(int port) {
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         initialize_federate(i);
     }
-
     int socket_descriptor = create_server(port);
-
     printf("RTI: Listening for federates on port %d.\n", port);
+    return socket_descriptor;
+}
 
+/** Start the runtime infrastructure (RTI) interaction with the federates
+ *  and wait for the federates to exit.
+ *  @param socket_descriptor The socket descriptor returned by start_rti_server().
+ */
+void wait_for_federates(int socket_descriptor) {
     // Wait for connections from federates and create a thread for each.
     connect_to_federates(socket_descriptor);
 

@@ -14,21 +14,21 @@ main reactor Requester {
             console.log('statusCode:', res.statusCode);
             console.log('headers:', res.headers);
             res.on('data', (d : Buffer) => {
-                data.schedule(0, d);
+                actions.data.schedule(0, d);
             });
             res.on('end', () => {
-                done.schedule(0, null);
+                actions.done.schedule(0, null);
             });
 		});
     =}
     reaction (data) {=
-        let serverData = data.get();
+        let serverData = data;
         if (serverData) {
             console.log(serverData.toString());
         }
     =}
     reaction (done) {=
         console.log('No more data in response.');
-        this.util.exec.requestShutdown();
+        util.requestShutdown();
     =}
 }

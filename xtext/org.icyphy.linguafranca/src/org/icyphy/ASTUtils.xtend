@@ -102,14 +102,12 @@ class ASTUtils {
         // Configure the first reaction.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
-        // FIXME: Why the extra semicolon?
         r1.code = factory.createCode()
         r1.code.tokens.add(generator.generateDelayBody(action, inRef))
 
         // Configure the second reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
-        // FIXME: Why the extra semicolon?
         r2.code = factory.createCode()
         r2.code.tokens.add(generator.generateForwardBody(action, outRef))
 
@@ -174,18 +172,20 @@ class ASTUtils {
         // Configure the sending reaction.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
+        r1.code = factory.createCode()
         r1.code.tokens.add(generator.generateNetworkSenderBody(
             inRef,
             outRef,
             receivingPortID,
             leftFederate,
             rightFederate,
-            toText(type, generator)
+            type
         ))
 
         // Configure the receiving reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
+        r2.code = factory.createCode()
         r2.code.tokens.add(generator.generateNetworkReceiverBody(
             action,
             inRef,
@@ -193,7 +193,7 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            toText(type, generator)
+            type
         ))
 
         // Add the reactions to the parent.
@@ -276,6 +276,13 @@ class ASTUtils {
                 }
                 val str = builder.toString.trim
                 return str.substring(2, str.length - 2).trim    
+            } else {
+                // Code must have been added as a simple string.
+                val builder = new StringBuilder(Math.max(code.tokens.length, 1))
+                for (token : code.tokens) {
+                    builder.append(token)
+                }
+                return builder.toString
             }
         }
         return ""

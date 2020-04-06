@@ -77,7 +77,6 @@ reactor MQTTPublisher (
     
     /** State variable that keeps track of a message in flight. */
     state inflight:inflight_t({={false, 0, NULL}=});
-    // FIXME: Replace with simple pair of arguments when the grammar supports this.
     
     /** The client object. */
     state client:MQTTClient({=NULL=});

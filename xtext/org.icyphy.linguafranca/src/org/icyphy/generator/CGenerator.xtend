@@ -189,8 +189,8 @@ class CGenerator extends GeneratorBase {
                 pr(startTimers, 'synchronize_with_other_federates('
                     + federate.id
                     + ', "'
-                    + federationRTIHost 
-                    + '", ' + federationRTIPort
+                    + federationRTIProperties.get('host') 
+                    + '", ' + federationRTIProperties.get('port')
                     + ");"
                 )
             }
@@ -315,6 +315,19 @@ class CGenerator extends GeneratorBase {
                 }
                 unindent()
                 pr('}\n')
+                
+                // Generate the termination function.
+                // If there are federates, this will resign from the federation.
+                if (federates.length > 1) {
+                    pr('''
+                        void __termination() {
+                            unsigned char message_marker = RESIGN;
+                            write(rti_socket, &message_marker, 1);
+                        }
+                    ''')
+                } else {
+                    pr("void __termination() {}");
+                }
             }
 
             // Write the generated code to the output file.
@@ -340,18 +353,18 @@ class CGenerator extends GeneratorBase {
     def compileCode() {
 
         // If there is more than one federate, compile each one.
-        val baseFilename = filename
+        var fileToCompile = filename // base file name.
         for (federate : federates) {
             // Empty string means no federates were defined, so we only
             // compile one file.
             if (!federate.isSingleton) {
-                filename = baseFilename + '_' + federate.name
+                fileToCompile = filename + '_' + federate.name
             }
             
             // Derive target filename from the .lf filename.
-            val cFilename = filename + ".c";            
+            val cFilename = fileToCompile + ".c";            
             val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-            val relativeBinFilename = "bin" + File.separator + filename;
+            val relativeBinFilename = "bin" + File.separator + fileToCompile;
             
             var compileCommand = newArrayList
             compileCommand.add(targetCompiler)
@@ -389,11 +402,15 @@ class CGenerator extends GeneratorBase {
         }
         // Also compile the RTI if there is more than one federate.
         if (federates.length > 1) {
-            filename = baseFilename + '_RTI'
+            if (federationRTIProperties.get('launcher') as Boolean) {
+                fileToCompile = filename                
+            } else {
+                fileToCompile = filename + '_RTI'
+            }
             var compileCommand = newArrayList
             compileCommand.addAll("gcc", "-O2", 
-                    "src-gen" + File.separator + filename + '.c',
-                    "-o", "bin" + File.separator + filename,
+                    "src-gen" + File.separator + fileToCompile + '.c',
+                    "-o", "bin" + File.separator + fileToCompile,
                     "-pthread")
             executeCommand(compileCommand, directory)
         }
@@ -401,54 +418,16 @@ class CGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Code generators.
-    
-    /** If any input is conveyed using the token_t struct,
-     *  then add a reaction at the end of the list of reactions
-     *  that is triggered by that input that decrements the
-     *  reference count and frees allocated memory when the
-     *  reference count hits zero.
-     */
-    def addReferenceCountReaction(Reactor reactor) {    
-        var factory = LinguaFrancaFactory.eINSTANCE    
-        var triggersForReaction = newArrayList
-        var body = new StringBuilder
-        // This is a bit of a hack, but preface the body with
-        // a comment that the preamble should not not be included.
-        // Including the preamble could result in multiple writable
-        // copies being made if an input is mutable.
-        pr(body, CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
-        pr(body, '// Generated reaction for recycling allocated memory.')
-        for(input : reactor.inputs) {
-            if (input.type !== null) {
-                if (isTokenType(input.type)) {
-                    triggersForReaction.add(input)
-                    pr(body, '''
-                        if(self->__«input.name»_is_present) {
-                            __done_using(*self->__«input.name»);
-                        }
-                    ''')
-                }
-            }
-        }
-        if (!triggersForReaction.isEmpty) {
-            var reaction = LinguaFrancaFactory.eINSTANCE.createReaction
-            // Populate the triggers for the reaction.
-            for(input: triggersForReaction) {
-                var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
-                variableReference.setVariable(input)
-                reaction.triggers.add(variableReference)
-            }
-            var code = factory.createCode()
-            code.tokens.add(body.toString) 
-            reaction.setCode(code)
-            reactor.reactions.add(reaction)
-        }
-    }
-    
+        
     /** Create a file  */
     def createFederateRTI() {
         // Derive target filename from the .lf filename.
-        val cFilename = filename + "_RTI.c";
+        var cFilename = filename + "_RTI.c"
+        
+        // If the RTI is to launch all the federates, omit the '_RTI'.
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            cFilename = filename + ".c"              
+        }
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
 
@@ -464,15 +443,49 @@ class CGenerator extends GeneratorBase {
             file.delete
         }
         
+        val rtiCode = new StringBuilder()
+        pr(rtiCode, '''
+            #define NUMBER_OF_FEDERATES «federates.length»
+            #include "rti.c"
+            int main(int argc, char* argv[]) {
+        ''')
+        indent(rtiCode)
+        
+        // Start the RTI server before launching the federates because if it
+        // fails, e.g. because the port is not available, then we don't want to
+        // launch the federates.
+        pr(rtiCode, '''
+            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
+        ''')
+
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            for (federate : federates) {
+                pr(rtiCode, '''
+                    if (federate_launcher("«outPath»«File.separator»«filename»_«federate.name»") == -1) exit(-1);
+                ''')
+            }
+        }
+        
+        // Generate code that blocks until the federates resign.
+        pr(rtiCode, "wait_for_federates(socket_descriptor);")
+        
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            pr(rtiCode, '''
+                int exit_code = 0;
+                for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                    int subprocess_exit_code;
+                    wait(&subprocess_exit_code);
+                    if (subprocess_exit_code != 0) exit_code = subprocess_exit_code;
+                }
+                exit(exit_code);
+            ''')
+        }
+        unindent(rtiCode)
+        pr(rtiCode, "}")
+        
         var fOut = new FileOutputStream(
                 new File(srcGenPath + File.separator + cFilename));
-        fOut.write('''
-#define NUMBER_OF_FEDERATES «federates.length»
-#include "rti.c"
-int main(int argc, char* argv[]) {
-    start_rti(«federationRTIPort»);
-}
-        '''.toString().getBytes())
+        fOut.write(rtiCode.toString().getBytes())
         fOut.close()
     }
     
@@ -561,12 +574,6 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-
-        // Add a reaction, if necessary, to decrement the reference
-        // count for any input that is conveyed using the token_t struct.
-        // This will also free malloc'd memory when the reference count
-        // hits zero.
-        addReferenceCountReaction(reactor)
 
         pr("// =============== START reactor class " + reactor.name)
 
@@ -1142,6 +1149,71 @@ int main(int argc, char* argv[]) {
         pr(result.toString())
     }
 
+    /** Produce the code to decrement reference counts and mark outputs absent
+     *  between time steps.
+     */
+    def generateStartTimeStep(ReactorInstance instance, FederateInstance federate) {
+        // First, decrement reference counts for each token type
+        // input of a contained reactor that is present.
+        for (child : instance.children) {
+            if (reactorBelongsToFederate(child, federate)) {
+                var nameOfSelfStruct = selfStructName(child)
+                for (input : child.inputs) {
+                    if (isTokenType((input.definition as Input).type)) {
+                        pr(startTimeStep, '''
+                            if (*«nameOfSelfStruct».__«input.name»_is_present) {
+                                __done_using(*«nameOfSelfStruct».__«input.name»);
+                            }
+                        ''')
+                    }
+                }
+            }
+        }
+        var containerSelfStructName = selfStructName(instance)
+        // Handle inputs that get sent data from a reaction rather than from
+        // another contained reactor and reactions that are triggered by an
+        // output of a contained reactor.
+        for (reaction : instance.reactions) {
+            // Include reaction only if it is part of the federate.
+            if (federate.containsReaction(instance.definition.reactorClass, reaction.definition)) {
+            for (port : reaction.dependentPorts) {
+                if (port.definition instanceof Input) {
+                    // This reaction is sending to an input. Must be
+                    // the input of a contained reactor in the federate.
+                    if (reactorBelongsToFederate(port.parent, federate)) {
+                        pr(startTimeStep,
+                            containerSelfStructName + '.__' +
+                                port.parent.definition.name + '.' +
+                                port.definition.name + '_is_present = false;'
+                        )
+                    }
+                }
+            }
+            for (port : reaction.dependsOnPorts) {
+                if (port.definition instanceof Output) {
+                    // This reaction is receiving data from the port.
+                    if (isTokenType((port.definition as Output).type)) {
+                        pr(startTimeStep, '''
+                            if (*«containerSelfStructName».__«port.parent.name».«port.name»_is_present) {
+                                __done_using(*«containerSelfStructName».__«port.parent.name».«port.name»);
+                            }
+                        ''')
+                    }
+                }
+            }
+            }
+        }
+        // Next, mark each output of each contained reactor absent.
+        for (child : instance.children) {
+            if (reactorBelongsToFederate(child, federate)) {
+                var nameOfSelfStruct = selfStructName(child)
+                for (output : child.outputs) {
+                    pr(startTimeStep, '''«nameOfSelfStruct».__«output.name»_is_present = false;''')
+                }
+            }
+        }
+    }
+    
     /** Generate one reaction function definition for each output of
      *  a reactor that relays data from the output of a contained reactor.
      *  This reaction function transfers the data from the output of the
@@ -1720,13 +1792,30 @@ int main(int argc, char* argv[]) {
                 nameOfSelfStruct + '.__' + action.name + ' = ' + triggerStruct + ';'
             )
         }
-        // Next, generate the code to initialize outputs at the start
-        // of a time step to be absent.
-        // This will also set the number of destinations,
+        // Next, set the number of destinations,
         // which is used to initialize reference counts.
+        // Reference counts are decremented by each destination reactor
+        // at the conclusion of a time step. Hence, the initial reference
+        // count should equal the number of destination _reactors_, not the
+        // number of destination ports nor the number of destination reactions.
+        // One of the destination reactors may be the container of this
+        // instance because it may have a reaction to an output of this instance. 
         for (output : instance.outputs) {
-            pr(startTimeStep, '''«nameOfSelfStruct».__«output.name»_is_present = false;''')
-            pr(initializeTriggerObjects, '''«nameOfSelfStruct».__«output.name»_num_destinations = «output.dependentPorts.size»;''')
+            // Count the number of destination reactors that receive data from
+            // this output port. Do this by building a set of the containers
+            // of all dependent ports and reactions. The dependentReactions
+            // includes reactions of the container that listen to this port.
+            val destinationReactors = new HashSet<ReactorInstance>()
+            for (destinationPort : output.dependentPorts) {
+                destinationReactors.add(destinationPort.parent)
+            }
+            for (destinationReaction : output.dependentReactions) {
+                destinationReactors.add(destinationReaction.parent)
+            }
+            var numDestinations = destinationReactors.size
+            pr(initializeTriggerObjects, '''
+                «nameOfSelfStruct».__«output.name»_num_destinations = «numDestinations»;
+            ''')
         }
         
         // Next, initialize actions by creating a token_t in the self struct.
@@ -1778,6 +1867,11 @@ int main(int argc, char* argv[]) {
                 generateReactorInstance(child, federate)
             }
         }
+        
+        // For this instance, define what must be done at the start of
+        // each time step. Note that this is also run once at the end
+        // so that it can deallocate any memory.
+        generateStartTimeStep(instance, federate)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
@@ -1901,10 +1995,12 @@ int main(int argc, char* argv[]) {
         val outputName = generateVarRef(port)
         if (action.type.isTokenType) {
             // Forward the entire token and prevent freeing.
-            // We leave the ref_count alone. It should be 1.
+            // Increment the ref_count because it will be decremented
+            // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
             self->__«outputName» = (token_t*)self->__«action.name»->token;
+            ((token_t*)self->__«action.name»->token)->ref_count++;
             self->__«outputName»_is_present = true;
             '''
         } else {
@@ -1933,7 +2029,7 @@ int main(int argc, char* argv[]) {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        Type type
     ) {
         // Adjust the type of the action.
         // If it is "string", then change it to "char".
@@ -1944,12 +2040,23 @@ int main(int argc, char* argv[]) {
         }
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
-        '''
-        // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-        // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-        // So passing it downstream should be OK.
-        set(«receiveRef», «action.name»_value);
-        '''
+        val result = new StringBuilder()
+        result.append('''
+            // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+        ''')
+        if (isTokenType(type)) {
+            result.append('''
+                set(«receiveRef», «action.name»_token);
+                «action.name»_token->ref_count++;
+            ''')
+        } else {
+            // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
+            // So passing it downstream should be OK.
+            result.append('''
+                set(«receiveRef», «action.name»_value);
+            ''')
+        }
+        return result.toString
     }
 
     /**
@@ -1968,16 +2075,31 @@ int main(int argc, char* argv[]) {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        Type type
     ) { 
-        val sendRef = generateVarRef(sendingPort);
-        val receiveRef = generateVarRef(receivingPort);
-        '''
-        // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-        // FIXME: Only supporting string type right now.
-        int message_length = strlen(«sendRef») + 1;
-        send_physical(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
-        '''
+        val sendRef = generateVarRef(sendingPort)
+        val receiveRef = generateVarRef(receivingPort)
+        val result = new StringBuilder()
+        result.append('''
+            // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+        ''')
+        if (isTokenType(type)) {
+            // NOTE: Transporting token types this way is likely to only work if the sender and receiver
+            // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
+            result.append('''
+                int message_length = «sendRef»->length * «sendRef»->element_size;
+                «sendRef»->ref_count++;
+                send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                __done_using(«sendRef»);
+            ''')
+        } else {
+            // FIXME: Only supporting string type right now.
+            result.append('''
+            int message_length = strlen(«sendRef») + 1;
+            send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
+            ''')
+        }
+        return result.toString
     }
 
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
@@ -2215,12 +2337,6 @@ int main(int argc, char* argv[]) {
                                 '_is_present = &' + containerSelfStructName +
                                 '.__' + port.parent.definition.name + '.' +
                                 port.definition.name + '_is_present;'
-                        )
-                        pr(
-                            startTimeStep,
-                            containerSelfStructName + '.__' +
-                                port.parent.definition.name + '.' +
-                                port.definition.name + '_is_present = false;'
                         )
                     }
                 }
