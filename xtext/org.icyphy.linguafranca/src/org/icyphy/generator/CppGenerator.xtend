@@ -54,6 +54,9 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.TimeValue
+import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.Time
 
 /** Generator for C++ target.
  *
@@ -512,6 +515,25 @@ class CppGenerator extends GeneratorBase {
         }
     }
     
+    def asTime(Value v) {
+        if (v.parameter !== null) {
+            if (v.parameter.ofTimeType) {
+                '''«v.parameter.name»'''
+            } else {
+                '''/* «v.reportError("Expected a parameter of time type!")» */'''
+            }
+        } else if (v.time !== null) {
+            v.time.toText
+        } else if (v.isZero()) {
+            '''reactor::Duration::zero()'''
+        } else {
+            '''/* «v.reportError("Expected a value of time type!")» */'''
+        }
+    }
+    
+    def toText(Value v) '''«v.toText(this)»'''
+    
+    def toText(Time t) '''«t.toText(this)»'''
 
 //    def trimmedValue(TimeOrValue tv) {
 //        if (tv.parameter !== null) {
@@ -604,10 +626,10 @@ class CppGenerator extends GeneratorBase {
         var String period = "reactor::Duration::zero()"
         var String offset = "reactor::Duration::zero()"
         if (t.offset !== null) {
-          offset = '''«t.offset.toText(this)»'''
+          offset = '''«t.offset.asTime»'''
         }
         if (t.period !== null) {
-            period = '''«t.period.toText(this)»'''
+            period = '''«t.period.asTime»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
@@ -617,7 +639,7 @@ class CppGenerator extends GeneratorBase {
             if (a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
                 a.reportError("minInterArrival and minPolicy are not supported for logical actions!");
             } else if (a.minDelay !== null) {
-                ''', «a.name»{"«a.name»", this, «a.minDelay.toText(this)»}'''
+                ''', «a.name»{"«a.name»", this, «a.minDelay.asTime»}'''
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }
@@ -662,7 +684,7 @@ class CppGenerator extends GeneratorBase {
         «n.declareDependencies»
         «n.declareAntidependencies»
         «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.delay.toText(this)», [this]() { «n.name»_deadline_handler(); });
+            «n.name».set_deadline(«n.deadline.delay.asTime», [this]() { «n.name»_deadline_handler(); });
         «ENDIF»
     '''
 
@@ -1061,4 +1083,23 @@ class CppGenerator extends GeneratorBase {
         // forward body for «action.name»
         lfutil::after_forward(&«action.name», &«port.name»);
         '''
+
+    /** Given a representation of time that may possibly include units,
+     *  return a string that C++ recognizes as a time value.
+     * 
+     *  @param time A TimeValue that represents a time.
+     *  @return A string, such as "100ms" for 100 milliseconds.
+     */
+    override timeInTargetLanguage(TimeValue time) {
+        if (time !== null) {
+            if (time.unit != TimeUnit.NONE) {
+                return time.time.toString() + timeUnitsToCppUnits.get(time.unit)
+            } else if (time.time == 0) {
+                return '''reactor::Duration::zero()'''
+            } else {
+                return '''/* «reportError("Valid times must be zero or have a unit!")» */'''
+            }
+        }
+        return '''/* «reportError("Expected a time")» */'''
+    }
 }
