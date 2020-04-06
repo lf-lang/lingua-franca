@@ -118,7 +118,6 @@ class CppGenerator extends GeneratorBase {
     def sourceFile(Reactor r) {
         r.eResource.toDir + File.separator + r.name + ".cc"
     }
-   
         
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         super.doGenerate(resource, fsa, context)
@@ -441,38 +440,6 @@ class CppGenerator extends GeneratorBase {
             '''/* «a.reportError("Action has no type.")» */'''
         }
     }
-
-//    def trimmedValue(Parameter p) {
-//        if (p.ofTimeType) {
-//        	'''/* «p.reportError("Did not expect a parameter of type time!")» */'''
-//        } else {
-//            '''«p.value.toText»'''
-//        }
-//    }
-
-//    def trimmedTime(Parameter p) {
-//        if (p.ofTimeType) {
-//            if (p.unit === null || p.unit === TimeUnit.NONE) {
-//            	if (p.time == 0 || p.value.isZero) {
-//                    '''reactor::Duration::zero()'''
-//                } else {
-//                	'''/* «p.reportError("Time values need to be 0 or have a unit!")» */'''
-//                }
-//            } else {
-//                '''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
-//            }
-//        } else {
-//            '''/* «p.reportError("Expected a parameter of type time!")» */'''
-//        }
-//    }
-    
-//    def trimmedValue(StateVar s) {
-//        if (s.ofTimeType) {
-//        	'''/* «s.reportError("Did not expect a state of type time!")» */'''
-//        } else {
-//            s.init.toText('{', ',', '}', s.ofTimeType)
-//        }
-//    }
     
     def asTime(Value v) {
         if (v.parameter !== null) {
@@ -497,42 +464,6 @@ class CppGenerator extends GeneratorBase {
     def inferredType(StateVar s) '''«s.getInferredType(this)»'''
     
     def inferredType(Parameter p) '''«p.getInferredType(this)»'''
-
-//    def trimmedValue(TimeOrValue tv) {
-//        if (tv.parameter !== null) {
-//            if (tv.parameter.ofTimeType) {
-//                '''/* «tv.reportError("Did not expect a parameter of time type")» */'''
-//            } else {
-//                '''«tv.parameter.name»'''
-//            }
-//        } else if (tv.value !== null) {
-//            '''«tv.value.toText»'''
-//        } else {
-//        	'''/* «tv.reportError("Expected a value or a parameter, not a time")» */'''
-//        }
-//    }
-
-//    def trimmedTime(TimeOrValue tv) {
-//    	if (tv.parameter !== null) {
-//    		if (tv.parameter.ofTimeType) {
-//    			'''«tv.parameter.name»'''
-//    		} else {
-//    			'''/* «tv.reportError("Expected a parameter of time type!")» */'''
-//    		}
-//        } else if (tv.value !== null) {
-//        	if (tv.value.isZero) {
-//         		'''reactor::Duration::zero()'''
-//        	} else {
-//            	'''/* «tv.reportError("Time values need to be 0 or have a unit!")» */'''
-//            }
-//        } else {
-//            '''«tv.time»«timeUnitsToCppUnits.get(tv.unit)»'''
-//        }
-//    }
-
-//    def trimmedValue(Assignment a) '''«a.rhs.trimmedValue»'''
-//
-//    def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
     def getInitializer(StateVar s) '''«s.getStateInitializer('', ', ', '')»'''
     
