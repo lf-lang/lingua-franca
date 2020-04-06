@@ -18,11 +18,11 @@ import de.cau.cs.kieler.klighd.SynthesisOption
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import java.util.WeakHashMap
 import org.eclipse.emf.ecore.EObject
-
-import static extension com.google.common.base.Preconditions.*
 import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
 
-class MemorizingExpandCollapseAction implements IAction {
+import static extension com.google.common.base.Preconditions.*
+
+class MemorizingExpandCollapseAction extends AbstractAction {
     
     public static val MEM_EXPAND_COLLAPSE_ACTION_ID = "org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction"
     
@@ -64,7 +64,7 @@ class MemorizingExpandCollapseAction implements IAction {
         val vc = context.viewContext
         val v = vc.viewer 
         val node = context.KNode
-        val source = vc.getSourceElement(node)
+        val source = node.sourceElement()
         
         if (source instanceof EObject) {
         	node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)?:source, v, !v.isExpanded(node)) // toggle
