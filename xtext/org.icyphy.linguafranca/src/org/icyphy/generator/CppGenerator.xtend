@@ -236,13 +236,13 @@ class CppGenerator extends GeneratorBase {
 
     def declareStateVariables(Reactor r) '''
         «FOR s : r.stateVars BEFORE '// state variables\n' AFTER '\n'»
-            «s.trimmedType» «s.name»;
+            «s.inferredType» «s.name»;
         «ENDFOR»
     '''
 
     def declareParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
-            std::add_const<«p.trimmedType»>::type «p.name»;
+            std::add_const<«p.inferredType»>::type «p.name»;
         «ENDFOR»
     '''
 
@@ -418,30 +418,6 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def trimmedType(Parameter p) {
-        if (p.ofTimeType) {
-            '''reactor::Duration'''
-        } else {
-            if (p.type !== null) {
-                '''«p.type.toText(this)»'''
-            } else {
-                '''/* «p.reportError("Parameter has no type")» */'''
-            }
-        }
-    }
-
-    def trimmedType(StateVar s) {
-        if (s.ofTimeType) {
-            '''reactor::Duration'''
-        } else {
-            if (s.type !== null) {
-               s.type.toText(this)
-            } else {
-                '''/* «s.reportError("State has no type")» */'''
-            }
-        }
-    }
-
     def trimmedType(Input i) {
         if (i.type !== null) {
             i.type.toText(this)
@@ -517,6 +493,10 @@ class CppGenerator extends GeneratorBase {
     def toText(Value v) '''«v.toText(this)»'''
     
     def toText(Time t) '''«t.toText(this)»'''
+    
+    def inferredType(StateVar s) '''«s.getInferredType(this)»'''
+    
+    def inferredType(Parameter p) '''«p.getInferredType(this)»'''
 
 //    def trimmedValue(TimeOrValue tv) {
 //        if (tv.parameter !== null) {
@@ -562,7 +542,7 @@ class CppGenerator extends GeneratorBase {
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
                 «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.trimmedType»>::type>::type «p.name»«ENDFOR»
+                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.inferredType»>::type>::type «p.name»«ENDFOR»
         «ELSE»
             «IF r == mainReactor»
                 «r.name»::«r.name»(const std::string& name, reactor::Environment* environment)
@@ -1024,7 +1004,11 @@ class CppGenerator extends GeneratorBase {
     }
     
     override timeListTypeInTargetLanguage(ArraySpec spec) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+        if (spec !== null) {
+            '''/* «spec.reportError("Arrays are currently not supported!")» */»'''
+        } else {
+            '''reactor::Duration'''
+        }
     }
     
     override protected generateVariableSizeArrayInitializer(List<String> list) {
