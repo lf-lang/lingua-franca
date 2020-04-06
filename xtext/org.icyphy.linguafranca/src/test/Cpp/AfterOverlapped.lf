@@ -1,0 +1,41 @@
+// This the after keyword with overlapped time intervals.
+target Cpp {
+    fast: true,
+    timeout: 5 sec
+};
+
+import Count.lf;
+
+reactor Test {
+    input c:int;
+    state i:int(0);
+
+    reaction(c) {=
+        std::cout << "Received " << *c.get() << '\n';
+        i++;
+        if (*c.get() != i) {
+            std::cerr << "ERROR: Expected " << i << " but got " << *c.get() << '\n';
+            exit(1);
+        }
+        auto elapsed_time = get_elapsed_logical_time();
+
+        std::cout << "Elapsed logical time is: " << elapsed_time << '\n';
+
+        auto expected = 2s + ((*c.get() - 1) * 1s);
+        if (elapsed_time != expected) {
+            std::cerr << "ERROR: Expected logical time to be " << expected << '\n';
+            exit(1);
+        }
+    =}
+    reaction(shutdown) {=
+        if (i == 0) {
+            std::cerr << "ERROR: Final reactor received no data.\n";
+            exit(3);
+        }
+    =}
+}
+main reactor CountTest {
+    count = new Count();
+    test = new Test();
+    count.c -> test.c after 2 sec;
+}

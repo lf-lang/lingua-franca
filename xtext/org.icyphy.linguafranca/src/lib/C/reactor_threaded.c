@@ -254,7 +254,7 @@ bool __next() {
     			// There is no new event. If the timeout time has been reached,
     			// or there is also no old event,
     			// or if the maximum time has been reached (unlikely), then return.
-    			if ((stop_time > 0LL && event->time > stop_time) || new_event == NULL) {
+    			if (new_event == NULL || (stop_time > 0LL && event->time > stop_time)) {
     				stop_requested = true;
     				// Signal the worker threads.
     				pthread_cond_broadcast(&reaction_or_executing_q_changed);

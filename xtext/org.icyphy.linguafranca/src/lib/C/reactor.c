@@ -185,7 +185,7 @@ int next() {
         if (new_event == event) {
             // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
-            if ((stop_time > 0LL && current_time >= stop_time) || new_event == NULL) {
+            if (new_event == NULL || (stop_time > 0LL && current_time >= stop_time)) {
                 stop_requested = true;
                 return 0;
             }

@@ -13,11 +13,15 @@ main reactor Server {
     reaction (startup) -> serverRequest {=
         let options = {};
         server = http.createServer(options, (req : http.IncomingMessage, res : http.ServerResponse) => {
-            serverRequest.schedule(0, [req, res])
+            // Generally browsers make two requests, the first is for favicon.ico.
+            // See https://stackoverflow.com/questions/11961902/nodejs-http-createserver-seems-to-call-twice
+            if (req.url != '/favicon.ico') {
+                actions.serverRequest.schedule(0, [req, res])
+            }
         }).listen(8000);
     =}
     reaction (serverRequest) {=
-        let requestArray = serverRequest.get();
+        let requestArray = serverRequest;
         if (requestArray) {
             let req = requestArray[0];
             let res = requestArray[1];

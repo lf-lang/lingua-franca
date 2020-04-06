@@ -130,8 +130,10 @@ do { \
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
+    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
+    out = token->value; \
     self->__ ## out ## _is_present = true; \
+    self->__ ## out = token; \
 } while(0)
 
 /** Version of set() for output types given as 'type[]'.
@@ -148,8 +150,10 @@ do { \
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
-    out = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
+    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
+    out = token->value; \
     self->__ ## out ## _is_present = true; \
+    self->__ ## out = token; \
 } while(0)
 
 /** Version of set() for output types given as 'type[number]'.
@@ -371,6 +375,12 @@ handle_t __schedule(trigger_t* trigger, interval_t delay, token_t* token);
  * Function (to be code generated) to start timers.
  */
 void __start_timers();
+
+/**
+ * Function (to be code generated) to terminate execution.
+ * This will be invoked after all shutdown actions have completed.
+ */
+void __termination();
 
 /**
  * Function (to be code generated) to wrap up execution.
