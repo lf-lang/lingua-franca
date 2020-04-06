@@ -4,8 +4,8 @@ import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import org.icyphy.ASTUtils
-import org.icyphy.linguaFranca.ParamTimeOrValue
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.Value
 
 @ViewSynthesisShared
 class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions {
@@ -15,17 +15,17 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	/**
 	 * Converts a timing value into readable text
 	 */
-	def String toText(ParamTimeOrValue ptv) {
-		if (ptv !== null) {
-			if (ptv.parameter !== null) {
-                return ptv.parameter.name
-            } else if (ptv.timeOrValue !== null) {
-                if (ptv.timeOrValue.value !== null) {
-                    return ASTUtils.toText(ptv.timeOrValue.value)    
-                } else if (ptv.timeOrValue.time !== null) {
-                    return ptv.timeOrValue.time.interval +
-                        ptv.timeOrValue.time.unit.toString
-                }
+	def String toText(Value value) {
+		if (value !== null) {
+			if (value.parameter !== null) {
+                return value.parameter.name
+            } else if (value.time !== null) {
+                return value.time.interval +
+                        value.time.unit.toString
+            } else if (value.literal !== null) {
+                return value.literal
+            } else if (value.code !== null) {
+                ASTUtils.toText(value.code)
             }
 		}
 		return ""

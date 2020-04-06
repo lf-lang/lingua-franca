@@ -32,6 +32,7 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
+import org.icyphy.ASTUtils
 import org.icyphy.DependencyGraph
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
@@ -42,12 +43,10 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.TimeOrValue
-import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.ASTUtils
+import org.icyphy.linguaFranca.Value
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -542,8 +541,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def propagateDeadlines() {
         // Assume the graph is acyclic.
         for (r : reactionsWithDeadline) {
-            if (r.definition.deadline !== null && r.definition.deadline.interval !== null) {
-                r.deadline = this.resolveTime(r.definition.deadline.interval)
+            if (r.definition.deadline !== null && r.definition.deadline.delay !== null) {
+                r.deadline = this.resolveTime(r.definition.deadline.delay)
             }
             propagateDeadline(r)
         }
@@ -785,10 +784,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                             "Incorrect reference to parameter:" +
                                 parameter.name);
                     }
-                    
+
                     val referencedParameter = instance.
                         getParameterInstance(rhs.parameter)
-                    
+
                     if (referencedParameter instanceof TimeParameter) {
                         var timeParm = referencedParameter
                         return new TimeParameter(parameter, parent,
@@ -801,56 +800,51 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     }
                 } else {
                     // Parameter is overridden by a type or value 
-                    if (parameter.isOfTimeType) {
+                    if (ASTUtils.isOfTimeType(parameter)) {
                         return new TimeParameter(parameter, this,
-                            new TimeValue(rhs.time, rhs.unit))
+                            ASTUtils.getTimeValue(rhs))
                     } else {
-                        var String value
-                        if (rhs.value.code !== null) {
-                            value = ASTUtils.toText(rhs.value.code)
-                        } else {
-                            value = rhs.value.literal
-                        }
-                        return new ValueParameter(parameter, this, value, parameter.type)
+                        var str = if (rhs.literal !== null) {
+                                rhs.literal
+                            } else if (rhs.code !== null) {
+                                ASTUtils.toText(rhs.code)
+                            }
+                        return new ValueParameter(parameter, this, str,
+                            parameter.type)
                     }
                 }
             }
         }
+    
         // If we reached here, the parameter was not overridden. Use its default value.
-        if (parameter.isOfTimeType) {
-            return new TimeParameter(parameter, this, new TimeValue(parameter.time,
-                parameter.unit))
+        if (ASTUtils.isOfTimeType(parameter)) {
+            return new TimeParameter(parameter, this,
+                ASTUtils.getTimeValue(parameter))
         } else {
-            var String value
-//            if (parameter.value !== null) {
-//                value = ASTUtils.toText(parameter.value)
-//            }
-            value = this.generator.getParamInitializer(parameter, '{', ', ', '}') // FIXME: delims
-            return new ValueParameter(parameter, this, value, parameter.type)
+            return new ValueParameter(parameter, this,
+                this.generator.getParamInitializer(parameter), parameter.type)
         }
     }
     
     /** If the argument is non-null, determine whether it is a parameter
      *  reference or a literal time value and convert it to a time value
      *  in the target language, which is returned.
-     *  If the argument is null, return the target language representation
-     *  of zero time.
+     *  If the argument is null, return null.
      *  @param timeOrValue A time or parameter reference.
      */
-    def TimeValue resolveTime(TimeOrValue timeOrValue) {
-        if (timeOrValue !== null) {
-            if (timeOrValue.parameter !== null) {
-                var resolved = this.resolveParameter(timeOrValue.parameter)
+    def TimeValue resolveTime(Value value) {
+        if (value !== null) {
+            if (value.parameter !== null) {
+                var resolved = this.resolveParameter(value.parameter)
                 if (resolved === null || !(resolved instanceof TimeParameter)) {
                     throw new InternalError(
                         "Incorrect reference to parameter:" +
-                            timeOrValue.parameter.name);
+                            value.parameter.name);
                 }
                 return (resolved as TimeParameter).value
             } else {
-                return new TimeValue(timeOrValue.time, timeOrValue.unit) 
+                return ASTUtils.getTimeValue(value)
             }
         }
-        return new TimeValue(0, TimeUnit.NONE)
     }
 }

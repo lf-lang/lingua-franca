@@ -34,6 +34,7 @@ import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
+import java.util.List
 import java.util.regex.Pattern
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
@@ -42,9 +43,11 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.ASTUtils
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -63,6 +66,8 @@ import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+
+import static extension org.icyphy.ASTUtils.*
 
 /** Generator for C target.
  * 
@@ -520,10 +525,9 @@ int main(int argc, char* argv[]) {
                             timer = factory.createTimer
                             timer.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__STARTUP.name
-                            timer.offset = factory.createTimeOrValue
-                            timer.offset.time = 0
-                            timer.period = factory.createTimeOrValue
-                            timer.period.time = 0
+                            timer.offset = factory.createValue
+                            timer.offset.literal = "0"
+                            timer.period.literal = "0"
                             reactor.timers.add(timer)
                         }
                     } else if (trigger.isShutdown) {
@@ -533,8 +537,8 @@ int main(int argc, char* argv[]) {
                             action.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__SHUTDOWN.name
                             action.origin = ActionOrigin.LOGICAL
-                            action.minDelay = factory.createTimeOrValue
-                            action.minDelay.time = 0
+                            action.minDelay = factory.createValue
+                            action.minDelay.literal = "0"
                             reactor.actions.add(action)
                         }
                     }
@@ -943,7 +947,7 @@ int main(int argc, char* argv[]) {
             indent();
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline.interval)
+            prSourceLineNumber(reaction.deadline)
             pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
@@ -1629,7 +1633,7 @@ int main(int argc, char* argv[]) {
             // memory allocations.
             
             // Array type parameters have to be handled specially.
-            val matcher = arrayPatternVariable.matcher(parameter.type.toText)
+            val matcher = arrayPatternVariable.matcher(parameter.type.toText(this))
             if (matcher.find()) {
                 val temporaryVariableName = parameter.uniqueID
                 pr(initializeTriggerObjects,
@@ -1654,7 +1658,7 @@ int main(int argc, char* argv[]) {
             val init = stateVar.init
             var initStr = stateVar.getStateInitializer('{', ',', '}')
 
-            if (stateVar.ofTimeType) {
+            if (stateVar.isOfTimeType) {
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + stateVar.name + " = " +
                         initStr + ";")
@@ -1670,7 +1674,7 @@ int main(int argc, char* argv[]) {
                         initStr + ";")
                 } else {
                    val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
-                    var type = stateVar.type.toText
+                    var type = stateVar.type.toText(this)
                     val matcher = arrayPatternVariable.matcher(type)
                     if (matcher.find()) {
                         // If the state type ends in [], then we have to move the []
@@ -1731,7 +1735,7 @@ int main(int argc, char* argv[]) {
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action)) {
                 var type = (action.definition as Action).type
-                var typeStr = type.toText
+                var typeStr = type.toText(this)
                 if (isTokenType(type)) {
                     typeStr = type.rootType
                 }
@@ -1763,7 +1767,7 @@ int main(int argc, char* argv[]) {
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
             if (reaction.definition.deadline !== null) {
-                var deadline = instance.resolveTime(reaction.definition.deadline.interval)
+                var deadline = instance.resolveTime(reaction.definition.deadline.delay)
                 pr(initializeTriggerObjects,
                     reactionStructName(reaction) + '.local_deadline = ' +
                         timeInTargetLanguage(deadline) + ';')
@@ -1872,6 +1876,19 @@ int main(int argc, char* argv[]) {
         }
     }
     
+    
+    override String generateVariableSizeArrayInitializer(List<String> list) {
+         return list.join('{', ', ', '}', [it])
+    }
+    
+    override String generateFixedSizeArrayInitializer(List<String> list) {
+        return list.join('{', ', ', '}', [it])
+    }
+    
+    override String generateObjectInitializer(List<String> list) {
+        return list.join('{', ', ', '}', [it])
+    }
+    
     /**
      * Generate code for the body of a reaction that is triggered by the
      * given action and writes its value to the given port. This realizes
@@ -1921,7 +1938,7 @@ int main(int argc, char* argv[]) {
         // Adjust the type of the action.
         // If it is "string", then change it to "char".
         // Pointer types in actions are declared without the "*" (perhaps oddly).
-        if (action.type.toText == "string") {
+        if (action.type.toText(this) == "string") {
             action.type.code = null
             action.type.id = "char*"
         }
@@ -2262,7 +2279,7 @@ int main(int argc, char* argv[]) {
                 
                 // If this is an array type, the type cannot be used verbatim; the trailing `[]`
                 // should be replaced by a `*`
-                var cType = type.toText
+                var cType = type.toText(this)
                 val matcher = arrayPatternVariable.matcher(cType)
                 if (matcher.find()) {
                     cType = matcher.group(1) + '*'
@@ -2281,9 +2298,9 @@ int main(int argc, char* argv[]) {
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
                 pr(builder, '''
-                    «type.toText» «action.name»_value;
+                    «type.toText(this)» «action.name»_value;
                     if («action.name»_has_value) {
-                        «action.name»_value = *((«type.toText»*)«tokenPointer»->value);
+                        «action.name»_value = *((«type.toText(this)»*)«tokenPointer»->value);
                     }
                     '''
                 )
@@ -2331,11 +2348,11 @@ int main(int argc, char* argv[]) {
             }
         } else if (input.type !== null) {
             // Look for array type of form type[number].
-            val matcher = arrayPatternFixed.matcher(input.type.toText)
+            val matcher = arrayPatternFixed.matcher(input.type.toText(this))
             if (matcher.find()) {
                 pr(builder, matcher.group(1) + '* ' + input.name + ';')
             } else {
-                pr(builder, input.type.toText + ' ' + input.name + ';')
+                pr(builder, input.type.toText(this) + ' ' + input.name + ';')
             }
             pr(builder, 'if(' + present + ') {')
             indent(builder)
@@ -2482,22 +2499,10 @@ int main(int argc, char* argv[]) {
      *  @return The C type.
      */
     private def getParameterType(Parameter parameter) {
-        if (parameter.ofTimeType) {
-            return timeTypeInTargetLanguage
-        }
-        if (parameter.type === null || parameter.type.toText.equals("")) {
-            reportError(parameter,
-                "Parameter is required to have a type: " + parameter.name)
-            return "(ERROR: NO TYPE)"
-        }
-        var type = parameter.type.toText
-        if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
-            type = 'interval_t'
-        } else {
-            val matcher = arrayPatternVariable.matcher(type)
-            if (matcher.find()) {
-                return matcher.group(1) + '*'
-            }
+        var type = ASTUtils.getInferredType(parameter, this)
+        val matcher = arrayPatternVariable.matcher(type)
+        if (matcher.find()) {
+            return matcher.group(1) + '*'
         }
         type
     }
@@ -2513,27 +2518,34 @@ int main(int argc, char* argv[]) {
     private def getStateType(StateVar state) {
         // A state variable may directly refer to its initializing parameter,
         // in which case, it inherits the type from the parameter.
-        if (state.init !== null && state.init.size == 1) {
-            val parm = state.init.get(0).parameter
-            if (parm !== null)
-                return parm.type.toText
-        }
-        if (state.ofTimeType) {
-            return timeTypeInTargetLanguage
-        }
-        if (state.type === null || state.type.toText.equals("")) {
-            reportError(state,
-                "State is required to have a type: " + state.name)
-            return "(ERROR: NO TYPE)"
-        }
-        var type = state.type.toText
-        if (state.isOfTimeType) {
-            type = 'interval_t'
-        } else {
-            val matcher = arrayPatternVariable.matcher(type)
-            if (matcher.find()) {
-                return matcher.group(1) + '*'
-            }
+//        if (state.init !== null && state.init.size == 1) {
+//            val parm = state.init.get(0).parameter
+//            if (parm !== null)
+//                return parm.type.toText
+//        }
+//        if (state.ofTimeType) {
+//            return timeTypeInTargetLanguage
+//        }
+//        if (state.type === null || state.type.toText.equals("")) {
+//            reportError(state,
+//                "State is required to have a type: " + state.name)
+//            return "(ERROR: NO TYPE)"
+//        }
+//        var type = state.type.toText
+//        if (state.isOfTimeType) {
+//            type = 'interval_t'
+//        } else {
+//            val matcher = arrayPatternVariable.matcher(type)
+//            if (matcher.find()) {
+//                return matcher.group(1) + '*'
+//            }
+//        }
+//        type
+
+        var type = state.getInferredType(this)
+        val matcher = arrayPatternVariable.matcher(type)
+        if (matcher.find()) {
+            return matcher.group(1) + '*'
         }
         type
     }
@@ -2545,7 +2557,7 @@ int main(int argc, char* argv[]) {
      *  @param type The type specification.
      */
     private def isTokenType(Type type) {
-        val typeStr = type.toText
+        val typeStr = type.toText(this)
         if (typeStr.trim.matches("^\\w*\\[\\s*\\]$") || typeStr.trim.endsWith('*')) {
             true
         } else {
@@ -2560,7 +2572,7 @@ int main(int argc, char* argv[]) {
      *  @param type A string describing the type.
      */
     private def rootType(Type type) {
-        var str = type.toText
+        var str = type.toText(this)
         if (str.endsWith(']')) {
             val root = str.indexOf('[')
             str.substring(0, root).trim
@@ -2577,7 +2589,7 @@ int main(int argc, char* argv[]) {
      *  unmodified.
      */
     private def lfTypeToTokenType(Type type) {
-        var result = type.toText
+        var result = type.toText(this)
         if (isTokenType(type)) {
             result = 'token_t*'
         }
@@ -2658,4 +2670,16 @@ int main(int argc, char* argv[]) {
         = '// **** Do not include initialization code in this reaction.'
         
     static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    
+    override timeListTypeInTargetLanguage(ArraySpec spec) {
+        if (spec !== null) {
+            if (spec.isOfVariableLength) {
+                return "interval_t[]"
+            } else {
+                return "interval_t[" + spec.length + "]"
+            }
+        }
+        return "interval_t"
+    }
+    
 }

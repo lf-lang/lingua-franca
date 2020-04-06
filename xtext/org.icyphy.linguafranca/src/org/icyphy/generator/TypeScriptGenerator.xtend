@@ -31,6 +31,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.HashMap
 import java.util.HashSet
+import java.util.List
 import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -38,6 +39,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.Targets.LoggingLevels
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
@@ -49,6 +51,8 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+
+import static extension org.icyphy.ASTUtils.*
 
 // FIXME: This still has a bunch of copied code from CGenerator that should be removed.
 
@@ -289,10 +293,10 @@ class TypeScriptGenerator extends GeneratorBase {
                     "Parameter is required to have a type: " + parameter.name)
             } else if (parameter.ofTimeType) {
                  arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + timeInTargetLanguage(new TimeValue(parameter.time, parameter.unit)))
+                    +" = " + timeInTargetLanguage(parameter.timeValue))
             } else {
                 arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + parameter.value.toText)
+                    +" = " + parameter.paramInitializer)
             }
         }
         
@@ -327,14 +331,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 for (parameterAssignment : childReactor.parameters) {
                     if (parameterAssignment.lhs.name.equals(parameter.name)) {
                         childParameterFound = true
-                        if (parameterAssignment.rhs.parameter !== null) {
-                            childReactorArguments.add(parameterAssignment.rhs.parameter.name)
-                        } else if (parameterAssignment.rhs.value !== null) {
-                            childReactorArguments.add(parameterAssignment.rhs.value.toText)
-                        } else {
-                            childReactorArguments.add(
-                                timeInTargetLanguage(new TimeValue(parameterAssignment.rhs.time, parameterAssignment.rhs.unit)))
-                        }
+                        childReactorArguments.add(parameterAssignment.rhs.toText(this))
                     }
                 }
                 
@@ -363,22 +360,16 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (timer.period === null) {
                     timerPeriod = "0";
                 } else {
-                    if (timer.period.parameter !== null) {
-                        timerPeriod = timer.period.parameter.name
-                    } else {
-                        timerPeriod = timeInTargetLanguage(new TimeValue(timer.period.time, timer.period.unit))
-                    }
+                    timerPeriod = timer.period.toText(this)
                 }
                 
                 var String timerOffset
                 if (timer.offset === null) {
                     timerOffset = "0";
                 } else {
-                     if (timer.offset.parameter !== null) {
-                        timerOffset = timer.offset.parameter.name
-                    } else {
-                        timerOffset = timeInTargetLanguage(new TimeValue(timer.offset.time, timer.offset.unit))
-                    }
+
+                    timerOffset = timer.offset.toText(this)
+
                 }
     
                 pr(timer.getName() + ": Timer;")
@@ -434,7 +425,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (action.minDelay.parameter !== null) {
                         actionArgs+= ", " + action.minDelay.parameter.name
                     } else {
-                        actionArgs+= ", " + timeInTargetLanguage(new TimeValue(action.minDelay.time, action.minDelay.unit))    
+                        actionArgs+= ", " + action.minDelay.toText(this)    
                     }
                 }
                 pr(reactorConstructor, "this." + 
@@ -660,7 +651,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     var containedArgElement = ""
                     var containedPrologueElement = ""
                     if (containedVariable instanceof Input) {
-                        containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type.toText + ">"
+                        containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type.toText(this) + ">"
                         containedArgElement += containedVariable.name + ": " + "this.getWritable(" + functArg + ")"
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                         pr(reactEpilogue, "if (" + container.name + "." + containedVariable.name + " !== undefined) {")
@@ -670,7 +661,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         reactEpilogue.unindent()
                         pr(reactEpilogue, "}")
                     } else if(containedVariable instanceof Output) {
-                        containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type.toText + ">"
+                        containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type.toText(this) + ">"
                         containedArgElement += containedVariable.name + ": " + functArg
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                     }
@@ -730,10 +721,10 @@ class TypeScriptGenerator extends GeneratorBase {
             } else {
                 pr(reactorConstructor, "},")
                 var deadlineArgs = ""
-                if (reaction.deadline.interval.parameter !== null) {
-                    deadlineArgs += "this." + reaction.deadline.interval.parameter.name + ".get()"; 
+                if (reaction.deadline.delay.parameter !== null) {
+                    deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()"; 
                 } else {
-                    deadlineArgs += timeInTargetLanguage(new TimeValue(reaction.deadline.interval.time, reaction.deadline.interval.unit))
+                    deadlineArgs += reaction.deadline.delay.toText(this)
                 }
                 pr(reactorConstructor, deadlineArgs + "," )
                 pr(reactorConstructor, "function(" + reactSignature + ") {")
@@ -780,7 +771,7 @@ class TypeScriptGenerator extends GeneratorBase {
             
         var arguments = new StringJoiner(", ")
         for (parameter : defn.parameters) {
-            arguments.add(parameter.rhs.value.toText)
+            arguments.add(parameter.rhs.toText(this))
         }
 
         // Get target properties for the app
@@ -932,18 +923,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The TS type.
      */
     private def getStateType(StateVar state) {
-        var String type
-        // FIXME
-//        if (state.isOfTimeType) {
-//            type = timeTypeInTargetLanguage
-//        } else if (state.type !== null) {
-//            type = state.type.toText
-//        } else if (state.init.parameter !== null) {
-//            type = getParameterType(state.init.parameter)
-//        } else {
-//            type = 'unknown'
-//        }
-        type
+        state.getInferredType(this)
     }
     
     /**
@@ -955,7 +935,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getActionType(Action action) {
         if (action.type !== null) {
-            return action.type.toText
+            return action.type.toText(this)
         } else {
             return "Present"    
         }
@@ -970,7 +950,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getPortType(Port port) {
         if (port.type !== null) {
-            return port.type.toText
+            return port.type.toText(this)
         } else {
             return "Present"    
         }
@@ -984,8 +964,8 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The TS type.
      */
     private def getParameterType(Parameter parameter) {
-        var type = parameter.type.toText
-        if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
+        var type = parameter.type.toText(this)
+        if (parameter.isOfTimeType) {
             type = 'TimeValue'
         }
         type
@@ -1000,4 +980,21 @@ import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeL
 import {Log} from "''' + utilLibPath + '''"
 
     '''
+    
+    override timeListTypeInTargetLanguage(ArraySpec spec) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected generateVariableSizeArrayInitializer(List<String> list) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected generateFixedSizeArrayInitializer(List<String> list) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected generateObjectInitializer(List<String> list) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
 }
