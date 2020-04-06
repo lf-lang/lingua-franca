@@ -1058,7 +1058,7 @@ abstract class GeneratorBase {
 
         for (i : param?.init) {
             if (param.isOfTimeType) {
-                list.add(i.toText(this))
+                list.add(i.timeValue.timeInTargetLanguage)
             } else {
                 if (i.literal !== null) {
                     list.add(i.literal)
