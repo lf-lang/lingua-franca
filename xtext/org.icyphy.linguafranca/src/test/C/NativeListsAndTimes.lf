@@ -18,14 +18,15 @@ reactor Foo(x:int(0),
 	state period(z);	// Implicit type time
 }
 
-reactor Bar(a:0,			// ERROR: type missing
-			t:time(42), 	// ERROR: units missing
-			x:int(0),
-			h:time("bla"), 	// ERROR: not a type 
-			q:time(1 msec, 2 msec)  // ERROR: not a list
-) {
-	state offset:time(42); 	// ERROR: units missing
-	state w:time(x);		// ERROR: parameter is not a time
-	state foo:time("bla");	// ERROR: assigned value not a time
-	timer tick(1);			// ERROR: not a time
-}
+//reactor Bar(a:0,			// ERROR: type missing
+//			t:time(42), 	// ERROR: units missing
+//			x:int(0),
+//			h:time("bla"), 	// ERROR: not a type 
+//			q:time(1 msec, 2 msec),  // ERROR: not a list
+//			y:int(t)		// ERROR: init using parameter
+//) {
+//	state offset:time(42); 	// ERROR: units missing
+//	state w:time(x);		// ERROR: parameter is not a time
+//	state foo:time("bla");	// ERROR: assigned value not a time
+//	timer tick(1);			// ERROR: not a time
+//}

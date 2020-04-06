@@ -100,8 +100,8 @@ Reactor:
  StateVar:
     'state' name=ID (
         (':' (type=Type))? 
-        (emptyInit?=EMPTY_INIT
-            | ('(' init+=ParamTimeOrValue (',' init+=ParamTimeOrValue)* ')' )
+        (parens+='(' init+=Value 
+                (',' init+=Value)* parens+=')'
         )?
     ) ';'    
 ;
@@ -117,7 +117,7 @@ Output:
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID ('(' offset=ParamTimeOrValue (',' period=ParamTimeOrValue)? ')')? ';';
+    'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';';
 
 // Action that has either a physical or logical origin.
 // 
@@ -131,7 +131,7 @@ Timer:
 // to elapse between action occurrences.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=ParamTimeOrValue (',' minInterArrival=ParamTimeOrValue (',' policy=QueuingPolicy)? )? ')')?
+    ('(' minDelay=Value (',' minInterArrival=Value (',' policy=QueuingPolicy)? )? ')')?
     (':' type=Type)? ';';
 
 Reaction:
@@ -146,10 +146,10 @@ TriggerRef:
     VarRef | startup?='startup' | shutdown?='shutdown';
 
 Delay:
-    'after' time=ParamTimeOrValue;
+    'after' time=Value;
 
 Deadline:
-    'deadline' '(' delay=ParamTimeOrValue ')' code=Code;
+    'deadline' '(' delay=Value ')' code=Code;
 
 Mutation:
     ('mutation')
@@ -206,7 +206,7 @@ VarRef:
     | container=[Instantiation] '.' variable=[Variable];
 
 Assignment:
-    (lhs=[Parameter] '=' rhs=ParamTimeOrValue);
+    (lhs=[Parameter] '=' rhs=Value);
 
 
 /**
@@ -223,30 +223,30 @@ Parameter:
 //          ) 
 //    )
 
-(':' (type=Type))? ('(' init+=TimeOrValue (',' init+=TimeOrValue)* ')' )
+(':' (type=Type))? ('(' init+=Value (',' init+=Value)* ')' )
 ;
  
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
 // If it is a constant, the validator should check that if the value
 // is non-zero, it is accompanied by a unit.
-ParamTimeOrValue:
-    (parameter=[Parameter] | timeOrValue=TimeOrValue);
+Value:
+    (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
 
-TimeOrValue:
-    time=Time | value=LiteralOrCode
-;
+//TimeOrValue: // FIXME: Value: [Param] | time | literal | code
+//    time=Time | value=LiteralOrCode
+//;
 
 Time:
     (interval=INT unit=TimeUnit)
 ;
 
-LiteralOrCode:
-    literal=Literal | code=Code;
+//LiteralOrCode:
+//    literal=Literal | code=Code;
 
 Port:
     Input | Output;
-
+    
 // A type is in the target language, hence either an ID or target code.
 Type:
    (time?='time' (arraySpec=ArraySpec)?) | ((id=ID (stars+='*')* (arraySpec=ArraySpec)?) | code=Code);
@@ -257,9 +257,6 @@ ArraySpec:
 terminal BOOL:
     'true' | 'false';
 
-terminal EMPTY_INIT:
-    '(' ')'
-;
 Literal:
     STRING | FLOAT | INT | NEGINT | BOOL;
 
@@ -323,7 +320,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' |
     // Other terminals
-    FLOAT | NEGINT | BOOL | EMPTY_INIT |
+    FLOAT | NEGINT | BOOL |
     // Queuing policies
     'DEFER' | 'DROP' | 'UPDATE' |
     // Action origins

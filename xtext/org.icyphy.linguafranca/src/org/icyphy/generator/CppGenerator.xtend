@@ -28,31 +28,32 @@ package org.icyphy.generator
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.LinkedList
 import java.util.List
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.Assignment
+import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Preamble
+import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
-import java.util.LinkedList
-import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Visibility
-import org.icyphy.linguaFranca.Model
-import org.icyphy.linguaFranca.QueuingPolicy
+
+import static extension org.icyphy.ASTUtils.*
 
 /** Generator for C++ target.
  *
@@ -404,7 +405,7 @@ class CppGenerator extends GeneratorBase {
             '''
                 «r.name»(const std::string& name,
                     «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.trimmedType» «p.name» = «IF p.ofTimeType»«p.trimmedTime»«ELSE»«p.trimmedValue»«ENDIF»«ENDFOR»
+                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»«p.type.toText(this)» «p.name» = «p.paramInitializer»«ENDFOR»
             '''
         } else {
             if (r == mainReactor) {
@@ -420,7 +421,7 @@ class CppGenerator extends GeneratorBase {
             '''const reactor::Duration'''
         } else {
             if (p.type !== null) {
-                '''const «p.type.toText.removeCodeDelimiter»'''
+                '''const «p.type.toText(this)»'''
             } else {
                 '''/* «p.reportError("Parameter has no type")» */'''
             }
@@ -431,9 +432,8 @@ class CppGenerator extends GeneratorBase {
         if (s.ofTimeType) {
             '''reactor::Duration'''
         } else {
-            val type = s.valueType
-            if (type !== null) {
-               type.toText
+            if (s.type !== null) {
+               s.type.toText(this)
             } else {
                 '''/* «s.reportError("State has no type")» */'''
             }
@@ -442,7 +442,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Input i) {
         if (i.type !== null) {
-            i.type.toText.removeCodeDelimiter
+            i.type.toText(this)
         } else {
             '''/* «i.reportError("Input port has no type.")» */'''
         }
@@ -450,7 +450,7 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Output o) {
         if (o.type !== null) {
-            o.type.toText.removeCodeDelimiter
+            o.type.toText(this)
         } else {
             '''/* «o.reportError("Input port has no type.")» */'''
         }
@@ -458,43 +458,43 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedType(Action a) {
         if (a.type !== null) {
-            a.type.toText.removeCodeDelimiter
+            a.type.toText(this)
         } else {
             '''/* «a.reportError("Action has no type.")» */'''
         }
     }
 
-    def trimmedValue(Parameter p) {
-        if (p.ofTimeType) {
-        	'''/* «p.reportError("Did not expect a parameter of type time!")» */'''
-        } else {
-            '''«p.value.toText»'''
-        }
-    }
+//    def trimmedValue(Parameter p) {
+//        if (p.ofTimeType) {
+//        	'''/* «p.reportError("Did not expect a parameter of type time!")» */'''
+//        } else {
+//            '''«p.value.toText»'''
+//        }
+//    }
 
-    def trimmedTime(Parameter p) {
-        if (p.ofTimeType) {
-            if (p.unit === null || p.unit === TimeUnit.NONE) {
-            	if (p.time == 0 || p.value.isZero) {
-                    '''reactor::Duration::zero()'''
-                } else {
-                	'''/* «p.reportError("Time values need to be 0 or have a unit!")» */'''
-                }
-            } else {
-                '''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
-            }
-        } else {
-            '''/* «p.reportError("Expected a parameter of type time!")» */'''
-        }
-    }
+//    def trimmedTime(Parameter p) {
+//        if (p.ofTimeType) {
+//            if (p.unit === null || p.unit === TimeUnit.NONE) {
+//            	if (p.time == 0 || p.value.isZero) {
+//                    '''reactor::Duration::zero()'''
+//                } else {
+//                	'''/* «p.reportError("Time values need to be 0 or have a unit!")» */'''
+//                }
+//            } else {
+//                '''«p.time»«timeUnitsToCppUnits.get(p.unit)»'''
+//            }
+//        } else {
+//            '''/* «p.reportError("Expected a parameter of type time!")» */'''
+//        }
+//    }
     
-    def trimmedValue(StateVar s) {
-        if (s.ofTimeType) {
-        	'''/* «s.reportError("Did not expect a state of type time!")» */'''
-        } else {
-            s.init.toText('{', ',', '}', s.ofTimeType)
-        }
-    }
+//    def trimmedValue(StateVar s) {
+//        if (s.ofTimeType) {
+//        	'''/* «s.reportError("Did not expect a state of type time!")» */'''
+//        } else {
+//            s.init.toText('{', ',', '}', s.ofTimeType)
+//        }
+//    }
     
     def trimmedTime(StateVar s) {
         if (s.ofTimeType) {
@@ -514,41 +514,41 @@ class CppGenerator extends GeneratorBase {
     }
     
 
-    def trimmedValue(TimeOrValue tv) {
-        if (tv.parameter !== null) {
-            if (tv.parameter.ofTimeType) {
-                '''/* «tv.reportError("Did not expect a parameter of time type")» */'''
-            } else {
-                '''«tv.parameter.name»'''
-            }
-        } else if (tv.value !== null) {
-            '''«tv.value.toText»'''
-        } else {
-        	'''/* «tv.reportError("Expected a value or a parameter, not a time")» */'''
-        }
-    }
+//    def trimmedValue(TimeOrValue tv) {
+//        if (tv.parameter !== null) {
+//            if (tv.parameter.ofTimeType) {
+//                '''/* «tv.reportError("Did not expect a parameter of time type")» */'''
+//            } else {
+//                '''«tv.parameter.name»'''
+//            }
+//        } else if (tv.value !== null) {
+//            '''«tv.value.toText»'''
+//        } else {
+//        	'''/* «tv.reportError("Expected a value or a parameter, not a time")» */'''
+//        }
+//    }
 
-    def trimmedTime(TimeOrValue tv) {
-    	if (tv.parameter !== null) {
-    		if (tv.parameter.ofTimeType) {
-    			'''«tv.parameter.name»'''
-    		} else {
-    			'''/* «tv.reportError("Expected a parameter of time type!")» */'''
-    		}
-        } else if (tv.value !== null) {
-        	if (tv.value.isZero) {
-         		'''reactor::Duration::zero()'''
-        	} else {
-            	'''/* «tv.reportError("Time values need to be 0 or have a unit!")» */'''
-            }
-        } else {
-            '''«tv.time»«timeUnitsToCppUnits.get(tv.unit)»'''
-        }
-    }
+//    def trimmedTime(TimeOrValue tv) {
+//    	if (tv.parameter !== null) {
+//    		if (tv.parameter.ofTimeType) {
+//    			'''«tv.parameter.name»'''
+//    		} else {
+//    			'''/* «tv.reportError("Expected a parameter of time type!")» */'''
+//    		}
+//        } else if (tv.value !== null) {
+//        	if (tv.value.isZero) {
+//         		'''reactor::Duration::zero()'''
+//        	} else {
+//            	'''/* «tv.reportError("Time values need to be 0 or have a unit!")» */'''
+//            }
+//        } else {
+//            '''«tv.time»«timeUnitsToCppUnits.get(tv.unit)»'''
+//        }
+//    }
 
-    def trimmedValue(Assignment a) '''«a.rhs.trimmedValue»'''
-
-    def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
+//    def trimmedValue(Assignment a) '''«a.rhs.trimmedValue»'''
+//
+//    def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
@@ -579,7 +579,7 @@ class CppGenerator extends GeneratorBase {
 
     def initializeStateVariables(Reactor r) '''
         «FOR s : r.stateVars BEFORE "// state variables\n"»
-            , «s.name»(«IF s.ofTimeType»«s.trimmedTime»«ELSE»«s.trimmedValue»«ENDIF»)
+            , «s.name»(«IF s.ofTimeType»«s.trimmedTime»«ELSE»«s.getStateInitializer('{', ', ', '}')»«ENDIF»)
         «ENDFOR»
     '''
 
@@ -605,10 +605,10 @@ class CppGenerator extends GeneratorBase {
         var String period = "reactor::Duration::zero()"
         var String offset = "reactor::Duration::zero()"
         if (t.offset !== null) {
-          offset = '''«t.offset.trimmedTime»'''
+          offset = '''«t.offset.toText(this)»'''
         }
         if (t.period !== null) {
-            period = '''«t.period.trimmedTime»'''
+            period = '''«t.period.toText(this)»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
@@ -618,7 +618,7 @@ class CppGenerator extends GeneratorBase {
             if (a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
                 a.reportError("minInterArrival and minPolicy are not supported for logical actions!");
             } else if (a.minDelay !== null) {
-                ''', «a.name»{"«a.name»", this, «a.minDelay.trimmedTime»}'''
+                ''', «a.name»{"«a.name»", this, «a.minDelay.toText(this)»}'''
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }
@@ -633,26 +633,27 @@ class CppGenerator extends GeneratorBase {
 
     def trimmedValues(Instantiation i) {
         var List<String> values = newArrayList
-        for (p : i.reactorClass.parameters) {
-            var String value = null
-            for (a : i.parameters ?: emptyList) {
-                if (a.lhs.name == p.name) {
-                	if (p.ofTimeType) {
-                        value = '''«a.trimmedTime»'''
-                    } else {
-                        value = '''«a.trimmedValue»'''
-                    }
-                }
-            }
-            if (value === null) {
-                if (p.ofTimeType) {
-                    value = '''«p.trimmedTime»'''
-                } else {
-                    value = '''«p.trimmedValue»'''
-                }
-            }
-            values.add(value)
-        }
+        // FIXME
+//        for (p : i.reactorClass.parameters) {
+//            var String value = null
+//            for (a : i.parameters ?: emptyList) {
+//                if (a.lhs.name == p.name) {
+//                	if (p.ofTimeType) {
+//                        value = '''«a.trimmedTime»'''
+//                    } else {
+//                        value = '''«a.trimmedValue»'''
+//                    }
+//                }
+//            }
+//            if (value === null) {
+//                if (p.ofTimeType) {
+//                    value = '''«p.trimmedTime»'''
+//                } else {
+//                    value = '''«p.trimmedValue»'''
+//                }
+//            }
+//            values.add(value)
+//        }
         values
     }
 
@@ -662,7 +663,7 @@ class CppGenerator extends GeneratorBase {
         «n.declareDependencies»
         «n.declareAntidependencies»
         «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.interval.trimmedTime», [this]() { «n.name»_deadline_handler(); });
+            «n.name».set_deadline(«n.deadline.delay.toText(this)», [this]() { «n.name»_deadline_handler(); });
         «ENDIF»
     '''
 
@@ -999,7 +1000,7 @@ class CppGenerator extends GeneratorBase {
     // FIXME: the following implementations are most certainly incorrect.
     
     override generateDelayBody(Action action, VarRef port) '''
-        «IF !action.type.toText.endsWith("*")»
+        «IF !action.type.toText(this).endsWith("*")»
             «action.type»* foo = malloc(sizeof(«action.type»));
             *foo = «generateVarRef(port)»;
         «ELSE»
@@ -1012,5 +1013,21 @@ class CppGenerator extends GeneratorBase {
     override generateForwardBody(Action action, VarRef port) '''
         set(«generateVarRef(port)», «action.name»_value);
     '''
+    
+    override timeListTypeInTargetLanguage(ArraySpec spec) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected generateVariableSizeArrayInitializer(List<String> list) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected generateFixedSizeArrayInitializer(List<String> list) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected generateObjectInitializer(List<String> list) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
     
 }

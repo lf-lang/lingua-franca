@@ -51,24 +51,22 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.ASTUtils
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.Code
+import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.LiteralOrCode
-import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.Target
-import org.icyphy.linguaFranca.TimeOrValue
-import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.StateVar
-import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.VarRef
+
+import static extension org.icyphy.ASTUtils.*
 
 /** Generator base class for shared code between code generators.
  * 
@@ -99,10 +97,7 @@ abstract class GeneratorBase {
         
     ////////////////////////////////////////////
     //// Protected fields.
-    
-    /** */
-    protected var utils = new ASTUtils(this)
-    
+        
     /** All code goes into this string buffer. */
     protected var code = new StringBuilder
 
@@ -313,7 +308,7 @@ abstract class GeneratorBase {
         val toRemove = new LinkedList<Connection>()
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
-                this.utils.desugarDelay(connection, connection.delay)
+                connection.desugarDelay(connection.delay, this)
                 toRemove.add(connection)
             }
         }
@@ -429,11 +424,14 @@ abstract class GeneratorBase {
      *  @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
     def String timeInTargetLanguage(TimeValue time) {
-        if (time.unit != TimeUnit.NONE) {
-            time.unit.name() + '(' + time.time + ')'
-        } else {
-            time.time.toString()
+        if (time !== null) {
+            if (time.unit != TimeUnit.NONE) {
+                time.unit.name() + '(' + time.time + ')'
+            } else {
+                time.time.toString()
+            }    
         }
+        return "0" // FIXME: check and document this
     }
 
     /** Return a string that the target language can recognize as a type
@@ -443,8 +441,10 @@ abstract class GeneratorBase {
      *  @return The string "instant_t"
      */
     def timeTypeInTargetLanguage() {
-        "instant_t"
+        "interval_t"
     }
+
+    abstract def String timeListTypeInTargetLanguage(ArraySpec spec)
 
     /** Remove quotation marks surrounding the specified string.
      */
@@ -1039,38 +1039,42 @@ abstract class GeneratorBase {
 //
 //    }
 
-    protected def toText(Code tokens) {
-        ASTUtils.toText(tokens)
-    }
+        
+    protected def String getParamInitializer(Parameter param) {
+        var list = new LinkedList<String>();
 
-    protected def toText(Type type) {
-        ASTUtils.toText(type)
-    }
-    
-    protected def toText(LiteralOrCode literalOrCode) {
-        ASTUtils.toText(literalOrCode)
-    }
-    
-    // FIXME: specify list delimiters and separator statically
-    
-    protected def String getParamInitializer(Parameter param,
-        CharSequence before, CharSequence separator, CharSequence after) {
-        if (param.isOfTimeType) {
-            return (new TimeValue(param.time, param.unit)).timeInTargetLanguage
-        } else {
-            var list = new LinkedList<String>();
-
-            for (element : param?.values) {                
-                list.add(element.toText)
-            }
-
-            if (list.size == 1) {
-                return list.first
-            } else if (list.size > 1) {
-                return list.join(before, separator, after, [it])
+        for (i : param?.init) {
+            if (param.isOfTimeType) {
+                list.add(i.toText(this))
+            } else {
+                if (i.literal !== null) {
+                    list.add(i.literal)
+                } else if (i.code !== null) {
+                    list.add(i.code.toText)
+                }
             }
         }
+
+        if (list.size == 1) {
+            return list.first
+        } else if (list.size > 1) {
+            if (param.type.arraySpec !== null) {
+                if (param.type.arraySpec.isOfVariableLength) {
+                    return list.generateVariableSizeArrayInitializer
+                } else {
+                    // FIXME: Check in validator that length is never zero
+                    return list.generateFixedSizeArrayInitializer
+                }
+            }
+            return list.generateObjectInitializer   
+        }
     }
+    
+    abstract protected def String generateVariableSizeArrayInitializer(List<String> list);
+
+    abstract protected def String generateFixedSizeArrayInitializer(List<String> list);
+
+    abstract protected def String generateObjectInitializer(List<String> list);
     
     protected def String getStateInitializer(StateVar stateVar,
         CharSequence before, CharSequence separator, CharSequence after) {
@@ -1080,18 +1084,16 @@ abstract class GeneratorBase {
         var list = new LinkedList<String>();
 
         for (element : stateVar.init) {
-            var time = element.time
-            var unit = element.unit
-            var value = element.value.toText
-            if (element.parameter !== null) {
-                time = element.parameter.time
-                unit = element.parameter.unit
-                value = element.parameter.getParamInitializer(before, separator, after)
-            }
-            if (stateVar.ofTimeType) {
-                list.add(timeInTargetLanguage(new TimeValue(time, unit)))
+            if (stateVar.isOfTimeType) {
+                list.add(element.getTimeValue.timeInTargetLanguage)
             } else {
-                list.add(value)
+                if (element.parameter !== null) {
+                    list.add(element.parameter.getParamInitializer)
+                } else if (element.literal !== null) {
+                    list.add(element.literal)
+                } else if (element.code !== null) {
+                    list.add(element.code.toText)
+                }
             }
         }
 
@@ -1101,20 +1103,7 @@ abstract class GeneratorBase {
             return list.join(before, separator, after, [it])
         }
     }
-    
-    protected def isZero(LiteralOrCode literalOrCode) {
-        ASTUtils.isZero(literalOrCode)
-    }
-    
-    protected def isParameterized(StateVar v) {
-        ASTUtils.isParameterized(v)
-    }
-    
-    protected def Type getValueType(StateVar s) {
-        ASTUtils.getValueType(s) 
-    }
-    
-    
+        
     ////////////////////////////////////////////////////
     //// Private functions
     
@@ -1217,7 +1206,7 @@ abstract class GeneratorBase {
                         // First, update the dependencies in the FederateInstances.
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
-                            dependsOn = new HashSet<TimeOrValue>()
+                            dependsOn = new HashSet<Value>()
                             rightFederate.dependsOn.put(leftFederate, dependsOn)
                         }
                         if (connection.delay !== null) {
@@ -1241,7 +1230,7 @@ abstract class GeneratorBase {
                         // (which inherits the delay) and two reactions.
                         // The action will be physical if the connection physical and
                         // otherwise will be logical.
-                        this.utils.makeCommunication(connection,  leftFederate, rightFederate)
+                        connection.makeCommunication(leftFederate, rightFederate, this)
                         
                         // To avoid concurrent modification exception, collect a list
                         // of connections to remove.

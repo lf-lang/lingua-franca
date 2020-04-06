@@ -27,10 +27,8 @@
 package org.icyphy.validation
 
 import java.util.Arrays
-import org.eclipse.emf.ecore.EReference
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
-import org.icyphy.ASTUtils
 import org.icyphy.AnnotatedNode
 import org.icyphy.ModelInfo
 import org.icyphy.Targets
@@ -43,11 +41,11 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
+import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
-import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
@@ -57,8 +55,9 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.ParamTimeOrValue
-import org.icyphy.linguaFranca.Delay
+import org.icyphy.linguaFranca.Value
+
+import static extension org.icyphy.ASTUtils.*
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -154,28 +153,25 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkAssignment(Assignment assignment) {
         // If the left-hand side is a time parameter, make sure the assignment has units
-        if (ASTUtils.isOfTimeType(assignment.lhs)) {
-            if (assignment.rhs.parameter === null) {
-                // This is a value. Check that units are present.
-                if (!ASTUtils.isValidTime(assignment.rhs.timeOrValue)) {
+        if (assignment.lhs.isOfTimeType) {
+            if (!assignment.rhs.isValidTime) {
+                if (assignment.rhs.parameter === null) {
+                    // This is a value. Check that units are present.
                     error(
-                        "Invalid time units: " +
-                            assignment.rhs.timeOrValue.time.unit +
+                        "Invalid time units: " + assignment.rhs +
                             ". Should be one of " + TimeUnit.VALUES.filter [
                                 it != TimeUnit.NONE
                             ], Literals.ASSIGNMENT__RHS)
                 }
             } else {
-                // This is a reference to another parameter.
-                // Check that both are times.
-                if (!ASTUtils.isOfTimeType(assignment.rhs.parameter)) {
-                    error(
-                        "Cannot assign parameter: " +
-                            assignment.rhs.parameter.name + " to " +
-                            assignment.lhs.name +
-                            ". The latter is a time parameter, but the former is not.",
-                        Literals.ASSIGNMENT__RHS)
-                }
+                // This is a reference to another parameter. Report problem.
+                error(
+                    "Cannot assign parameter: " +
+                        assignment.rhs.parameter.name + " to " +
+                        assignment.lhs.name +
+                        ". The latter is a time parameter, but the former is not.",
+                    Literals.ASSIGNMENT__RHS)
+
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
@@ -501,8 +497,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         parameters.add(param.name)
         allNames.add(param.name)
 
+        // Forbid initialization using parameters.
+        if (param.init.exists[it.parameter !== null]) {
+            error("Parameter cannot be initialized using parameter.",
+                Literals.PARAMETER__INIT)
+        }
         // This parameter has been identified as a time.
-        if (ASTUtils.isOfTimeType(param)) {
+        if (param.isOfTimeType) {
             if (param.init === null || param.init.size == 0) {
                 error("Uninitialized parameter.", Literals.PARAMETER__INIT)
             } else if (param.init.size > 1 && param.type.arraySpec === null) {
@@ -512,8 +513,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
             val init = param.init.get(0)
             if (init.time === null) {
-                init.value.tryCastToTime(Literals.PARAMETER__INIT)
-            } // If time is not null, a unit must also be defined.
+                if ((init.literal !== null && !init.literal.isZero) ||
+                    (init.code !== null && !init.code.isZero)) {
+                        
+                    error("Invalid time literal", Literals.PARAMETER__INIT)
+                }
+            } // If time is not null, we know that a unit is also specified.
         } else if (this.target.requiresTypes) {
             // Report missing target type.
             if (param.type === null) {
@@ -527,18 +532,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 "Time value used to specify a deadline exceeds the maximum of " +
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.PARAMETER__INIT)
-        }
-    }
-
-    def tryCastToTime(LiteralOrCode value, EReference ref) {
-        try {
-            if (Integer.parseInt(ASTUtils.toText(value).trim) != 0) {
-                error("Missing time units. Should be one of " +
-                    TimeUnit.VALUES.filter[it != TimeUnit.NONE],
-                    ref)
-            }
-        } catch (NumberFormatException e) {
-            error("Value is not a time.", ref)
         }
     }
 
@@ -573,20 +566,24 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         inputs.add(stateVar.name);
         allNames.add(stateVar.name)
 
-        if (ASTUtils.isOfTimeType(stateVar)) {
+        if (stateVar.isOfTimeType) {
             // If the state is declared to be a time,
             // make sure that initialized correctly.
             val init = stateVar.init.get(0)
-            if (stateVar.type.isTime && !ASTUtils.isValidTime(init)) {
-                if (ASTUtils.isParameterized(stateVar)) {
+            if (stateVar.type !== null && stateVar.type.isTime &&
+                !init.isValidTime) {
+                if (stateVar.isParameterized) {
                     error("Referenced parameter does not denote a time.",
                         Literals.STATE_VAR__INIT)
                 } else {
-                    init.timeOrValue.value.tryCastToTime(Literals.STATE_VAR__INIT)
+                    if ((init.literal !== null &&
+                        !init.literal.isZero) ||
+                        (init.code !== null && !init.code.isZero))
+                        error("Invalid time literal", Literals.STATE_VAR__INIT)
                 }
             }
         } else if (this.target.requiresTypes && stateVar.type === null &&
-            ASTUtils.getType(stateVar) === null) {
+            stateVar.getType === null) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
@@ -613,36 +610,25 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     }
 
     @Check(FAST)
-    def checkParamTimeOrValue(ParamTimeOrValue ptv) {
-        val container = ptv.eContainer        
+    def checkValueAsTime(Value value) {
+        val container = value.eContainer
+
         if (container instanceof Timer || container instanceof Action ||
             container instanceof Delay || container instanceof Deadline) {
-            
+
             // If parameter is referenced, check that it is of the correct type.
-            if (ptv.parameter !== null) {
-                if (!ASTUtils.isOfTimeType(ptv.parameter)) {
+            if (value.parameter !== null) {
+                if (!value.parameter.isOfTimeType) {
                     error("Parameter is not of time type",
-                        Literals.PARAM_TIME_OR_VALUE__PARAMETER)
+                        Literals.PARAMETER__TYPE)
                 }
-            } else if (ptv.timeOrValue.time === null) {
-                ptv.timeOrValue.value.tryCastToTime(Literals.PARAM_TIME_OR_VALUE__TIME_OR_VALUE)
-//                // If a value is provided, check that it is zero.
-//                if (ptv.timeOrValue.value !== null && !((str = ASTUtils.toText(ptv.value)).isEmpty)) {
-//                    try {
-//                        val number = Integer.parseInt(str)
-//                        if (number != 0) {
-//                            if (ptv.unit == TimeUnit.NONE) {
-//                                error("Missing time units. Should be one of " +
-//                                    TimeUnit.VALUES.filter[it != TimeUnit.NONE],
-//                                    Literals.TIME_OR_VALUE__UNIT)
-//                            }    
-//                        }
-//                    } catch(NumberFormatException e) {
-//                        error("Invalid time literal",
-//                            Literals.TIME_OR_VALUE__UNIT)
-//                    }
-//                }
-            }            
+            } else if (value.time === null) {
+                if (value.literal !== null && !value.literal.isZero) {
+                    error("Invalid time literal", Literals.VALUE__LITERAL)
+                } else if (value.code !== null && !value.code.isZero) {
+                    error("Invalid time literal", Literals.VALUE__CODE)
+                }
+            }
         }
     }
     

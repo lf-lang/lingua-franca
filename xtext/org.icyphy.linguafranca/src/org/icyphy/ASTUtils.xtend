@@ -37,16 +37,15 @@ import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.ParamTimeOrValue
-import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.ArraySpec
+import org.icyphy.linguaFranca.Value
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -60,18 +59,6 @@ class ASTUtils {
      */
     public static val factory = LinguaFrancaFactory.eINSTANCE
     
-    /**
-     * An instance of a Lingua Franca code generator.
-     */
-    GeneratorBase generator
-    
-    /**
-     * Create a new instance.
-     * @param generator An instance of a Lingua Franca code generator.
-     */
-    new(GeneratorBase generator) {
-        this.generator = generator
-    }
     
     /**
      * Take a connection and replace it with an action and two reactions
@@ -80,9 +67,9 @@ class ASTUtils {
      * @param connection The connection to replace.
      * @param delay The delay associated with the connection.
      */
-    def void desugarDelay(Connection connection, Delay delay) {
+    static def void desugarDelay(Connection connection, Delay delay, GeneratorBase generator) {
         val factory = LinguaFrancaFactory.eINSTANCE
-        val type = duplicateType((connection.rightPort.variable as Port).type)
+        val type = (connection.rightPort.variable as Port).type.duplicateType
         val action = factory.createAction
         val triggerRef = factory.createVarRef
         val effectRef = factory.createVarRef
@@ -117,14 +104,14 @@ class ASTUtils {
         r1.effects.add(effectRef)
         // FIXME: Why the extra semicolon?
         r1.code = factory.createCode()
-        r1.code.tokens.add(this.generator.generateDelayBody(action, inRef))
+        r1.code.tokens.add(generator.generateDelayBody(action, inRef))
 
         // Configure the second reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
         // FIXME: Why the extra semicolon?
         r2.code = factory.createCode()
-        r2.code.tokens.add(this.generator.generateForwardBody(action, outRef))
+        r2.code.tokens.add(generator.generateForwardBody(action, outRef))
 
         // Add the reactions to the parent.
         // These need to go in the opposite order in case
@@ -140,10 +127,11 @@ class ASTUtils {
      * @param leftFederate The source federate.
      *  @param rightFederate The destination federate.
      */
-    def void makeCommunication(
+    static def void makeCommunication(
         Connection connection, 
         FederateInstance leftFederate,
-        FederateInstance rightFederate
+        FederateInstance rightFederate,
+        GeneratorBase generator
     ) {
         val factory = LinguaFrancaFactory.eINSTANCE
         var type = duplicateType((connection.rightPort.variable as Port).type)
@@ -192,7 +180,7 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            toText(type)
+            toText(type, generator)
         ))
 
         // Configure the receiving reaction.
@@ -205,7 +193,7 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            toText(type)
+            toText(type, generator)
         ))
 
         // Add the reactions to the parent.
@@ -220,7 +208,7 @@ class ASTUtils {
      * @param reactor The reactor to find a unique identifier within.
      * @param name The name to base the returned identifier on.
      */
-    def getUniqueIdentifier(Reactor reactor, String name) {
+    static def getUniqueIdentifier(Reactor reactor, String name) {
         val vars = new HashSet<String>();
         reactor.actions.forEach[it | vars.add(it.name)]
         reactor.timers.forEach[it | vars.add(it.name)]
@@ -250,7 +238,7 @@ class ASTUtils {
      * @param type The type to duplicate.
      * @return A deep copy of the given type.
      */
-    private def duplicateType(Type type) {
+    private static def duplicateType(Type type) {
         if (type !== null) {
             val newType = factory.createType
             
@@ -293,46 +281,79 @@ class ASTUtils {
         return ""
     }
     
+    def static String toText(Time t, GeneratorBase generator) {
+        if (generator !== null) {
+            generator.timeInTargetLanguage(new TimeValue(t.interval, t.unit))  
+        } else {
+            t.interval + " " + t.unit.toString
+        }
+        ""
+    }
+    
+    def static String toText(Value v, GeneratorBase generator) {
+        if (v.parameter !== null) {
+            return v.parameter.name
+        }
+        if (v.time !== null) {
+            return v.time.toText(generator)
+        }
+        if (v.literal !== null) {
+            return v.literal
+        }
+        if (v.code !== null) {
+            return v.code.toText
+        }
+        ""
+    }
+    
+    def static toText(ArraySpec spec) {
+        if (spec !== null) {
+            return (spec.ofVariableLength) ? "[]" : "[" + spec.length + "]"
+        }
+    }
+    
     /**
      * Translate the given type into its textual representation.
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    def static toText(Type type) {
+    def static toText(Type type, GeneratorBase generator) {
         if (type !== null) {
             if (type.code !== null) {
                 return toText(type.code)
             } else {
-                var stars = ""
-                for (s : type.stars ?: emptyList) {
-                    stars += s
+                if (type.isTime) {
+                    
+                    if (generator !== null) {
+                        
+                            // FIXME: rename called method
+                            return generator.
+                                timeListTypeInTargetLanguage(
+                                    type.arraySpec)
+                        
+                    } else {
+                        // If there's not generator, return an LF type.
+                        return "time" + type.arraySpec.toText  
+                    }
+                } else {
+                    var stars = ""
+                    for (s : type.stars ?: emptyList) {
+                        stars += s
+                    }
+                    var arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
+                    return type.id + stars + arr                  
                 }
-                var arraySpec = ""
-                if (type.arraySpec !== null) {
-                    arraySpec = (type.arraySpec.ofVariableLength)? 
-                        "[]" : 
-                        "[" + type.arraySpec.length + "]"  
-                }
-                return type.id + stars + arraySpec
             }
         }
         ""
     }
     
-    /**
-     * Translate the given literal or code into a textual representation.
-     * @param literalOrCode AST node to render as string.
-     * @return Textual representation of the given argument.
-     */
-    def static String toText(LiteralOrCode literalOrCode) {
-        if (literalOrCode === null) {
-            return ""
-        } else if (literalOrCode.literal !== null) {
-            return literalOrCode.literal
-        } else {
-            return toText(literalOrCode.code)
-        }
-    }
+//    /**
+//     * Translate the given literal or code into a textual representation.
+//     * @param literalOrCode AST node to render as string.
+//     * @return Textual representation of the given argument.
+//     */
+   
     
     /**
      * Report whether the given literal is zero or not.
@@ -340,10 +361,10 @@ class ASTUtils {
      * @return True if the given literal denotes the constant `0`, false
      * otherwise.
      */
-    def static boolean isZero(LiteralOrCode literalOrCode) {
+    def static boolean isZero(String literal) {
         try {
-            if (literalOrCode !== null &&
-                Integer.parseInt(literalOrCode.toText.trim) == 0) {
+            if (literal !== null &&
+                Integer.parseInt(literal) == 0) {
                 return true
             }
         } catch (NumberFormatException e) {
@@ -352,41 +373,36 @@ class ASTUtils {
         return false
     }
     
-//    /**
-//     * Report whether the given time or value denotes a valid time or not.
-//     * @param tv A time or value.
-//     * @return True if the argument denotes a valid time, false otherwise.
-//     */
-//    def static boolean isValidTime(TimeOrValue tv) {
-//        if (tv !== null &&
-//            ((tv.time == 0 || tv.unit != TimeUnit.NONE) ||
-//                (tv.parameter !== null && tv.parameter.isOfTimeType))) {
-//            return true
-//        }
-//        return false
-//    }
-//  
-
-    def static boolean isValidTime(ParamTimeOrValue ptv) {
-        if (ptv !== null){
-            if (ptv.parameter !== null) {
-                if (ptv.parameter.isOfTimeType) {
-                    return true
-                }
-            } else {
-                if (ptv.timeOrValue.isValidTime) {
-                    return true
-                }
-            }    
+    def static boolean isZero(Code code) {
+        if (code !== null && code.toText.isZero) {
+            return true
         }
         return false
     }
-
-    def static boolean isValidTime(TimeOrValue tv) {
-        if (tv !== null) {
-            if ((tv.time !== null && tv.time.isValidTime) || tv.value.isZero) {
-                return true
-            }    
+    
+    /**
+     * Report whether the given parameter, time, or value denotes a valid time 
+     * or not.
+     * @param tv A time or value.
+     * @return True if the argument denotes a valid time, false otherwise.
+     */
+    def static boolean isValidTime(Value value) {
+        if (value !== null){
+            if (value.parameter !== null) {
+                if (value.parameter.isOfTimeType) {
+                    return true
+                }
+            } else if (value.time !== null) {
+                return isValidTime(value.time)
+            } else if (value.literal !== null) {
+                if (value.literal.isZero) {
+                    return true
+                }
+            } else if (value.code !== null) {
+                if (value.code.isZero) {
+                    return true
+                }
+            }
         }
         return false
     }
@@ -397,6 +413,29 @@ class ASTUtils {
         }
         return false
     }
+
+    def static boolean isValidTimeList(Parameter p) { // FIXME: write a single function for both StateVar and Parameter?
+        if (p !== null) {
+            if (p.type !== null && p.type.isTime && p.type.arraySpec !== null) {
+                return true
+            } else if (p.init !== null && p.init.size > 1 && p.init.forall [
+                it.isValidTime
+            ]) {
+                return true
+            }
+        }
+        return true
+    }
+
+    def static boolean isValidTimeList(StateVar s) {
+        if (s !== null) {
+            if (s.type !== null && s.type.isTime && s.type.arraySpec !== null) {
+              // FIXME  
+            }
+        }
+        return false
+    }
+
 
     /**
      * Report whether the given parameter has been declared a type or has been
@@ -468,17 +507,21 @@ class ASTUtils {
             }
         }
     }
-    
-    def static TimeValue getTimeValue(TimeOrValue tv) {
-        if (tv !== null && tv.time !== null) {
-            return new TimeValue(tv.time.interval, tv.time.unit)
-        }
-    }
-    
+        
     def static TimeValue getTimeValue(Parameter p) {
         if (p !== null && p.isOfTimeType) {
             val init = p.init.get(0)
-            return init.timeValue
+            return new TimeValue(init.time.interval, init.time.unit)
+        }
+    }
+    
+    def static TimeValue getTimeValue(Value v) {
+        if (v.parameter !== null) {
+            return ASTUtils.getTimeValue(v.parameter)
+        } else if (v.time !== null) {
+            return new TimeValue(v.time.interval, v.time.unit)
+        } else {
+            return new TimeValue(0, TimeUnit.NONE)
         }
     }
     
@@ -495,4 +538,49 @@ class ASTUtils {
         }
         return false
     }
+    
+    def static String getInferredType(Parameter p, GeneratorBase generator) {
+        if (p !== null) {
+            if (p.type !== null) {
+                return p.type.toText(generator)
+            }        
+            if (p.isOfTimeType) {
+                if (p.init !== null && p.init.size > 0) {
+                    if (p.init.size > 1) {
+                       return "interval_t[]" // FIXME: target specific
+                    } else {
+                        return "interval_t"
+                    }
+                }
+            }    
+        }
+        ""
+    }
+    
+    def static String getInferredType(StateVar s, GeneratorBase generator) {
+        if (s !== null) {
+            if (s.type !== null) {
+                return s.type.toText(generator)
+            }    
+            if (s.init !== null && s.init.size > 0) {
+                
+                    if (s.init.size > 1) {
+                    if (s.init.forall[it.isValidTime]) {
+                        return "interval_t[]"
+                    }
+                // FIXME: more...    
+                } else {
+                    val init = s.init.get(0)
+                    if (init.parameter !== null) {
+                        return init.parameter.getInferredType(generator)
+                    }
+                }
+                        
+                
+                
+            }
+        }
+        ""
+    }
+    
 }
