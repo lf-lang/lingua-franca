@@ -412,6 +412,20 @@ class ASTUtils {
     }
     
     /**
+     * Report whether the given value is zero or not.
+     * @param value AST node to inspect.
+     * @return True if the given value denotes the constant `0`, false otherwise.
+     */
+    def static boolean isZero(Value value) {
+        if (value.literal !== null) {
+            return value.literal.isZero
+        } else if (value.code !== null) {
+            return value.code.isZero
+        }
+        return false
+    }
+    
+    /**
      * Report whether the given parameter, time, or value denotes a valid time 
      * or not.
      * @param tv A time or value.
@@ -506,10 +520,10 @@ class ASTUtils {
             // Either the type has to be declared as a time.
             if (s.type !== null && s.type.isTime)
                 return true
-            // Or the it has to be initialized as a time.
+            // Or the it has to be initialized as a time except zero.
             if (s.init !== null && s.init.size == 1) {
                 val init = s.init.get(0)
-                if (init.isValidTime)
+                if (init.isValidTime && !init.isZero)
                     return true
             }   
             // In other words, one can write:
