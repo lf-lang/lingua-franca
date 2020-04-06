@@ -468,6 +468,33 @@ class CppGenerator extends GeneratorBase {
     def getInitializer(StateVar s) '''«s.getStateInitializer('', ', ', '')»'''
     
     def getInitializer(Parameter p) '''«p.getParamInitializer»'''
+    
+    // FIXME: This should be fixed in GeneratorBase
+    override String getStateInitializer(StateVar stateVar,
+        CharSequence before, CharSequence separator, CharSequence after) {
+        if (stateVar.init === null || stateVar.init.size == 0)
+            return ""
+        
+        var list = new LinkedList<String>();
+
+        for (element : stateVar.init) {
+            if (element.parameter !== null) {
+                list.add(element.parameter.name)
+            } else if (stateVar.isOfTimeType) {
+                list.add(element.getTimeValue.timeInTargetLanguage)
+            } else if (element.literal !== null) {
+                 list.add(element.literal)
+            } else if (element.code !== null) {
+                list.add(element.code.toText)
+            }
+        }
+
+        if (list.size == 1) {
+            return list.first
+        } else if (list.size > 1) {
+            return list.join(before, separator, after, [it])
+        }
+    }
 
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
