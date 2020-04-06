@@ -318,7 +318,6 @@ class ASTUtils {
         } else {
             t.interval + " " + t.unit.toString
         }
-        ""
     }
     
     def static String toText(Value v, GeneratorBase generator) {
