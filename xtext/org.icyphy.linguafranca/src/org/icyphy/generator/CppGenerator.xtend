@@ -407,7 +407,7 @@ class CppGenerator extends GeneratorBase {
             '''
                 «r.name»(const std::string& name,
                     «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.type.toText(this)»>::type>::type«p.name» = «p.paramInitializer»«ENDFOR»
+                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.type.toText(this)»>::type>::type«p.name» = «p.initializer»«ENDFOR»
             '''
         } else {
             if (r == mainReactor) {
@@ -498,23 +498,6 @@ class CppGenerator extends GeneratorBase {
 //        }
 //    }
     
-    def trimmedTime(StateVar s) {
-        if (s.ofTimeType) {
-            // FIXME:
-//            if (s.unit === null || s.unit === TimeUnit.NONE) {
-//            	if (s.time == 0 || s.init.value.isZero) {
-//                    '''reactor::Duration::zero()'''
-//                } else {
-//                	'''/* «s.reportError("Time values need to be 0 or have a unit!")» */'''
-//                }
-//            } else {
-//                '''«s.time»«timeUnitsToCppUnits.get(s.unit)»'''
-//            }
-        } else {
-            '''/* «s.reportError("Expected a state of type time!")» */'''
-        }
-    }
-    
     def asTime(Value v) {
         if (v.parameter !== null) {
             if (v.parameter.ofTimeType) {
@@ -571,6 +554,10 @@ class CppGenerator extends GeneratorBase {
 //
 //    def trimmedTime(Assignment a) '''«a.rhs.trimmedTime»'''
 
+    def getInitializer(StateVar s) '''«s.getStateInitializer('', ', ', '')»'''
+    
+    def getInitializer(Parameter p) '''«p.getParamInitializer»'''
+
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
@@ -600,7 +587,7 @@ class CppGenerator extends GeneratorBase {
 
     def initializeStateVariables(Reactor r) '''
         «FOR s : r.stateVars BEFORE "// state variables\n"»
-            , «s.name»(«IF s.ofTimeType»«s.trimmedTime»«ELSE»«s.getStateInitializer('{', ', ', '}')»«ENDIF»)
+            , «s.name»{«s.initializer»}
         «ENDFOR»
     '''
 
