@@ -518,8 +518,8 @@ class ASTUtils {
     def static boolean isOfTimeType(StateVar s) {
         if (s !== null) {
             // Either the type has to be declared as a time.
-            if (s.type !== null && s.type.isTime)
-                return true
+            if (s.type !== null)
+                return s.type.isTime
             // Or the it has to be initialized as a time except zero.
             if (s.init !== null && s.init.size == 1) {
                 val init = s.init.get(0)
