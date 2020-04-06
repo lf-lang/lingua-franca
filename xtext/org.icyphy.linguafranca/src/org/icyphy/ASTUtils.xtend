@@ -35,7 +35,6 @@ import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
-import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
@@ -67,9 +66,8 @@ class ASTUtils {
      * @param connection The connection to replace.
      * @param delay The delay associated with the connection.
      */
-    static def void desugarDelay(Connection connection, Delay delay, GeneratorBase generator) {
-        val factory = LinguaFrancaFactory.eINSTANCE
-        val type = (connection.rightPort.variable as Port).type.duplicateType
+    static def void desugarDelay(Connection connection, GeneratorBase generator) {
+        val type = (connection.rightPort.variable as Port).type.copy
         val action = factory.createAction
         val triggerRef = factory.createVarRef
         val effectRef = factory.createVarRef
@@ -81,8 +79,9 @@ class ASTUtils {
 
         // Name the newly created action; set its delay and type.
         action.name = getUniqueIdentifier(parent, "delay")
-        action.minDelay = connection.delay.time
-        
+        action.minDelay = factory.createValue
+        action.minDelay = connection.delay.copy
+         
         action.type = type
         action.origin = ActionOrigin.LOGICAL
 
@@ -132,7 +131,7 @@ class ASTUtils {
         GeneratorBase generator
     ) {
         val factory = LinguaFrancaFactory.eINSTANCE
-        var type = duplicateType((connection.rightPort.variable as Port).type)
+        var type = (connection.rightPort.variable as Port).type.copy
         val action = factory.createAction
         val triggerRef = factory.createVarRef
         val effectRef = factory.createVarRef
@@ -233,30 +232,55 @@ class ASTUtils {
         return name + suffix
     }
     
+    private static def getCopy(Value original) {
+        if (original !== null) {
+            val clone = factory.createValue
+            if (original.parameter !== null) {
+                clone.parameter = original.parameter
+            }
+            if (original.time !== null) {
+                clone.time = factory.createTime
+                clone.time.interval = original.time.interval
+                clone.time.unit = original.time.unit
+            }
+            if (original.literal !== null) {
+                clone.literal = original.literal
+            }
+            if (original.code !== null) {
+                clone.code = factory.createCode
+                original.code.tokens.forEach[clone.code.tokens.add(it)]
+            }
+            return clone
+        }
+    }
+    
     /**
      * Create a new type based on the given type.
      * @param type The type to duplicate.
      * @return A deep copy of the given type.
      */
-    private static def duplicateType(Type type) {
-        if (type !== null) {
-            val newType = factory.createType
+    private static def getCopy(Type original) {
+        if (original !== null) {
+            val clone = factory.createType
             
+            clone.id = original.id
             // Set the type based on the argument type.
-            if (type.code !== null) {
-                newType.code = factory.createCode
-                type.code.tokens?.forEach[newType.code.tokens.add(it)]
-            } else {
-                newType.id = type.id
-                type.stars?.forEach[newType.stars.add(it)]
-                if (type.arraySpec !== null) {
-                    newType.arraySpec = factory.createArraySpec
-                    newType.arraySpec.ofVariableLength = type.arraySpec.
-                        ofVariableLength
-                    newType.arraySpec.length = type.arraySpec.length
-                }
+            if (original.code !== null) {
+                clone.code = factory.createCode
+                original.code.tokens?.forEach[clone.code.tokens.add(it)]
+            } 
+            if (original.stars !== null) {
+                original.stars?.forEach[clone.stars.add(it)]
             }
-            return newType
+                
+            if (original.arraySpec !== null) {
+                clone.arraySpec = factory.createArraySpec
+                clone.arraySpec.ofVariableLength = original.arraySpec.
+                    ofVariableLength
+                clone.arraySpec.length = original.arraySpec.length
+            }
+            
+            return clone
         }
     }
     
@@ -394,7 +418,7 @@ class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     def static boolean isValidTime(Value value) {
-        if (value !== null){
+        if (value !== null) {
             if (value.parameter !== null) {
                 if (value.parameter.isOfTimeType) {
                     return true
@@ -518,7 +542,11 @@ class ASTUtils {
     def static TimeValue getTimeValue(Parameter p) {
         if (p !== null && p.isOfTimeType) {
             val init = p.init.get(0)
-            return new TimeValue(init.time.interval, init.time.unit)
+            if (init.time !== null) {
+                return new TimeValue(init.time.interval, init.time.unit)    
+            } else {
+                return new TimeValue(0, TimeUnit.NONE)
+            }
         }
     }
     

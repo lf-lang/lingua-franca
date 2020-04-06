@@ -145,8 +145,8 @@ Reaction:
 TriggerRef:
     VarRef | startup?='startup' | shutdown?='shutdown';
 
-Delay:
-    'after' time=Value;
+//Delay:
+//    'after' length=Value;
 
 Deadline:
     'deadline' '(' delay=Value ')' code=Code;
@@ -168,7 +168,7 @@ Instantiation:
     ')' ';';
 
 Connection:
-    leftPort=VarRef '->' rightPort=VarRef (delay=Delay)? ';';
+    leftPort=VarRef '->' rightPort=VarRef ('after' delay=Value)? ';';
 
 //KEYWORD:
 //    'input' | 'state' | 'output' | 'timer' | 'action';

@@ -41,7 +41,6 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
-import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
@@ -164,8 +163,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             ". Should be one of " + TimeUnit.VALUES.filter [
                                 it != TimeUnit.NONE
                             ], Literals.ASSIGNMENT__RHS)
-                }
-            } else {
+                } else {
                 // This is a reference to another parameter. Report problem.
                 error(
                     "Cannot assign parameter: " +
@@ -174,6 +172,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         ". The latter is a time parameter, but the former is not.",
                     Literals.ASSIGNMENT__RHS)
 
+                }
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
@@ -596,8 +595,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         error("Invalid time literal", Literals.STATE_VAR__INIT)
                 }
             }
-        } else if (this.target.requiresTypes && stateVar.type === null &&
-            stateVar.getType === null) {
+        } else if (this.target.requiresTypes && stateVar.getInferredType(null).equals("")) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
@@ -628,7 +626,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         val container = value.eContainer
 
         if (container instanceof Timer || container instanceof Action ||
-            container instanceof Delay || container instanceof Deadline) {
+            container instanceof Connection || container instanceof Deadline) {
 
             // If parameter is referenced, check that it is of the correct type.
             if (value.parameter !== null) {
