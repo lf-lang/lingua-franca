@@ -266,10 +266,10 @@ class CppGenerator extends GeneratorBase {
 
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-            reactor::Input<«i.trimmedType»> «i.name»{"«i.name»", this};
+            reactor::Input<«i.inferredType»> «i.name»{"«i.name»", this};
         «ENDFOR»
         «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-            reactor::Output<«o.trimmedType»> «o.name»{"«o.name»", this};
+            reactor::Output<«o.inferredType»> «o.name»{"«o.name»", this};
         «ENDFOR»
     '''
 
@@ -284,9 +284,9 @@ class CppGenerator extends GeneratorBase {
 
     def implementationType(Action a) {
         if (a.origin == ActionOrigin.LOGICAL) {
-            '''reactor::LogicalAction<«a.trimmedType»>'''
+            '''reactor::LogicalAction<«a.inferredType»>'''
         } else {
-            '''reactor::PhysicalAction<«a.trimmedType»>'''
+            '''reactor::PhysicalAction<«a.inferredType»>'''
         }
     }
 
@@ -418,7 +418,7 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def trimmedType(Input i) {
+    def inferredType(Input i) {
         if (i.type !== null) {
             i.type.toText(this)
         } else {
@@ -426,7 +426,7 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def trimmedType(Output o) {
+    def inferredType(Output o) {
         if (o.type !== null) {
             o.type.toText(this)
         } else {
@@ -434,7 +434,7 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def trimmedType(Action a) {
+    def inferredType(Action a) {
         if (a.type !== null) {
             a.type.toText(this)
         } else {
