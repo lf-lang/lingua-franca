@@ -205,10 +205,6 @@ class CGenerator extends GeneratorBase {
                 }   
             }
         
-            if (main !== null && main.chainIDWidth > 64) {
-                throw new Exception("Currently no support for programs with more than 64 branches in the dependency tree. ")
-            }
-        
             // Derive target filename from the .lf filename.
             val cFilename = filename + ".c";
 
@@ -540,6 +536,7 @@ class CGenerator extends GeneratorBase {
                                 TRIGGER_REF__STARTUP.name
                             timer.offset = factory.createValue
                             timer.offset.literal = "0"
+                            timer.period = factory.createValue
                             timer.period.literal = "0"
                             reactor.timers.add(timer)
                         }

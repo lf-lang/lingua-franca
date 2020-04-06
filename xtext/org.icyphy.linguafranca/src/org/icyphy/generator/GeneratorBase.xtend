@@ -318,7 +318,7 @@ abstract class GeneratorBase {
         val toRemove = new LinkedList<Connection>()
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
-                connection.desugarDelay(connection.delay, this)
+                connection.desugarDelay(this)
                 toRemove.add(connection)
             }
         }
@@ -442,12 +442,12 @@ abstract class GeneratorBase {
     def String timeInTargetLanguage(TimeValue time) {
         if (time !== null) {
             if (time.unit != TimeUnit.NONE) {
-                time.unit.name() + '(' + time.time + ')'
+                return time.unit.name() + '(' + time.time + ')'
             } else {
-                time.time.toString()
+                return time.time.toString()
             }    
         }
-        return "0" // FIXME: check and document this
+        return "0" // FIXME: do this or throw exception?
     }
 
     /** Return a string that the target language can recognize as a type
@@ -1223,7 +1223,7 @@ abstract class GeneratorBase {
                             rightFederate.dependsOn.put(leftFederate, dependsOn)
                         }
                         if (connection.delay !== null) {
-                            dependsOn.add(connection.delay.time)
+                            dependsOn.add(connection.delay)
                         }
                         // Check for causality loops between federates.
                         var reverseDependency = leftFederate.dependsOn.get(rightFederate)
