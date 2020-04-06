@@ -1,4 +1,4 @@
-/* Generator for C target. */
+/* Generator for Cpp target. */
 
 /*************
  * Copyright (c) 2019, TU Dresden.
