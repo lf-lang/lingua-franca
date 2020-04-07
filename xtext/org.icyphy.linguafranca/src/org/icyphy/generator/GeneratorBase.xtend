@@ -71,6 +71,7 @@ import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Type
 import org.icyphy.InferredType
 import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Time
 
 /** Generator base class for shared code between code generators.
  * 
@@ -1428,6 +1429,50 @@ abstract class GeneratorBase {
     
     protected def getTargetType(Type t) {
         InferredType.fromAST(t).targetType
+    }
+
+    /**
+     * Get textual representation of a time in the target language.
+     * 
+     * @param t A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetTime(Time t) {
+        val value = new TimeValue(t.interval, t.unit)
+        return value.timeInTargetLanguage
+    }
+
+    /**
+     * Get textual representation of a value in the target language.
+     * 
+     * If the value evaluates to 0, it is interpreted as a normal value.
+     * 
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetValue(Value v) {
+        if (v.time !== null) {
+            return v.time.targetTime
+        }
+        return v.toText
+    }
+    
+    /**
+     * Get textual representation of a value in the target language.
+     * 
+     * If the value evaluates to 0, it is interpreted as a time.
+     * 
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetTime(Value v) {   
+        if (v.time !== null) {
+            return v.time.targetTime
+        } else if (v.isZero) {
+            val value = new TimeValue(0, TimeUnit.NONE)
+            return value.timeInTargetLanguage
+        }
+        return v.toText 
     }
 
     enum Mode {
