@@ -69,6 +69,8 @@ import java.io.OutputStream
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Type
+import org.icyphy.InferredType
+import org.icyphy.linguaFranca.Port
 
 /** Generator base class for shared code between code generators.
  * 
@@ -1373,6 +1375,53 @@ abstract class GeneratorBase {
         errThread.join()
 
         return returnCode
+    }
+    
+    abstract protected def String getTargetTimeType()
+
+    abstract protected def String getTargetUndefinedType()
+    
+    abstract protected def String getTargetFixedSizeListType(String baseType, Integer size)
+
+    abstract protected def String getTargetVariableSizeListType(String baseType);
+    
+    protected def getTargetType(InferredType type) {
+        if (type.isUndefined) {
+            return targetUndefinedType
+        } else if (type.isTime) {
+            if (type.isFixedSizeList) {
+                return targetTimeType.getTargetFixedSizeListType(type.listSize)
+            } else if (type.isVariableSizeList) {
+                return targetTimeType.targetVariableSizeListType
+            } else {
+                return targetTimeType
+            }
+        } else if (type.isFixedSizeList) {
+            return type.baseType.getTargetFixedSizeListType(type.listSize)
+        } else if (type.isVariableSizeList) {
+            return type.baseType.targetVariableSizeListType
+        }
+        return type.toText
+    }
+    
+    protected def getTargetType(Parameter p) {
+        return p.inferredType.targetType
+    }
+    
+    protected def getTargetType(StateVar s) {
+        return s.inferredType.targetType
+    }
+    
+    protected def getTargetType(Action a) {
+        return a.inferredType.targetType
+    }
+    
+    protected def getTargetType(Port p) {
+        return p.inferredType.targetType
+    }
+    
+    protected def getTargetType(Type t) {
+        InferredType.fromAST(t).targetType
     }
 
     enum Mode {
