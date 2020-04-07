@@ -35,7 +35,6 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
@@ -933,14 +932,6 @@ class CppGenerator extends GeneratorBase {
      */
     override acceptableTargets() {
         acceptableTargetSet
-    }
-    
-    override timeListTypeInTargetLanguage(ArraySpec spec) {
-        if (spec !== null) {
-            '''/* «spec.reportError("Arrays are currently not supported!")» */»'''
-        } else {
-            '''reactor::Duration'''
-        }
     }
     
     override protected generateVariableSizeArrayInitializer(List<String> list) {
