@@ -45,11 +45,14 @@ import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Value
+import org.eclipse.emf.common.util.EList
+import org.icyphy.linguaFranca.Action
 
 /**
  * A helper class for modifying and analyzing the AST.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresden.de>}
  */
 class ASTUtils {
     
@@ -343,10 +346,58 @@ class ASTUtils {
     }
     
     /**
-     * Translate the given type into its textual representation.
+     * Translate the given type into its textual representation, including
+     * any array specifications.
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
+    def static toText(Type type) {
+        if (type !== null) {
+            val base = type.baseType
+            val arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
+            return base + arr
+        }
+        ""
+    }
+    
+    /**
+     * Translate the given type into its textual representation, but
+     * do not append any array specifications.
+     * @param type AST node to render as string.
+     * @return Textual representation of the given argument.
+     */
+    def static baseType(Type type) {
+        if (type !== null) {
+            if (type.code !== null) {
+                return toText(type.code)
+            } else {
+                if (type.isTime) {
+                    return "time"
+                } else {
+                    var stars = ""
+                    for (s : type.stars ?: emptyList) {
+                        stars += s
+                    }
+                    return type.id + stars
+                }
+            }
+        }
+        ""
+    }
+    
+    /**
+     * Translate the given type into its textual representation.
+     * 
+     * @Deprecated This method is no longer supported. Use toText(Type)
+     * to get a textual representation as in the LF program or getTargetCode
+     * of your generator to produce a target code representation.
+     * 
+     * FIXME: Delete this method
+     * 
+     * @param type AST node to render as string.
+     * @return Textual representation of the given argument.
+     */
+    @Deprecated
     def static toText(Type type, GeneratorBase generator) {
         if (type !== null) {
             if (type.code !== null) {
@@ -377,13 +428,6 @@ class ASTUtils {
         }
         ""
     }
-    
-//    /**
-//     * Translate the given literal or code into a textual representation.
-//     * @param literalOrCode AST node to render as string.
-//     * @return Textual representation of the given argument.
-//     */
-   
     
     /**
      * Report whether the given literal is zero or not.
@@ -532,25 +576,6 @@ class ASTUtils {
         }
         return false
     }
-    
-    /**
-     * Given a state variable, return the AST node that denotes its type.
-     * @param s A state variable.
-     * @return The type associated with the argument, or null if denotes a time.
-     */
-    def static Type getType(StateVar s) {
-        if (s !== null) {
-            if (s.type !== null) {
-                return s.type
-            } else if (s.init !== null && s.init.size == 1) {
-                // If this parameter is initialized using a list,
-                // then it needs a type.
-                val parm = s.init.get(0).parameter
-                if (parm !== null)
-                    return parm.type
-            }
-        }
-    }
         
     def static TimeValue getTimeValue(Parameter p) {
         if (p !== null && p.isOfTimeType) {
@@ -587,6 +612,28 @@ class ASTUtils {
         return false
     }
     
+        
+    /**
+     * Given a state variable, return the AST node that denotes its type.
+     * @param s A state variable.
+     * @return The type associated with the argument, or null if denotes a time.
+     */
+    @Deprecated // FIXME: delete
+    def static Type getType(StateVar s) {
+        if (s !== null) {
+            if (s.type !== null) {
+                return s.type
+            } else if (s.init !== null && s.init.size == 1) {
+                // If this parameter is initialized using a list,
+                // then it needs a type.
+                val parm = s.init.get(0).parameter
+                if (parm !== null)
+                    return parm.type
+            }
+        } 
+    }
+    
+    @Deprecated // FIXME: delete
     def static String getInferredType(Parameter p, GeneratorBase generator) {
         if (p !== null) {
             if (p.type !== null) {
@@ -605,6 +652,7 @@ class ASTUtils {
         ""
     }
     
+    @Deprecated // FIXME: delete
     def static String getInferredType(StateVar s, GeneratorBase generator) {
         if (s !== null) {
             if (s.type !== null) {
@@ -631,4 +679,71 @@ class ASTUtils {
         ""
     }
     
+    protected static def InferredType getInferredType(EList<Value> initList) {
+        if (initList.size == 1) {
+            val init = initList.get(0)
+            if (init.parameter !== null) {
+                return init.parameter.getInferredType
+            } else if (init.isValidTime && !init.isZero) {
+                return InferredType.time;
+            }
+        } else if (initList.size > 1) {
+            var allValidTime = true
+            var foundNonZero = false
+
+            for (init : initList) {
+                if (!init.isValidTime) {
+                    allValidTime = false;
+                } 
+                if (!init.isZero) {
+                    foundNonZero = true
+                }
+            }
+
+            if (allValidTime && foundNonZero) {
+                // FIXME: fixed size list or variable sized list
+
+                // return a variable size time list
+                return InferredType.timeList()
+            }
+        }
+        return InferredType.undefined
+    }
+    
+    def static InferredType getInferredType(Parameter p) {
+        if (p !== null) {
+            if (p.type !== null) {
+                return InferredType.fromAST(p.type)
+            } else {
+                return p.init.inferredType
+            }
+        }
+        return InferredType.undefined
+    }
+    
+    def static InferredType getInferredType(StateVar s) {
+        if (s !== null) {
+            if (s.type !== null) {
+                return InferredType.fromAST(s.type)
+            }
+            if (s.init !== null) {
+                return s.init.inferredType
+            }
+        }
+        return InferredType.undefined
+    }
+    
+    def static InferredType getInferredType(Action a) {
+        if (a !== null && a.type !== null) {
+            return InferredType.fromAST(a.type)
+        }
+        return InferredType.undefined
+    }
+    
+    def static InferredType getInferredType(Port p) {
+        if (p !== null && p.type !== null) {
+            return InferredType.fromAST(p.type)
+        }
+        return InferredType.undefined
+    }
 }
