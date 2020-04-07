@@ -1006,7 +1006,7 @@ class CppGenerator extends GeneratorBase {
         return '''/* «reportError("Expected a time")» */'''
     }
     
-    override getTargetTimeType() '''reactor::Duartion'''
+    override getTargetTimeType() '''reactor::Duration'''
     
     override getTargetUndefinedType() '''/* «reportError("undefined type")» */''' 
     
