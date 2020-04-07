@@ -69,6 +69,9 @@ import java.io.OutputStream
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Type
+import org.icyphy.InferredType
+import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Time
 
 /** Generator base class for shared code between code generators.
  * 
@@ -458,11 +461,17 @@ abstract class GeneratorBase {
      *  this method to return something acceptable to the target language.
      *  @return The string "instant_t"
      */
+     // FIXME Delete. Use getTargetTimeType instead
+     @Deprecated 
     def timeTypeInTargetLanguage() {
         "interval_t"
     }
 
-    abstract def String timeListTypeInTargetLanguage(ArraySpec spec)
+     // FIXME Delete. Use getTargetTimeType, getTargetVariableSizeList, getTargetFixedSizeList instead
+     @Deprecated 
+     def String timeListTypeInTargetLanguage(ArraySpec spec) {
+         return ""
+     }
 
     /** Remove quotation marks surrounding the specified string.
      */
@@ -1054,7 +1063,8 @@ abstract class GeneratorBase {
 //
 //    }
 
-        
+    @Deprecated // FIXME This can be taken care of directly in the target generator. 
+                // Here we should only have the general method for producing the list. See getTargetInitializerList(Parameter)
     protected def String getParamInitializer(Parameter param) {
         var list = new LinkedList<String>();
 
@@ -1085,13 +1095,58 @@ abstract class GeneratorBase {
         }
     }
     
+    protected def getInitializerList(Parameter param) {
+        var list = new LinkedList<String>();
+
+        for (i : param?.init) {
+            if (param.isOfTimeType) {
+                list.add(i.targetTime)
+            } else {
+                list.add(i.targetValue)
+            }
+        }
+        return list
+    }
+    
+    protected def getInitializerList(StateVar state) {
+        var list = new LinkedList<String>();
+
+        for (i : state?.init) {
+            if (i.parameter !== null) {
+                list.add(i.parameter.targetReference)
+            }
+            if (state.isOfTimeType) {
+                list.add(i.targetTime)
+            } else {
+                list.add(i.targetValue)
+            }
+        }
+        return list
+    }
+    
+    /**
+     * Generate target code for a parameter reference.
+     * 
+     * @param param The parameter to generate code for
+     * @return Parameter reference in target code
+     */
+    protected def String getTargetReference(Parameter param) {
+        return param.name
+    }
+    
+    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
     abstract protected def String generateVariableSizeArrayInitializer(List<String> list);
 
+    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
     abstract protected def String generateFixedSizeArrayInitializer(List<String> list);
 
+    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
     abstract protected def String generateObjectInitializer(List<String> list);
     
+    @Deprecated // FIXME This can be taken care of directly in the target generator. 
+                // Here we should only have the general method for producing the list. See getTargetInitializerList(StateVar)
     protected def String getStateInitializer(StateVar stateVar) {
+    
         if (stateVar.init === null || stateVar.init.size == 0)
             return ""
         
@@ -1374,6 +1429,97 @@ abstract class GeneratorBase {
         errThread.join()
 
         return returnCode
+    }
+    
+    abstract protected def String getTargetTimeType()
+
+    abstract protected def String getTargetUndefinedType()
+    
+    abstract protected def String getTargetFixedSizeListType(String baseType, Integer size)
+
+    abstract protected def String getTargetVariableSizeListType(String baseType);
+    
+    protected def getTargetType(InferredType type) {
+        if (type.isUndefined) {
+            return targetUndefinedType
+        } else if (type.isTime) {
+            if (type.isFixedSizeList) {
+                return targetTimeType.getTargetFixedSizeListType(type.listSize)
+            } else if (type.isVariableSizeList) {
+                return targetTimeType.targetVariableSizeListType
+            } else {
+                return targetTimeType
+            }
+        } else if (type.isFixedSizeList) {
+            return type.baseType.getTargetFixedSizeListType(type.listSize)
+        } else if (type.isVariableSizeList) {
+            return type.baseType.targetVariableSizeListType
+        }
+        return type.toText
+    }
+    
+    protected def getTargetType(Parameter p) {
+        return p.inferredType.targetType
+    }
+    
+    protected def getTargetType(StateVar s) {
+        return s.inferredType.targetType
+    }
+    
+    protected def getTargetType(Action a) {
+        return a.inferredType.targetType
+    }
+    
+    protected def getTargetType(Port p) {
+        return p.inferredType.targetType
+    }
+    
+    protected def getTargetType(Type t) {
+        InferredType.fromAST(t).targetType
+    }
+
+    /**
+     * Get textual representation of a time in the target language.
+     * 
+     * @param t A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetTime(Time t) {
+        val value = new TimeValue(t.interval, t.unit)
+        return value.timeInTargetLanguage
+    }
+
+    /**
+     * Get textual representation of a value in the target language.
+     * 
+     * If the value evaluates to 0, it is interpreted as a normal value.
+     * 
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetValue(Value v) {
+        if (v.time !== null) {
+            return v.time.targetTime
+        }
+        return v.toText
+    }
+    
+    /**
+     * Get textual representation of a value in the target language.
+     * 
+     * If the value evaluates to 0, it is interpreted as a time.
+     * 
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetTime(Value v) {   
+        if (v.time !== null) {
+            return v.time.targetTime
+        } else if (v.isZero) {
+            val value = new TimeValue(0, TimeUnit.NONE)
+            return value.timeInTargetLanguage
+        }
+        return v.toText 
     }
 
     enum Mode {

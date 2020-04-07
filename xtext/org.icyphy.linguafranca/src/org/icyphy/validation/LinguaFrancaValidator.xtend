@@ -54,7 +54,6 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 
 import static extension org.icyphy.ASTUtils.*
@@ -65,7 +64,6 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresen.de>}
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
@@ -595,7 +593,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         error("Invalid time literal", Literals.STATE_VAR__INIT)
                 }
             }
-        } else if (this.target.requiresTypes && stateVar.getInferredType(null).equals("")) {
+        } else if (this.target.requiresTypes && stateVar.inferredType.isUndefined) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
@@ -655,14 +653,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         timers.add(timer.name);
         allNames.add(timer.name)
-    }
-
-    @Check(FAST)
-    def ceckType(Type type) {
-        if (this.target == Targets.CPP && type.arraySpec !== null) {
-            error("Plain arrays are not supported in C++. Consider using " +
-                  "std::vector or std::array.", Literals.TYPE__ARRAY_SPEC);
-        }
     }
 
     static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
