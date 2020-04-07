@@ -96,7 +96,9 @@ abstract class GeneratorBase {
         TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
-        
+    
+    static protected CharSequence listItemSeparator = ', '
+    
     ////////////////////////////////////////////
     //// Protected fields.
         
@@ -1089,8 +1091,7 @@ abstract class GeneratorBase {
 
     abstract protected def String generateObjectInitializer(List<String> list);
     
-    protected def String getStateInitializer(StateVar stateVar,
-        CharSequence before, CharSequence separator, CharSequence after) {
+    protected def String getStateInitializer(StateVar stateVar) {
         if (stateVar.init === null || stateVar.init.size == 0)
             return ""
         
@@ -1113,7 +1114,7 @@ abstract class GeneratorBase {
         if (list.size == 1) {
             return list.first
         } else if (list.size > 1) {
-            return list.join(before, separator, after, [it])
+            return list.join('', listItemSeparator, '', [it])
         }
     }
         

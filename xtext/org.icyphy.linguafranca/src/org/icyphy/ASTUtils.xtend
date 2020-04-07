@@ -563,6 +563,13 @@ class ASTUtils {
         }
     }
     
+    def static boolean isInitialized(StateVar v) {
+        if (v !== null && v.parens !== null) {
+            return true
+        }
+        return false
+    }
+    
     def static TimeValue getTimeValue(Value v) {
         if (v.parameter !== null) {
             return ASTUtils.getTimeValue(v.parameter)

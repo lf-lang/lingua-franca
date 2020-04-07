@@ -682,7 +682,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			val edge = createIODependencyEdge(connection)
 			if (connection.delay !== null) {
-				edge.addCenterEdgeLabel(connection.delay.time.toText) => [
+				edge.addCenterEdgeLabel(connection.delay.toText) => [
 					associateWith(connection.delay)
 					applyOnEdgeDelayStyle()
 				]

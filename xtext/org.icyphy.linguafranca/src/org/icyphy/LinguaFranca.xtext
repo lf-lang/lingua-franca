@@ -44,22 +44,17 @@ Model:
     target=Target
     (imports+=Import)*
     (preambles+=Preamble)*
-    (reactors+=Reactor)+;
+    (reactors+=Reactor)+
+    ;
 
 /////////// Top level elements
-
-/**
- * Specification of the target language. Target properties can be specified in
- * YAML format to pass on configuration details to the runtime environment. 
- */
-Target:
-    'target' name=ID (config=KeyValuePairs)? ';';
 
 /**
  * Import declaration.
  */
 Import:
-    'import' importURI=Path ';';
+    'import' importURI=Path ';'
+    ;
 
 /**
  * Declaration of a reactor class.
@@ -80,28 +75,35 @@ Reactor:
         | (mutations+=Mutation)
     )* '}';
 
+/**
+ * Specification of the target language. Target properties can be specified in
+ * YAML format to pass on configuration details to the runtime environment. 
+ */
+Target:
+    'target' name=ID (config=KeyValuePairs)? ';';
+
+
 /////////// Statements
 
 /**
  * Declaration of a state variable. Types are optional, but may be required 
  * during validation (depending on the target language). Initialization is also 
- * optional. A state variable can be initialized by assigning a `TimeOrValue`, 
- * or list of these. Note that a `TimeOrValue` may also be a reference to a 
- * parameter.
+ * optional. A state variable can be initialized by assigning a `Value` or list 
+ * of these. Note that a `Value` may also be a reference to a parameter.
  * The following checks must be carried out during validation: 
  *  - if the list of initialization values has more than one element in it, a 
  *  type must be specified;
  *  - if the `time` type is specified, there can only be a single initialization
  *  element, which has to denote a time or a reference to a parameter that
  *  denotes a time; and
- *  - if a time is specified, units must be specified as well, unless the time 
- *  value is zero.
+ *  - if the `time` type is specified, either a proper time interval and unit
+ *  must be given, or a literal or code that denotes zero.
  */
  StateVar:
     'state' name=ID (
         (':' (type=Type))? 
-        (parens+='(' init+=Value 
-                (',' init+=Value)* parens+=')'
+        (parens+='(' (init+=Value 
+                (','  init+=Value)*)? parens+=')'
         )?
     ) ';'    
 ;
@@ -145,9 +147,6 @@ Reaction:
 TriggerRef:
     VarRef | startup?='startup' | shutdown?='shutdown';
 
-//Delay:
-//    'after' length=Value;
-
 Deadline:
     'deadline' '(' delay=Value ')' code=Code;
 
@@ -169,9 +168,6 @@ Instantiation:
 
 Connection:
     leftPort=VarRef '->' rightPort=VarRef ('after' delay=Value)? ';';
-
-//KEYWORD:
-//    'input' | 'state' | 'output' | 'timer' | 'action';
     
 /////////// For target parameters
 
@@ -207,25 +203,20 @@ VarRef:
 
 Assignment:
     (lhs=[Parameter] '=' rhs=Value);
+//Assignment:
+//    (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
 
 
 /**
  * Parameter declaration with optional type and mandatory initialization.
  */
 Parameter:
-    name=ID 
-//    ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-//    | ((':' type=Type)? '(' value=LiteralOrCode ')'))?;
-//    (
-//        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-//        | ((':' type=Type)? 
-//            '(' values+=LiteralOrCode (',' values+=LiteralOrCode)*  ')'
-//          ) 
-//    )
-
-(':' (type=Type))? ('(' init+=Value (',' init+=Value)* ')' )
+    name=ID (':' (type=Type))? 
+    (parens+='(' (init+=Value 
+            (','  init+=Value)*)? parens+=')'
+    )?
 ;
- 
+
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
 // If it is a constant, the validator should check that if the value
@@ -233,16 +224,10 @@ Parameter:
 Value:
     (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
 
-//TimeOrValue: // FIXME: Value: [Param] | time | literal | code
-//    time=Time | value=LiteralOrCode
-//;
 
 Time:
     (interval=INT unit=TimeUnit)
 ;
-
-//LiteralOrCode:
-//    literal=Literal | code=Code;
 
 Port:
     Input | Output;
@@ -281,7 +266,6 @@ terminal FLOAT:
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
-
 Code:
     {Code} '{=' (tokens+=Token)* '=}'
 ;

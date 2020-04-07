@@ -1725,7 +1725,7 @@ class CGenerator extends GeneratorBase {
         
         for (stateVar : reactorClass.stateVars) {
             val init = stateVar.init
-            var initStr = stateVar.getStateInitializer('{', ',', '}')
+            var initStr = stateVar.getStateInitializer
 
             if (stateVar.isOfTimeType) {
                 pr(initializeTriggerObjects,
