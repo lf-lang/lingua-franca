@@ -38,12 +38,10 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
-import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
@@ -52,6 +50,8 @@ import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.TimeValue
+import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.Parameter
 
 /** Generator for C++ target.
  *
@@ -401,7 +401,7 @@ class CppGenerator extends GeneratorBase {
             '''
                 «r.name»(const std::string& name,
                     «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name» = «p.initializer»«ENDFOR»
+                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name» = «p.targetInitializer»«ENDFOR»
             '''
         } else {
             if (r == mainReactor) {
@@ -409,37 +409,6 @@ class CppGenerator extends GeneratorBase {
             } else {
                 '''«r.name»(const std::string& name, reactor::Reactor* container);'''
             }
-        }
-    }
-
-    def getInitializer(StateVar s) '''«s.getStateInitializer('', ', ', '')»'''
-    
-    def getInitializer(Parameter p) '''«p.getParamInitializer»'''
-    
-    // FIXME: This should be fixed in GeneratorBase
-    override String getStateInitializer(StateVar stateVar,
-        CharSequence before, CharSequence separator, CharSequence after) {
-        if (stateVar.init === null || stateVar.init.size == 0)
-            return ""
-        
-        var list = new LinkedList<String>();
-
-        for (element : stateVar.init) {
-            if (element.parameter !== null) {
-                list.add(element.parameter.name)
-            } else if (stateVar.isOfTimeType) {
-                list.add(element.getTimeValue.timeInTargetLanguage)
-            } else if (element.literal !== null) {
-                 list.add(element.literal)
-            } else if (element.code !== null) {
-                list.add(element.code.toText)
-            }
-        }
-
-        if (list.size == 1) {
-            return list.first
-        } else if (list.size > 1) {
-            return list.join(before, separator, after, [it])
         }
     }
 
@@ -463,6 +432,21 @@ class CppGenerator extends GeneratorBase {
           «r.initializeTimers»
         {}
     '''
+    
+    def String getTargetInitializer(StateVar state) {
+        '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
+    }
+    
+    def String getTargetInitializer(Parameter param) {
+        val list = param.initializerList
+        if (list.size == 0) {
+            param.reportError("Paramters must have a default value!")
+        } else if (list.size == 1) {
+            return list.get(0)
+        } else {
+            '''{«FOR init : param.initializerList SEPARATOR ", "»«init»«ENDFOR»}'''    
+        }
+    }
 
     def initializeParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE "// parameters\n"»
@@ -472,13 +456,13 @@ class CppGenerator extends GeneratorBase {
 
     def initializeStateVariables(Reactor r) '''
         «FOR s : r.stateVars BEFORE "// state variables\n"»
-            , «s.name»{«s.initializer»}
+            , «s.name»{«s.targetInitializer»}
         «ENDFOR»
     '''
 
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            , «i.name»{"«i.name»", this«FOR v : i.paramInitializers», «v»«ENDFOR»}
+            , «i.name»{"«i.name»", this«FOR v : i.targetInitializers», «v»«ENDFOR»}
         «ENDFOR»
     '''
     
@@ -524,7 +508,7 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def paramInitializers(Instantiation i) {
+    def targetInitializers(Instantiation i) {
         var List<String> values = newArrayList
         for (p : i.reactorClass.parameters) {
             var String value = null
@@ -538,16 +522,7 @@ class CppGenerator extends GeneratorBase {
                 }
             }
             if (value === null) {
-                if (p.init !== null && p.init.size == 1) {
-                    if (p.ofTimeType) {
-                        value = '''«p.init.get(0).targetTime»'''
-                    } else {
-                        value = '''«p.init.get(0).targetValue»'''
-                    }
-                } else {
-                    // FIXME:
-                    value = '''/* «i.reportError("Parameters with multiple initializers are currently not supported!")» */'''
-                }
+                value = p.targetInitializer
             }
             values.add(value)
         }
