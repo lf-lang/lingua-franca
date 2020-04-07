@@ -1,0 +1,39 @@
+// Source has an variable sized list as a parameter, the elements of which it passes to Print.
+target Cpp;
+
+reactor Source(sequence:int[](0, 1, 2)) {
+    output out:int;
+    state count:int(0);
+    logical action next:void;
+    reaction(startup, next) -> out, next {=
+        out.set(sequence[count]);
+        count++;
+        if (count < sequence.size()) {
+            next.schedule();
+        }
+    =}
+}
+
+reactor Print {
+    input in:int;
+    state count:int(1);
+    reaction(in) {=
+        std::cout << "Received: " << *in.get() << '\n';
+        if (*in.get() != count) {
+            std::cerr << "ERROR: Expected " << count << '\n';
+            exit(1);
+        }
+        count++;
+    =}
+    reaction(shutdown) {=
+        if (count == 1) {
+            std::cerr << "ERROR: Final reactor received no data.\n";
+            exit(3);
+        }
+    =}
+}
+main reactor ArrayAsParameter {
+    s = new Source(sequence = {= {1, 2, 3, 4} =});
+    p = new Print();
+    s.out -> p.in;
+}

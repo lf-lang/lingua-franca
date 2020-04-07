@@ -1006,4 +1006,20 @@ import {Log} from "''' + utilLibPath + '''"
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
     
+    override protected String getTargetTimeType() {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected String getTargetUndefinedType() {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected String getTargetFixedSizeListType(String baseType, Integer size) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+    override protected String getTargetVariableSizeListType(String baseType) {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+
 }

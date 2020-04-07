@@ -35,18 +35,13 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.ArraySpec
-import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
-import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
@@ -55,8 +50,8 @@ import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.TimeValue
-import org.icyphy.linguaFranca.Value
-import org.icyphy.linguaFranca.Time
+import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.Parameter
 
 /** Generator for C++ target.
  *
@@ -235,13 +230,13 @@ class CppGenerator extends GeneratorBase {
 
     def declareStateVariables(Reactor r) '''
         «FOR s : r.stateVars BEFORE '// state variables\n' AFTER '\n'»
-            «s.inferredType» «s.name»;
+            «s.targetType» «s.name»;
         «ENDFOR»
     '''
 
     def declareParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
-            std::add_const<«p.inferredType»>::type «p.name»;
+            std::add_const<«p.targetType»>::type «p.name»;
         «ENDFOR»
     '''
 
@@ -265,10 +260,10 @@ class CppGenerator extends GeneratorBase {
 
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-            reactor::Input<«i.inferredType»> «i.name»{"«i.name»", this};
+            reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
         «ENDFOR»
         «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-            reactor::Output<«o.inferredType»> «o.name»{"«o.name»", this};
+            reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
         «ENDFOR»
     '''
 
@@ -283,9 +278,9 @@ class CppGenerator extends GeneratorBase {
 
     def implementationType(Action a) {
         if (a.origin == ActionOrigin.LOGICAL) {
-            '''reactor::LogicalAction<«a.inferredType»>'''
+            '''reactor::LogicalAction<«a.targetType»>'''
         } else {
-            '''reactor::PhysicalAction<«a.inferredType»>'''
+            '''reactor::PhysicalAction<«a.targetType»>'''
         }
     }
 
@@ -406,7 +401,7 @@ class CppGenerator extends GeneratorBase {
             '''
                 «r.name»(const std::string& name,
                     «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.type.toText(this)»>::type>::type «p.name» = «p.initializer»«ENDFOR»
+                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name» = «p.targetInitializer»«ENDFOR»
             '''
         } else {
             if (r == mainReactor) {
@@ -417,89 +412,89 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def inferredType(Input i) {
-        if (i.type !== null) {
-            i.type.toText(this)
-        } else {
-            '''/* «i.reportError("Input port has no type.")» */'''
-        }
-    }
-
-    def inferredType(Output o) {
-        if (o.type !== null) {
-            o.type.toText(this)
-        } else {
-            '''/* «o.reportError("Input port has no type.")» */'''
-        }
-    }
-
-    def inferredType(Action a) {
-        if (a.type !== null) {
-            a.type.toText(this)
-        } else {
-            '''/* «a.reportError("Action has no type.")» */'''
-        }
-    }
-    
-    def asTime(Value v) {
-        if (v.parameter !== null) {
-            if (v.parameter.ofTimeType) {
-                '''«v.parameter.name»'''
-            } else {
-                '''/* «v.reportError("Expected a parameter of time type!")» */'''
-            }
-        } else if (v.time !== null) {
-            v.time.toText
-        } else if (v.isZero()) {
-            '''reactor::Duration::zero()'''
-        } else {
-            '''/* «v.reportError("Expected a value of time type!")» */'''
-        }
-    }
-    
-    def toText(Value v) '''«v.toText(this)»'''
-    
-    def toText(Time t) '''«t.toText(this)»'''
-    
-    def inferredType(StateVar s) '''«s.getInferredType(this)»'''
-    
-    def inferredType(Parameter p) '''«p.getInferredType(this)»'''
-
-    def getInitializer(StateVar s) '''«s.getStateInitializer»'''
-    
-    def getInitializer(Parameter p) '''«p.getParamInitializer»'''
-    
-    // FIXME: This should be fixed in GeneratorBase
-    override String getStateInitializer(StateVar stateVar) {
-        if (stateVar.init === null || stateVar.init.size == 0)
-            return ""
-        
-        var list = new LinkedList<String>();
-
-        for (element : stateVar.init) {
-            if (element.parameter !== null) {
-                list.add(element.parameter.name)
-            } else if (stateVar.isOfTimeType) {
-                list.add(element.getTimeValue.timeInTargetLanguage)
-            } else if (element.literal !== null) {
-                 list.add(element.literal)
-            } else if (element.code !== null) {
-                list.add(element.code.toText)
-            }
-        }
-
-        if (list.size == 1) {
-            return list.first
-        } else if (list.size > 1) {
-            return list.join('', listItemSeparator, '', [it])
-        }
-    }
+//    def inferredType(Input i) {
+//        if (i.type !== null) {
+//            i.type.toText(this)
+//        } else {
+//            '''/* «i.reportError("Input port has no type.")» */'''
+//        }
+//    }
+//
+//    def inferredType(Output o) {
+//        if (o.type !== null) {
+//            o.type.toText(this)
+//        } else {
+//            '''/* «o.reportError("Input port has no type.")» */'''
+//        }
+//    }
+//
+//    def inferredType(Action a) {
+//        if (a.type !== null) {
+//            a.type.toText(this)
+//        } else {
+//            '''/* «a.reportError("Action has no type.")» */'''
+//        }
+//    }
+//    
+//    def asTime(Value v) {
+//        if (v.parameter !== null) {
+//            if (v.parameter.ofTimeType) {
+//                '''«v.parameter.name»'''
+//            } else {
+//                '''/* «v.reportError("Expected a parameter of time type!")» */'''
+//            }
+//        } else if (v.time !== null) {
+//            v.time.toText
+//        } else if (v.isZero()) {
+//            '''reactor::Duration::zero()'''
+//        } else {
+//            '''/* «v.reportError("Expected a value of time type!")» */'''
+//        }
+//    }
+//    
+//    def toText(Value v) '''«v.toText(this)»'''
+//    
+//    def toText(Time t) '''«t.toText(this)»'''
+//    
+//    def inferredType(StateVar s) '''«s.getInferredType(this)»'''
+//    
+//    def inferredType(Parameter p) '''«p.getInferredType(this)»'''
+//
+//    def getInitializer(StateVar s) '''«s.getStateInitializer»'''
+//    
+//    def getInitializer(Parameter p) '''«p.getParamInitializer»'''
+//    
+//    // FIXME: This should be fixed in GeneratorBase
+//    override String getStateInitializer(StateVar stateVar) {
+//        if (stateVar.init === null || stateVar.init.size == 0)
+//            return ""
+//        
+//        var list = new LinkedList<String>();
+//
+//        for (element : stateVar.init) {
+//            if (element.parameter !== null) {
+//                list.add(element.parameter.name)
+//            } else if (stateVar.isOfTimeType) {
+//                list.add(element.getTimeValue.timeInTargetLanguage)
+//            } else if (element.literal !== null) {
+//                 list.add(element.literal)
+//            } else if (element.code !== null) {
+//                list.add(element.code.toText)
+//            }
+//        }
+//
+//        if (list.size == 1) {
+//            return list.first
+//        } else if (list.size > 1) {
+//            return list.join('', listItemSeparator, '', [it])
+//        }
+//    }
 
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
                 «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.inferredType»>::type>::type «p.name»«ENDFOR»
+                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
         «ELSE»
             «IF r == mainReactor»
                 «r.name»::«r.name»(const std::string& name, reactor::Environment* environment)
@@ -515,6 +510,21 @@ class CppGenerator extends GeneratorBase {
           «r.initializeTimers»
         {}
     '''
+    
+    def String getTargetInitializer(StateVar state) {
+        '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
+    }
+    
+    def String getTargetInitializer(Parameter param) {
+        val list = param.initializerList
+        if (list.size == 0) {
+            param.reportError("Paramters must have a default value!")
+        } else if (list.size == 1) {
+            return list.get(0)
+        } else {
+            '''{«FOR init : param.initializerList SEPARATOR ", "»«init»«ENDFOR»}'''    
+        }
+    }
 
     def initializeParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE "// parameters\n"»
@@ -524,13 +534,13 @@ class CppGenerator extends GeneratorBase {
 
     def initializeStateVariables(Reactor r) '''
         «FOR s : r.stateVars BEFORE "// state variables\n"»
-            , «s.name»{«s.initializer»}
+            , «s.name»{«s.targetInitializer»}
         «ENDFOR»
     '''
 
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            , «i.name»{"«i.name»", this«FOR v : i.paramInitializers», «v»«ENDFOR»}
+            , «i.name»{"«i.name»", this«FOR v : i.targetInitializers», «v»«ENDFOR»}
         «ENDFOR»
     '''
     
@@ -550,10 +560,10 @@ class CppGenerator extends GeneratorBase {
         var String period = "reactor::Duration::zero()"
         var String offset = "reactor::Duration::zero()"
         if (t.offset !== null) {
-          offset = '''«t.offset.asTime»'''
+          offset = '''«t.offset.targetTime»'''
         }
         if (t.period !== null) {
-            period = '''«t.period.asTime»'''
+            period = '''«t.period.targetTime»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
@@ -563,7 +573,7 @@ class CppGenerator extends GeneratorBase {
             if (a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
                 a.reportError("minInterArrival and minPolicy are not supported for logical actions!");
             } else if (a.minDelay !== null) {
-                ''', «a.name»{"«a.name»", this, «a.minDelay.asTime»}'''
+                ''', «a.name»{"«a.name»", this, «a.minDelay.targetTime»}'''
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }
@@ -576,30 +586,21 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    def paramInitializers(Instantiation i) {
+    def targetInitializers(Instantiation i) {
         var List<String> values = newArrayList
         for (p : i.reactorClass.parameters) {
             var String value = null
             for (a : i.parameters ?: emptyList) {
                 if (a.lhs.name == p.name) {
                 	if (p.ofTimeType) {
-                        value = '''«a.rhs.asTime»'''
+                        value = '''«a.rhs.targetTime»'''
                     } else {
-                        value = '''«a.rhs.toText»'''
+                        value = '''«a.rhs.targetValue»'''
                     }
                 }
             }
             if (value === null) {
-                if (p.init !== null && p.init.size == 1) {
-                    if (p.ofTimeType) {
-                        value = '''«p.init.get(0).asTime»'''
-                    } else {
-                        value = '''«p.init.get(0).toText»'''
-                    }
-                } else {
-                    // FIXME:
-                    value = '''/* «i.reportError("Parameters with multiple initializers are currently not supported!")» */'''
-                }
+                value = p.targetInitializer
             }
             values.add(value)
         }
@@ -612,7 +613,7 @@ class CppGenerator extends GeneratorBase {
         «n.declareDependencies»
         «n.declareAntidependencies»
         «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.delay.asTime», [this]() { «n.name»_deadline_handler(); });
+            «n.name».set_deadline(«n.deadline.delay.targetTime», [this]() { «n.name»_deadline_handler(); });
         «ENDIF»
     '''
 
@@ -964,14 +965,6 @@ class CppGenerator extends GeneratorBase {
         acceptableTargetSet
     }
     
-    override timeListTypeInTargetLanguage(ArraySpec spec) {
-        if (spec !== null) {
-            '''/* «spec.reportError("Arrays are currently not supported!")» */»'''
-        } else {
-            '''reactor::Duration'''
-        }
-    }
-    
     override protected generateVariableSizeArrayInitializer(List<String> list) {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
@@ -1034,4 +1027,14 @@ class CppGenerator extends GeneratorBase {
         }
         return '''/* «reportError("Expected a time")» */'''
     }
+    
+    override getTargetTimeType() '''reactor::Duration'''
+    
+    override getTargetUndefinedType() '''/* «reportError("undefined type")» */''' 
+    
+    override getTargetFixedSizeListType(String baseType, Integer size)
+        '''std::array<«baseType», «size.toString»>'''
+
+    override getTargetVariableSizeListType(String baseType)
+        '''std::vector<«baseType»>'''
 }
