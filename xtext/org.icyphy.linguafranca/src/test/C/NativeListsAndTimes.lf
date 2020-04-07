@@ -1,6 +1,6 @@
 target C;
 
-reactor Foo(x:int(0), 
+main reactor Foo(x:int(0), 
 			y:time(0), 		// Units are missing but not required
 			z(1 msec), 		// Type is missing but not required
 			p:int[](1, 2, 3, 4),		// List of integers 
@@ -16,8 +16,10 @@ reactor Foo(x:int(0),
 	timer toe(z);		// Implicit type time
 	state baz(p);		// Implicit type int[]
 	state period(z);	// Implicit type time
+	reaction(tick) {=
+		// Target code	
+	=}
 }
-
 //reactor Bar(a:0,			// ERROR: type missing
 //			t:time(42), 	// ERROR: units missing
 //			x:int(0),

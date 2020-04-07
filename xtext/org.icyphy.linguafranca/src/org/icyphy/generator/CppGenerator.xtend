@@ -465,13 +465,12 @@ class CppGenerator extends GeneratorBase {
     
     def inferredType(Parameter p) '''«p.getInferredType(this)»'''
 
-    def getInitializer(StateVar s) '''«s.getStateInitializer('', ', ', '')»'''
+    def getInitializer(StateVar s) '''«s.getStateInitializer»'''
     
     def getInitializer(Parameter p) '''«p.getParamInitializer»'''
     
     // FIXME: This should be fixed in GeneratorBase
-    override String getStateInitializer(StateVar stateVar,
-        CharSequence before, CharSequence separator, CharSequence after) {
+    override String getStateInitializer(StateVar stateVar) {
         if (stateVar.init === null || stateVar.init.size == 0)
             return ""
         
@@ -492,7 +491,7 @@ class CppGenerator extends GeneratorBase {
         if (list.size == 1) {
             return list.first
         } else if (list.size > 1) {
-            return list.join(before, separator, after, [it])
+            return list.join('', listItemSeparator, '', [it])
         }
     }
 

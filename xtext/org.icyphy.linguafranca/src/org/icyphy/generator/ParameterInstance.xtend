@@ -27,16 +27,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import org.icyphy.TimeValue
+import java.util.List
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Type
+import org.icyphy.linguaFranca.Value
 
 /** Representation of a runtime instance of a parameter.
  *  
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
-abstract class ParameterInstance extends NamedInstance<Parameter> {
+class ParameterInstance extends NamedInstance<Parameter> {
         
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
@@ -45,20 +47,56 @@ abstract class ParameterInstance extends NamedInstance<Parameter> {
      */
     new(Parameter definition, ReactorInstance parent) {
         super(definition, parent)
-        
         if (parent === null) {
             throw new Exception('Cannot create a ParameterInstance with no parent.')
+        }
+        
+        this.type = definition.type
+        this.init = definition.init.clone
+        
+        // Check for an override.
+        for (assignment : parent.definition.parameters ?: emptyList) {
+            var rhs = assignment.rhs
+            if (assignment.lhs === definition) {
+                // Parameter is overridden using a reference to another parameter.
+                if (rhs.parameter !== null) {
+                    // Find the reactor that has the parameter that the assignment refers to.
+                    var reactor = rhs.parameter.eContainer as Reactor
+                    // Look the up the container of the parameter (in the instance hierarchy)
+                    // to find the matching instance
+                    var instance = parent
+                    var found = false
+                    while (instance.parent !== null && !found) {
+                        instance = instance.parent
+                        if (instance.definition.reactorClass === reactor) {
+                            found = true
+                        }
+                    }
+                    if (!found) {
+                        throw new InternalError(
+                            "Incorrect reference to parameter:" +
+                                definition.name);
+                    }
+
+                    val referencedParameter = instance.
+                        getParameterInstance(rhs.parameter)
+        
+                    this.type = referencedParameter.type
+                    this.init = referencedParameter.init
+                } else {
+                    // Parameter is overridden by a singleton value.
+                    this.init.set(0, rhs)                   
+                }        
+            }
         }
     }
 
     /////////////////////////////////////////////
     //// Public Fields
     
-//    /** The type of the parameter, stripped of the code delimiters
-//     *  {= ... =} if they were provided.
-//     */
-    //public var type = "UNTYPED"
-    protected Type type
+    public List<Value> init
+    
+    public Type type
     
     /////////////////////////////////////////////
     //// Public Methods
@@ -70,7 +108,14 @@ abstract class ParameterInstance extends NamedInstance<Parameter> {
         this.definition.name
     }
 
-	abstract def String getLiteralValue();
+	def String getLiteralValue() {
+	    // If this is an list
+	    
+	    // If this is a literal
+	    
+	    // If this is code
+	    // FIXME: look in ASTUtils
+	}
 	
     /** Return the main reactor, which is the top-level parent.
      *  @return The top-level parent.
@@ -85,38 +130,38 @@ abstract class ParameterInstance extends NamedInstance<Parameter> {
     }
 }
 
-class ValueParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, String value, Type type) {
-		super(definition, parent)
-		this.type = definition.type
-		this.value = value
-		
-	}
-	public var value = ""
-	
-	/** The value of the parameter. This defaults to the value given
-     *  in the reactor class definition, but if the parameter is
-     *  overridden in instantiation, then that value is returned.
-     *  In both cases, the value is stripped of the code delimiters
-     *  {= ... =} if they were provided.
-     */
-	override getLiteralValue() {
-		return this.value
-	}
-}
-
-class TimeParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, TimeValue timeValue) {
-		super(definition, parent)
-		this.type = definition.type
-		this.value = timeValue
-	}
-	
-	public TimeValue value
-	
-    /** The time value of the parameter in the target language. */
-	override getLiteralValue() {
-		return parent.generator.timeInTargetLanguage(this.value)
-	}
-	
-}
+//class ValueParameter extends ParameterInstance {
+//	new(Parameter definition, ReactorInstance parent, String value, Type type) {
+//		super(definition, parent)
+//		this.type = definition.type
+//		this.value = value
+//		
+//	}
+//	public var value = ""
+//	
+//	/** The value of the parameter. This defaults to the value given
+//     *  in the reactor class definition, but if the parameter is
+//     *  overridden in instantiation, then that value is returned.
+//     *  In both cases, the value is stripped of the code delimiters
+//     *  {= ... =} if they were provided.
+//     */
+//	override getLiteralValue() {
+//		return this.value
+//	}
+//}
+//
+//class TimeParameter extends ParameterInstance {
+//	new(Parameter definition, ReactorInstance parent, TimeValue timeValue) {
+//		super(definition, parent)
+//		this.type = definition.type
+//		this.value = timeValue
+//	}
+//	
+//	public TimeValue value
+//	
+//    /** The time value of the parameter in the target language. */
+//	override getLiteralValue() {
+//		return parent.generator.timeInTargetLanguage(this.value)
+//	}
+//	
+//}

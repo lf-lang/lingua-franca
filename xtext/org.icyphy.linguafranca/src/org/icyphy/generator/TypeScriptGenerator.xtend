@@ -388,9 +388,18 @@ class TypeScriptGenerator extends GeneratorBase {
         // Next handle states.
         // FIXME
         
-//        for (state : reactor.stateVars) {
-//            pr(state.name + ': ' +
-//                    "State<" + getStateType(state) +  '>;');
+        for (stateVar : reactor.stateVars) {
+            
+            if (!stateVar.isInitialized) {
+                pr(stateVar.name + ': ' +
+                    "State<" + stateVar.getInferredType(this) +  '>;');    
+            } else {
+                pr(stateVar.name + ': ' +
+                    "State<" + stateVar.getInferredType(this) + '> = ' + 
+                    "new State(" + stateVar.getStateInitializer + ');');
+            }
+            
+            
 //            if (state.init !== null && state.init.parameter !== null) {
 //                // State is a parameter
 //                pr(reactorConstructor, "this." + state.name + " = "
@@ -408,7 +417,7 @@ class TypeScriptGenerator extends GeneratorBase {
 //                 pr(reactorConstructor, "this." + state.name + " = "
 //                    + "new State(undefined);" )
 //            }
-//        }
+        }
         // Next handle actions.
         for (action : reactor.actions) {
             // Shutdown actions are handled internally by the
