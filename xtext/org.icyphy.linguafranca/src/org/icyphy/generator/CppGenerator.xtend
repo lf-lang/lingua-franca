@@ -36,11 +36,9 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.ArraySpec
-import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
-import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.QueuingPolicy
@@ -235,13 +233,13 @@ class CppGenerator extends GeneratorBase {
 
     def declareStateVariables(Reactor r) '''
         «FOR s : r.stateVars BEFORE '// state variables\n' AFTER '\n'»
-            «s.inferredType» «s.name»;
+            «s.targetType» «s.name»;
         «ENDFOR»
     '''
 
     def declareParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
-            std::add_const<«p.inferredType»>::type «p.name»;
+            std::add_const<«p.targetType»>::type «p.name»;
         «ENDFOR»
     '''
 
@@ -265,10 +263,10 @@ class CppGenerator extends GeneratorBase {
 
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-            reactor::Input<«i.inferredType»> «i.name»{"«i.name»", this};
+            reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
         «ENDFOR»
         «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-            reactor::Output<«o.inferredType»> «o.name»{"«o.name»", this};
+            reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
         «ENDFOR»
     '''
 
@@ -283,9 +281,9 @@ class CppGenerator extends GeneratorBase {
 
     def implementationType(Action a) {
         if (a.origin == ActionOrigin.LOGICAL) {
-            '''reactor::LogicalAction<«a.inferredType»>'''
+            '''reactor::LogicalAction<«a.targetType»>'''
         } else {
-            '''reactor::PhysicalAction<«a.inferredType»>'''
+            '''reactor::PhysicalAction<«a.targetType»>'''
         }
     }
 
@@ -406,7 +404,7 @@ class CppGenerator extends GeneratorBase {
             '''
                 «r.name»(const std::string& name,
                     «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.type.toText(this)»>::type>::type «p.name» = «p.initializer»«ENDFOR»
+                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name» = «p.initializer»«ENDFOR»
             '''
         } else {
             if (r == mainReactor) {
@@ -414,30 +412,6 @@ class CppGenerator extends GeneratorBase {
             } else {
                 '''«r.name»(const std::string& name, reactor::Reactor* container);'''
             }
-        }
-    }
-
-    def inferredType(Input i) {
-        if (i.type !== null) {
-            i.type.toText(this)
-        } else {
-            '''/* «i.reportError("Input port has no type.")» */'''
-        }
-    }
-
-    def inferredType(Output o) {
-        if (o.type !== null) {
-            o.type.toText(this)
-        } else {
-            '''/* «o.reportError("Input port has no type.")» */'''
-        }
-    }
-
-    def inferredType(Action a) {
-        if (a.type !== null) {
-            a.type.toText(this)
-        } else {
-            '''/* «a.reportError("Action has no type.")» */'''
         }
     }
     
@@ -460,10 +434,6 @@ class CppGenerator extends GeneratorBase {
     def toText(Value v) '''«v.toText(this)»'''
     
     def toText(Time t) '''«t.toText(this)»'''
-    
-    def inferredType(StateVar s) '''«s.getInferredType(this)»'''
-    
-    def inferredType(Parameter p) '''«p.getInferredType(this)»'''
 
     def getInitializer(StateVar s) '''«s.getStateInitializer('', ', ', '')»'''
     
@@ -500,7 +470,7 @@ class CppGenerator extends GeneratorBase {
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
                 «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.inferredType»>::type>::type «p.name»«ENDFOR»
+                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
         «ELSE»
             «IF r == mainReactor»
                 «r.name»::«r.name»(const std::string& name, reactor::Environment* environment)
@@ -1035,4 +1005,14 @@ class CppGenerator extends GeneratorBase {
         }
         return '''/* «reportError("Expected a time")» */'''
     }
+    
+    override getTargetTimeType() '''reactor::Duartion'''
+    
+    override getTargetUndefinedType() '''/* «reportError("undefined type")» */''' 
+    
+    override getTargetFixedSizeListType(String baseType, Integer size)
+        '''std::array<«baseType», «size.toString»>'''
+
+    override getTargetVariableSizeListType(String baseType)
+        '''std::vector<«baseType»>'''
 }
