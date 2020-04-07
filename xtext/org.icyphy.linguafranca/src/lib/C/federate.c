@@ -59,7 +59,7 @@ int rti_socket = -1;
  *  @param length The message length.
  *  @param message The message.
  */
-void send_via_rti(int port, int federate, int length, unsigned char* message) {
+void send_via_rti(unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
     assert(port < 65536);
     assert(federate < 65536);
     unsigned char buffer[9];

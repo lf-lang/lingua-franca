@@ -2103,7 +2103,7 @@ class CGenerator extends GeneratorBase {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
-                int message_length = «sendRef»->length * «sendRef»->element_size;
+                size_t message_length = «sendRef»->length * «sendRef»->element_size;
                 «sendRef»->ref_count++;
                 send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»);
@@ -2111,7 +2111,7 @@ class CGenerator extends GeneratorBase {
         } else {
             // FIXME: Only supporting string type right now.
             result.append('''
-            int message_length = strlen(«sendRef») + 1;
+            size_t message_length = strlen(«sendRef») + 1;
             send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
             ''')
         }
