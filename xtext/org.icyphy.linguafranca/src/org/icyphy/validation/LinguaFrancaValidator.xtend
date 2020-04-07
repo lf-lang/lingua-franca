@@ -54,7 +54,6 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 
 import static extension org.icyphy.ASTUtils.*
@@ -594,7 +593,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         error("Invalid time literal", Literals.STATE_VAR__INIT)
                 }
             }
-        } else if (this.target.requiresTypes && stateVar.getInferredType(null).equals("")) {
+        } else if (this.target.requiresTypes && stateVar.inferredType.isUndefined) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
