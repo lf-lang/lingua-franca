@@ -52,8 +52,6 @@ import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.TimeValue
-import org.icyphy.linguaFranca.Value
-import org.icyphy.linguaFranca.Time
 
 /** Generator for C++ target.
  *
@@ -413,26 +411,6 @@ class CppGenerator extends GeneratorBase {
             }
         }
     }
-    
-    def asTime(Value v) {
-        if (v.parameter !== null) {
-            if (v.parameter.ofTimeType) {
-                '''«v.parameter.name»'''
-            } else {
-                '''/* «v.reportError("Expected a parameter of time type!")» */'''
-            }
-        } else if (v.time !== null) {
-            v.time.toText
-        } else if (v.isZero()) {
-            '''reactor::Duration::zero()'''
-        } else {
-            '''/* «v.reportError("Expected a value of time type!")» */'''
-        }
-    }
-    
-    def toText(Value v) '''«v.toText(this)»'''
-    
-    def toText(Time t) '''«t.toText(this)»'''
 
     def getInitializer(StateVar s) '''«s.getStateInitializer('', ', ', '')»'''
     
@@ -520,10 +498,10 @@ class CppGenerator extends GeneratorBase {
         var String period = "reactor::Duration::zero()"
         var String offset = "reactor::Duration::zero()"
         if (t.offset !== null) {
-          offset = '''«t.offset.asTime»'''
+          offset = '''«t.offset.targetTime»'''
         }
         if (t.period !== null) {
-            period = '''«t.period.asTime»'''
+            period = '''«t.period.targetTime»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
@@ -533,7 +511,7 @@ class CppGenerator extends GeneratorBase {
             if (a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
                 a.reportError("minInterArrival and minPolicy are not supported for logical actions!");
             } else if (a.minDelay !== null) {
-                ''', «a.name»{"«a.name»", this, «a.minDelay.asTime»}'''
+                ''', «a.name»{"«a.name»", this, «a.minDelay.targetTime»}'''
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }
@@ -553,18 +531,18 @@ class CppGenerator extends GeneratorBase {
             for (a : i.parameters ?: emptyList) {
                 if (a.lhs.name == p.name) {
                 	if (p.ofTimeType) {
-                        value = '''«a.rhs.asTime»'''
+                        value = '''«a.rhs.targetTime»'''
                     } else {
-                        value = '''«a.rhs.toText»'''
+                        value = '''«a.rhs.targetValue»'''
                     }
                 }
             }
             if (value === null) {
                 if (p.init !== null && p.init.size == 1) {
                     if (p.ofTimeType) {
-                        value = '''«p.init.get(0).asTime»'''
+                        value = '''«p.init.get(0).targetTime»'''
                     } else {
-                        value = '''«p.init.get(0).toText»'''
+                        value = '''«p.init.get(0).targetValue»'''
                     }
                 } else {
                     // FIXME:
@@ -582,7 +560,7 @@ class CppGenerator extends GeneratorBase {
         «n.declareDependencies»
         «n.declareAntidependencies»
         «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.delay.asTime», [this]() { «n.name»_deadline_handler(); });
+            «n.name».set_deadline(«n.deadline.delay.targetTime», [this]() { «n.name»_deadline_handler(); });
         «ENDIF»
     '''
 
