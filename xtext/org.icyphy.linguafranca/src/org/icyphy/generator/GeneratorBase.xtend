@@ -1061,7 +1061,8 @@ abstract class GeneratorBase {
 //
 //    }
 
-        
+    @Deprecated // FIXME This can be taken care of directly in the target generator. 
+                // Here we should only have the general method for producing the list. See getTargetInitializerList(Parameter)
     protected def String getParamInitializer(Parameter param) {
         var list = new LinkedList<String>();
 
@@ -1092,12 +1093,56 @@ abstract class GeneratorBase {
         }
     }
     
+    protected def getInitializerList(Parameter param) {
+        var list = new LinkedList<String>();
+
+        for (i : param?.init) {
+            if (param.isOfTimeType) {
+                list.add(i.targetTime)
+            } else {
+                list.add(i.targetValue)
+            }
+        }
+        return list
+    }
+    
+    protected def getInitializerList(StateVar state) {
+        var list = new LinkedList<String>();
+
+        for (i : state?.init) {
+            if (i.parameter !== null) {
+                list.add(i.parameter.targetReference)
+            }
+            if (state.isOfTimeType) {
+                list.add(i.targetTime)
+            } else {
+                list.add(i.targetValue)
+            }
+        }
+        return list
+    }
+    
+    /**
+     * Generate target code for a parameter reference.
+     * 
+     * @param param The parameter to generate code for
+     * @return Parameter reference in target code
+     */
+    protected def String getTargetReference(Parameter param) {
+        return param.name
+    }
+    
+    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
     abstract protected def String generateVariableSizeArrayInitializer(List<String> list);
 
+    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
     abstract protected def String generateFixedSizeArrayInitializer(List<String> list);
 
+    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
     abstract protected def String generateObjectInitializer(List<String> list);
     
+    @Deprecated // FIXME This can be taken care of directly in the target generator. 
+                // Here we should only have the general method for producing the list. See getTargetInitializerList(StateVar)
     protected def String getStateInitializer(StateVar stateVar,
         CharSequence before, CharSequence separator, CharSequence after) {
         if (stateVar.init === null || stateVar.init.size == 0)
