@@ -1,0 +1,24 @@
+// Source produces a statically allocated struct and sends a copy.
+target Cpp;
+
+import StructPrint.lf;
+
+// explicitly import the public preamble from StructAsState which defines the Hello type
+public preamble {=
+    #include "StructAsState/preamble.hh"
+=}
+
+reactor StaticSource {
+    output out:Hello;
+    reaction(startup) -> out {=
+        Hello hello{"Earth", 42};
+        // this implicitly sends a dynamically allocated copy of the hello object
+        out.set(hello);
+    =}
+}
+
+main reactor StructAsType {
+    s = new StaticSource();
+    p = new Print();
+    s.out -> p.in;
+}
