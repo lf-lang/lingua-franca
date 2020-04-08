@@ -138,8 +138,10 @@ class ASTUtils {
 
         // Name the newly created action; set its delay and type.
         action.name = getUniqueIdentifier(parent, "networkMessage")
-        // FIXME: Handle connection delay. E.g.:  
-        // action.minTime = connection.delay.time
+        // Handle connection delay.
+        if (connection.delay !== null) {
+            action.minDelay = connection.delay.time
+        }
         action.type = type
         // FIXME: For now, only handling physical connections.
         action.origin = ActionOrigin.PHYSICAL

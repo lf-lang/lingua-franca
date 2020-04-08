@@ -58,6 +58,44 @@ int host_is_big_endian() {
     return (host == HOST_BIG_ENDIAN);
 }
 
+// Error messages.
+char* ERROR_DISCONNECTED = "ERROR socket is not connected";
+char* ERROR_EOF = "ERROR peer sent EOF";
+
+/** Read the specified number of bytes from the specified socket into the
+ *  specified buffer. If a disconnect or an EOF occurs during this
+ *  reading, report an error and exit.
+ *  @param socket The socket ID.
+ *  @param num_bytes The number of bytes to read.
+ *  @param buffer The buffer into which to put the bytes.
+ */
+void read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
+    int bytes_read = 0;
+    while (bytes_read < num_bytes) {
+        int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
+        if (more < 0) error(ERROR_DISCONNECTED);
+        if (more == 0) error(ERROR_EOF);
+        bytes_read += more;
+    }
+}
+
+/** Write the specified number of bytes to the specified socket from the
+ *  specified buffer. If a disconnect or an EOF occurs during this
+ *  reading, report an error and exit.
+ *  @param socket The socket ID.
+ *  @param num_bytes The number of bytes to write.
+ *  @param buffer The buffer from which to get the bytes.
+ */
+void write_to_socket(int socket, int num_bytes, unsigned char* buffer) {
+    int bytes_written = 0;
+    while (bytes_written < num_bytes) {
+        int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
+        if (more < 0) error(ERROR_DISCONNECTED);
+        if (more == 0) error(ERROR_EOF);
+        bytes_written += more;
+    }
+}
+
 /** If this host is little endian, then reverse the order of
  *  the bytes of the argument. Otherwise, return the argument
  *  unchanged. This can be used to convert the argument to
@@ -138,4 +176,73 @@ int swap_bytes_if_big_endian_ushort(unsigned short src) {
     c = x.c[0]; x.c[0] = x.c[1]; x.c[1] = c;
     // printf("DEBUG: After swapping bytes: %lld.\n", x.ull);
     return x.uint;
+}
+
+/** Extract an int from the specified byte sequence.
+ *  This will swap the order of the bytes if this machine is big endian.
+ *  @param bytes The address of the start of the sequence of bytes.
+ */
+int extract_int(unsigned char* bytes) {
+    union {
+        int uint;
+        unsigned char c[sizeof(int)];
+    } result;
+    memcpy(&result.c, bytes, sizeof(int));
+    return swap_bytes_if_big_endian_int(result.uint);
+}
+
+/** Extract a long long from the specified byte sequence.
+ *  This will swap the order of the bytes if this machine is big endian.
+ *  @param bytes The address of the start of the sequence of bytes.
+ */
+long long extract_ll(unsigned char* bytes) {
+    union {
+        long long ull;
+        unsigned char c[sizeof(long long)];
+    } result;
+    memcpy(&result.c, bytes, sizeof(long long));
+    return swap_bytes_if_big_endian_ll(result.ull);
+}
+
+/** Extract an unsigned short from the specified byte sequence.
+ *  This will swap the order of the bytes if this machine is big endian.
+ *  @param bytes The address of the start of the sequence of bytes.
+ */
+unsigned short extract_ushort(unsigned char* bytes) {
+    union {
+        unsigned short ushort;
+        unsigned char c[sizeof(unsigned short)];
+    } result;
+    memcpy(&result.c, bytes, sizeof(unsigned short));
+    return swap_bytes_if_big_endian_ushort(result.ushort);
+}
+
+/** Extract the core header information that all messages between
+ *  federates share. The core header information is two bytes with
+ *  the ID of the destination port, two bytes with the ID of the destination
+ *  federate, and four bytes with the length of the message.
+ *  @param buffer The buffer to read from.
+ *  @param port_id The place to put the port ID.
+ *  @param federate_id The place to put the federate ID.
+ *  @param length The place to put the length.
+ */
+void extract_header(
+        unsigned char* buffer,
+        unsigned short* port_id,
+        unsigned short* federate_id,
+        unsigned int* length
+) {
+    // The first two bytes are the ID of the destination reactor.
+    *port_id = extract_ushort(buffer);
+    // The next four bytes are the message length.
+    // The next two bytes are the ID of the destination federate.
+    *federate_id = extract_ushort(buffer + 2);
+
+    // printf("DEBUG: Message for port %d of federate %d.\n", *port_id, *federate_id);
+    // FIXME: Better error handling needed here.
+    assert(*federate_id < NUMBER_OF_FEDERATES);
+    // The next four bytes are the message length.
+    *length = extract_int(buffer + 4);
+
+    // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 }

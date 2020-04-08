@@ -94,10 +94,11 @@ reactor MQTTSubscriber (
             // implementation), then this extra delay may be negative. If it becomes
             // less than -offset, then the schedule_copy() function will complain
             // by printing a warning to stderr and revise the timestamp to current time.
+            // FIXME: This should first acquire the mutex lock. Otherwise, logical time could have a big
+            // jump between this calculation and the call to schedule, resulting in a long delay.
             instant_t* timestamp = (instant_t*)((char*)message->payload + message->payloadlen - sizeof(instant_t));
             instant_t current_time = get_logical_time();
             interval_t delay = *timestamp - current_time;
-            // FIXME: What to do if the delay is negative???
             // printf("DEBUG: MQTTSubscriber.message_arrived: received timestamp that is %lld ahead of current_time %lld.\n", *timestamp - start_time, current_time);
             // printf("DEBUG: MQTTSubscriber.message_arrived: physical time is ahead of current logical time by: %lld.\n", receive_physical_time - current_time);
                         
