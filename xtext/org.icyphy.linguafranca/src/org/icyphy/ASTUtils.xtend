@@ -425,51 +425,7 @@ class ASTUtils {
         }
         ""
     }
-    
-//    /**
-//     * Translate the given type into its textual representation.
-//     * 
-//     * @Deprecated This method is no longer supported. Use toText(Type)
-//     * to get a textual representation as in the LF program or getTargetCode
-//     * of your generator to produce a target code representation.
-//     * 
-//     * FIXME: Delete this method
-//     * 
-//     * @param type AST node to render as string.
-//     * @return Textual representation of the given argument.
-//     */
-//    @Deprecated
-//    def static toText(Type type, GeneratorBase generator) {
-//        if (type !== null) {
-//            if (type.code !== null) {
-//                return toText(type.code)
-//            } else {
-//                if (type.isTime) {
-//                    
-//                    if (generator !== null) {
-//                        
-//                            // FIXME: rename called method
-//                            return generator.
-//                                timeListTypeInTargetLanguage(
-//                                    type.arraySpec)
-//                        
-//                    } else {
-//                        // If there's not generator, return an LF type.
-//                        return "time" + type.arraySpec.toText  
-//                    }
-//                } else {
-//                    var stars = ""
-//                    for (s : type.stars ?: emptyList) {
-//                        stars += s
-//                    }
-//                    var arr = (type.arraySpec !== null) ? type.arraySpec.toText : ""
-//                    return type.id + stars + arr                  
-//                }
-//            }
-//        }
-//        ""
-//    }
-    
+        
     /**
      * Report whether the given literal is zero or not.
      * @param literalOrCode AST node to inspect.
@@ -659,74 +615,7 @@ class ASTUtils {
         }
         return false
     }
-    
         
-//    /**
-//     * Given a state variable, return the AST node that denotes its type.
-//     * @param s A state variable.
-//     * @return The type associated with the argument, or null if denotes a time.
-//     */
-//    @Deprecated // FIXME: delete
-//    def static Type getType(StateVar s) {
-//        if (s !== null) {
-//            if (s.type !== null) {
-//                return s.type
-//            } else if (s.init !== null && s.init.size == 1) {
-//                // If this parameter is initialized using a list,
-//                // then it needs a type.
-//                val parm = s.init.get(0).parameter
-//                if (parm !== null)
-//                    return parm.type
-//            }
-//        } 
-//    }
-    
-//    @Deprecated // FIXME: delete
-//    def static String getInferredType(Parameter p, GeneratorBase generator) {
-//        if (p !== null) {
-//            if (p.type !== null) {
-//                return p.type.toText(generator)
-//            }        
-//            if (p.isOfTimeType) {
-//                if (p.init !== null && p.init.size > 0) {
-//                    if (p.init.size > 1) {
-//                       return "interval_t[]" // FIXME: target specific
-//                    } else {
-//                        return "interval_t"
-//                    }
-//                }
-//            }    
-//        }
-//        ""
-//    }
-    
-//    @Deprecated // FIXME: delete
-//    def static String getInferredType(StateVar s, GeneratorBase generator) {
-//        if (s !== null) {
-//            if (s.type !== null) {
-//                return s.type.toText(generator)
-//            }    
-//            if (s.init !== null && s.init.size > 0) {
-//                
-//                    if (s.init.size > 1) {
-//                    if (s.init.forall[it.isValidTime]) {
-//                        return "interval_t[]"
-//                    }
-//                // FIXME: more...    
-//                } else {
-//                    val init = s.init.get(0)
-//                    if (init.parameter !== null) {
-//                        return init.parameter.getInferredType(generator)
-//                    }
-//                }
-//                        
-//                
-//                
-//            }
-//        }
-//        ""
-//    }
-    
     protected static def InferredType getInferredType(EList<Value> initList) {
         if (initList.size == 1) {
             val init = initList.get(0)
