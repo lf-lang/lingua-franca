@@ -160,60 +160,7 @@ class CppGenerator extends GeneratorBase {
         }
         return result
     }
-
-    static def removeCodeDelimiter(String code) {
-        if (code === null) {
-            ""
-        } else if (code.startsWith("{=")) {
-            if (code.split('\n').length > 1) {
-                code.substring(2, code.length - 2).trimCodeBlock
-            } else {
-                code.substring(2, code.length - 2).trim
-            }
-        } else {
-            if (code.split('\n').length > 1) {
-                code.trimCodeBlock
-            } else {
-                code.trim
-            }
-        }
-    }
-
-    static def trimCodeBlock(String code) {
-        var codeLines = code.split("\n")
-        var String prefix = null
-        var buffer = new StringBuilder()
-        for (line : codeLines) {
-            if (prefix === null) {
-                // skip any lines that only contain whitespaces
-                if (line.trim.length > 0) {
-                    val characters = line.toCharArray()
-                    var foundFirstCharacter = false
-                    var int firstCharacter = 0
-                    for (var i = 0; i < characters.length(); i++) {
-                        if (!foundFirstCharacter && !Character.isWhitespace(characters.get(i))) {
-                            foundFirstCharacter = true
-                            firstCharacter = i
-                        }
-                    }
-                    prefix = line.substring(0, firstCharacter)
-                }
-            }
-
-            if (prefix !== null) {
-                if (line.startsWith(prefix)) {
-                    buffer.append(line.substring(prefix.length))
-                    buffer.append('\n')
-                } else {
-                    buffer.append(line)
-                    buffer.append('\n')
-                }
-            }
-        }
-        buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
-        buffer.toString
-    }
-
+   
     def name(Reaction n) {
         var r = n.eContainer as Reactor
         'r' + r.reactions.lastIndexOf(n)
@@ -327,7 +274,7 @@ class CppGenerator extends GeneratorBase {
     	}
         '''
             «FOR p : publicPreambles ?: emptyList BEFORE '// public preamble\n' AFTER '\n'»
-                «removeCodeDelimiter(p.code.toText)»
+                «p.code.toText»
             «ENDFOR»
         '''
     }
@@ -341,7 +288,7 @@ class CppGenerator extends GeneratorBase {
         }
         '''
             «FOR p : privatePreambles ?: emptyList BEFORE '// private preamble\n' AFTER '\n'»
-                «removeCodeDelimiter(p.code.toText)»
+                «p.code.toText»
             «ENDFOR»
         '''
     }
