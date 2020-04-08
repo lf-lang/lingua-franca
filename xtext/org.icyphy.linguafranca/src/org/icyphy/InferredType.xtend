@@ -43,7 +43,7 @@ class InferredType {
      * 
      * @return Textual representation of this inferred type
      */
-    def toText() {
+    def String toText() {
         if (astType !== null) {
             return astType.toText
         } else if (isTime) {

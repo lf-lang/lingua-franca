@@ -518,7 +518,7 @@ class CppGenerator extends GeneratorBase {
     def String getTargetInitializer(Parameter param) {
         val list = param.initializerList
         if (list.size == 0) {
-            param.reportError("Paramters must have a default value!")
+            param.reportError("Parameters must have a default value!")
         } else if (list.size == 1) {
             return list.get(0)
         } else {
@@ -593,9 +593,9 @@ class CppGenerator extends GeneratorBase {
             for (a : i.parameters ?: emptyList) {
                 if (a.lhs.name == p.name) {
                 	if (p.ofTimeType) {
-                        value = '''«a.rhs.targetTime»'''
+                        value = '''«a.rhs.get(0).targetTime»''' // FIXME: handle lists
                     } else {
-                        value = '''«a.rhs.targetValue»'''
+                        value = '''«a.rhs.get(0).targetValue»'''// FIXME: handle lists
                     }
                 }
             }

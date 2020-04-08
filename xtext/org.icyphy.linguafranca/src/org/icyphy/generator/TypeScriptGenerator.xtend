@@ -296,7 +296,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     +" = " + timeInTargetLanguage(parameter.timeValue))
             } else {
                 arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + parameter.paramInitializer)
+                    +" = " + parameter.initializerList)
             }
         }
         
@@ -331,7 +331,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 for (parameterAssignment : childReactor.parameters) {
                     if (parameterAssignment.lhs.name.equals(parameter.name)) {
                         childParameterFound = true
-                        childReactorArguments.add(parameterAssignment.rhs.toText(this))
+                        childReactorArguments.add(parameterAssignment.rhs.get(0).targetValue) // FIXME: handle lists
                     }
                 }
                 
@@ -360,7 +360,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (timer.period === null) {
                     timerPeriod = "0";
                 } else {
-                    timerPeriod = timer.period.toText(this)
+                    timerPeriod = timer.period.targetValue
                 }
                 
                 var String timerOffset
@@ -368,7 +368,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     timerOffset = "0";
                 } else {
 
-                    timerOffset = timer.offset.toText(this)
+                    timerOffset = timer.offset.targetValue
 
                 }
     
@@ -392,11 +392,11 @@ class TypeScriptGenerator extends GeneratorBase {
             
             if (!stateVar.isInitialized) {
                 pr(stateVar.name + ': ' +
-                    "State<" + stateVar.getInferredType(this) +  '>;');    
+                    "State<" + stateVar.getTargetType +  '>;');    
             } else {
                 pr(stateVar.name + ': ' +
-                    "State<" + stateVar.getInferredType(this) + '> = ' + 
-                    "new State(" + stateVar.getStateInitializer + ');');
+                    "State<" + stateVar.getTargetType + '> = ' + 
+                    "new State(" + stateVar.initializerList + ');');
             }
             
             
@@ -434,7 +434,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (action.minDelay.parameter !== null) {
                         actionArgs+= ", " + action.minDelay.parameter.name
                     } else {
-                        actionArgs+= ", " + action.minDelay.toText(this)    
+                        actionArgs+= ", " + action.minDelay.targetValue    
                     }
                 }
                 pr(reactorConstructor, "this." + 
@@ -660,7 +660,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     var containedArgElement = ""
                     var containedPrologueElement = ""
                     if (containedVariable instanceof Input) {
-                        containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type.toText(this) + ">"
+                        containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type.targetType + ">"
                         containedArgElement += containedVariable.name + ": " + "this.getWritable(" + functArg + ")"
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                         pr(reactEpilogue, "if (" + container.name + "." + containedVariable.name + " !== undefined) {")
@@ -670,7 +670,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         reactEpilogue.unindent()
                         pr(reactEpilogue, "}")
                     } else if(containedVariable instanceof Output) {
-                        containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type.toText(this) + ">"
+                        containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type.targetType + ">"
                         containedArgElement += containedVariable.name + ": " + functArg
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                     }
@@ -733,7 +733,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (reaction.deadline.delay.parameter !== null) {
                     deadlineArgs += "this." + reaction.deadline.delay.parameter.name + ".get()"; 
                 } else {
-                    deadlineArgs += reaction.deadline.delay.toText(this)
+                    deadlineArgs += reaction.deadline.delay.targetValue
                 }
                 pr(reactorConstructor, deadlineArgs + "," )
                 pr(reactorConstructor, "function(" + reactSignature + ") {")
@@ -780,7 +780,7 @@ class TypeScriptGenerator extends GeneratorBase {
             
         var arguments = new StringJoiner(", ")
         for (parameter : defn.parameters) {
-            arguments.add(parameter.rhs.toText(this))
+            arguments.add(parameter.rhs.get(0).targetValue) // FIXME: handle lists
         }
 
         // Get target properties for the app
@@ -932,7 +932,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The TS type.
      */
     private def getStateType(StateVar state) {
-        state.getInferredType(this)
+        state.getTargetType
     }
     
     /**
@@ -944,7 +944,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getActionType(Action action) {
         if (action.type !== null) {
-            return action.type.toText(this)
+            return action.type.targetType
         } else {
             return "Present"    
         }
@@ -959,7 +959,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getPortType(Port port) {
         if (port.type !== null) {
-            return port.type.toText(this)
+            return port.type.targetType
         } else {
             return "Present"    
         }
@@ -973,7 +973,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The TS type.
      */
     private def getParameterType(Parameter parameter) {
-        var type = parameter.type.toText(this)
+        var type = parameter.type.targetType
         if (parameter.isOfTimeType) {
             type = 'TimeValue'
         }

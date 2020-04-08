@@ -201,10 +201,10 @@ VarRef:
     variable=[Variable]
     | container=[Instantiation] '.' variable=[Variable];
 
-Assignment:
-    (lhs=[Parameter] '=' rhs=Value);
 //Assignment:
-//    (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
+//    (lhs=[Parameter] '=' rhs=Value);
+Assignment:
+    (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
 
 
 /**

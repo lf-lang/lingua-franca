@@ -201,15 +201,15 @@ class ModelInfo {
                 // Find assignments that override the current parameter.
                 for (assignment : instantiation.parameters) {
                     if (assignment.lhs.equals(current)) {
-                        if (assignment.rhs.parameter !== null) {
+                        if (assignment.rhs.get(0).parameter !== null) {
                             // Check for overflow in the referenced parameter.
                             overflow = detectOverflow(visited,
-                                assignment.rhs.parameter) || overflow
+                                assignment.rhs.get(0).parameter) || overflow
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
                             if (isTooLarge(
-                                assignment.rhs.getTimeValue)) {
+                                assignment.rhs.get(0).getTimeValue)) {
                                 this.overflowingAssignments.add(assignment)
                                 overflow = true
                             }
