@@ -1,6 +1,7 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
 target Cpp {
+    threads: 1,
     fast: true,
     timeout: 10 sec
 };
@@ -26,14 +27,14 @@ reactor Test {
         }
     =}
     reaction(shutdown) {=
-        if (count != 5) {
-            std::cerr << "ERROR: expected to receive 5 values but got " << count << '\n';
+        if (count != 3) {
+            std::cerr << "ERROR: expected to receive 3 values but got " << count << '\n';
             exit(1);
         } 
     =}
 }
-main reactor Composition {
+main reactor Composition(delay:time(5 sec)) {
     s = new Source();
     d = new Test();
-    s.y -> d.x;
+    s.y -> d.x after delay;
 }
