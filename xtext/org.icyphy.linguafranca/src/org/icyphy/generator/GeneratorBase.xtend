@@ -1108,7 +1108,11 @@ abstract class GeneratorBase {
         return list
     }
     
-    protected def getInitializerList(StateVar state) {
+    protected def List<String> getInitializerList(StateVar state) {
+        if (!state.isInitialized) {
+            return null
+        }
+
         var list = new LinkedList<String>();
 
         for (i : state?.init) {
