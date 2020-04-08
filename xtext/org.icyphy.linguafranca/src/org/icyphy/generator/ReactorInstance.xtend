@@ -46,7 +46,6 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.StateVar
 
 /** Representation of a runtime instance of a reactor.
  *  For the main reactor, which has no parent, once constructed,
@@ -71,7 +70,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Apply overrides and instantiate parameters for this reactor instance.
         for (parameter : definition.reactorClass.parameters) {
-            parameters.add(new ParameterInstance(parameter, this))
+            this.parameters.add(new ParameterInstance(parameter, this))
         }
 
         // Instantiate children for this reactor instance
