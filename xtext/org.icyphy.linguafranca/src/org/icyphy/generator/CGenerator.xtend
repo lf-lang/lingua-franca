@@ -1725,27 +1725,22 @@ class CGenerator extends GeneratorBase {
         // These values may be expressions that refer to the parameter values defined above.
         
         for (stateVar : reactorClass.stateVars) {
-            val init = stateVar.init
-            val initList = getInitializerList(stateVar, instance)
-            var String initStr
-            if (initList.size == 1)
-                initStr = initList.get(0)
-            else
-                initStr = initList.join('{', ', ', '}', [it])
-
+            
+            val initializer = getInitializer(stateVar, instance)
+            
             if (stateVar.isOfTimeType) {
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + stateVar.name + " = " +
-                        initStr + ";")
+                        initializer + ";")
             } else {
                 // If the state is initialized with a parameter, then do not use
                 // a temporary variable. Otherwise, do, because
                 // static initializers for arrays and structs have to be handled
                 // this way, and there is no way to tell whether the type of the array
                 // is a struct.
-                if (stateVar.isParameterized && init.size > 0) {
+                if (stateVar.isParameterized && stateVar.init.size > 0) {
                     pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "." + stateVar.name + " = " + initStr + ";")
+                        nameOfSelfStruct + "." + stateVar.name + " = " + initializer + ";")
                 } else {
                    val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
                     var type = stateVar.targetType
@@ -1756,12 +1751,12 @@ class CGenerator extends GeneratorBase {
                         // after the variable name.
                         pr(initializeTriggerObjects,
                             "static " + matcher.group(1) + " " +
-                            temporaryVariableName + "[] = " + initStr + ";"
+                            temporaryVariableName + "[] = " + initializer + ";"
                         )
                     } else {
                         pr(initializeTriggerObjects,
                             "static " + type + " " +
-                            temporaryVariableName + " = " + initStr + ";"
+                            temporaryVariableName + " = " + initializer + ";"
                         )
                     }
                     pr(initializeTriggerObjects,
@@ -1884,12 +1879,12 @@ class CGenerator extends GeneratorBase {
     }
     
     
-    protected def getInitializerList(StateVar state, ReactorInstance parent) {
+    protected def getInitializer(StateVar state, ReactorInstance parent) {
         var list = new LinkedList<String>();
 
         for (i : state?.init) {
             if (i.parameter !== null) {
-                val ref = parent.parameters.findFirst[it.definition == i.parameter]
+                val ref = parent.parameters.findFirst[it.definition === i.parameter]
                 list.add(ref.init.get(0).targetValue)
             } else if (state.isOfTimeType) {
                 list.add(i.targetTime)
@@ -1897,7 +1892,11 @@ class CGenerator extends GeneratorBase {
                 list.add(i.targetValue)
             }
         }
-        return list
+        
+        if (list.size == 1)
+            return list.get(0)
+        else
+            return list.join('{', ', ', '}', [it])
     }
     
     /** Return true if the specified reactor instance belongs to the specified
@@ -1992,19 +1991,6 @@ class CGenerator extends GeneratorBase {
             schedule_copy(«action.name», 0, &«ref», 1);  // Length is 1.
             '''
         }
-    }
-    
-    
-    override String generateVariableSizeArrayInitializer(List<String> list) {
-         return list.join('{', ', ', '}', [it])
-    }
-    
-    override String generateFixedSizeArrayInitializer(List<String> list) {
-        return list.join('{', ', ', '}', [it])
-    }
-    
-    override String generateObjectInitializer(List<String> list) {
-        return list.join('{', ', ', '}', [it])
     }
     
     /**

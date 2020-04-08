@@ -1063,37 +1063,37 @@ abstract class GeneratorBase {
 //
 //    }
 
-    @Deprecated // FIXME This can be taken care of directly in the target generator. 
-                // Here we should only have the general method for producing the list. See getTargetInitializerList(Parameter)
-    protected def String getParamInitializer(Parameter param) {
-        var list = new LinkedList<String>();
-
-        for (i : param?.init) {
-            if (param.isOfTimeType) {
-                list.add(i.timeValue.timeInTargetLanguage)
-            } else {
-                if (i.literal !== null) {
-                    list.add(i.literal)
-                } else if (i.code !== null) {
-                    list.add(i.code.toText)
-                }
-            }
-        }
-
-        if (list.size == 1) {
-            return list.first
-        } else if (list.size > 1) {
-            if (param.type.arraySpec !== null) {
-                if (param.type.arraySpec.isOfVariableLength) {
-                    return list.generateVariableSizeArrayInitializer
-                } else {
-                    // FIXME: Check in validator that length is never zero
-                    return list.generateFixedSizeArrayInitializer
-                }
-            }
-            return list.generateObjectInitializer   
-        }
-    }
+//    @Deprecated // FIXME This can be taken care of directly in the target generator. 
+//                // Here we should only have the general method for producing the list. See getTargetInitializerList(Parameter)
+//    protected def String getParamInitializer(Parameter param) {
+//        var list = new LinkedList<String>();
+//
+//        for (i : param?.init) {
+//            if (param.isOfTimeType) {
+//                list.add(i.timeValue.timeInTargetLanguage)
+//            } else {
+//                if (i.literal !== null) {
+//                    list.add(i.literal)
+//                } else if (i.code !== null) {
+//                    list.add(i.code.toText)
+//                }
+//            }
+//        }
+//
+//        if (list.size == 1) {
+//            return list.first
+//        } else if (list.size > 1) {
+//            if (param.type.arraySpec !== null) {
+//                if (param.type.arraySpec.isOfVariableLength) {
+//                    return list.generateVariableSizeArrayInitializer
+//                } else {
+//                    // FIXME: Check in validator that length is never zero
+//                    return list.generateFixedSizeArrayInitializer
+//                }
+//            }
+//            return list.generateObjectInitializer   
+//        }
+//    }
     
     /**
      * Create a list of default parameter initializers in target code.
@@ -1182,45 +1182,6 @@ abstract class GeneratorBase {
      */
     protected def String getTargetReference(Parameter param) {
         return param.name
-    }
-    
-    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
-    abstract protected def String generateVariableSizeArrayInitializer(List<String> list);
-
-    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
-    abstract protected def String generateFixedSizeArrayInitializer(List<String> list);
-
-    @Deprecated // FIXME This can be taken care of by the target generators if needed. See getTargetInitializer() methods in CppGenerator
-    abstract protected def String generateObjectInitializer(List<String> list);
-    
-    @Deprecated // FIXME This can be taken care of directly in the target generator. 
-                // Here we should only have the general method for producing the list. See getTargetInitializerList(StateVar)
-    protected def String getStateInitializer(StateVar stateVar) {
-   
-        if (stateVar.init === null || stateVar.init.size == 0)
-            return ""
-        
-        var list = new LinkedList<String>();
-
-        for (element : stateVar.init) {
-            if (stateVar.isOfTimeType) {
-                list.add(element.getTimeValue.timeInTargetLanguage)
-            } else {
-                if (element.parameter !== null) {
-                    list.add(element.parameter.getParamInitializer)
-                } else if (element.literal !== null) {
-                    list.add(element.literal)
-                } else if (element.code !== null) {
-                    list.add(element.code.toText)
-                }
-            }
-        }
-
-        if (list.size == 1) {
-            return list.first
-        } else if (list.size > 1) {
-            return list.join('', listItemSeparator, '', [it])
-        }
     }
         
     ////////////////////////////////////////////////////
