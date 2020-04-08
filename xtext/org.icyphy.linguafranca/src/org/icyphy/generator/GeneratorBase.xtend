@@ -604,7 +604,7 @@ abstract class GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        Type type
+        InferredType type
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -626,7 +626,7 @@ abstract class GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        Type type
+        InferredType type
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -1114,8 +1114,7 @@ abstract class GeneratorBase {
         for (i : state?.init) {
             if (i.parameter !== null) {
                 list.add(i.parameter.targetReference)
-            }
-            if (state.isOfTimeType) {
+            } else if (state.isOfTimeType) {
                 list.add(i.targetTime)
             } else {
                 list.add(i.targetValue)
@@ -1146,7 +1145,7 @@ abstract class GeneratorBase {
     @Deprecated // FIXME This can be taken care of directly in the target generator. 
                 // Here we should only have the general method for producing the list. See getTargetInitializerList(StateVar)
     protected def String getStateInitializer(StateVar stateVar) {
-    
+   
         if (stateVar.init === null || stateVar.init.size == 0)
             return ""
         
@@ -1439,7 +1438,7 @@ abstract class GeneratorBase {
 
     abstract protected def String getTargetVariableSizeListType(String baseType);
     
-    protected def getTargetType(InferredType type) {
+    protected def String getTargetType(InferredType type) {
         if (type.isUndefined) {
             return targetUndefinedType
         } else if (type.isTime) {

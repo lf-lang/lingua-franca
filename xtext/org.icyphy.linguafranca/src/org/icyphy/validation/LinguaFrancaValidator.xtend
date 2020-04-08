@@ -153,23 +153,27 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     def checkAssignment(Assignment assignment) {
         // If the left-hand side is a time parameter, make sure the assignment has units
         if (assignment.lhs.isOfTimeType) {
-            if (!assignment.rhs.isValidTime) {
-                if (assignment.rhs.parameter === null) {
-                    // This is a value. Check that units are present.
+            if (assignment.rhs.size > 1) {
+                 error("Incompatible type.", Literals.ASSIGNMENT__RHS)
+            } else {
+                val v = assignment.rhs.get(0)
+                if (!v.isValidTime) {
+                    if (v.parameter === null) {
+                        // This is a value. Check that units are present.
                     error(
                         "Invalid time units: " + assignment.rhs +
                             ". Should be one of " + TimeUnit.VALUES.filter [
                                 it != TimeUnit.NONE
                             ], Literals.ASSIGNMENT__RHS)
-                } else {
-                // This is a reference to another parameter. Report problem.
+                    } else {
+                        // This is a reference to another parameter. Report problem.
                 error(
                     "Cannot assign parameter: " +
-                        assignment.rhs.parameter.name + " to " +
+                        v.parameter.name + " to " +
                         assignment.lhs.name +
                         ". The latter is a time parameter, but the former is not.",
                     Literals.ASSIGNMENT__RHS)
-
+                    }
                 }
             }
             // If this assignment overrides a parameter that is used in a deadline,
