@@ -103,28 +103,18 @@ void send_via_rti_timed(unsigned int port, unsigned int federate, size_t length,
     // FIXME: The following encoding ops should become generic utilities in util.c.
     // Next two bytes identify the destination port.
     // NOTE: Send messages little endian, not big endian.
-    buffer[1] = port & 0xff;
-    buffer[2] = (port & 0xff00) >> 8;
+    encode_ushort(port, &(buffer[1]));
+
     // Next two bytes identify the destination federate.
-    buffer[3] = federate & 0xff;
-    buffer[4] = (federate & 0xff00) >> 8;
+    encode_ushort(federate, &(buffer[3]));
+
     // The next four bytes are the message length.
-    buffer[5] = length & 0xff;
-    buffer[6] = (length & 0xff00) >> 8;
-    buffer[7] = (length & 0xff0000) >> 16;
-    buffer[8] = (length & 0xff000000) >> 24;
+    encode_int(length, &(buffer[5]));
 
     // Next 8 bytes are the timestamp.
     instant_t current_time = get_logical_time();
 
-    buffer[9] = current_time & 0xffLL;
-    buffer[10] = (current_time & 0xff00LL) >> 8;
-    buffer[11] = (current_time & 0xff0000LL) >> 16;
-    buffer[12] = (current_time & 0xff000000LL) >> 24;
-    buffer[13] = (current_time & 0xff00000000LL) >> 32;
-    buffer[14] = (current_time & 0xff0000000000LL) >> 40;
-    buffer[15] = (current_time & 0xff000000000000LL) >> 48;
-    buffer[16] = (current_time & 0xff00000000000000LL) >> 56;
+    encode_ll(current_time, &(buffer[9]));
     // printf("DEBUG: Sending message with timestamp %lld.\n", current_time);
 
     write_to_socket(rti_socket, 17, buffer);
