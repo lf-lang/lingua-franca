@@ -1,4 +1,4 @@
-// Demonstration of a state variable that is an array.
+// Demonstration of a state variable that is a fixed size list.
 // The MovingAverage reactor computes the moving average of the last
 // four inputs and produces that as output.  The source is a counting
 // sequence.
@@ -16,10 +16,11 @@ reactor Source {
     =}
 }
 reactor MovingAverageImpl {
-    state delay_line:{=std::array<double, 3>=}({={0.0, 0.0, 0.0}=});
+    state delay_line:double[3](0.0, 0.0, 0.0);
     state index:int(0);
     input in:double;
     output out:double;
+
     reaction(in) -> out {=
         // Calculate the output.
         double sum = *in.get();
@@ -38,6 +39,7 @@ reactor MovingAverageImpl {
         }
     =}
 }
+
 reactor Print {
     input in:double;
     state count:int(0);
@@ -49,6 +51,12 @@ reactor Print {
             exit(1);
         }
         count++;
+    =}
+    reaction(shutdown) {=
+        if(count != 6) {
+            std::cerr << "ERROR: Expected 6 values but got " << count << '\n';
+            exit(2);
+        }
     =}
 }
 main reactor MovingAverage {
