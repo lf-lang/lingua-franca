@@ -250,6 +250,10 @@ class TypeScriptGenerator extends GeneratorBase {
         '''«generateVarRef(port)» = «action.name» as «getActionType(action)»;'''
     }
  
+    override String getTargetReference(Parameter param) {
+        return '''this.«param.name».get()'''
+    }
+ 
     // //////////////////////////////////////////
     // // Code generators.
     /** Generate a reactor class definition.
@@ -296,7 +300,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     +" = " + timeInTargetLanguage(parameter.timeValue))
             } else {
                 arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + parameter.initializerList)
+                    +" = " + parameter.initializerList.get(0)) // FIXME: not support for native lists yet
             }
         }
         
@@ -386,37 +390,15 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         // Next handle states.
-        // FIXME
-        
         for (stateVar : reactor.stateVars) {
-            
-            if (!stateVar.isInitialized) {
-                pr(stateVar.name + ': ' +
-                    "State<" + stateVar.getTargetType +  '>;');    
-            } else {
-                pr(stateVar.name + ': ' +
-                    "State<" + stateVar.getTargetType + '> = ' + 
-                    "new State(" + stateVar.initializerList + ');');
+            if (stateVar.isInitialized) {
+                pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
+                    "new State(" + stateVar.initializerList.join(', ') + ');');
             }
-            
-            
-//            if (state.init !== null && state.init.parameter !== null) {
-//                // State is a parameter
-//                pr(reactorConstructor, "this." + state.name + " = "
-//                        + "new State(" + state.init.parameter.name + ");" )
-//            } else if (state.ofTimeType) {  
-//                // State is a time type
-//                pr(reactorConstructor, "this." + state.name + " = "
-//                    + "new State(" + timeInTargetLanguage(new TimeValue(state.time, state.unit)) + ");" )
-//            } else if (state.init.value !== null) {
-//                // State is a literal or code
-//                pr(reactorConstructor, "this." + state.name + " = "
-//                    + "new State(" + state.init.value.toText + ");" ) // FIXME: support lists
-//            } else {
-//                // State has an undefined value
-//                 pr(reactorConstructor, "this." + state.name + " = "
-//                    + "new State(undefined);" )
-//            }
+        }
+        
+        for (stateVar : reactor.stateVars) {            
+            pr(stateVar.name + ': ' + "State<" + stateVar.getTargetType + '>;');            
         }
         // Next handle actions.
         for (action : reactor.actions) {
@@ -852,14 +834,6 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("Log.global.level = Log.levels." + getLoggingLevel() + ";")
     }
 
-    
-     /** Return a string that the target language can recognize as a type
-     *  for a time value. In TypeScript this is a TimeValue.
-     *  @return The string "TimeValue"
-     */
-    override timeTypeInTargetLanguage() {
-        "TimeValue"
-    }
 
     /** Given a representation of time that may possibly include units,
      *  return a string that TypeScript can recognize as a value.
@@ -989,17 +963,13 @@ import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeL
 import {Log} from "''' + utilLibPath + '''"
 
     '''
-    
-    override timeListTypeInTargetLanguage(ArraySpec spec) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
+        
     override protected String getTargetTimeType() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+        "TimeValue"
     }
     
     override protected String getTargetUndefinedType() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+        "unknown"
     }
     
     override protected String getTargetFixedSizeListType(String baseType, Integer size) {
@@ -1007,7 +977,7 @@ import {Log} from "''' + utilLibPath + '''"
     }
     
     override protected String getTargetVariableSizeListType(String baseType) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+        '''Array<«baseType»>'''
     }
 
 }

@@ -455,24 +455,6 @@ abstract class GeneratorBase {
         return "0" // FIXME: do this or throw exception?
     }
 
-    /** Return a string that the target language can recognize as a type
-     *  for a time value. This base class returns "instant_t".
-     *  Particular target generators will likely need to override
-     *  this method to return something acceptable to the target language.
-     *  @return The string "instant_t"
-     */
-     // FIXME Delete. Use getTargetTimeType instead
-     @Deprecated 
-    def timeTypeInTargetLanguage() {
-        "interval_t"
-    }
-
-     // FIXME Delete. Use getTargetTimeType, getTargetVariableSizeList, getTargetFixedSizeList instead
-     @Deprecated 
-     def String timeListTypeInTargetLanguage(ArraySpec spec) {
-         return ""
-     }
-
     /** Remove quotation marks surrounding the specified string.
      */
     def withoutQuotes(String s) {

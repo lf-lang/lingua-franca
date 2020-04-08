@@ -2797,18 +2797,7 @@ class CGenerator extends GeneratorBase {
         = '// **** Do not include initialization code in this reaction.'
         
     static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
-    
-    override timeListTypeInTargetLanguage(ArraySpec spec) {
-        if (spec !== null) {
-            if (spec.isOfVariableLength) {
-                return "interval_t[]"
-            } else {
-                return "interval_t[" + spec.length + "]"
-            }
-        }
-        return "interval_t"
-    }
-    
+        
     override protected String getTargetTimeType() {
         return "interval_t"
     }
