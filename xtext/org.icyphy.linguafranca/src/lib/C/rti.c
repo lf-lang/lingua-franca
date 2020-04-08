@@ -152,6 +152,15 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
     int bytes_read = bytes_to_read + header_size;
     // printf("DEBUG: Message received by RTI: %s.\n", buffer + header_size);
 
+    // If the destination federate is no longer connected, issue a warning
+    // and return.
+    if (federates[federate_id].state == NOT_CONNECTED) {
+        printf("RTI: Destination federate %d is no longer connected. Dropping message.\n",
+                federate_id
+        );
+        return;
+    }
+
     // Forward the message or message chunk.
     int destination_socket = federates[federate_id].socket;
 
@@ -174,11 +183,11 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
 char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from federate an unrecognized message type";
 
 /** Thread handling communication with a federate.
- *  @param fed_socket_descriptor A pointer to an int that is the
+ *  @param fed A pointer to an int that is the
  *   socket descriptor for the federate.
  */
-void* federate(void* fed_socket_descriptor) {
-    int fed_socket = *((int*)fed_socket_descriptor);
+void* federate(void* fed) {
+    federate_t* my_fed = (federate_t*)fed;
 
     // Buffer for incoming messages.
     // This does not constrain the message size because messages
@@ -186,16 +195,7 @@ void* federate(void* fed_socket_descriptor) {
     unsigned char buffer[BUFFER_SIZE];
 
     // Read bytes from the socket. We need 9 bytes.
-    int bytes_read = 0;
-    while (bytes_read < sizeof(long long) + 1) {
-        int more = read(fed_socket, &(buffer[bytes_read]),
-                sizeof(long long) + 1 - bytes_read);
-        if (more < 0) error("ERROR on RTI reading from socket");
-        // If more == 0, this is an EOF. Exit the thread.
-        if (more == 0) return NULL;
-        bytes_read += more;
-    }
-    // printf("DEBUG: read %d bytes.\n", bytes_read);
+    read_from_socket(my_fed->socket, sizeof(long long) + 1, buffer);
 
     // First byte received is the message ID.
     if (buffer[0] != TIMESTAMP) {
@@ -223,38 +223,33 @@ void* federate(void* fed_socket_descriptor) {
     }
     pthread_mutex_unlock(&mutex);
 
-    // Send back to the federate the maximum time.
-    // FIXME: Should perhaps increment this time stamp by some amount?
-    // Otherwise, the start time will be late by rountrip communication time
-    // compared to physical time.
-
+    // Send back to the federate the maximum time plus an offset.
     // Start by sending a timestamp marker.
     unsigned char message_marker = TIMESTAMP;
-    int bytes_written = write(fed_socket, &message_marker, 1);
-    // FIXME: Retry rather than exit.
-    if (bytes_written < 0) error("ERROR sending message ID to federate");
+    write_to_socket(my_fed->socket, 1, &message_marker);
 
     // Send the timestamp.
-    // FIXME: Add an offset to this start time to get everyone starting together.
-    // Adding one second here.
+    // Add an offset to this start time to get everyone starting together.
     long long message = swap_bytes_if_big_endian_ll(max_start_time + DELAY_START);
-    bytes_written = write(fed_socket, (void*)(&message), sizeof(long long));
-    if (bytes_written < 0) error("ERROR sending start time to federate");
+    write_to_socket(my_fed->socket, sizeof(long long), (unsigned char*)(&message));
 
     // Listen for messages from the federate.
     while (1) {
         // Read no more than one byte to get the message type.
-        read_from_socket(fed_socket, 1, buffer);
+        read_from_socket(my_fed->socket, 1, buffer);
         switch(buffer[0]) {
         case MESSAGE:
-            handle_message(fed_socket, buffer, 9);
+            handle_message(my_fed->socket, buffer, 9);
             break;
         case TIMED_MESSAGE:
-            handle_message(fed_socket, buffer, 17);
+            handle_message(my_fed->socket, buffer, 17);
             break;
         case RESIGN:
             // Nothing more to do. Close the socket and exit.
-            close(fed_socket); //  from unistd.h
+            pthread_mutex_lock(&mutex);
+            my_fed->state = NOT_CONNECTED;
+            close(my_fed->socket); //  from unistd.h
+            pthread_mutex_unlock(&mutex);
             return NULL;
             break;
         default:
@@ -263,7 +258,7 @@ void* federate(void* fed_socket_descriptor) {
     }
 
     // Nothing more to do. Close the socket and exit.
-    close(fed_socket); //  from unistd.h
+    close(my_fed->socket); //  from unistd.h
 
     return NULL;
 }
@@ -316,7 +311,7 @@ void connect_to_federates(int socket_descriptor) {
         federates[fed_id].socket = socket_id;
 
         // Create a thread to communicate with the federate.
-        pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id].socket));
+        pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id]));
     }
 }
 
