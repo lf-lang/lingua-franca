@@ -554,8 +554,8 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializeStateVariables(Reactor r) '''
-        «FOR s : r.stateVars BEFORE "// state variables\n"»
-            , «s.name»{«s.targetInitializer»}
+        «FOR s : r.stateVars.filter[s | s.isInitialized] BEFORE "// state variables\n"»
+            , «s.name»{«s.targetInitializer»} // «s.isInitialized»
         «ENDFOR»
     '''
 

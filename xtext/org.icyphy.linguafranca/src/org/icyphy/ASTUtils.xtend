@@ -585,8 +585,14 @@ class ASTUtils {
         }
     }
     
+    /**
+     * Check if a state variable is initialized or not.
+     * 
+     * @param v The state variable to be checked
+     * @return True if the variable was initialized
+     */
     def static boolean isInitialized(StateVar v) {
-        if (v !== null && v.parens !== null) {
+        if (v !== null && v.parens.size == 2) {
             return true
         }
         return false
