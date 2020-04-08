@@ -819,19 +819,6 @@ class CppGenerator extends GeneratorBase {
     override acceptableTargets() {
         acceptableTargetSet
     }
-    
-    override protected generateVariableSizeArrayInitializer(List<String> list) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
-    override protected generateFixedSizeArrayInitializer(List<String> list) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
-    override protected generateObjectInitializer(List<String> list) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
 
     /**
      * Generate code for the body of a reaction that takes an input and

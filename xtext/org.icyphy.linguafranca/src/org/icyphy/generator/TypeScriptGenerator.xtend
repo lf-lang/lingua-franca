@@ -994,18 +994,6 @@ import {Log} from "''' + utilLibPath + '''"
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
     
-    override protected generateVariableSizeArrayInitializer(List<String> list) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
-    override protected generateFixedSizeArrayInitializer(List<String> list) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
-    override protected generateObjectInitializer(List<String> list) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
     override protected String getTargetTimeType() {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
