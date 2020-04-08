@@ -1,0 +1,51 @@
+// Source produces a statically allocated array, which it passes
+// to Print. The destination references the array directly.
+target Cpp;
+
+reactor Source {
+    output out:int[3];
+
+    reaction(startup) -> out {=
+        // create a statically allocated array
+        std::array<int, 3> result = {3, 4, 5};
+        // send a copy
+        out.set(result);
+    =}
+}
+
+reactor Print {
+    input in:int[3];
+
+    reaction(in) {=
+        int expected = 3;
+        bool failed = false;
+        
+        // get a reference to the result to avoid a copy
+        auto& result = *in.get();
+
+        std::cout << "Received: [";
+        for (int i = 0; i < 3; i++) {
+            std::cout << result[i];
+            if (i < 2) {
+                std::cout << ", ";                
+            }
+
+            // check whether values match expectation.
+            if (result[i] != expected) {
+                failed = true;
+            }
+            expected++;
+        }
+        std::cout << "]\n";
+        if (failed) {
+            printf("ERROR: Value received by Print does not match expectation!\n");
+            exit(1);
+        }
+    =}
+}
+
+main reactor ArrayPrint {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}

@@ -1,0 +1,27 @@
+// Test delay made on a connection.
+target Cpp;
+
+reactor Source {
+    output out:void;
+    reaction(startup) -> out {=
+        out.set();
+    =} 
+} 
+
+reactor Sink {
+	input in:void;
+	reaction(in) {=
+        auto elapsed = get_elapsed_logical_time();
+        std::cout << "Nanoseconds since start: " << elapsed << '\n';
+        if (elapsed != 100ms) {
+            std::cerr << "ERROR: Expected 100000000 nsecs.\n";
+            exit(1);
+        }		
+	=}
+}
+
+main reactor DelayedReaction {    
+    source = new Source();
+    sink = new Sink();
+    source.out -> sink.in after 100 msec;
+}

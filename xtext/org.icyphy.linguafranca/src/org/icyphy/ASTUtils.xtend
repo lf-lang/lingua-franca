@@ -301,8 +301,16 @@ class ASTUtils {
                 for (ILeafNode leaf : node.getLeafNodes()) {
                     builder.append(leaf.getText());
                 }
-                val str = builder.toString.trim
-                return str.substring(2, str.length - 2).trim    
+                var str = builder.toString.trim
+                // remove the code delimiters
+                str = str.substring(2, str.length - 2)
+                if (str.split('\n').length > 1) {
+                    // multi line code
+                    return str.trimCodeBlock
+                } else {
+                    // single line code
+                    return str.trim
+                }    
             } else {
                 // Code must have been added as a simple string.
                 val builder = new StringBuilder(Math.max(code.tokens.length, 1))
@@ -313,6 +321,75 @@ class ASTUtils {
             }
         }
         return ""
+    }
+    
+    /**
+     * Intelligently trim the whitespaces in a code block.
+     * 
+     * First this removes any lines only containing whitespaces in the beginning
+     * of the block. It considers the first line containing non-whitespace 
+     * characters as the first code line. The leading whitespaces of this first
+     * code line are considered as a common prefix across all code lines. If the
+     * remaining code lines indeed start with this prefix, it removes the prefix
+     * from the code line.
+     * 
+     * For examples, this code
+     * <pre>{@code 
+     *        int test = 4;
+     *        if (test == 42) {
+     *            printf("Hello\n");
+     *        }
+     * }</pre>
+     * will be trimmed to this:
+     * <pre>{@code 
+     * int test = 4;
+     * if (test == 42) {
+     *     printf("Hello\n");
+     * }
+     * }</pre>
+     * 
+     * @param code the code block to be trimmed
+     * @return trimmed code block 
+     */
+    def static trimCodeBlock(String code) {
+        var codeLines = code.split("\n")
+        var String prefix = null
+        var buffer = new StringBuilder()
+        for (line : codeLines) {
+            if (prefix === null) {
+                // skip any lines that only contain whitespaces
+                if (line.trim.length > 0) {
+                    // this is the first code line
+                    
+                    // find the index of the first code line
+                    val characters = line.toCharArray()
+                    var foundFirstCharacter = false
+                    var int firstCharacter = 0
+                    for (var i = 0; i < characters.length(); i++) {
+                        if (!foundFirstCharacter && !Character.isWhitespace(characters.get(i))) {
+                            foundFirstCharacter = true
+                            firstCharacter = i
+                        }
+                    }
+
+                    // extract the whitespace prefix
+                    prefix = line.substring(0, firstCharacter)
+                }
+            }
+
+            // try to remove the prefix from all subsequent lines
+            if (prefix !== null) {
+                if (line.startsWith(prefix)) {
+                    buffer.append(line.substring(prefix.length))
+                    buffer.append('\n')
+                } else {
+                    buffer.append(line)
+                    buffer.append('\n')
+                }
+            }
+        }
+        buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
+        buffer.toString
     }
 
     @Deprecated // FIXME: Delete. Use totext(Time) or getTargetTime(Time) of the code generator
@@ -585,8 +662,14 @@ class ASTUtils {
         }
     }
     
+    /**
+     * Check if a state variable is initialized or not.
+     * 
+     * @param v The state variable to be checked
+     * @return True if the variable was initialized
+     */
     def static boolean isInitialized(StateVar v) {
-        if (v !== null && v.parens !== null) {
+        if (v !== null && v.parens.size == 2) {
             return true
         }
         return false

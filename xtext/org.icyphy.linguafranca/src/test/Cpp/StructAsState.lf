@@ -1,0 +1,20 @@
+// Check that a state variable can be a statically initialized struct
+target Cpp;
+
+public preamble {=
+    struct Hello {
+        std::string name;
+        int value;
+    };
+=}
+
+main reactor StructAsState {
+    state s:Hello("Earth", 42);
+    reaction(startup) {=
+        std::cout << "State s.name=" << s.name << ", self->s.name" << s.value << '\n';
+        if (s.value != 42 && s.name != "Earth") {
+            std::cerr << "ERROR: Expected 42 and Erath!\n";
+            exit(1);
+        }
+    =}
+}

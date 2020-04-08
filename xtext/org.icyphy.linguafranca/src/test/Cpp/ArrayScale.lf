@@ -1,0 +1,32 @@
+// Source produces a dynamically allocated array, which it passes
+// to Scale. Scale requests a writable copy.
+// It modifies it and passes it to Print. It gets freed after
+// Print is done with it.
+target Cpp;
+
+import ArrayPrint.lf;
+
+reactor Scale(scale:int(2)) {
+    input in:int[3];
+
+    output out:int[3];
+
+    reaction(in) -> out {=
+        // create a mutable copy of the received input
+        auto array = in.get().get_mutable_copy();
+        // NOTE: Ideally, no copy copy would be made here, as there is only
+        // one recipient for the value, but this is not supported yet by the C++ runtime.
+        for(int i = 0; i < array->size(); i++) {
+            (*array)[i] = (*array)[i] * scale;
+        }
+        out.set(std::move(array));
+    =}
+}
+
+main reactor ArrayScale {
+    s = new Source();
+    c = new Scale(scale(2));
+    p = new Print(scale(2));
+    s.out -> c.in;
+    c.out -> p.in;
+}
