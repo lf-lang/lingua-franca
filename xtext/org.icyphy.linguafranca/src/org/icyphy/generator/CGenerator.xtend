@@ -144,7 +144,7 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required library files into the target filesystem.
         // This will overwrite previous versions.
-        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h")
+        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
         if (targetThreads === 0) {
             files.add("reactor.c")
         } else {
@@ -153,7 +153,7 @@ class CGenerator extends GeneratorBase {
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file.
         if (federates.length > 1) {
-            files.addAll("util.c", "rti.c", "rti.h", "federate.c")
+            files.addAll("rti.c", "rti.h", "federate.c")
             createFederateRTI()
         }
         
@@ -441,6 +441,9 @@ class CGenerator extends GeneratorBase {
         
         val rtiCode = new StringBuilder()
         pr(rtiCode, '''
+            #ifdef NUMBER_OF_FEDERATES
+            #undefine NUMBER_OF_FEDERATES
+            #endif
             #define NUMBER_OF_FEDERATES «federates.length»
             #include "rti.c"
             int main(int argc, char* argv[]) {
