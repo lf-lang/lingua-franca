@@ -541,7 +541,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // Assume the graph is acyclic.
         for (r : reactionsWithDeadline) {
             if (r.definition.deadline !== null && r.definition.deadline.delay !== null) {
-                r.deadline = this.resolveTime(r.definition.deadline.delay)
+                r.deadline = r.parent.resolveTime(r.definition.deadline.delay)
             }
             propagateDeadline(r)
         }
@@ -751,79 +751,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         result
     }
-
-//    /** 
-//     * Given a parameter definition found in the AST, return a fresh parameter
-//     * instance with 
-//     * Return a parameter instance given a parameter definition.
-//     *  FIXME: This assumes that all referenced parameters themselves are already resolved!
-//     * @param parameter AST node that describes the parameter
-//     */
-//    protected def ParameterInstance resolveParameter(Parameter parameter) {
-//        // Check for an override.
-//        for (assignment : this.definition.parameters ?: emptyList) {
-//            var rhs = assignment.rhs
-//            if (assignment.lhs === parameter) {
-//                // Parameter is overridden using a reference to another parameter.
-//                if (rhs.parameter !== null) {
-//                    // Find the reactor that has the parameter that the assignment refers to.
-//                    var reactor = rhs.parameter.eContainer as Reactor
-//                    // Look the up the container of the parameter (in the instance hierarchy)
-//                    // to find the matching instance
-//                    var instance = this
-//                    var found = false
-//                    while (instance.parent !== null && !found) {
-//                        instance = instance.parent
-//                        if (instance.definition.reactorClass === reactor) {
-//                            found = true
-//                        }
-//                    }
-//                    if (!found) {
-//                        throw new InternalError(
-//                            "Incorrect reference to parameter:" +
-//                                parameter.name);
-//                    }
-//
-//                    val referencedParameter = instance.
-//                        getParameterInstance(rhs.parameter)
-//
-//                    if (referencedParameter instanceof TimeParameter) {
-//                        var timeParm = referencedParameter
-//                        return new TimeParameter(parameter, parent,
-//                            new TimeValue(timeParm.value.time,
-//                                timeParm.value.unit))
-//                    } else {
-//                        var valParm = referencedParameter as ValueParameter
-//                        return new ValueParameter(parameter, parent,
-//                            valParm.value, valParm.type)
-//                    }
-//                } else {
-//                    // Parameter is overridden by a type or value 
-//                    if (ASTUtils.isOfTimeType(parameter)) {
-//                        return new TimeParameter(parameter, this,
-//                            ASTUtils.getTimeValue(rhs))
-//                    } else {
-//                        var str = if (rhs.literal !== null) {
-//                                rhs.literal
-//                            } else if (rhs.code !== null) {
-//                                ASTUtils.toText(rhs.code)
-//                            }
-//                        return new ValueParameter(parameter, this, str,
-//                            parameter.type)
-//                    }
-//                }
-//            }
-//        }
-//    
-//        // If we reached here, the parameter was not overridden. Use its default value.
-//        if (ASTUtils.isOfTimeType(parameter)) {
-//            return new TimeParameter(parameter, this,
-//                ASTUtils.getTimeValue(parameter))
-//        } else {
-//            return new ValueParameter(parameter, this,
-//                this.generator.getParamInitializer(parameter), parameter.type)
-//        }
-//    }
     
     /** If the argument is non-null, determine whether it is a parameter
      *  reference or a literal time value and convert it to a time value
@@ -834,6 +761,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def TimeValue resolveTime(Value value) {
         if (value !== null) {
             if (value.parameter !== null) {
+                // FIXME: factor this out
                 val resolved = this.parameters.findFirst[it.definition === value.parameter]
                 if (resolved === null) {
                     throw new InternalError(
