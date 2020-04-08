@@ -437,36 +437,22 @@ class CppGenerator extends GeneratorBase {
         '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
-    def String getTargetInitializer(Parameter param) {
-        val list = param.initializerList
+    def private String getTargetInitializerHelper(Parameter param, List<String> list) {
         if (list.size == 0) {
             param.reportError("Parameters must have a default value!")
         } else if (list.size == 1) {
             return list.get(0)
         } else {
-            '''{«FOR init : param.initializerList SEPARATOR ", "»«init»«ENDFOR»}'''    
+            '''{«FOR init : list SEPARATOR ", "»«init»«ENDFOR»}'''
         }
     }
     
-    def getTargetInitializerList(Instantiation i) {
-        var List<String> values = newArrayList
-        for (p : i.reactorClass.parameters) {
-            var String value = null
-            for (a : i.parameters ?: emptyList) {
-                if (a.lhs.name == p.name) {
-                    if (p.ofTimeType) {
-                        value = '''{«FOR v : a.rhs SEPARATOR ", "»«v.targetTime»«ENDFOR»}'''
-                    } else {
-                        value = '''{«FOR v : a.rhs SEPARATOR ", "»«v.targetValue»«ENDFOR»}'''
-                    }
-                }
-            }
-            if (value === null) {
-                value = p.targetInitializer
-            }
-            values.add(value)
-        }
-        return values
+    def String getTargetInitializer(Parameter param) {
+        return getTargetInitializerHelper(param, param.initializerList)
+    }
+
+    def String getTargetInitializer(Parameter param, Instantiation i) {
+        return getTargetInitializerHelper(param, param.getInitializerList(i))
     }
 
     def initializeParameters(Reactor r) '''
@@ -483,7 +469,7 @@ class CppGenerator extends GeneratorBase {
 
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            , «i.name»{"«i.name»", this«FOR v : i.targetInitializerList», «v»«ENDFOR»}
+            , «i.name»{"«i.name»", this«FOR p : i.reactorClass.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
         «ENDFOR»
     '''
     
