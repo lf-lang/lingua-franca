@@ -1,0 +1,56 @@
+// Source produces a dynamically allocated array, which it passes
+// to Print. The ownership semantics of values ensure that the array 
+// is automatically deleted if it does have no owner.
+target Cpp;
+
+reactor Source {
+    output out:int[3];
+
+    reaction(startup) -> out {=
+        // create a dynamically allocated mutable array
+        auto result = reactor::make_mutable_value<std::array<int, 3>>();
+        (*result)[0] = 0;
+        (*result)[1] = 1;
+        (*result)[2] = 2;
+        // Send the array and move ownership. This implicitly converts the mutable
+        // value to an immutable value. 
+        out.set(std::move(result)); 
+    =}
+}
+
+reactor Print(scale:int(1)) {
+    input in:int[3];
+
+    reaction(in) {=
+        int expected = 0;
+        bool failed = false;
+        
+        // get a reference to the result to avoid a copy
+        auto& result = *in.get();
+
+        std::cout << "Received: [";
+        for (int i = 0; i < 3; i++) {
+            std::cout << result[i];
+            if (i < 2) {
+                std::cout << ", ";                
+            }
+
+            // check whether values match expectation.
+            if (result[i] != expected * scale) {
+                failed = true;
+            }
+            expected++;
+        }
+        std::cout << "]\n";
+        if (failed) {
+            printf("ERROR: Value received by Print does not match expectation!\n");
+            exit(1);
+        }
+    =}
+}
+
+main reactor ArrayAsType {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}
