@@ -21,7 +21,9 @@
       <plugin>
 	<groupId>org.codehaus.mojo</groupId>
 	<artifactId>exec-maven-plugin</artifactId>
-	<version>1.4.0</version>
+            <!-- If the Eclipse release is updated, then update the version number below.
+                 See https://mvnrepository.com/artifact/org.codehaus.mojo/exec-maven-plugin -->
+	<version>1.6.0</version>
 	<executions>
 	  <execution>
 	    <id>mwe2Launcher</id>
@@ -46,7 +48,10 @@
 	  <dependency>
 	    <groupId>org.eclipse.emf</groupId>
 	    <artifactId>org.eclipse.emf.mwe2.launch</artifactId>
-	    <version>2.10.0</version>
+            <!-- If the Eclipse release is updated, then update the version number below.
+                 See https://www.eclipse.org/Xtext/documentation/350_continuous_integration.html#maven-tycho-hints
+                 and https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch -->
+	    <version>2.11.2</version>
 	  </dependency>
 	  <dependency>
 	    <groupId>org.eclipse.xtext</groupId>
