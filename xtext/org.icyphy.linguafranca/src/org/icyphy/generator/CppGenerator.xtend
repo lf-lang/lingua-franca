@@ -160,60 +160,7 @@ class CppGenerator extends GeneratorBase {
         }
         return result
     }
-
-    static def removeCodeDelimiter(String code) {
-        if (code === null) {
-            ""
-        } else if (code.startsWith("{=")) {
-            if (code.split('\n').length > 1) {
-                code.substring(2, code.length - 2).trimCodeBlock
-            } else {
-                code.substring(2, code.length - 2).trim
-            }
-        } else {
-            if (code.split('\n').length > 1) {
-                code.trimCodeBlock
-            } else {
-                code.trim
-            }
-        }
-    }
-
-    static def trimCodeBlock(String code) {
-        var codeLines = code.split("\n")
-        var String prefix = null
-        var buffer = new StringBuilder()
-        for (line : codeLines) {
-            if (prefix === null) {
-                // skip any lines that only contain whitespaces
-                if (line.trim.length > 0) {
-                    val characters = line.toCharArray()
-                    var foundFirstCharacter = false
-                    var int firstCharacter = 0
-                    for (var i = 0; i < characters.length(); i++) {
-                        if (!foundFirstCharacter && !Character.isWhitespace(characters.get(i))) {
-                            foundFirstCharacter = true
-                            firstCharacter = i
-                        }
-                    }
-                    prefix = line.substring(0, firstCharacter)
-                }
-            }
-
-            if (prefix !== null) {
-                if (line.startsWith(prefix)) {
-                    buffer.append(line.substring(prefix.length))
-                    buffer.append('\n')
-                } else {
-                    buffer.append(line)
-                    buffer.append('\n')
-                }
-            }
-        }
-        buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
-        buffer.toString
-    }
-
+   
     def name(Reaction n) {
         var r = n.eContainer as Reactor
         'r' + r.reactions.lastIndexOf(n)
@@ -327,7 +274,7 @@ class CppGenerator extends GeneratorBase {
     	}
         '''
             «FOR p : publicPreambles ?: emptyList BEFORE '// public preamble\n' AFTER '\n'»
-                «removeCodeDelimiter(p.code.toText)»
+                «p.code.toText»
             «ENDFOR»
         '''
     }
@@ -341,7 +288,7 @@ class CppGenerator extends GeneratorBase {
         }
         '''
             «FOR p : privatePreambles ?: emptyList BEFORE '// private preamble\n' AFTER '\n'»
-                «removeCodeDelimiter(p.code.toText)»
+                «p.code.toText»
             «ENDFOR»
         '''
     }
@@ -412,84 +359,6 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-//    def inferredType(Input i) {
-//        if (i.type !== null) {
-//            i.type.toText(this)
-//        } else {
-//            '''/* «i.reportError("Input port has no type.")» */'''
-//        }
-//    }
-//
-//    def inferredType(Output o) {
-//        if (o.type !== null) {
-//            o.type.toText(this)
-//        } else {
-//            '''/* «o.reportError("Input port has no type.")» */'''
-//        }
-//    }
-//
-//    def inferredType(Action a) {
-//        if (a.type !== null) {
-//            a.type.toText(this)
-//        } else {
-//            '''/* «a.reportError("Action has no type.")» */'''
-//        }
-//    }
-//    
-//    def asTime(Value v) {
-//        if (v.parameter !== null) {
-//            if (v.parameter.ofTimeType) {
-//                '''«v.parameter.name»'''
-//            } else {
-//                '''/* «v.reportError("Expected a parameter of time type!")» */'''
-//            }
-//        } else if (v.time !== null) {
-//            v.time.toText
-//        } else if (v.isZero()) {
-//            '''reactor::Duration::zero()'''
-//        } else {
-//            '''/* «v.reportError("Expected a value of time type!")» */'''
-//        }
-//    }
-//    
-//    def toText(Value v) '''«v.toText(this)»'''
-//    
-//    def toText(Time t) '''«t.toText(this)»'''
-//    
-//    def inferredType(StateVar s) '''«s.getInferredType(this)»'''
-//    
-//    def inferredType(Parameter p) '''«p.getInferredType(this)»'''
-//
-//    def getInitializer(StateVar s) '''«s.getStateInitializer»'''
-//    
-//    def getInitializer(Parameter p) '''«p.getParamInitializer»'''
-//    
-//    // FIXME: This should be fixed in GeneratorBase
-//    override String getStateInitializer(StateVar stateVar) {
-//        if (stateVar.init === null || stateVar.init.size == 0)
-//            return ""
-//        
-//        var list = new LinkedList<String>();
-//
-//        for (element : stateVar.init) {
-//            if (element.parameter !== null) {
-//                list.add(element.parameter.name)
-//            } else if (stateVar.isOfTimeType) {
-//                list.add(element.getTimeValue.timeInTargetLanguage)
-//            } else if (element.literal !== null) {
-//                 list.add(element.literal)
-//            } else if (element.code !== null) {
-//                list.add(element.code.toText)
-//            }
-//        }
-//
-//        if (list.size == 1) {
-//            return list.first
-//        } else if (list.size > 1) {
-//            return list.join('', listItemSeparator, '', [it])
-//        }
-//    }
-
     def defineConstructor(Reactor r) '''
         «IF r.parameters.length > 0»
             «r.name»::«r.name»(const std::string& name,
@@ -515,15 +384,22 @@ class CppGenerator extends GeneratorBase {
         '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
-    def String getTargetInitializer(Parameter param) {
-        val list = param.initializerList
+    def private String getTargetInitializerHelper(Parameter param, List<String> list) {
         if (list.size == 0) {
             param.reportError("Parameters must have a default value!")
         } else if (list.size == 1) {
             return list.get(0)
         } else {
-            '''{«FOR init : param.initializerList SEPARATOR ", "»«init»«ENDFOR»}'''    
+            '''{«FOR init : list SEPARATOR ", "»«init»«ENDFOR»}'''
         }
+    }
+    
+    def String getTargetInitializer(Parameter param) {
+        return getTargetInitializerHelper(param, param.initializerList)
+    }
+
+    def String getTargetInitializer(Parameter param, Instantiation i) {
+        return getTargetInitializerHelper(param, param.getInitializerList(i))
     }
 
     def initializeParameters(Reactor r) '''
@@ -533,14 +409,14 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializeStateVariables(Reactor r) '''
-        «FOR s : r.stateVars BEFORE "// state variables\n"»
-            , «s.name»{«s.targetInitializer»}
+        «FOR s : r.stateVars.filter[s | s.isInitialized] BEFORE "// state variables\n"»
+            , «s.name»{«s.targetInitializer»} // «s.isInitialized»
         «ENDFOR»
     '''
 
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            , «i.name»{"«i.name»", this«FOR v : i.targetInitializers», «v»«ENDFOR»}
+            , «i.name»{"«i.name»", this«FOR p : i.reactorClass.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
         «ENDFOR»
     '''
     
@@ -584,27 +460,6 @@ class CppGenerator extends GeneratorBase {
                 ''', «a.name»{"«a.name»", this}'''
             }
         }
-    }
-
-    def targetInitializers(Instantiation i) {
-        var List<String> values = newArrayList
-        for (p : i.reactorClass.parameters) {
-            var String value = null
-            for (a : i.parameters ?: emptyList) {
-                if (a.lhs.name == p.name) {
-                	if (p.ofTimeType) {
-                        value = '''«a.rhs.get(0).targetTime»''' // FIXME: handle lists
-                    } else {
-                        value = '''«a.rhs.get(0).targetValue»'''// FIXME: handle lists
-                    }
-                }
-            }
-            if (value === null) {
-                value = p.targetInitializer
-            }
-            values.add(value)
-        }
-        values
     }
 
     def assembleReaction(Reactor r, Reaction n) '''
@@ -800,7 +655,7 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "cde6ecfa12ffa2104eb84f55e70daa5171ff4919"
+          GIT_TAG "0c7d23b1d725ce785b92cb08fbf3a1b6d4b6d5fe"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
