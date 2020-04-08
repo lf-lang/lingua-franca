@@ -44,6 +44,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
 
+// Error messages.
+char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via RTI";
+char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
+char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from RTI an unrecognized message type";
+
 /** The socket descriptor for this federate to communicate with the RTI.
  *  This is set by connect_to_rti(), which must be called before other
  *  functions are called.
@@ -53,6 +58,7 @@ int rti_socket = -1;
 /** Send the specified message to the specified port in the
  *  specified federate via the RTI. The port should be an
  *  input port of a reactor in the destination federate.
+ *  This version does not include the timestamp in the message.
  *  The caller can reuse or free the memory after this returns.
  *  @param port The ID of the destination port.
  *  @param federate The ID of the destination federate.
@@ -74,11 +80,55 @@ void send_via_rti(unsigned int port, unsigned int federate, size_t length, unsig
     buffer[7] = length & 0xff0000;
     buffer[8] = length & 0xff000000;
 
-    int bytes_written = write(rti_socket, buffer, 9);
-    if (bytes_written != 9) error("ERROR sending header information to federate via RTI");
+    write_to_socket(rti_socket, 9, buffer);
+    write_to_socket(rti_socket, length, message);
+}
 
-    bytes_written = write(rti_socket, message, length);
-    if (bytes_written != length) error("ERROR sending message to federate via RTI");
+/** Send the specified timestamped message to the specified port in the
+ *  specified federate via the RTI. The port should be an
+ *  input port of a reactor in the destination federate.
+ *  This version does include the timestamp in the message.
+ *  The caller can reuse or free the memory after this returns.
+ *  @param port The ID of the destination port.
+ *  @param federate The ID of the destination federate.
+ *  @param length The message length.
+ *  @param message The message.
+ */
+void send_via_rti_timed(unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
+    assert(port < 65536);
+    assert(federate < 65536);
+    unsigned char buffer[17];
+    // First byte identifies this as a timed message.
+    buffer[0] = TIMED_MESSAGE;
+    // FIXME: The following encoding ops should become generic utilities in util.c.
+    // Next two bytes identify the destination port.
+    // NOTE: Send messages little endian, not big endian.
+    buffer[1] = port & 0xff;
+    buffer[2] = (port & 0xff00) >> 8;
+    // Next two bytes identify the destination federate.
+    buffer[3] = federate & 0xff;
+    buffer[4] = (federate & 0xff00) >> 8;
+    // The next four bytes are the message length.
+    buffer[5] = length & 0xff;
+    buffer[6] = (length & 0xff00) >> 8;
+    buffer[7] = (length & 0xff0000) >> 16;
+    buffer[8] = (length & 0xff000000) >> 24;
+
+    // Next 8 bytes are the timestamp.
+    instant_t current_time = get_logical_time();
+
+    buffer[9] = current_time & 0xffLL;
+    buffer[10] = (current_time & 0xff00LL) >> 8;
+    buffer[11] = (current_time & 0xff0000LL) >> 16;
+    buffer[12] = (current_time & 0xff000000LL) >> 24;
+    buffer[13] = (current_time & 0xff00000000LL) >> 32;
+    buffer[14] = (current_time & 0xff0000000000LL) >> 40;
+    buffer[15] = (current_time & 0xff000000000000LL) >> 48;
+    buffer[16] = (current_time & 0xff00000000000000LL) >> 56;
+    // printf("DEBUG: Sending message with timestamp %lld.\n", current_time);
+
+    write_to_socket(rti_socket, 17, buffer);
+    write_to_socket(rti_socket, length, message);
 }
 
 /** Connect to the RTI at the specified host and port and return
@@ -176,19 +226,8 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     unsigned char buffer[buffer_length];
 
     // Read bytes from the socket. We need 9 bytes.
-    int bytes_read = 0;
-    while (bytes_read < 9) {
-        int more = read(rti_socket, &(buffer[bytes_read]),
-                buffer_length - bytes_read);
-        if (more < 0) error("ERROR on federate reading reply from RTI");
-        // If more == 0, this is an EOF. Kill the federate.
-        if (more == 0) {
-            fprintf(stderr, "RTI sent an EOF. Exiting.");
-            exit(1);
-        }
-        bytes_read += more;
-    }
-    // printf("DEBUG: federate read %d bytes.\n", bytes_read);
+    read_from_socket(rti_socket, 9, &(buffer[0]));
+    // printf("DEBUG: federate read 9 bytes.\n");
 
     // First byte received is the message ID.
     if (buffer[0] != TIMESTAMP) {
@@ -213,55 +252,63 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 trigger_t* __action_for_port(int port_id);
 
 /** Handle a message being received from a remote federate via the RTI.
- *  @param receiving_socket The identifier for the sending socket.
- *  @param buffer The message (or at least the start of it).
- *  @param bytes_read The number of bytes read from the socket and already
- *   in the buffer.
+ *  @param buffer The buffer to read.
  */
-void handle_message(int receiving_socket, unsigned char* buffer, int bytes_read) {
-    // The first byte, which has value MESSAGE, has already been read.
-    // We need 8 more bytes:
-    //   - two bytes with the ID of the destination port.
-    //   - two bytes with the destination federate ID.
-    //   - four bytes after that will be the length of the message.
-    // We keep the MESSAGE byte in the buffer for forwarding.
-    int min_bytes = 9;
-    while (bytes_read < min_bytes) {
-        int more = read(receiving_socket, &(buffer[bytes_read]), min_bytes - bytes_read);
-        if (more < 0) error("ERROR on federate reading from RTI socket");
-        bytes_read += more;
-    }
-    // The next two bytes are the ID of the destination reactor.
-    unsigned short port_id
-            = swap_bytes_if_big_endian_ushort(
-              *((unsigned short*)(buffer + 1)));
-    // The next four bytes are the message length.
-    // The next two bytes are the ID of the destination federate.
-    unsigned short federate_id
-            = swap_bytes_if_big_endian_ushort(
-              *((unsigned short*)(buffer + 3)));
-    // FIXME: Better error handling needed here.
-    assert(federate_id < NUMBER_OF_FEDERATES);
-    // The next four bytes are the message length.
-    unsigned int length
-            = swap_bytes_if_big_endian_int(
-              *((unsigned int*)(buffer + 5)));
-
+void handle_message(unsigned char* buffer) {
+    // Read the header.
+    read_from_socket(rti_socket, 8, buffer);
+    // Extract the header information.
+    unsigned short port_id;
+    unsigned short federate_id;
+    unsigned int length;
+    extract_header(buffer, &port_id, &federate_id, &length);
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 
+    // Read the payload.
     // Allocate memory for the message contents.
     unsigned char* message_contents = malloc(length);
-
-    bytes_read = 0;
-    while (bytes_read < length) {
-        int more = read(receiving_socket, &(message_contents[bytes_read]), length - bytes_read);
-        if (more < 0) error("ERROR on federate reading from RTI socket");
-        bytes_read += more;
-    }
+    read_from_socket(rti_socket, length, message_contents);
     // printf("DEBUG: Message received by federate: %s.\n", message_contents);
 
     schedule_value(__action_for_port(port_id), 0LL, message_contents, length);
     // printf("DEBUG: Called schedule\n");
+}
+
+/** Handle a timestamped message being received from a remote federate via the RTI.
+ *  This will read the timestamp, which is appended to the header,
+ *  and calculate an offset to pass to the schedule function.
+ *  @param buffer The buffer to read.
+ */
+void handle_timed_message(unsigned char* buffer) {
+    // Read the header.
+    read_from_socket(rti_socket, 8, buffer);
+    // Extract the header information.
+    unsigned short port_id;
+    unsigned short federate_id;
+    unsigned int length;
+    extract_header(buffer, &port_id, &federate_id, &length);
+    // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
+
+    // Read the timestamp.
+    read_from_socket(rti_socket, 8, buffer + 8);
+    instant_t timestamp = extract_ll(buffer + 8);
+    // printf("DEBUG: Message timestamp: %lld.\n", timestamp);
+
+    // Read the payload.
+    // Allocate memory for the message contents.
+    unsigned char* message_contents = malloc(length);
+    read_from_socket(rti_socket, length, message_contents);
+    // printf("DEBUG: Message received by federate: %s.\n", message_contents);
+
+    // Acquire the one mutex lock to prevent logical time from advancing
+    // between the time we get logical time and the time we call schedule().
+    pthread_mutex_lock(&mutex);
+
+    interval_t delay = timestamp - get_logical_time();
+    schedule_value(__action_for_port(port_id), delay, message_contents, length);
+    // printf("DEBUG: Called schedule with delay %lld.\n", delay);
+
+    pthread_mutex_unlock(&mutex);
 }
 
 /** Thread that listens for inputs from the RTI.
@@ -276,15 +323,17 @@ void* listen_to_rti(void* args) {
     // Listen for messages from the federate.
     while (1) {
         // Read one byte to get the message type.
-        int bytes_read = read(rti_socket, &buffer, 1);
-        // FIXME: Need more robust error handling. This will kill the federate.
-        if (bytes_read < 0) error("ERROR on federate reading from RTI socket");
-        if (bytes_read == 0 || buffer[0] == RESIGN) {
-            printf("RTI has quit.\n");
-            stop();
+        read_from_socket(rti_socket, 1, buffer);
+        switch(buffer[0]) {
+        case MESSAGE:
+            handle_message(buffer + 1);
             break;
-        } else if (buffer[0] == MESSAGE) {
-            handle_message(rti_socket, buffer, bytes_read);
+        case TIMED_MESSAGE:
+            handle_timed_message(buffer + 1);
+            break;
+        default:
+            // printf("DEBUG: Erroneous message type: %d\n", buffer[0]);
+            error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);
         }
     }
     return NULL;

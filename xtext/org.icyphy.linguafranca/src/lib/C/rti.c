@@ -127,81 +127,51 @@ int create_server(int port) {
     return socket_descriptor;
 }
 
-/** Handle a message being sent from one federate to another via the RTI.
+/** Handle a message being received from a federate via the RTI.
  *  @param sending_socket The identifier for the sending socket.
- *  @param buffer The message.
- *  @param bytes_read The number of bytes read from the socket and already
- *   in the buffer.
+ *  @param buffer The buffer to read into (the first byte is already there).
+ *  @param header_size The number of bytes in the header.
  */
-void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
-    // The message is a message to forward to a federate.
-    // The first byte, which has value MESSAGE, has already been read.
-    // We need 8 more bytes:
-    //   - two bytes with the ID of the destination port.
-    //   - two bytes with the destination federate ID.
-    //   - four bytes after that will be the length of the message.
-    // We keep the MESSAGE byte in the buffer for forwarding.
-    int min_bytes = 9;
-    while (bytes_read < min_bytes) {
-        int more = read(sending_socket, &(buffer[bytes_read]), min_bytes - bytes_read);
-        if (more < 0) error("ERROR on RTI reading from federate socket");
-        bytes_read += more;
-    }
-    // The next two bytes are the ID of the destination reactor.
-    unsigned short port_id
-            = swap_bytes_if_big_endian_ushort(
-              *((unsigned short*)(buffer + 1)));
-    // The next four bytes are the message length.
-    // The next two bytes are the ID of the destination federate.
-    unsigned short federate_id
-            = swap_bytes_if_big_endian_ushort(
-              *((unsigned short*)(buffer + 3)));
-    // FIXME: Better error handling needed here.
-    assert(federate_id < NUMBER_OF_FEDERATES);
-    // The next four bytes are the message length.
-    unsigned int length
-            = swap_bytes_if_big_endian_int(
-              *((unsigned int*)(buffer + 5)));
-
+void handle_message(int sending_socket, unsigned char* buffer, unsigned int header_size) {
+    // Read the header, minus the first byte which is already there.
+    read_from_socket(sending_socket, header_size - 1, buffer + 1);
+    // Extract the header information.
+    unsigned short port_id;
+    unsigned short federate_id;
+    unsigned int length;
+    // Extract information from the header.
+    extract_header(buffer + 1, &port_id, &federate_id, &length);
     // printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
 
-    unsigned int bytes_to_read = length + min_bytes;
+    unsigned int total_bytes_to_read = length + header_size;
+    unsigned int bytes_to_read = length;
     // Prevent a buffer overflow.
-    if (bytes_to_read > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE;
+    if (bytes_to_read + header_size > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE - header_size;
 
-    while (bytes_read < bytes_to_read) {
-        int more = read(sending_socket, &(buffer[min_bytes]), bytes_to_read - bytes_read);
-        if (more < 0) error("ERROR on RTI reading from federate socket");
-        bytes_read += more;
-    }
-    // printf("DEBUG: Message received by RTI: %s.\n", &(buffer[9]));
+    read_from_socket(sending_socket, bytes_to_read, buffer + header_size);
+    int bytes_read = bytes_to_read + header_size;
+    // printf("DEBUG: Message received by RTI: %s.\n", buffer + header_size);
 
     // Forward the message or message chunk.
     int destination_socket = federates[federate_id].socket;
-    int bytes_written = 0;
-    while (bytes_written < bytes_read) {
-        int more = write(destination_socket, &(buffer[bytes_written]), bytes_read - bytes_written);
-        if (more < 0) error("ERROR forwarding message to federate");
-        bytes_written += more;
-    }
+
+    write_to_socket(destination_socket, bytes_read, buffer);
 
     // The message length may be longer than the buffer,
     // in which case we have to handle it in chunks.
     int total_bytes_read = bytes_read;
-    while (total_bytes_read < length + min_bytes) {
-        bytes_to_read = length + min_bytes;
+    while (total_bytes_read < total_bytes_to_read) {
+        // printf("DEBUG: Forwarding message in chunks.\n");
+        bytes_to_read = total_bytes_to_read - total_bytes_read;
         if (bytes_to_read > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE;
-        int more = read(sending_socket, buffer, bytes_to_read);
-        if (more < 0) error("ERROR on RTI reading from federate socket");
-        int bytes_written = 0;
-        while (bytes_written < more) {
-            int more_written = write(destination_socket, &(buffer[bytes_written]), more - bytes_written);
-            if (more < 0) error("ERROR forwarding message to federate");
-            bytes_written += more;
-        }
-        total_bytes_read += more;
+        read_from_socket(sending_socket, bytes_to_read, buffer);
+        total_bytes_read += bytes_to_read;
+
+        write_to_socket(destination_socket, bytes_to_read, buffer);
     }
 }
+
+char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from federate an unrecognized message type";
 
 /** Thread handling communication with a federate.
  *  @param fed_socket_descriptor A pointer to an int that is the
@@ -274,14 +244,21 @@ void* federate(void* fed_socket_descriptor) {
     // Listen for messages from the federate.
     while (1) {
         // Read no more than one byte to get the message type.
-        bytes_read = read(fed_socket, &buffer, 1);
-        // FIXME: Need more robust error handling. This will kill the RTI.
-        if (bytes_read < 0) error("ERROR on RTI reading from federate socket");
-        if (bytes_read == 0 || buffer[0] == RESIGN) {
-            printf("RTI: Federate has resigned.\n");
+        read_from_socket(fed_socket, 1, buffer);
+        switch(buffer[0]) {
+        case MESSAGE:
+            handle_message(fed_socket, buffer, 9);
             break;
-        } else if (buffer[0] == MESSAGE) {
-            handle_message(fed_socket, buffer, bytes_read);
+        case TIMED_MESSAGE:
+            handle_message(fed_socket, buffer, 17);
+            break;
+        case RESIGN:
+            // Nothing more to do. Close the socket and exit.
+            close(fed_socket); //  from unistd.h
+            return NULL;
+            break;
+        default:
+            error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);
         }
     }
 

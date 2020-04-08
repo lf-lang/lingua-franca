@@ -2099,20 +2099,21 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
+        // FIXME: Use send_via_rti if the physical keyword is supplied to the connection.
         if (isTokenType(type)) {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->length * «sendRef»->element_size;
                 «sendRef»->ref_count++;
-                send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»);
             ''')
         } else {
             // FIXME: Only supporting string type right now.
             result.append('''
             size_t message_length = strlen(«sendRef») + 1;
-            send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
+            send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
             ''')
         }
         return result.toString
