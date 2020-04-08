@@ -525,6 +525,27 @@ class CppGenerator extends GeneratorBase {
             '''{«FOR init : param.initializerList SEPARATOR ", "»«init»«ENDFOR»}'''    
         }
     }
+    
+    def getTargetInitializerList(Instantiation i) {
+        var List<String> values = newArrayList
+        for (p : i.reactorClass.parameters) {
+            var String value = null
+            for (a : i.parameters ?: emptyList) {
+                if (a.lhs.name == p.name) {
+                    if (p.ofTimeType) {
+                        value = '''{«FOR v : a.rhs SEPARATOR ", "»«v.targetTime»«ENDFOR»}'''
+                    } else {
+                        value = '''{«FOR v : a.rhs SEPARATOR ", "»«v.targetValue»«ENDFOR»}'''
+                    }
+                }
+            }
+            if (value === null) {
+                value = p.targetInitializer
+            }
+            values.add(value)
+        }
+        return values
+    }
 
     def initializeParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE "// parameters\n"»
@@ -540,7 +561,7 @@ class CppGenerator extends GeneratorBase {
 
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            , «i.name»{"«i.name»", this«FOR v : i.targetInitializers», «v»«ENDFOR»}
+            , «i.name»{"«i.name»", this«FOR v : i.targetInitializerList», «v»«ENDFOR»}
         «ENDFOR»
     '''
     
@@ -584,27 +605,6 @@ class CppGenerator extends GeneratorBase {
                 ''', «a.name»{"«a.name»", this}'''
             }
         }
-    }
-
-    def targetInitializers(Instantiation i) {
-        var List<String> values = newArrayList
-        for (p : i.reactorClass.parameters) {
-            var String value = null
-            for (a : i.parameters ?: emptyList) {
-                if (a.lhs.name == p.name) {
-                	if (p.ofTimeType) {
-                        value = '''«a.rhs.get(0).targetTime»''' // FIXME: handle lists
-                    } else {
-                        value = '''«a.rhs.get(0).targetValue»'''// FIXME: handle lists
-                    }
-                }
-            }
-            if (value === null) {
-                value = p.targetInitializer
-            }
-            values.add(value)
-        }
-        values
     }
 
     def assembleReaction(Reactor r, Reaction n) '''
