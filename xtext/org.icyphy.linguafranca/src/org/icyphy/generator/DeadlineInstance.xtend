@@ -1,4 +1,4 @@
-/** Instance of a timer. */
+/** A data structure for a deadline instance. */
 
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
@@ -13,15 +13,16 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 package org.icyphy.generator
@@ -32,39 +33,41 @@ import org.icyphy.linguaFranca.TimeUnit
 
 import static extension org.icyphy.ASTUtils.*
 
-
-/** Instance of a timer.
+/**
+ * Instance of a deadline. Upon creation the actual delay is converted into
+ * a proper time value. If a parameter is referenced, it is looked up in the
+ * given (grand)parent reactor instance.
  * 
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class DeadlineInstance extends NamedInstance<Deadline> {
+class DeadlineInstance {
 	
+	/**
+     * The delay D associated with this deadline. If physical time T < logical
+     * time t + D, the deadline is met, otherwise, it is violated.
+	 */
 	public TimeValue delay = new TimeValue(0, TimeUnit.NONE)
 	
-	new(Deadline definition, ReactorInstance parent) {
-		super(definition, parent)
-        if (parent === null) {
-            throw new Exception('Cannot create a DeadlineInstance with no parent.')
-        }
+	/**
+	 * Create a new deadline instance associated with the given reaction
+	 * instance.
+	 */
+	new(Deadline definition, ReactionInstance reaction) {
         
+        if (reaction.parent === null) {
+            throw new Exception(
+                'Cannot create a DeadlineInstance with no parent.')
+        }
+
         if (definition.delay !== null) {
             if (definition.delay.parameter !== null) {
-                this.delay = parent.parameters.findFirst [
+                this.delay = reaction.parent.parameters.findFirst [
                     it.definition === definition.delay.parameter
                 ].init.get(0).getTimeValue
             } else {
                 this.delay = definition.delay.timeValue
             }
-        }        
-	}
-
-    override getName() '''deadline'''
-
-    override main() {
-        parent.main
+        }
     }
-    
-    override toString() '''DeadlineInstance «getFullName»'''
-    
 }
