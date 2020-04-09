@@ -8,7 +8,7 @@ main reactor Server {
         import * as https from "https"
         import * as http from "http"
     =}
-    state server:{=http.Server | undefined=}(undefined);
+    state server:{=http.Server | undefined=}({=undefined=});
     physical action serverRequest:{= [ http.IncomingMessage, http.ServerResponse ] =};
     reaction (startup) -> serverRequest {=
         let options = {};

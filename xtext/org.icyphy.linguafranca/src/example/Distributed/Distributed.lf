@@ -95,5 +95,5 @@ reactor PrintMessage {
 main reactor Distributed {
     msg = new MessageGenerator(root = "Hello World");
     dsp = new PrintMessage();
-    msg.message->dsp.message;
+    msg.message->dsp.message after 10 msec;
 }

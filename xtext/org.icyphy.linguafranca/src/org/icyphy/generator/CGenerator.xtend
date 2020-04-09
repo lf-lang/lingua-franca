@@ -146,7 +146,7 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required library files into the target file system.
         // This will overwrite previous versions.
-        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h")
+        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
         if (targetThreads === 0) {
             files.add("reactor.c")
         } else {
@@ -155,7 +155,7 @@ class CGenerator extends GeneratorBase {
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file.
         if (federates.length > 1) {
-            files.addAll("util.c", "rti.c", "rti.h", "federate.c")
+            files.addAll("rti.c", "rti.h", "federate.c")
             createFederateRTI()
         }
         
@@ -439,6 +439,9 @@ class CGenerator extends GeneratorBase {
         
         val rtiCode = new StringBuilder()
         pr(rtiCode, '''
+            #ifdef NUMBER_OF_FEDERATES
+            #undefine NUMBER_OF_FEDERATES
+            #endif
             #define NUMBER_OF_FEDERATES «federates.length»
             #include "rti.c"
             int main(int argc, char* argv[]) {
@@ -2085,20 +2088,21 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
+        // FIXME: Use send_via_rti if the physical keyword is supplied to the connection.
         if (isTokenType(type)) {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
-                int message_length = «sendRef»->length * «sendRef»->element_size;
+                size_t message_length = «sendRef»->length * «sendRef»->element_size;
                 «sendRef»->ref_count++;
-                send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»);
             ''')
         } else {
             // FIXME: Only supporting string type right now.
             result.append('''
-            int message_length = strlen(«sendRef») + 1;
-            send_via_rti(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
+            size_t message_length = strlen(«sendRef») + 1;
+            send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
             ''')
         }
         return result.toString

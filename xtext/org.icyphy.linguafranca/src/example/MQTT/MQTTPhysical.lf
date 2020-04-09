@@ -61,10 +61,10 @@
  */
 target C {
     threads: 1, // Must use threaded implementation so schedule is thread safe.
-    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c",
+    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/util.c",
     timeout: 10 secs
 };
-
+ 
 import MQTTPublisher.lf;
 import MQTTSubscriber.lf;
 
@@ -113,7 +113,7 @@ reactor PrintMessage {
     =}
 }
 
-main reactor MQTTTest {
+main reactor MQTTPhysical {
     pub = new MQTTPublisher(
         topic = "my/test",
         address = "tcp://localhost:1883",

@@ -60,4 +60,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Byte identifying that the federate is ending its execution. */
 #define RESIGN 4
 
+/** Byte identifying a timestamped message to forward to another federate.
+ *  The next two bytes will be the ID of the destination port.
+ *  The next two bytes are the destination federate ID.
+ *  The four bytes after that will be the length of the message.
+ *  The next eight bytes will be the timestamp.
+ *  The remaining bytes are the message.
+ */
+#define TIMED_MESSAGE 5
+
+
 #endif /* RTI_H */
