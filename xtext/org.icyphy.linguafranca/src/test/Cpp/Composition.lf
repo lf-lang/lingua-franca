@@ -25,7 +25,13 @@ reactor Test {
             std::cerr << "FAILURE: Expected " << count << std::endl;
             exit(1); 
         }
-    =} 
+    =}
+    reaction(shutdown) {=
+        if (count != 5) {
+            std::cerr << "ERROR: expected to receive 5 values but got " << count << '\n';
+            exit(1);
+        } 
+    =}
 }
 main reactor Composition {
     s = new Source();

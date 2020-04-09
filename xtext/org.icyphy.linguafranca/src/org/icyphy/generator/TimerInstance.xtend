@@ -29,15 +29,24 @@ package org.icyphy.generator
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.TimeValue
+import org.icyphy.linguaFranca.TimeUnit
 
-/** Instance of a timer.
+import static extension org.icyphy.ASTUtils.*
+
+/**
+ * Instance of a timer.
  * 
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class TimerInstance extends TriggerInstance<Variable> {
 	
 	var startup = false
+	
+	public TimeValue offset = new TimeValue(0, TimeUnit.NONE)
+    
+    public TimeValue period = new TimeValue(0, TimeUnit.NONE)
 	
 	new(Timer definition, ReactorInstance parent) {
 		super(definition, parent)
@@ -47,7 +56,26 @@ class TimerInstance extends TriggerInstance<Variable> {
         if (definition.name.equals(LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name)) {
         	this.startup = true
         }
-	}
+        
+        if (definition.offset !== null) {
+            if (definition.offset.parameter !== null) {
+                val parm = definition.offset.parameter
+                this.offset = parent.lookupLocalParameter(parm).init.get(0).
+                    getTimeValue
+            } else {
+                this.offset = definition.offset.timeValue
+            }
+        }
+        if (definition.period !== null) {
+            if (definition.period.parameter !== null) {
+                val parm = definition.period.parameter
+                this.period = parent.lookupLocalParameter(parm).init.get(0).
+                    getTimeValue
+            } else {
+                this.period = definition.offset.timeValue
+            }
+        }
+    }
 	
 	def isStartup() {
     	this.startup

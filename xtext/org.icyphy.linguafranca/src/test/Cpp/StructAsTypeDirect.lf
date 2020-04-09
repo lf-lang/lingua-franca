@@ -1,0 +1,23 @@
+// Source directly sends an implicitly dynamically created object
+target Cpp;
+
+import StructPrint.lf;
+
+// explicitly import the public preamble from StructAsState which defines the Hello type
+public preamble {=
+    #include "StructAsState/preamble.hh"
+=}
+
+reactor DirectSource {
+    output out:Hello;
+    reaction(startup) -> out {=
+        // this implicitly creates a new hello object which is then send
+        out.set({"Earth", 42});
+    =}
+}
+
+main reactor StructAsType {
+    s = new DirectSource();
+    p = new Print();
+    s.out -> p.in;
+}

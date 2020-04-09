@@ -31,6 +31,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.net.URL
 import java.nio.file.Paths
 import java.util.ArrayList
@@ -51,22 +52,25 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.ASTUtils
+import org.icyphy.InferredType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.LiteralOrCode
+import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Target
-import org.icyphy.linguaFranca.TimeOrValue
+import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
+import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
-import java.io.OutputStream
+
+import static extension org.icyphy.ASTUtils.*
 
 /** Generator base class for shared code between code generators.
  * 
@@ -94,13 +98,12 @@ abstract class GeneratorBase {
         TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
-        
+    
+    static protected CharSequence listItemSeparator = ', '
+    
     ////////////////////////////////////////////
     //// Protected fields.
-    
-    /** */
-    protected var utils = new ASTUtils(this)
-    
+        
     /** All code goes into this string buffer. */
     protected var code = new StringBuilder
 
@@ -319,7 +322,7 @@ abstract class GeneratorBase {
         val toRemove = new LinkedList<Connection>()
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
-                this.utils.desugarDelay(connection, connection.delay)
+                connection.desugarDelay(this)
                 toRemove.add(connection)
             }
         }
@@ -441,21 +444,14 @@ abstract class GeneratorBase {
      *  @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
     def String timeInTargetLanguage(TimeValue time) {
-        if (time.unit != TimeUnit.NONE) {
-            time.unit.name() + '(' + time.time + ')'
-        } else {
-            time.time.toString()
+        if (time !== null) {
+            if (time.unit != TimeUnit.NONE) {
+                return time.unit.name() + '(' + time.time + ')'
+            } else {
+                return time.time.toString()
+            }    
         }
-    }
-
-    /** Return a string that the target language can recognize as a type
-     *  for a time value. This base class returns "instant_t".
-     *  Particular target generators will likely need to override
-     *  this method to return something acceptable to the target language.
-     *  @return The string "instant_t"
-     */
-    def timeTypeInTargetLanguage() {
-        "instant_t"
+        return "0" // FIXME: do this or throw exception?
     }
 
     /** Remove quotation marks surrounding the specified string.
@@ -589,7 +585,7 @@ abstract class GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        Type type
+        InferredType type
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -611,7 +607,7 @@ abstract class GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        Type type
+        InferredType type
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -1011,58 +1007,95 @@ abstract class GeneratorBase {
         }
     }
 
-    /** Given a representation of time that may possibly include units,
-     *  return a string for the same amount of time
-     *  in terms of the specified baseUnit. If the two units are the
-     *  same, or if no time unit is given, return the number unmodified.
-     *  @param time The source time.
-     *  @param baseUnit The target unit.
+    /**
+     * Create a list of default parameter initializers in target code.
+     * 
+     * @param param The parameter to create initializers for
+     * @return A list of initializers in target code
      */
-    protected def unitAdjustment(TimeOrValue timeOrValue, TimeUnit baseUnit) { // FIXME: This isn't called from anywhere???
-        if (timeOrValue === null) {
-            return '0'
-        }
-        var timeValue = timeOrValue.time
-        var timeUnit = timeOrValue.unit
+    protected def getInitializerList(Parameter param) {
+        var list = new LinkedList<String>();
 
-        if (timeOrValue.parameter !== null) {
-            timeUnit = timeOrValue.parameter.unit
-            if (timeOrValue.parameter.unit != TimeUnit.NONE) {
-                timeValue = timeOrValue.parameter.time
+        for (i : param?.init) {
+            if (param.isOfTimeType) {
+                list.add(i.targetTime)
             } else {
-                try {
-                    timeValue = Integer.parseInt(timeOrValue.parameter.value.toText)
-                } catch (NumberFormatException e) {
-                    reportError(timeOrValue,
-                        "Invalid time value: " + timeOrValue)
-                }
+                list.add(i.targetValue)
             }
         }
-
-        if (timeUnit === TimeUnit.NONE || baseUnit.equals(timeUnit)) {
-            return timeValue
+        return list
+    }
+    
+    /**
+     * Create a list of state initializers in target code.
+     * 
+     * @param state The state variable to create initializers for
+     * @return A list of initializers in target code
+     */
+    protected def List<String> getInitializerList(StateVar state) {
+        if (!state.isInitialized) {
+            return null
         }
-        // Convert time to nanoseconds, then divide by base scale.
-        return ((timeValue * timeUnitsToNs.get(timeUnit)) /
-            timeUnitsToNs.get(baseUnit)).toString
 
-    }
+        var list = new LinkedList<String>();
 
-    protected def toText(Code tokens) {
-        ASTUtils.toText(tokens)
-    }
-
-    protected def toText(Type type) {
-        ASTUtils.toText(type)
+        for (i : state?.init) {
+            if (i.parameter !== null) {
+                list.add(i.parameter.targetReference)
+            } else if (state.isOfTimeType) {
+                list.add(i.targetTime)
+            } else {
+                list.add(i.targetValue)
+            }
+        }
+        return list
     }
     
-    protected def toText(LiteralOrCode literalOrCode) {
-        ASTUtils.toText(literalOrCode)
+    /**
+     * Create a list of parameter initializers in target code in the context
+     * of an reactor instantiation.
+     * 
+     * This respects the parameter assignments given in the reactor
+     * instantiation and falls back to the reactors default initializers
+     * if no value is assigned to it. 
+     * 
+     * @param param The parameter to create initializers for
+     * @return A list of initializers in target code
+     */
+    protected def getInitializerList(Parameter param, Instantiation i) {
+        if (i === null || param === null) {
+            return null
+        }
+        
+        val assignments = i.parameters.filter[p | p.lhs === param]
+        
+        if (assignments.size == 0) {
+            // the parameter was not overwritten in the instantiation
+            return param.initializerList
+        } else {
+            // the parameter was overwritten in the instantiation
+            var list = new LinkedList<String>();
+            for (init : assignments.get(0)?.rhs) {
+                if (param.isOfTimeType) {
+                    list.add(init.targetTime)
+                } else {
+                    list.add(init.targetValue)
+                }
+            }
+            return list
+        }
     }
-    
-    protected def isZero(LiteralOrCode literalOrCode) {
-        ASTUtils.isZero(literalOrCode)
+
+    /**
+     * Generate target code for a parameter reference.
+     * 
+     * @param param The parameter to generate code for
+     * @return Parameter reference in target code
+     */
+    protected def String getTargetReference(Parameter param) {
+        return param.name
     }
+        
     ////////////////////////////////////////////////////
     //// Private functions
     
@@ -1165,11 +1198,11 @@ abstract class GeneratorBase {
                         // First, update the dependencies in the FederateInstances.
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
-                            dependsOn = new HashSet<TimeOrValue>()
+                            dependsOn = new HashSet<Value>()
                             rightFederate.dependsOn.put(leftFederate, dependsOn)
                         }
                         if (connection.delay !== null) {
-                            dependsOn.add(connection.delay.time)
+                            dependsOn.add(connection.delay)
                         }
                         // Check for causality loops between federates.
                         var reverseDependency = leftFederate.dependsOn.get(rightFederate)
@@ -1189,7 +1222,7 @@ abstract class GeneratorBase {
                         // (which inherits the delay) and two reactions.
                         // The action will be physical if the connection physical and
                         // otherwise will be logical.
-                        this.utils.makeCommunication(connection,  leftFederate, rightFederate)
+                        connection.makeCommunication(leftFederate, rightFederate, this)
                         
                         // To avoid concurrent modification exception, collect a list
                         // of connections to remove.
@@ -1319,6 +1352,97 @@ abstract class GeneratorBase {
         errThread.join()
 
         return returnCode
+    }
+    
+    abstract protected def String getTargetTimeType()
+
+    abstract protected def String getTargetUndefinedType()
+    
+    abstract protected def String getTargetFixedSizeListType(String baseType, Integer size)
+
+    abstract protected def String getTargetVariableSizeListType(String baseType);
+    
+    protected def String getTargetType(InferredType type) {
+        if (type.isUndefined) {
+            return targetUndefinedType
+        } else if (type.isTime) {
+            if (type.isFixedSizeList) {
+                return targetTimeType.getTargetFixedSizeListType(type.listSize)
+            } else if (type.isVariableSizeList) {
+                return targetTimeType.targetVariableSizeListType
+            } else {
+                return targetTimeType
+            }
+        } else if (type.isFixedSizeList) {
+            return type.baseType.getTargetFixedSizeListType(type.listSize)
+        } else if (type.isVariableSizeList) {
+            return type.baseType.targetVariableSizeListType
+        }
+        return type.toText
+    }
+    
+    protected def getTargetType(Parameter p) {
+        return p.inferredType.targetType
+    }
+    
+    protected def getTargetType(StateVar s) {
+        return s.inferredType.targetType
+    }
+    
+    protected def getTargetType(Action a) {
+        return a.inferredType.targetType
+    }
+    
+    protected def getTargetType(Port p) {
+        return p.inferredType.targetType
+    }
+    
+    protected def getTargetType(Type t) {
+        InferredType.fromAST(t).targetType
+    }
+
+    /**
+     * Get textual representation of a time in the target language.
+     * 
+     * @param t A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetTime(Time t) {
+        val value = new TimeValue(t.interval, t.unit)
+        return value.timeInTargetLanguage
+    }
+
+    /**
+     * Get textual representation of a value in the target language.
+     * 
+     * If the value evaluates to 0, it is interpreted as a normal value.
+     * 
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetValue(Value v) {
+        if (v.time !== null) {
+            return v.time.targetTime
+        }
+        return v.toText
+    }
+    
+    /**
+     * Get textual representation of a value in the target language.
+     * 
+     * If the value evaluates to 0, it is interpreted as a time.
+     * 
+     * @param v A time AST node
+     * @return A time string in the target language
+     */
+    protected def getTargetTime(Value v) {   
+        if (v.time !== null) {
+            return v.time.targetTime
+        } else if (v.isZero) {
+            val value = new TimeValue(0, TimeUnit.NONE)
+            return value.timeInTargetLanguage
+        }
+        return v.toText 
     }
 
     enum Mode {

@@ -27,53 +27,75 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import org.icyphy.TimeValue
+import java.util.List
+import org.icyphy.InferredType
 import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.Type
+import org.icyphy.linguaFranca.Value
 
-/** Representation of a runtime instance of a parameter.
- *  
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+import static extension org.icyphy.ASTUtils.*
+
+/** 
+ * Representation of a runtime instance of a parameter.
+ * Upon creation, it is checked whether this parameter is overridden by an 
+ * assignment in the instantiation that this parameter instance is a result of.
+ * If it is overridden, the parameter gets initialized using the value looked up
+ * in the instantiation hierarchy.
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-abstract class ParameterInstance extends NamedInstance<Parameter> {
+class ParameterInstance extends NamedInstance<Parameter> {
         
-    /** Create a runtime instance from the specified definition
-     *  and with the specified parent that instantiated it.
-     *  @param instance The Instance statement in the AST.
-     *  @param parent The parent.
+    /** 
+     * Create a runtime instance from the specified definition
+     * and with the specified parent that instantiated it.
+     * @param instance The Instance statement in the AST.
+     * @param parent The reactor instance this parameter is a part of.
      */
     new(Parameter definition, ReactorInstance parent) {
         super(definition, parent)
-        
         if (parent === null) {
             throw new Exception('Cannot create a ParameterInstance with no parent.')
+        }
+        
+        this.type = definition.inferredType
+        this.init = definition.init
+        
+        // Check for an override.
+        val assignment = parent.definition.parameters.findFirst[it.lhs === definition]
+        
+        if (assignment !== null) {
+            // NOTE: we only allow a reference to single a parameter or 
+            // a list of ordinary values.
+            val ref = assignment.rhs.get(0).parameter
+            if (ref !== null) {
+                this.init = ref.init
+            } else {
+                this.init = assignment.rhs    
+            }
         }
     }
 
     /////////////////////////////////////////////
     //// Public Fields
     
-//    /** The type of the parameter, stripped of the code delimiters
-//     *  {= ... =} if they were provided.
-//     */
-    //public var type = "UNTYPED"
-    protected Type type
+    public List<Value> init
+    
+    public InferredType type
     
     /////////////////////////////////////////////
     //// Public Methods
 
-    /** Return the name of this parameter. 
-     *  @return The name of this parameter.
+    /**
+     * Return the name of this parameter. 
+     * @return The name of this parameter.
      */
     override String getName() {
         this.definition.name
     }
-
-	abstract def String getLiteralValue();
 	
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
+    /**
+     * Return the main reactor, which is the top-level parent.
+     * @return The top-level parent.
      */
     override ReactorInstance main() {
         parent.main
@@ -83,40 +105,4 @@ abstract class ParameterInstance extends NamedInstance<Parameter> {
     override toString() {
         "ParameterInstance " + getFullName
     }
-}
-
-class ValueParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, String value, Type type) {
-		super(definition, parent)
-		this.type = definition.type
-		this.value = value
-		
-	}
-	public var value = ""
-	
-	/** The value of the parameter. This defaults to the value given
-     *  in the reactor class definition, but if the parameter is
-     *  overridden in instantiation, then that value is returned.
-     *  In both cases, the value is stripped of the code delimiters
-     *  {= ... =} if they were provided.
-     */
-	override getLiteralValue() {
-		return this.value
-	}
-}
-
-class TimeParameter extends ParameterInstance {
-	new(Parameter definition, ReactorInstance parent, TimeValue timeValue) {
-		super(definition, parent)
-		this.type = definition.type
-		this.value = timeValue
-	}
-	
-	public TimeValue value
-	
-    /** The time value of the parameter in the target language. */
-	override getLiteralValue() {
-		return parent.generator.timeInTargetLanguage(this.value)
-	}
-	
 }

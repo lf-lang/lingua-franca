@@ -16,6 +16,7 @@ reactor Test {
         }
     =}
 }
+
 main reactor CountTest {
     count = new Count();
     test = new Test();

@@ -42,6 +42,7 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.InferredType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -50,27 +51,28 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.LinguaFrancaPackage
-import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.State
+import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
-/** Generator for C target.
+import static extension org.icyphy.ASTUtils.*
+
+/** 
+ * Generator for C target.
  * 
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- *  @author{Chris Gill, <cdgill@wustl.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
+ * @author{Chris Gill, <cdgill@wustl.edu>}
  */
 class CGenerator extends GeneratorBase {
     
@@ -142,7 +144,7 @@ class CGenerator extends GeneratorBase {
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
 
-        // Copy the required library files into the target filesystem.
+        // Copy the required library files into the target file system.
         // This will overwrite previous versions.
         var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
         if (targetThreads === 0) {
@@ -199,10 +201,6 @@ class CGenerator extends GeneratorBase {
                     // it is the same for all federates.
                     this.main = new ReactorInstance(mainDef, null, this) 
                 }   
-            }
-        
-            if (main !== null && main.chainIDWidth > 64) {
-                throw new Exception("Currently no support for programs with more than 64 branches in the dependency tree. ")
             }
         
             // Derive target filename from the .lf filename.
@@ -537,10 +535,10 @@ class CGenerator extends GeneratorBase {
                             timer = factory.createTimer
                             timer.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__STARTUP.name
-                            timer.offset = factory.createTimeOrValue
-                            timer.offset.time = 0
-                            timer.period = factory.createTimeOrValue
-                            timer.period.time = 0
+                            timer.offset = factory.createValue
+                            timer.offset.literal = "0"
+                            timer.period = factory.createValue
+                            timer.period.literal = "0"
                             reactor.timers.add(timer)
                         }
                     } else if (trigger.isShutdown) {
@@ -550,8 +548,8 @@ class CGenerator extends GeneratorBase {
                             action.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__SHUTDOWN.name
                             action.origin = ActionOrigin.LOGICAL
-                            action.minDelay = factory.createTimeOrValue
-                            action.minDelay.time = 0
+                            action.minDelay = factory.createValue
+                            action.minDelay.literal = "0"
                             reactor.actions.add(action)
                         }
                     }
@@ -597,9 +595,9 @@ class CGenerator extends GeneratorBase {
             pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
         }
         // Next handle states.
-        for (state : reactor.states) {
-            prSourceLineNumber(state)
-            pr(body, getStateType(state) + ' ' + state.name + ';');
+        for (stateVar : reactor.stateVars) {
+            prSourceLineNumber(stateVar)
+            pr(body, getStateType(stateVar) + ' ' + stateVar.name + ';');
         }
         // Next handle actions.
         for (a : reactor.actions) {
@@ -614,7 +612,7 @@ class CGenerator extends GeneratorBase {
                 reportError(input,
                     "Input is required to have a type: " + input.name)
             } else {
-                val inputType = lfTypeToTokenType(input.type)
+                val inputType = lfTypeToTokenType(input.inferredType)
                 // If the output type has the form type[number], then treat it specially
                 // to get a valid C type.
                 val matcher = arrayPatternFixed.matcher(inputType)
@@ -661,7 +659,7 @@ class CGenerator extends GeneratorBase {
                     "Output is required to have a type: " + output.name)
             } else {
                 // If the output type has the form type[] or type*, then change it to token_t*.
-                val outputType = lfTypeToTokenType(output.type)
+                val outputType = lfTypeToTokenType(output.inferredType)
                 // If there are contained reactors that send data via this output,
                 // then create a place to put the pointers to the sources of that data.
                 var containedSource = outputToContainedOutput.get(output)
@@ -751,13 +749,13 @@ class CGenerator extends GeneratorBase {
             indent(body)
             for (variable : structs.get(containedReactor)) {
                 if (variable instanceof Input) {
-                    pr(body, lfTypeToTokenType(variable.type) + ' ' + variable.name + ';')
+                    pr(body, lfTypeToTokenType(variable.inferredType) + ' ' + variable.name + ';')
                     pr(body, 'bool ' + variable.name + '_is_present;')
                 } else {
                     // Must be an output entry.
                     val port = variable as Output
                     // Outputs are pointers to the source of data.
-                    pr(body, lfTypeToTokenType(port.type) + '* ' + port.name + ';')
+                    pr(body, lfTypeToTokenType(port.inferredType) + '* ' + port.name + ';')
                     pr(body, 'bool* ' + port.name + '_is_present;')
                 }
             }
@@ -954,7 +952,7 @@ class CGenerator extends GeneratorBase {
             indent();
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline.interval)
+            prSourceLineNumber(reaction.deadline)
             pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
@@ -1159,7 +1157,7 @@ class CGenerator extends GeneratorBase {
             if (reactorBelongsToFederate(child, federate)) {
                 var nameOfSelfStruct = selfStructName(child)
                 for (input : child.inputs) {
-                    if (isTokenType((input.definition as Input).type)) {
+                    if (isTokenType((input.definition as Input).inferredType)) {
                         pr(startTimeStep, '''
                             if (*«nameOfSelfStruct».__«input.name»_is_present) {
                                 __done_using(*«nameOfSelfStruct».__«input.name»);
@@ -1192,7 +1190,7 @@ class CGenerator extends GeneratorBase {
             for (port : reaction.dependsOnPorts) {
                 if (port.definition instanceof Output) {
                     // This reaction is receiving data from the port.
-                    if (isTokenType((port.definition as Output).type)) {
+                    if (isTokenType((port.definition as Output).inferredType)) {
                         pr(startTimeStep, '''
                             if (*«containerSelfStructName».__«port.parent.name».«port.name»_is_present) {
                                 __done_using(*«containerSelfStructName».__«port.parent.name».«port.name»);
@@ -1404,7 +1402,7 @@ class CGenerator extends GeneratorBase {
                     'reaction_t* ' + structName + '_reactions[1] = {&' +
                         reactionInstanceName + '};')
 
-                val rootType = ((output.definition as Port).type).rootType
+                val rootType = (output.definition as Port).targetType.rootType
                 pr(result, '''
                     trigger_t «structName» = {
                         «structName»_reactions, 1, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
@@ -1487,32 +1485,27 @@ class CGenerator extends GeneratorBase {
                 pr(result, '''
                     «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, 0
                 ''')
-            } else if (trigger instanceof Port) {
-                val rootType = trigger.type.rootType
+            } else if (triggerInstance instanceof PortInstance) {
+                val rootType = (triggerInstance.definition as Port).targetType.rootType
                 pr(result, '''
                     «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
                 ''')
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
-                var minDelay = reactorInstance.resolveTime(trigger.minDelay)
-                var minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival)
+                var minDelay = (triggerInstance as ActionInstance).minDelay
+                var minInterArrival = (triggerInstance as ActionInstance).minInterArrival
                 
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
                 } else {
-                    // For physical actions,
-                    // if no minimum interarrival time was specified, then
-                    // we do not want zero, which is what resolveTime returns,
-                    // but rather some non-zero time.
-                    if (trigger.minInterArrival === null) {
-                        minInterArrival = DEFAULT_MIN_INTER_ARRIVAL;
-                    }
+                    // FIXME: the default policy should be DROP. Make it the 0th element in the enum.
+                    // Also, we need to enforce MIT for logical actions.
                     if (trigger.policy == QueuingPolicy.NONE) {
                         trigger.policy = QueuingPolicy.DEFER;
                     }
                 }
                 var element_size = "0"
-                if (trigger.type !== null) element_size = '''sizeof(«trigger.type.rootType»)'''
+                if (trigger.type !== null) element_size = '''sizeof(«trigger.targetType.rootType»)'''
                 pr(result, '''
                     «triggerStructName»_reactions,
                     «numberOfReactionsTriggered»,
@@ -1542,8 +1535,8 @@ class CGenerator extends GeneratorBase {
             // the struct because the value assigned may not be a compile-time constant.
             if (trigger instanceof Timer) {
 
-                val offset = reactorInstance.resolveTime(trigger.offset)
-                val period = reactorInstance.resolveTime(trigger.period)
+                val offset = (triggerInstance as TimerInstance).offset
+                val period = (triggerInstance as TimerInstance).period
 
                 pr(initializeTriggerObjects,
                     triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
@@ -1641,7 +1634,7 @@ class CGenerator extends GeneratorBase {
      *  @param reactor A reactor class
      */
     def hasEmptySelfStruct(Reactor reactor) {
-        if (!reactor.parameters.isEmpty || !reactor.states.isEmpty ||
+        if (!reactor.parameters.isEmpty || !reactor.stateVars.isEmpty ||
             !reactor.actions.isEmpty || !reactor.inputs.isEmpty ||
             !reactor.outputs.isEmpty) {
             return false
@@ -1705,12 +1698,12 @@ class CGenerator extends GeneratorBase {
             // memory allocations.
             
             // Array type parameters have to be handled specially.
-            val matcher = arrayPatternVariable.matcher(parameter.type.toText)
+            val matcher = arrayPatternVariable.matcher(parameter.type.targetType)
             if (matcher.find()) {
                 val temporaryVariableName = parameter.uniqueID
                 pr(initializeTriggerObjects,
                     "static " + matcher.group(1) + " " +
-                    temporaryVariableName + "[] = " + parameter.literalValue + ";"
+                    temporaryVariableName + "[] = " + parameter.getInitializer + ";"
                 )
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + parameter.name + " = " + temporaryVariableName + ";"
@@ -1718,7 +1711,7 @@ class CGenerator extends GeneratorBase {
             } else {
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + parameter.name + " = " +
-                        parameter.literalValue + ";"
+                        parameter.getInitializer + ";" 
                 )
             }
         }
@@ -1726,60 +1719,26 @@ class CGenerator extends GeneratorBase {
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
         
-        for (state : reactorClass.states) {
-            var time = state.time
-            var unit = state.unit
-            var LiteralOrCode init
-            var parameterized = false
-            var initialized = false
+        for (stateVar : reactorClass.stateVars) {
             
-            if (state.init !== null) {
-                if (state.init.parameter !== null) {
-                    time = state.init.parameter.time
-                    unit = state.init.parameter.unit
-                    init = state.init.parameter.value
-                    parameterized = true
-                } else {
-                    init = state.init.value
-                }
-                initialized = true
-            }
-            /* FIXME: Work in progress toward supporting lists
-            var elements = new LinkedList<String>();
-            for (element : state.init) {
-                var time = element.time
-                var unit = element.unit
-                var value = element.value
-                if (element.parameter !== null) {
-                    time = element.parameter.time
-                    unit = element.parameter.unit
-                    value = element.parameter.value
-                }
-                if (state.ofTimeType) {
-                    elements.add(timeInTargetLanguage(new TimeValue(time, unit)))
-                } else {
-                    elements.add(GeneratorBase.literalOrCodeToString(value))
-                }
-            }
-            */
-
-            if (state.ofTimeType) { // FIXME: check element list is of size one in validator
+            val initializer = getInitializer(stateVar, instance)
+            
+            if (stateVar.isOfTimeType) {
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "." + state.name + " = " +
-                        timeInTargetLanguage(new TimeValue(time, unit)) + ";")
+                    nameOfSelfStruct + "." + stateVar.name + " = " +
+                        initializer + ";")
             } else {
                 // If the state is initialized with a parameter, then do not use
                 // a temporary variable. Otherwise, do, because
                 // static initializers for arrays and structs have to be handled
                 // this way, and there is no way to tell whether the type of the array
                 // is a struct.
-                if (parameterized && initialized) {
+                if (stateVar.isParameterized && stateVar.init.size > 0) {
                     pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "." + state.name + " = " +
-                        init.toText + ";")
+                        nameOfSelfStruct + "." + stateVar.name + " = " + initializer + ";")
                 } else {
-                   val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
-                    var type = state.type.toText
+                   val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                    var type = stateVar.targetType
                     val matcher = arrayPatternVariable.matcher(type)
                     if (matcher.find()) {
                         // If the state type ends in [], then we have to move the []
@@ -1787,16 +1746,16 @@ class CGenerator extends GeneratorBase {
                         // after the variable name.
                         pr(initializeTriggerObjects,
                             "static " + matcher.group(1) + " " +
-                            temporaryVariableName + "[] = " + state.init.value.toText + ";"
+                            temporaryVariableName + "[] = " + initializer + ";"
                         )
                     } else {
                         pr(initializeTriggerObjects,
                             "static " + type + " " +
-                            temporaryVariableName + " = " + state.init.value.toText + ";"
+                            temporaryVariableName + " = " + initializer + ";"
                         )
                     }
                     pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "." + state.name + " = " + temporaryVariableName + ";"
+                        nameOfSelfStruct + "." + stateVar.name + " = " + temporaryVariableName + ";"
                     ) 
                 }
             }
@@ -1856,14 +1815,19 @@ class CGenerator extends GeneratorBase {
         for (action : instance.actions) {
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action)) {
-                var type = (action.definition as Action).type
-                var typeStr = type.toText
-                if (isTokenType(type)) {
-                    typeStr = type.rootType
-                }
+                var type = (action.definition as Action).inferredType
                 var payloadSize = "0"
-                if (typeStr !== null && !typeStr.equals("")) {
-                    payloadSize = '''sizeof(«typeStr»)'''
+                
+                if (!type.isUndefined) {
+                    var String typeStr = type.targetType
+                    if (isTokenType(type)) {
+                        typeStr = typeStr.rootType
+                    } else {
+                        typeStr = type.targetType
+                    }
+                    if (typeStr !== null && !typeStr.equals("")) {
+                        payloadSize = '''sizeof(«typeStr»)'''
+                    }    
                 }
             
                 // Create a reference token initialized to the payload size.
@@ -1888,8 +1852,8 @@ class CGenerator extends GeneratorBase {
         }
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
-            if (reaction.definition.deadline !== null) {
-                var deadline = instance.resolveTime(reaction.definition.deadline.interval)
+            if (reaction.declaredDeadline !== null) {
+                var deadline = reaction.declaredDeadline.maxDelay
                 pr(initializeTriggerObjects,
                     reactionStructName(reaction) + '.local_deadline = ' +
                         timeInTargetLanguage(deadline) + ';')
@@ -1907,6 +1871,27 @@ class CGenerator extends GeneratorBase {
         generateStartTimeStep(instance, federate)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
+    }
+    
+    
+    protected def getInitializer(StateVar state, ReactorInstance parent) {
+        var list = new LinkedList<String>();
+
+        for (i : state?.init) {
+            if (i.parameter !== null) {
+                val ref = parent.parameters.findFirst[it.definition === i.parameter]
+                list.add(ref.init.get(0).targetValue)
+            } else if (state.isOfTimeType) {
+                list.add(i.targetTime)
+            } else {
+                list.add(i.targetValue)
+            }
+        }
+        
+        if (list.size == 1)
+            return list.get(0)
+        else
+            return list.join('{', ', ', '}', [it])
     }
     
     /** Return true if the specified reactor instance belongs to the specified
@@ -1988,7 +1973,7 @@ class CGenerator extends GeneratorBase {
         val ref = generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
-        if (action.type.isTokenType) {
+        if (action.inferredType.isTokenType) {
             '''
             if («ref»_is_present) {
                 // Put the whole token on the event queue, not just the payload.
@@ -2013,7 +1998,7 @@ class CGenerator extends GeneratorBase {
      */
     override generateForwardBody(Action action, VarRef port) {
         val outputName = generateVarRef(port)
-        if (action.type.isTokenType) {
+        if (action.inferredType.isTokenType) {
             // Forward the entire token and prevent freeing.
             // Increment the ref_count because it will be decremented
             // by both the action handling code and the input handling code.
@@ -2049,11 +2034,12 @@ class CGenerator extends GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        Type type
+        InferredType type
     ) {
         // Adjust the type of the action.
         // If it is "string", then change it to "char".
-        if (action.type.toText == "string") {
+        // Pointer types in actions are declared without the "*" (perhaps oddly).
+        if (action.type.targetType == "string") {
             action.type.code = null
             action.type.id = "char*"
         }
@@ -2094,7 +2080,7 @@ class CGenerator extends GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        Type type
+        InferredType type
     ) { 
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -2394,7 +2380,7 @@ class CGenerator extends GeneratorBase {
      */
     private def generateActionVariablesInReaction(StringBuilder builder, Action action) {
         // If the action has a type, create variables for accessing the value.
-        val type = action.type
+        val type = action.inferredType
         // Pointer to the token_t sent as the payload in the trigger.
         val tokenPointer = '''(self->__«action.name»->token)'''
         // Create the _has_value variable.
@@ -2405,7 +2391,7 @@ class CGenerator extends GeneratorBase {
             token_t* «action.name»_token = «tokenPointer»;
             ''')
         // Create the _value variable if there is a type.
-        if (type !== null) {
+        if (!type.isUndefined) {
             if (isTokenType(type)) {
                 // Create the value variable, but initialize it only if the pointer is not null.
                 // NOTE: The token_t objects will get recycled automatically using
@@ -2415,7 +2401,7 @@ class CGenerator extends GeneratorBase {
                 
                 // If this is an array type, the type cannot be used verbatim; the trailing `[]`
                 // should be replaced by a `*`
-                var cType = type.toText
+                var cType = type.targetType
                 val matcher = arrayPatternVariable.matcher(cType)
                 if (matcher.find()) {
                     cType = matcher.group(1) + '*'
@@ -2434,9 +2420,9 @@ class CGenerator extends GeneratorBase {
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
                 pr(builder, '''
-                    «type.toText» «action.name»_value;
+                    «type.targetType» «action.name»_value;
                     if («action.name»_has_value) {
-                        «action.name»_value = *((«type.toText»*)«tokenPointer»->value);
+                        «action.name»_value = *((«type.targetType»*)«tokenPointer»->value);
                     }
                     '''
                 )
@@ -2459,9 +2445,9 @@ class CGenerator extends GeneratorBase {
         pr(builder,
             'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
         
-        if (input.type.isTokenType) {
+        if (input.inferredType.isTokenType) {
             // FIXME: Redo the following with smart strings '''
-            val rootType = input.type.rootType
+            val rootType = input.targetType.rootType
             pr(builder, rootType + '* ' + input.name + ';')
             pr(builder, 'int ' + input.name + '_length = 0;')
             // Create the name_token variable.
@@ -2484,11 +2470,11 @@ class CGenerator extends GeneratorBase {
             }
         } else if (input.type !== null) {
             // Look for array type of form type[number].
-            val matcher = arrayPatternFixed.matcher(input.type.toText)
+            val matcher = arrayPatternFixed.matcher(input.type.targetType)
             if (matcher.find()) {
                 pr(builder, matcher.group(1) + '* ' + input.name + ';')
             } else {
-                pr(builder, input.type.toText + ' ' + input.name + ';')
+                pr(builder, input.type.targetType + ' ' + input.name + ';')
             }
             pr(builder, 'if(' + present + ') {')
             indent(builder)
@@ -2515,7 +2501,7 @@ class CGenerator extends GeneratorBase {
             // port is an output of a contained reactor.
             val output = port.variable as Output
             val portName = output.name
-            val portType = lfTypeToTokenType(output.type)
+            val portType = lfTypeToTokenType(output.inferredType)
             
             var structBuilder = structs.get(port.container)
             if (structBuilder === null) {
@@ -2556,7 +2542,7 @@ class CGenerator extends GeneratorBase {
             reportError(output,
                 "Output is required to have a type: " + output.name)
         } else {
-            val outputType = lfTypeToTokenType(output.type)
+            val outputType = lfTypeToTokenType(output.inferredType)
             // Define a variable of type 'type*' with name matching the output name.
             // If the output type has the form type[number],
             // then the variable is set equal to the pointer in the self struct
@@ -2568,13 +2554,13 @@ class CGenerator extends GeneratorBase {
             if (matcher.find()) {
                 pr(
                     builder,
-                    rootType(output.type) + '* ' + output.name +
+                    rootType(output.targetType) + '* ' + output.name +
                         ' = self->__' + output.name + ';'
                 )
-            } else if (isTokenType(output.type)) {
+            } else if (isTokenType(output.inferredType)) {
                 pr(
                     builder,
-                    rootType(output.type) + '* ' + output.name + ' = NULL;'
+                    rootType(output.targetType) + '* ' + output.name + ' = NULL;'
                 )
             } else {
                 pr(
@@ -2613,7 +2599,7 @@ class CGenerator extends GeneratorBase {
             structBuilder = new StringBuilder
             structs.put(definition, structBuilder)
         }
-        pr(structBuilder, lfTypeToTokenType(input.type) + '* ' + input.name + ';')
+        pr(structBuilder, lfTypeToTokenType(input.inferredType) + '* ' + input.name + ';')
         pr(structBuilder, ' bool ' + input.name + '_is_present;')        
         
         pr(builder,
@@ -2635,22 +2621,10 @@ class CGenerator extends GeneratorBase {
      *  @return The C type.
      */
     private def getParameterType(Parameter parameter) {
-        if (parameter.ofTimeType) {
-            return timeTypeInTargetLanguage
-        }
-        if (parameter.type === null || parameter.type.toText.equals("")) {
-            reportError(parameter,
-                "Parameter is required to have a type: " + parameter.name)
-            return "(ERROR: NO TYPE)"
-        }
-        var type = parameter.type.toText
-        if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
-            type = 'interval_t'
-        } else {
-            val matcher = arrayPatternVariable.matcher(type)
-            if (matcher.find()) {
-                return matcher.group(1) + '*'
-            }
+        var type = parameter.targetType
+        val matcher = arrayPatternVariable.matcher(type)
+        if (matcher.find()) {
+            return matcher.group(1) + '*'
         }
         type
     }
@@ -2663,28 +2637,37 @@ class CGenerator extends GeneratorBase {
      *  @param state The state variable.
      *  @return The C type.
      */
-    private def getStateType(State state) {
+    private def getStateType(StateVar state) {
         // A state variable may directly refer to its initializing parameter,
         // in which case, it inherits the type from the parameter.
-        if (state.init !== null && state.init.parameter !== null) {
-            return state.init.parameter.type.toText
-        }
-        if (state.ofTimeType) {
-            return timeTypeInTargetLanguage
-        }
-        if (state.type === null || state.type.toText.equals("")) {
-            reportError(state,
-                "State is required to have a type: " + state.name)
-            return "(ERROR: NO TYPE)"
-        }
-        var type = state.type.toText
-        if (state.unit != TimeUnit.NONE || state.isOfTimeType) {
-            type = 'interval_t'
-        } else {
-            val matcher = arrayPatternVariable.matcher(type)
-            if (matcher.find()) {
-                return matcher.group(1) + '*'
-            }
+//        if (state.init !== null && state.init.size == 1) {
+//            val parm = state.init.get(0).parameter
+//            if (parm !== null)
+//                return parm.type.toText
+//        }
+//        if (state.ofTimeType) {
+//            return timeTypeInTargetLanguage
+//        }
+//        if (state.type === null || state.type.toText.equals("")) {
+//            reportError(state,
+//                "State is required to have a type: " + state.name)
+//            return "(ERROR: NO TYPE)"
+//        }
+//        var type = state.type.toText
+//        if (state.isOfTimeType) {
+//            type = 'interval_t'
+//        } else {
+//            val matcher = arrayPatternVariable.matcher(type)
+//            if (matcher.find()) {
+//                return matcher.group(1) + '*'
+//            }
+//        }
+//        type
+
+        var type = state.getInferredType.targetType
+        val matcher = arrayPatternVariable.matcher(type)
+        if (matcher.find()) {
+            return matcher.group(1) + '*'
         }
         type
     }
@@ -2695,9 +2678,11 @@ class CGenerator extends GeneratorBase {
      *  (it is a pointer) or [] (it is a array with unspecified length).
      *  @param type The type specification.
      */
-    private def isTokenType(Type type) {
-        val typeStr = type.toText
-        if (typeStr.trim.matches("^\\w*\\[\\s*\\]$") || typeStr.trim.endsWith('*')) {
+    private def isTokenType(InferredType type) {
+        if (type.isUndefined)
+            return false
+        val targetType = type.targetType
+        if (targetType.trim.matches("^\\w*\\[\\s*\\]$") || targetType.trim.endsWith('*')) {
             true
         } else {
             false
@@ -2710,15 +2695,14 @@ class CGenerator extends GeneratorBase {
      *  unmodified.
      *  @param type A string describing the type.
      */
-    private def rootType(Type type) {
-        var str = type.toText
-        if (str.endsWith(']')) {
-            val root = str.indexOf('[')
-            str.substring(0, root).trim
-        } else if (str.endsWith('*')) {
-            str.substring(0, str.length - 1).trim
+    private def rootType(String type) {
+        if (type.endsWith(']')) {
+            val root = type.indexOf('[')
+            type.substring(0, root).trim
+        } else if (type.endsWith('*')) {
+            type.substring(0, type.length - 1).trim
         } else {
-            str.trim
+            type.trim
         }
     }
 
@@ -2727,8 +2711,8 @@ class CGenerator extends GeneratorBase {
      *  if there is one, and otherwise just return the argument
      *  unmodified.
      */
-    private def lfTypeToTokenType(Type type) {
-        var result = type.toText
+    private def lfTypeToTokenType(InferredType type) {
+        var result = type.targetType
         if (isTokenType(type)) {
             result = 'token_t*'
         }
@@ -2757,11 +2741,11 @@ class CGenerator extends GeneratorBase {
             if (reactorBelongsToFederate(containedReactor, federate)) {
                 var nameOfSelfStruct = selfStructName(containedReactor)
                 for (output : containedReactor.outputs) {
-                    val type = (output.definition as Output).type
+                    val type = (output.definition as Output).inferredType
                     if (type.isTokenType) {
                         // Create the template token that goes in the trigger struct.
                         // Its reference count is zero, enabling it to be used immediately.
-                        var rootType = type.rootType
+                        var rootType = type.targetType.rootType
                         pr('''
                             «nameOfSelfStruct».__«output.name» = __create_token(sizeof(«rootType»));
                         ''')
@@ -2808,5 +2792,26 @@ class CGenerator extends GeneratorBase {
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
-    static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+        
+    override getTargetTimeType() '''interval_t'''
+
+    override getTargetUndefinedType() '''/* «reportError("undefined type")» */'''
+
+    override getTargetFixedSizeListType(String baseType,
+        Integer size) '''«baseType»[«size»]'''
+        
+    override protected String getTargetVariableSizeListType(
+        String baseType) '''«baseType»[]'''
+    
+    protected def String getInitializer(ParameterInstance p) {
+        if (p.type.isTime) {
+            return p.init.get(0).targetTime
+        } else {
+            if (p.init.size == 1) {
+                return p.init.get(0).targetValue
+            }
+            return p.init.join('', ', ', '', [it.targetValue])
+        }
+    }    
 }

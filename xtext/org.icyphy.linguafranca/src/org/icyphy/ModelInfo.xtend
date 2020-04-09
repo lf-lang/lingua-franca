@@ -30,14 +30,15 @@ package org.icyphy
 import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
+import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Deadline
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Target
+
+import static extension org.icyphy.ASTUtils.*
 
 /**
  * A helper class for analyzing the AST.
@@ -149,14 +150,13 @@ class ModelInfo {
         // Visit all deadlines in the model; detect possible overflow.
         for (deadline : model.eAllContents.toIterable.filter(Deadline)) {
             // If the time value overflows, mark this deadline as overflowing.
-            if (deadline.interval.unit != TimeUnit.NONE && isTooLarge(
-                new TimeValue(deadline.interval.time, deadline.interval.unit))) {
+            if (isTooLarge(deadline.delay.getTimeValue)) {
                 this.overflowingDeadlines.add(deadline)
             }
 
             // If any of the upstream parameters overflow, report this deadline.
             if (detectOverflow(new HashSet<Instantiation>(),
-                deadline.interval.parameter)) {
+                deadline.delay.parameter)) {
                 this.overflowingDeadlines.add(deadline)
             }
         }
@@ -170,7 +170,7 @@ class ModelInfo {
      * false otherwise.
      */
     private def boolean isTooLarge(TimeValue time) {
-        if (time.toNanoSeconds > TimeValue.MAX_BIGINT_DEADLINE)
+        if (time !== null && time.toNanoSeconds > TimeValue.MAX_BIGINT_DEADLINE)
             true
         else
             false
@@ -186,7 +186,7 @@ class ModelInfo {
         var overflow = false
 
         // Determine whether the parameter's default value overflows or not.
-        if (isTooLarge(new TimeValue(current.time, current.unit))) {
+        if (isTooLarge(current.getTimeValue)) {
             this.overflowingParameters.add(current)
             overflow = true
         }
@@ -201,15 +201,15 @@ class ModelInfo {
                 // Find assignments that override the current parameter.
                 for (assignment : instantiation.parameters) {
                     if (assignment.lhs.equals(current)) {
-                        if (assignment.rhs.parameter !== null) {
+                        if (assignment.rhs.get(0).parameter !== null) {
                             // Check for overflow in the referenced parameter.
                             overflow = detectOverflow(visited,
-                                assignment.rhs.parameter) || overflow
+                                assignment.rhs.get(0).parameter) || overflow
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
-                            if (isTooLarge(new TimeValue(assignment.rhs.time,
-                                assignment.rhs.unit))) {
+                            if (isTooLarge(
+                                assignment.rhs.get(0).getTimeValue)) {
                                 this.overflowingAssignments.add(assignment)
                                 overflow = true
                             }

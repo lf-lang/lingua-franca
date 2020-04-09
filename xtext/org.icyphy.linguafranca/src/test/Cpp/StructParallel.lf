@@ -1,0 +1,24 @@
+// Source allocates an array dynamically and then sends it to two reactors,
+// each of which want to modify it.
+// NOTE: Ideally, only one copy would be made, but this requires
+// is currently not supported by the C++ runtime.
+target Cpp;
+
+import StructScale.lf;
+
+// explicitly import the public preamble from StructAsState which defines the Hello type
+public preamble {=
+    #include "StructAsState/preamble.hh"
+=} 
+
+main reactor ArrayParallel {
+    s = new Source();
+    c1 = new Scale();
+    c2 = new Scale(scale = 3);
+    p1 = new Print(expected_value = 84);
+    p2 = new Print(expected_value = 126);
+    s.out -> c1.in;
+    s.out -> c2.in;
+    c1.out -> p1.in;
+    c2.out -> p2.in;
+}
