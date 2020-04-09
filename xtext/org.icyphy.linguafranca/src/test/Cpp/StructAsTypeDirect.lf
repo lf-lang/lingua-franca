@@ -1,12 +1,7 @@
 // Source directly sends an implicitly dynamically created object
 target Cpp;
 
-import StructPrint.lf;
-
-// explicitly import the public preamble from StructAsState which defines the Hello type
-public preamble {=
-    #include "StructAsState/preamble.hh"
-=}
+import StructPrint.lf; // this also imports the definition of Hello
 
 reactor DirectSource {
     output out:Hello;
