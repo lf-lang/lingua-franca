@@ -395,15 +395,6 @@ class ASTUtils {
         buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
         buffer.toString
     }
-
-    @Deprecated // FIXME: Delete. Use totext(Time) or getTargetTime(Time) of the code generator
-    def static String toText(Time t, GeneratorBase generator) {
-        if (generator !== null) {
-            generator.timeInTargetLanguage(new TimeValue(t.interval, t.unit))  
-        } else {
-            t.interval + " " + t.unit.toString
-        }
-    }
     
     /**
      * Convert a time to its textual representation as it would
@@ -413,24 +404,7 @@ class ASTUtils {
      * @return A textual representation
      */
     def static String toText(Time t) '''«t.interval» «t.unit.toString»'''
-    
-//    @Deprecated // FIXME: Delete. Use totext(Value), getTargetTime(Value), or getTargetValue(Value) of the code generator
-//    def static String toText(Value v, GeneratorBase generator) {
-//        if (v.parameter !== null) {
-//            return v.parameter.name
-//        }
-//        if (v.time !== null) {
-//            return v.time.toText(generator)
-//        }
-//        if (v.literal !== null) {
-//            return v.literal
-//        }
-//        if (v.code !== null) {
-//            return v.code.toText
-//        }
-//        ""
-//    }
-    
+        
     /**
      * Convert a value to its textual representation as it would
      * appear in LF code.
