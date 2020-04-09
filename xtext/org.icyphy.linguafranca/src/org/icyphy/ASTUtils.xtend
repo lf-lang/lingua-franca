@@ -149,6 +149,7 @@ class ASTUtils {
         // Handle connection delay.
         if (connection.delay !== null) {
             action.minDelay = factory.createValue
+            action.minDelay.time = factory.createTime
             action.minDelay.time.interval = connection.delay.time.interval
             action.minDelay.time.unit = connection.delay.time.unit
         }
