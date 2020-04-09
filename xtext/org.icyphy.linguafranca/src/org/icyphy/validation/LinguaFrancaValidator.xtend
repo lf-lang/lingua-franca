@@ -48,6 +48,7 @@ import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
@@ -55,6 +56,7 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
 
@@ -64,6 +66,7 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author(Christian Menard <christian.menard@tu-dresden.de>}
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
@@ -560,6 +563,21 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 "Time value used to specify a deadline exceeds the maximum of " +
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.PARAMETER__INIT)
+        }
+    }
+
+    @Check(FAST)
+    def checkPreamble(Preamble preamble) {
+        if (this.target == Targets.CPP && preamble.visibility == Visibility.NONE) {
+            error(
+                "Preambles for the C++ target need a visibility qualifier (private or public)!",
+                Literals.PREAMBLE__VISIBILITY
+            )
+        } else if (this.target != Targets.CPP && preamble.visibility != Visibility.NONE) {
+            warning(
+                '''The «preamble.visibility» qualifier has no meaning for the «this.target.name» target. It should be removed.''',
+                Literals.PREAMBLE__VISIBILITY
+            )
         }
     }
 
