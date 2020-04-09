@@ -31,6 +31,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.net.URL
 import java.nio.file.Paths
 import java.util.ArrayList
@@ -51,27 +52,25 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.InferredType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
-import java.io.OutputStream
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Type
-import org.icyphy.InferredType
-import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.Time
 
 /** Generator base class for shared code between code generators.
  * 

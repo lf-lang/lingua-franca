@@ -34,7 +34,6 @@ import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
-import java.util.List
 import java.util.regex.Pattern
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
@@ -43,11 +42,10 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.icyphy.ASTUtils
+import org.icyphy.InferredType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -63,19 +61,18 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.InferredType
 
-/** Generator for C target.
+/** 
+ * Generator for C target.
  * 
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- *  @author{Chris Gill, <cdgill@wustl.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
+ * @author{Chris Gill, <cdgill@wustl.edu>}
  */
 class CGenerator extends GeneratorBase {
     
@@ -147,7 +144,7 @@ class CGenerator extends GeneratorBase {
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
 
-        // Copy the required library files into the target filesystem.
+        // Copy the required library files into the target file system.
         // This will overwrite previous versions.
         var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h")
         if (targetThreads === 0) {
@@ -1857,8 +1854,8 @@ class CGenerator extends GeneratorBase {
         }
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
-            if (reaction.definition.deadline !== null) {
-                var deadline = instance.resolveTime(reaction.definition.deadline.delay)
+            if (reaction.declaredDeadline !== null) {
+                var deadline = reaction.declaredDeadline.delay
                 pr(initializeTriggerObjects,
                     reactionStructName(reaction) + '.local_deadline = ' +
                         timeInTargetLanguage(deadline) + ';')
@@ -2798,21 +2795,15 @@ class CGenerator extends GeneratorBase {
         
     static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
         
-    override protected String getTargetTimeType() {
-        return "interval_t"
-    }
-    
-    override protected String getTargetUndefinedType() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
-    }
-    
-    override protected String getTargetFixedSizeListType(String baseType, Integer size) {
-        return baseType + "[" + size + "]"
-    }
-    
-    override protected String getTargetVariableSizeListType(String baseType) {
-        return baseType + "[]"
-    }
+    override getTargetTimeType() '''interval_t'''
+
+    override getTargetUndefinedType() '''/* «reportError("undefined type")» */'''
+
+    override getTargetFixedSizeListType(String baseType,
+        Integer size) '''«baseType»[«size»]'''
+        
+    override protected String getTargetVariableSizeListType(
+        String baseType) '''«baseType»[]'''
     
     protected def String getInitializer(ParameterInstance p) {
         if (p.type.isTime) {

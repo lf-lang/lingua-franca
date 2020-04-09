@@ -85,15 +85,17 @@ class ParameterInstance extends NamedInstance<Parameter> {
     /////////////////////////////////////////////
     //// Public Methods
 
-    /** Return the name of this parameter. 
-     *  @return The name of this parameter.
+    /**
+     * Return the name of this parameter. 
+     * @return The name of this parameter.
      */
     override String getName() {
         this.definition.name
     }
 	
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
+    /**
+     * Return the main reactor, which is the top-level parent.
+     * @return The top-level parent.
      */
     override ReactorInstance main() {
         parent.main
