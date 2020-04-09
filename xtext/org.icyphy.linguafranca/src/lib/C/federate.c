@@ -134,6 +134,7 @@ void connect_to_rti(int id, char* hostname, int port) {
     // either the program is killed, the sleep is interrupted,
     // or the connection succeeds.
     int result = -1;
+    int count_retries = 0;
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
         rti_socket = socket(AF_INET , SOCK_STREAM , 0);
@@ -163,9 +164,16 @@ void connect_to_rti(int id, char* hostname, int port) {
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
         if (result < 0) {
-            printf("Could not connect to RTI at %s, port %d. Will try again every 2 seconds.\n", hostname, port);
-            // Wait two seconds.
-            struct timespec wait_time = {(time_t)2, 0L};
+            count_retries++;
+            if (count_retries > CONNECT_NUM_RETRIES) {
+                fprintf(stderr, "Failed to connect to the RTI after %d retries. Giving up.\n",
+                        CONNECT_NUM_RETRIES);
+                exit(2);
+            }
+            printf("Could not connect to RTI at %s, port %d. Will try again every %d seconds.\n",
+                    hostname, port, CONNECT_RETRY_INTERVAL);
+            // Wait CONNECT_RETRY_INTERVAL seconds.
+            struct timespec wait_time = {(time_t)CONNECT_RETRY_INTERVAL, 0L};
             struct timespec remaining_time;
             if (nanosleep(&wait_time, &remaining_time) != 0) {
                 // Sleep was interrupted.
