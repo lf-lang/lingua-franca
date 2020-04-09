@@ -134,7 +134,7 @@ class CppGenerator extends GeneratorBase {
             fsa.generateFile(filename + File.separator + r.sourceFile, r.generateReactorSource)
         }
         
-        for (r: allResources) {
+        for (r: importedResources.keySet) {
         	fsa.generateFile(filename + File.separator + r.preambleSourceFile, r.generatePreambleSource)
         	fsa.generateFile(filename + File.separator + r.preambleHeaderFile, r.generatePreambleHeader)
         }
@@ -478,6 +478,9 @@ class CppGenerator extends GeneratorBase {
         #pragma once
         
         #include "reactor-cpp/reactor-cpp.hh"
+        «FOR i : importedResources.get(r) BEFORE "// include the preambles from imported resource \n"»
+            #include "«i.preambleHeaderFile»"
+        «ENDFOR»
         
         «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
             «IF p.visibility === Visibility.PUBLIC»«p.code.toText»«ENDIF»
@@ -488,6 +491,8 @@ class CppGenerator extends GeneratorBase {
         «r.header»
         
         #include "reactor-cpp/reactor-cpp.hh"
+        
+        #include "«r.preambleHeaderFile»"
         
         using namespace std::chrono_literals;
         using namespace reactor::operators;
@@ -687,7 +692,7 @@ class CppGenerator extends GeneratorBase {
           «FOR r : reactors»
               «r.sourceFile»
           «ENDFOR»
-          «FOR r : allResources»
+          «FOR r : importedResources.keySet»
               «r.preambleSourceFile»
           «ENDFOR»
         )

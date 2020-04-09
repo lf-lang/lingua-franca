@@ -59,6 +59,7 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Type
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -232,6 +233,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (input.type === null) {
                 error("Input must have a type.", Literals.PORT__TYPE)
             }
+        }
+        
+        // mutable has no meaning in C++
+        if (input.mutable && this.target == Targets.CPP) {
+            warning(
+                "The mutable qualifier has no meaning for the C++ target and should be removed. " +
+                "In C++, any value can be made mutable by calling get_mutable_copy().",
+                Literals.INPUT__MUTABLE
+            )
         }
     }
 
@@ -712,6 +722,22 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         timers.add(timer.name);
         allNames.add(timer.name)
+    }
+    
+    @Check(FAST)
+    def checkType(Type type) {
+        if (this.target == Targets.CPP) {
+            if (type.stars.size > 0) {
+                warning(
+                    "Raw pointers should be avoided in conjunction with LF. Ports " +
+                    "and actions implicitly use smart pointers. In this case, " +
+                    "the pointer here is likely not needed. For parameters and state " +
+                    "smart pointers should be used explicitly if pointer semantics " +
+                    "are really needed.",
+                    Literals.TYPE__STARS
+                )
+            }
+        }
     }
 
     static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
