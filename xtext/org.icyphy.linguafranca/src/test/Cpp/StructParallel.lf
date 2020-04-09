@@ -4,12 +4,7 @@
 // is currently not supported by the C++ runtime.
 target Cpp;
 
-import StructScale.lf;
-
-// explicitly import the public preamble from StructAsState which defines the Hello type
-public preamble {=
-    #include "StructAsState/preamble.hh"
-=} 
+import StructScale.lf; // this also imports the definition of Hello 
 
 main reactor ArrayParallel {
     s = new Source();

@@ -141,8 +141,8 @@ abstract class GeneratorBase {
      */
     protected var String sourceFile
     
-    /** The set of all imported Resources */
-    protected var Set<Resource> allResources = new HashSet<Resource>();
+    /** A map of all resources to the set of resource they import */
+    protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
@@ -671,6 +671,7 @@ abstract class GeneratorBase {
      *  any non-main reactors given in that file.
      *  @param resourceSet The resource set in which to find the file.
      *  @param resolvedURI The URI to import.
+     *  @return The imported resource
      */
     protected def openLFImport(ResourceSet resourceSet, URI resolvedURI) {
         val importResource = resourceSet?.getResource(resolvedURI, true);
@@ -708,6 +709,7 @@ abstract class GeneratorBase {
                 }
             }
         }
+        return importResource
     }
 
     /** Append the specified text plus a final newline to the current
@@ -822,12 +824,12 @@ abstract class GeneratorBase {
         }
         
         // abort if the resource was visited already
-        if (allResources.contains(resource)) {
+        if (importedResources.keySet.contains(resource)) {
             return
         }
         
         // add resource to imported resources and to the recoursion stack
-        allResources.add(resource);
+        importedResources.put(resource, new HashSet<Resource>())        
         importRecursionStack.add(resource);
 
         for (import : resource.allContents.toIterable.filter(Import)) {
@@ -846,7 +848,8 @@ abstract class GeneratorBase {
             try {
                 if (import.importURI.endsWith(".lf")) {
                     // Handle Lingua Franca imports.
-                    openLFImport(resourceSet, resolvedURI)
+                    val imported = openLFImport(resourceSet, resolvedURI)
+                    importedResources.get(resource).add(imported)
                 } else {
                     // Handle other supported imports (if any).
                     openForeignImport(import, resourceSet, resolvedURI)
