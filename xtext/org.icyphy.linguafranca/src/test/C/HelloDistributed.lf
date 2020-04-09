@@ -1,6 +1,5 @@
 target C { 
     keepalive: true, // FIXME: Should be automatic.
-    threads: 1,      // FIXME: Should be automatic, inferred from federates.
     timeout: 3 sec,
     federates: {
         RTI: {host: "localhost", port: 15045, launcher: true},
