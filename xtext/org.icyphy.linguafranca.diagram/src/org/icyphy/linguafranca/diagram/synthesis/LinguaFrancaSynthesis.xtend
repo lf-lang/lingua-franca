@@ -34,7 +34,7 @@ import javax.inject.Inject
 import org.eclipse.elk.alg.layered.options.FixedAlignment
 import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
-import org.eclipse.elk.alg.layered.p4nodes.bk.EdgeStraighteningStrategy
+import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy
 import org.eclipse.elk.core.math.ElkPadding
 import org.eclipse.elk.core.math.KVector
 import org.eclipse.elk.core.options.BoxLayouterOptions
