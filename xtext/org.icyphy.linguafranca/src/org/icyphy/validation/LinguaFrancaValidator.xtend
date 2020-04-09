@@ -234,6 +234,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 error("Input must have a type.", Literals.PORT__TYPE)
             }
         }
+        
+        // mutable has no meaning in C++
+        if (input.mutable && this.target == Targets.CPP) {
+            warning(
+                "The mutable qualifier has no meaning for the C++ target and should be removed. " +
+                "In C++, any value can be made mutable by calling get_mutable_copy().",
+                Literals.INPUT__MUTABLE
+            )
+        }
     }
 
     @Check(FAST)
