@@ -540,8 +540,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def propagateDeadlines() {
         // Assume the graph is acyclic.
         for (r : reactionsWithDeadline) {
-            if (r.definition.deadline !== null && r.definition.deadline.delay !== null) {
-                r.deadline = r.parent.resolveTime(r.definition.deadline.delay)
+            if (r.declaredDeadline !== null && r.declaredDeadline.delay !== null) {
+                r.deadline = r.declaredDeadline.delay
             }
             propagateDeadline(r)
         }
@@ -758,6 +758,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  If the argument is null, return null.
      *  @param timeOrValue A time or parameter reference.
      */
+    @Deprecated // This should be done in ActionInstance and TimerInstance
     def TimeValue resolveTime(Value value) {
         if (value !== null) {
             if (value.parameter !== null) {

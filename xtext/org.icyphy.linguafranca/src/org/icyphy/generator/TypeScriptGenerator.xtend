@@ -31,7 +31,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.HashMap
 import java.util.HashSet
-import java.util.List
 import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -39,7 +38,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.Targets.LoggingLevels
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
