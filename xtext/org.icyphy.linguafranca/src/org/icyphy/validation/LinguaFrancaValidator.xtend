@@ -552,7 +552,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         } else if (this.target.requiresTypes) {
             // Report missing target type.
-            if (param.type === null) {
+            if (param.inferredType.isUndefined()) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE)
             }
         }
