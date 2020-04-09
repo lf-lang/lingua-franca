@@ -78,23 +78,45 @@ class LinguaFrancaValidationTest {
     }
     
     /**
-     * Ensure that duplicate identifiers for actions reported.
+     * Check that reactors in C++ cannot be named preamble 
      */
     @Test
-    def void disallowCppMainCalledMain() {
-        val model = '''
+    def void disallowReactorCalledPreamble() {
+        val model_no_errors = '''
             target Cpp;
+            main reactor Foo {
+            }
+        '''.parse
+        
+        val model_error_1 = '''
+            target Cpp;
+            main reactor Preamble {
+            }
+        '''.parse
+        
+        val model_error_2 = '''
+            target Cpp;
+            reactor Preamble {
+            }
             main reactor Main {
             }
         '''.parse
         
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor,
-            null,
-            "Main reactor cannot be named 'Main'")
+        Assertions.assertNotNull(model_no_errors)
+        Assertions.assertNotNull(model_error_1)
+        Assertions.assertNotNull(model_error_2)
+        Assertions.assertTrue(model_no_errors.eResource.errors.isEmpty, 
+            "Encountered unexpected error while parsing: " + model_no_errors.eResource.errors)
+            Assertions.assertTrue(model_error_1.eResource.errors.isEmpty, 
+            "Encountered unexpected error while parsing: " + model_error_1.eResource.errors)
+            Assertions.assertTrue(model_error_2.eResource.errors.isEmpty, 
+            "Encountered unexpected error while parsing: " + model_error_2.eResource.errors)
+
+        model_no_errors.assertNoIssues
+        model_error_1.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            "Reactor cannot be named 'Preamble'")
+        model_error_2.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            "Reactor cannot be named 'Preamble'")
     }
     
     /**
