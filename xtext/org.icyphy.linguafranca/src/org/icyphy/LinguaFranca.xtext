@@ -282,7 +282,7 @@ enum ActionOrigin:
     NONE | LOGICAL='logical' | PHYSICAL='physical';
 
 enum Visibility:
-    PRIVATE='private' | PUBLIC='public';
+    NONE | PRIVATE='private' | PUBLIC='public';
 
 enum TimeUnit:
     NONE |
