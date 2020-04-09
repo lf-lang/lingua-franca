@@ -42,6 +42,7 @@ Gain.lf
 GainThreaded.lf
 GetTime.lf
 Hello.lf
+HelloDistributed.lf
 HelloThreaded.lf
 HelloWorld.lf
 Hierarchy.lf

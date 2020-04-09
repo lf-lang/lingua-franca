@@ -3,7 +3,7 @@ target C {
     threads: 1,      // FIXME: Should be automatic, inferred from federates.
     timeout: 3 sec,
     federates: {
-        RTI: {host: "localhost", port: 15045},
+        RTI: {host: "localhost", port: 15045, launcher: true},
         Source: {reactors: [s]},
         Destination: {reactors: [d]}
     }
@@ -11,7 +11,7 @@ target C {
 reactor Source {
     output out:string;
     reaction(startup) -> out {=
-        printf("Sending message from source federate.\n");
+        printf("Sending 'Hello World!' message from source federate.\n");
         set(out, "Hello World!");
     =}
 } 
@@ -21,28 +21,15 @@ reactor Destination {
         printf("Destination started.\n");
     =}
     reaction(in) {=
-        // FIXME: Check that starting logical times are the same.
         printf("Destination received: %s\n", in);
+        if (strcmp(in, "Hello World!") != 0) {
+            printf("ERROR: Expected to receive 'Hello World!'\n");
+            exit(1);
+        }
     =}
 }
 main reactor HelloDistributed {
-    s = new Source();      // Reactor 0 in federate 0
-    d = new Destination(); // Reactor 0 in federate 1
-    // Following action is added by the code generator.
-    // physical action a:string; // FIXME: not sure about malloc.
-    // Code generator removes the following connection:
-    s.out -> d.in; // physical;
-    // Code generator adds the following two reactions:
-    /*
-    reaction(s.out) {=
-        #define D_IN 0  // Identifier for the destination port.
-        #define FED_DESTINATION 1  // Identifier for the destination federate.
-        send_physical(D_IN, FED_DESTINATION, strlen(s.out) + 1, (unsigned char*) s.out);
-    =}
-    reaction(a) -> d.in {=
-        // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-        // So passing it downstream should be OK.
-        set(d.in, a_value);
-    =}
-    */
+    s = new Source();      // Reactor s is in federate Source
+    d = new Destination(); // Reactor d is in federate Destination
+    s.out -> d.in;
 }
