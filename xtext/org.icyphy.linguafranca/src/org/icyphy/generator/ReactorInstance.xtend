@@ -32,9 +32,7 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
-import org.icyphy.ASTUtils
 import org.icyphy.DependencyGraph
-import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -43,18 +41,18 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
-/** Representation of a runtime instance of a reactor.
- *  For the main reactor, which has no parent, once constructed,
- *  this object represents the entire Lingua Franca program.
- *  The constructor analyzes the graph of dependencies between
- *  reactions and throws exception if this graph is cyclic.
+/**
+ * Representation of a runtime instance of a reactor.
+ * For the main reactor, which has no parent, once constructed,
+ * this object represents the entire Lingua Franca program.
+ * The constructor analyzes the graph of dependencies between
+ * reactions and throws exception if this graph is cyclic.
  *
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
 
@@ -361,13 +359,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
 
-    /** Given a port definition, return the port instance
-     *  corresponding to that definition, or null if there is
-     *  no such instance.
-     *  @param port The port definition (a syntactic object in the AST).
-     *  @return A port instance, or null if there is none.
+    /** 
+     * Given a port definition, return the port instance
+     * corresponding to that definition, or null if there is
+     * no such instance.
+     * @param port The port definition (a syntactic object in the AST).
+     * @return A port instance, or null if there is none.
      */
-    def lookupLocalPort(Port port) {
+    def PortInstance lookupLocalPort(Port port) {
         // Search one of the inputs and outputs sets.
         var LinkedList<PortInstance> ports = null
         if (port instanceof Input) {
@@ -381,6 +380,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         null
+    }
+
+    /** 
+     * Given a parameter definition, return the parameter instance
+     * corresponding to that definition, or null if there is
+     * no such instance.
+     * @param port The parameter definition (a syntactic object in the AST).
+     * @return A parameter instance, or null if there is none.
+     */
+    def ParameterInstance lookupLocalParameter(Parameter parameter) {
+        return this.parameters.findFirst [
+            it.definition === parameter
+        ]
     }
 
     /** Return the main reactor, which is the top-level parent.
@@ -540,8 +552,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def propagateDeadlines() {
         // Assume the graph is acyclic.
         for (r : reactionsWithDeadline) {
-            if (r.declaredDeadline !== null && r.declaredDeadline.delay !== null) {
-                r.deadline = r.declaredDeadline.delay
+            if (r.declaredDeadline !== null &&
+                r.declaredDeadline.maxDelay !== null) {
+                r.deadline = r.declaredDeadline.maxDelay
             }
             propagateDeadline(r)
         }
@@ -752,27 +765,4 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         result
     }
     
-    /** If the argument is non-null, determine whether it is a parameter
-     *  reference or a literal time value and convert it to a time value
-     *  in the target language, which is returned.
-     *  If the argument is null, return null.
-     *  @param timeOrValue A time or parameter reference.
-     */
-    @Deprecated // This should be done in ActionInstance and TimerInstance
-    def TimeValue resolveTime(Value value) {
-        if (value !== null) {
-            if (value.parameter !== null) {
-                // FIXME: factor this out
-                val resolved = this.parameters.findFirst[it.definition === value.parameter]
-                if (resolved === null) {
-                    throw new InternalError(
-                        "Incorrect reference to parameter:" +
-                            value.parameter.name);
-                }
-                return ASTUtils.getTimeValue(resolved.init.get(0))
-            } else {
-                return ASTUtils.getTimeValue(value)
-            }
-        }
-    }
 }
