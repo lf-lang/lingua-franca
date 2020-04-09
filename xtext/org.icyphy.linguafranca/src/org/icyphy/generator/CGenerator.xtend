@@ -2036,13 +2036,19 @@ class CGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type
     ) {
-        // Adjust the type of the action.
-        // If it is "string", then change it to "char".
-        // Pointer types in actions are declared without the "*" (perhaps oddly).
+        // Adjust the type of the action and the receivingPort.
+        // If it is "string", then change it to "char*".
+        // This string is dynamically allocated, and type 'string' is to be
+        // used only for statically allocated strings.
         if (action.type.targetType == "string") {
             action.type.code = null
             action.type.id = "char*"
         }
+        if ((receivingPort.variable as Port).type.targetType == "string") {
+            (receivingPort.variable as Port).type.code = null
+            (receivingPort.variable as Port).type.id = "char*"
+        }
+
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
         val result = new StringBuilder()
