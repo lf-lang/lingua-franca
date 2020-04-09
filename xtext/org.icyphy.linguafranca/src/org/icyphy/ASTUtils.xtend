@@ -516,7 +516,7 @@ class ASTUtils {
                 return true
             }
         } catch (NumberFormatException e) {
-            // NaN
+            // Not an int.
         }
         return false
     }
@@ -538,6 +538,28 @@ class ASTUtils {
             return value.literal.isZero
         } else if (value.code !== null) {
             return value.code.isZero
+        }
+        return false
+    }
+    
+    def static boolean isInteger(String literal) {
+        try {
+            Integer.parseInt(literal)
+        } catch (NumberFormatException e) {
+            return false
+        }
+        return true
+    }
+    
+    def static boolean isInteger(Code code) {
+        return code.toText.isInteger
+    }
+    
+    def static boolean isInteger(Value value) {
+        if (value.literal !== null) {
+            return value.literal.isInteger
+        } else if (value.code !== null) {
+            return value.code.isInteger
         }
         return false
     }
