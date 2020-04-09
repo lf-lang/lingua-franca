@@ -874,6 +874,16 @@ class CppGenerator extends GeneratorBase {
     
     override getTargetUndefinedType() '''/* «reportError("undefined type")» */''' 
     
+    // this override changes the undefined type for actions to void
+    override getTargetType(Action a) {
+        val inferred = a.inferredType;
+        if (inferred.isUndefined) {
+            return "void"
+        } else {
+            return inferred.targetType
+        }
+    }
+
     override getTargetFixedSizeListType(String baseType, Integer size)
         '''std::array<«baseType», «size.toString»>'''
 
