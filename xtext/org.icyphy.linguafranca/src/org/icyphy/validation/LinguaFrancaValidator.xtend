@@ -512,28 +512,41 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         parameters.add(param.name)
         allNames.add(param.name)
 
-        // Forbid initialization using parameters.
         if (param.init.exists[it.parameter !== null]) {
+            // Initialization using parameters is forbidden.
             error("Parameter cannot be initialized using parameter.",
                 Literals.PARAMETER__INIT)
         }
-        // This parameter has been identified as a time.
-        if (param.isOfTimeType) {
-            if (param.init === null || param.init.size == 0) {
-                error("Uninitialized parameter.", Literals.PARAMETER__INIT)
-            } else if (param.init.size > 1 && param.type.arraySpec === null) {
+        
+        if (param.init === null || param.init.size == 0) {
+            // All parameters must be initialized.
+            error("Uninitialized parameter.", Literals.PARAMETER__INIT)
+        } else if (param.isOfTimeType) {
+             // We do additional checks on types because we can make stronger
+             // assumptions about them.
+             
+             // If the parameter is not a list, cannot be initialized
+             // using a one.
+             if (param.init.size > 1 && param.type.arraySpec === null) {
                 error("Time parameter cannot be initialized using a list.",
                     Literals.PARAMETER__INIT)
+            } else {
+                // The parameter is a singleton time.
+                val init = param.init.get(0)
+                if (init.time === null) {
+                    if (init !== null && !init.isZero) {
+                        if (init.isInteger) {
+                            error("Missing time units. Should be one of " +
+                                TimeUnit.VALUES.filter [
+                                    it != TimeUnit.NONE
+                                ], Literals.PARAMETER__INIT)
+                        } else {
+                            error("Invalid time literal.",
+                                Literals.PARAMETER__INIT)
+                        }
+                    }
+                } // If time is not null, we know that a unit is also specified.    
             }
-
-            val init = param.init.get(0)
-            if (init.time === null) {
-                if ((init.literal !== null && !init.literal.isZero) ||
-                    (init.code !== null && !init.code.isZero)) {
-                        
-                    error("Invalid time literal", Literals.PARAMETER__INIT)
-                }
-            } // If time is not null, we know that a unit is also specified.
         } else if (this.target.requiresTypes) {
             // Report missing target type.
             if (param.type === null) {
@@ -591,10 +604,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     error("Referenced parameter does not denote a time.",
                         Literals.STATE_VAR__INIT)
                 } else {
-                    if ((init.literal !== null &&
-                        !init.literal.isZero) ||
-                        (init.code !== null && !init.code.isZero))
-                        error("Invalid time literal", Literals.STATE_VAR__INIT)
+                    if (init !== null && !init.isZero) {
+                        if (init.isInteger) {
+                            error("Missing time units. Should be one of " +
+                                TimeUnit.VALUES.filter [
+                                    it != TimeUnit.NONE
+                                ], Literals.STATE_VAR__INIT)
+                        } else {
+                            error("Invalid time literal.",
+                                Literals.STATE_VAR__INIT)
+                        }
+                    }
                 }
             }
         } else if (this.target.requiresTypes && stateVar.inferredType.isUndefined) {
@@ -634,13 +654,29 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (value.parameter !== null) {
                 if (!value.parameter.isOfTimeType) {
                     error("Parameter is not of time type",
-                        Literals.PARAMETER__TYPE)
+                        Literals.VALUE__PARAMETER)
                 }
             } else if (value.time === null) {
                 if (value.literal !== null && !value.literal.isZero) {
-                    error("Invalid time literal", Literals.VALUE__LITERAL)
+                    if (value.literal.isInteger) {
+                            error("Missing time units. Should be one of " +
+                                TimeUnit.VALUES.filter [
+                                    it != TimeUnit.NONE
+                                ], Literals.VALUE__LITERAL)
+                        } else {
+                            error("Invalid time literal.",
+                                Literals.VALUE__LITERAL)
+                        }
                 } else if (value.code !== null && !value.code.isZero) {
-                    error("Invalid time literal", Literals.VALUE__CODE)
+                    if (value.code.isInteger) {
+                            error("Missing time units. Should be one of " +
+                                TimeUnit.VALUES.filter [
+                                    it != TimeUnit.NONE
+                                ], Literals.VALUE__CODE)
+                        } else {
+                            error("Invalid time literal.",
+                                Literals.VALUE__CODE)
+                        }
                 }
             }
         }
