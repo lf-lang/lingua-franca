@@ -32,10 +32,23 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef RTI_H
 #define RTI_H
 
-// Size of the buffer used for messages sent between federates.
-// This is used by both the federates and the rti, so message lengths
-// should generally match.
+/** Size of the buffer used for messages sent between federates.
+ *  This is used by both the federates and the rti, so message lengths
+ *  should generally match.
+ */
 #define BUFFER_SIZE 256
+
+/** Number of seconds that elapse between a federate's attempts
+ *  to connect to the RTI.
+ */
+#define CONNECT_RETRY_INTERVAL 2
+
+/** Bound on the number of retries to connect to the RTI.
+ *  A federate will retry every CONNECT_RETRY_INTERVAL seconds
+ *  this many times before giving up. E.g., 500 retries every
+ *  2 seconds results in retrying for about 16 minutes.
+ */
+#define CONNECT_NUM_RETRIES 500
 
 ////////////////////////////////////////////
 //// Message types
