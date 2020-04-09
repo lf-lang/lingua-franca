@@ -591,10 +591,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
         reactorClasses.add(reactor.name);
-        if (this.target == Targets.CPP && reactor.isMain &&
-            reactor.name.equalsIgnoreCase("main")) {
+        
+        // C++ reactors may not be called 'preamble'
+        if (this.target == Targets.CPP && reactor.name.equalsIgnoreCase("preamble")) {
             error(
-                "Main reactor cannot be named '" + reactor.name + "'",
+                "Reactor cannot be named '" + reactor.name + "'",
                 Literals.REACTOR__NAME
             )
         }

@@ -1,6 +1,6 @@
 target Cpp;
 
-main reactor Preamble {
+main reactor PreambleTest {
     // This declaration is required on the public reactor interface and
     // therefore needs to be placed in the generated header. This goes to
     // Preamble/Preamble.hh.
