@@ -1,0 +1,40 @@
+// Source directly sends an implicitly dynamically created object
+target Cpp;
+
+import StructAsState.lf;
+
+// explicitly import the public preamble from StructAsState which defines the Hello type
+public preamble {=
+    #include "StructAsState/preamble.hh"
+=} 
+
+reactor Source {
+    output out:Hello;
+    reaction(startup) -> out {=
+        // create an dynamically allocated mutable Hello object
+        auto hello = reactor::make_mutable_value<Hello>();
+        hello->name = "Earth";
+        hello->value = 42;
+        // this implicitly converts the mutable value to an immutable value
+        out.set(std::move(hello));
+    =}
+}
+
+reactor Print(expected_value:int(42), expected_name:{=std::string=}("Earth")) {
+    input in:Hello;
+    reaction(in) {=
+        // get a reference to the received struct for convenience
+        auto& s = *in.get();
+        std::cout << "Received: name = " << s.name << ", value = " << s.value << '\n';
+        if (s.value != expected_value || s.name != expected_name) {
+            std::cerr << "ERROR: Expected name = " << expected_name << ", value = " << expected_value << '\n';
+            exit(1);
+        }
+    =}
+}
+
+main reactor StructAsType {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}

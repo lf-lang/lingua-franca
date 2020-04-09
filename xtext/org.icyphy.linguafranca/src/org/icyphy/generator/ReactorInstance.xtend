@@ -33,7 +33,6 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
 import org.icyphy.DependencyGraph
-import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -41,22 +40,19 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.TimeOrValue
-import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
-import org.icyphy.ASTUtils
 
-/** Representation of a runtime instance of a reactor.
- *  For the main reactor, which has no parent, once constructed,
- *  this object represents the entire Lingua Franca program.
- *  The constructor analyzes the graph of dependencies between
- *  reactions and throws exception if this graph is cyclic.
+/**
+ * Representation of a runtime instance of a reactor.
+ * For the main reactor, which has no parent, once constructed,
+ * this object represents the entire Lingua Franca program.
+ * The constructor analyzes the graph of dependencies between
+ * reactions and throws exception if this graph is cyclic.
  *
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
 
@@ -72,7 +68,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Apply overrides and instantiate parameters for this reactor instance.
         for (parameter : definition.reactorClass.parameters) {
-            parameters.add(resolveParameter(parameter)) // FIXME: refactor this into ParameterInstance
+            this.parameters.add(new ParameterInstance(parameter, this))
         }
 
         // Instantiate children for this reactor instance
@@ -363,13 +359,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
 
-    /** Given a port definition, return the port instance
-     *  corresponding to that definition, or null if there is
-     *  no such instance.
-     *  @param port The port definition (a syntactic object in the AST).
-     *  @return A port instance, or null if there is none.
+    /** 
+     * Given a port definition, return the port instance
+     * corresponding to that definition, or null if there is
+     * no such instance.
+     * @param port The port definition (a syntactic object in the AST).
+     * @return A port instance, or null if there is none.
      */
-    def lookupLocalPort(Port port) {
+    def PortInstance lookupLocalPort(Port port) {
         // Search one of the inputs and outputs sets.
         var LinkedList<PortInstance> ports = null
         if (port instanceof Input) {
@@ -383,6 +380,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         null
+    }
+
+    /** 
+     * Given a parameter definition, return the parameter instance
+     * corresponding to that definition, or null if there is
+     * no such instance.
+     * @param port The parameter definition (a syntactic object in the AST).
+     * @return A parameter instance, or null if there is none.
+     */
+    def ParameterInstance lookupLocalParameter(Parameter parameter) {
+        return this.parameters.findFirst [
+            it.definition === parameter
+        ]
     }
 
     /** Return the main reactor, which is the top-level parent.
@@ -542,8 +552,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def propagateDeadlines() {
         // Assume the graph is acyclic.
         for (r : reactionsWithDeadline) {
-            if (r.definition.deadline !== null && r.definition.deadline.interval !== null) {
-                r.deadline = this.resolveTime(r.definition.deadline.interval)
+            if (r.declaredDeadline !== null &&
+                r.declaredDeadline.maxDelay !== null) {
+                r.deadline = r.declaredDeadline.maxDelay
             }
             propagateDeadline(r)
         }
@@ -753,104 +764,5 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         result
     }
-
-    /** 
-     * Given a parameter definition found in the AST, return a fresh parameter
-     * instance with 
-     * Return a parameter instance given a parameter definition.
-     *  FIXME: This assumes that all referenced parameters themselves are already resolved!
-     * @param parameter AST node that describes the parameter
-     */
-    protected def ParameterInstance resolveParameter(Parameter parameter) {
-        // Check for an override.
-        for (assignment : this.definition.parameters ?: emptyList) {
-            var rhs = assignment.rhs
-            if (assignment.lhs === parameter) {
-                // Parameter is overridden using a reference to another parameter.
-                if (rhs.parameter !== null) {
-                    // Find the reactor that has the parameter that the assignment refers to.
-                    var reactor = rhs.parameter.eContainer as Reactor
-                    // Look the up the container of the parameter (in the instance hierarchy)
-                    // to find the matching instance
-                    var instance = this
-                    var found = false
-                    while (instance.parent !== null && !found) {
-                        instance = instance.parent
-                        if (instance.definition.reactorClass === reactor) {
-                            found = true
-                        }
-                    }
-                    if (!found) {
-                        throw new InternalError(
-                            "Incorrect reference to parameter:" +
-                                parameter.name);
-                    }
-                    
-                    val referencedParameter = instance.
-                        getParameterInstance(rhs.parameter)
-                    
-                    if (referencedParameter instanceof TimeParameter) {
-                        var timeParm = referencedParameter
-                        return new TimeParameter(parameter, parent,
-                            new TimeValue(timeParm.value.time,
-                                timeParm.value.unit))
-                    } else {
-                        var valParm = referencedParameter as ValueParameter
-                        return new ValueParameter(parameter, parent,
-                            valParm.value, valParm.type)
-                    }
-                } else {
-                    // Parameter is overridden by a type or value 
-                    if (parameter.isOfTimeType) {
-                        return new TimeParameter(parameter, this,
-                            new TimeValue(rhs.time, rhs.unit))
-                    } else {
-                        var String value
-                        if (rhs.value.code !== null) {
-                            value = ASTUtils.toText(rhs.value.code)
-                        } else {
-                            value = rhs.value.literal
-                        }
-                        return new ValueParameter(parameter, this, value, parameter.type)
-                    }
-                }
-            }
-        }
-        // If we reached here, the parameter was not overridden. Use its default value.
-        if (parameter.isOfTimeType) {
-            return new TimeParameter(parameter, this, new TimeValue(parameter.time,
-                parameter.unit))
-        } else {
-            var String value
-            if (parameter.value !== null) {
-                value = ASTUtils.toText(parameter.value)
-            }
-            
-            return new ValueParameter(parameter, this, value, parameter.type)
-        }
-    }
     
-    /** If the argument is non-null, determine whether it is a parameter
-     *  reference or a literal time value and convert it to a time value
-     *  in the target language, which is returned.
-     *  If the argument is null, return the target language representation
-     *  of zero time.
-     *  @param timeOrValue A time or parameter reference.
-     */
-    def TimeValue resolveTime(TimeOrValue timeOrValue) {
-        if (timeOrValue !== null) {
-            if (timeOrValue.parameter !== null) {
-                var resolved = this.resolveParameter(timeOrValue.parameter)
-                if (resolved === null || !(resolved instanceof TimeParameter)) {
-                    throw new InternalError(
-                        "Incorrect reference to parameter:" +
-                            timeOrValue.parameter.name);
-                }
-                return (resolved as TimeParameter).value
-            } else {
-                return new TimeValue(timeOrValue.time, timeOrValue.unit) 
-            }
-        }
-        return new TimeValue(0, TimeUnit.NONE)
-    }
 }

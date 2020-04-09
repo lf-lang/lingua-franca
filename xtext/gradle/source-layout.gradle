@@ -5,16 +5,16 @@ if (name.endsWith(".tests")) {
 			resources.srcDirs = []
 		}
 		test {
-			java.srcDirs = ['src/org', 'src-gen']
-			resources.srcDirs = ['src-gen']
+			java.srcDirs = ['src', 'src-gen']
+			resources.srcDirs = ['src', 'src-gen']
 			xtendOutputDir = 'xtend-gen'
 		}
 	}
 } else {
 	sourceSets {
 		main {
-			java.srcDirs = ['src/org', 'src-gen']
-			resources.srcDirs = ['src-gen']
+			java.srcDirs = ['src', 'src-gen']
+			resources.srcDirs = ['src', 'src-gen']
 			xtendOutputDir = 'xtend-gen'
 		}
 		test {
@@ -25,7 +25,7 @@ if (name.endsWith(".tests")) {
 }
 
 sourceSets.all {
-	resources.exclude '**/*.g', '**/*.mwe2', '**/*.xtend', '**/*._trace', '**/node_modules' 
+	resources.exclude '**/*.g', '**/*.mwe2', '**/*.xtend', '**/*._trace'
 }
 
 jar {

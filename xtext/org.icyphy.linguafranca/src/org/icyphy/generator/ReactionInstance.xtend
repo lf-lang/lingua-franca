@@ -37,22 +37,24 @@ import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
-/** Representation of a runtime instance of a reaction.
- *  A ReactionInstance object stores all dependency information necessary
- *  for constructing a directed acyclic precedece graph.
+/**
+ * Representation of a runtime instance of a reaction.
+ * A ReactionInstance object stores all dependency information necessary
+ * for constructing a directed acyclic precedece graph.
  *  
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class ReactionInstance extends NamedInstance<Reaction> {
 
-    /** Create a new reaction instance from the specified definition
-     *  within the specified parent. This constructor should be called
-     *  only by the ReactionInstance class.
-     *  @param definition A reaction definition.
-     *  @param parent The parent reactor instance, which cannot be null.
-     *  @param index The index of the reaction within the reactor (0 for the
-     *   first reaction, 1 for the second, etc.).
+    /**
+     * Create a new reaction instance from the specified definition
+     * within the specified parent. This constructor should be called
+     * only by the ReactionInstance class.
+     * @param definition A reaction definition.
+     * @param parent The parent reactor instance, which cannot be null.
+     * @param index The index of the reaction within the reactor (0 for the
+     * first reaction, 1 for the second, etc.).
      */
     protected new(Reaction definition, ReactorInstance parent, int index) {
         super(definition, parent);
@@ -114,6 +116,11 @@ class ReactionInstance extends NamedInstance<Reaction> {
                 actionInstance.dependsOnReactions.add(this)
             }
         }
+        // Create a deadline instance if one has been defined.
+        if (this.definition.deadline !== null) {
+            this.declaredDeadline = new DeadlineInstance(
+                this.definition.deadline, this)
+        }
     }
 
     /** 
@@ -145,21 +152,27 @@ class ReactionInstance extends NamedInstance<Reaction> {
     /** The reactions that this reaction depends on. */
     public var dependsOnReactions = new HashSet<ReactionInstance>();
 
+    /** Deadline for this reaction instance, if declared.*/
+    public DeadlineInstance declaredDeadline
+
     /** Inferred deadline. Defaults to the maximum long value. */
     public var deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NSEC)
 
-    /** The level in the dependence graph. -1 indicates that the level
-     *  has not yet been assigned.
+    /**
+     * The level in the dependence graph. -1 indicates that the level
+     * has not yet been assigned.
      */
     public long level = -1L;
 
-    /** Index of order of occurrence within the reactor definition.
-     *  The first reaction has index 0, the second index 1, etc.
+    /**
+     * Index of order of occurrence within the reactor definition.
+     * The first reaction has index 0, the second index 1, etc.
      */
     public int reactionIndex = -1;
 
-    /** The trigger instances (input ports, timers, and actions
-     *  that trigger reactions) that trigger this reaction.
+    /**
+     * The trigger instances (input ports, timers, and actions
+     * that trigger reactions) that trigger this reaction.
      */
     public var triggers = new HashSet<TriggerInstance<Variable>>
 
@@ -168,16 +181,18 @@ class ReactionInstance extends NamedInstance<Reaction> {
      */
     public var visited = new HashSet<ReactionInstance>
 
-    /** Return the name of this reaction, which is 'reaction_n',
-     *  where n is replaced by the reactionIndex. 
-     *  @return The name of this reaction.
+    /**
+     * Return the name of this reaction, which is 'reaction_n',
+     * where n is replaced by the reactionIndex. 
+     * @return The name of this reaction.
      */
     override String getName() {
         return "reaction_" + this.reactionIndex;
     }
 
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
+    /**
+     * Return the main reactor, which is the top-level parent.
+     * @return The top-level parent.
      */
     override ReactorInstance main() {
         parent.main

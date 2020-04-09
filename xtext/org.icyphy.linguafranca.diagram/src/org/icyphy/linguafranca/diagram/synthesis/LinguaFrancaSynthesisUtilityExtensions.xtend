@@ -7,8 +7,7 @@ import java.util.Map
 import java.util.function.Supplier
 import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.TimeOrValue
-import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Value
 
 @ViewSynthesisShared
 class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions {
@@ -18,18 +17,20 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	/**
 	 * Converts a timing value into readable text
 	 */
-	def toText(TimeOrValue tov) {
-		if (tov === null) {
-			return ""
-		} else if (tov.parameter !== null) {
-			return tov.parameter.name
-		} else if (tov.value !== null) {
-			return ASTUtils.toText(tov.value)
-		} else if (tov.unit === TimeUnit.NONE) {
-			return Integer.toString(tov.time)
-		} else {
-			return tov.time + "" + tov.unit.literal
+	def String toText(Value value) {
+		if (value !== null) {
+			if (value.parameter !== null) {
+                return value.parameter.name
+            } else if (value.time !== null) {
+                return value.time.interval +
+                        value.time.unit.toString
+            } else if (value.literal !== null) {
+                return value.literal
+            } else if (value.code !== null) {
+                ASTUtils.toText(value.code)
+            }
 		}
+		return ""
 	}
 	
 	/**
