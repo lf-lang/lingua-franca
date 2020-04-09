@@ -47,26 +47,20 @@ class DeadlineInstance {
      * The delay D associated with this deadline. If physical time T < logical
      * time t + D, the deadline is met, otherwise, it is violated.
 	 */
-	public TimeValue delay = new TimeValue(0, TimeUnit.NONE)
+	public TimeValue maxDelay = new TimeValue(0, TimeUnit.NONE)
 	
 	/**
 	 * Create a new deadline instance associated with the given reaction
 	 * instance.
 	 */
 	new(Deadline definition, ReactionInstance reaction) {
-        
-        if (reaction.parent === null) {
-            throw new Exception(
-                'Cannot create a DeadlineInstance with no parent.')
-        }
-
         if (definition.delay !== null) {
-            if (definition.delay.parameter !== null) {
-                this.delay = reaction.parent.parameters.findFirst [
-                    it.definition === definition.delay.parameter
-                ].init.get(0).getTimeValue
+            val parm = definition.delay.parameter
+            if (parm !== null) {
+                this.maxDelay = reaction.parent.lookupLocalParameter(parm).init.
+                    get(0).getTimeValue
             } else {
-                this.delay = definition.delay.timeValue
+                this.maxDelay = definition.delay.timeValue
             }
         }
     }

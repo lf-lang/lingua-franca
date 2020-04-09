@@ -1482,26 +1482,21 @@ class CGenerator extends GeneratorBase {
                 pr(result, '''
                     «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, 0
                 ''')
-            } else if (trigger instanceof Port) {
-                val rootType = trigger.targetType.rootType
+            } else if (triggerInstance instanceof PortInstance) {
+                val rootType = (triggerInstance.definition as Port).targetType.rootType
                 pr(result, '''
                     «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
                 ''')
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
-                var minDelay = reactorInstance.resolveTime(trigger.minDelay)
-                var minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival)
+                var minDelay = (triggerInstance as ActionInstance).minDelay
+                var minInterArrival = (triggerInstance as ActionInstance).minInterArrival
                 
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
                 } else {
-                    // For physical actions,
-                    // if no minimum interarrival time was specified, then
-                    // we do not want zero, which is what resolveTime returns,
-                    // but rather some non-zero time.
-                    if (trigger.minInterArrival === null) {
-                        minInterArrival = DEFAULT_MIN_INTER_ARRIVAL;
-                    }
+                    // FIXME: the default policy should be DROP. Make it the 0th element in the enum.
+                    // Also, we need to enforce MIT for logical actions.
                     if (trigger.policy == QueuingPolicy.NONE) {
                         trigger.policy = QueuingPolicy.DEFER;
                     }
@@ -1537,8 +1532,8 @@ class CGenerator extends GeneratorBase {
             // the struct because the value assigned may not be a compile-time constant.
             if (trigger instanceof Timer) {
 
-                val offset = reactorInstance.resolveTime(trigger.offset)
-                val period = reactorInstance.resolveTime(trigger.period)
+                val offset = (triggerInstance as TimerInstance).offset
+                val period = (triggerInstance as TimerInstance).period
 
                 pr(initializeTriggerObjects,
                     triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
@@ -1855,7 +1850,7 @@ class CGenerator extends GeneratorBase {
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
             if (reaction.declaredDeadline !== null) {
-                var deadline = reaction.declaredDeadline.delay
+                var deadline = reaction.declaredDeadline.maxDelay
                 pr(initializeTriggerObjects,
                     reactionStructName(reaction) + '.local_deadline = ' +
                         timeInTargetLanguage(deadline) + ';')
@@ -2793,7 +2788,7 @@ class CGenerator extends GeneratorBase {
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
-    static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
         
     override getTargetTimeType() '''interval_t'''
 
