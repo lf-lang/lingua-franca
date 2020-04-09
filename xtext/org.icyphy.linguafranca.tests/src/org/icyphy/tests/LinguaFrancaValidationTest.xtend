@@ -38,6 +38,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.TimeValue
+import org.icyphy.Targets
+import org.icyphy.linguaFranca.Visibility
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -47,6 +49,7 @@ import org.icyphy.TimeValue
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author(Christian Menard <christian.menard@tu-dresden.de>}
  */
 class LinguaFrancaValidationTest {
 	@Inject extension ParseHelper<Model>
@@ -519,5 +522,70 @@ class LinguaFrancaValidationTest {
         model.assertError(LinguaFrancaPackage::eINSTANCE.assignment, null,
             "Time value used to specify a deadline exceeds the maximum of " +
                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
+    }  
+    
+    /**
+     * Test warnings and errors for the target dependent preamble visibility qualifiers 
+     */
+    @Test
+    def void testPreambleVisibility() {
+        for (target : Targets.values) {
+            for (visibility : Visibility.values) {
+                val model_reactor_scope = '''
+                    target «target.name»;
+                    reactor Foo {
+                        «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
+                    }
+                '''.parse
+                
+                val model_file_scope = '''
+                    target «target.name»;
+                    «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
+                    reactor Foo {
+                    }
+                '''.parse
+                
+                val model_no_preamble = '''
+                    target «target.name»;
+                    reactor Foo {
+                    }
+                '''.parse
+                
+                Assertions.assertNotNull(model_reactor_scope)
+                Assertions.assertNotNull(model_file_scope)
+                Assertions.assertNotNull(model_no_preamble)
+                
+                Assertions.assertTrue(model_reactor_scope.eResource.errors.isEmpty,
+                    "Encountered unexpected error while parsing: " + model_reactor_scope.eResource.errors)
+                Assertions.assertTrue(model_file_scope.eResource.errors.isEmpty,
+                    "Encountered unexpected error while parsing: " + model_file_scope.eResource.errors)     
+                Assertions.assertTrue(model_no_preamble.eResource.errors.isEmpty,
+                    "Encountered unexpected error while parsing: " + model_no_preamble.eResource.errors)
+                
+                model_no_preamble.assertNoIssues
+                
+                if (target == Targets.CPP) {
+                    if (visibility == Visibility.NONE) {
+                        model_file_scope.assertError(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                            "Preambles for the C++ target need a visibility qualifier (private or public)!")
+                        model_reactor_scope.assertError(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                            "Preambles for the C++ target need a visibility qualifier (private or public)!")        
+                    } else {
+                        model_file_scope.assertNoIssues
+                        model_reactor_scope.assertNoIssues
+                    }
+                } else {
+                    if (visibility == Visibility.NONE) {
+                        model_file_scope.assertNoIssues
+                        model_reactor_scope.assertNoIssues        
+                    } else {
+                        model_file_scope.assertWarning(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                            '''The «visibility» qualifier has no meaning for the «target.name» target. It should be removed.''')
+                        model_reactor_scope.assertWarning(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                            '''The «visibility» qualifier has no meaning for the «target.name» target. It should be removed.''')
+                    }
+                }
+            }
+        }
     }  
 }
