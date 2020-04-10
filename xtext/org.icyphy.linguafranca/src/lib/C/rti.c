@@ -383,5 +383,10 @@ void wait_for_federates(int socket_descriptor) {
         pthread_join(federates[i].thread_id, &thread_exit_status);
         printf("RTI: Federate thread exited.\n");
     }
+    // NOTE: In all common TCP/IP stacks, there is a time period,
+    // typically between 30 and 120 seconds, called the TIME_WAIT period,
+    // before the port is released after this close. This is because
+    // the OS is preventing another program from accidentally receiving
+    // duplicated packets intended for this program.
     close(socket_descriptor);
 }
