@@ -302,8 +302,6 @@ abstract class GeneratorBase {
             }
         }
         
-        
-        
         this.resource = resource
         // Figure out the file name for the target code from the source file name.
         analyzeResource(resource)
@@ -1178,19 +1176,22 @@ abstract class GeneratorBase {
             federateByName.put("", federateInstance)
             federateByID.put(0, federateInstance)
         } else {
+            // In a federated execution, we need keepalive to be true,
+            // otherwise a federate could exit simply because it hasn't received
+            // any messages.
+            targetKeepalive = true
+            
             // Analyze the connection topology of federates.
             // First, find all the connections between federates.
             // Those that are labeled "physical" create no dependency.
             // Otherwise, there is a dependency. This may have a delay
-            // which corresponds to the "lookahead"
-            // of HLA.
+            // which corresponds to the "lookahead" of HLA.
             // FIXME: If there is no delay, we may have to transmit
             // the microstep, not just the timestamp.
             
             // For each connection between federates, replace it in the
             // AST with an action (which inherits the delay) and two reactions.
-            // The action will be physical if the connection physical and
-            // otherwise will be logical.
+            // The action will be physical.
             if (mainDef !== null) {
                 var connectionsToRemove = new LinkedList<Connection>()
                 for (connection : mainDef.reactorClass.connections) {
