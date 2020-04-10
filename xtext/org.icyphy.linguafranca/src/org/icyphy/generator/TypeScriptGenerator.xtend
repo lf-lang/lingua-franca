@@ -151,9 +151,13 @@ class TypeScriptGenerator extends GeneratorBase {
         fOut.write(readFileInClasspath(reactorCorePath + "util.ts").getBytes())
         
         fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "command-line-args.d.ts"));
+        fOut.write(readFileInClasspath(reactorCorePath + "command-line-args.d.ts").getBytes())
+        
+        fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "ulog.d.ts"));
         fOut.write(readFileInClasspath(reactorCorePath + "ulog.d.ts").getBytes())
-        
+         
         fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "nanotimer.d.ts"));
         fOut.write(readFileInClasspath(reactorCorePath + "nanotimer.d.ts").getBytes())
@@ -847,7 +851,8 @@ class TypeScriptGenerator extends GeneratorBase {
         super.generatePreamble
         pr(preamble)
         pr("")
-        pr("Log.global.level = Log.levels." + getLoggingLevel() + ";")
+        pr("Log.global.level = Log.levels." + getLoggingLevel()
+            + "; // NOTE: May be overridden by command line arguments.")
     }
 
     
