@@ -153,6 +153,10 @@ class TypeScriptGenerator extends GeneratorBase {
         fOut.write(readFileInClasspath(reactorCorePath + "util.ts").getBytes())
         
         fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + "cli.ts"));
+        fOut.write(readFileInClasspath(reactorCorePath + "cli.ts").getBytes())
+        
+        fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + "command-line-args.d.ts"));
         fOut.write(readFileInClasspath(reactorCorePath + "command-line-args.d.ts").getBytes())
         
@@ -284,7 +288,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         var arguments = new StringJoiner(", ")
         if (reactor.isMain()) {
-            arguments.add("name: string")
+            //arguments.add("name: string")
             arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
@@ -759,46 +763,56 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     def void generateReactorInstance(Instantiation defn) {
         var fullName = defn.name
-        pr('// ************* Instance ' + fullName + ' of class ' +
-            defn.reactorClass.name)
             
-        var arguments = new StringJoiner(", ")
-        for (parameter : defn.parameters) {
-            arguments.add(parameter.rhs.get(0).targetValue) // FIXME: handle lists
-        }
+//        var arguments = new StringJoiner(", ")
+//        for (parameter : defn.parameters) {
+//            arguments.add(parameter.rhs.get(0).targetValue) // FIXME: handle lists
+//        }
 
         // Get target properties for the app
-        var String timeoutArg
-        var isATimeoutArg = false
+        //var String timeoutArg
+        //var isATimeoutArg = false
+        
+        pr('// ************* App Parameters')
+        pr("let __timeout: TimeValue | undefined;")
+        pr("let __keepAlive: boolean;")
+        pr("let __fast: boolean;")
         
         // Timeout Property
         if (targetTimeout >= 0) {
-            isATimeoutArg = true
-            timeoutArg = timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit))
+            pr("__timeout = " + timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit)))
+        } else {
+            pr("__timeout = undefined");
         }
         
         // KeepAlive Property
-        var String keepAliveArg = "false"
         if (targetKeepalive) {
-            keepAliveArg = "true"
+            pr("__keepAlive = true;")
+        } else {
+            pr("__keepAlive = false;")
         }
         
         // Fast Property
-        var String fastArg = "false"
         if (targetFast) {
-            fastArg = "true"
-        }
-        
-        arguments.add("'" + fullName + "'")
-        if (isATimeoutArg) {
-            arguments.add(timeoutArg)
+            pr("__fast = true;")
         } else {
-            arguments.add("undefined")
+            pr("__fast = false;")
         }
-        arguments.add(keepAliveArg)
-        arguments.add(fastArg)
         
-        pr("let _app = new "+ fullName + "(" + arguments + ")")
+        
+        //arguments.add("'" + fullName + "'")
+        
+//        if (isATimeoutArg) {
+//            arguments.add(timeoutArg)
+//        } else {
+//            arguments.add("undefined")
+//        }
+//        arguments.add(keepAliveArg)
+//        arguments.add(fastArg)
+        pr(parseCLArgs)
+        pr('// ************* Instance ' + fullName + ' of class ' +
+            defn.reactorClass.name)
+        pr("let __app = new "+ fullName + "(__timeout, __keepAlive, __fast);")
     }
     
     /** Generate code to call the _start function on the main App
@@ -808,7 +822,7 @@ class TypeScriptGenerator extends GeneratorBase {
     def void generateRuntimeStart(Instantiation defn) {
         pr('// ************* Starting Runtime for ' + defn.name + ' of class ' +
             defn.reactorClass.name)
-        pr("_app._start();")
+        pr("__app._start();")
     }
 
 
@@ -960,10 +974,75 @@ class TypeScriptGenerator extends GeneratorBase {
     static val reactorLibPath = "." + File.separator + "reactor"
     static val timeLibPath =  "." + File.separator + "time"
     static val utilLibPath =  "." + File.separator + "util"
+    static val cliLibPath =  "." + File.separator + "cli"
     val static preamble = '''
+import commandLineArgs from 'command-line-args';
 import {Args, Present, Parameter, State, Variable, Priority, Mutation, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
 import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeLibPath + '''"
 import {Log} from "''' + utilLibPath + '''"
+import {ProcessedCommandLineArgs, CommandLineOptionDefs} from "''' + cliLibPath + '''"
+
+    '''
+    
+    val static parseCLArgs = '''
+// Set App parameters using values from the constructor or command line args.
+// Command line args have precedence over values from the constructor
+let processedCLArgs: ProcessedCommandLineArgs;
+try {
+    processedCLArgs =  commandLineArgs(CommandLineOptionDefs) as ProcessedCommandLineArgs;
+} catch (e){
+    // Provide context for errors in parsing.
+    throw new Error("Command line argument parsing failed with: " + e);
+}
+
+// Fast Parameter
+if (processedCLArgs.fast !== undefined) {
+    if (processedCLArgs.fast !== null) {
+        Log.global.info("'fast' property overridden by command line argument.");
+        __fast = processedCLArgs.fast;
+    } else {
+        throw new Error("'fast' command line argument is malformed. "
+        + "The fast option must be one of: 'true' or 'false'");
+    }
+}
+
+// KeepAlive parameter
+if (processedCLArgs.keepalive !== undefined) {
+    if (processedCLArgs.keepalive !== null) {
+        Log.global.info("'keepalive' property overridden by command line argument.");
+        __keepAlive = processedCLArgs.keepalive;
+    } else {
+        throw new Error("'keepalive' command line argument is malformed. "
+        + "The keepalive option must be one of: 'true' or 'false'");
+    }
+}
+
+// Timeout parameter
+if (processedCLArgs.timeout !== undefined) {
+    if (processedCLArgs.timeout !== null) {
+        Log.global.info("'timeout' property overridden by command line argument.");
+        __timeout = processedCLArgs.timeout;
+    } else {
+        throw new Error("'timeout' command line argument is malformed. "
+            + "Ignoring specified 'timeout' argument."
+            + "A timeout should have value '<duration> <units>'. "
+            + "Duration must be a whole number, and units can be any of "
+            + "nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.");
+    }
+}
+
+// Logging parameter (not a constructor parameter, but a command line option)
+if (processedCLArgs.logging !== undefined) {
+    if (processedCLArgs.logging !== null) {
+        Log.global.info("'logging' property overridden by command line argument.");
+        Log.global.level = processedCLArgs.logging;
+    } else {
+        throw new Error("'logging' command line argument is malformed. "
+            + "The logging option must be one of: 'ERROR', 'WARN', 'INFO', 'LOG', or 'DEBUG'");
+    }
+} else {
+    // Log level is unchanged from global setting.
+}
 
     '''
         
