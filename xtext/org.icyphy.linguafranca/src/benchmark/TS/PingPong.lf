@@ -7,7 +7,7 @@ reactor Ping(count:number(100000)) {
     input receive:number;
     output send:number;
     state pingsLeft:number(count);
-    state startTime:{=TimeValue|undefined=}(undefined);
+    state startTime:{=TimeValue|undefined=}({=undefined=});
     logical action serve;
     logical action done;
     reaction (startup) -> send {=
@@ -44,4 +44,4 @@ main reactor PingPong {
     pong = new Pong();
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
-}
+} 
