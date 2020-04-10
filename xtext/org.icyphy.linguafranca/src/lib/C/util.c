@@ -29,6 +29,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Utility functions for a federate in a federated execution.
  */
 
+#include "util.h"
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>     // Defines read(), write(), and close()
+#include <assert.h>
+#include <string.h>     // Defines memcpy()
+
+#ifndef NUMBER_OF_FEDERATES
+#define NUMBER_OF_FEDERATES 1
+#endif
+
 /** Print the error defined by the errno variable with the
  *  specified message as a prefix, then exit with error code 1.
  *  @param msg The prefix to the message.
@@ -37,9 +49,6 @@ void error(char *msg) {
     perror(msg);
     exit(1);
 }
-
-#define HOST_LITTLE_ENDIAN 1
-#define HOST_BIG_ENDIAN 2
 
 /** Return true (1) if the host is big endian. Otherwise,
  *  return false.
@@ -56,6 +65,88 @@ int host_is_big_endian() {
         host = (x.c[3] == 0x01) ? HOST_BIG_ENDIAN : HOST_LITTLE_ENDIAN;
     }
     return (host == HOST_BIG_ENDIAN);
+}
+
+// Error messages.
+char* ERROR_DISCONNECTED = "ERROR socket is not connected";
+char* ERROR_EOF = "ERROR peer sent EOF";
+
+/** Read the specified number of bytes from the specified socket into the
+ *  specified buffer. If a disconnect or an EOF occurs during this
+ *  reading, report an error and exit.
+ *  @param socket The socket ID.
+ *  @param num_bytes The number of bytes to read.
+ *  @param buffer The buffer into which to put the bytes.
+ */
+void read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
+    int bytes_read = 0;
+    while (bytes_read < num_bytes) {
+        int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
+        if (more < 0) error(ERROR_DISCONNECTED);
+        if (more == 0) error(ERROR_EOF);
+        bytes_read += more;
+    }
+}
+
+/** Write the specified number of bytes to the specified socket from the
+ *  specified buffer. If a disconnect or an EOF occurs during this
+ *  reading, report an error and exit.
+ *  @param socket The socket ID.
+ *  @param num_bytes The number of bytes to write.
+ *  @param buffer The buffer from which to get the bytes.
+ */
+void write_to_socket(int socket, int num_bytes, unsigned char* buffer) {
+    int bytes_written = 0;
+    while (bytes_written < num_bytes) {
+        int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
+        if (more < 0) error(ERROR_DISCONNECTED);
+        if (more == 0) error(ERROR_EOF);
+        bytes_written += more;
+    }
+}
+
+/** Write the specified data as a sequence of bytes starting
+ *  at the specified address. This encodes the data in little-endian
+ *  order (lowest order byte first).
+ *  @param data The data to write.
+ *  @param buffer The location to start writing.
+ */
+void encode_ll(long long data, unsigned char* buffer) {
+    // This strategy is fairly brute force, but it avoids potential
+    // alignment problems.
+    int shift = 0;
+    for(int i = 0; i < sizeof(long long); i++) {
+        buffer[i] = (data & (0xffLL << shift)) >> shift;
+        shift += 8;
+    }
+}
+
+/** Write the specified data as a sequence of bytes starting
+ *  at the specified address. This encodes the data in little-endian
+ *  order (lowest order byte first).
+ *  @param data The data to write.
+ *  @param buffer The location to start writing.
+ */
+void encode_int(int data, unsigned char* buffer) {
+    // This strategy is fairly brute force, but it avoids potential
+    // alignment problems.  Note that this assumes an int is four bytes.
+    buffer[0] = data & 0xff;
+    buffer[1] = (data & 0xff00) >> 8;
+    buffer[2] = (data & 0xff0000) >> 16;
+    buffer[3] = (data & 0xff000000) >> 24;
+}
+
+/** Write the specified data as a sequence of bytes starting
+ *  at the specified address. This encodes the data in little-endian
+ *  order (lowest order byte first).
+ *  @param data The data to write.
+ *  @param buffer The location to start writing.
+ */
+void encode_ushort(unsigned short data, unsigned char* buffer) {
+    // This strategy is fairly brute force, but it avoids potential
+    // alignment problems. Note that this assumes a short is two bytes.
+    buffer[0] = data & 0xff;
+    buffer[1] = (data & 0xff00) >> 8;
 }
 
 /** If this host is little endian, then reverse the order of
@@ -138,4 +229,76 @@ int swap_bytes_if_big_endian_ushort(unsigned short src) {
     c = x.c[0]; x.c[0] = x.c[1]; x.c[1] = c;
     // printf("DEBUG: After swapping bytes: %lld.\n", x.ull);
     return x.uint;
+}
+
+/** Extract an int from the specified byte sequence.
+ *  This will swap the order of the bytes if this machine is big endian.
+ *  @param bytes The address of the start of the sequence of bytes.
+ */
+int extract_int(unsigned char* bytes) {
+    // Use memcpy to prevent possible alignment problems on some processors.
+    union {
+        int uint;
+        unsigned char c[sizeof(int)];
+    } result;
+    memcpy(&result.c, bytes, sizeof(int));
+    return swap_bytes_if_big_endian_int(result.uint);
+}
+
+/** Extract a long long from the specified byte sequence.
+ *  This will swap the order of the bytes if this machine is big endian.
+ *  @param bytes The address of the start of the sequence of bytes.
+ */
+long long extract_ll(unsigned char* bytes) {
+    // Use memcpy to prevent possible alignment problems on some processors.
+    union {
+        long long ull;
+        unsigned char c[sizeof(long long)];
+    } result;
+    memcpy(&result.c, bytes, sizeof(long long));
+    return swap_bytes_if_big_endian_ll(result.ull);
+}
+
+/** Extract an unsigned short from the specified byte sequence.
+ *  This will swap the order of the bytes if this machine is big endian.
+ *  @param bytes The address of the start of the sequence of bytes.
+ */
+unsigned short extract_ushort(unsigned char* bytes) {
+    // Use memcpy to prevent possible alignment problems on some processors.
+    union {
+        unsigned short ushort;
+        unsigned char c[sizeof(unsigned short)];
+    } result;
+    memcpy(&result.c, bytes, sizeof(unsigned short));
+    return swap_bytes_if_big_endian_ushort(result.ushort);
+}
+
+/** Extract the core header information that all messages between
+ *  federates share. The core header information is two bytes with
+ *  the ID of the destination port, two bytes with the ID of the destination
+ *  federate, and four bytes with the length of the message.
+ *  @param buffer The buffer to read from.
+ *  @param port_id The place to put the port ID.
+ *  @param federate_id The place to put the federate ID.
+ *  @param length The place to put the length.
+ */
+void extract_header(
+        unsigned char* buffer,
+        unsigned short* port_id,
+        unsigned short* federate_id,
+        unsigned int* length
+) {
+    // The first two bytes are the ID of the destination reactor.
+    *port_id = extract_ushort(buffer);
+    // The next four bytes are the message length.
+    // The next two bytes are the ID of the destination federate.
+    *federate_id = extract_ushort(buffer + 2);
+
+    // printf("DEBUG: Message for port %d of federate %d.\n", *port_id, *federate_id);
+    // FIXME: Better error handling needed here.
+    assert(*federate_id < NUMBER_OF_FEDERATES);
+    // The next four bytes are the message length.
+    *length = extract_int(buffer + 4);
+
+    // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 }

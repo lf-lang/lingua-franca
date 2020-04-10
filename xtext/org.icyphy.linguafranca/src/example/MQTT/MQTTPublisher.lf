@@ -41,6 +41,7 @@ reactor MQTTPublisher (
 ) {
     preamble {=
         #include "MQTTClient.h"
+        #include "util.h"
         
         // Timeout for completion of message sending in milliseconds.
         #define TIMEOUT     10000L
@@ -141,8 +142,9 @@ reactor MQTTPublisher (
         
         // Append the current timestamp to the message.
         // This is always last, after the physical timestamp if it is included.
-        instant_t* timestamp = (instant_t*)(self->inflight.message + length - sizeof(instant_t));
-        *timestamp = get_logical_time();
+        encode_ll(get_logical_time(), 
+            (unsigned char*)(self->inflight.message + length - sizeof(instant_t))
+        );
         // printf("DEBUG: Timestamp of sending message: %lld.\n", *timestamp);
 
         self->mqtt_msg.payload = self->inflight.message;
@@ -159,9 +161,9 @@ reactor MQTTPublisher (
         // As close as possible to the publishing of the message, insert
         // the physical timestamp if it has been requested.
         if (self->include_physical_timestamp) {
-            instant_t* physical_timestamp = (instant_t*)(self->inflight.message + length - 2 * sizeof(instant_t));
-            instant_t physical_time = get_physical_time();
-            *physical_timestamp = physical_time;
+            encode_ll(get_physical_time(),
+                (unsigned char*)(self->inflight.message + length - 2 * sizeof(instant_t))
+            );
         }        
         
         MQTTClient_publishMessage(self->client, self->topic, &self->mqtt_msg, &self->inflight.delivery_token);

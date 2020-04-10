@@ -34,9 +34,9 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.KeyValuePair
 import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.TimeOrValue
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 
@@ -92,7 +92,7 @@ class FederateInstance {
      *  may be empty, meaning no delay (not even a microstep or 0 delay)
      *  was specified.
      */
-    public var dependsOn = new HashMap<FederateInstance,Set<TimeOrValue>>()
+    public var dependsOn = new HashMap<FederateInstance,Set<Value>>()
     
     /** The integer ID of this federate. */
     public var id = 0;

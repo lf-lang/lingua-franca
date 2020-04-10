@@ -1,0 +1,40 @@
+// This test connects a simple counting source to tester
+// that checks against its own count.
+target Cpp {
+    threads: 1,
+    fast: true,
+    timeout: 10 sec
+};
+reactor Source(period:time(2 sec)) {
+    output y:int;
+    timer t(1 sec, period);
+    state count:int(0);
+    reaction(t) -> y {=
+        count++;
+        y.set(count);
+    =}
+}
+reactor Test {
+    input x:int;
+    state count:int(0);
+    reaction(x) {=
+        count++;
+        auto value = *x.get();
+        std::cout << "Received " << value << std::endl;
+        if (value != count) {
+            std::cerr << "FAILURE: Expected " << count << std::endl;
+            exit(1); 
+        }
+    =}
+    reaction(shutdown) {=
+        if (count != 3) {
+            std::cerr << "ERROR: expected to receive 3 values but got " << count << '\n';
+            exit(1);
+        } 
+    =}
+}
+main reactor Composition(delay:time(5 sec)) {
+    s = new Source();
+    d = new Test();
+    s.y -> d.x after delay;
+}

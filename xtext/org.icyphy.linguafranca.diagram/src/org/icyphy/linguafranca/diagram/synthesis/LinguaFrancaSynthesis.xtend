@@ -34,7 +34,7 @@ import javax.inject.Inject
 import org.eclipse.elk.alg.layered.options.FixedAlignment
 import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
-import org.eclipse.elk.alg.layered.p4nodes.bk.EdgeStraighteningStrategy
+import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy
 import org.eclipse.elk.core.math.ElkPadding
 import org.eclipse.elk.core.math.KVector
 import org.eclipse.elk.core.options.BoxLayouterOptions
@@ -63,7 +63,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction
 import org.icyphy.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction
-import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
@@ -482,14 +481,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 err.KContainerRendering.addRectangle() => [ // Add to existing figure
                 	setGridPlacementData().from(LEFT, 3, 0, TOP, -1, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
             		noSelectionStyle()
-            		addSingleClickAction(ShowCycleAction.ID)
+            		 //addSingleClickAction(ShowCycleAction.ID) FIXME: causes build error
             		
             		addText(TEXT_ERROR_CYCLE_BTN_SHOW) => [
             			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
 		            	fontSize = 5
             			setSurroundingSpace(1, 0)
             			noSelectionStyle()
-            			addSingleClickAction(ShowCycleAction.ID)
+            			// addSingleClickAction(ShowCycleAction.ID) // FIXME: causes build error
             		]
                 ]
                 if (containsRecursion) {
@@ -683,7 +682,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			val edge = createIODependencyEdge(connection)
 			if (connection.delay !== null) {
-				edge.addCenterEdgeLabel(connection.delay.time.toText) => [
+				edge.addCenterEdgeLabel(connection.delay.toText) => [
 					associateWith(connection.delay)
 					applyOnEdgeDelayStyle()
 				]
@@ -781,9 +780,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			b.append("\u2022 ")
 		}
 		b.append(param.name)
-		if (!ASTUtils.toText(param.type).nullOrEmpty) {
+		if (!ASTUtils.getInferredType(param).toText.nullOrEmpty) {
 			b.append(":").append(param.type)
-		} else if (param.ofTimeType) {
+		} else if (ASTUtils.isOfTimeType(param)) {
 			b.append(":time")
 		}
 		return b.toString()

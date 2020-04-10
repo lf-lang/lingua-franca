@@ -63,6 +63,9 @@ reactor MQTTSubscriber (
 ) {
     preamble {=
         #include "MQTTClient.h"
+        #include "util.h"
+        #include <pthread.h>
+        
         #define QOS         2
         #define TIMEOUT     10000L
         
@@ -94,10 +97,13 @@ reactor MQTTSubscriber (
             // implementation), then this extra delay may be negative. If it becomes
             // less than -offset, then the schedule_copy() function will complain
             // by printing a warning to stderr and revise the timestamp to current time.
-            instant_t* timestamp = (instant_t*)((char*)message->payload + message->payloadlen - sizeof(instant_t));
-            instant_t current_time = get_logical_time();
-            interval_t delay = *timestamp - current_time;
-            // FIXME: What to do if the delay is negative???
+            // First acquire the mutex lock. Otherwise, logical time could have a big
+            // jump between this calculation and the call to schedule, resulting in a long delay.
+            
+            // FIXME: pthread_mutex_lock(&mutex);
+            
+            instant_t timestamp = extract_ll((unsigned char*)message->payload + message->payloadlen - sizeof(instant_t));
+            interval_t delay = timestamp - get_logical_time();
             // printf("DEBUG: MQTTSubscriber.message_arrived: received timestamp that is %lld ahead of current_time %lld.\n", *timestamp - start_time, current_time);
             // printf("DEBUG: MQTTSubscriber.message_arrived: physical time is ahead of current logical time by: %lld.\n", receive_physical_time - current_time);
                         
@@ -118,6 +124,8 @@ reactor MQTTSubscriber (
             // can measure the latency.
             schedule_copy(incoming_message, delay, (char*)message->payload, message->payloadlen);
             
+            // FIXME: pthread_mutex_unlock(&mutex);
+
             // MQTTClient_freeMessage() also frees the memory allocated to the payload,
             // which is why we have to copy the message here.
             MQTTClient_freeMessage(&message);
@@ -221,8 +229,8 @@ reactor MQTTSubscriber (
         size_t string_length = strlen(incoming_message_value); // Assumes null-terminated string.
         if (incoming_message_token->length == string_length + 1 + 2*sizeof(instant_t)) {
             instant_t receive_physical_time = get_physical_time();
-            instant_t* physical_timestamp = (instant_t*)(incoming_message_value + string_length + 1);
-            latency = receive_physical_time - *physical_timestamp;
+            instant_t physical_timestamp = extract_ll((unsigned char*)(incoming_message_value + string_length + 1));
+            latency = receive_physical_time - physical_timestamp;
             // printf("DEBUG: MQTTReceiver.reaction: Reacted to message after measured latency of %lld nsec (assuming synchronized clocks).\n", latency);
         }
         

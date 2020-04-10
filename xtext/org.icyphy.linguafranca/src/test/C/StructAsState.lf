@@ -7,7 +7,7 @@ main reactor StructAsState {
             int value;
         } hello_t;
     =}
-    state s:hello_t({= {"Earth", 42}=});
+    state s:hello_t("Earth", 42); // Notice that target code delimiters are no longer necessary.
     reaction(startup) {=
         printf("State s.name=\"%s\", value=%d.\n", self->s.name, self->s.value);
         if (self->s.value != 42) {

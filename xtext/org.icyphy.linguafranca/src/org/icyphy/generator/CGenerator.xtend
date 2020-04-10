@@ -42,6 +42,7 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.InferredType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -50,27 +51,28 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.LinguaFrancaPackage
-import org.icyphy.linguaFranca.LiteralOrCode
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.State
+import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
-/** Generator for C target.
+import static extension org.icyphy.ASTUtils.*
+
+/** 
+ * Generator for C target.
  * 
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- *  @author{Chris Gill, <cdgill@wustl.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
+ * @author{Chris Gill, <cdgill@wustl.edu>}
  */
 class CGenerator extends GeneratorBase {
     
@@ -142,9 +144,9 @@ class CGenerator extends GeneratorBase {
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
 
-        // Copy the required library files into the target filesystem.
+        // Copy the required library files into the target file system.
         // This will overwrite previous versions.
-        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h")
+        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
         if (targetThreads === 0) {
             files.add("reactor.c")
         } else {
@@ -153,7 +155,7 @@ class CGenerator extends GeneratorBase {
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file.
         if (federates.length > 1) {
-            files.addAll("util.c", "rti.c", "rti.h", "federate.c")
+            files.addAll("rti.c", "rti.h", "federate.c")
             createFederateRTI()
         }
         
@@ -185,8 +187,8 @@ class CGenerator extends GeneratorBase {
                 pr(startTimers, 'synchronize_with_other_federates('
                     + federate.id
                     + ', "'
-                    + federationRTIHost 
-                    + '", ' + federationRTIPort
+                    + federationRTIProperties.get('host') 
+                    + '", ' + federationRTIProperties.get('port')
                     + ");"
                 )
             }
@@ -199,10 +201,6 @@ class CGenerator extends GeneratorBase {
                     // it is the same for all federates.
                     this.main = new ReactorInstance(mainDef, null, this) 
                 }   
-            }
-        
-            if (main !== null && main.chainIDWidth > 64) {
-                throw new Exception("Currently no support for programs with more than 64 branches in the dependency tree. ")
             }
         
             // Derive target filename from the .lf filename.
@@ -311,6 +309,19 @@ class CGenerator extends GeneratorBase {
                 }
                 unindent()
                 pr('}\n')
+                
+                // Generate the termination function.
+                // If there are federates, this will resign from the federation.
+                if (federates.length > 1) {
+                    pr('''
+                        void __termination() {
+                            unsigned char message_marker = RESIGN;
+                            write(rti_socket, &message_marker, 1);
+                        }
+                    ''')
+                } else {
+                    pr("void __termination() {}");
+                }
             }
 
             // Write the generated code to the output file.
@@ -336,18 +347,18 @@ class CGenerator extends GeneratorBase {
     def compileCode() {
 
         // If there is more than one federate, compile each one.
-        val baseFilename = filename
+        var fileToCompile = filename // base file name.
         for (federate : federates) {
             // Empty string means no federates were defined, so we only
             // compile one file.
             if (!federate.isSingleton) {
-                filename = baseFilename + '_' + federate.name
+                fileToCompile = filename + '_' + federate.name
             }
             
             // Derive target filename from the .lf filename.
-            val cFilename = filename + ".c";            
+            val cFilename = fileToCompile + ".c";            
             val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-            val relativeBinFilename = "bin" + File.separator + filename;
+            val relativeBinFilename = "bin" + File.separator + fileToCompile;
             
             var compileCommand = newArrayList
             compileCommand.add(targetCompiler)
@@ -385,11 +396,15 @@ class CGenerator extends GeneratorBase {
         }
         // Also compile the RTI if there is more than one federate.
         if (federates.length > 1) {
-            filename = baseFilename + '_RTI'
+            if (federationRTIProperties.get('launcher') as Boolean) {
+                fileToCompile = filename                
+            } else {
+                fileToCompile = filename + '_RTI'
+            }
             var compileCommand = newArrayList
             compileCommand.addAll("gcc", "-O2", 
-                    "src-gen" + File.separator + filename + '.c',
-                    "-o", "bin" + File.separator + filename,
+                    "src-gen" + File.separator + fileToCompile + '.c',
+                    "-o", "bin" + File.separator + fileToCompile,
                     "-pthread")
             executeCommand(compileCommand, directory)
         }
@@ -397,54 +412,16 @@ class CGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Code generators.
-    
-    /** If any input is conveyed using the token_t struct,
-     *  then add a reaction at the end of the list of reactions
-     *  that is triggered by that input that decrements the
-     *  reference count and frees allocated memory when the
-     *  reference count hits zero.
-     */
-    def addReferenceCountReaction(Reactor reactor) {    
-        var factory = LinguaFrancaFactory.eINSTANCE    
-        var triggersForReaction = newArrayList
-        var body = new StringBuilder
-        // This is a bit of a hack, but preface the body with
-        // a comment that the preamble should not not be included.
-        // Including the preamble could result in multiple writable
-        // copies being made if an input is mutable.
-        pr(body, CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)
-        pr(body, '// Generated reaction for recycling allocated memory.')
-        for(input : reactor.inputs) {
-            if (input.type !== null) {
-                if (isTokenType(input.type)) {
-                    triggersForReaction.add(input)
-                    pr(body, '''
-                        if(self->__«input.name»_is_present) {
-                            __done_using(*self->__«input.name»);
-                        }
-                    ''')
-                }
-            }
-        }
-        if (!triggersForReaction.isEmpty) {
-            var reaction = LinguaFrancaFactory.eINSTANCE.createReaction
-            // Populate the triggers for the reaction.
-            for(input: triggersForReaction) {
-                var variableReference = LinguaFrancaFactory.eINSTANCE.createVarRef()
-                variableReference.setVariable(input)
-                reaction.triggers.add(variableReference)
-            }
-            var code = factory.createCode()
-            code.tokens.add(body.toString) 
-            reaction.setCode(code)
-            reactor.reactions.add(reaction)
-        }
-    }
-    
+        
     /** Create a file  */
     def createFederateRTI() {
         // Derive target filename from the .lf filename.
-        val cFilename = filename + "_RTI.c";
+        var cFilename = filename + "_RTI.c"
+        
+        // If the RTI is to launch all the federates, omit the '_RTI'.
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            cFilename = filename + ".c"              
+        }
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
 
@@ -460,15 +437,52 @@ class CGenerator extends GeneratorBase {
             file.delete
         }
         
+        val rtiCode = new StringBuilder()
+        pr(rtiCode, '''
+            #ifdef NUMBER_OF_FEDERATES
+            #undefine NUMBER_OF_FEDERATES
+            #endif
+            #define NUMBER_OF_FEDERATES «federates.length»
+            #include "rti.c"
+            int main(int argc, char* argv[]) {
+        ''')
+        indent(rtiCode)
+        
+        // Start the RTI server before launching the federates because if it
+        // fails, e.g. because the port is not available, then we don't want to
+        // launch the federates.
+        pr(rtiCode, '''
+            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
+        ''')
+
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            for (federate : federates) {
+                pr(rtiCode, '''
+                    if (federate_launcher("«outPath»«File.separator»«filename»_«federate.name»") == -1) exit(-1);
+                ''')
+            }
+        }
+        
+        // Generate code that blocks until the federates resign.
+        pr(rtiCode, "wait_for_federates(socket_descriptor);")
+        
+        if (federationRTIProperties.get('launcher') as Boolean) {
+            pr(rtiCode, '''
+                int exit_code = 0;
+                for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                    int subprocess_exit_code;
+                    wait(&subprocess_exit_code);
+                    if (subprocess_exit_code != 0) exit_code = subprocess_exit_code;
+                }
+                exit(exit_code);
+            ''')
+        }
+        unindent(rtiCode)
+        pr(rtiCode, "}")
+        
         var fOut = new FileOutputStream(
                 new File(srcGenPath + File.separator + cFilename));
-        fOut.write('''
-#define NUMBER_OF_FEDERATES «federates.length»
-#include "rti.c"
-int main(int argc, char* argv[]) {
-    start_rti(«federationRTIPort»);
-}
-        '''.toString().getBytes())
+        fOut.write(rtiCode.toString().getBytes())
         fOut.close()
     }
     
@@ -521,10 +535,10 @@ int main(int argc, char* argv[]) {
                             timer = factory.createTimer
                             timer.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__STARTUP.name
-                            timer.offset = factory.createTimeOrValue
-                            timer.offset.time = 0
-                            timer.period = factory.createTimeOrValue
-                            timer.period.time = 0
+                            timer.offset = factory.createValue
+                            timer.offset.literal = "0"
+                            timer.period = factory.createValue
+                            timer.period.literal = "0"
                             reactor.timers.add(timer)
                         }
                     } else if (trigger.isShutdown) {
@@ -534,8 +548,8 @@ int main(int argc, char* argv[]) {
                             action.name = LinguaFrancaPackage.Literals.
                                 TRIGGER_REF__SHUTDOWN.name
                             action.origin = ActionOrigin.LOGICAL
-                            action.minDelay = factory.createTimeOrValue
-                            action.minDelay.time = 0
+                            action.minDelay = factory.createValue
+                            action.minDelay.literal = "0"
                             reactor.actions.add(action)
                         }
                     }
@@ -559,12 +573,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // Add a reaction, if necessary, to decrement the reference
-        // count for any input that is conveyed using the token_t struct.
-        // This will also free malloc'd memory when the reference count
-        // hits zero.
-        addReferenceCountReaction(reactor)
-
         pr("// =============== START reactor class " + reactor.name)
 
         // Scan reactions.
@@ -587,9 +595,9 @@ int main(int argc, char* argv[]) {
             pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
         }
         // Next handle states.
-        for (state : reactor.states) {
-            prSourceLineNumber(state)
-            pr(body, getStateType(state) + ' ' + state.name + ';');
+        for (stateVar : reactor.stateVars) {
+            prSourceLineNumber(stateVar)
+            pr(body, getStateType(stateVar) + ' ' + stateVar.name + ';');
         }
         // Next handle actions.
         for (a : reactor.actions) {
@@ -604,7 +612,7 @@ int main(int argc, char* argv[]) {
                 reportError(input,
                     "Input is required to have a type: " + input.name)
             } else {
-                val inputType = lfTypeToTokenType(input.type)
+                val inputType = lfTypeToTokenType(input.inferredType)
                 // If the output type has the form type[number], then treat it specially
                 // to get a valid C type.
                 val matcher = arrayPatternFixed.matcher(inputType)
@@ -651,7 +659,7 @@ int main(int argc, char* argv[]) {
                     "Output is required to have a type: " + output.name)
             } else {
                 // If the output type has the form type[] or type*, then change it to token_t*.
-                val outputType = lfTypeToTokenType(output.type)
+                val outputType = lfTypeToTokenType(output.inferredType)
                 // If there are contained reactors that send data via this output,
                 // then create a place to put the pointers to the sources of that data.
                 var containedSource = outputToContainedOutput.get(output)
@@ -741,13 +749,13 @@ int main(int argc, char* argv[]) {
             indent(body)
             for (variable : structs.get(containedReactor)) {
                 if (variable instanceof Input) {
-                    pr(body, lfTypeToTokenType(variable.type) + ' ' + variable.name + ';')
+                    pr(body, lfTypeToTokenType(variable.inferredType) + ' ' + variable.name + ';')
                     pr(body, 'bool ' + variable.name + '_is_present;')
                 } else {
                     // Must be an output entry.
                     val port = variable as Output
                     // Outputs are pointers to the source of data.
-                    pr(body, lfTypeToTokenType(port.type) + '* ' + port.name + ';')
+                    pr(body, lfTypeToTokenType(port.inferredType) + '* ' + port.name + ';')
                     pr(body, 'bool* ' + port.name + '_is_present;')
                 }
             }
@@ -944,7 +952,7 @@ int main(int argc, char* argv[]) {
             indent();
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline.interval)
+            prSourceLineNumber(reaction.deadline)
             pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
@@ -1139,6 +1147,71 @@ int main(int argc, char* argv[]) {
         pr(result.toString())
     }
 
+    /** Produce the code to decrement reference counts and mark outputs absent
+     *  between time steps.
+     */
+    def generateStartTimeStep(ReactorInstance instance, FederateInstance federate) {
+        // First, decrement reference counts for each token type
+        // input of a contained reactor that is present.
+        for (child : instance.children) {
+            if (reactorBelongsToFederate(child, federate)) {
+                var nameOfSelfStruct = selfStructName(child)
+                for (input : child.inputs) {
+                    if (isTokenType((input.definition as Input).inferredType)) {
+                        pr(startTimeStep, '''
+                            if (*«nameOfSelfStruct».__«input.name»_is_present) {
+                                __done_using(*«nameOfSelfStruct».__«input.name»);
+                            }
+                        ''')
+                    }
+                }
+            }
+        }
+        var containerSelfStructName = selfStructName(instance)
+        // Handle inputs that get sent data from a reaction rather than from
+        // another contained reactor and reactions that are triggered by an
+        // output of a contained reactor.
+        for (reaction : instance.reactions) {
+            // Include reaction only if it is part of the federate.
+            if (federate.containsReaction(instance.definition.reactorClass, reaction.definition)) {
+            for (port : reaction.dependentPorts) {
+                if (port.definition instanceof Input) {
+                    // This reaction is sending to an input. Must be
+                    // the input of a contained reactor in the federate.
+                    if (reactorBelongsToFederate(port.parent, federate)) {
+                        pr(startTimeStep,
+                            containerSelfStructName + '.__' +
+                                port.parent.definition.name + '.' +
+                                port.definition.name + '_is_present = false;'
+                        )
+                    }
+                }
+            }
+            for (port : reaction.dependsOnPorts) {
+                if (port.definition instanceof Output) {
+                    // This reaction is receiving data from the port.
+                    if (isTokenType((port.definition as Output).inferredType)) {
+                        pr(startTimeStep, '''
+                            if (*«containerSelfStructName».__«port.parent.name».«port.name»_is_present) {
+                                __done_using(*«containerSelfStructName».__«port.parent.name».«port.name»);
+                            }
+                        ''')
+                    }
+                }
+            }
+            }
+        }
+        // Next, mark each output of each contained reactor absent.
+        for (child : instance.children) {
+            if (reactorBelongsToFederate(child, federate)) {
+                var nameOfSelfStruct = selfStructName(child)
+                for (output : child.outputs) {
+                    pr(startTimeStep, '''«nameOfSelfStruct».__«output.name»_is_present = false;''')
+                }
+            }
+        }
+    }
+    
     /** Generate one reaction function definition for each output of
      *  a reactor that relays data from the output of a contained reactor.
      *  This reaction function transfers the data from the output of the
@@ -1329,7 +1402,7 @@ int main(int argc, char* argv[]) {
                     'reaction_t* ' + structName + '_reactions[1] = {&' +
                         reactionInstanceName + '};')
 
-                val rootType = ((output.definition as Port).type).rootType
+                val rootType = (output.definition as Port).targetType.rootType
                 pr(result, '''
                     trigger_t «structName» = {
                         «structName»_reactions, 1, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
@@ -1412,32 +1485,27 @@ int main(int argc, char* argv[]) {
                 pr(result, '''
                     «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, 0
                 ''')
-            } else if (trigger instanceof Port) {
-                val rootType = trigger.type.rootType
+            } else if (triggerInstance instanceof PortInstance) {
+                val rootType = (triggerInstance.definition as Port).targetType.rootType
                 pr(result, '''
                     «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
                 ''')
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
-                var minDelay = reactorInstance.resolveTime(trigger.minDelay)
-                var minInterArrival = reactorInstance.resolveTime(trigger.minInterArrival)
+                var minDelay = (triggerInstance as ActionInstance).minDelay
+                var minInterArrival = (triggerInstance as ActionInstance).minInterArrival
                 
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
                 } else {
-                    // For physical actions,
-                    // if no minimum interarrival time was specified, then
-                    // we do not want zero, which is what resolveTime returns,
-                    // but rather some non-zero time.
-                    if (trigger.minInterArrival === null) {
-                        minInterArrival = DEFAULT_MIN_INTER_ARRIVAL;
-                    }
+                    // FIXME: the default policy should be DROP. Make it the 0th element in the enum.
+                    // Also, we need to enforce MIT for logical actions.
                     if (trigger.policy == QueuingPolicy.NONE) {
                         trigger.policy = QueuingPolicy.DEFER;
                     }
                 }
                 var element_size = "0"
-                if (trigger.type !== null) element_size = '''sizeof(«trigger.type.rootType»)'''
+                if (trigger.type !== null) element_size = '''sizeof(«trigger.targetType.rootType»)'''
                 pr(result, '''
                     «triggerStructName»_reactions,
                     «numberOfReactionsTriggered»,
@@ -1467,8 +1535,8 @@ int main(int argc, char* argv[]) {
             // the struct because the value assigned may not be a compile-time constant.
             if (trigger instanceof Timer) {
 
-                val offset = reactorInstance.resolveTime(trigger.offset)
-                val period = reactorInstance.resolveTime(trigger.period)
+                val offset = (triggerInstance as TimerInstance).offset
+                val period = (triggerInstance as TimerInstance).period
 
                 pr(initializeTriggerObjects,
                     triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
@@ -1566,7 +1634,7 @@ int main(int argc, char* argv[]) {
      *  @param reactor A reactor class
      */
     def hasEmptySelfStruct(Reactor reactor) {
-        if (!reactor.parameters.isEmpty || !reactor.states.isEmpty ||
+        if (!reactor.parameters.isEmpty || !reactor.stateVars.isEmpty ||
             !reactor.actions.isEmpty || !reactor.inputs.isEmpty ||
             !reactor.outputs.isEmpty) {
             return false
@@ -1630,12 +1698,12 @@ int main(int argc, char* argv[]) {
             // memory allocations.
             
             // Array type parameters have to be handled specially.
-            val matcher = arrayPatternVariable.matcher(parameter.type.toText)
+            val matcher = arrayPatternVariable.matcher(parameter.type.targetType)
             if (matcher.find()) {
                 val temporaryVariableName = parameter.uniqueID
                 pr(initializeTriggerObjects,
                     "static " + matcher.group(1) + " " +
-                    temporaryVariableName + "[] = " + parameter.literalValue + ";"
+                    temporaryVariableName + "[] = " + parameter.getInitializer + ";"
                 )
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + parameter.name + " = " + temporaryVariableName + ";"
@@ -1643,7 +1711,7 @@ int main(int argc, char* argv[]) {
             } else {
                 pr(initializeTriggerObjects,
                     nameOfSelfStruct + "." + parameter.name + " = " +
-                        parameter.literalValue + ";"
+                        parameter.getInitializer + ";" 
                 )
             }
         }
@@ -1651,60 +1719,26 @@ int main(int argc, char* argv[]) {
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
         
-        for (state : reactorClass.states) {
-            var time = state.time
-            var unit = state.unit
-            var LiteralOrCode init
-            var parameterized = false
-            var initialized = false
+        for (stateVar : reactorClass.stateVars) {
             
-            if (state.init !== null) {
-                if (state.init.parameter !== null) {
-                    time = state.init.parameter.time
-                    unit = state.init.parameter.unit
-                    init = state.init.parameter.value
-                    parameterized = true
-                } else {
-                    init = state.init.value
-                }
-                initialized = true
-            }
-            /* FIXME: Work in progress toward supporting lists
-            var elements = new LinkedList<String>();
-            for (element : state.init) {
-                var time = element.time
-                var unit = element.unit
-                var value = element.value
-                if (element.parameter !== null) {
-                    time = element.parameter.time
-                    unit = element.parameter.unit
-                    value = element.parameter.value
-                }
-                if (state.ofTimeType) {
-                    elements.add(timeInTargetLanguage(new TimeValue(time, unit)))
-                } else {
-                    elements.add(GeneratorBase.literalOrCodeToString(value))
-                }
-            }
-            */
-
-            if (state.ofTimeType) { // FIXME: check element list is of size one in validator
+            val initializer = getInitializer(stateVar, instance)
+            
+            if (stateVar.isOfTimeType) {
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "." + state.name + " = " +
-                        timeInTargetLanguage(new TimeValue(time, unit)) + ";")
+                    nameOfSelfStruct + "." + stateVar.name + " = " +
+                        initializer + ";")
             } else {
                 // If the state is initialized with a parameter, then do not use
                 // a temporary variable. Otherwise, do, because
                 // static initializers for arrays and structs have to be handled
                 // this way, and there is no way to tell whether the type of the array
                 // is a struct.
-                if (parameterized && initialized) {
+                if (stateVar.isParameterized && stateVar.init.size > 0) {
                     pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "." + state.name + " = " +
-                        init.toText + ";")
+                        nameOfSelfStruct + "." + stateVar.name + " = " + initializer + ";")
                 } else {
-                   val temporaryVariableName = instance.uniqueID + '_initial_' + state.name
-                    var type = state.type.toText
+                   val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                    var type = stateVar.targetType
                     val matcher = arrayPatternVariable.matcher(type)
                     if (matcher.find()) {
                         // If the state type ends in [], then we have to move the []
@@ -1712,16 +1746,16 @@ int main(int argc, char* argv[]) {
                         // after the variable name.
                         pr(initializeTriggerObjects,
                             "static " + matcher.group(1) + " " +
-                            temporaryVariableName + "[] = " + state.init.value.toText + ";"
+                            temporaryVariableName + "[] = " + initializer + ";"
                         )
                     } else {
                         pr(initializeTriggerObjects,
                             "static " + type + " " +
-                            temporaryVariableName + " = " + state.init.value.toText + ";"
+                            temporaryVariableName + " = " + initializer + ";"
                         )
                     }
                     pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "." + state.name + " = " + temporaryVariableName + ";"
+                        nameOfSelfStruct + "." + stateVar.name + " = " + temporaryVariableName + ";"
                     ) 
                 }
             }
@@ -1750,13 +1784,30 @@ int main(int argc, char* argv[]) {
                 nameOfSelfStruct + '.__' + action.name + ' = ' + triggerStruct + ';'
             )
         }
-        // Next, generate the code to initialize outputs at the start
-        // of a time step to be absent.
-        // This will also set the number of destinations,
+        // Next, set the number of destinations,
         // which is used to initialize reference counts.
+        // Reference counts are decremented by each destination reactor
+        // at the conclusion of a time step. Hence, the initial reference
+        // count should equal the number of destination _reactors_, not the
+        // number of destination ports nor the number of destination reactions.
+        // One of the destination reactors may be the container of this
+        // instance because it may have a reaction to an output of this instance. 
         for (output : instance.outputs) {
-            pr(startTimeStep, '''«nameOfSelfStruct».__«output.name»_is_present = false;''')
-            pr(initializeTriggerObjects, '''«nameOfSelfStruct».__«output.name»_num_destinations = «output.dependentPorts.size»;''')
+            // Count the number of destination reactors that receive data from
+            // this output port. Do this by building a set of the containers
+            // of all dependent ports and reactions. The dependentReactions
+            // includes reactions of the container that listen to this port.
+            val destinationReactors = new HashSet<ReactorInstance>()
+            for (destinationPort : output.dependentPorts) {
+                destinationReactors.add(destinationPort.parent)
+            }
+            for (destinationReaction : output.dependentReactions) {
+                destinationReactors.add(destinationReaction.parent)
+            }
+            var numDestinations = destinationReactors.size
+            pr(initializeTriggerObjects, '''
+                «nameOfSelfStruct».__«output.name»_num_destinations = «numDestinations»;
+            ''')
         }
         
         // Next, initialize actions by creating a token_t in the self struct.
@@ -1764,14 +1815,19 @@ int main(int argc, char* argv[]) {
         for (action : instance.actions) {
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action)) {
-                var type = (action.definition as Action).type
-                var typeStr = type.toText
-                if (isTokenType(type)) {
-                    typeStr = type.rootType
-                }
+                var type = (action.definition as Action).inferredType
                 var payloadSize = "0"
-                if (typeStr !== null && !typeStr.equals("")) {
-                    payloadSize = '''sizeof(«typeStr»)'''
+                
+                if (!type.isUndefined) {
+                    var String typeStr = type.targetType
+                    if (isTokenType(type)) {
+                        typeStr = typeStr.rootType
+                    } else {
+                        typeStr = type.targetType
+                    }
+                    if (typeStr !== null && !typeStr.equals("")) {
+                        payloadSize = '''sizeof(«typeStr»)'''
+                    }    
                 }
             
                 // Create a reference token initialized to the payload size.
@@ -1796,8 +1852,8 @@ int main(int argc, char* argv[]) {
         }
         // Handle reaction local deadlines.
         for (reaction : instance.reactions) {
-            if (reaction.definition.deadline !== null) {
-                var deadline = instance.resolveTime(reaction.definition.deadline.interval)
+            if (reaction.declaredDeadline !== null) {
+                var deadline = reaction.declaredDeadline.maxDelay
                 pr(initializeTriggerObjects,
                     reactionStructName(reaction) + '.local_deadline = ' +
                         timeInTargetLanguage(deadline) + ';')
@@ -1808,8 +1864,34 @@ int main(int argc, char* argv[]) {
                 generateReactorInstance(child, federate)
             }
         }
+        
+        // For this instance, define what must be done at the start of
+        // each time step. Note that this is also run once at the end
+        // so that it can deallocate any memory.
+        generateStartTimeStep(instance, federate)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
+    }
+    
+    
+    protected def getInitializer(StateVar state, ReactorInstance parent) {
+        var list = new LinkedList<String>();
+
+        for (i : state?.init) {
+            if (i.parameter !== null) {
+                val ref = parent.parameters.findFirst[it.definition === i.parameter]
+                list.add(ref.init.get(0).targetValue)
+            } else if (state.isOfTimeType) {
+                list.add(i.targetTime)
+            } else {
+                list.add(i.targetValue)
+            }
+        }
+        
+        if (list.size == 1)
+            return list.get(0)
+        else
+            return list.join('{', ', ', '}', [it])
     }
     
     /** Return true if the specified reactor instance belongs to the specified
@@ -1891,7 +1973,7 @@ int main(int argc, char* argv[]) {
         val ref = generateVarRef(port);
         // Note that the action.type set by the base class is actually
         // the port type.
-        if (action.type.isTokenType) {
+        if (action.inferredType.isTokenType) {
             '''
             if («ref»_is_present) {
                 // Put the whole token on the event queue, not just the payload.
@@ -1916,12 +1998,14 @@ int main(int argc, char* argv[]) {
      */
     override generateForwardBody(Action action, VarRef port) {
         val outputName = generateVarRef(port)
-        if (action.type.isTokenType) {
+        if (action.inferredType.isTokenType) {
             // Forward the entire token and prevent freeing.
-            // We leave the ref_count alone. It should be 1.
+            // Increment the ref_count because it will be decremented
+            // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
             self->__«outputName» = (token_t*)self->__«action.name»->token;
+            ((token_t*)self->__«action.name»->token)->ref_count++;
             self->__«outputName»_is_present = true;
             '''
         } else {
@@ -1950,23 +2034,40 @@ int main(int argc, char* argv[]) {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        InferredType type
     ) {
-        // Adjust the type of the action.
-        // If it is "string", then change it to "char".
-        // Pointer types in actions are declared without the "*" (perhaps oddly).
-        if (action.type.toText == "string") {
+        // Adjust the type of the action and the receivingPort.
+        // If it is "string", then change it to "char*".
+        // This string is dynamically allocated, and type 'string' is to be
+        // used only for statically allocated strings.
+        if (action.type.targetType == "string") {
             action.type.code = null
             action.type.id = "char*"
         }
+        if ((receivingPort.variable as Port).type.targetType == "string") {
+            (receivingPort.variable as Port).type.code = null
+            (receivingPort.variable as Port).type.id = "char*"
+        }
+
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
-        '''
-        // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-        // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
-        // So passing it downstream should be OK.
-        set(«receiveRef», «action.name»_value);
-        '''
+        val result = new StringBuilder()
+        result.append('''
+            // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+        ''')
+        if (isTokenType(type)) {
+            result.append('''
+                set(«receiveRef», «action.name»_token);
+                «action.name»_token->ref_count++;
+            ''')
+        } else {
+            // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
+            // So passing it downstream should be OK.
+            result.append('''
+                set(«receiveRef», «action.name»_value);
+            ''')
+        }
+        return result.toString
     }
 
     /**
@@ -1985,16 +2086,32 @@ int main(int argc, char* argv[]) {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        String type
+        InferredType type
     ) { 
-        val sendRef = generateVarRef(sendingPort);
-        val receiveRef = generateVarRef(receivingPort);
-        '''
-        // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-        // FIXME: Only supporting string type right now.
-        int message_length = strlen(«sendRef») + 1;
-        send_physical(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
-        '''
+        val sendRef = generateVarRef(sendingPort)
+        val receiveRef = generateVarRef(receivingPort)
+        val result = new StringBuilder()
+        result.append('''
+            // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+        ''')
+        // FIXME: Use send_via_rti if the physical keyword is supplied to the connection.
+        if (isTokenType(type)) {
+            // NOTE: Transporting token types this way is likely to only work if the sender and receiver
+            // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
+            result.append('''
+                size_t message_length = «sendRef»->length * «sendRef»->element_size;
+                «sendRef»->ref_count++;
+                send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                __done_using(«sendRef»);
+            ''')
+        } else {
+            // FIXME: Only supporting string type right now.
+            result.append('''
+            size_t message_length = strlen(«sendRef») + 1;
+            send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
+            ''')
+        }
+        return result.toString
     }
 
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
@@ -2009,6 +2126,10 @@ int main(int argc, char* argv[]) {
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);        
                 
         // Handle target parameters.
+        // First, if there are federates, then ensure that threading is enabled.
+        if (targetThreads === 0 && federates.length > 1) {
+            targetThreads = 1
+        }
         if (targetThreads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
@@ -2233,12 +2354,6 @@ int main(int argc, char* argv[]) {
                                 '.__' + port.parent.definition.name + '.' +
                                 port.definition.name + '_is_present;'
                         )
-                        pr(
-                            startTimeStep,
-                            containerSelfStructName + '.__' +
-                                port.parent.definition.name + '.' +
-                                port.definition.name + '_is_present = false;'
-                        )
                     }
                 }
             }
@@ -2275,7 +2390,7 @@ int main(int argc, char* argv[]) {
      */
     private def generateActionVariablesInReaction(StringBuilder builder, Action action) {
         // If the action has a type, create variables for accessing the value.
-        val type = action.type
+        val type = action.inferredType
         // Pointer to the token_t sent as the payload in the trigger.
         val tokenPointer = '''(self->__«action.name»->token)'''
         // Create the _has_value variable.
@@ -2286,7 +2401,7 @@ int main(int argc, char* argv[]) {
             token_t* «action.name»_token = «tokenPointer»;
             ''')
         // Create the _value variable if there is a type.
-        if (type !== null) {
+        if (!type.isUndefined) {
             if (isTokenType(type)) {
                 // Create the value variable, but initialize it only if the pointer is not null.
                 // NOTE: The token_t objects will get recycled automatically using
@@ -2296,7 +2411,7 @@ int main(int argc, char* argv[]) {
                 
                 // If this is an array type, the type cannot be used verbatim; the trailing `[]`
                 // should be replaced by a `*`
-                var cType = type.toText
+                var cType = type.targetType
                 val matcher = arrayPatternVariable.matcher(cType)
                 if (matcher.find()) {
                     cType = matcher.group(1) + '*'
@@ -2315,9 +2430,9 @@ int main(int argc, char* argv[]) {
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
                 pr(builder, '''
-                    «type.toText» «action.name»_value;
+                    «type.targetType» «action.name»_value;
                     if («action.name»_has_value) {
-                        «action.name»_value = *((«type.toText»*)«tokenPointer»->value);
+                        «action.name»_value = *((«type.targetType»*)«tokenPointer»->value);
                     }
                     '''
                 )
@@ -2340,9 +2455,9 @@ int main(int argc, char* argv[]) {
         pr(builder,
             'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
         
-        if (input.type.isTokenType) {
+        if (input.inferredType.isTokenType) {
             // FIXME: Redo the following with smart strings '''
-            val rootType = input.type.rootType
+            val rootType = input.targetType.rootType
             pr(builder, rootType + '* ' + input.name + ';')
             pr(builder, 'int ' + input.name + '_length = 0;')
             // Create the name_token variable.
@@ -2365,11 +2480,11 @@ int main(int argc, char* argv[]) {
             }
         } else if (input.type !== null) {
             // Look for array type of form type[number].
-            val matcher = arrayPatternFixed.matcher(input.type.toText)
+            val matcher = arrayPatternFixed.matcher(input.type.targetType)
             if (matcher.find()) {
                 pr(builder, matcher.group(1) + '* ' + input.name + ';')
             } else {
-                pr(builder, input.type.toText + ' ' + input.name + ';')
+                pr(builder, input.type.targetType + ' ' + input.name + ';')
             }
             pr(builder, 'if(' + present + ') {')
             indent(builder)
@@ -2396,7 +2511,7 @@ int main(int argc, char* argv[]) {
             // port is an output of a contained reactor.
             val output = port.variable as Output
             val portName = output.name
-            val portType = lfTypeToTokenType(output.type)
+            val portType = lfTypeToTokenType(output.inferredType)
             
             var structBuilder = structs.get(port.container)
             if (structBuilder === null) {
@@ -2437,7 +2552,7 @@ int main(int argc, char* argv[]) {
             reportError(output,
                 "Output is required to have a type: " + output.name)
         } else {
-            val outputType = lfTypeToTokenType(output.type)
+            val outputType = lfTypeToTokenType(output.inferredType)
             // Define a variable of type 'type*' with name matching the output name.
             // If the output type has the form type[number],
             // then the variable is set equal to the pointer in the self struct
@@ -2449,13 +2564,13 @@ int main(int argc, char* argv[]) {
             if (matcher.find()) {
                 pr(
                     builder,
-                    rootType(output.type) + '* ' + output.name +
+                    rootType(output.targetType) + '* ' + output.name +
                         ' = self->__' + output.name + ';'
                 )
-            } else if (isTokenType(output.type)) {
+            } else if (isTokenType(output.inferredType)) {
                 pr(
                     builder,
-                    rootType(output.type) + '* ' + output.name + ' = NULL;'
+                    rootType(output.targetType) + '* ' + output.name + ' = NULL;'
                 )
             } else {
                 pr(
@@ -2494,7 +2609,7 @@ int main(int argc, char* argv[]) {
             structBuilder = new StringBuilder
             structs.put(definition, structBuilder)
         }
-        pr(structBuilder, lfTypeToTokenType(input.type) + '* ' + input.name + ';')
+        pr(structBuilder, lfTypeToTokenType(input.inferredType) + '* ' + input.name + ';')
         pr(structBuilder, ' bool ' + input.name + '_is_present;')        
         
         pr(builder,
@@ -2516,22 +2631,10 @@ int main(int argc, char* argv[]) {
      *  @return The C type.
      */
     private def getParameterType(Parameter parameter) {
-        if (parameter.ofTimeType) {
-            return timeTypeInTargetLanguage
-        }
-        if (parameter.type === null || parameter.type.toText.equals("")) {
-            reportError(parameter,
-                "Parameter is required to have a type: " + parameter.name)
-            return "(ERROR: NO TYPE)"
-        }
-        var type = parameter.type.toText
-        if (parameter.unit != TimeUnit.NONE || parameter.isOfTimeType) {
-            type = 'interval_t'
-        } else {
-            val matcher = arrayPatternVariable.matcher(type)
-            if (matcher.find()) {
-                return matcher.group(1) + '*'
-            }
+        var type = parameter.targetType
+        val matcher = arrayPatternVariable.matcher(type)
+        if (matcher.find()) {
+            return matcher.group(1) + '*'
         }
         type
     }
@@ -2544,28 +2647,37 @@ int main(int argc, char* argv[]) {
      *  @param state The state variable.
      *  @return The C type.
      */
-    private def getStateType(State state) {
+    private def getStateType(StateVar state) {
         // A state variable may directly refer to its initializing parameter,
         // in which case, it inherits the type from the parameter.
-        if (state.init !== null && state.init.parameter !== null) {
-            return state.init.parameter.type.toText
-        }
-        if (state.ofTimeType) {
-            return timeTypeInTargetLanguage
-        }
-        if (state.type === null || state.type.toText.equals("")) {
-            reportError(state,
-                "State is required to have a type: " + state.name)
-            return "(ERROR: NO TYPE)"
-        }
-        var type = state.type.toText
-        if (state.unit != TimeUnit.NONE || state.isOfTimeType) {
-            type = 'interval_t'
-        } else {
-            val matcher = arrayPatternVariable.matcher(type)
-            if (matcher.find()) {
-                return matcher.group(1) + '*'
-            }
+//        if (state.init !== null && state.init.size == 1) {
+//            val parm = state.init.get(0).parameter
+//            if (parm !== null)
+//                return parm.type.toText
+//        }
+//        if (state.ofTimeType) {
+//            return timeTypeInTargetLanguage
+//        }
+//        if (state.type === null || state.type.toText.equals("")) {
+//            reportError(state,
+//                "State is required to have a type: " + state.name)
+//            return "(ERROR: NO TYPE)"
+//        }
+//        var type = state.type.toText
+//        if (state.isOfTimeType) {
+//            type = 'interval_t'
+//        } else {
+//            val matcher = arrayPatternVariable.matcher(type)
+//            if (matcher.find()) {
+//                return matcher.group(1) + '*'
+//            }
+//        }
+//        type
+
+        var type = state.getInferredType.targetType
+        val matcher = arrayPatternVariable.matcher(type)
+        if (matcher.find()) {
+            return matcher.group(1) + '*'
         }
         type
     }
@@ -2576,9 +2688,11 @@ int main(int argc, char* argv[]) {
      *  (it is a pointer) or [] (it is a array with unspecified length).
      *  @param type The type specification.
      */
-    private def isTokenType(Type type) {
-        val typeStr = type.toText
-        if (typeStr.trim.matches("^\\w*\\[\\s*\\]$") || typeStr.trim.endsWith('*')) {
+    private def isTokenType(InferredType type) {
+        if (type.isUndefined)
+            return false
+        val targetType = type.targetType
+        if (targetType.trim.matches("^\\w*\\[\\s*\\]$") || targetType.trim.endsWith('*')) {
             true
         } else {
             false
@@ -2591,15 +2705,14 @@ int main(int argc, char* argv[]) {
      *  unmodified.
      *  @param type A string describing the type.
      */
-    private def rootType(Type type) {
-        var str = type.toText
-        if (str.endsWith(']')) {
-            val root = str.indexOf('[')
-            str.substring(0, root).trim
-        } else if (str.endsWith('*')) {
-            str.substring(0, str.length - 1).trim
+    private def rootType(String type) {
+        if (type.endsWith(']')) {
+            val root = type.indexOf('[')
+            type.substring(0, root).trim
+        } else if (type.endsWith('*')) {
+            type.substring(0, type.length - 1).trim
         } else {
-            str.trim
+            type.trim
         }
     }
 
@@ -2608,8 +2721,8 @@ int main(int argc, char* argv[]) {
      *  if there is one, and otherwise just return the argument
      *  unmodified.
      */
-    private def lfTypeToTokenType(Type type) {
-        var result = type.toText
+    private def lfTypeToTokenType(InferredType type) {
+        var result = type.targetType
         if (isTokenType(type)) {
             result = 'token_t*'
         }
@@ -2638,11 +2751,11 @@ int main(int argc, char* argv[]) {
             if (reactorBelongsToFederate(containedReactor, federate)) {
                 var nameOfSelfStruct = selfStructName(containedReactor)
                 for (output : containedReactor.outputs) {
-                    val type = (output.definition as Output).type
+                    val type = (output.definition as Output).inferredType
                     if (type.isTokenType) {
                         // Create the template token that goes in the trigger struct.
                         // Its reference count is zero, enabling it to be used immediately.
-                        var rootType = type.rootType
+                        var rootType = type.targetType.rootType
                         pr('''
                             «nameOfSelfStruct».__«output.name» = __create_token(sizeof(«rootType»));
                         ''')
@@ -2689,5 +2802,26 @@ int main(int argc, char* argv[]) {
     static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
-    static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+        
+    override getTargetTimeType() '''interval_t'''
+
+    override getTargetUndefinedType() '''/* «reportError("undefined type")» */'''
+
+    override getTargetFixedSizeListType(String baseType,
+        Integer size) '''«baseType»[«size»]'''
+        
+    override protected String getTargetVariableSizeListType(
+        String baseType) '''«baseType»[]'''
+    
+    protected def String getInitializer(ParameterInstance p) {
+        if (p.type.isTime) {
+            return p.init.get(0).targetTime
+        } else {
+            if (p.init.size == 1) {
+                return p.init.get(0).targetValue
+            }
+            return p.init.join('', ', ', '', [it.targetValue])
+        }
+    }    
 }
