@@ -15,6 +15,12 @@ reactor Test {
             exit(1);
         }
     =}
+    reaction(shutdown) {=
+        if (self->i != 4) {
+            printf("ERROR: Test should have reacted 4 times, but reacted %d times.\n", self->i);
+            exit(2);
+        }
+    =}
 }
 
 main reactor CountTest {
