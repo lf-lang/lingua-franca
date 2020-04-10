@@ -72,7 +72,7 @@ class TimerInstance extends TriggerInstance<Variable> {
                 this.period = parent.lookupLocalParameter(parm).init.get(0).
                     getTimeValue
             } else {
-                this.period = definition.offset.timeValue
+                this.period = definition.period.timeValue
             }
         }
     }
