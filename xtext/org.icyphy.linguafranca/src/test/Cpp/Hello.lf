@@ -10,7 +10,7 @@ target Cpp {
 };
 reactor HelloCpp(period:time(2 secs), message:{=std::string=}("Hello C++")) {
     state count:int(0);
-    state previous_time:{=reactor::TimePoint=}({==});
+    state previous_time:{=reactor::TimePoint=}();
     timer t(1 secs, period);
     logical action a:void;
     reaction(t) -> a {=

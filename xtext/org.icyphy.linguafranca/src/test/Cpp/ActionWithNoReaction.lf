@@ -9,7 +9,7 @@ target Cpp {
 reactor foo {
     input x:int;
     output y:int;
-    logical action a:void;
+    logical action a;
     reaction(x) -> y, a {=
         y.set(2*(*x.get()));
         a.schedule(500ms);

@@ -961,6 +961,9 @@ void initialize() {
 // Check that memory allocated by set_new, set_new_array, or writable_copy
 // has been freed and print a warning message if not.
 void termination() {
+    // Invoke the code generated termination function.
+    __termination();
+
     // If the event queue still has events on it, report that.
     if (pqueue_size(event_q) > 0) {
         printf("---- There are %zu unprocessed future events on the event queue.\n", pqueue_size(event_q));

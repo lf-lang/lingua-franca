@@ -1,7 +1,7 @@
-/* Grammar for Lingua Franca. */
+/* The Lingua Franca grammar. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2020, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -13,21 +13,22 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-/** Grammar for Lingua Franca.
- *  
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+/** 
+ * Grammar for Lingua Franca.
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 
 grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
@@ -35,53 +36,77 @@ grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
 generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 
 /////////// Overall file
+
+/**
+ * Top-level AST node.
+ */
 Model:
     target=Target
     (imports+=Import)*
     (preambles+=Preamble)*
-    (reactors+=Reactor)+;
+    (reactors+=Reactor)+
+    ;
 
 /////////// Top level elements
-Target:
-    'target' name=ID (config=KeyValuePairs)? ';';
 
+/**
+ * Import declaration.
+ */
 Import:
-    'import' importURI=Path ';';
+    'import' importURI=Path ';'
+    ;
 
+/**
+ * Declaration of a reactor class.
+ */
 Reactor:
     (main?='main'? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
-    ((preambles+=Preamble)
-    | (states+=State)
-    | (inputs+=Input)
-    | (outputs+=Output)
-    | (timers+=Timer)
-    | (actions+=Action)
-    | (instantiations+=Instantiation)
-    | (connections+=Connection)
-    | (reactions+=Reaction)
-    | (mutations+=Mutation))*
-    '}';
+    (     (preambles+=Preamble)
+        | (stateVars+=StateVar)
+        | (inputs+=Input)
+        | (outputs+=Output)
+        | (timers+=Timer)
+        | (actions+=Action)
+        | (instantiations+=Instantiation)
+        | (connections+=Connection)
+        | (reactions+=Reaction)
+        | (mutations+=Mutation)
+    )* '}';
+
+/**
+ * Specification of the target language. Target properties can be specified in
+ * YAML format to pass on configuration details to the runtime environment. 
+ */
+Target:
+    'target' name=ID (config=KeyValuePairs)? ';';
+
 
 /////////// Statements
 
-// Types are optional for use in untyped languages.
-
-//State:
-//    'state' name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-//    | ((':' type=Type) '(' value=(Literal | ID) ')') // FIXME: Check that if the ID matches a parameter, no type is given.
-//    | ('(' (value=(Literal)) ')')
-//    | ('(' parameter=[Parameter] ')'))? ';';
-
-State: // FIXME: change into StateDecl to avoid collision with other classes called State
-    'state' name=ID 
-    (
-        (':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')') | 
-        (
-            (':' type=Type)? ('(' init=TimeOrValue ')' )? // | (init+=LiteralOrCode (',' init+=LiteralOrCode)?)
-        )
-    ) ';';
+/**
+ * Declaration of a state variable. Types are optional, but may be required 
+ * during validation (depending on the target language). Initialization is also 
+ * optional. A state variable can be initialized by assigning a `Value` or list 
+ * of these. Note that a `Value` may also be a reference to a parameter.
+ * The following checks must be carried out during validation: 
+ *  - if the list of initialization values has more than one element in it, a 
+ *  type must be specified;
+ *  - if the `time` type is specified, there can only be a single initialization
+ *  element, which has to denote a time or a reference to a parameter that
+ *  denotes a time; and
+ *  - if the `time` type is specified, either a proper time interval and unit
+ *  must be given, or a literal or code that denotes zero.
+ */
+ StateVar:
+    'state' name=ID (
+        (':' (type=Type))? 
+        (parens+='(' (init+=Value 
+                (','  init+=Value)*)? parens+=')'
+        )?
+    ) ';'    
+;
 
 Input:
     (mutable?='mutable')? 'input' name=ID (':' type=Type)? ';';
@@ -94,7 +119,7 @@ Output:
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID ('(' offset=TimeOrValue (',' period=TimeOrValue)? ')')? ';';
+    'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';';
 
 // Action that has either a physical or logical origin.
 // 
@@ -108,7 +133,7 @@ Timer:
 // to elapse between action occurrences.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=TimeOrValue (',' minInterArrival=TimeOrValue (',' policy=QueuingPolicy)? )? ')')?
+    ('(' minDelay=Value (',' minInterArrival=Value (',' policy=QueuingPolicy)? )? ')')?
     (':' type=Type)? ';';
 
 Reaction:
@@ -122,11 +147,8 @@ Reaction:
 TriggerRef:
     VarRef | startup?='startup' | shutdown?='shutdown';
 
-Delay:
-    'after' time=TimeOrValue;
-
 Deadline:
-    'deadline' '(' interval=TimeOrValue ')' code=Code;
+    'deadline' '(' delay=Value ')' code=Code;
 
 Mutation:
     ('mutation')
@@ -145,10 +167,7 @@ Instantiation:
     ')' ';';
 
 Connection:
-    leftPort=VarRef '->' rightPort=VarRef (delay=Delay)? ';';
-
-//KEYWORD:
-//    'input' | 'state' | 'output' | 'timer' | 'action';
+    leftPort=VarRef '->' rightPort=VarRef ('after' delay=Value)? ';';
     
 /////////// For target parameters
 
@@ -182,34 +201,41 @@ VarRef:
     variable=[Variable]
     | container=[Instantiation] '.' variable=[Variable];
 
+//Assignment:
+//    (lhs=[Parameter] '=' rhs=Value);
 Assignment:
-    (lhs=[Parameter] '=' rhs=TimeOrValue);
+    (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
 
-//Property:
-//    name=ID '=' (literal=Literal | (time=INT unit=TimeUnit));
 
-// Single parameter.
+/**
+ * Parameter declaration with optional type and mandatory initialization.
+ */
 Parameter:
-    name=ID ((':' ofTimeType?='time' '(' time=INT (unit=TimeUnit)? ')')
-    | ((':' type=Type)? '(' value=LiteralOrCode ')'))?;
+    name=ID (':' (type=Type))? 
+    (parens+='(' (init+=Value 
+            (','  init+=Value)*)? parens+=')'
+    )?
+;
 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
 // If it is a constant, the validator should check that if the value
 // is non-zero, it is accompanied by a unit.
-TimeOrValue:
-    (parameter=[Parameter] | value=LiteralOrCode | (time=INT unit=TimeUnit));
+Value:
+    (parameter=[Parameter] | time=Time | literal=Literal | code=Code);
 
-LiteralOrCode:
-    literal=Literal | code=Code;
+
+Time:
+    (interval=INT unit=TimeUnit)
+;
 
 Port:
     Input | Output;
-
+    
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (id=ID (stars+='*')* (arraySpec=ArraySpec)?) | code=Code;
-   
+   (time?='time' (arraySpec=ArraySpec)?) | ((id=ID (stars+='*')* (arraySpec=ArraySpec)?) | code=Code);
+
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
     
@@ -240,9 +266,6 @@ terminal FLOAT:
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
-//terminal CODE:
-//    '{=' .* '=}';
-
 Code:
     {Code} '{=' (tokens+=Token)* '=}'
 ;
@@ -259,7 +282,7 @@ enum ActionOrigin:
     NONE | LOGICAL='logical' | PHYSICAL='physical';
 
 enum Visibility:
-    PRIVATE='private' | PUBLIC='public';
+    NONE | PRIVATE='private' | PUBLIC='public';
 
 enum TimeUnit:
     NONE |

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <!-- See https://github.com/xtext/maven-xtext-example
+       and https://www.eclipse.org/Xtext/documentation/350_continuous_integration.html
+   -->
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.icyphy.linguafranca</groupId>
@@ -21,30 +24,29 @@
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <!-- To build with Java 10 or later, change tycho-version to 1.5.0
-         and uncomment the pluginRepositories section below -->
-    <tycho-version>1.4.0</tycho-version>
+    <tycho-version>1.6.0</tycho-version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <xtext.version>2.18.0</xtext.version>
+    <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtext.version. -->
+    <xtext.version>2.21.0</xtext.version>
     <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
   </properties>
 
-  <!-- To build with tycho 1.5.0, uncomment the next section.
-       See https://wiki.eclipse.org/Tycho/Release_Notes/1.5 -->
-  <!--
   <pluginRepositories>
     <pluginRepository>
       <id>tycho-staged</id>
       <url>https://oss.sonatype.org/content/repositories/orgeclipsetycho-1056</url>
     </pluginRepository>
   </pluginRepositories>
-  -->
   
   <repositories>
     <repository>
       <id>eclipse</id>
       <layout>p2</layout>
-      <url>https://download.eclipse.org/releases/2019-06/</url>
+      <!-- If you update the Eclipse release, you may need to also update the xtext.version above
+           and some version numbers in
+           org.icyphy.linguafranca/pom.xml and
+           org.icyphy.linguafranca.tests/pom.xml -->
+      <url>https://download.eclipse.org/releases/2020-03/</url>
     </repository>
     <repository>
       <id>Xtext Update Site</id>

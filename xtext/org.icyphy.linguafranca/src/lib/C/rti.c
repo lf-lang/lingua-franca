@@ -44,7 +44,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>      // Defined perror(), errno
+#include <errno.h>      // Defines perror(), errno
 #include <sys/socket.h>
 #include <sys/types.h>  // Provides select() function to read from multiple sockets.
 #include <netinet/in.h> // Defines struct sockaddr_in
@@ -127,88 +127,67 @@ int create_server(int port) {
     return socket_descriptor;
 }
 
-/** Handle a message being sent from one federate to another via the RTI.
+/** Handle a message being received from a federate via the RTI.
  *  @param sending_socket The identifier for the sending socket.
- *  @param buffer The message.
- *  @param bytes_read The number of bytes read from the socket and already
- *   in the buffer.
+ *  @param buffer The buffer to read into (the first byte is already there).
+ *  @param header_size The number of bytes in the header.
  */
-void handle_message(int sending_socket, unsigned char* buffer, int bytes_read) {
-    // The message is a message to forward to a federate.
-    // The first byte, which has value MESSAGE, has already been read.
-    // We need 8 more bytes:
-    //   - two bytes with the ID of the destination port.
-    //   - two bytes with the destination federate ID.
-    //   - four bytes after that will be the length of the message.
-    // We keep the MESSAGE byte in the buffer for forwarding.
-    int min_bytes = 9;
-    while (bytes_read < min_bytes) {
-        int more = read(sending_socket, &(buffer[bytes_read]), min_bytes - bytes_read);
-        if (more < 0) error("ERROR on RTI reading from federate socket");
-        bytes_read += more;
-    }
-    // The next two bytes are the ID of the destination reactor.
-    unsigned short port_id
-            = swap_bytes_if_big_endian_ushort(
-              *((unsigned short*)(buffer + 1)));
-    // The next four bytes are the message length.
-    // The next two bytes are the ID of the destination federate.
-    unsigned short federate_id
-            = swap_bytes_if_big_endian_ushort(
-              *((unsigned short*)(buffer + 3)));
-    // FIXME: Better error handling needed here.
-    assert(federate_id < NUMBER_OF_FEDERATES);
-    // The next four bytes are the message length.
-    unsigned int length
-            = swap_bytes_if_big_endian_int(
-              *((unsigned int*)(buffer + 5)));
-
+void handle_message(int sending_socket, unsigned char* buffer, unsigned int header_size) {
+    // Read the header, minus the first byte which is already there.
+    read_from_socket(sending_socket, header_size - 1, buffer + 1);
+    // Extract the header information.
+    unsigned short port_id;
+    unsigned short federate_id;
+    unsigned int length;
+    // Extract information from the header.
+    extract_header(buffer + 1, &port_id, &federate_id, &length);
     // printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
 
-    unsigned int bytes_to_read = length + min_bytes;
+    unsigned int total_bytes_to_read = length + header_size;
+    unsigned int bytes_to_read = length;
     // Prevent a buffer overflow.
-    if (bytes_to_read > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE;
+    if (bytes_to_read + header_size > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE - header_size;
 
-    while (bytes_read < bytes_to_read) {
-        int more = read(sending_socket, &(buffer[min_bytes]), bytes_to_read - bytes_read);
-        if (more < 0) error("ERROR on RTI reading from federate socket");
-        bytes_read += more;
+    read_from_socket(sending_socket, bytes_to_read, buffer + header_size);
+    int bytes_read = bytes_to_read + header_size;
+    // printf("DEBUG: Message received by RTI: %s.\n", buffer + header_size);
+
+    // If the destination federate is no longer connected, issue a warning
+    // and return.
+    if (federates[federate_id].state == NOT_CONNECTED) {
+        printf("RTI: Destination federate %d is no longer connected. Dropping message.\n",
+                federate_id
+        );
+        return;
     }
-    // printf("DEBUG: Message received by RTI: %s.\n", &(buffer[9]));
 
     // Forward the message or message chunk.
     int destination_socket = federates[federate_id].socket;
-    int bytes_written = 0;
-    while (bytes_written < bytes_read) {
-        int more = write(destination_socket, &(buffer[bytes_written]), bytes_read - bytes_written);
-        if (more < 0) error("ERROR forwarding message to federate");
-        bytes_written += more;
-    }
+
+    write_to_socket(destination_socket, bytes_read, buffer);
 
     // The message length may be longer than the buffer,
     // in which case we have to handle it in chunks.
     int total_bytes_read = bytes_read;
-    while (total_bytes_read < length + min_bytes) {
-        bytes_to_read = length + min_bytes;
+    while (total_bytes_read < total_bytes_to_read) {
+        // printf("DEBUG: Forwarding message in chunks.\n");
+        bytes_to_read = total_bytes_to_read - total_bytes_read;
         if (bytes_to_read > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE;
-        int more = read(sending_socket, buffer, bytes_to_read);
-        if (more < 0) error("ERROR on RTI reading from federate socket");
-        int bytes_written = 0;
-        while (bytes_written < more) {
-            int more_written = write(destination_socket, &(buffer[bytes_written]), more - bytes_written);
-            if (more < 0) error("ERROR forwarding message to federate");
-            bytes_written += more;
-        }
-        total_bytes_read += more;
+        read_from_socket(sending_socket, bytes_to_read, buffer);
+        total_bytes_read += bytes_to_read;
+
+        write_to_socket(destination_socket, bytes_to_read, buffer);
     }
 }
 
-/** Thread for a federate.
- *  @param fed_socket_descriptor A pointer to an int that is the
+char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from federate an unrecognized message type";
+
+/** Thread handling communication with a federate.
+ *  @param fed A pointer to an int that is the
  *   socket descriptor for the federate.
  */
-void* federate(void* fed_socket_descriptor) {
-    int fed_socket = *((int*)fed_socket_descriptor);
+void* federate(void* fed) {
+    federate_t* my_fed = (federate_t*)fed;
 
     // Buffer for incoming messages.
     // This does not constrain the message size because messages
@@ -216,16 +195,7 @@ void* federate(void* fed_socket_descriptor) {
     unsigned char buffer[BUFFER_SIZE];
 
     // Read bytes from the socket. We need 9 bytes.
-    int bytes_read = 0;
-    while (bytes_read < sizeof(long long) + 1) {
-        int more = read(fed_socket, &(buffer[bytes_read]),
-                sizeof(long long) + 1 - bytes_read);
-        if (more < 0) error("ERROR on RTI reading from socket");
-        // If more == 0, this is an EOF. Exit the thread.
-        if (more == 0) return NULL;
-        bytes_read += more;
-    }
-    // printf("DEBUG: read %d bytes.\n", bytes_read);
+    read_from_socket(my_fed->socket, sizeof(long long) + 1, buffer);
 
     // First byte received is the message ID.
     if (buffer[0] != TIMESTAMP) {
@@ -253,40 +223,42 @@ void* federate(void* fed_socket_descriptor) {
     }
     pthread_mutex_unlock(&mutex);
 
-    // Send back to the federate the maximum time.
-    // FIXME: Should perhaps increment this time stamp by some amount?
-    // Otherwise, the start time will be late by rountrip communication time
-    // compared to physical time.
-
+    // Send back to the federate the maximum time plus an offset.
     // Start by sending a timestamp marker.
     unsigned char message_marker = TIMESTAMP;
-    int bytes_written = write(fed_socket, &message_marker, 1);
-    // FIXME: Retry rather than exit.
-    if (bytes_written < 0) error("ERROR sending message ID to federate");
+    write_to_socket(my_fed->socket, 1, &message_marker);
 
     // Send the timestamp.
-    // FIXME: Add an offset to this start time to get everyone starting together.
-    // Adding one second here.
+    // Add an offset to this start time to get everyone starting together.
     long long message = swap_bytes_if_big_endian_ll(max_start_time + DELAY_START);
-    bytes_written = write(fed_socket, (void*)(&message), sizeof(long long));
-    if (bytes_written < 0) error("ERROR sending start time to federate");
+    write_to_socket(my_fed->socket, sizeof(long long), (unsigned char*)(&message));
 
     // Listen for messages from the federate.
     while (1) {
         // Read no more than one byte to get the message type.
-        bytes_read = read(fed_socket, &buffer, 1);
-        // FIXME: Need more robust error handling. This will kill the RTI.
-        if (bytes_read < 0) error("ERROR on RTI reading from federate socket");
-        if (bytes_read == 0 || buffer[0] == RESIGN) {
-            printf("Federate has resigned.\n");
+        read_from_socket(my_fed->socket, 1, buffer);
+        switch(buffer[0]) {
+        case MESSAGE:
+            handle_message(my_fed->socket, buffer, 9);
             break;
-        } else if (buffer[0] == MESSAGE) {
-            handle_message(fed_socket, buffer, bytes_read);
+        case TIMED_MESSAGE:
+            handle_message(my_fed->socket, buffer, 17);
+            break;
+        case RESIGN:
+            // Nothing more to do. Close the socket and exit.
+            pthread_mutex_lock(&mutex);
+            my_fed->state = NOT_CONNECTED;
+            close(my_fed->socket); //  from unistd.h
+            pthread_mutex_unlock(&mutex);
+            return NULL;
+            break;
+        default:
+            error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);
         }
     }
 
     // Nothing more to do. Close the socket and exit.
-    close(fed_socket); //  from unistd.h
+    close(my_fed->socket); //  from unistd.h
 
     return NULL;
 }
@@ -339,7 +311,7 @@ void connect_to_federates(int socket_descriptor) {
         federates[fed_id].socket = socket_id;
 
         // Create a thread to communicate with the federate.
-        pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id].socket));
+        pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id]));
     }
 }
 
@@ -356,20 +328,49 @@ void initialize_federate(int id) {
     federates[id].num_downstream = 0;
 }
 
-/** Start a runtime infrastructure (RTI) for the specified number of
- *  federates that listens for socket connections on the specified port.
+/** Launch the specified executable by forking the calling process and converting
+ *  the forked process into the specified executable.
+ *  If forking the process fails, this will return -1.
+ *  Otherwise, it will return the process ID of the created process.
+ *  @param executable The executable program.
+ *  @return The PID of the created process or -1 if the fork fails.
+ */
+pid_t federate_launcher(char* executable) {
+    char* command[2];
+    command[0] = executable;
+    command[1] = NULL;
+    pid_t pid = fork();
+    if (pid == 0) {
+        // This the newly created process. Replace it.
+        printf("Federate launcher starting executable: %s.\n", executable);
+        execv(executable, command);
+        // Remaining part of this function is ignored.
+    }
+    if (pid == -1) {
+        fprintf(stderr, "ERROR forking the RTI process to start the executable: %s\n", executable);
+    }
+    return pid;
+}
+
+/** Start the socket server for the runtime infrastructure (RTI) and
+ *  return the socket descriptor.
  *  @param num_feds Number of federates.
  *  @param port The port on which to listen for socket connections.
  */
-void start_rti(int port) {
+int start_rti_server(int port) {
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         initialize_federate(i);
     }
-
     int socket_descriptor = create_server(port);
-
     printf("RTI: Listening for federates on port %d.\n", port);
+    return socket_descriptor;
+}
 
+/** Start the runtime infrastructure (RTI) interaction with the federates
+ *  and wait for the federates to exit.
+ *  @param socket_descriptor The socket descriptor returned by start_rti_server().
+ */
+void wait_for_federates(int socket_descriptor) {
     // Wait for connections from federates and create a thread for each.
     connect_to_federates(socket_descriptor);
 
@@ -382,5 +383,10 @@ void start_rti(int port) {
         pthread_join(federates[i].thread_id, &thread_exit_status);
         printf("RTI: Federate thread exited.\n");
     }
+    // NOTE: In all common TCP/IP stacks, there is a time period,
+    // typically between 30 and 120 seconds, called the TIME_WAIT period,
+    // before the port is released after this close. This is because
+    // the OS is preventing another program from accidentally receiving
+    // duplicated packets intended for this program.
     close(socket_descriptor);
 }

@@ -38,6 +38,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.TimeValue
+import org.icyphy.Targets
+import org.icyphy.linguaFranca.Visibility
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -47,7 +49,7 @@ import org.icyphy.TimeValue
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresen.de>}
+ * @author(Christian Menard <christian.menard@tu-dresden.de>}
  */
 class LinguaFrancaValidationTest {
 	@Inject extension ParseHelper<Model>
@@ -76,23 +78,45 @@ class LinguaFrancaValidationTest {
     }
     
     /**
-     * Ensure that duplicate identifiers for actions reported.
+     * Check that reactors in C++ cannot be named preamble 
      */
     @Test
-    def void disallowCppMainCalledMain() {
-        val model = '''
+    def void disallowReactorCalledPreamble() {
+        val model_no_errors = '''
             target Cpp;
+            main reactor Foo {
+            }
+        '''.parse
+        
+        val model_error_1 = '''
+            target Cpp;
+            main reactor Preamble {
+            }
+        '''.parse
+        
+        val model_error_2 = '''
+            target Cpp;
+            reactor Preamble {
+            }
             main reactor Main {
             }
         '''.parse
         
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor,
-            null,
-            "Main reactor cannot be named 'Main'")
+        Assertions.assertNotNull(model_no_errors)
+        Assertions.assertNotNull(model_error_1)
+        Assertions.assertNotNull(model_error_2)
+        Assertions.assertTrue(model_no_errors.eResource.errors.isEmpty, 
+            "Encountered unexpected error while parsing: " + model_no_errors.eResource.errors)
+            Assertions.assertTrue(model_error_1.eResource.errors.isEmpty, 
+            "Encountered unexpected error while parsing: " + model_error_1.eResource.errors)
+            Assertions.assertTrue(model_error_2.eResource.errors.isEmpty, 
+            "Encountered unexpected error while parsing: " + model_error_2.eResource.errors)
+
+        model_no_errors.assertNoIssues
+        model_error_1.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            "Reactor cannot be named 'Preamble'")
+        model_error_2.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            "Reactor cannot be named 'Preamble'")
     }
     
     /**
@@ -215,7 +239,7 @@ class LinguaFrancaValidationTest {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.state,
+        model.assertError(LinguaFrancaPackage::eINSTANCE.stateVar,
             null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
@@ -389,7 +413,7 @@ class LinguaFrancaValidationTest {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.timeOrValue,
+        model.assertError(LinguaFrancaPackage::eINSTANCE.value,
             null, "Missing time units. Should be one of " +
                                 TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }    
@@ -413,7 +437,7 @@ class LinguaFrancaValidationTest {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.timeOrValue,
+        model.assertError(LinguaFrancaPackage::eINSTANCE.value,
             null, 'Parameter is not of time type')
         
     }
@@ -437,7 +461,7 @@ class LinguaFrancaValidationTest {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.timeOrValue,
+        model.assertError(LinguaFrancaPackage::eINSTANCE.value,
             null, 'Invalid time literal')
     }  
     
@@ -520,84 +544,70 @@ class LinguaFrancaValidationTest {
         model.assertError(LinguaFrancaPackage::eINSTANCE.assignment, null,
             "Time value used to specify a deadline exceeds the maximum of " +
                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
-    }
+    }  
     
     /**
-     * Report array in parameter for C++.
+     * Test warnings and errors for the target dependent preamble visibility qualifiers 
      */
     @Test
-    def void arrayInParameterCpp() {
-        val model = '''
-            target Cpp;
-            reactor Test(array:int[]({==})) {
+    def void testPreambleVisibility() {
+        for (target : Targets.values) {
+            for (visibility : Visibility.values) {
+                val model_reactor_scope = '''
+                    target «target.name»;
+                    reactor Foo {
+                        «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
+                    }
+                '''.parse
+                
+                val model_file_scope = '''
+                    target «target.name»;
+                    «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
+                    reactor Foo {
+                    }
+                '''.parse
+                
+                val model_no_preamble = '''
+                    target «target.name»;
+                    reactor Foo {
+                    }
+                '''.parse
+                
+                Assertions.assertNotNull(model_reactor_scope)
+                Assertions.assertNotNull(model_file_scope)
+                Assertions.assertNotNull(model_no_preamble)
+                
+                Assertions.assertTrue(model_reactor_scope.eResource.errors.isEmpty,
+                    "Encountered unexpected error while parsing: " + model_reactor_scope.eResource.errors)
+                Assertions.assertTrue(model_file_scope.eResource.errors.isEmpty,
+                    "Encountered unexpected error while parsing: " + model_file_scope.eResource.errors)     
+                Assertions.assertTrue(model_no_preamble.eResource.errors.isEmpty,
+                    "Encountered unexpected error while parsing: " + model_no_preamble.eResource.errors)
+                
+                model_no_preamble.assertNoIssues
+                
+                if (target == Targets.CPP) {
+                    if (visibility == Visibility.NONE) {
+                        model_file_scope.assertError(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                            "Preambles for the C++ target need a visibility qualifier (private or public)!")
+                        model_reactor_scope.assertError(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                            "Preambles for the C++ target need a visibility qualifier (private or public)!")        
+                    } else {
+                        model_file_scope.assertNoIssues
+                        model_reactor_scope.assertNoIssues
+                    }
+                } else {
+                    if (visibility == Visibility.NONE) {
+                        model_file_scope.assertNoIssues
+                        model_reactor_scope.assertNoIssues        
+                    } else {
+                        model_file_scope.assertWarning(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                            '''The «visibility» qualifier has no meaning for the «target.name» target. It should be removed.''')
+                        model_reactor_scope.assertWarning(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                            '''The «visibility» qualifier has no meaning for the «target.name» target. It should be removed.''')
+                    }
+                }
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.type, null,
-            "Plain arrays are not supported in C++. Consider using std::vector or std::array.")
-    }
-    
-    /**
-     * Report array in state for C++.
-     */
-    @Test
-    def void arrayInStateCpp() {
-        val model = '''
-            target Cpp;
-            reactor Test {
-                state array:int[4]({==});
-            }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.type, null,
-            "Plain arrays are not supported in C++. Consider using std::vector or std::array.")
-    }
-    
-    /**
-     * Report array in state for C++.
-     */
-    @Test
-    def void arrayInActionCpp() {
-        val model = '''
-            target Cpp;
-            reactor Test {
-                action array:int[42];
-            }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.type, null,
-            "Plain arrays are not supported in C++. Consider using std::vector or std::array.")
-    }
-    
-    /**
-     * Report array in port for C++.
-     */
-    @Test
-    def void arrayInPortCpp() {
-        val model = '''
-            target Cpp;
-            reactor Test {
-                output array:int[];
-            }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.type, null,
-            "Plain arrays are not supported in C++. Consider using std::vector or std::array.")
-    }
+        }
+    }  
 }

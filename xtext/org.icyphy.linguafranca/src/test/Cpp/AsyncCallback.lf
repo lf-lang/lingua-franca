@@ -11,7 +11,7 @@ main reactor AsyncCallback {
     =}
     
     timer t(0, 200 msec);
-    state thread:{=std::thread=}({==});
+    state thread:{=std::thread=};
     state expected_time:time(100 msec);
     state toggle:bool(false);
 

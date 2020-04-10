@@ -9,3 +9,5 @@ run:	bin/MQTTDistributed_RTI bin/MQTTDistributed_Publisher bin/MQTTDistributed_S
 	bin/MQTTDistributed_RTI &
 	bin/MQTTDistributed_Publisher &
 	bin/MQTTDistributed_Subscriber
+	
+all:	compile run

@@ -32,10 +32,23 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef RTI_H
 #define RTI_H
 
-// Size of the buffer used for messages sent between federates.
-// This is used by both the federates and the rti, so message lengths
-// should generally match.
+/** Size of the buffer used for messages sent between federates.
+ *  This is used by both the federates and the rti, so message lengths
+ *  should generally match.
+ */
 #define BUFFER_SIZE 256
+
+/** Number of seconds that elapse between a federate's attempts
+ *  to connect to the RTI.
+ */
+#define CONNECT_RETRY_INTERVAL 2
+
+/** Bound on the number of retries to connect to the RTI.
+ *  A federate will retry every CONNECT_RETRY_INTERVAL seconds
+ *  this many times before giving up. E.g., 500 retries every
+ *  2 seconds results in retrying for about 16 minutes.
+ */
+#define CONNECT_NUM_RETRIES 500
 
 ////////////////////////////////////////////
 //// Message types
@@ -59,5 +72,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Byte identifying that the federate is ending its execution. */
 #define RESIGN 4
+
+/** Byte identifying a timestamped message to forward to another federate.
+ *  The next two bytes will be the ID of the destination port.
+ *  The next two bytes are the destination federate ID.
+ *  The four bytes after that will be the length of the message.
+ *  The next eight bytes will be the timestamp.
+ *  The remaining bytes are the message.
+ */
+#define TIMED_MESSAGE 5
+
 
 #endif /* RTI_H */
