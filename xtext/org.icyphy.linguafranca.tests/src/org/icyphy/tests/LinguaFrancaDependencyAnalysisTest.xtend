@@ -39,6 +39,7 @@ import org.icyphy.linguaFranca.Reactor
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
+import org.icyphy.ModelInfo
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -51,7 +52,7 @@ class LinguaFrancaDependencyAnalysisTest {
 	@Inject extension ParseHelper<Model>
     
     /**
-     * Check that circular instantiations are detected.
+     * Check that circular dependencies between reactions are detected.
      */
     @Test
     def void cyclicDependency() {
@@ -108,4 +109,30 @@ class LinguaFrancaDependencyAnalysisTest {
         
         Assertions.assertEquals(message, "Reactions form a cycle!")
     }
+
+    /**
+     * Check that circular instantiations are detected.
+     */
+    @Test
+    def void circularInstantiation() {
+        val model = '''target C;
+    
+		    reactor X {
+		    	reaction() {=
+		    	//
+		    	=}
+		    	p = new Y();
+		    }
+		    
+		    reactor Y {
+		    	q = new X();
+		    }'''.parse
+        
+        Assertions.assertNotNull(model)
+		
+		var info = new ModelInfo()
+		info.update(model)
+        Assertions.assertTrue(info.instantiationGraph.cycles.size == 1)
+    }
+    
 }
