@@ -70,6 +70,7 @@ import static extension de.cau.cs.kieler.klighd.kgraph.util.KGraphIterators.*
 import static extension java.lang.String.format
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 
 @ViewSynthesisShared
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
@@ -81,7 +82,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension KRenderingExtensions
 	@Inject extension KContainerRenderingExtensions
 	@Inject extension KPolylineExtensions
-	@Inject extension KColorExtensions
 	@Inject extension LinguaFrancaStyleExtensions
 	@Inject extension LinguaFrancaShapeExtensions
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
@@ -481,14 +481,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 err.KContainerRendering.addRectangle() => [ // Add to existing figure
                 	setGridPlacementData().from(LEFT, 3, 0, TOP, -1, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
             		noSelectionStyle()
-            		 //addSingleClickAction(ShowCycleAction.ID) FIXME: causes build error
+            		 addSingleClickAction(ShowCycleAction.ID)
             		
             		addText(TEXT_ERROR_CYCLE_BTN_SHOW) => [
             			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
 		            	fontSize = 5
             			setSurroundingSpace(1, 0)
             			noSelectionStyle()
-            			// addSingleClickAction(ShowCycleAction.ID) // FIXME: causes build error
+            			addSingleClickAction(ShowCycleAction.ID)
             		]
                 ]
                 if (containsRecursion) {
