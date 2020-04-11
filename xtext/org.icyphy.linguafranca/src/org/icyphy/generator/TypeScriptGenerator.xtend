@@ -303,7 +303,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     "Parameter is required to have a type: " + parameter.name)
             } else if (parameter.ofTimeType) {
                  arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + timeInTargetLanguage(parameter.timeValue))
+                    +" = " + timeInTargetLanguage(parameter.initialTimeValue))
             } else {
                 arguments.add(parameter.name + ": " + getParameterType(parameter)
                     +" = " + parameter.initializerList.get(0)) // FIXME: not support for native lists yet
