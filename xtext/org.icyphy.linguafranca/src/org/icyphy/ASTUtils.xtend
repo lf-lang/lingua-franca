@@ -393,7 +393,8 @@ class ASTUtils {
                 }
             }
         }
-        buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
+        if (buffer.length > 1)
+        	buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
         buffer.toString
     }
     
