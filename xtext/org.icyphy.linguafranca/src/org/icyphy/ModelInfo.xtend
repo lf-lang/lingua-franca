@@ -186,7 +186,7 @@ class ModelInfo {
         var overflow = false
 
         // Determine whether the parameter's default value overflows or not.
-        if (isTooLarge(current.getTimeValue)) {
+        if (isTooLarge(current.getInitialTimeValue)) {
             this.overflowingParameters.add(current)
             overflow = true
         }

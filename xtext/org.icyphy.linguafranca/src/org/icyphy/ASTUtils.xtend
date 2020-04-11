@@ -57,10 +57,9 @@ import org.icyphy.linguaFranca.Action
 class ASTUtils {
     
     /**
-     * An instance of a Lingua Franca factory for creating new AST nodes.
+     * The Lingua Franca factory for creating new AST nodes.
      */
     public static val factory = LinguaFrancaFactory.eINSTANCE
-    
     
     /**
      * Take a connection and replace it with an action and two reactions
@@ -240,6 +239,11 @@ class ASTUtils {
         return name + suffix
     }
     
+    /**
+     * Given a "value" AST node, return a deep copy of that node.
+     * @param original The original to create a deep copy of.
+     * @return A deep copy of the given AST node.
+     */
     private static def getCopy(Value original) {
         if (original !== null) {
             val clone = factory.createValue
@@ -263,11 +267,11 @@ class ASTUtils {
     }
     
     /**
-     * Create a new type based on the given type.
-     * @param type The type to duplicate.
-     * @return A deep copy of the given type.
+     * Given a "type" AST node, return a deep copy of that node.
+     * @param original The original to create a deep copy of.
+     * @return A deep copy of the given AST node.
      */
-    private static def getCopy(Type original) {
+     private static def getCopy(Type original) {
         if (original !== null) {
             val clone = factory.createType
             
@@ -329,15 +333,15 @@ class ASTUtils {
     }
     
     /**
-     * Intelligently trim the whitespaces in a code block.
-     * 
-     * First this removes any lines only containing whitespaces in the beginning
-     * of the block. It considers the first line containing non-whitespace 
-     * characters as the first code line. The leading whitespaces of this first
-     * code line are considered as a common prefix across all code lines. If the
-     * remaining code lines indeed start with this prefix, it removes the prefix
-     * from the code line.
-     * 
+     * Intelligently trim the white space in a code block.
+	 * 
+	 * First this removes any lines only containing whitespaces in the beginning
+	 * of the block. It considers the first line containing non-whitespace 
+	 * characters as the first code line. The leading whitespaces of this first
+	 * code line are considered as a common prefix across all code lines. If the
+	 * remaining code lines indeed start with this prefix, it removes the prefix
+	 * from the code line.
+	 * 
      * For examples, this code
      * <pre>{@code 
      *        int test = 4;
@@ -522,6 +526,12 @@ class ASTUtils {
         return false
     }
     
+    
+    /**
+     * Report whether the given string literal is an integer number or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is an integer, false otherwise.
+     */
     def static boolean isInteger(String literal) {
         try {
             Integer.parseInt(literal)
@@ -530,11 +540,21 @@ class ASTUtils {
         }
         return true
     }
-    
-    def static boolean isInteger(Code code) {
+
+	/**
+     * Report whether the given code is an integer number or not.
+     * @param code AST node to inspect.
+     * @return True if the given code is an integer, false otherwise.
+     */
+	def static boolean isInteger(Code code) {
         return code.toText.isInteger
     }
     
+    /**
+     * Report whether the given value is an integer number or not.
+     * @param value AST node to inspect.
+     * @return True if the given value is an integer, false otherwise.
+     */
     def static boolean isInteger(Value value) {
         if (value.literal !== null) {
             return value.literal.isInteger
@@ -545,9 +565,8 @@ class ASTUtils {
     }
     
     /**
-     * Report whether the given parameter, time, or value denotes a valid time 
-     * or not.
-     * @param tv A time or value.
+     * Report whether the given value denotes a valid time or not.
+     * @param value AST node to inspect.
      * @return True if the argument denotes a valid time, false otherwise.
      */
     def static boolean isValidTime(Value value) {
@@ -571,6 +590,11 @@ class ASTUtils {
         return false
     }
 
+    /**
+     * Report whether the given time denotes a valid time or not.
+     * @param value AST node to inspect.
+     * @return True if the argument denotes a valid time, false otherwise.
+     */
     def static boolean isValidTime(Time t) {
         if (t !== null && t.unit != TimeUnit.NONE) {
             return true
@@ -578,7 +602,13 @@ class ASTUtils {
         return false
     }
 
-    def static boolean isValidTimeList(Parameter p) { // FIXME: write a single function for both StateVar and Parameter?
+	/**
+     * Report whether the given parameter denotes time list, meaning it is a list
+     * of which all elements are valid times.
+     * @param value AST node to inspect.
+     * @return True if the argument denotes a valid time list, false otherwise.
+     */
+	def static boolean isValidTimeList(Parameter p) {
         if (p !== null) {
             if (p.type !== null && p.type.isTime && p.type.arraySpec !== null) {
                 return true
@@ -591,6 +621,12 @@ class ASTUtils {
         return true
     }
 
+	/**
+	 * Report whether the given state variable denotes time list, meaning it is a list
+	 * of which all elements are valid times.
+     * @param value AST node to inspect.
+     * @return True if the argument denotes a valid time list, false otherwise.
+     */	
     def static boolean isValidTimeList(StateVar s) {
         if (s !== null) {
             if (s.type !== null && s.type.isTime && s.type.arraySpec !== null) {
@@ -652,8 +688,14 @@ class ASTUtils {
         }
         return false
     }
-        
-    def static TimeValue getTimeValue(Parameter p) {
+    
+    /**
+	 * Assuming that the given parameter is of time type, return
+	 * its initial value.
+	 * @param p The AST node to inspect.
+	 * @return A time value based on the given parameter's initial value.
+	 */    
+    def static TimeValue getInitialTimeValue(Parameter p) {
         if (p !== null && p.isOfTimeType) {
             val init = p.init.get(0)
             if (init.time !== null) {
@@ -665,21 +707,13 @@ class ASTUtils {
     }
     
     /**
-     * Check if a state variable is initialized or not.
-     * 
-     * @param v The state variable to be checked
-     * @return True if the variable was initialized
-     */
-    def static boolean isInitialized(StateVar v) {
-        if (v !== null && v.parens.size == 2) {
-            return true
-        }
-        return false
-    }
-    
+	 * Assuming that the given value denotes a valid time, return a time value.
+	 * @param p The AST node to inspect.
+	 * @return A time value based on the given parameter's initial value.
+	 */        
     def static TimeValue getTimeValue(Value v) {
         if (v.parameter !== null) {
-            return ASTUtils.getTimeValue(v.parameter)
+            return ASTUtils.getInitialTimeValue(v.parameter)
         } else if (v.time !== null) {
             return new TimeValue(v.time.interval, v.time.unit)
         } else {
@@ -687,6 +721,19 @@ class ASTUtils {
         }
     }
     
+    
+    /**
+     * Report whether a state variable has been initialized or not.
+     * @param v The state variable to be checked.
+     * @return True if the variable was initialized, false otherwise.
+     */
+    def static boolean isInitialized(StateVar v) {
+        if (v !== null && v.parens.size == 2) {
+            return true
+        }
+        return false
+    }
+        
     /**
      * Report whether the given time state variable is initialized using a 
      * parameter or not.
@@ -700,9 +747,19 @@ class ASTUtils {
         }
         return false
     }
-        
+    
+    /**
+     * Given an initialization list, return an inferred type. Only two types
+     * can be inferred: "time" and "timeList". Return the "undefined" type if
+     * neither can be inferred.
+     * @param initList A list of values used to initialize a parameter or
+     * state variable.
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */    
     protected static def InferredType getInferredType(EList<Value> initList) {
         if (initList.size == 1) {
+        	// If there is a single element in the list, and it is a proper
+        	// time value with units, we infer the type "time".
             val init = initList.get(0)
             if (init.parameter !== null) {
                 return init.parameter.getInferredType
@@ -710,6 +767,10 @@ class ASTUtils {
                 return InferredType.time;
             }
         } else if (initList.size > 1) {
+			// If there are multiple elements in the list, and there is at
+			// least one proper time value with units, and all other elements
+			// are valid times (including zero without units), we infer the
+			// type "time list".
             var allValidTime = true
             var foundNonZero = false
 
@@ -723,15 +784,21 @@ class ASTUtils {
             }
 
             if (allValidTime && foundNonZero) {
-                // FIXME: fixed size list or variable sized list
-
-                // return a variable size time list
-                return InferredType.timeList()
+                // Conservatively, no bounds are inferred; the returned type 
+                // is a variable-size list.
+				return InferredType.timeList()
             }
         }
         return InferredType.undefined
     }
     
+    /**
+     * Given a parameter, return an inferred type. Only two types can be
+     * inferred: "time" and "timeList". Return the "undefined" type if
+     * neither can be inferred.
+     * @param p A parameter to infer the type of. 
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */    
     def static InferredType getInferredType(Parameter p) {
         if (p !== null) {
             if (p.type !== null) {
@@ -743,6 +810,13 @@ class ASTUtils {
         return InferredType.undefined
     }
     
+    /**
+	 * Given a state variable, return an inferred type. Only two types can be
+	 * inferred: "time" and "timeList". Return the "undefined" type if
+	 * neither can be inferred.
+     * @param s A state variable to infer the type of. 
+     * @return The inferred type, or "undefined" if none could be inferred.
+     */    
     def static InferredType getInferredType(StateVar s) {
         if (s !== null) {
             if (s.type !== null) {
@@ -755,13 +829,26 @@ class ASTUtils {
         return InferredType.undefined
     }
     
+    /**
+     * Construct an inferred type from an "action" AST node based
+     * on its declared type. If no type is declared, return the "undefined"
+     * type.
+     * @param a An action to construct an inferred type object for.
+     * @return The inferred type, or "undefined" if none was declared.
+     */
     def static InferredType getInferredType(Action a) {
         if (a !== null && a.type !== null) {
             return InferredType.fromAST(a.type)
         }
         return InferredType.undefined
     }
-    
+
+	/**
+     * Construct an inferred type from a "port" AST node based on its declared
+     * type. If no type is declared, return the "undefined" type.
+     * @param p A port to construct an inferred type object for.
+     * @return The inferred type, or "undefined" if none was declared.
+     */    
     def static InferredType getInferredType(Port p) {
         if (p !== null && p.type !== null) {
             return InferredType.fromAST(p.type)
