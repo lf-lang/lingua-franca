@@ -2105,10 +2105,19 @@ class CGenerator extends GeneratorBase {
                 __done_using(«sendRef»);
             ''')
         } else {
-            // FIXME: Only supporting string type right now.
+            // Handle native types.
+            // string types need to be dealt with specially because they are hidden pointers.
+            var lengthExpression = switch(type.targetType) {
+                case 'string': '''strlen(«sendRef») + 1'''
+                default: '''sizeof(«type.targetType»)'''
+            }
+            var pointerExpression = switch(type.targetType) {
+                case 'string': '''(unsigned char*) «sendRef»'''
+                default: '''(unsigned char*)&«sendRef»'''
+            }
             result.append('''
-            size_t message_length = strlen(«sendRef») + 1;
-            send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»);
+            size_t message_length = «lengthExpression»;
+            send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             ''')
         }
         return result.toString
