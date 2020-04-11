@@ -564,8 +564,8 @@ class LinguaFrancaValidationTest {
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing: " +
                 model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.reaction, null,
-            "Reaction must have at least one trigger.")
+        model.assertWarning(LinguaFrancaPackage::eINSTANCE.reaction, null,
+            "Reaction has no trigger.")
     }
         
     /**

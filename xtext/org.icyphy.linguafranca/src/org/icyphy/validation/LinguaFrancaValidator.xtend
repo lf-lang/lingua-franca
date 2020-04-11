@@ -595,7 +595,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 	@Check(FAST)
 	def checkReaction(Reaction reaction) {
 		if (reaction.triggers === null || reaction.triggers.size == 0){
-			error("Reaction must have at least one trigger.", Literals.REACTION__TRIGGERS)
+			warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS)
 		}
 	}
 
