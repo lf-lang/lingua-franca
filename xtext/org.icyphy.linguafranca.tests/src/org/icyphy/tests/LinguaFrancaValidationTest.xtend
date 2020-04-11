@@ -545,7 +545,29 @@ class LinguaFrancaValidationTest {
             "Time value used to specify a deadline exceeds the maximum of " +
                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
     }  
-    
+
+    /**
+     * Report missing trigger.
+     */
+    @Test
+    def void missingTrigger() {
+        val model = '''
+		target C;
+		reactor X {
+		   	reaction() {=
+		   		//
+		   	=}
+		}
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.reaction, null,
+            "Reaction must have at least one trigger.")
+    }
+        
     /**
      * Test warnings and errors for the target dependent preamble visibility qualifiers 
      */

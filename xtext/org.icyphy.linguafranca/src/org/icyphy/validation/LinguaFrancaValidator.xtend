@@ -60,6 +60,7 @@ import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Type
+import org.icyphy.linguaFranca.Reaction
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -590,6 +591,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
     }
+
+	@Check(FAST)
+	def checkReaction(Reaction reaction) {
+		if (reaction.triggers === null || reaction.triggers.size == 0){
+			error("Reaction must have at least one trigger.", Literals.REACTION__TRIGGERS)
+		}
+	}
 
     @Check(FAST)
     def checkReactor(Reactor reactor) {
