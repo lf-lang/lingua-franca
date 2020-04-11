@@ -631,5 +631,55 @@ class LinguaFrancaValidationTest {
                 }
             }
         }
+    }
+    
+    
+    /**
+     * Tests for state and parameter declarations, including native lists.
+     */
+    @Test
+    def void stateAndParameterDeclarationsInC() {
+        val model = '''
+			target C;
+			reactor Bar(a(0),			// ERROR: type missing
+						b:int,			// ERROR: uninitialized
+						t:time(42), 	// ERROR: units missing
+						x:int(0),
+						h:time("bla"), 	// ERROR: not a type 
+						q:time(1 msec, 2 msec),  // ERROR: not a list
+						y:int(t)		// ERROR: init using parameter
+			) {
+				state offset:time(42); 	// ERROR: units missing
+				state w:time(x);		// ERROR: parameter is not a time
+				state foo:time("bla");	// ERROR: assigned value not a time
+				timer tick(1);			// ERROR: not a time
+			}
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+
+		model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+            "Type declaration missing.")
+        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+            "Missing time units. Should be one of " +
+            	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+            "Invalid time literal.")
+        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+            "Time parameter cannot be initialized using a list.")    
+        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+            "Parameter cannot be initialized using parameter.")
+        model.assertError(LinguaFrancaPackage::eINSTANCE.stateVar, null,
+            "Referenced parameter does not denote a time.")
+        model.assertError(LinguaFrancaPackage::eINSTANCE.stateVar, null,
+            "Invalid time literal.")
+        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+            "Uninitialized parameter.")
+       	model.assertError(LinguaFrancaPackage::eINSTANCE.value, null,
+            "Missing time units. Should be one of " +
+            	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }  
 }
