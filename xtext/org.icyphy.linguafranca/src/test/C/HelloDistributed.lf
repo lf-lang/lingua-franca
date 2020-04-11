@@ -1,7 +1,7 @@
 target C { 
     timeout: 1 sec,
     federates: {
-        RTI: {host: "localhost", port: 15045, launcher: true},
+        RTI: {host: "localhost", port: 15046, launcher: true},
         Source: {reactors: [s]},
         Destination: {reactors: [d]}
     }
@@ -11,15 +11,16 @@ reactor Source {
     reaction(startup) -> out {=
         printf("Sending 'Hello World!' message from source federate.\n");
         set(out, "Hello World!");
+        stop();  // FIXME: This should be broadcast as a request to stop all federates.
     =}
-} 
+}
 reactor Destination {
     input in:string;
     reaction(startup) {=
         printf("Destination started.\n");
     =}
     reaction(in) {=
-        printf("Destination received: %s\n", in);
+        printf("At logical time %lld, destination received: %s\n", get_elapsed_logical_time(), in);
         if (strcmp(in, "Hello World!") != 0) {
             printf("ERROR: Expected to receive 'Hello World!'\n");
             exit(1);
@@ -29,5 +30,5 @@ reactor Destination {
 main reactor HelloDistributed {
     s = new Source();      // Reactor s is in federate Source
     d = new Destination(); // Reactor d is in federate Destination
-    s.out -> d.in;
+    s.out -> d.in;         // FIXME: This should preserve the timestamp.
 }
