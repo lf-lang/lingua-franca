@@ -1,0 +1,40 @@
+target C {
+    timeout: 1 sec,
+    federates: {
+        RTI: {host: "localhost", port: 15045, launcher: true},
+        F0: {reactors: [c]},
+        F1: {reactors: [p]}
+    }
+};
+reactor Count {
+    timer t(0, 200 msec);
+    state s:int(0);
+    output out:int;
+    reaction(t) -> out {=
+        set(out, self->s);
+        self->s++;
+    =}
+}
+reactor Print {
+    input in:int;
+    state c:int(0);
+    reaction(in) {=
+        printf("At time %lld, received %d\n", get_elapsed_logical_time(), in);
+        if (in != self->c) {
+            printf("Expected to receive %d.\n", self->c);
+            exit(1);
+        }
+        self->c++;
+    =}
+    reaction(shutdown) {=
+        if (self->c != 5) {
+            printf("Expected to receive 5 items.\n");
+            exit(2);
+        }
+    =}
+}
+main reactor DistributedCount {
+    c = new Count();
+    p = new Print();
+    c.out -> p.in;
+}
