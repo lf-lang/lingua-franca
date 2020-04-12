@@ -35,6 +35,7 @@ DelayStructWithAfterOverlapped.lf
 Determinism.lf
 DeterminismThreaded.lf
 DistributedCount.lf
+DistributedCountPhysical.lf
 DistributedToken.lf
 DoubleInvocation.lf
 DoubleReaction.lf
