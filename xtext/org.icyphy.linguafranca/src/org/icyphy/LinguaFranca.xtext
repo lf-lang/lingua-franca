@@ -167,7 +167,7 @@ Instantiation:
     ')' ';';
 
 Connection:
-    leftPort=VarRef '->' rightPort=VarRef ('after' delay=Value)? ';';
+    leftPort=VarRef ('->' | physical?='~>') rightPort=VarRef ('after' delay=Value)? ';';
     
 /////////// For target parameters
 

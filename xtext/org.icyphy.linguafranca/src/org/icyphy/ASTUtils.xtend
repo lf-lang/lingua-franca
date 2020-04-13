@@ -153,8 +153,12 @@ class ASTUtils {
             action.minDelay.time.unit = connection.delay.time.unit
         }
         action.type = type
-        // FIXME: For now, only handling physical connections.
-        action.origin = ActionOrigin.PHYSICAL
+        // The connection is 'physical' if it uses the ~> notation.
+        if (connection.physical) {
+            action.origin = ActionOrigin.PHYSICAL
+        } else {
+            action.origin = ActionOrigin.LOGICAL
+        }
         
         // Record this action in the right federate.
         // The ID of the receiving port (rightPort) is the position
