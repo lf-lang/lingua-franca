@@ -6,7 +6,12 @@
  * Three executable programs are generated, Distributed,
  * Distributed_Sender, and Distributed_Receiver.
  * The RTI is realized in the first of these and is identified
- * as a "launcher," so it launches the other two programs. 
+ * as a "launcher," so it launches the other two programs.
+ * 
+ * This program uses a 'physical' connection ~> with an 'after' that
+ * is sufficiently large to get deterministic timestamps. Hence, it
+ * realizes a 'poor man's Ptides' that does not require clock synchronization
+ * nor HLA-style centralized control over the advancement of time.
  * 
  * @author Edward A. Lee
  */
@@ -83,5 +88,5 @@ reactor PrintMessage {
 main reactor Distributed {
     msg = new MessageGenerator(root = "Hello World");
     dsp = new PrintMessage();
-    msg.message->dsp.message after 10 msec;
+    msg.message ~> dsp.message after 10 msec;
 }

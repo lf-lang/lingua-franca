@@ -1,0 +1,51 @@
+/** Test a particularly simple form of a distributed deterministic system
+ *  where a federation that receives timestamped messages has only those
+ *  messages as triggers. Therefore, no additional coordination of the
+ *  advancement of time (HLA or Ptides) is needed.
+ *  @author Edward A. Lee
+ */
+target C {
+    timeout: 1 sec,
+    federates: {
+        RTI: {host: "localhost", port: 15045, launcher: true},
+        F0: {reactors: [c]},
+        F1: {reactors: [p]}
+    }
+};
+reactor Count {
+    timer t(0, 200 msec);
+    state s:int(0);
+    output out:int;
+    reaction(t) -> out {=
+        set(out, self->s);
+        self->s++;
+    =}
+}
+reactor Print {
+    input in:int;
+    state c:int(0);
+    reaction(in) {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("At time %lld, received %d\n", elapsed_time, in);
+        if (in != self->c) {
+            printf("Expected to receive %d.\n", self->c);
+            exit(1);
+        }
+        if (elapsed_time != MSEC(200) * self->c) {
+            printf("Expected received time to be %lld.\n", MSEC(200) * self->c);
+            exit(3);
+        }
+        self->c++;
+    =}
+    reaction(shutdown) {=
+        if (self->c != 5) {
+            printf("Expected to receive 5 items.\n");
+            exit(2);
+        }
+    =}
+}
+main reactor DistributedCount {
+    c = new Count();
+    p = new Print();
+    c.out -> p.in;    // Indicating a 'logical' connection.
+}

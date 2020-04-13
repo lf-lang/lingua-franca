@@ -1,3 +1,9 @@
+/** Test a particularly simple form of a distributed deterministic system
+ *  where a federation that receives timestamped messages has only those
+ *  messages as triggers. Therefore, no additional coordination of the
+ *  advancement of time (HLA or Ptides) is needed.
+ *  @author Edward A. Lee
+ */
 target C { 
     timeout: 1 sec,
     federates: {
@@ -30,5 +36,5 @@ reactor Destination {
 main reactor HelloDistributed {
     s = new Source();      // Reactor s is in federate Source
     d = new Destination(); // Reactor d is in federate Destination
-    s.out -> d.in;         // FIXME: This should preserve the timestamp.
+    s.out -> d.in;         // This version preserves the timestamp.
 }
