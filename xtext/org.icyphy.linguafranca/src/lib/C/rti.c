@@ -51,11 +51,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>     // Defines read(), write(), and close()
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
-#include <pthread.h>
 #include <assert.h>
 #include "util.c"       // Defines error() and swap_bytes_if_big_endian().
-#include "rti.h"        // Defines TIMESTAMP.
-#include "reactor.h"    // Defines instant_t.
+#include "rti.h"        // Defines TIMESTAMP. Includes <pthread.h> and "reactor.h".
 
 /** Delay the start of all federates by this amount. */
 #define DELAY_START SEC(1)
@@ -65,25 +63,6 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Condition variable used to signal receipt of all proposed start times.
 pthread_cond_t received_start_times = PTHREAD_COND_INITIALIZER;
-
-// State of a federate.
-typedef enum fed_state_t {
-    NOT_CONNECTED,  // The federate has not connected.
-    GRANTED,        // Most recent NMR has been granted.
-    PENDING         // Waiting for upstream federates.
-} fed_state_t;
-
-// Struct for a federate.
-typedef struct federate_t {
-    pthread_t thread_id;    // The ID of the thread handling communication with this federate.
-    int socket;             // The socket descriptor for communicating with this federate.
-    instant_t nmr;          // Most recent NMR tag received from each federate (or NEVER).
-    fed_state_t state;      // State of the federate.
-    struct federate_t* upstream;   // Array of upstream federates.
-    int num_upstream;       // Size of the array of upstream federates.
-    struct federate_t* downstream; // Array of downstream federates.
-    int num_downstream;     // Size of the array of downstream federates.
-} federate_t;
 
 // The federates.
 federate_t federates[NUMBER_OF_FEDERATES];
@@ -319,13 +298,16 @@ void connect_to_federates(int socket_descriptor) {
  *  @param id The federate ID.
  */
 void initialize_federate(int id) {
+    federates[id].id = id;
     federates[id].socket = -1;      // No socket.
     federates[id].nmr = NEVER;      // No NMR.
     federates[id].state = NOT_CONNECTED;
     federates[id].upstream = NULL;
+    federates[id].upstream_delay = NULL;
     federates[id].num_upstream = 0;
     federates[id].downstream = NULL;
     federates[id].num_downstream = 0;
+    federates[id].mode = REALTIME;
 }
 
 /** Launch the specified executable by forking the calling process and converting
@@ -358,9 +340,6 @@ pid_t federate_launcher(char* executable) {
  *  @param port The port on which to listen for socket connections.
  */
 int start_rti_server(int port) {
-    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-        initialize_federate(i);
-    }
     int socket_descriptor = create_server(port);
     printf("RTI: Listening for federates on port %d.\n", port);
     return socket_descriptor;
