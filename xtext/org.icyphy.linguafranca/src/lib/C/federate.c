@@ -385,3 +385,26 @@ void synchronize_with_other_federates(int id, char* hostname, int port) {
     physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
     */
 }
+
+/** Indicator of whether this federate has upstream federates. */
+bool __fed_has_upstream = false;
+
+/** Indicator of whether this federate has downstream federates. */
+bool __fed_has_downstream = false;
+
+/** If this federate depends on upstream federates, then request of the RTI
+ *  a time advance to the specified time. This will block until either the
+ *  RTI grants the advance to the requested time or the wait for the response
+ *  from the RTI is interrupted by a change in the event queue (e.g., a
+ *  physical action triggered).  This returns the requested time immediately
+ *  if there are no upstream federates. It returns the time advance that the
+ *  RTI grants (which may be less than the requested time). If its wait
+ *  for a time-advance grant from the RTI is interrupted by a change in the
+ *  event queue, then it checks again with the RTI the earliest time on the
+ *  event queue.
+ */
+instant_t __request_time_advance(instant_t time) {
+    if (!__fed_has_upstream) return time;
+    // FIXME: Implement this!
+    return 0LL;
+}

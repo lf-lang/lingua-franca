@@ -260,6 +260,25 @@ class CGenerator extends GeneratorBase {
                 pr(startTimeStep.toString)
                 unindent()
                 pr('}\n')
+                
+                // Generate a function that will either just return immediately
+                // if there is only one federate or will consult with the RTI,
+                // if necessary, for advancement of time.
+                pr('''
+                    instant_t request_time_advance(instant_t time) {
+                        «IF federates.length > 1»
+                            return __request_time_advance(time);
+                        «ELSE»
+                            return time;
+                        «ENDIF»
+                    }
+                ''')
+                if (federates.length > 1) {
+                    
+                } else {
+                    
+                }
+                
 
                 // Generate function to return a pointer to the action trigger_t
                 // that handles incoming network messages destined to the specified
