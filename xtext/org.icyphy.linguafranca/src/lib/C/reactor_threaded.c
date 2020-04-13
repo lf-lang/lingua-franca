@@ -91,14 +91,28 @@ handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* tok
  	return return_value;
 }
 
+/** Placeholder for code-generated function that will, if used in a federated
+ *  execution, coordinate the advancement of time.  Given a request to advance
+ *  to the specified time, an implementation of this function may block until
+ *  it is safe for time to advance to this point. It may return a lesser time
+ *  if such blocking was interrupted by either a new event on the event queue
+ *  (e.g. a physical action) or the RTI granting advancement to a lesser time.
+ *  @param time The time to which to advance.
+ *  @return The time to which it is safe to advance.
+ */
+instant_t request_time_advance(instant_t time);
+
 /** If the -fast option was not given, then wait until physical time
  *  matches the lesser of the specified time or the
  *  timeout time, if a timeout time has been given.
  *  If an event is put on the event queue during the wait, then
  *  stop the wait.
+ *  If this execution is part of a federation, then, if necessary,
+ *  request that the RTI grant a time advance to the specified time.
  *  Return true if the specified time is reached and false if
  *  either the timeout time is less than the specified time,
- *  or the wait is interrupted before the specified time is reached.
+ *  the wait is interrupted before the specified time is reached,
+ *  or the RTI grants time advance to a lesser time.
  *  The mutex lock is assumed to be held by the calling thread.
  *  Note this this could return true even if the a new event
  *  was placed on the queue if that event time matches the
@@ -113,7 +127,14 @@ bool wait_until(instant_t logical_time_ns) {
         // We still wait for time to elapse in case asynchronous events come in.
         return_value = false;
     }
-    if (!fast) {
+    // In case this is in a federation, check whether time can advance
+    // to the next time. This call may block waiting for a response from
+    // the RTI. If an action triggers during that wait, it will unblock
+    // and return with a time less than the next_time.
+    instant_t grant_time = request_time_advance(logical_time_ns);
+    if (grant_time < logical_time_ns) {
+        return_value = false;
+    } else if (!fast) {
         // Convert the logical time to a timespec.
         // timespec is seconds and nanoseconds.
         struct timespec wait_until_time = {(time_t)logical_time_ns / BILLION, (long)logical_time_ns % BILLION};
@@ -207,27 +228,24 @@ bool __next() {
     	}
 		// Check whether physical time exceeds the stop time, if a
 		// stop time is given. If it does, return false.
+    	// If this is a federate receiving messages
+    	// from another federate, then we may need to consult
+    	// the RTI to advance logical time to this physical time.
 		if (stop_time > 0LL) {
 			if (get_physical_time() >= stop_time) {
-				// printf("DEBUG: next(): stop time reached by physical clock. Requesting stop.\n");
-				stop_requested = true;
-				// Signal the worker threads.
-				pthread_cond_broadcast(&reaction_or_executing_q_changed);
-				return false;
+			    instant_t grant_time = request_time_advance(stop_time);
+			    if (grant_time == stop_time) {
+			        // printf("DEBUG: next(): stop time reached by physical clock. Requesting stop.\n");
+			        stop_requested = true;
+			        // Signal the worker threads.
+			        pthread_cond_broadcast(&reaction_or_executing_q_changed);
+			        return false;
+			    } else {
+			        // RTI has granted advance to an earlier time. Continue executing.
+			        return true;
+			    }
 			}
 		}
-    }
-
-    // Check whether the new logical time exceeds the timeout, if a
-    // timeout was specified. Note that this will execute all microsteps
-    // at the stop time.
-    if (stop_time > 0LL && (event != NULL && next_time > stop_time)) {
-	 	// printf("DEBUG: next(): logical stop time reached. Requesting stop.\n");
-		stop_requested = true;
- 		// Signal the worker threads. Since both the queues are
-		// empty, the threads will exit without doing anything further.
-		pthread_cond_broadcast(&reaction_or_executing_q_changed);
-       	return false;
     }
 
     instant_t wait_until_time = next_time;
@@ -250,7 +268,21 @@ bool __next() {
     		// There may be a new earlier event on the queue.
     		// Mutex lock was reacquired by wait_until.
     		event_t* new_event = pqueue_peek(event_q);
-    		if (new_event == event) {
+    		if (new_event != NULL) next_time = new_event->time;
+
+    	    // Check whether the new logical time exceeds the timeout, if a
+    	    // timeout was specified. Note that this will execute all microsteps
+    	    // at the stop time.
+    	    if (stop_time > 0LL && (event != NULL && next_time > stop_time)) {
+    	        // printf("DEBUG: next(): logical stop time reached. Requesting stop.\n");
+    	        stop_requested = true;
+    	        // Signal the worker threads. Since both the queues are
+    	        // empty, the threads will exit without doing anything further.
+    	        pthread_cond_broadcast(&reaction_or_executing_q_changed);
+    	        return false;
+    	    }
+
+    	    if (new_event == event) {
     			// There is no new event. If the timeout time has been reached,
     			// or there is also no old event,
     			// or if the maximum time has been reached (unlikely), then return.
@@ -263,7 +295,6 @@ bool __next() {
     		} else {
     			// Handle the new event.
     			event = new_event;
-    			next_time = event->time;
     			break;
     		}
 		} else {
