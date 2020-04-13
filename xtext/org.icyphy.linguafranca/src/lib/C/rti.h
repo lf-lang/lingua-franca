@@ -32,6 +32,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef RTI_H
 #define RTI_H
 
+#include <pthread.h>
+#include "reactor.h"
+
 /** Size of the buffer used for messages sent between federates.
  *  This is used by both the federates and the rti, so message lengths
  *  should generally match.
@@ -81,6 +84,43 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  The remaining bytes are the message.
  */
 #define TIMED_MESSAGE 5
+
+/////////////////////////////////////////////
+//// Data structures
+
+/** Mode of execution of a federate. */
+typedef enum execution_mode_t {
+    FAST,
+    REALTIME
+} execution_mode_t;
+
+/** State of a federate during execution. */
+typedef enum fed_state_t {
+    NOT_CONNECTED,  // The federate has not connected.
+    GRANTED,        // Most recent NMR has been granted.
+    PENDING         // Waiting for upstream federates.
+} fed_state_t;
+
+/** Information about a federate, including its runtime state,
+ *  mode of execution, and connectivity with other federates.
+ *  The list of upstream and downstream federates does not include
+ *  those that are connected via a "physical" connection (one
+ *  denoted with ~>) because those connections do not impose
+ *  any scheduling constraints.
+ */
+typedef struct federate_t {
+    int id;                 // ID of this federate.
+    pthread_t thread_id;    // The ID of the thread handling communication with this federate.
+    int socket;             // The socket descriptor for communicating with this federate.
+    instant_t nmr;          // Most recent NMR tag received from each federate (or NEVER).
+    fed_state_t state;      // State of the federate.
+    int* upstream;          // Array of upstream federate ids.
+    interval_t* upstream_delay;    // Minimum delay on connections from upstream federates.
+    int num_upstream;              // Size of the array of upstream federates and delays.
+    int* downstream;        // Array of downstream federate ids.
+    int num_downstream;     // Size of the array of downstream federates.
+    execution_mode_t mode;  // FAST or REALTIME.
+} federate_t;
 
 
 #endif /* RTI_H */

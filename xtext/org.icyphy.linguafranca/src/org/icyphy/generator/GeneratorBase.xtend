@@ -147,7 +147,7 @@ abstract class GeneratorBase {
     ////////////////////////////////////////////
     //// Target properties, if they are included.
     
-    /** A list of federate names or a list with a single empty string
+    /** A list of federate instances or a list with a single empty string
      *  if there are no federates specified.
      */
     protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
@@ -172,7 +172,7 @@ abstract class GeneratorBase {
         'launcher' -> false
     ) 
 
-	/** The build-type target parameter, or null if there is none. */
+    /** The build-type target parameter, or null if there is none. */
     protected String targetBuildType
 
     /** The cmake-include target parameter, or null if there is none. */
@@ -241,8 +241,8 @@ abstract class GeneratorBase {
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
                 switch param.name {
-                	case "build-type":
-                	    targetBuildType = param.value.id
+                    case "build-type":
+                        targetBuildType = param.value.id
                     case "cmake-include":
                         targetCmakeInclude = param.value.literal.withoutQuotes
                     case "compiler":
@@ -917,14 +917,14 @@ abstract class GeneratorBase {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
-				Pattern.compile(
+                Pattern.compile(
                 "platform:" + File.separator + "resource" + File.separator +
                     id + File.separator);
-			} else { // Windows file separator
-				Pattern.compile(
+            } else { // Windows file separator
+                Pattern.compile(
                 "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
                 id + File.separator + File.separator );
-			}
+            }
             val matcher = pattern.matcher(code);
             var projName = ""
             if (matcher.find()) {
@@ -1200,25 +1200,37 @@ abstract class GeneratorBase {
                     if (leftFederate !== rightFederate) {
                         // Connection spans federates.
                         // First, update the dependencies in the FederateInstances.
-                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                        if (dependsOn === null) {
-                            dependsOn = new HashSet<Value>()
-                            rightFederate.dependsOn.put(leftFederate, dependsOn)
-                        }
-                        if (connection.delay !== null) {
-                            dependsOn.add(connection.delay)
-                        }
-                        // Check for causality loops between federates.
-                        var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                        if (reverseDependency !== null) {
-                            // Check that at least one direction has a delay.
-                            if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                // Found a causality loop.
-                                val message = "Causality loop found between federates "
-                                    + leftFederate.name + " and " + rightFederate.name
-                                reportError(connection, message)
-                                // This is a fatal error, so throw an exception.
-                                throw new Exception(message)
+                        // Exclude physical connections because these do not create real dependencies.
+                        if (leftFederate !== rightFederate && !connection.physical) {
+                            var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                            if (dependsOn === null) {
+                                dependsOn = new HashSet<Value>()
+                                rightFederate.dependsOn.put(leftFederate, dependsOn)
+                            }
+                            if (connection.delay !== null) {
+                                dependsOn.add(connection.delay)
+                            }
+                            var sendsTo = leftFederate.sendsTo.get(rightFederate)
+                            if (sendsTo === null) {
+                                sendsTo = new HashSet<Value>()
+                                leftFederate.sendsTo.put(rightFederate, sendsTo)
+                            }
+                            if (connection.delay !== null) {
+                                sendsTo.add(connection.delay)
+                            }
+                            // Check for causality loops between federates.
+                            // FIXME: This does not detect cycles involving more than one federate.
+                            var reverseDependency = leftFederate.dependsOn.get(rightFederate)
+                            if (reverseDependency !== null) {
+                                // Check that at least one direction has a delay.
+                                if (reverseDependency.size === 0 && dependsOn.size === 0) {
+                                    // Found a causality loop.
+                                    val message = "Causality loop found between federates "
+                                            + leftFederate.name + " and " + rightFederate.name
+                                    reportError(connection, message)
+                                    // This is a fatal error, so throw an exception.
+                                    throw new Exception(message)
+                                }
                             }
                         }
                         
@@ -1244,7 +1256,7 @@ abstract class GeneratorBase {
     /** Create a string representing the file path of a resource.
      */
     protected def toPath(Resource resource) {
-    	var path = resource.getURI.toString
+        var path = resource.getURI.toString
         if (path.startsWith('platform:')) {
             mode = Mode.INTEGRATED
             var fileURL = FileLocator.toFileURL(new URL(path)).toString
