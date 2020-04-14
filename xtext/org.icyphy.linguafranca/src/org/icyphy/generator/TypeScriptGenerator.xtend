@@ -161,13 +161,14 @@ class TypeScriptGenerator extends GeneratorBase {
             new File(srcGenPath + File.separator + "reactor.ts"));
         fOut.write(fileContents.getBytes())
 
-        copyReactorTSCoreFile(srcGenPath, "time.ts")
         copyReactorTSCoreFile(srcGenPath, "cli.ts")
         copyReactorTSCoreFile(srcGenPath, "command-line-args.d.ts")
         copyReactorTSCoreFile(srcGenPath, "command-line-usage.d.ts")
-        copyReactorTSCoreFile(srcGenPath, "ulog.d.ts")
-        copyReactorTSCoreFile(srcGenPath, "nanotimer.d.ts")
         copyReactorTSCoreFile(srcGenPath, "microtime.d.ts")
+        copyReactorTSCoreFile(srcGenPath, "nanotimer.d.ts")
+        copyReactorTSCoreFile(srcGenPath, "time.ts")
+        copyReactorTSCoreFile(srcGenPath, "ulog.d.ts")
+        copyReactorTSCoreFile(srcGenPath, "util.ts")
         
         // Only run npm install if we had to copy over the defaul package.json.
         var boolean runNpmInstall
@@ -770,32 +771,6 @@ class TypeScriptGenerator extends GeneratorBase {
         //var String timeoutArg
         //var isATimeoutArg = false
         
-        pr('// ************* App Parameters')
-        pr("let __timeout: TimeValue | undefined;")
-        pr("let __keepAlive: boolean;")
-        pr("let __fast: boolean;")
-        
-        // Timeout Property
-        if (targetTimeout >= 0) {
-            pr("__timeout = " + timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit)))
-        } else {
-            pr("__timeout = undefined");
-        }
-        
-        // KeepAlive Property
-        if (targetKeepalive) {
-            pr("__keepAlive = true;")
-        } else {
-            pr("__keepAlive = false;")
-        }
-        
-        // Fast Property
-        if (targetFast) {
-            pr("__fast = true;")
-        } else {
-            pr("__fast = false;")
-        }
-        
         
         //arguments.add("'" + fullName + "'")
         
@@ -806,10 +781,16 @@ class TypeScriptGenerator extends GeneratorBase {
 //        }
 //        arguments.add(keepAliveArg)
 //        arguments.add(fastArg)
-        pr(parseCLArgs)
+
         pr('// ************* Instance ' + fullName + ' of class ' +
             defn.reactorClass.name)
-        pr("let __app = new "+ fullName + "(__timeout, __keepAlive, __fast);")
+        
+        pr("let __app;")
+        pr("if (!__noStart) {")
+        indent()
+        pr("__app = new "+ fullName + "(__timeout, __keepAlive, __fast);")
+        unindent()
+        pr("}")
     }
     
     /** Generate code to call the _start function on the main App
@@ -819,7 +800,12 @@ class TypeScriptGenerator extends GeneratorBase {
     def void generateRuntimeStart(Instantiation defn) {
         pr('// ************* Starting Runtime for ' + defn.name + ' of class ' +
             defn.reactorClass.name)
-        pr("__app._start();")
+        pr("if (!__noStart) {")
+        indent()
+        pr("(__app as App)._start();")
+        unindent()
+        pr("}")
+
     }
 
 
@@ -844,8 +830,120 @@ class TypeScriptGenerator extends GeneratorBase {
         super.generatePreamble
         pr(preamble)
         pr("")
-        pr("Log.global.level = Log.levels." + getLoggingLevel()
-            + "; // NOTE: May be overridden by command line arguments.")
+        
+        
+        val setParameters = '''
+            // ************* App Parameters
+            let __timeout: TimeValue | undefined = «getTimeoutTimeValue»;
+            let __keepAlive: boolean = «targetKeepalive»;
+            let __fast: boolean = «targetFast»;
+            
+            let __noStart = false; // If set to true, don't start the app.
+            const __clUsage = commandLineUsage(CommandLineUsageDefs);
+                         
+            // Set App parameters using values from the constructor or command line args.
+            // Command line args have precedence over values from the constructor
+            let __processedCLArgs: ProcessedCommandLineArgs;
+            try {
+                __processedCLArgs =  commandLineArgs(CommandLineOptionDefs) as ProcessedCommandLineArgs;
+            } catch (e){
+                Log.global.error(__clUsage);
+                throw new Error("Command line argument parsing failed with: " + e);
+            }
+            
+            // Fast Parameter
+            if (__processedCLArgs.fast !== undefined) {
+                if (__processedCLArgs.fast !== null) {
+                    __fast = __processedCLArgs.fast;
+                } else {
+                    Log.global.error(__clUsage);
+                    throw new Error("'fast' command line argument is malformed: + e");
+                }
+            }
+            
+            // KeepAlive parameter
+            if (__processedCLArgs.keepalive !== undefined) {
+                if (__processedCLArgs.keepalive !== null) {
+                    __keepAlive = __processedCLArgs.keepalive;
+                } else {
+                    Log.global.error(__clUsage);
+                    throw new Error("'keepalive' command line argument is malformed: + e");
+                }
+            }
+            
+            // Timeout parameter
+            if (__processedCLArgs.timeout !== undefined) {
+                if (__processedCLArgs.timeout !== null) {
+                    __timeout = __processedCLArgs.timeout;
+                } else {
+                    Log.global.error(__clUsage);
+                    throw new Error("'timeout' command line argument is malformed: + e");
+                }
+            }
+            
+            // Logging parameter (not a constructor parameter, but a command line option)
+            if (__processedCLArgs.logging !== undefined) {
+                if (__processedCLArgs.logging !== null) {
+                    Log.global.level = __processedCLArgs.logging;
+                } else {
+                    Log.global.error(__clUsage);
+                    throw new Error("'logging' command line argument is malformed: + e");
+                }
+            } else {
+                Log.global.level = Log.levels.«getLoggingLevel»; // Default from target property.
+            }
+            
+            // Help parameter (not a constructor parameter, but a command line option)
+            // NOTE: this arg has to be checked after logging, because the help mode should
+            // suppress debug statements from it changes logging
+            if (__processedCLArgs.help === true) {
+                Log.global.error(__clUsage);
+                __noStart = true;
+                // Don't execute the app if the help flag is given.
+            }
+            
+            // Now the logging property has been set to its final value,
+            // log information about how command line arguments were set,
+            // but only if not in help mode.
+            if (__processedCLArgs.fast !== undefined && __processedCLArgs.fast !== null
+                && !__noStart) {
+                Log.global.info("'fast' property overridden by command line argument.");
+            }
+            if (__processedCLArgs.keepalive !== undefined && __processedCLArgs.keepalive !== null
+                && !__noStart) {
+                Log.global.info("'keepalive' property overridden by command line argument.");
+            }
+            if (__processedCLArgs.timeout !== undefined && __processedCLArgs.timeout !== null
+                && !__noStart) {
+                Log.global.info("'timeout' property overridden by command line argument.");
+            }
+            if (__processedCLArgs.logging !== undefined && __processedCLArgs.logging !== null
+                && !__noStart) {
+                 Log.global.info("'logging' property overridden by command line argument.");
+            }
+        '''
+        
+        pr(setParameters)
+//        // Timeout Property
+//        if (targetTimeout >= 0) {
+//            pr("__timeout = " + timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit)))
+//        } else {
+//            pr("__timeout = undefined");
+//        }
+//        
+//        // KeepAlive Property
+//        if (targetKeepalive) {
+//            pr("__keepAlive = true;")
+//        } else {
+//            pr("__keepAlive = false;")
+//        }
+//        
+//        // Fast Property
+//        if (targetFast) {
+//            pr("__fast = true;")
+//        } else {
+//            pr("__fast = false;")
+//        }
     }
 
 
@@ -979,6 +1077,14 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         type
     }
+    
+    private def getTimeoutTimeValue() {
+        if (targetTimeout >= 0) {
+            return timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit))
+        } else {
+            return "undefined"
+        }
+    }
 
     static val reactorLibPath = "." + File.separator + "reactor"
     static val timeLibPath =  "." + File.separator + "time"
@@ -986,74 +1092,15 @@ class TypeScriptGenerator extends GeneratorBase {
     static val cliLibPath =  "." + File.separator + "cli"
     val static preamble = '''
 import commandLineArgs from 'command-line-args';
-import {Args, Present, Parameter, State, Variable, Priority, Mutation, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
-import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeLibPath + '''"
-import {Log} from "''' + utilLibPath + '''"
-import {ProcessedCommandLineArgs, CommandLineOptionDefs} from "''' + cliLibPath + '''"
+import commandLineUsage from 'command-line-usage';
+import { Args, Present, Parameter, State, Variable, Priority, Mutation, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
+import { TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeLibPath + '''"
+import { Log } from "''' + utilLibPath + '''"
+import { ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs } from "''' + cliLibPath + '''"
 
     '''
-    
-    val static parseCLArgs = '''
-// Set App parameters using values from the constructor or command line args.
-// Command line args have precedence over values from the constructor
-let processedCLArgs: ProcessedCommandLineArgs;
-try {
-    processedCLArgs =  commandLineArgs(CommandLineOptionDefs) as ProcessedCommandLineArgs;
-} catch (e){
-    // Provide context for errors in parsing.
-    throw new Error("Command line argument parsing failed with: " + e);
-}
 
-// Fast Parameter
-if (processedCLArgs.fast !== undefined) {
-    if (processedCLArgs.fast !== null) {
-        Log.global.info("'fast' property overridden by command line argument.");
-        __fast = processedCLArgs.fast;
-    } else {
-        throw new Error("'fast' command line argument is malformed. "
-        + "The fast option must be one of: 'true' or 'false'");
-    }
-}
 
-// KeepAlive parameter
-if (processedCLArgs.keepalive !== undefined) {
-    if (processedCLArgs.keepalive !== null) {
-        Log.global.info("'keepalive' property overridden by command line argument.");
-        __keepAlive = processedCLArgs.keepalive;
-    } else {
-        throw new Error("'keepalive' command line argument is malformed. "
-        + "The keepalive option must be one of: 'true' or 'false'");
-    }
-}
-
-// Timeout parameter
-if (processedCLArgs.timeout !== undefined) {
-    if (processedCLArgs.timeout !== null) {
-        Log.global.info("'timeout' property overridden by command line argument.");
-        __timeout = processedCLArgs.timeout;
-    } else {
-        throw new Error("'timeout' command line argument is malformed. "
-            + "Ignoring specified 'timeout' argument."
-            + "A timeout should have value '<duration> <units>'. "
-            + "Duration must be a whole number, and units can be any of "
-            + "nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.");
-    }
-}
-
-// Logging parameter (not a constructor parameter, but a command line option)
-if (processedCLArgs.logging !== undefined) {
-    if (processedCLArgs.logging !== null) {
-        Log.global.info("'logging' property overridden by command line argument.");
-        Log.global.level = processedCLArgs.logging;
-    } else {
-        throw new Error("'logging' command line argument is malformed. "
-            + "The logging option must be one of: 'ERROR', 'WARN', 'INFO', 'LOG', or 'DEBUG'");
-    }
-} else {
-    // Log level is unchanged from global setting.
-}
-
-    '''
         
     override protected String getTargetTimeType() {
         "TimeValue"
