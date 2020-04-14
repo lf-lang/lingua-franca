@@ -202,7 +202,7 @@ abstract class GeneratorBase {
     /** The threads target parameter, or the default 0 if there is none. */
     protected int targetThreads = 0
 
-    /** The threads timeout parameter, or the default -1 if there is none. */
+    /** The timeout parameter, or the default -1 if there is none. */
     protected int targetTimeout = -1
 
     /** The threads timeout unit parameter, or the default null if there is none. */
@@ -234,7 +234,6 @@ abstract class GeneratorBase {
      */
     def void analyzeModel(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
-        
         generatorErrorsOccurred = false
         
         var target = resource.findTarget
