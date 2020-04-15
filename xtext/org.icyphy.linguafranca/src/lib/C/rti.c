@@ -166,6 +166,7 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
  *  with the specified time.
  */
 void send_time_advance_grant(federate_t* fed, instant_t time) {
+    if (fed->state == NOT_CONNECTED) return;
     unsigned char buffer[9];
     buffer[0] = TIME_ADVANCE_GRANT;
     encode_ll(time, &(buffer[1]));
@@ -373,6 +374,7 @@ void* federate(void* fed) {
 
     // Listen for messages from the federate.
     while (1) {
+        if (my_fed->state == NOT_CONNECTED) return NULL;
         // Read no more than one byte to get the message type.
         read_from_socket(my_fed->socket, 1, buffer);
         switch(buffer[0]) {
@@ -384,6 +386,7 @@ void* federate(void* fed) {
             break;
         case RESIGN:
             // Nothing more to do. Close the socket and exit.
+            printf("Federate %d has resigned.\n", my_fed->id);
             pthread_mutex_lock(&rti_mutex);
             my_fed->state = NOT_CONNECTED;
             close(my_fed->socket); //  from unistd.h
