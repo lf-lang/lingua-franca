@@ -93,6 +93,14 @@ class CppGenerator extends GeneratorBase {
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
+    
+    /** Path to the Cpp lib directory (relative to class path)  */
+    val libDir = File.separator + "lib" + File.separator + "Cpp"
+    
+    /** The target directory for code generation */
+    protected def genDir() { 
+        return directory + File.separator + "src-gen" + File.separator + filename
+    }
    
     def toDir(Resource r) {
         r.toPath.getFilename
@@ -126,8 +134,8 @@ class CppGenerator extends GeneratorBase {
         }
         
         fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
-        fsa.generateFile(filename + File.separator + "lfutil.hh", generateLfutil)
         fsa.generateFile(filename + File.separator + "CMakeLists.txt", generateCmake)
+        copyFileFromClassPath(libDir + File.separator + "lfutil.hh",  genDir + File.separator + "lfutil.hh")
 
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile, r.generateReactorHeader)
@@ -778,39 +786,6 @@ class CppGenerator extends GeneratorBase {
             }
         }
     }
-    
-    /** Generate code for a LF utility header.
-     * 
-     *  The functions defined in the generated code are required for
-     *  the implementation of the after keyword.
-     */
-    def generateLfutil() '''
-        #pragma once
-        
-        #include <reactor-cpp/reactor-cpp.hh>
-        
-        namespace lfutil {
-
-        template<class T>
-        void after_delay(reactor::Action<T>* action, reactor::Port<T>* port) {
-            if constexpr(std::is_void<T>::value) {
-                action->schedule();
-            } else {
-                action->schedule(std::move(port->get()));
-            }
-        }
-        
-        template<class T>
-        void after_forward(reactor::Action<T>* action, reactor::Port<T>* port) {
-            if constexpr(std::is_void<T>::value) {
-                port->set();
-            } else {
-                port->set(std::move(action->get()));
-            }
-        }
-
-        }
-    '''
     
     ////////////////////////////////////////////////
     //// Protected methods
