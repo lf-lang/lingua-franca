@@ -136,6 +136,7 @@ class CppGenerator extends GeneratorBase {
         fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
         fsa.generateFile(filename + File.separator + "CMakeLists.txt", generateCmake)
         copyFileFromClassPath(libDir + File.separator + "lfutil.hh",  genDir + File.separator + "lfutil.hh")
+        copyFileFromClassPath(libDir + File.separator + "time_parser.hh",  genDir + File.separator + "time_parser.hh")
 
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile, r.generateReactorHeader)
@@ -588,6 +589,8 @@ class CppGenerator extends GeneratorBase {
         using namespace std::chrono_literals;
         using namespace reactor::operators;
         
+        #include "time_parser.hh"
+
         #include "CLI/CLI11.hpp"
         
         #include "«main.headerFile»"
@@ -612,8 +615,10 @@ class CppGenerator extends GeneratorBase {
           
           unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
-          unsigned timeout = 0;
-          auto opt_timeout = app.add_option("-o,--timeout", timeout, "Number of seconds after which the execution is aborted.");
+          reactor::Duration timeout = reactor::Duration::zero();
+          auto opt_timeout = app.add_option("-o,--timeout", timeout, "Time after which the execution is aborted.");
+          opt_timeout->check([](const std::string& val){ return validate_time_string(val); });
+          opt_timeout->type_name("'FLOAT UNIT'");
           bool fast{«targetFast»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
           bool keepalive{«targetKeepalive»};
@@ -629,7 +634,7 @@ class CppGenerator extends GeneratorBase {
           // optionally instantiate the timeout reactor
           std::unique_ptr<Timeout> t{nullptr};
           if (opt_timeout->count() > 0) {
-            t = std::make_unique<Timeout>("Timeout", &e, std::chrono::seconds(timeout));
+            t = std::make_unique<Timeout>("Timeout", &e, timeout);
           } «IF targetTimeout >= 0»else {
           	t = std::make_unique<Timeout>("Timeout", &e, «targetTimeout»«timeUnitsToCppUnits.get(targetTimeoutUnit)»);
           }«ENDIF»
