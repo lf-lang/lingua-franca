@@ -9,6 +9,7 @@
     "license" : "BSD-2-Clause",
     "dependencies": {
         "command-line-args": "^5.1.1",
+        "command-line-usage": "^6.1.0",
         "microtime": "^3.0.0",
         "ulog": "^2.0.0-beta.7"
     },
