@@ -73,6 +73,7 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
  * @author{Chris Gill, <cdgill@wustl.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>
  */
 class CGenerator extends GeneratorBase {
     
@@ -160,10 +161,10 @@ class CGenerator extends GeneratorBase {
         }
         
         for (file : files) {
-            var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + file));
-            fOut.write(readFileInClasspath("/lib/C/" + file).getBytes())
-            fOut.close()
+            copyFileFromClassPath(
+                File.separator + "lib" + File.separator + "C" + File.separator + file,
+                srcGenPath + File.separator + file
+            )
         }
 
         // Perform distinct code generation into distinct files for each federate.

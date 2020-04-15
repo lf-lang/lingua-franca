@@ -26,11 +26,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
 import java.io.OutputStream
 import java.net.URL
 import java.nio.file.Paths
@@ -71,6 +68,8 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /** Generator base class for shared code between code generators.
  * 
@@ -864,47 +863,24 @@ abstract class GeneratorBase {
         importRecursionStack.remove(resource);
     }
 
-    /** Read a text file in the classpath and return its contents as a string.
-     *  @param filename The file name as a path relative to the classpath.
-     *  @return The contents of the file as a String or null if the file cannot be opened.
-     */
-    protected def readFileInClasspath(String filename) throws IOException {
-        var inputStream = this.class.getResourceAsStream(filename)
 
-        if (inputStream === null) {
-            return null
-        }
+    protected def copyFileFromClassPath(String source, String destination) {
+        val sourceStream = this.class.getResourceAsStream(source)
+
+        // make sure the directory exists
+        val destFile = new File(destination); 
+        destFile.getParentFile().mkdirs();
+
+        // copy the file
         try {
-            var resultStringBuilder = new StringBuilder()
-            // The following reads a file relative to the classpath.
-            // The file needs to be in the src directory.
-            var reader = new BufferedReader(new InputStreamReader(inputStream))
-            var line = ""
-            while ((line = reader.readLine()) !== null) {
-                resultStringBuilder.append(line).append("\n");
-            }
-            return resultStringBuilder.toString();
+            Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+             throw new IOException("A required target resource could not be copied: " + source + "\n"
+                + "Perhaps a git submodule is missing or not up to date.\n"
+                + "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.", ex)
         } finally {
-            inputStream.close
+            sourceStream.close()
         }
-    }
-
-    /** Read the specified input stream until an end of file is encountered
-     *  and return the result as a StringBuilder.
-     *  @param stream The stream to read.
-     *  @return The result as a string.
-     */
-    protected def readStream(InputStream stream) {
-        var reader = new BufferedReader(new InputStreamReader(stream))
-        var result = new StringBuilder();
-        var line = "";
-        while ((line = reader.readLine()) !== null) {
-            result.append(line);
-            result.append(System.getProperty("line.separator"));
-        }
-        stream.close()
-        reader.close()
-        result
     }
     
     /** If the mode is INTEGRATED (the code generator is running in an
