@@ -615,29 +615,44 @@ class CppGenerator extends GeneratorBase {
           
           unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
-          reactor::Duration timeout = reactor::Duration::zero();
+
+          reactor::Duration timeout = «IF targetTimeout > 0»«targetTimeout»«timeUnitsToCppUnits.get(targetTimeoutUnit)»«ELSE»reactor::Duration::zero()«ENDIF»;
           auto opt_timeout = app.add_option("-o,--timeout", timeout, "Time after which the execution is aborted.");
+
           opt_timeout->check([](const std::string& val){ return validate_time_string(val); });
           opt_timeout->type_name("'FLOAT UNIT'");
+          opt_timeout->default_str(time_to_quoted_string(timeout));
+
           bool fast{«targetFast»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
+
           bool keepalive{«targetKeepalive»};
           app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
-          
+          «FOR p : mainReactor.parameters»
+
+          «p.targetType» «p.name» = «p.targetInitializer»;
+          auto opt_«p.name» = app.add_option("--«p.name»", «p.name», "The «p.name» parameter passed to the main reactor «mainReactor.name».");
+          «IF p.inferredType.isTime»
+            opt_«p.name»->check([](const std::string& val){ return validate_time_string(val); });
+            opt_«p.name»->type_name("'FLOAT UNIT'");
+            opt_«p.name»->default_str(time_to_quoted_string(«p.name»));
+          «ENDIF»
+          «ENDFOR»
+
+          app.get_formatter()->column_width(50);
+
           CLI11_PARSE(app, argc, argv);
-          
+
           reactor::Environment e{threads, keepalive, fast};
         
           // instantiate the main reactor
-          «main.name» main{"«main.name»", &e};
+          «main.name» main{"«main.name»", &e«FOR p : mainReactor.parameters BEFORE ", " SEPARATOR ", "»«p.name»«ENDFOR»};
           
           // optionally instantiate the timeout reactor
           std::unique_ptr<Timeout> t{nullptr};
-          if (opt_timeout->count() > 0) {
+          if (timeout != reactor::Duration::zero()) {
             t = std::make_unique<Timeout>("Timeout", &e, timeout);
-          } «IF targetTimeout >= 0»else {
-          	t = std::make_unique<Timeout>("Timeout", &e, «targetTimeout»«timeUnitsToCppUnits.get(targetTimeoutUnit)»);
-          }«ENDIF»
+          }
 
           // execute the reactor program
           e.assemble();
