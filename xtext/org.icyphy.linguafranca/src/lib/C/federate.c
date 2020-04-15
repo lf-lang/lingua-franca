@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
  * Utility functions for a federate in a federated execution.
+ * The main entry point is synchronize_with_other_federates().
  */
 
 
@@ -49,6 +50,11 @@ char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via R
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
 char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from RTI an unrecognized message type";
 
+/** The ID of this federate as assigned when synchronize_with_other_federates()
+ *  is called.
+ */
+int __my_fed_id = 0;
+
 /** The socket descriptor for this federate to communicate with the RTI.
  *  This is set by connect_to_rti(), which must be called before other
  *  functions are called.
@@ -60,6 +66,8 @@ int rti_socket = -1;
  *  input port of a reactor in the destination federate.
  *  This version does not include the timestamp in the message.
  *  The caller can reuse or free the memory after this returns.
+ *  This function assumes the caller does not hold the mutex lock,
+ *  which it acquires to perform the send.
  *  @param port The ID of the destination port.
  *  @param federate The ID of the destination federate.
  *  @param length The message length.
@@ -80,8 +88,14 @@ void send_via_rti(unsigned int port, unsigned int federate, size_t length, unsig
     buffer[7] = length & 0xff0000;
     buffer[8] = length & 0xff000000;
 
+    // Use a mutex lock to prevent multiple threads from simulatenously sending.
+    // printf("DEBUG: Federate %d pthread_mutex_lock send_via_rti\n", __my_fed_id);
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
     write_to_socket(rti_socket, 9, buffer);
     write_to_socket(rti_socket, length, message);
+    // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
+    pthread_mutex_unlock(&mutex);
 }
 
 /** Send the specified timestamped message to the specified port in the
@@ -89,6 +103,8 @@ void send_via_rti(unsigned int port, unsigned int federate, size_t length, unsig
  *  input port of a reactor in the destination federate.
  *  This version does include the timestamp in the message.
  *  The caller can reuse or free the memory after this returns.
+ *  This method assumes that the caller does not hold the mutex lock,
+ *  which it acquires to perform the send.
  *  @param port The ID of the destination port.
  *  @param federate The ID of the destination federate.
  *  @param length The message length.
@@ -115,10 +131,29 @@ void send_via_rti_timed(unsigned int port, unsigned int federate, size_t length,
     instant_t current_time = get_logical_time();
 
     encode_ll(current_time, &(buffer[9]));
-    // printf("DEBUG: Sending message with timestamp %lld.\n", current_time);
+    // printf("DEBUG: Federate %d sending message with timestamp %lld.\n", __my_fed_id, current_time - start_time);
 
+    // Use a mutex lock to prevent multiple threads from simulatenously sending.
+    // printf("DEBUG: Federate %d pthread_mutex_lock send_via_rti_timed\n", __my_fed_id);
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
     write_to_socket(rti_socket, 17, buffer);
     write_to_socket(rti_socket, length, message);
+    // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
+    pthread_mutex_unlock(&mutex);
+}
+
+/** Send a time to the RTI.
+ *  This is not synchronized.
+ *  It assumes the caller is.
+ *  @param type The message type (NEXT_EVENT_TIME or LOGICAL_TIME_COMPLETE).
+ *  @param time The time of this federate's next event.
+ */
+void send_time(unsigned char type, instant_t time) {
+    unsigned char buffer[9];
+    buffer[0] = type;
+    encode_ll(time, &(buffer[1]));
+    write_to_socket(rti_socket, 9, buffer);
 }
 
 /** Connect to the RTI at the specified host and port and return
@@ -250,6 +285,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 trigger_t* __action_for_port(int port_id);
 
 /** Handle a message being received from a remote federate via the RTI.
+ *  This version is for messages carrying no timestamp.
  *  @param buffer The buffer to read.
  */
 void handle_message(unsigned char* buffer) {
@@ -260,7 +296,7 @@ void handle_message(unsigned char* buffer) {
     unsigned short federate_id;
     unsigned int length;
     extract_header(buffer, &port_id, &federate_id, &length);
-    // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
+    // printf("DEBUG: Federate %d receiving message to port %d of length %d.\n", federate_id, port_id, length);
 
     // Read the payload.
     // Allocate memory for the message contents.
@@ -272,9 +308,32 @@ void handle_message(unsigned char* buffer) {
     // printf("DEBUG: Called schedule\n");
 }
 
+/** Version of schedule_value() identical to that in reactor_common.c
+ *  except that it does not acquire the mutex lock.
+ *  @param action The action or timer to be triggered.
+ *  @param extra_delay Extra offset of the event release.
+ *  @param value Dynamically allocated memory containing the value to send.
+ *  @param length The length of the array, if it is an array, or 1 for a
+ *   scalar and 0 for no payload.
+ *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule_value_already_locked(
+        trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+    token_t* token = create_token(trigger->element_size);
+    token->value = value;
+    token->length = length;
+    int return_value = __schedule(trigger, extra_delay, token);
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    // printf("DEBUG: Federate %d pthread_cond_broadcast(&event_q_changed)\n", __my_fed_id);
+    pthread_cond_broadcast(&event_q_changed);
+    return return_value;
+}
+
 /** Handle a timestamped message being received from a remote federate via the RTI.
  *  This will read the timestamp, which is appended to the header,
  *  and calculate an offset to pass to the schedule function.
+ *  This function assumes the caller does not hold the mutex lock,
+ *  which it acquires to call schedule.
  *  @param buffer The buffer to read.
  */
 void handle_timed_message(unsigned char* buffer) {
@@ -290,7 +349,7 @@ void handle_timed_message(unsigned char* buffer) {
     // Read the timestamp.
     read_from_socket(rti_socket, 8, buffer + 8);
     instant_t timestamp = extract_ll(buffer + 8);
-    // printf("DEBUG: Message timestamp: %lld.\n", timestamp);
+    // printf("DEBUG: Message timestamp: %lld.\n", timestamp - start_time);
 
     // Read the payload.
     // Allocate memory for the message contents.
@@ -300,12 +359,54 @@ void handle_timed_message(unsigned char* buffer) {
 
     // Acquire the one mutex lock to prevent logical time from advancing
     // between the time we get logical time and the time we call schedule().
+    // printf("DEBUG: Federate %d pthread_mutex_lock handle_timed_message\n", __my_fed_id);
     pthread_mutex_lock(&mutex);
+    // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
 
     interval_t delay = timestamp - get_logical_time();
-    schedule_value(__action_for_port(port_id), delay, message_contents, length);
+    // NOTE: Cannot call schedule_value(), which is what we really want to call,
+    // because pthreads it too incredibly stupid and deadlocks trying to acquire
+    // a lock that the calling thread already holds.
+    schedule_value_already_locked(__action_for_port(port_id), delay, message_contents, length);
     // printf("DEBUG: Called schedule with delay %lld.\n", delay);
 
+    // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
+    pthread_mutex_unlock(&mutex);
+}
+
+/** Most recent TIME_ADVANCE_GRANT received from the RTI, or NEVER if none
+ *  has been received.
+ *  This is used to communicate between the listen_to_rti thread and the
+ *  main federate thread.
+ */
+volatile instant_t __tag = NEVER;
+
+/** Indicator of whether a NET has been sent to the RTI and no TAG
+ *  yet received in reply.
+ */
+volatile bool __tag_pending = false;
+
+/** Handle a time advance grant (TAG) message from the RTI.
+ *  This function assumes the caller does not hold the mutex lock,
+ *  which it acquires to interact with the main thread, which may
+ *  be waiting for a TAG (this broadcasts a condition signal).
+ */
+void handle_time_advance_grant(unsigned char* buffer) {
+    union {
+        long long ull;
+        unsigned char c[sizeof(long long)];
+    } result;
+    read_from_socket(rti_socket, sizeof(long long), (unsigned char*)&result.c);
+
+    // printf("DEBUG: Federate %d received TAG %lld.\n", __my_fed_id, __tag - start_time);
+    // printf("DEBUG: Federate %d pthread_mutex_lock handle_time_advance_grant\n", __my_fed_id);
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
+    __tag = swap_bytes_if_big_endian_ll(result.ull);
+    __tag_pending = false;
+    // Notify everything that is blocked.
+    pthread_cond_broadcast(&event_q_changed);
+    // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
     pthread_mutex_unlock(&mutex);
 }
 
@@ -329,6 +430,9 @@ void* listen_to_rti(void* args) {
         case TIMED_MESSAGE:
             handle_timed_message(buffer + 1);
             break;
+        case TIME_ADVANCE_GRANT:
+            handle_time_advance_grant(buffer + 1);
+            break;
         default:
             // printf("DEBUG: Erroneous message type: %d\n", buffer[0]);
             error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);
@@ -341,6 +445,7 @@ void* listen_to_rti(void* args) {
  *  This initiates a connection with the RTI, then
  *  sends the current logical time to the RTI and waits for the
  *  RTI to respond with a specified time.
+ *  It starts a thread to listen for messages from the RTI.
  *  It then waits for physical time to match the specified time,
  *  sets current logical time to the time returned by the RTI,
  *  and then returns.
@@ -349,6 +454,8 @@ void* listen_to_rti(void* args) {
  *  @param port The port used by the RTI.
  */
 void synchronize_with_other_federates(int id, char* hostname, int port) {
+
+    __my_fed_id = id;
 
     // printf("DEBUG: Federate synchronizing with other federates.\n");
 
@@ -386,25 +493,98 @@ void synchronize_with_other_federates(int id, char* hostname, int port) {
     */
 }
 
-/** Indicator of whether this federate has upstream federates. */
+/** Indicator of whether this federate has upstream federates.
+ *  The default value of false may be overridden in __initialize_trigger_objects.
+ */
 bool __fed_has_upstream = false;
 
-/** Indicator of whether this federate has downstream federates. */
+/** Indicator of whether this federate has downstream federates.
+ *  The default value of false may be overridden in __initialize_trigger_objects.
+ */
 bool __fed_has_downstream = false;
 
-/** If this federate depends on upstream federates, then request of the RTI
- *  a time advance to the specified time. This will block until either the
+/** Send a logical time complete (LTC) message to the RTI
+ *  if there are downstream federates. Otherwise, do nothing.
+ *  This function assumes the caller does not hold the mutex lock,
+ *  which it acquires to send the message to the RTI.
+ */
+void __logical_time_complete(instant_t time) {
+    if (__fed_has_downstream) {
+        // Use a mutex lock to prevent multiple threads from simulatenously sending.
+        // printf("DEBUG: Federate %d pthread_mutex_lock send_time\n", __my_fed_id);
+        pthread_mutex_lock(&mutex);
+        // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
+
+        send_time(LOGICAL_TIME_COMPLETE, time);
+
+        // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
+        pthread_mutex_unlock(&mutex);
+    }
+}
+
+/** If this federate depends on upstream federates or sends data to downstream
+ *  federates, then notify the RTI of the next event on the event queue.
+ *  If there are upstream federates, then this will block until either the
  *  RTI grants the advance to the requested time or the wait for the response
  *  from the RTI is interrupted by a change in the event queue (e.g., a
- *  physical action triggered).  This returns the requested time immediately
- *  if there are no upstream federates. It returns the time advance that the
- *  RTI grants (which may be less than the requested time). If its wait
- *  for a time-advance grant from the RTI is interrupted by a change in the
- *  event queue, then it checks again with the RTI the earliest time on the
- *  event queue.
+ *  physical action triggered).  This returns either the specified time or
+ *  a lesser time when it is safe to advance logical time to the returned time.
+ *  The returned time may be less than the specified time if there are upstream
+ *  federates and either the RTI responds with a lesser time or
+ *  the wait for a response from the RTI is interrupted by a
+ *  change in the event queue.
+ *  This function assumes the caller holds the mutex lock.
  */
-instant_t __request_time_advance(instant_t time) {
-    if (!__fed_has_upstream) return time;
-    // FIXME: Implement this!
-    return 0LL;
+ instant_t __next_event_time(instant_t time) {
+     if (!__fed_has_downstream && !__fed_has_upstream) {
+         // This federate is not connected (except possibly by physical links)
+         // so there is no need for the RTI to get involved.
+         return time;
+     }
+
+     // If there are upstream federates, then we need to wait for a
+     // reply from the RTI.
+
+     // If time advance has already been granted for this time or a larger
+     // time, then return immediately.
+     if (__tag >= time) {
+         return time;
+     }
+
+     send_time(NEXT_EVENT_TIME, time);
+     // printf("DEBUG: Federate %d sent next event time %lld.\n", __my_fed_id, time - start_time);
+
+     // If there are no upstream federates, return immediately, without
+     // waiting for a reply. This federate does not need to wait for
+     // any other federate.
+     // FIXME: If fast execution is being used, it may be necessary to
+     // throttle upstream federates.
+     if (!__fed_has_upstream) {
+         return time;
+     }
+
+     __tag_pending = true;
+     while (__tag_pending) {
+         // Wait until either something changes on the event queue or
+         // the RTI has responded with a TAG.
+         // printf("DEBUG: Federate %d pthread_cond_wait\n", __my_fed_id);
+         if (pthread_cond_wait(&event_q_changed, &mutex) != 0) {
+             fprintf(stderr, "ERROR: pthread_cond_wait errored.\n");
+         }
+         // printf("DEBUG: Federate %d pthread_cond_wait returned\n", __my_fed_id);
+
+         // The RTI has not replied, so the wait must have been
+         // interrupted by activity on the event queue.
+         // If there is now an earlier event on the event queue,
+         // then we should return with the time of that event.
+         event_t* head_event = pqueue_peek(event_q);
+         if (head_event != NULL && head_event->time < time) {
+             return head_event->time;
+         }
+         // Any activity on the event queue is not relevant.
+         // Either the queue is empty or whatever appeared on it
+         // has a timestamp greater than this request.
+         // Keep waiting.
+     }
+     return __tag;
 }
