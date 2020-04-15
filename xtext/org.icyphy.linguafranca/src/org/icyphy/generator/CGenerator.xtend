@@ -244,6 +244,14 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects.toString)
                 doDeferredInitialize(federate)
                 setReactionPriorities(main, federate)
+                if (federates.length > 1) {
+                    if (federate.dependsOn.size > 0) {
+                        pr('__fed_has_upstream  = true;')
+                    }
+                    if (federate.sendsTo.size > 0) {
+                        pr('__fed_has_downstream = true;')
+                    }
+                }
                 unindent()
                 pr('}\n')
 
@@ -261,13 +269,25 @@ class CGenerator extends GeneratorBase {
                 unindent()
                 pr('}\n')
                 
-                // Generate a function that will either just return immediately
-                // if there is only one federate or will consult with the RTI,
-                // if necessary, for advancement of time.
+                // Generate a function that will either do nothing
+                // (if there is only one federate) or, if there are
+                // downstream federates, will notify the RTI
+                // that the specified logical time is complete.
                 pr('''
-                    instant_t request_time_advance(instant_t time) {
+                    void logical_time_complete(instant_t time) {
                         «IF federates.length > 1»
-                            return __request_time_advance(time);
+                            __logical_time_complete(time);
+                        «ENDIF»
+                    }
+                ''')
+                
+                // Generate a function that will either just return immediately
+                // if there is only one federate or will notify the RTI,
+                // if necessary, of the next event time.
+                pr('''
+                    instant_t next_event_time(instant_t time) {
+                        «IF federates.length > 1»
+                            return __next_event_time(time);
                         «ELSE»
                             return time;
                         «ENDIF»

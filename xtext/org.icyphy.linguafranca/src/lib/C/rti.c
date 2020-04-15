@@ -59,7 +59,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DELAY_START SEC(1)
 
 // The one and only mutex lock.
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t rti_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Condition variable used to signal receipt of all proposed start times.
 pthread_cond_t received_start_times = PTHREAD_COND_INITIALIZER;
@@ -72,6 +72,9 @@ instant_t max_start_time = 0LL;
 
 // Number of federates that have proposed start times.
 int num_feds_proposed_start = 0;
+
+// The start time for an execution.
+instant_t start_time = NEVER;
 
 /** Create a server and enable listening for socket connections.
  *  @param port The port number to use.
@@ -159,6 +162,161 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
     }
 }
 
+/** Send a time advance grant (TAG) message to the specified socket
+ *  with the specified time.
+ */
+void send_time_advance_grant(federate_t* fed, instant_t time) {
+    unsigned char buffer[9];
+    buffer[0] = TIME_ADVANCE_GRANT;
+    encode_ll(time, &(buffer[1]));
+    write_to_socket(fed->socket, 9, buffer);
+    // printf("DEBUG: RTI sent to federate %d the TAG %lld.\n", fed->id, time - start_time);
+}
+
+/** Find the earliest time at which the specified federate may
+ *  experience its next event. This is the least next event time
+ *  of the specified federate and (transitively) upstream federates
+ *  (with delays of the connections added). For upstream federates,
+ *  we assume (conservatively) that federate upstream of those
+ *  may also send an event. If any upstream federate has not sent
+ *  a next event message, this will return the completion time
+ *  of the federate (which may be NEVER, if the federate has not
+ *  yet completed a logical time).
+ *  @param fed The federate.
+ *  @param candidate A candidate time (for the first invocation,
+ *   this should be fed->next_time).
+ *  @param visited An array of booleans indicating which federates
+ *   have been visited (for the first invocation, this should be
+ *   an array of falses of size NUMBER_OF_FEDERATES).
+ */
+instant_t transitive_next_event(federate_t* fed, instant_t candidate, bool visited[]) {
+    if (visited[fed->id]) return candidate;
+    visited[fed->id] = true;
+    instant_t result = fed->next_event;
+    if (fed->state == NOT_CONNECTED) {
+        // Federate has stopped executing.
+        // No point in checking upstream federates.
+        return candidate;
+    }
+    if (candidate < result) {
+        result = candidate;
+    }
+    // Check upstream federates to see whether any of them might send
+    // an event that would result in an earlier next event.
+    for (int i = 0; i < fed->num_upstream; i++) {
+        instant_t upstream_result = transitive_next_event(
+                &federates[fed->upstream[i]], result, visited);
+        if (upstream_result != NEVER) upstream_result += fed->upstream_delay[i];
+        if (upstream_result < result) {
+            result = upstream_result;
+        }
+    }
+    if (result == NEVER) {
+        result = fed->completed;
+    }
+    return result;
+}
+
+/** Determine whether the specified reactor is eligible for a time advance grant,
+ *  and, if so, send it one. This first compares the next event time of the
+ *  federate to the completion time of all its upstream federates (plus the
+ *  delay on the connection to those federates). It finds the minimum of all
+ *  these times, with a caveat. If the candidate for minimum has a sufficiently
+ *  large next event time that we can be sure it will provide no event before
+ *  the next smallest minimum, then that candidate is ignored and the next
+ *  smallest minimum determines the time.  If the resulting time to advance
+ *  to does not move time forward for the federate, then no time advance
+ *  grant message is sent to the federate.
+ *
+ *  This should be called whenever an upstream federate either registers
+ *  a next event time or completes a logical time.
+ *  @return True if the TAG message is sent and false otherwise.
+ */
+bool send_time_advance_if_appropriate(federate_t* fed) {
+    // Determine whether to send a time advance grant to the downstream reactor.
+    // The first candidate is its next event time. But we may need to advance
+    // it to a lesser time.
+    instant_t candidate_time_advance = fed->next_event;
+    // Look at its upstream federates (including this one).
+    for (int j = 0; j < fed->num_upstream; j++) {
+        // First, find the minimum completed time or time of the
+        // next event of all federates upstream from this one.
+        federate_t* upstream = &federates[fed->upstream[j]];
+        // There may be a delay on the connection. Add that to the candidate.
+        interval_t delay = fed->upstream_delay[j];
+        instant_t upstream_completion_time = upstream->completed
+                + delay;
+        // Preserve NEVER.
+        if (upstream->completed == NEVER) upstream_completion_time = NEVER;
+        // If the completion time of the upstream federate
+        // is less than the candidate time, then we will need to use that
+        // completion time unless the (transitive) next_event time of the
+        // upstream federate (plus the delay) is larger than the
+        // current candidate completion time.
+        if (upstream_completion_time < candidate_time_advance) {
+            // To handle cycles, need to create a boolean array to keep
+            // track of which upstream federates have been visited.
+            bool visited[NUMBER_OF_FEDERATES];
+            for (int i = 0; i < NUMBER_OF_FEDERATES; i++) visited[i] = false;
+            instant_t upstream_next_event = transitive_next_event(
+                    upstream, upstream->next_event, visited);
+            if (upstream_next_event != NEVER) upstream_next_event += delay;
+            if (upstream_next_event < candidate_time_advance) {
+                // Cannot advance the federate to the upstream
+                // next event time because that event has presumably not yet
+                // been produced.
+                candidate_time_advance = upstream_completion_time;
+            }
+        }
+    }
+
+    // If the resulting time will advance time
+    // in the federate, send it a time advance grant.
+    if (candidate_time_advance > fed->completed) {
+        send_time_advance_grant(fed, candidate_time_advance);
+        return true;
+    }
+    return false;
+}
+
+/** Handle a logical time complete (LTC) message.
+ *  @param fed The federate that has completed a logical time.
+ */
+void handle_logical_time_complete(federate_t* fed) {
+    union {
+        long long ull;
+        unsigned char c[sizeof(long long)];
+    } buffer;
+    read_from_socket(fed->socket, sizeof(long long), (unsigned char*)&buffer.c);
+    fed->completed = swap_bytes_if_big_endian_ll(buffer.ull);
+    // printf("DEBUG: RTI received from federate %d the logical time complete %lld.\n", fed->id, fed->completed - start_time);
+
+    // Check downstream federates to see whether they should now be granted a TAG.
+    for (int i = 0; i < fed->num_downstream; i++) {
+        send_time_advance_if_appropriate(&federates[fed->downstream[i]]);
+    }
+}
+
+/** Handle a next event time (NET) message.
+ *  @param fed The federate sending a NET message.
+ */
+void handle_next_event_time(federate_t* fed) {
+    union {
+        long long ull;
+        unsigned char c[sizeof(long long)];
+    } buffer;
+    read_from_socket(fed->socket, sizeof(long long), (unsigned char*)&buffer.c);
+    fed->next_event = swap_bytes_if_big_endian_ll(buffer.ull);
+    // printf("DEBUG: RTI received from federate %d the NET %lld.\n", fed->id, fed->next_event - start_time);
+
+    // Check to see whether we can reply now with a time advance grant.
+    // If the federate has no upstream federates, then it does not wait for
+    // nor expect a reply. It just proceeds to advance time.
+    if (fed->num_upstream > 0) {
+        send_time_advance_if_appropriate(fed);
+    }
+}
+
 char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from federate an unrecognized message type";
 
 /** Thread handling communication with a federate.
@@ -184,7 +342,7 @@ void* federate(void* fed) {
     instant_t timestamp = swap_bytes_if_big_endian_ll(*((long long*)(&(buffer[1]))));
     // printf("DEBUG: RTI received message: %llx\n", timestamp);
 
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&rti_mutex);
     num_feds_proposed_start++;
     if (timestamp > max_start_time) {
         max_start_time = timestamp;
@@ -197,10 +355,10 @@ void* federate(void* fed) {
         // wait for a notification.
         while (num_feds_proposed_start < NUMBER_OF_FEDERATES) {
             // FIXME: Should have a timeout here?
-            pthread_cond_wait(&received_start_times, &mutex);
+            pthread_cond_wait(&received_start_times, &rti_mutex);
         }
     }
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&rti_mutex);
 
     // Send back to the federate the maximum time plus an offset.
     // Start by sending a timestamp marker.
@@ -209,7 +367,8 @@ void* federate(void* fed) {
 
     // Send the timestamp.
     // Add an offset to this start time to get everyone starting together.
-    long long message = swap_bytes_if_big_endian_ll(max_start_time + DELAY_START);
+    start_time = max_start_time + DELAY_START;
+    long long message = swap_bytes_if_big_endian_ll(start_time);
     write_to_socket(my_fed->socket, sizeof(long long), (unsigned char*)(&message));
 
     // Listen for messages from the federate.
@@ -225,11 +384,17 @@ void* federate(void* fed) {
             break;
         case RESIGN:
             // Nothing more to do. Close the socket and exit.
-            pthread_mutex_lock(&mutex);
+            pthread_mutex_lock(&rti_mutex);
             my_fed->state = NOT_CONNECTED;
             close(my_fed->socket); //  from unistd.h
-            pthread_mutex_unlock(&mutex);
+            pthread_mutex_unlock(&rti_mutex);
             return NULL;
+            break;
+        case NEXT_EVENT_TIME:
+            handle_next_event_time(my_fed);
+            break;
+        case LOGICAL_TIME_COMPLETE:
+            handle_logical_time_complete(my_fed);
             break;
         default:
             error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);
@@ -300,7 +465,8 @@ void connect_to_federates(int socket_descriptor) {
 void initialize_federate(int id) {
     federates[id].id = id;
     federates[id].socket = -1;      // No socket.
-    federates[id].nmr = NEVER;      // No NMR.
+    federates[id].completed = NEVER;
+    federates[id].next_event = NEVER;
     federates[id].state = NOT_CONNECTED;
     federates[id].upstream = NULL;
     federates[id].upstream_delay = NULL;

@@ -48,6 +48,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //  ======== Macros ========  //
 
 #define NEVER -9223372036854775807LL
+#define FOREVER 0x7FFFFFFFFFFFFFFFLL
 #define BILLION 1000000000LL
 
 // FIXME: May want these to application dependent, hence code generated.
