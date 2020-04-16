@@ -1,0 +1,11 @@
+target Cpp;
+
+import Master.lf;
+
+main reactor MasterTest(iterations:unsigned(12)) {
+    master = new Master(iterations=iterations);
+
+    reaction(master.start) -> master.finished {=
+        master.finished.set();
+    =}
+}

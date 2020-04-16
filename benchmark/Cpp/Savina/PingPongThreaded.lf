@@ -1,0 +1,21 @@
+target Cpp {
+    fast : true,
+    threads : 2,
+    build-type : RelWithDebInfo,
+    no-runtime-validation : true
+};
+
+import Master.lf;
+import PingPong.lf;
+
+main reactor PingPong(iterations:unsigned(12), count:unsigned(40000)) {
+    master = new Master(iterations=iterations);
+    ping = new Ping(count=count);
+    pong = new Pong();
+    
+    master.start -> ping.start;
+    ping.finished -> master.finished;
+    
+    ping.ping -> pong.ping;
+    pong.pong -> ping.pong;
+}
