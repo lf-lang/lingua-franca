@@ -54,7 +54,7 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Parameter
 
 /** Generator for C++ target.
- *
+ * 
  *  @author{Christian Menard <christian.menard@tu-dresden.de}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -82,70 +82,80 @@ class CppGenerator extends GeneratorBase {
         TimeUnit.WEEK -> 'd*7',
         TimeUnit.WEEKS -> 'd*7'
     }
-    
+
     static public var logLevelsToInts = #{
-    	"ERROR" -> 1,
-    	"WARN" -> 2,
-    	"INFO" -> 3,
-    	"LOG" -> 3,
-    	"DEBUG" -> 4
+        "ERROR" -> 1,
+        "WARN" -> 2,
+        "INFO" -> 3,
+        "LOG" -> 3,
+        "DEBUG" -> 4
     }
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
-    
+
     /** Path to the Cpp lib directory (relative to class path)  */
     val libDir = File.separator + "lib" + File.separator + "Cpp"
-    
+
     /** The target directory for code generation */
-    protected def genDir() { 
-        return directory + File.separator + "src-gen" + File.separator + filename
+    protected def genDir() {
+        return directory + File.separator + "src-gen" + File.separator +
+            filename
     }
-   
+
     def toDir(Resource r) {
         r.toPath.getFilename
     }
-    
+
     def preambleHeaderFile(Resource r) {
-    	r.toDir + File.separator + "preamble.hh"
+        r.toDir + File.separator + "preamble.hh"
     }
-    
+
     def preambleSourceFile(Resource r) {
         r.toDir + File.separator + "preamble.cc"
     }
-    
+
     def headerFile(Reactor r) {
-    	r.eResource.toDir + File.separator + r.name + ".hh"
+        r.eResource.toDir + File.separator + r.name + ".hh"
     }
-    
+
     def sourceFile(Reactor r) {
         r.eResource.toDir + File.separator + r.name + ".cc"
     }
-        
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+
+    override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
+        IGeneratorContext context) {
         super.doGenerate(resource, fsa, context)
         mainReactor = this.mainDef?.reactorClass
-        
+
         if (mainReactor === null) {
             // No main reactor. Nothing to do.
             return
         } else {
             generateReactor(mainReactor)
         }
-        
-        fsa.generateFile(filename + File.separator + "main.cc", mainReactor.generateMain)
-        fsa.generateFile(filename + File.separator + "CMakeLists.txt", generateCmake)
-        copyFileFromClassPath(libDir + File.separator + "lfutil.hh",  genDir + File.separator + "lfutil.hh")
-        copyFileFromClassPath(libDir + File.separator + "time_parser.hh",  genDir + File.separator + "time_parser.hh")
+
+        fsa.generateFile(filename + File.separator + "main.cc",
+            mainReactor.generateMain)
+        fsa.generateFile(filename + File.separator + "CMakeLists.txt",
+            generateCmake)
+        copyFileFromClassPath(libDir + File.separator + "lfutil.hh",
+            genDir + File.separator + "lfutil.hh")
+        copyFileFromClassPath(libDir + File.separator + "time_parser.hh",
+            genDir + File.separator + "time_parser.hh")
 
         for (r : reactors) {
-            fsa.generateFile(filename + File.separator + r.headerFile, r.generateReactorHeader)
-            fsa.generateFile(filename + File.separator + r.sourceFile, r.generateReactorSource)
+            fsa.generateFile(filename + File.separator + r.headerFile,
+                r.generateReactorHeader)
+            fsa.generateFile(filename + File.separator + r.sourceFile,
+                r.generateReactorSource)
         }
-        
-        for (r: importedResources.keySet) {
-        	fsa.generateFile(filename + File.separator + r.preambleSourceFile, r.generatePreambleSource)
-        	fsa.generateFile(filename + File.separator + r.preambleHeaderFile, r.generatePreambleHeader)
+
+        for (r : importedResources.keySet) {
+            fsa.generateFile(filename + File.separator + r.preambleSourceFile,
+                r.generatePreambleSource)
+            fsa.generateFile(filename + File.separator + r.preambleHeaderFile,
+                r.generatePreambleHeader)
         }
 
         if (!targetNoCompile && !errorsOccurred()) {
@@ -169,7 +179,7 @@ class CppGenerator extends GeneratorBase {
         }
         return result
     }
-   
+
     def name(Reaction n) {
         var r = n.eContainer as Reactor
         'r' + r.reactions.lastIndexOf(n)
@@ -275,12 +285,12 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def publicPreamble(Reactor r) {
-    	val publicPreambles = new LinkedList<Preamble>()
-    	for(p: r.preambles) {
-    		if (p.visibility === Visibility.PUBLIC) {
-    			publicPreambles.add(p)
-    		}
-    	}
+        val publicPreambles = new LinkedList<Preamble>()
+        for (p : r.preambles) {
+            if (p.visibility === Visibility.PUBLIC) {
+                publicPreambles.add(p)
+            }
+        }
         '''
             «FOR p : publicPreambles ?: emptyList BEFORE '// public preamble\n' AFTER '\n'»
                 «p.code.toText»
@@ -290,7 +300,7 @@ class CppGenerator extends GeneratorBase {
 
     def privatePreamble(Reactor r) {
         val privatePreambles = new LinkedList<Preamble>()
-        for(p: r.preambles) {
+        for (p : r.preambles) {
             if (p.visibility === Visibility.PRIVATE) {
                 privatePreambles.add(p)
             }
@@ -388,12 +398,13 @@ class CppGenerator extends GeneratorBase {
           «r.initializeTimers»
         {}
     '''
-    
+
     def String getTargetInitializer(StateVar state) {
         '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
-    
-    def private String getTargetInitializerHelper(Parameter param, List<String> list) {
+
+    def private String getTargetInitializerHelper(Parameter param,
+        List<String> list) {
         if (list.size == 0) {
             param.reportError("Parameters must have a default value!")
         } else if (list.size == 1) {
@@ -402,7 +413,7 @@ class CppGenerator extends GeneratorBase {
             '''{«FOR init : list SEPARATOR ", "»«init»«ENDFOR»}'''
         }
     }
-    
+
     def String getTargetInitializer(Parameter param) {
         return getTargetInitializerHelper(param, param.initializerList)
     }
@@ -428,7 +439,7 @@ class CppGenerator extends GeneratorBase {
             , «i.name»{"«i.name»", this«FOR p : i.reactorClass.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
         «ENDFOR»
     '''
-    
+
     def initializeActions(Reactor r) '''
         «FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
             «a.initialize»
@@ -445,26 +456,29 @@ class CppGenerator extends GeneratorBase {
         var String period = "reactor::Duration::zero()"
         var String offset = "reactor::Duration::zero()"
         if (t.offset !== null) {
-          offset = '''«t.offset.targetTime»'''
+            offset = '''«t.offset.targetTime»'''
         }
         if (t.period !== null) {
             period = '''«t.period.targetTime»'''
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
-    
+
     def initialize(Action a) {
         if (a.origin == ActionOrigin.LOGICAL) {
             if (a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
-                a.reportError("minInterArrival and minPolicy are not supported for logical actions!");
+                a.reportError(
+                    "minInterArrival and minPolicy are not supported for logical actions!");
             } else if (a.minDelay !== null) {
                 ''', «a.name»{"«a.name»", this, «a.minDelay.targetTime»}'''
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }
         } else {
-            if( a.minDelay !== null || a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
-                a.reportError("minDelay, minInterArrival and minPolicy are not supported for physical actions!");
+            if (a.minDelay !== null || a.minInterArrival !== null ||
+                a.policy !== QueuingPolicy.NONE) {
+                a.reportError(
+                    "minDelay, minInterArrival and minPolicy are not supported for physical actions!");
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }
@@ -495,7 +509,7 @@ class CppGenerator extends GeneratorBase {
             «IF p.visibility === Visibility.PUBLIC»«p.code.toText»«ENDIF»
         «ENDFOR»
     '''
-    
+
     def generatePreambleSource(Resource r) '''
         «r.header»
         
@@ -519,7 +533,7 @@ class CppGenerator extends GeneratorBase {
         #include "reactor-cpp/reactor-cpp.hh"
         
         #include "«r.eResource.preambleHeaderFile»"
-
+        
         «r.includeInstances»
         «r.publicPreamble»
         
@@ -543,7 +557,7 @@ class CppGenerator extends GeneratorBase {
 
     def generateReactorSource(Reactor r) '''
         «r.eResource.header»
-
+        
         #include "reactor-cpp/reactor-cpp.hh"
         
         using namespace std::chrono_literals;
@@ -560,8 +574,8 @@ class CppGenerator extends GeneratorBase {
               «r.assembleReaction(n)»
           «ENDFOR»
           «FOR c : r.connections BEFORE "  // connections\n"»
-            «'''  «c.leftPort.name».bind_to(&«c.rightPort.name»);'''»
-            «ENDFOR»
+              «'''  «c.leftPort.name».bind_to(&«c.rightPort.name»);'''»
+          «ENDFOR»
         }
         
         «r.implementReactionBodies»
@@ -579,7 +593,7 @@ class CppGenerator extends GeneratorBase {
 
     def generateMain(Reactor main) '''
         «resource.header»
-
+        
         #include <chrono>        
         #include <thread>
         #include <memory>
@@ -590,7 +604,7 @@ class CppGenerator extends GeneratorBase {
         using namespace reactor::operators;
         
         #include "time_parser.hh"
-
+        
         #include "CLI/CLI11.hpp"
         
         #include "«main.headerFile»"
@@ -615,34 +629,34 @@ class CppGenerator extends GeneratorBase {
           
           unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
-
+        
           reactor::Duration timeout = «IF targetTimeout > 0»«targetTimeout»«timeUnitsToCppUnits.get(targetTimeoutUnit)»«ELSE»reactor::Duration::zero()«ENDIF»;
           auto opt_timeout = app.add_option("-o,--timeout", timeout, "Time after which the execution is aborted.");
-
+        
           opt_timeout->check([](const std::string& val){ return validate_time_string(val); });
           opt_timeout->type_name("'FLOAT UNIT'");
           opt_timeout->default_str(time_to_quoted_string(timeout));
-
+        
           bool fast{«targetFast»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
-
+        
           bool keepalive{«targetKeepalive»};
           app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
           «FOR p : mainReactor.parameters»
-
-          «p.targetType» «p.name» = «p.targetInitializer»;
-          auto opt_«p.name» = app.add_option("--«p.name»", «p.name», "The «p.name» parameter passed to the main reactor «mainReactor.name».");
-          «IF p.inferredType.isTime»
-            opt_«p.name»->check([](const std::string& val){ return validate_time_string(val); });
-            opt_«p.name»->type_name("'FLOAT UNIT'");
-            opt_«p.name»->default_str(time_to_quoted_string(«p.name»));
-          «ENDIF»
+        
+            «p.targetType» «p.name» = «p.targetInitializer»;
+            auto opt_«p.name» = app.add_option("--«p.name»", «p.name», "The «p.name» parameter passed to the main reactor «mainReactor.name».");
+            «IF p.inferredType.isTime»
+                opt_«p.name»->check([](const std::string& val){ return validate_time_string(val); });
+                opt_«p.name»->type_name("'FLOAT UNIT'");
+                opt_«p.name»->default_str(time_to_quoted_string(«p.name»));
+            «ENDIF»
           «ENDFOR»
-
+        
           app.get_formatter()->column_width(50);
-
+        
           CLI11_PARSE(app, argc, argv);
-
+        
           reactor::Environment e{threads, keepalive, fast};
         
           // instantiate the main reactor
@@ -653,7 +667,7 @@ class CppGenerator extends GeneratorBase {
           if (timeout != reactor::Duration::zero()) {
             t = std::make_unique<Timeout>("Timeout", &e, timeout);
           }
-
+        
           // execute the reactor program
           e.assemble();
           auto thread = e.startup();
@@ -730,7 +744,7 @@ class CppGenerator extends GeneratorBase {
         )
         target_link_libraries(«filename» reactor-cpp)
         add_dependencies(«filename» dep-CLI11)
-
+        
         install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         
         «IF targetCmakeInclude !== null»
@@ -742,9 +756,12 @@ class CppGenerator extends GeneratorBase {
         var makeCmd = newArrayList()
         var cmakeCmd = newArrayList()
 
-        var srcPath = directory + File.separator + "src-gen" + File.separator + filename
-        var buildPath = directory + File.separator + "build" + File.separator + filename
-        var reactorCppPath = directory + File.separator + "build" + File.separator + "reactor-cpp"
+        var srcPath = directory + File.separator + "src-gen" + File.separator +
+            filename
+        var buildPath = directory + File.separator + "build" + File.separator +
+            filename
+        var reactorCppPath = directory + File.separator + "build" +
+            File.separator + "reactor-cpp"
 
         // Make sure cmake is found in the PATH.
         var cmakeTest = newArrayList()
@@ -754,32 +771,36 @@ class CppGenerator extends GeneratorBase {
         var cmakeTestReturn = cmakeTestBuilder.start().waitFor()
         if (cmakeTestReturn != 0) {
             // Info on MaxOSX PATH variable here: https://scriptingosx.com/2017/05/where-paths-come-from/
-            println("WARNING: cmake not found on PATH: " + cmakeTestBuilder.environment.get("PATH"))
+            println("WARNING: cmake not found on PATH: " +
+                cmakeTestBuilder.environment.get("PATH"))
             cmake = "/opt/local/bin/cmake"
             println("Trying " + cmake)
             cmakeTest.clear
             cmakeTest.addAll("which", cmake)
             cmakeTestReturn = cmakeTestBuilder.start().waitFor()
             if (cmakeTestReturn != 0) {
-                reportError("cmake not found on PATH nor in /opt/local/bin.\n"
-                    + "See https://cmake.org/install to install cmake "
-                    + "or adjust the global PATH variable on your platform (e.g. /etc/paths).")
+                reportError(
+                    "cmake not found on PATH nor in /opt/local/bin.\n" +
+                        "See https://cmake.org/install to install cmake " +
+                        "or adjust the global PATH variable on your platform (e.g. /etc/paths).")
                 return
             }
         }
         var buildDir = new File(buildPath)
-        if(!buildDir.exists()) buildDir.mkdirs()
+        if (!buildDir.exists()) buildDir.mkdirs()
 
-        makeCmd.addAll("make", "-j" + Runtime.getRuntime().availableProcessors(), "install")
-        cmakeCmd.addAll(cmake, "-DCMAKE_INSTALL_PREFIX=" + directory, "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
+        makeCmd.addAll("make",
+            "-j" + Runtime.getRuntime().availableProcessors(), "install")
+        cmakeCmd.addAll(cmake, "-DCMAKE_INSTALL_PREFIX=" + directory,
+            "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
 
         println("--- In directory: " + buildDir)
         println("--- Running: " + cmakeCmd.join(' '))
         var cmakeBuilder = new ProcessBuilder(cmakeCmd)
         cmakeBuilder.directory(buildDir)
         var cmakeEnv = cmakeBuilder.environment();
-        if(targetCompiler !== null) {
-        	cmakeEnv.put("CXX", targetCompiler);
+        if (targetCompiler !== null) {
+            cmakeEnv.put("CXX", targetCompiler);
         }
 
         val cmakeReturnCode = cmakeBuilder.runSubprocess();
@@ -795,21 +816,22 @@ class CppGenerator extends GeneratorBase {
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
-                println("Generated source code is in "
-                    + directory + File.separator + "src-gen" + File.separator + filename
+                println(
+                    "Generated source code is in " + directory +
+                        File.separator + "src-gen" + File.separator + filename
                 )
-                println("Compiled binary is in "
-                    + directory + File.separator + "bin" + File.separator + filename
+                println(
+                    "Compiled binary is in " + directory + File.separator +
+                        "bin" + File.separator + filename
                 )
             } else {
                 reportError("make terminated with an error code!")
             }
         }
     }
-    
-    ////////////////////////////////////////////////
-    //// Protected methods
-    
+
+    // //////////////////////////////////////////////
+    // // Protected methods
     /** Return a set of targets that are acceptable to this generator.
      *  Imported files that are Lingua Franca files must specify targets
      *  in this set or an error message will be reported and the import
@@ -831,8 +853,8 @@ class CppGenerator extends GeneratorBase {
         // to void, we leave this job to the target compiler, by calling
         // the template function below.
         '''
-        // delay body for «action.name»
-        lfutil::after_delay(&«action.name», &«port.name»);
+            // delay body for «action.name»
+            lfutil::after_delay(&«action.name», &«port.name»);
         '''
     }
 
@@ -842,14 +864,13 @@ class CppGenerator extends GeneratorBase {
      * @param the action that triggers the reaction
      * @param the port to write to
      */
-    override generateForwardBody(Action action, VarRef port)
-        // Since we cannot easily decide whether a given type evaluates
-        // to void, we leave this job to the target compiler, by calling
-        // the template function below.
-        '''
+    override generateForwardBody(Action action, VarRef port) // Since we cannot easily decide whether a given type evaluates
+    // to void, we leave this job to the target compiler, by calling
+    // the template function below.
+    '''
         // forward body for «action.name»
         lfutil::after_forward(&«action.name», &«port.name»);
-        '''
+    '''
 
     /** Given a representation of time that may possibly include units,
      *  return a string that C++ recognizes as a time value.
@@ -869,11 +890,11 @@ class CppGenerator extends GeneratorBase {
         }
         return '''/* «reportError("Expected a time")» */'''
     }
-    
+
     override getTargetTimeType() '''reactor::Duration'''
-    
-    override getTargetUndefinedType() '''/* «reportError("undefined type")» */''' 
-    
+
+    override getTargetUndefinedType() '''/* «reportError("undefined type")» */'''
+
     // this override changes the undefined type for actions to void
     override getTargetType(Action a) {
         val inferred = a.inferredType;
@@ -884,9 +905,9 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
-    override getTargetFixedSizeListType(String baseType, Integer size)
-        '''std::array<«baseType», «size.toString»>'''
+    override getTargetFixedSizeListType(String baseType,
+        Integer size) '''std::array<«baseType», «size.toString»>'''
 
-    override getTargetVariableSizeListType(String baseType)
-        '''std::vector<«baseType»>'''
+    override getTargetVariableSizeListType(
+        String baseType) '''std::vector<«baseType»>'''
 }
