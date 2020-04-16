@@ -863,7 +863,16 @@ abstract class GeneratorBase {
         importRecursionStack.remove(resource);
     }
 
-
+    /**
+     *  Lookup a file in the classpath and copy its contents to a destination path 
+     *  in the filesystem.
+     * 
+     *  This also creates new directories for any directories on the destination
+     *  path that do not yet exist.
+     * 
+     *  @param source The source file as a path relative to the classpath.
+     *  @param destination The file system path that the source file is copied to.
+     */
     protected def copyFileFromClassPath(String source, String destination) {
         val sourceStream = this.class.getResourceAsStream(source)
 
