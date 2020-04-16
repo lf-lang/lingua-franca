@@ -256,7 +256,7 @@ abstract class GeneratorBase {
                             targetNoCompile = true
                         }
                     case "no-runtime-validation":
-                        if (param.value.id.equals('true')) {
+                        if (param.value.literal == 'true') {
                             targetNoRuntimeValidation = true
                         }
                     case "keepalive":
