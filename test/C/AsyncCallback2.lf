@@ -20,14 +20,18 @@ main reactor AsyncCallback2 {
             // FIXME: brain-dead pthreads doesn't allow a thread to acquire
             // a mutex it already holds!!!!!!!!!!!!!!!!!!!!!!!!!
             // Have to use the unsynchronized version of schedule here.
+            printf("------ acquiring mutex lock.\n");
             pthread_mutex_lock(&mutex);
+            printf("------ invoking schedule function.\n");
             __schedule(a, 0, NULL);
             __schedule(a, 0, NULL);
             pthread_mutex_unlock(&mutex);
+            printf("------ done invoking schedule function.\n");
         }
         // Simulate time passing before a callback occurs.
         void* take_time(void* a) {
-            struct timespec sleep_time = {(time_t) 0, (long)100000000};
+            printf("------ started take_time thread.\n");
+            struct timespec sleep_time = {(time_t) 0, (long)10000000};
             struct timespec remaining_time;
             nanosleep(&sleep_time, &remaining_time);
             callback(a);

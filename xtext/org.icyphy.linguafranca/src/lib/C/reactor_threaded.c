@@ -224,212 +224,181 @@ bool __next() {
 
  	// Peek at the earliest event in the event queue.
 	event_t* event = pqueue_peek(event_q);
-    instant_t next_time = LLONG_MAX;
+    instant_t next_time = FOREVER;
     if (event != NULL) {
     	// There is an event in the event queue.
     	next_time = event->time;
+
+        // If a stop time was given, adjust the next_time from the
+        // event time to that stop time.
+        if (stop_time > 0LL && next_time > stop_time) {
+            next_time = stop_time;
+        }
+
+        // In case this is in a federation, check whether time can advance
+        // to the next time. If there are upstream federates, then this call
+        // will block waiting for a response from the RTI.
+        // If an action triggers during that wait, it will unblock
+        // and return with a time (typically) less than the next_time.
+        instant_t grant_time = next_event_time(next_time);
+        if (grant_time != next_time) {
+            // RTI has granted time advance to an earlier time or the wait
+            // for the RTI response was interrupted by a local physical action.
+            // Continue executing. The event queue may have changed.
+            return true;
+        }
+
+        // Wait for physical time to advance to the next event time (or stop time).
+        // This can be interrupted if a physical action triggers (e.g., a message
+        // arrives from an upstream federate or a local physical action triggers).
+        // printf("DEBUG: next(): Waiting until time %lld.\n", (next_time - start_time));
+        if (!wait_until(next_time)) {
+            // printf("DEBUG: next(): Wait until time interrupted.\n");
+            // Sleep was interrupted or the timeout time has been reached.
+            // Time has not advanced to the time of the event.
+            // There may be a new earlier event on the queue.
+            // Mutex lock was reacquired by wait_until.
+            return true;
+        }
+
+        // If the event queue has changed, return to iterate.
+        if (pqueue_peek(event_q) != event) return true;
+
+        // If the event time was past the stop time, it is now safe to stop execution.
+        if (event->time != next_time) {
+            // printf("DEBUG: next(): logical stop time reached. Requesting stop.\n");
+            stop_requested = true;
+            // Signal the worker threads. Since both the queues are
+            // empty, the threads will exit without doing anything further.
+            pthread_cond_broadcast(&reaction_or_executing_q_changed);
+            return false;
+        }
+
+        // At this point, finally, we have an event to process.
+        // Advance current time to match that of the first event on the queue.
+        current_time = next_time;
+        // printf("DEBUG: next(): ********* Advanced logical time to %lld.\n", current_time - start_time);
+
+        // Invoke code that must execute before starting a new logical time round,
+        // such as initializing outputs to be absent.
+        __start_time_step();
+
+        // Pop all events from event_q with timestamp equal to current_time,
+        // extract all the reactions triggered by these events, and
+        // stick them into the reaction queue.
+        do {
+            event = pqueue_pop(event_q);
+
+            token_t* token = event->token;
+
+            // Push the corresponding reactions onto the reaction queue.
+            for (int i = 0; i < event->trigger->number_of_reactions; i++) {
+                // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
+                // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
+                pqueue_insert(reaction_q, event->trigger->reactions[i]);
+            }
+            // If the trigger is a periodic clock, create a new event for its next execution.
+            // FIXME: This isn't quite right. A logical action can also have a non-zero period field.
+            if (!(event->trigger->is_physical) && event->trigger->period > 0) {
+                // Reschedule the trigger.
+                // Note that the delay here may be negative because the __schedule
+                // function will add the trigger->offset, which we don't want at this point.
+                // NULL argument indicates that there is no value.
+                __schedule(event->trigger, event->trigger->period - event->trigger->offset, NULL);
+            }
+
+            // Copy the token pointer into the trigger struct so that the
+            // reactions can access it. This overwrites the previous template token,
+            // for which we decrement the reference count.
+            if (event->trigger->token != event->token && event->trigger->token != NULL) {
+                // Mark the previous one ok_to_free so we don't get a memory leak.
+                event->trigger->token->ok_to_free = true;
+                // Free the token if its reference count is zero. Since __done_using
+                // decrements the reference count, first increment it here.
+                event->trigger->token->ref_count++;
+                __done_using(event->trigger->token);
+            }
+            event->trigger->token = token;
+            // Prevent this token from being freed. It is the new template.
+            // This might be null if there are no reactions to the action.
+            if (token != NULL) token->ok_to_free = false;
+
+            // Mark the trigger present.
+            event->trigger->is_present = true;
+
+            // Recycle the event.
+            // So that sorting doesn't cost anything,
+            // give all recycled events the same zero time stamp.
+            event->time = 0LL;
+            // Also remove pointers that will be replaced.
+            event->token = NULL;
+            pqueue_insert(recycle_q, event);
+
+            // Peek at the next event in the event queue.
+            event = pqueue_peek(event_q);
+        } while(event != NULL && event->time == current_time);
+
+        // Signal the worker threads.
+        pthread_cond_broadcast(&reaction_or_executing_q_changed);
+
+        return true;
     } else {
     	// There is no event on the event queue.
-     	// printf("DEBUG: next(): event queue is empty.\n");
-    	if (!keepalive_specified) {
-            instant_t grant_time = next_event_time(FOREVER);
-            if (grant_time == FOREVER) {
+        // printf("DEBUG: next(): event queue is empty.\n");
+        // If a stop time was given, adjust the next_time from FOREVER
+        // to that stop time.
+        if (stop_time > 0LL) {
+            next_time = stop_time;
+        }
+        // Ask the RTI to advance time to either stop_time or FOREVER.
+        // This will be granted if there are no upstream federates.
+        // If there are upstream federates, then the call will block
+        // until the upstream federates can grant some time advance,
+        // and in that case, the returned grant may be less than the
+        // requested advance.
+        instant_t grant_time = next_event_time(next_time);
+        if (grant_time == next_time) {
+            // RTI is OK with advancing time to stop_time or FOREVER.
+            if (!keepalive_specified) {
+                // Since keepalive was not specified, quit.
+                // If this is a federate, it will resign from the federation.
                 // printf("DEBUG: next(): requesting stop.\n");
                 // Can't call stop() because we already hold a mutex.
                 stop_requested = true;
                 // Signal the worker threads.
                 pthread_cond_broadcast(&reaction_or_executing_q_changed);
                 return false;
-            } else {
-                // RTI has granted advance to an earlier time.
-                // This means there is an upstream federate that
-                // could send messages. Continue executing.
-                return true;
             }
-    	}
-		// Check whether physical time exceeds the stop time, if a
-		// stop time is given. If it does, return false.
-    	// If this is a federate receiving messages
-    	// from another federate, then we may need to consult
-    	// the RTI to advance logical time to this physical time.
-		if (stop_time > 0LL) {
-			if (get_physical_time() >= stop_time) {
-                // printf("DEBUG: next(): stop time reached by physical clock.\n");
-			    instant_t grant_time = next_event_time(stop_time);
-			    if (grant_time == stop_time) {
-			        // printf("DEBUG: next(): Requesting stop.\n");
-			        stop_requested = true;
-			        // Signal the worker threads.
-			        pthread_cond_broadcast(&reaction_or_executing_q_changed);
-			        return false;
-			    } else {
-			        // RTI has granted advance to an earlier time. Continue executing.
-			        return true;
-			    }
-			}
-		}
-    }
-
-    instant_t wait_until_time = next_time;
-    if (stop_time > 0LL && stop_time < next_time) {
-    	wait_until_time = stop_time;
-    }
-
-    // Wait until physical time >= event.time (or max time or stop
-    // time, if there is no event).
-    // Do not hold the lock during the wait.
-    // NOTE: We should release the lock even if there will be no physical time wait
-    // to allow other threads to sneak in. Perhaps also do a yield?
-    // The wait_until function will release the lock while waiting.
-    while (!stop_requested) {
-        // In case this is in a federation, check whether time can advance
-        // to the next time. This call may block waiting for a response from
-        // the RTI. If an action triggers during that wait, it will unblock
-        // and return with a time less than the next_time.
-        instant_t grant_time = next_event_time(wait_until_time);
-        if (grant_time != wait_until_time) {
-            // RTI has granted time advance to an earlier time.
-            // Continue executing.
+        } else {
+            // RTI has granted advance to an earlier time.
+            // This means there is an upstream federate that
+            // could send messages. There may be a message on
+            // the event queue. Continue executing.
             return true;
-        }
-
-    	// printf("DEBUG: next(): Waiting until time %lld.\n", (wait_until_time - start_time));
-    	if (!wait_until(wait_until_time)) {
-    		// printf("DEBUG: next(): Wait until time interrupted.\n");
-    		// Sleep was interrupted or the timeout time has been reached.
-    		// Time has not advanced to the time of the event.
-    		// There may be a new earlier event on the queue.
-    		// Mutex lock was reacquired by wait_until.
-    		event_t* new_event = pqueue_peek(event_q);
-    		if (new_event != NULL) next_time = new_event->time;
-
-    	    // Check whether the new logical time exceeds the timeout, if a
-    	    // timeout was specified. Note that this will execute all microsteps
-    	    // at the stop time.
-    	    if (stop_time > 0LL && (event != NULL && next_time > stop_time)) {
-    	        // printf("DEBUG: next(): logical stop time reached. Requesting stop.\n");
-    	        stop_requested = true;
-    	        // Signal the worker threads. Since both the queues are
-    	        // empty, the threads will exit without doing anything further.
-    	        pthread_cond_broadcast(&reaction_or_executing_q_changed);
-    	        return false;
-    	    }
-
-    	    if (new_event == event) {
-    			// There is no new event. If the timeout time has been reached,
-    			// or there is also no old event,
-    			// or if the maximum time has been reached (unlikely), then return.
-    			if (new_event == NULL || (stop_time > 0LL && event->time > stop_time)) {
-    				stop_requested = true;
-    				// Signal the worker threads.
-    				pthread_cond_broadcast(&reaction_or_executing_q_changed);
-    				return false;
-    			}
-    		} else {
-    			// Handle the new event.
-    			event = new_event;
-    			break;
-    		}
-		} else {
-			// printf("DEBUG: next(): Done waiting until time.\n");
-			// Arrived at the wait_until_time, but there may still be no
-			// event, in which case, we should stop, unless keepalive was
-			// specified or physical time has reached the stop time.
-			event = pqueue_peek(event_q);
-			if (event == NULL) {
-				if (!keepalive_specified) {
-					// printf("DEBUG: next(): No event. Quitting.\n");
-					stop_requested = true;
-					// Signal the worker threads.
-					pthread_cond_broadcast(&reaction_or_executing_q_changed);
-					return false;
-				}
-				// Check whether physical time exceeds the stop time, if a
-				// stop time is given. If it does, return false.
-				if (stop_time > 0LL) {
-					if (get_physical_time() >= stop_time) {
-						// printf("DEBUG: next(): stop time reached by physical clock. Requesting stop.\n");
-						stop_requested = true;
-						// Signal the worker threads.
-						pthread_cond_broadcast(&reaction_or_executing_q_changed);
-						return false;
-					}
-				}
-				continue; // Keep waiting.
-			} else {
-				break;
-			}
-		}
-    }
-
-    // At this point, finally, we have an event to process.
-
-    // Advance current time to match that of the first event on the queue.
-    current_time = event->time;
-            
-    // Invoke code that must execute before starting a new logical time round,
-    // such as initializing outputs to be absent.
-    __start_time_step();
-        
-    // Pop all events from event_q with timestamp equal to current_time,
-    // extract all the reactions triggered by these events, and
-    // stick them into the reaction queue.
-    do {
-        event = pqueue_pop(event_q);
-        
-        token_t* token = event->token;
-
-        // Push the corresponding reactions onto the reaction queue.
-        for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
-            // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
-            pqueue_insert(reaction_q, event->trigger->reactions[i]);
-        }
-        // If the trigger is a periodic clock, create a new event for its next execution.
-        // FIXME: This isn't quite right. A logical action can also have a non-zero period field.
-        if (!(event->trigger->is_physical) && event->trigger->period > 0) {
-            // Reschedule the trigger.
-            // Note that the delay here may be negative because the __schedule
-            // function will add the trigger->offset, which we don't want at this point.
-            // NULL argument indicates that there is no value.
-            __schedule(event->trigger, event->trigger->period - event->trigger->offset, NULL);
-        }
-        
-        // Copy the token pointer into the trigger struct so that the
-        // reactions can access it. This overwrites the previous template token,
-        // for which we decrement the reference count.
-        if (event->trigger->token != event->token && event->trigger->token != NULL) {
-            // Mark the previous one ok_to_free so we don't get a memory leak.
-            event->trigger->token->ok_to_free = true;
-            // Free the token if its reference count is zero. Since __done_using
-            // decrements the reference count, first increment it here.
-            event->trigger->token->ref_count++;
-            __done_using(event->trigger->token);
-        }
-        event->trigger->token = token;
-        // Prevent this token from being freed. It is the new template.
-        // This might be null if there are no reactions to the action.
-        if (token != NULL) token->ok_to_free = false;
-
-        // Mark the trigger present.
-        event->trigger->is_present = true;
-
-        // Recycle the event.
-        // So that sorting doesn't cost anything,
-        // give all recycled events the same zero time stamp.
-        event->time = 0LL;
-        // Also remove pointers that will be replaced.
-        event->token = NULL;
-        pqueue_insert(recycle_q, event);
-
-        // Peek at the next event in the event queue.
+    	}
+        // If we get here, the RTI has granted time advance to the stop time
+        // (or there is only federate) and keepalive has been specified.
+        // If the event queue is no longer empty (e.g. an input message
+        // has arrived exactly at the stop time), then return true to
+        // iterate again and process that message.
         event = pqueue_peek(event_q);
-    } while(event != NULL && event->time == current_time);
+        if (event != NULL) return true;
 
-    // Signal the worker threads.
-	pthread_cond_broadcast(&reaction_or_executing_q_changed);
+        // The event queue is still empty, but since keepalive has been
+        // specified, we should not stop unless physical time exceeds the
+        // stop_time.
+        wait_until(next_time);
 
-    return true;
+        // If the event queue is no longer empty, return true to iterate.
+        event = pqueue_peek(event_q);
+        if (event != NULL) return true;
+
+        // printf("DEBUG: next(): Reached stop time. Requesting stop.\n");
+        stop_requested = true;
+		// Signal the worker threads.
+		pthread_cond_broadcast(&reaction_or_executing_q_changed);
+		return false;
+    }
 }
 
 /** First, wait until the reaction and executing queues are empty.
