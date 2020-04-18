@@ -1,0 +1,64 @@
+target Cpp {
+    fast : true,
+    threads : 1,
+    build-type : RelWithDebInfo,
+    no-runtime-validation : true
+};
+
+import Master.lf;
+
+reactor Ping(count:unsigned(4000)) {
+    input start:void;
+    output finished:void;
+    
+    output ping:void;
+    input pong:void;
+
+    logical action serve;
+        
+    state pings_left:unsigned(0);
+    
+    //schedule the first ping
+    reaction(start) -> serve {=
+        if(pings_left == 0) {
+            pings_left = count;
+            serve.schedule();
+        }
+    =}
+    
+    // send ping
+    reaction(serve) -> ping {=
+        pings_left--;
+        ping.set();
+    =}
+    
+    // receive pong and schedule next ping
+    reaction (pong) -> serve, finished {=
+        if (pings_left == 0) {
+            finished.set();
+        } else {
+            serve.schedule();
+        }
+    =}
+}
+
+reactor Pong {
+    input ping:void;
+    output pong:void;
+    
+    reaction(ping) -> pong {=
+        pong.set();   
+    =}
+}
+
+main reactor PingPong(iterations:unsigned(12), count:unsigned(40000)) {
+    master = new Master(iterations=iterations);
+    ping = new Ping(count=count);
+    pong = new Pong();
+    
+    master.start -> ping.start;
+    ping.finished -> master.finished;
+    
+    ping.ping -> pong.ping;
+    pong.pong -> ping.pong;
+}
