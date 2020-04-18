@@ -4,7 +4,8 @@
  * receiver that prints the message.
  * 
  * The after value on the connection gives the logical time offset
- * between the sender and the receiver. If this offset is greater
+ * between the sender and the receiver. The connection is a physical one,
+ * indicated with ~>. If this offset is greater
  * than the physical latency from the MessageGenerator through the RTI
  * to the receiver, plus the clock synchronization error,
  * then the timestamps at the receiver will be deterministic.
@@ -37,9 +38,8 @@
  * @author Edward A. Lee
  */
 target C {
-    threads: 1, // Must use threaded implementation so schedule is thread safe.
     timeout: 10 secs,
-    keepalive: true, // FIXME: This should be automatic with a physical action.
+    keepalive: true,
     federates: {
         RTI: {host: "localhost", port: 15044},
         Sender: {reactors: [msg]},
@@ -95,5 +95,5 @@ reactor PrintMessage {
 main reactor Distributed {
     msg = new MessageGenerator(root = "Hello World");
     dsp = new PrintMessage();
-    msg.message->dsp.message after 10 msec;
+    msg.message ~> dsp.message after 10 msec;
 }
