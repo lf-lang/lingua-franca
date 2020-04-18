@@ -36,7 +36,7 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(8 sec)) {
         // Schedule the first event.
         schedule(prompt, additional_time(0, self->max_time - self->min_time));
     =}
-    reaction(prompt) -> out, prompt {=
+    reaction(prompt) -> out {=
         self->count++;
         printf("%d. Hit Return or Enter!", self->count);
         fflush(stdout);
