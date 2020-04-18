@@ -79,6 +79,10 @@ class TypeScriptGenerator extends GeneratorBase {
     var tscPath = directory + File.separator + "node_modules" +  File.separator 
         + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
     
+    
+    // List of validly typed parameters of the main reactor for 
+    // custom command line arguments
+    var customCLArgs = new HashSet<Parameter>()
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -94,6 +98,7 @@ class TypeScriptGenerator extends GeneratorBase {
     ) {        
         super.doGenerate(resource, fsa, context)
         
+        // Important files and directories
         tsFilename = filename + ".ts"
         jsFilename = filename + ".js"
         projectPath = directory + File.separator + filename
@@ -761,26 +766,23 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     def void generateReactorInstance(Instantiation defn) {
         var fullName = defn.name
-            
-//        var arguments = new StringJoiner(", ")
-//        for (parameter : defn.parameters) {
-//            arguments.add(parameter.rhs.get(0).targetValue) // FIXME: handle lists
-//        }
 
-        // Get target properties for the app
-        //var String timeoutArg
-        //var isATimeoutArg = false
-        
-        
-        //arguments.add("'" + fullName + "'")
-        
-//        if (isATimeoutArg) {
-//            arguments.add(timeoutArg)
-//        } else {
-//            arguments.add("undefined")
-//        }
-//        arguments.add(keepAliveArg)
-//        arguments.add(fastArg)
+        // Iterate through parameters in the order they appear in the
+        // main reactor class. If the parameter is typed such that it can
+        // be a custom command line argument, use the parameter's command line
+        // assignment variable ("__CL" + the parameter's name). That variable will
+        // be undefined if the command line argument wasn't specified. Otherwise
+        // use undefined in the constructor.
+        var mainReactorParams = new StringJoiner(", ")
+        for (parameter : defn.reactorClass.parameters) {
+            
+            if (customCLArgs.contains(parameter)) {
+                mainReactorParams.add("__CL" + parameter.name)
+            } else {
+                mainReactorParams.add("undefined")
+            }
+            var childParameterFound = false
+        }
 
         pr('// ************* Instance ' + fullName + ' of class ' +
             defn.reactorClass.name)
@@ -788,7 +790,8 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("let __app;")
         pr("if (!__noStart) {")
         indent()
-        pr("__app = new "+ fullName + "(__timeout, __keepAlive, __fast);")
+        pr("__app = new "+ fullName + "(__timeout, __keepAlive, __fast, "
+            + mainReactorParams + ");")
         unindent()
         pr("}")
     }
@@ -800,12 +803,11 @@ class TypeScriptGenerator extends GeneratorBase {
     def void generateRuntimeStart(Instantiation defn) {
         pr('// ************* Starting Runtime for ' + defn.name + ' of class ' +
             defn.reactorClass.name)
-        pr("if (!__noStart) {")
+        pr("if (!__noStart && __app) {")
         indent()
-        pr("(__app as App)._start();")
+        pr("__app._start();")
         unindent()
         pr("}")
-
     }
 
 
@@ -829,9 +831,73 @@ class TypeScriptGenerator extends GeneratorBase {
     override generatePreamble() {
         super.generatePreamble
         pr(preamble)
-        pr("")
+        pr("") 
         
+        // Need to get the main reactor's parameters so they can be made
+        // command line arguments
+        var Reactor mainReactor
         
+        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+            if (reactor.isMain) {
+                mainReactor = reactor
+            }
+        }
+        
+        // Build the argument spec for commandLineArgs and commandLineUsage
+        var customArgs = new StringJoiner(",\n")
+        
+        // Extend the return type for commandLineArgs
+        var clTypeExtension = new StringJoiner(", ")
+        
+        for (parameter : mainReactor.parameters) {
+            var String customArgType = null;
+            var String customTypeLabel = null;
+            var paramType = getParameterType(parameter)
+            if (paramType == "string") {
+                customCLArgs.add(parameter)
+                //clTypeExtension.add(parameter.name + " : string")
+                customArgType = "String";
+            } else if (paramType == "number") {
+                customCLArgs.add(parameter)
+                //clTypeExtension.add(parameter.name + " : number")
+                customArgType = "Number";
+            } else if (paramType == "boolean") {
+                customCLArgs.add(parameter)
+                //clTypeExtension.add(parameter.name + " : boolean")
+                customArgType = "booleanCLAType";
+                customTypeLabel = '[true | false]'
+            } else if (paramType == "TimeValue") {
+                customCLArgs.add(parameter)
+                //clTypeExtension.add(parameter.name + " : UnitBasedTimeValue | null")
+                customArgType = "unitBasedTimeValueCLAType"
+                customTypeLabel = "\'<duration> <units>\'"
+            }
+            // Otherwise don't add the parameter to customCLArgs
+            
+            
+            if (customArgType !== null) {
+                clTypeExtension.add(parameter.name + ": " + paramType)
+                if (customTypeLabel !== null) {
+                customArgs.add('''
+                    { name: '«parameter.name»',
+                        type: «customArgType»,
+                        typeLabel: "{underline «customTypeLabel»}",
+                        description: 'Custom argument. Refer to «sourceFile» for documentation.'
+                    }
+                    ''')
+                } else {
+                    customArgs.add('''
+                        { name: '«parameter.name»',
+                            type: «customArgType»,
+                            description: 'Custom argument. Refer to «sourceFile» for documentation.'
+                        }
+                    ''')  
+                }
+            }  
+        }
+        
+        var customArgsList = "[\n" + customArgs + "]"
+        var clTypeExtensionDef = "{" + clTypeExtension + "}" 
         val setParameters = '''
             // ************* App Parameters
             let __timeout: TimeValue | undefined = «getTimeoutTimeValue»;
@@ -839,13 +905,20 @@ class TypeScriptGenerator extends GeneratorBase {
             let __fast: boolean = «targetFast»;
             
             let __noStart = false; // If set to true, don't start the app.
-            const __clUsage = commandLineUsage(CommandLineUsageDefs);
+            
+            // ************* Custom Command Line Arguments
+            let __additionalCommandLineArgs : CommandLineOptionSpec = «customArgsList»;
+            let __customCommandLineArgs = CommandLineOptionDefs.concat(__additionalCommandLineArgs);
+            let __customCommandLineUsageDefs = CommandLineUsageDefs;
+            type __customCLTypeExtension = «clTypeExtensionDef»;
+            __customCommandLineUsageDefs[1].optionList = __customCommandLineArgs;
+            const __clUsage = commandLineUsage(__customCommandLineUsageDefs);
                          
             // Set App parameters using values from the constructor or command line args.
             // Command line args have precedence over values from the constructor
-            let __processedCLArgs: ProcessedCommandLineArgs;
+            let __processedCLArgs: ProcessedCommandLineArgs & __customCLTypeExtension;
             try {
-                __processedCLArgs =  commandLineArgs(CommandLineOptionDefs) as ProcessedCommandLineArgs;
+                __processedCLArgs =  commandLineArgs(__customCommandLineArgs) as ProcessedCommandLineArgs & __customCLTypeExtension;
             } catch (e){
                 Log.global.error(__clUsage);
                 throw new Error("Command line argument parsing failed with: " + e);
@@ -857,7 +930,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     __fast = __processedCLArgs.fast;
                 } else {
                     Log.global.error(__clUsage);
-                    throw new Error("'fast' command line argument is malformed: + e");
+                    throw new Error("'fast' command line argument is malformed.");
                 }
             }
             
@@ -867,7 +940,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     __keepAlive = __processedCLArgs.keepalive;
                 } else {
                     Log.global.error(__clUsage);
-                    throw new Error("'keepalive' command line argument is malformed: + e");
+                    throw new Error("'keepalive' command line argument is malformed.");
                 }
             }
             
@@ -877,7 +950,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     __timeout = __processedCLArgs.timeout;
                 } else {
                     Log.global.error(__clUsage);
-                    throw new Error("'timeout' command line argument is malformed: + e");
+                    throw new Error("'timeout' command line argument is malformed.");
                 }
             }
             
@@ -887,7 +960,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     Log.global.level = __processedCLArgs.logging;
                 } else {
                     Log.global.error(__clUsage);
-                    throw new Error("'logging' command line argument is malformed: + e");
+                    throw new Error("'logging' command line argument is malformed.");
                 }
             } else {
                 Log.global.level = Log.levels.«getLoggingLevel»; // Default from target property.
@@ -905,6 +978,8 @@ class TypeScriptGenerator extends GeneratorBase {
             // Now the logging property has been set to its final value,
             // log information about how command line arguments were set,
             // but only if not in help mode.
+            
+            // Runtime command line arguments 
             if (__processedCLArgs.fast !== undefined && __processedCLArgs.fast !== null
                 && !__noStart) {
                 Log.global.info("'fast' property overridden by command line argument.");
@@ -921,29 +996,57 @@ class TypeScriptGenerator extends GeneratorBase {
                 && !__noStart) {
                  Log.global.info("'logging' property overridden by command line argument.");
             }
+            
+            // Custom command line arguments
+            «logCustomCLArgs()»
+            
+            // Assign custom command line arguments
+            «assignCustomCLArgs()»
         '''
         
         pr(setParameters)
-//        // Timeout Property
-//        if (targetTimeout >= 0) {
-//            pr("__timeout = " + timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit)))
-//        } else {
-//            pr("__timeout = undefined");
-//        }
-//        
-//        // KeepAlive Property
-//        if (targetKeepalive) {
-//            pr("__keepAlive = true;")
-//        } else {
-//            pr("__keepAlive = false;")
-//        }
-//        
-//        // Fast Property
-//        if (targetFast) {
-//            pr("__fast = true;")
-//        } else {
-//            pr("__fast = false;")
-//        }
+    }
+    
+    /**
+     * Assign results of parsing custom command line arguments
+     */
+    private def assignCustomCLArgs() {
+        var code = new StringJoiner("\n")
+        for (parameter : customCLArgs) {
+            code.add('''
+                let __CL«parameter.name»: «getParameterType(parameter)» | undefined = undefined;
+                if (__processedCLArgs.«parameter.name» !== undefined) {
+                    if (__processedCLArgs.«parameter.name» !== null) {
+                        __CL«parameter.name» = __processedCLArgs.«parameter.name»;
+                    } else {
+                        Log.global.error(__clUsage);
+                        throw new Error("Custom '«parameter.name»' command line argument is malformed.");
+                    }
+                }
+            ''')
+        }
+        code.toString()
+    }
+    
+    /**
+     * Generate code for extracting custom command line arguments
+     * from the object returned from commandLineArgs
+     */
+    private def logCustomCLArgs() {
+        var code = new StringJoiner("\n")
+        for (parameter : customCLArgs) {
+            // We can't allow the programmer's parameter names
+            // to cause the generation of variables with a "__" prefix
+            // because they could collide with other variables.
+            // So prefix variables created here with __CL
+            code.add('''
+                if (__processedCLArgs.«parameter.name» !== undefined && __processedCLArgs.«parameter.name» !== null
+                    && !__noStart) {
+                    Log.global.info("'«parameter.name»' property overridden by command line argument.");
+                }
+            ''')
+        }
+        code.toString()
     }
 
 
@@ -1096,7 +1199,7 @@ import commandLineUsage from 'command-line-usage';
 import { Args, Present, Parameter, State, Variable, Priority, Mutation, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
 import { TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeLibPath + '''"
 import { Log } from "''' + utilLibPath + '''"
-import { ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs } from "''' + cliLibPath + '''"
+import { ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType } from "''' + cliLibPath + '''"
 
     '''
 
