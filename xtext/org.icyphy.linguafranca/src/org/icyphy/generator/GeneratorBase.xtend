@@ -26,11 +26,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
 import java.io.OutputStream
 import java.net.URL
 import java.nio.file.Paths
@@ -71,6 +68,8 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /** Generator base class for shared code between code generators.
  * 
@@ -147,7 +146,7 @@ abstract class GeneratorBase {
     ////////////////////////////////////////////
     //// Target properties, if they are included.
     
-    /** A list of federate names or a list with a single empty string
+    /** A list of federate instances or a list with a single empty string
      *  if there are no federates specified.
      */
     protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
@@ -172,7 +171,7 @@ abstract class GeneratorBase {
         'launcher' -> false
     ) 
 
-	/** The build-type target parameter, or null if there is none. */
+    /** The build-type target parameter, or null if there is none. */
     protected String targetBuildType
 
     /** The cmake-include target parameter, or null if there is none. */
@@ -240,8 +239,8 @@ abstract class GeneratorBase {
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
                 switch param.name {
-                	case "build-type":
-                	    targetBuildType = param.value.id
+                    case "build-type":
+                        targetBuildType = param.value.id
                     case "cmake-include":
                         targetCmakeInclude = param.value.literal.withoutQuotes
                     case "compiler":
@@ -257,7 +256,7 @@ abstract class GeneratorBase {
                             targetNoCompile = true
                         }
                     case "no-runtime-validation":
-                        if (param.value.id.equals('true')) {
+                        if (param.value.literal == 'true') {
                             targetNoRuntimeValidation = true
                         }
                     case "keepalive":
@@ -864,47 +863,33 @@ abstract class GeneratorBase {
         importRecursionStack.remove(resource);
     }
 
-    /** Read a text file in the classpath and return its contents as a string.
-     *  @param filename The file name as a path relative to the classpath.
-     *  @return The contents of the file as a String or null if the file cannot be opened.
+    /**
+     *  Lookup a file in the classpath and copy its contents to a destination path 
+     *  in the filesystem.
+     * 
+     *  This also creates new directories for any directories on the destination
+     *  path that do not yet exist.
+     * 
+     *  @param source The source file as a path relative to the classpath.
+     *  @param destination The file system path that the source file is copied to.
      */
-    protected def readFileInClasspath(String filename) throws IOException {
-        var inputStream = this.class.getResourceAsStream(filename)
+    protected def copyFileFromClassPath(String source, String destination) {
+        val sourceStream = this.class.getResourceAsStream(source)
 
-        if (inputStream === null) {
-            return null
-        }
+        // make sure the directory exists
+        val destFile = new File(destination); 
+        destFile.getParentFile().mkdirs();
+
+        // copy the file
         try {
-            var resultStringBuilder = new StringBuilder()
-            // The following reads a file relative to the classpath.
-            // The file needs to be in the src directory.
-            var reader = new BufferedReader(new InputStreamReader(inputStream))
-            var line = ""
-            while ((line = reader.readLine()) !== null) {
-                resultStringBuilder.append(line).append("\n");
-            }
-            return resultStringBuilder.toString();
+            Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+             throw new IOException("A required target resource could not be copied: " + source + "\n"
+                + "Perhaps a git submodule is missing or not up to date.\n"
+                + "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.", ex)
         } finally {
-            inputStream.close
+            sourceStream.close()
         }
-    }
-
-    /** Read the specified input stream until an end of file is encountered
-     *  and return the result as a StringBuilder.
-     *  @param stream The stream to read.
-     *  @return The result as a string.
-     */
-    protected def readStream(InputStream stream) {
-        var reader = new BufferedReader(new InputStreamReader(stream))
-        var result = new StringBuilder();
-        var line = "";
-        while ((line = reader.readLine()) !== null) {
-            result.append(line);
-            result.append(System.getProperty("line.separator"));
-        }
-        stream.close()
-        reader.close()
-        result
     }
     
     /** If the mode is INTEGRATED (the code generator is running in an
@@ -916,14 +901,14 @@ abstract class GeneratorBase {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
-				Pattern.compile(
+                Pattern.compile(
                 "platform:" + File.separator + "resource" + File.separator +
                     id + File.separator);
-			} else { // Windows file separator
-				Pattern.compile(
+            } else { // Windows file separator
+                Pattern.compile(
                 "platform:" + File.separator + File.separator + "resource" + File.separator + File.separator +
                 id + File.separator + File.separator );
-			}
+            }
             val matcher = pattern.matcher(code);
             var projName = ""
             if (matcher.find()) {
@@ -1199,25 +1184,37 @@ abstract class GeneratorBase {
                     if (leftFederate !== rightFederate) {
                         // Connection spans federates.
                         // First, update the dependencies in the FederateInstances.
-                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                        if (dependsOn === null) {
-                            dependsOn = new HashSet<Value>()
-                            rightFederate.dependsOn.put(leftFederate, dependsOn)
-                        }
-                        if (connection.delay !== null) {
-                            dependsOn.add(connection.delay)
-                        }
-                        // Check for causality loops between federates.
-                        var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                        if (reverseDependency !== null) {
-                            // Check that at least one direction has a delay.
-                            if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                // Found a causality loop.
-                                val message = "Causality loop found between federates "
-                                    + leftFederate.name + " and " + rightFederate.name
-                                reportError(connection, message)
-                                // This is a fatal error, so throw an exception.
-                                throw new Exception(message)
+                        // Exclude physical connections because these do not create real dependencies.
+                        if (leftFederate !== rightFederate && !connection.physical) {
+                            var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                            if (dependsOn === null) {
+                                dependsOn = new HashSet<Value>()
+                                rightFederate.dependsOn.put(leftFederate, dependsOn)
+                            }
+                            if (connection.delay !== null) {
+                                dependsOn.add(connection.delay)
+                            }
+                            var sendsTo = leftFederate.sendsTo.get(rightFederate)
+                            if (sendsTo === null) {
+                                sendsTo = new HashSet<Value>()
+                                leftFederate.sendsTo.put(rightFederate, sendsTo)
+                            }
+                            if (connection.delay !== null) {
+                                sendsTo.add(connection.delay)
+                            }
+                            // Check for causality loops between federates.
+                            // FIXME: This does not detect cycles involving more than one federate.
+                            var reverseDependency = leftFederate.dependsOn.get(rightFederate)
+                            if (reverseDependency !== null) {
+                                // Check that at least one direction has a delay.
+                                if (reverseDependency.size === 0 && dependsOn.size === 0) {
+                                    // Found a causality loop.
+                                    val message = "Causality loop found between federates "
+                                            + leftFederate.name + " and " + rightFederate.name
+                                    reportError(connection, message)
+                                    // This is a fatal error, so throw an exception.
+                                    throw new Exception(message)
+                                }
                             }
                         }
                         
@@ -1243,7 +1240,7 @@ abstract class GeneratorBase {
     /** Create a string representing the file path of a resource.
      */
     protected def toPath(Resource resource) {
-    	var path = resource.getURI.toString
+        var path = resource.getURI.toString
         if (path.startsWith('platform:')) {
             mode = Mode.INTEGRATED
             var fileURL = FileLocator.toFileURL(new URL(path)).toString

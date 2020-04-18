@@ -10,7 +10,7 @@ target C {
 };
 // Produce a counting sequence at random times with a minimum
 // and maximum time between outputs specified as parameters.
-reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
+reactor RandomSource(min_time:time(2 sec), max_time:time(8 sec)) {
     preamble {=
         // Generate a random additional delay over the minimum. 
         // Assume millisecond precision is enough.
@@ -33,8 +33,8 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
         // Set a seed for random number generation based on the current time.
         srand(time(0));
         
-        // Schedule the next event.
-        schedule(prompt, additional_time(self->min_time, self->max_time));
+        // Schedule the first event.
+        schedule(prompt, additional_time(0, self->max_time - self->min_time));
     =}
     reaction(prompt) -> out, prompt {=
         self->count++;
@@ -44,28 +44,27 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(5 sec)) {
     =}
     reaction(another) -> prompt {=
         // Schedule the next event.
-        schedule(prompt, additional_time(self->min_time, self->max_time));
+        schedule(prompt, additional_time(0, self->max_time - self->min_time));
     =}
 }
 reactor GetUserInput {
     preamble {=
-        // Read input characters until an EOF is received.
-        // Each time a newline is received, schedule a response
-        // action.
-        void* read_input(void* response) {
+        // Thread to read input characters until an EOF is received.
+        // Each time a newline is received, schedule a user_response action.
+        void* read_input(void* user_response) {
             int c;
             while(1) {
                 while((c = getchar()) != '\n') {
                     if (c == EOF) break;
                 }
-                schedule_copy(response, 0, &c, 1);
+                schedule_copy(user_response, 0, &c, 1);
                 if (c == EOF) break;
             }
             return NULL;
         }
     =}
 
-    physical action response:char;
+    physical action user_response:char;
     state prompt_time:time(0);
     state total_time_in_ms:int(0);
     state count:int(0);
@@ -73,18 +72,18 @@ reactor GetUserInput {
     input prompt:int;
     output another:int;
     
-    reaction(startup) -> response {=
+    reaction(startup) -> user_response {=
         // Start the thread that listens for Enter or Return.
         pthread_t thread_id;
-        pthread_create(&thread_id, NULL, &read_input, response);        
+        pthread_create(&thread_id, NULL, &read_input, user_response);        
     =}
     
     reaction(prompt) {=
         self->prompt_time = get_physical_time();
     =}
     
-    reaction(response) -> another {=
-        if (response_value == EOF) {
+    reaction(user_response) -> another {=
+        if (user_response_value == EOF) {
             stop();
             return;
         }

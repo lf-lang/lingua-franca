@@ -1,10 +1,10 @@
 // This is a smoke test of a minimal reactor.
-target Cpp{
+target Cpp {
     threads: 1
 };
+
 main reactor Minimal {
-    timer t;
-    reaction(t) {=
-        printf("Hello World.\n");
+    reaction(startup) {=
+        std::cout << "Hello World!\n";
     =}
 }

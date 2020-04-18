@@ -1,0 +1,35 @@
+target Cpp;
+
+reactor Master(iterations:unsigned(12)) {    
+    output start:void;
+    input finished:void;
+    logical action next;
+    state count:unsigned(0); 
+    state start_time:{=reactor::TimePoint=};
+    state measured_times:{=std::vector<reactor::Duration>=}(iterations);
+    
+    reaction(startup) -> next {=
+        next.schedule();
+    =}
+    
+    reaction(next) -> start {=
+        start_time = get_physical_time();
+        start.set();   
+    =}
+    
+    reaction(finished) -> next {=
+        auto end_time = get_physical_time();
+        auto duration = end_time - start_time;
+        measured_times[count] = duration;
+        count++;
+        
+        auto duration_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(duration);
+        std::cout << "Iteration " << count << " - " << duration_ms.count() << " ms\n";
+
+        if (count < iterations) { 
+            next.schedule();
+        } else {
+            environment()->sync_shutdown();
+        }
+    =}
+}

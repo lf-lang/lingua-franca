@@ -73,6 +73,7 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
  * @author{Chris Gill, <cdgill@wustl.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>
  */
 class CGenerator extends GeneratorBase {
     
@@ -160,10 +161,10 @@ class CGenerator extends GeneratorBase {
         }
         
         for (file : files) {
-            var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + file));
-            fOut.write(readFileInClasspath("/lib/C/" + file).getBytes())
-            fOut.close()
+            copyFileFromClassPath(
+                File.separator + "lib" + File.separator + "C" + File.separator + file,
+                srcGenPath + File.separator + file
+            )
         }
 
         // Perform distinct code generation into distinct files for each federate.
@@ -244,6 +245,14 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects.toString)
                 doDeferredInitialize(federate)
                 setReactionPriorities(main, federate)
+                if (federates.length > 1) {
+                    if (federate.dependsOn.size > 0) {
+                        pr('__fed_has_upstream  = true;')
+                    }
+                    if (federate.sendsTo.size > 0) {
+                        pr('__fed_has_downstream = true;')
+                    }
+                }
                 unindent()
                 pr('}\n')
 
@@ -260,6 +269,37 @@ class CGenerator extends GeneratorBase {
                 pr(startTimeStep.toString)
                 unindent()
                 pr('}\n')
+                
+                // Generate a function that will either do nothing
+                // (if there is only one federate) or, if there are
+                // downstream federates, will notify the RTI
+                // that the specified logical time is complete.
+                pr('''
+                    void logical_time_complete(instant_t time) {
+                        «IF federates.length > 1»
+                            __logical_time_complete(time);
+                        «ENDIF»
+                    }
+                ''')
+                
+                // Generate a function that will either just return immediately
+                // if there is only one federate or will notify the RTI,
+                // if necessary, of the next event time.
+                pr('''
+                    instant_t next_event_time(instant_t time) {
+                        «IF federates.length > 1»
+                            return __next_event_time(time);
+                        «ELSE»
+                            return time;
+                        «ENDIF»
+                    }
+                ''')
+                if (federates.length > 1) {
+                    
+                } else {
+                    
+                }
+                
 
                 // Generate function to return a pointer to the action trigger_t
                 // that handles incoming network messages destined to the specified
@@ -447,6 +487,79 @@ class CGenerator extends GeneratorBase {
             int main(int argc, char* argv[]) {
         ''')
         indent(rtiCode)
+        
+        // Initialize the array of information that the RTI has about the
+        // federates.
+        // FIXME: No support below for some federates to be FAST and some REALTIME.
+        pr(rtiCode, '''
+            for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                initialize_federate(i);
+                «IF targetFast»
+                    federates[i] = FAST;
+                «ENDIF»
+            }
+        ''')
+        // Initialize the arrays indicating connectivity to upstream and downstream federates.
+        for(federate : federates) {
+            if (!federate.dependsOn.keySet.isEmpty) {
+                // Federate receives non-physical messages from other federates.
+                // Initialize the upstream and upstream_delay arrays.
+                val numUpstream = federate.dependsOn.keySet.size
+                // Allocate memory for the arrays storing the connectivity information.
+                pr(rtiCode, '''
+                    federates[«federate.id»].upstream = malloc(sizeof(federate_t*) * «numUpstream»);
+                    federates[«federate.id»].upstream_delay = malloc(sizeof(interval_t*) * «numUpstream»);
+                    federates[«federate.id»].num_upstream = «numUpstream»;
+                ''')
+                // Next, populate these arrays.
+                // Find the minimum delay in the process.
+                // FIXME: Zero delay is not really the same as a microstep delay.
+                var count = 0;
+                for (upstreamFederate : federate.dependsOn.keySet) {
+                    pr(rtiCode, '''
+                        federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
+                        federates[«federate.id»].upstream_delay[«count»] = 0LL;
+                    ''')
+                    // The minimum delay calculation needs to be made in the C code because it
+                    // may depend on parameter values.
+                    // FIXME: These would have to be top-level parameters, which don't really
+                    // have any support yet. Ideally, they could be overridden on the command line.
+                    // When that is done, they will need to be in scope here.
+                    val delays = federate.dependsOn.get(upstreamFederate)
+                    if (delays !== null) {
+                        for (value : delays) {
+                            pr(rtiCode, '''
+                                if (federates[«federate.id»].upstream_delay[«count»] < «value.getTargetTime») {
+                                    federates[«federate.id»].upstream_delay[«count»] = «value.getTargetTime»;
+                                }
+                            ''')
+                        }
+                    }
+                    count++;
+                }
+            }
+            // Next, set up the downstream array.
+            if (!federate.sendsTo.keySet.isEmpty) {
+                // Federate sends non-physical messages to other federates.
+                // Initialize the downstream array.
+                val numDownstream = federate.sendsTo.keySet.size
+                // Allocate memory for the array.
+                pr(rtiCode, '''
+                    federates[«federate.id»].downstream = malloc(sizeof(federate_t*) * «numDownstream»);
+                    federates[«federate.id»].num_downstream = «numDownstream»;
+                ''')
+                // Next, populate the array.
+                // Find the minimum delay in the process.
+                // FIXME: Zero delay is not really the same as a microstep delay.
+                var count = 0;
+                for (downstreamFederate : federate.sendsTo.keySet) {
+                    pr(rtiCode, '''
+                        federates[«federate.id»].downstream[«count»] = «downstreamFederate.id»;
+                    ''')
+                    count++;
+                }
+            }
+        }
         
         // Start the RTI server before launching the federates because if it
         // fails, e.g. because the port is not available, then we don't want to

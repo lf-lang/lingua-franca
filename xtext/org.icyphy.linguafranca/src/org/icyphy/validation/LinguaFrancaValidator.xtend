@@ -633,23 +633,28 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
         if (stateVar.isOfTimeType) {
             // If the state is declared to be a time,
-            // make sure that initialized correctly.
-            val init = stateVar.init.get(0)
-            if (stateVar.type !== null && stateVar.type.isTime &&
-                !init.isValidTime) {
-                if (stateVar.isParameterized) {
-                    error("Referenced parameter does not denote a time.",
-                        Literals.STATE_VAR__INIT)
-                } else {
-                    if (init !== null && !init.isZero) {
-                        if (init.isInteger) {
-                            error("Missing time units. Should be one of " +
-                                TimeUnit.VALUES.filter [
-                                    it != TimeUnit.NONE
-                                ], Literals.STATE_VAR__INIT)
-                        } else {
-                            error("Invalid time literal.",
+            // make sure that it is initialized correctly.
+            if (stateVar.init !== null) {
+                for (init : stateVar.init) {
+                    if (stateVar.type !== null && stateVar.type.isTime &&
+                        !init.isValidTime) {
+                        if (stateVar.isParameterized) {
+                            error(
+                                "Referenced parameter does not denote a time.",
                                 Literals.STATE_VAR__INIT)
+                        } else {
+                            if (init !== null && !init.isZero) {
+                                if (init.isInteger) {
+                                    error(
+                                        "Missing time units. Should be one of " +
+                                            TimeUnit.VALUES.filter [
+                                                it != TimeUnit.NONE
+                                            ], Literals.STATE_VAR__INIT)
+                                } else {
+                                    error("Invalid time literal.",
+                                        Literals.STATE_VAR__INIT)
+                                }
+                            }
                         }
                     }
                 }

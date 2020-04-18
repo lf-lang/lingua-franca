@@ -28,7 +28,6 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.util.HashMap
 import java.util.HashSet
 import java.util.StringJoiner
@@ -59,6 +58,7 @@ import static extension org.icyphy.ASTUtils.*
  *  @author{Matt Weber <matt.weber@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author {Christian Menard <christian.menard@tu-dresden.de> 
  */
 class TypeScriptGenerator extends GeneratorBase {
 
@@ -146,26 +146,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Copy the required library files into the src directory
         // so they may be compiled as part of the TypeScript project.
         // This requires that the TypeScript submodule has been installed.
-
-        // Use the first file to test whether the submodule has been installed.
-        val fileContents = readFileInClasspath(reactorTSCorePath + "reactor.ts")
-        if (fileContents === null) {
-            throw new IOException("Required runtime file not found: "
-                + reactorTSCorePath
-                + "reactor.ts.\n"
-                + "Perhaps the reactor.ts submodule is missing.\n"
-                + "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository."
-            )
-        }
-        
-        // Copy core reactor.ts files into the srcGen directory
-
-        // Don't use copyReactorTSCoreFile for reactor.ts
-        // because we already have the fileContents
-        fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + "reactor.ts"));
-        fOut.write(fileContents.getBytes())
-
+        copyReactorTSCoreFile(srcGenPath, "reactor.ts")
         copyReactorTSCoreFile(srcGenPath, "cli.ts")
         copyReactorTSCoreFile(srcGenPath, "command-line-args.d.ts")
         copyReactorTSCoreFile(srcGenPath, "command-line-usage.d.ts")
@@ -1094,10 +1075,10 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @param filename The path to the file from reactor-ts core to copy.
      */
     private def copyReactorTSCoreFile(String targetPath, String filename) {
-        var fOut = new FileOutputStream(
-            new File(targetPath + File.separator + filename))
-        fOut.write(readFileInClasspath(reactorTSCorePath + filename).getBytes())
-        fOut.close()
+        copyFileFromClassPath(
+            reactorTSCorePath + filename,
+            targetPath + File.separator + filename
+        )
     }
     
     /** If the given filename doesn't already exist in the targetPath
@@ -1115,9 +1096,7 @@ class TypeScriptGenerator extends GeneratorBase {
         if(!defaultFile.exists()){
             println(filename + " does not already exist for this project."
                 + " Copying over default from " + libFile)
-            var fOut = new FileOutputStream(
-                new File(targetPath + File.separator + filename));
-            fOut.write(readFileInClasspath(libFile).getBytes())      
+            copyFileFromClassPath(libFile, targetPath + File.separator + filename)
         } else {
             println("This project already has " + targetPath + File.separator + filename)
         }
