@@ -542,6 +542,15 @@ void __logical_time_complete(instant_t time) {
          return time;
      }
 
+     // FIXME: The returned value t is a promise that, absent inputs from
+     // another federate, this federate will not produce events earlier than t.
+     // But if there are downstream federates and there is
+     // a physical action (not counting receivers from upstream federates),
+     // then we can only promise up to current physical time.
+     // This will result in this federate busy waiting, looping through this code
+     // and notifying the RTI with next_event_time(current_physical_time())
+     // repeatedly.
+
      // If there are upstream federates, then we need to wait for a
      // reply from the RTI.
 
