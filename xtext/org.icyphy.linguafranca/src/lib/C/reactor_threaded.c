@@ -46,8 +46,8 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Condition variables used for notification between threads.
 pthread_cond_t event_q_changed = PTHREAD_COND_INITIALIZER;
-pthread_cond_t reaction_or_executing_q_changed = PTHREAD_COND_INITIALIZER;
-pthread_cond_t number_of_idle_threads_changed = PTHREAD_COND_INITIALIZER;
+pthread_cond_t reaction_q_changed = PTHREAD_COND_INITIALIZER;
+pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
 
 /**
  * Schedule the specified trigger at current_time plus the offset of the
@@ -198,22 +198,22 @@ bool __first_invocation = true;
  *  @return false if the program should be terminated.
  */
 bool __next() {
- 	// Wait for the reaction and executing queues to be empty,
-	// indicating that the previous logical time is complete.
-	// printf("DEBUG: next(): number_of_idle_threads = %d\n", number_of_idle_threads);
-	// printf("DEBUG: next(): reaction_q size = %ld\n", pqueue_size(reaction_q));
- 	while (pqueue_size(reaction_q) > 0 || pqueue_size(executing_q) > 0) {
- 		// Do not check for stop_requested here because stopping should occur
- 		// only between logical times!
-
-        // Wait for some activity on the reaction and executing queues.
-        pthread_cond_wait(&reaction_or_executing_q_changed, &mutex);
-    	// printf("DEBUG: next(): number_of_idle_threads = %d\n", number_of_idle_threads);
-    	// printf("DEBUG: next(): reaction_q size = %ld\n", pqueue_size(reaction_q));
-	}
  	if (!__first_invocation) {
- 	   // printf("DEBUG: next(): completed logical time %lld.\n", current_time - start_time);
- 	   logical_time_complete(current_time);
+ 	    // Wait for the reaction and executing queues to be empty,
+ 	    // indicating that the previous logical time is complete.
+ 	    // printf("DEBUG: next(): number_of_idle_threads = %d\n", number_of_idle_threads);
+ 	    // printf("DEBUG: next(): reaction_q size = %ld\n", pqueue_size(reaction_q));
+ 	    while (pqueue_size(reaction_q) > 0 || pqueue_size(executing_q) > 0) {
+ 	        // Do not check for stop_requested here because stopping should occur
+ 	        // only between logical times!
+
+ 	        // Wait for a signal that the executing_q has been emptied.
+ 	        pthread_cond_wait(&executing_q_emptied, &mutex);
+ 	        // printf("DEBUG: next(): number_of_idle_threads = %d\n", number_of_idle_threads);
+ 	        // printf("DEBUG: next(): reaction_q size = %ld\n", pqueue_size(reaction_q));
+ 	    }
+ 	    // printf("DEBUG: next(): completed logical time %lld.\n", current_time - start_time);
+ 	    logical_time_complete(current_time);
  	}
  	__first_invocation = false;
 
@@ -270,7 +270,7 @@ bool __next() {
             stop_requested = true;
             // Signal the worker threads. Since both the queues are
             // empty, the threads will exit without doing anything further.
-            pthread_cond_broadcast(&reaction_or_executing_q_changed);
+            pthread_cond_broadcast(&reaction_q_changed);
             return false;
         }
 
@@ -339,7 +339,7 @@ bool __next() {
         } while(event != NULL && event->time == current_time);
 
         // Signal the worker threads.
-        pthread_cond_broadcast(&reaction_or_executing_q_changed);
+        pthread_cond_broadcast(&reaction_q_changed);
 
         return true;
     } else {
@@ -366,7 +366,7 @@ bool __next() {
                 // Can't call stop() because we already hold a mutex.
                 stop_requested = true;
                 // Signal the worker threads.
-                pthread_cond_broadcast(&reaction_or_executing_q_changed);
+                pthread_cond_broadcast(&reaction_q_changed);
                 return false;
             }
         } else {
@@ -396,7 +396,7 @@ bool __next() {
         // printf("DEBUG: next(): Reached stop time. Requesting stop.\n");
         stop_requested = true;
 		// Signal the worker threads.
-		pthread_cond_broadcast(&reaction_or_executing_q_changed);
+		pthread_cond_broadcast(&reaction_q_changed);
 		return false;
     }
 }
@@ -441,9 +441,8 @@ void stop() {
     // Notify the RTI that nothing more will happen.
     next_event_time(FOREVER);
     // In case any thread is waiting on a condition, notify all.
-    pthread_cond_broadcast(&reaction_or_executing_q_changed);
+    pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);
-    pthread_cond_signal(&number_of_idle_threads_changed);
     // printf("DEBUG: pthread_mutex_unlock stop\n");
     pthread_mutex_unlock(&mutex);
 }
@@ -487,6 +486,8 @@ reaction_t* first_ready_reaction() {
     }
     
     // Push blocked reactions back onto the reaction queue.
+    // This will swap the two queues if the transfer_q has
+    // gotten larger than the reaction_q.
     if (pqueue_size(reaction_q) >= pqueue_size(transfer_q)) {
         while ((b = pqueue_pop(transfer_q)) != NULL) {
             pqueue_insert(reaction_q, b);
@@ -522,28 +523,39 @@ void* worker(void* arg) {
         reaction_t* reaction = first_ready_reaction();
 		if (reaction == NULL) {
 			// There are no reactions ready to run.
+
+		    // If there are also no reactions in progress, then broadcast
+		    // a signal so that time can advance.
+            if (pqueue_size(executing_q) == 0) {
+                // There is only one thread blocking on this, so no need to broadcast.
+                pthread_cond_signal(&executing_q_emptied);
+            }
+
 			// If we were previously busy, count this thread as idle now.
 			if (have_been_busy) {
 				number_of_idle_threads++;
 				have_been_busy = false;
 			}
-			// Notify the main thread that there is an idle thread.
-			// Do this even if we were not previously busy because this
-			// could be a startup condition.
-			pthread_cond_signal(&number_of_idle_threads_changed);
 			// Wait for something to change (either a stop request or
 			// something went on the reaction queue.
 			// printf("DEBUG: worker: Waiting for items on the reaction queue.\n");
-			pthread_cond_wait(&reaction_or_executing_q_changed, &mutex);
+			pthread_cond_wait(&reaction_q_changed, &mutex);
             // printf("DEBUG: worker: Done waiting.\n");
 		} else {
+		    // Got a reaction that is ready to run.
+
+		    // If there remain reactions on the reaction_q, notify one other
+		    // idle thread, if there is one, so that it can attempt to execute
+		    // that reaction.
+		    if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
+	            pthread_cond_signal(&reaction_q_changed);
+		    }
+
 	    	// This thread will no longer be idle.
 	    	if (!have_been_busy) {
 	    		number_of_idle_threads--;
 	    		have_been_busy = true;
 	    	}
-			// Notify the main thread that there is one fewer idle thread.
-			pthread_cond_signal(&number_of_idle_threads_changed);
 
         	//reaction_t* reaction = pqueue_pop(reaction_q);
         	// printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->local_deadline);
@@ -552,9 +564,6 @@ void* worker(void* arg) {
         	// reactions that may depend on it from executing before this reaction is finished.
         	pqueue_insert(executing_q, reaction);
         
-        	// Notify while still holding the lock.
-		    pthread_cond_broadcast(&reaction_or_executing_q_changed);
-
             // If the reaction has a deadline, compare to current physical time
             // and invoke the deadline violation reaction instead of the reaction function
             // if a violation has occurred. Note that the violation reaction will be invoked
@@ -583,20 +592,17 @@ void* worker(void* arg) {
                     reaction_function_t handler = reaction->deadline_violation_handler;
                     if (handler != NULL) {
                 		// Unlock the mutex to run the reaction.
-                        // printf("DEBUG: pthread_mutex_unlock to run reaction.\n");
+                        // printf("DEBUG: pthread_mutex_unlock to run deadline handler.\n");
                         pthread_mutex_unlock(&mutex);
                         (*handler)(reaction->self);
-                        // printf("DEBUG: pthread_mutex_lock worker after running reaction\n");
+                        // printf("DEBUG: pthread_mutex_lock worker after running deadline handler\n");
                         pthread_mutex_lock(&mutex);
                         // printf("DEBUG: pthread_mutex_locked\n");
                         // If the reaction produced outputs, put the resulting
                         // triggered reactions into the queue.
                         schedule_output_reactions(reaction);
-                        // There may be new reactions on the reaction_queue, so notify other threads.
-        			    pthread_cond_broadcast(&reaction_or_executing_q_changed);
                         // Remove the reaction from the executing queue.
                 	    pqueue_remove(executing_q, reaction);
-
                     }
                 }
             }
@@ -616,8 +622,7 @@ void* worker(void* arg) {
         	    schedule_output_reactions(reaction);
         	    // Remove the reaction from the executing queue.
         	    pqueue_remove(executing_q, reaction);
-                // There may be new reactions on the reaction queue, so notify other threads.
-			    pthread_cond_broadcast(&reaction_or_executing_q_changed);
+
  			    // printf("DEBUG: worker: Done invoking reaction.\n");
             }
     	}
@@ -625,11 +630,10 @@ void* worker(void* arg) {
 	// This thread is exiting, so don't count it anymore.
 	number_of_threads--;
 
-	// Notify the main thread that there is one fewer idle thread.
-	pthread_cond_signal(&number_of_idle_threads_changed);
-
 	// printf("DEBUG: worker: Stop requested. Exiting.\n");
     // printf("DEBUG: pthread_mutex_unlock worker\n");
+    // Signal the main thread.
+    pthread_cond_signal(&executing_q_emptied);
     pthread_mutex_unlock(&mutex);
 	// timeout has been requested.
 	return NULL;
@@ -672,7 +676,7 @@ void wrapup() {
     // printf("DEBUG: pthread_mutex_locked\n");
 	stop_requested = true;
 	// Signal the worker threads.
-	pthread_cond_broadcast(&reaction_or_executing_q_changed);
+	pthread_cond_broadcast(&reaction_q_changed);
     // printf("DEBUG: pthread_mutex_unlock wrapup\n");
     pthread_mutex_unlock(&mutex);
 
