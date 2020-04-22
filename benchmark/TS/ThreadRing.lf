@@ -3,25 +3,28 @@ target TypeScript {
     fast: true
 };
 // To prevent a cycle, one node has to schedule an action upon receiving an input
-reactor StartNode(count:number(25000)) {
+reactor StartNode(limit:number(25000)) {
     input receive:number;
     input start:boolean;
     output send:number;
     output done:boolean;
     logical action nextLoop:number;
     reaction (nextLoop) -> send, done {=
-        nextLoop = nextLoop as number;
-        if ( nextLoop > 0 ) {
-            send = nextLoop - 1;
-        } else {
-            done = true;
+        if (nextLoop !== undefined) {
+            if ( nextLoop > 0 ) {
+                send = nextLoop - 1;
+            } else {
+                done = true;
+            }
         }
     =}
     reaction (start) -> nextLoop {=
-        actions.nextLoop.schedule(0, count);
+        actions.nextLoop.schedule(0, limit);
     =}
     reaction (receive) -> nextLoop {=
-        actions.nextLoop.schedule(0, receive);
+        if (receive !== undefined) {
+            actions.nextLoop.schedule(0, receive);
+        }
     =}
 }
 
@@ -31,17 +34,18 @@ reactor Node {
     output done:boolean;
     logical action nextLoop:number;
     reaction (receive) -> send, done {=
-        receive = receive as number;
-        if ( receive > 0 ) {
-            send = receive - 1;
-        } else {
-            done = true;
+        if (receive !== undefined) {
+            if ( receive > 0 ) {
+                send = receive - 1;
+            } else {
+                done = true;
+            }
         }
     =}
 }
 
-main reactor ThreadRing {
-    state startTime:{=TimeValue|undefined=}(undefined);
+main reactor ThreadRing(limit:number(25000)) {
+    state startTime:{=TimeValue|undefined=}({=undefined=});
     logical action end;
     reaction (startup) -> n1.start {=
         startTime = util.getCurrentPhysicalTime();
@@ -63,11 +67,13 @@ main reactor ThreadRing {
         actions.end.schedule(0, null);
     =}
     reaction (end) {=
-        let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime as TimeValue);
-        console.log("Elapsed time: " + elapsedTime);
-        util.requestShutdown();
+        if (startTime) {
+            let elapsedTime = util.getCurrentPhysicalTime().subtract(startTime);
+            console.log("Elapsed time: " + elapsedTime);
+            util.requestShutdown();       
+        }
     =}  
-    n1 = new StartNode(count = 10000000);
+    n1 = new StartNode(limit = limit);
     n2 = new Node();
     n3 = new Node();
     n4 = new Node();
