@@ -1,0 +1,75 @@
+// This benchmark measures the performance of a reactor acting as 
+// a simple HTTP server on port 8000. The port may be changed as a
+// custom command line option (eg. --port=8000). 
+//
+// Incoming server requests are converted into
+// physical actions and the server response is written in a reaction.
+// Compare the performance of this reactor to "Server.js", a
+// pure JavaScript implementation of the same server without
+// reactors.
+//
+// Running this benchmark by executing the generated program
+// will just start the server. To get performance measurements
+// install Clinic (https://www.npmjs.com/package/clinic) and
+// AutoCannon (https://www.npmjs.com/package/autocannon)
+// 
+// $ npm install -g clinic
+// $ npm i autocannon -g
+//
+// Then execute the following from the directory containing
+// this .lf file:
+// 
+// $ clinic doctor --autocannon [ 'localhost:8000' ] -- node HTTPServer/dist/HTTPServer.js
+// 
+// This will produce statistics on request latency, as well as 
+// requests and bytes per second. It will also open a browser
+// window with information on CPU Usage %, Memory Usage, Event Loop Delay,
+// and Active Handles.
+//
+// Note: This test does not actually measure physical network capabilities
+// because it uses localhost (127.0.0.1) and that gets processed by a
+// loop back adapter in the kernel. 
+// 
+target TypeScript {
+    keepalive: true
+};
+
+main reactor ServerTest(port:number(8000)) {
+    preamble {=
+        import * as http from "http"
+        import * as querystring from "querystring"
+    =}
+    
+    state server:{=http.Server | undefined=}({=undefined=});
+    physical action serverRequest:{= [ http.IncomingMessage, http.ServerResponse ] =};
+    
+    // Register handler for incoming requests
+    reaction (startup) -> serverRequest {=
+        let options = {};
+        server = http.createServer(options, (req : http.IncomingMessage, res : http.ServerResponse) => {
+            // Generally browsers make two requests, the first is for favicon.ico.
+            // See https://stackoverflow.com/questions/11961902/nodejs-http-createserver-seems-to-call-twice
+            // Enable this code if you want to get a single request from a browser.
+            // if (req.url != '/favicon.ico') {
+            //     actions.serverRequest.schedule(0, [req, res])
+            // }
+            actions.serverRequest.schedule(0, [req, res])
+        }).listen(port);
+    =}
+    
+    // Process requests
+    reaction (serverRequest) {=
+        let requestArray = serverRequest;
+        if (requestArray) {
+            let req = requestArray[0];
+            let res = requestArray[1];
+            res.writeHead(200);
+            res.end(req.toString());
+        }
+    =}
+    reaction (shutdown) {=
+        if (server) {
+            server.close();
+        }
+    =}
+}
