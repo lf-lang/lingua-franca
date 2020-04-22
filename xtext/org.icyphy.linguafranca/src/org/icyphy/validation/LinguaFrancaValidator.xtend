@@ -191,6 +191,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     Literals.ASSIGNMENT__RHS)
             }
         }
+        // FIXME: lhs is list => rhs is list
+        // lhs is fixed with size n => rhs is fixed with size n
+        // FIXME": similar checks for decl/init
+        // Specifically for C: list can only be literal or time lists
     }
 
     @Check(FAST)
