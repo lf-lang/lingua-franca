@@ -11,7 +11,7 @@ main reactor Foo(x:number(0),
 	state s:time(y);	// Reference to explicitly typed time parameter
 	state t:time(z);	// Reference to implicitly typed time parameter
 	state v:boolean;	// Uninitialized boolean state variable
-	state w:time;		// Uninitialized time state variable // FIXME: add to other tests
+	state w:time;		// Uninitialized time state variable
 	timer tick(0);		// Units missing but not required
 	timer tock(1 sec);	// Implicit type time
 	timer toe(z);		// Implicit type time
