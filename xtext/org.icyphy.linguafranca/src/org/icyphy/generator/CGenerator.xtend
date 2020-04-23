@@ -2938,7 +2938,7 @@ class CGenerator extends GeneratorBase {
     
     protected def String getInitializer(ParameterInstance p) {
         
-            if (p.type.isList) {
+            if (p.type.isList && p.init.size > 1) {
                 return p.init.join('{', ', ', '}', [it.targetValue])
             } else {
             	return p.init.get(0).targetValue
