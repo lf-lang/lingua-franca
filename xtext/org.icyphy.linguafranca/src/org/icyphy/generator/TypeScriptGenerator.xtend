@@ -476,9 +476,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // so we can iterate over their union
             var triggersUnionSources = new HashSet<VarRef>()
             for (trigger : reaction.triggers) {
-                if (trigger instanceof VarRef) {
-                }
-                if ( ! (trigger.startup || trigger.shutdown)) {
+                if (!(trigger.startup || trigger.shutdown)) {
                     triggersUnionSources.add(trigger as VarRef)
                 }
             }
@@ -530,7 +528,7 @@ class TypeScriptGenerator extends GeneratorBase {
                             reactSignatureElementType = getPortType(trigOrSource.variable as Port)
                         }
                         var reactSignatureElement =  "__" + trigOrSource.variable.name
-                            + ": Readable<" + reactSignatureElementType + ">"
+                            + ": Read<" + reactSignatureElementType + ">"
                         
                         pr(reactPrologue, "let " + trigOrSource.variable.name + " = __" + trigOrSource.variable.name + ".get();")
                         reactSignature.add(reactSignatureElement)
@@ -555,10 +553,10 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (effect.variable instanceof Timer) {
                         reportError("A timer cannot be an effect of a reaction")
                     } else if (effect.variable instanceof Action){
-                        reactSignatureElement += ": Schedulable<" + getActionType(effect.variable as Action) + ">"
+                        reactSignatureElement += ": Schedule<" + getActionType(effect.variable as Action) + ">"
                         schedActionSet.add(effect.variable as Action)
                     } else if (effect.variable instanceof Port){
-                        reactSignatureElement += ": Writable<" + getPortType(effect.variable as Port) + ">"
+                        reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
                         pr(reactEpilogue, "if (" + effect.variable.name + "!== undefined) {")
                         reactEpilogue.indent()
                         pr(reactEpilogue,  "__" + effect.variable.name + ".set(" + effect.variable.name + ");")
@@ -573,7 +571,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     if( effect.variable instanceof Action ){
                         reactFunctArgs.add("this.getSchedulable(" + functArg + ")")
                     } else if (effect.variable instanceof Port) {
-                        reactFunctArgs.add("this.getWritable(" + functArg + ")")
+                        reactFunctArgs.add("this.getWriter(" + functArg + ")")
                     }  
                 } else {
                     var args = containerToArgs.get(effect.container)
@@ -616,7 +614,11 @@ class TypeScriptGenerator extends GeneratorBase {
                 reactFunctArgs.add("this." + state.name )
                 
                 pr(reactPrologue, "let " + state.name + " = __" + state.name + ".get();")
-                pr(reactEpilogue, "__" + state.name + ".set(" + state.name + ");")
+                pr(reactEpilogue, "if (" + state.name + "!== undefined) {")
+                reactEpilogue.indent()
+                pr(reactEpilogue,  "__" + state.name + ".set(" + state.name + ");")
+                reactEpilogue.unindent()
+                pr(reactEpilogue, "}")
             }
             
             // Write an object as an argument for each container
@@ -632,8 +634,8 @@ class TypeScriptGenerator extends GeneratorBase {
                     var containedArgElement = ""
                     var containedPrologueElement = ""
                     if (containedVariable instanceof Input) {
-                        containedSigElement +=  containedVariable.name + ": Writable<" + containedVariable.type.targetType + ">"
-                        containedArgElement += containedVariable.name + ": " + "this.getWritable(" + functArg + ")"
+                        containedSigElement +=  containedVariable.name + ": ReadWrite<" + containedVariable.type.targetType + ">"
+                        containedArgElement += containedVariable.name + ": " + "this.getWriter(" + functArg + ")"
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                         pr(reactEpilogue, "if (" + container.name + "." + containedVariable.name + " !== undefined) {")
                         reactEpilogue.indent()
@@ -642,7 +644,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         reactEpilogue.unindent()
                         pr(reactEpilogue, "}")
                     } else if(containedVariable instanceof Output) {
-                        containedSigElement += containedVariable.name + ": Readable<" + containedVariable.type.targetType + ">"
+                        containedSigElement += containedVariable.name + ": Read<" + containedVariable.type.targetType + ">"
                         containedArgElement += containedVariable.name + ": " + functArg
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                     }
@@ -687,7 +689,7 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactorConstructor, "// =============== END react prologue")
             pr(reactorConstructor, "try {")
             reactorConstructor.indent()
-            pr(reactorConstructor, toText(reaction.code))
+            pr(reactorConstructor, reaction.code.toText)
             reactorConstructor.unindent()
             pr(reactorConstructor, "} finally {")
             reactorConstructor.indent()
@@ -1172,17 +1174,15 @@ class TypeScriptGenerator extends GeneratorBase {
     static val timeLibPath =  "." + File.separator + "time"
     static val utilLibPath =  "." + File.separator + "util"
     static val cliLibPath =  "." + File.separator + "cli"
-    val static preamble = '''
-import commandLineArgs from 'command-line-args';
-import commandLineUsage from 'command-line-usage';
-import { Args, Present, Parameter, State, Variable, Priority, Mutation, Readable, Schedulable, Triggers, Writable, Named, Reaction, Action, Startup, Scheduler, Timer, Reactor, Port, OutPort, InPort, App } from "''' + reactorLibPath + '''";
-import { TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin } from "''' + timeLibPath + '''"
-import { Log } from "''' + utilLibPath + '''"
-import { ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType } from "''' + cliLibPath + '''"
+    static val preamble = 
+'''import commandLineArgs from 'command-line-args'
+import commandLineUsage from 'command-line-usage'
+import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App} from '«reactorLibPath»'
+import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin} from '«timeLibPath»'
+import {Log} from '«utilLibPath»'
+import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType} from '«cliLibPath»'
 
-    '''
-
-
+'''
         
     override protected String getTargetTimeType() {
         "TimeValue"

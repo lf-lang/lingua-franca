@@ -9,7 +9,7 @@ main reactor AsyncCallback {
 	
 	preamble {= 
 	    
-	    function callback(a : Schedulable<null>) {
+	    function callback(a : Schedule<null>) {
 	        // Schedule twice. If the action is not physical, these should
             // get consolidated into a single action triggering. If it is,
             // then they cause two separate triggerings with close but not

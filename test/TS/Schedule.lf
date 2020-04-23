@@ -1,6 +1,6 @@
 // TypeScript translated example from Schedule section of the C Reactor Target wiki page.
 target TypeScript;
-reactor Schedule {
+reactor ScheduleLogicalAction {
     input x:number;
     logical action a;
     reaction(x) -> a {=
@@ -18,7 +18,7 @@ reactor Schedule {
     =}
 }
 main reactor Main {
-    a = new Schedule();
+    a = new ScheduleLogicalAction();
     timer t;
     reaction(t) -> a.x {=
         a.x = 1;
