@@ -621,6 +621,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.REACTOR__NAME
             )
         }
+        // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
+        // (essentially all the classes that are imported by default).
     }
 
     @Check(FAST)
