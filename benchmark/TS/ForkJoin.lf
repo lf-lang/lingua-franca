@@ -1,12 +1,12 @@
 target TypeScript {
     fast: true
 };
-main reactor ForkJoin {
-    logical action end:boolean;
+main reactor ForkJoin(limit:number(25000)) {
+    logical action end;
     logical action nextWorker:number;
     state totalWorkers:number(5);
     state workerCount:number(0);
-    state startTime:{=TimeValue|undefined=}(undefined);
+    state startTime:{=TimeValue|undefined=}({=undefined=});
     
     reaction (startup) -> nextWorker {=
         startTime = util.getCurrentPhysicalTime();
@@ -41,11 +41,11 @@ main reactor ForkJoin {
         actions.nextWorker.schedule(0, next);
     =}
     
-    w0 = new Worker();
-    w1 = new Worker();
-    w2 = new Worker();
-    w3 = new Worker();
-    w4 = new Worker();
+    w0 = new Worker(limit = limit);
+    w1 = new Worker(limit = limit);
+    w2 = new Worker(limit = limit);
+    w3 = new Worker(limit = limit);
+    w4 = new Worker(limit = limit);
     
     reaction (w0.done) -> end {=
         workerCount++;

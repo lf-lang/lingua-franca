@@ -3,10 +3,10 @@
 target TypeScript {
     fast: true
 };
-reactor Ping(count:number(100000)) {
+reactor Ping(limit:number(100000)) {
     input receive:number;
     output send:number;
-    state pingsLeft:number(count);
+    state pingsLeft:number(limit);
     state startTime:{=TimeValue|undefined=}({=undefined=});
     logical action serve;
     logical action done;
@@ -39,8 +39,8 @@ reactor Pong {
         send = receive as number;   
     =}
 }
-main reactor PingPong {
-    ping = new Ping(count = 25000);
+main reactor PingPong(limit:number(100000)) {
+    ping = new Ping(limit = limit);
     pong = new Pong();
     ping.send -> pong.receive;
     pong.send -> ping.receive; 

@@ -21,12 +21,12 @@ reactor Sender {
         send = 1;
     =}
 }
-main reactor CountingActor {
+main reactor CountingActor(limit:number(25000)) {
     
-    state startTime:{=TimeValue|undefined=}(undefined);
+    state startTime:{=TimeValue|undefined=}({=undefined=});
     
     s = new Sender();
-    c = new Counter(limit = 250000);
+    c = new Counter(limit = limit);
     
     s.send -> c.receive;
     
