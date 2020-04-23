@@ -10,7 +10,7 @@ target TypeScript {
     fast: true
 };
 
-main reactor Chameneos {
+main reactor Chameneos(limit:number(25000)) {
     
 // Conversions for updateColor from https://wiki.haskell.org/Shootout/Chameneos
    preamble {=
@@ -29,7 +29,7 @@ main reactor Chameneos {
             return null as never;
         }
     =}
-   state startTime:{=TimeValue|undefined=}(undefined);
+   state startTime:{=TimeValue|undefined=}({=undefined=});
    reaction (startup) -> m.start {=
         m.start = true;
         startTime = util.getCurrentPhysicalTime();
@@ -39,7 +39,7 @@ main reactor Chameneos {
         console.log("Elapsed time: " + elapsedTime);
         util.requestShutdown();
    =}
-   m = new Mall();
+   m = new Mall(limit = limit);
    
    l0 = new Lizard(initialColor = {= Color.RED =});
    l1 = new Lizard(initialColor = {= Color.BLUE =});
@@ -118,7 +118,6 @@ reactor Mall(limit:number(25000)) {
     output l4instruction:number;
     
     state count:number(0);
-    timer t(0, 1); // used to track the iteration limit
     
     // Randomly pick a lizard and randomly assign it a friend.
     // Then repeat for every other available pair of lizards.
@@ -180,7 +179,6 @@ reactor Mall(limit:number(25000)) {
         }
         count++;
     =}
-    
 }
 
 reactor Lizard (initialColor:Color({=Color.BLUE=})) {
@@ -292,5 +290,3 @@ reactor Lizard (initialColor:Color({=Color.BLUE=})) {
         color = updateColor(color, responseFriend4 as Color);
     =}
 }
-
-
