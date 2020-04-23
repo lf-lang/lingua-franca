@@ -875,20 +875,25 @@ abstract class GeneratorBase {
      */
     protected def copyFileFromClassPath(String source, String destination) {
         val sourceStream = this.class.getResourceAsStream(source)
-
-        // make sure the directory exists
-        val destFile = new File(destination); 
-        destFile.getParentFile().mkdirs();
-
-        // copy the file
+		
+		// copy the file
         try {
+			if (sourceStream === null) {
+				throw new IOException()	
+			}
+			// make sure the directory exists
+	        val destFile = new File(destination); 
+	        destFile.getParentFile().mkdirs();
+
             Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
              throw new IOException("A required target resource could not be copied: " + source + "\n"
                 + "Perhaps a git submodule is missing or not up to date.\n"
                 + "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.", ex)
         } finally {
-            sourceStream.close()
+        	if (sourceStream !== null) {
+				sourceStream.close()        		
+        	}
         }
     }
     

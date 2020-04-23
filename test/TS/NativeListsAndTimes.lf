@@ -1,0 +1,24 @@
+target TypeScript;
+// This test passes if it is successfully compiled into valid target code.
+main reactor Foo(x:number(0), 
+			y:time(0), 		// Units are missing but not required
+			z(1 msec), 		// Type is missing but not required
+			p:number[](1, 2, 3, 4),		// List of integers 
+			q:TimeValue[](1 msec, 2 msec, 3 msec), // list of time values
+			r:time({=0=}),	// Zero-valued target code also is a valid time
+			g:time[](1 msec, 2 msec)	// List of time values
+			) {
+	state s:time(y);	// Reference to explicitly typed time parameter
+	state t:time(z);	// Reference to implicitly typed time parameter
+	state v:boolean;	// Uninitialized boolean state variable
+	state w:time;		// Uninitialized time state variable // FIXME: add to other tests
+	timer tick(0);		// Units missing but not required
+	timer tock(1 sec);	// Implicit type time
+	timer toe(z);		// Implicit type time
+	state baz(p);		// Implicit type int[]
+	state period(z);	// Implicit type time
+	reaction(tick) {=
+		// Target code	
+	=}
+
+}
