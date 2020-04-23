@@ -29,7 +29,6 @@ package org.icyphy.generator
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
-import java.net.URL
 import java.nio.file.Paths
 import java.util.ArrayList
 import java.util.HashMap
@@ -41,7 +40,6 @@ import java.util.Set
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.core.runtime.FileLocator
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -70,6 +68,7 @@ import org.icyphy.linguaFranca.VarRef
 import static extension org.icyphy.ASTUtils.*
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import org.eclipse.core.runtime.Path
 
 /** Generator base class for shared code between code generators.
  * 
@@ -1244,22 +1243,34 @@ abstract class GeneratorBase {
         }
     }
     
-    /** Create a string representing the file path of a resource.
+    /**
+     * Create a string representing the absolute file path of a resource.
      */
     protected def toPath(Resource resource) {
-        var path = resource.getURI.toString
-        if (path.startsWith('platform:')) {
-            mode = Mode.INTEGRATED
-            var fileURL = FileLocator.toFileURL(new URL(path)).toString
-            return Paths.get(fileURL.substring(5)).normalize.toString;
-        } else if (path.startsWith('file:')) {
-            mode = Mode.STANDALONE
-            return Paths.get(path.substring(5)).normalize.toString;
+        return resource.getURI.toPath
+    }
+
+    /**
+     * Create a string representing the absolute file path of a URI.
+     */
+    protected def toPath(URI uri) {
+        if (uri.isPlatform) {
+            val file = ResourcesPlugin.workspace.root.getFile(
+                new Path(uri.toPlatformString(true)))
+            return file.rawLocation.toOSString
+        } else if (uri.isFile) {
+            return uri.path
         } else {
-            System.err.println(
-                "ERROR: Source file protocol is not recognized: " + path);
+            throw new IOException("Unrecognized file protocol in URI " +
+                uri.toString)
         }
-        return null as String;
+    }
+
+    /**
+     * Create a string representing the absolute file path of a file relative to a file system access object.
+     */
+    protected def getAbsolutePath(IFileSystemAccess2 fsa, String file) {
+        return fsa.getURI(file).toPath
     }
     
     /** Extract the name of a file from a path represented as a string.
@@ -1296,6 +1307,17 @@ abstract class GeneratorBase {
         if (filename.endsWith('.lf')) {
             filename = filename.substring(0, filename.length - 3)
         }
+
+        if (resource.URI.isPlatform) {
+            mode = Mode.INTEGRATED
+        } else if (resource.URI.isFile) {
+            mode = Mode.STANDALONE
+        } else {
+            System.err.println(
+                "ERROR: Source file protocol is not recognized: " +
+                    resource.URI);
+        }
+
         println('******** filename: ' + filename)
         println('******** sourceFile: ' + sourceFile)
         println('******** directory: ' + directory)
