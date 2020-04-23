@@ -30,6 +30,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.HashMap
 import java.util.HashSet
+import java.util.LinkedList
+import java.util.List
 import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -270,7 +272,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         indent()
         
-        var arguments = new StringJoiner(", ")
+        var arguments = new LinkedList()
         if (reactor.isMain()) {
             //arguments.add("name: string")
             arguments.add("timeout: TimeValue | undefined = undefined")
@@ -282,27 +284,26 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // For TS, parameters are arguments of the class constructor.
         for (parameter : reactor.parameters) {
-            if (getParameterType(parameter).equals("")) {
-                reportError(parameter,
-                    "Parameter is required to have a type: " + parameter.name)
-            } else if (parameter.ofTimeType) {
-                 arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + timeInTargetLanguage(parameter.initialTimeValue))
-            } else {
-                arguments.add(parameter.name + ": " + getParameterType(parameter)
-                    +" = " + parameter.initializerList.get(0)) // FIXME: not support for native lists yet
-            }
+            arguments.add(parameter.initializeParameter)
         }
         
         if (reactor.isMain()) {
             
             arguments.add("success?: () => void")
             arguments.add("fail?: () => void")
-            pr(reactorConstructor, "constructor (" + arguments + ") {")
-            reactorConstructor.indent()
+            pr(reactorConstructor, "constructor (")
+            reactorConstructor.indent
+            pr(reactorConstructor, arguments.join(', \n'))
+            reactorConstructor.unindent
+            pr(reactorConstructor, ") {")
+            reactorConstructor.indent
             pr(reactorConstructor, "super(timeout, keepAlive, fast, success, fail);");
         } else {
-            pr(reactorConstructor, "constructor (" + arguments + ") {")
+            pr(reactorConstructor, "constructor (")
+            reactorConstructor.indent
+            pr(reactorConstructor, arguments.join(', \n'))
+            reactorConstructor.unindent
+            pr(reactorConstructor, ") {")
             reactorConstructor.indent()
             pr(reactorConstructor, "super(parent);");
         }
@@ -319,19 +320,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // the reactor instance, and write the corresponding parameter
             // value as an argument for the TypeScript constructor
             for (parameter : childReactor.reactorClass.parameters) {
-                var childParameterFound = false
-                
-                // Attempt to find a non-default parameter value
-                for (parameterAssignment : childReactor.parameters) {
-                    if (parameterAssignment.lhs.name.equals(parameter.name)) {
-                        childParameterFound = true
-                        childReactorArguments.add(parameterAssignment.rhs.get(0).targetValue) // FIXME: handle lists
-                    }
-                }
-                
-                if (!childParameterFound) {
-                    childReactorArguments.add("undefined")
-                }
+                childReactorArguments.add(parameter.getTargetInitializer(childReactor))
             }
             
             
@@ -343,47 +332,44 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle timers.
         for (timer : reactor.timers) {
-            // FIXME: startup is no longer a timer. The check below can be deleted.
-             
-            // The startup timer is handled by default within
-            // the TypeScript reactor framework. There would be a
-            // duplicate startup timer if we also use the one provided
-            // by LF. So suppress it.
-            if (timer.name != "startup") {
-                var String timerPeriod
-                if (timer.period === null) {
-                    timerPeriod = "0";
-                } else {
-                    timerPeriod = timer.period.targetValue
-                }
-                
-                var String timerOffset
-                if (timer.offset === null) {
-                    timerOffset = "0";
-                } else {
-
-                    timerOffset = timer.offset.targetValue
-
-                }
-    
-                pr(timer.getName() + ": Timer;")
-                pr(reactorConstructor, "this." + timer.getName()
-                    + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
+            
+            var String timerPeriod
+            if (timer.period === null) {
+                timerPeriod = "0";
+            } else {
+                timerPeriod = timer.period.targetValue
             }
+            
+            var String timerOffset
+            if (timer.offset === null) {
+                timerOffset = "0";
+            } else {
+
+                timerOffset = timer.offset.targetValue
+
+            }
+
+            pr(timer.getName() + ": Timer;")
+            pr(reactorConstructor, "this." + timer.getName()
+                + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
+            
         }     
 
         // Create properties for parameters
         for (param : reactor.parameters) {
-            pr(param.name + ": Parameter<" + getParameterType(param) + ">;")
+            pr(param.name + ": Parameter<" + param.targetType + ">;")
             pr(reactorConstructor, "this." + param.name +
-                " = new Parameter(" + param.name + "); // Parameter" )
+                " = new Parameter(" + param.name + ");" )
         }
 
         // Next handle states.
         for (stateVar : reactor.stateVars) {
             if (stateVar.isInitialized) {
                 pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
-                    "new State(" + stateVar.initializerList.join(', ') + ');');
+                    "new State(" + stateVar.targetInitializer + ');');
+            } else {
+            	pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
+                    "new State(undefined);");
             }
         }
         
@@ -557,7 +543,7 @@ class TypeScriptGenerator extends GeneratorBase {
                         schedActionSet.add(effect.variable as Action)
                     } else if (effect.variable instanceof Port){
                         reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
-                        pr(reactEpilogue, "if (" + effect.variable.name + "!== undefined) {")
+                        pr(reactEpilogue, "if (" + effect.variable.name + " !== undefined) {")
                         reactEpilogue.indent()
                         pr(reactEpilogue,  "__" + effect.variable.name + ".set(" + effect.variable.name + ");")
                         reactEpilogue.unindent()
@@ -600,7 +586,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 
                 // Underscores are added to parameter names to prevent conflict with prologue
                 reactSignature.add("__" + param.name + ": Parameter<"
-                    + getParameterType(param) + ">")
+                    + param.targetType + ">")
                 reactFunctArgs.add("this." + param.name)
                 
                 pr(reactPrologue, "let " + param.name + " = __" + param.name + ".get();")
@@ -614,7 +600,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 reactFunctArgs.add("this." + state.name )
                 
                 pr(reactPrologue, "let " + state.name + " = __" + state.name + ".get();")
-                pr(reactEpilogue, "if (" + state.name + "!== undefined) {")
+                pr(reactEpilogue, "if (" + state.name + " !== undefined) {")
                 reactEpilogue.indent()
                 pr(reactEpilogue,  "__" + state.name + ".set(" + state.name + ");")
                 reactEpilogue.unindent()
@@ -764,7 +750,6 @@ class TypeScriptGenerator extends GeneratorBase {
             } else {
                 mainReactorParams.add("undefined")
             }
-            var childParameterFound = false
         }
 
         pr('// ************* Instance ' + fullName + ' of class ' +
@@ -835,7 +820,7 @@ class TypeScriptGenerator extends GeneratorBase {
         for (parameter : mainReactor.parameters) {
             var String customArgType = null;
             var String customTypeLabel = null;
-            var paramType = getParameterType(parameter)
+            var paramType = parameter.targetType
             if (paramType == "string") {
                 customCLArgs.add(parameter)
                 //clTypeExtension.add(parameter.name + " : string")
@@ -997,7 +982,7 @@ class TypeScriptGenerator extends GeneratorBase {
         var code = new StringJoiner("\n")
         for (parameter : customCLArgs) {
             code.add('''
-                let __CL«parameter.name»: «getParameterType(parameter)» | undefined = undefined;
+                let __CL«parameter.name»: «parameter.targetType» | undefined = undefined;
                 if (__processedCLArgs.«parameter.name» !== undefined) {
                     if (__processedCLArgs.«parameter.name» !== null) {
                         __CL«parameter.name» = __processedCLArgs.«parameter.name»;
@@ -1148,18 +1133,39 @@ class TypeScriptGenerator extends GeneratorBase {
     }
 
 
-    /** Return a TS type for the type of the specified parameter.
-     *  If there are code delimiters around it, those are removed.
-     *  If the type is "time", then it is converted to "TimeValue".
-     *  @param parameter The parameter.
-     *  @return The TS type.
-     */
-    private def getParameterType(Parameter parameter) {
-        var type = parameter.type.targetType
-        if (parameter.isOfTimeType) {
-            type = 'TimeValue'
+    def String getTargetInitializer(StateVar state) {
+        '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
+    }
+
+    def private String getTargetInitializerHelper(Parameter param,
+        List<String> list) {
+        if (list.size == 0) {
+            param.reportError("Parameters must have a default value!")
+        } else if (list.size == 1) {
+            return list.get(0)
+        } else {
+            '''[«FOR init : list SEPARATOR ", "»«init»«ENDFOR»]'''
         }
-        type
+    }
+
+    def String getTargetInitializer(Parameter param) {
+        return getTargetInitializerHelper(param, param.initializerList)
+    }
+
+    def String getTargetInitializer(Parameter param, Instantiation i) {
+        return '''«getTargetInitializerHelper(param, param.getInitializerList(i))»'''
+    }
+
+	def initializeParameter(Parameter p) 
+		'''«p.name»:«p.targetType» = «p.getTargetInitializer()»'''
+    
+    override getTargetType(StateVar s) {
+        val type = super.getTargetType(s)
+        if (!s.isInitialized) {
+        	type + " | undefined"
+        } else {
+        	type
+        }
     }
     
     private def getTimeoutTimeValue() {
@@ -1193,7 +1199,7 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
     }
     
     override protected String getTargetFixedSizeListType(String baseType, Integer size) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+        '''Array(«size»)<«baseType»>'''
     }
     
     override protected String getTargetVariableSizeListType(String baseType) {
