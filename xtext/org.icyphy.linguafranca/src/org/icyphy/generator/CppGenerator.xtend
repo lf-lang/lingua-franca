@@ -143,6 +143,8 @@ class CppGenerator extends GeneratorBase {
             genDir + File.separator + "lfutil.hh")
         copyFileFromClassPath(libDir + File.separator + "time_parser.hh",
             genDir + File.separator + "time_parser.hh")
+        copyFileFromClassPath(libDir + File.separator + "3rd-party" + File.separator + "CLI11.hpp",
+            genDir + File.separator + "CLI" + File.separator + "CLI11.hpp")
 
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile,
@@ -643,7 +645,7 @@ class CppGenerator extends GeneratorBase {
           bool keepalive{«targetKeepalive»};
           app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
           «FOR p : mainReactor.parameters»
-        
+
             «p.targetType» «p.name» = «p.targetInitializer»;
             auto opt_«p.name» = app.add_option("--«p.name»", «p.name», "The «p.name» parameter passed to the main reactor «mainReactor.name».");
             «IF p.inferredType.isTime»
@@ -711,10 +713,6 @@ class CppGenerator extends GeneratorBase {
             «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
         )
         
-        set(CLI11_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/CLI/CLI11.hpp")
-        file(DOWNLOAD "https://github.com/CLIUtils/CLI11/releases/download/v1.9.0/CLI11.hpp" "${CLI11_PATH}")
-        add_custom_target(dep-CLI11 DEPENDS "${CLI11_PATH}")
-        
         set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
         set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
         
@@ -743,7 +741,6 @@ class CppGenerator extends GeneratorBase {
             "${PROJECT_SOURCE_DIR}"
         )
         target_link_libraries(«filename» reactor-cpp)
-        add_dependencies(«filename» dep-CLI11)
         
         install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         
