@@ -97,17 +97,6 @@ class CppGenerator extends GeneratorBase {
     /** Path to the Cpp lib directory (relative to class path)  */
     val libDir = File.separator + "lib" + File.separator + "Cpp"
 
-    /** The target directory for code generation */
-    protected def genDir() {
-        return directory + File.separator + "src-gen" + File.separator +
-            filename
-    }
-
-    /** Include directory within the target directory for code generation */
-    protected def genIncludeDir() {
-        return genDir + File.separator + "__include__"
-    }
-
     def toDir(Resource r) {
         r.toPath.getFilename
     }
@@ -145,11 +134,11 @@ class CppGenerator extends GeneratorBase {
         fsa.generateFile(filename + File.separator + "CMakeLists.txt",
             generateCmake)
         copyFileFromClassPath(libDir + File.separator + "lfutil.hh",
-            genIncludeDir + File.separator + "lfutil.hh")
+            fsa.getAbsolutePath('''/«filename»/__include__/lfutil.hh'''))
         copyFileFromClassPath(libDir + File.separator + "time_parser.hh",
-            genIncludeDir + File.separator + "time_parser.hh")
+            fsa.getAbsolutePath('''/«filename»/__include__/time_parser.hh'''))
         copyFileFromClassPath(libDir + File.separator + "3rd-party" + File.separator + "CLI11.hpp",
-            genIncludeDir + File.separator + "CLI" + File.separator + "CLI11.hpp")
+            fsa.getAbsolutePath('''/«filename»/__include__/CLI/CLI11.hpp'''))
 
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile,
@@ -166,7 +155,7 @@ class CppGenerator extends GeneratorBase {
         }
 
         if (!targetNoCompile && !errorsOccurred()) {
-            doCompile()
+            doCompile(fsa)
         } else {
             println("Exiting before invoking target compiler.")
         }
@@ -755,16 +744,15 @@ class CppGenerator extends GeneratorBase {
         «ENDIF»
     '''
 
-    def void doCompile() {
+    def void doCompile(IFileSystemAccess2 fsa) {
         var makeCmd = newArrayList()
         var cmakeCmd = newArrayList()
 
-        var srcPath = directory + File.separator + "src-gen" + File.separator +
-            filename
-        var buildPath = directory + File.separator + "build" + File.separator +
-            filename
-        var reactorCppPath = directory + File.separator + "build" +
-            File.separator + "reactor-cpp"
+        val srcPath = fsa.getAbsolutePath('''/«filename»''')
+        val installPath = fsa.getAbsolutePath("/..")
+        val buildPath = fsa.getAbsolutePath('''/../build/«filename»''')
+
+        val reactorCppPath = fsa.getAbsolutePath("/../build/reactor-cpp")
 
         // Make sure cmake is found in the PATH.
         var cmakeTest = newArrayList()
@@ -794,7 +782,7 @@ class CppGenerator extends GeneratorBase {
 
         makeCmd.addAll("make",
             "-j" + Runtime.getRuntime().availableProcessors(), "install")
-        cmakeCmd.addAll(cmake, "-DCMAKE_INSTALL_PREFIX=" + directory,
+        cmakeCmd.addAll(cmake, "-DCMAKE_INSTALL_PREFIX=" + installPath,
             "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
 
         println("--- In directory: " + buildDir)
