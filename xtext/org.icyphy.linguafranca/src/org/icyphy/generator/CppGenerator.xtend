@@ -103,6 +103,11 @@ class CppGenerator extends GeneratorBase {
             filename
     }
 
+    /** Include directory within the target directory for code generation */
+    protected def genIncludeDir() {
+        return genDir + File.separator + "__include__"
+    }
+
     def toDir(Resource r) {
         r.toPath.getFilename
     }
@@ -140,11 +145,11 @@ class CppGenerator extends GeneratorBase {
         fsa.generateFile(filename + File.separator + "CMakeLists.txt",
             generateCmake)
         copyFileFromClassPath(libDir + File.separator + "lfutil.hh",
-            genDir + File.separator + "lfutil.hh")
+            genIncludeDir + File.separator + "lfutil.hh")
         copyFileFromClassPath(libDir + File.separator + "time_parser.hh",
-            genDir + File.separator + "time_parser.hh")
+            genIncludeDir + File.separator + "time_parser.hh")
         copyFileFromClassPath(libDir + File.separator + "3rd-party" + File.separator + "CLI11.hpp",
-            genDir + File.separator + "CLI" + File.separator + "CLI11.hpp")
+            genIncludeDir + File.separator + "CLI" + File.separator + "CLI11.hpp")
 
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile,
@@ -739,6 +744,7 @@ class CppGenerator extends GeneratorBase {
         target_include_directories(«filename» PUBLIC
             "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}"
             "${PROJECT_SOURCE_DIR}"
+            "${PROJECT_SOURCE_DIR}/__include__"
         )
         target_link_libraries(«filename» reactor-cpp)
         
