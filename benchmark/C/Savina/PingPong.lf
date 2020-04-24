@@ -1,0 +1,56 @@
+/**
+ * Basic benchmark from the Savina benchmark suite that is
+ * intended to measure message-passing overhead.
+ * This is based on https://www.scala-lang.org/old/node/54
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * Ping introduces a microstep delay using a logical action
+ * to break the causality loop.
+ * 
+ * To get a sense, some (informal) results for 1,000,000 ping-pongs:
+ * 
+ * Unthreaded: 105 msec
+ * Threaded: 280 msec
+ * 
+ * There is no parallelism in this application, so it does not benefit from being
+ * being threaded, just some additional overhead.
+ * 
+ * These measurements are total execution time, including startup and shutdown.
+ * These are about an order of magnitude faster than anything reported in the paper.
+ */
+target C {
+    fast: true,
+    threads: 8
+};
+reactor Ping(count:int(1000000)) {
+    input receive:int;
+    output send:int;
+    state pingsLeft:int(count);
+    logical action serve;
+    reaction (startup) -> send {=
+        set(send, self->pingsLeft--);
+    =}
+    reaction (serve) -> send {= 
+        set(send, self->pingsLeft--);
+    =}
+    reaction (receive) -> serve {=
+        if (self->pingsLeft > 0) {
+            schedule(serve, 0);
+        } else {
+            stop();
+        }
+    =}
+}
+reactor Pong {
+    input receive:int;
+    output send:int;
+    reaction (receive) -> send {=
+        set(send, receive);   
+    =}
+}
+main reactor PingPong {
+    ping = new Ping();
+    pong = new Pong();
+    ping.send -> pong.receive;
+    pong.send -> ping.receive; 
+}

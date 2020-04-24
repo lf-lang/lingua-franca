@@ -17,14 +17,10 @@ main reactor AsyncCallback2 {
             // then they cause two separate triggerings with close but not
             // equal time stamps. To ensure they occur at the same logical time,
             // acquire the one global mutex.
-            // FIXME: brain-dead pthreads doesn't allow a thread to acquire
-            // a mutex it already holds!!!!!!!!!!!!!!!!!!!!!!!!!
-            // Have to use the unsynchronized version of schedule here.
-            printf("------ acquiring mutex lock.\n");
             pthread_mutex_lock(&mutex);
             printf("------ invoking schedule function.\n");
-            __schedule(a, 0, NULL);
-            __schedule(a, 0, NULL);
+            schedule(a, 0);
+            schedule(a, 0);
             pthread_mutex_unlock(&mutex);
             printf("------ done invoking schedule function.\n");
         }
