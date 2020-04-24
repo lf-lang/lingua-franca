@@ -1,0 +1,109 @@
+target Cpp;
+
+public preamble {=
+    struct Message {
+        int payload;
+        reactor::TimePoint timestamp;
+    };  
+=} 
+
+reactor Sender {
+    timer t(0, 1 sec);
+    output out:int;
+    state count:int(0);
+    
+    reaction(t) -> out {=
+        out.set(count++);
+    =}
+}
+
+reactor NISender(delay(10 msec)) {
+    // delay is similar to the after, but after cannot be used as parameter name
+    input in:int;
+    output out:Message;
+    reaction(in) -> out {=
+        // Normally this would send the message over the network,
+        // but we use a normal reactor connection here.
+        
+        // calculate the timestamp
+        reactor::TimePoint timestamp = get_logical_time() + delay;
+
+        // this uses some C++ magic to implicitly create a new Message
+        out.set({*in.get(), timestamp});
+    =}
+}
+
+reactor Network(min_delay(5 msec), max_delay(15 msec)) {
+    // This reactor simulates a network connection with variable delay.
+    // The delay alternates between min_delay and max_delay 
+    input in:Message;
+    output out:Message;
+    logical action send:Message;
+    state count:int(0);
+    
+    reaction(in) -> send {=
+        // send every even message with min_delay and every odd
+        // message with max delay
+        send.schedule(in.get(), (count % 2) ? max_delay : min_delay);
+        count++;
+    =}
+    
+    reaction(send) -> out {=
+        out.set(send.get());   
+    =}
+}
+
+reactor NIReceiver {
+    input in:Message;
+    output out:int;
+    output late:int;
+    logical action send:int;
+    
+    reaction(in) -> send, late {=
+        // Normally this would receive the message via a physical action
+        // from the network, but we use a normal input port here.
+        
+        auto msg = in.get(); // auto infers the type automatically from rhs (the type is rather complex, so auto is more readable)
+        
+        // calculate the delay
+        reactor::Duration delay = msg->timestamp - get_logical_time();
+        
+        // schedule the logical action if delay is positive
+        if (delay >= reactor::Duration::zero()) {
+            send.schedule(msg->payload, delay);
+        } else {
+            late.set(msg->payload);
+        }
+    =}
+    
+    reaction(send) -> out {=
+        out.set(send.get());
+    =}
+}
+
+reactor Receiver {
+    input in:int;
+    input late:int;
+    
+    reaction (late) {=
+        std::cout << "ERROR: received: " << *late.get() << " too late at " << get_elapsed_logical_time() << '\n';   
+    =}
+    
+    reaction(in) {=
+        std::cout << "Received: " << *in.get() << " at " << get_elapsed_logical_time() << '\n';        
+    =}
+}
+
+main reactor NetworkConnection {
+    sender = new Sender();
+    ni_sender = new NISender();
+    network = new Network();
+    ni_receiver = new NIReceiver();
+    receiver = new Receiver();
+
+    sender.out -> ni_sender.in;
+    ni_sender.out -> network.in;
+    network.out -> ni_receiver.in;
+    ni_receiver.out -> receiver.in;
+    ni_receiver.late -> receiver.late;
+}
