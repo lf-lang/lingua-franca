@@ -42,7 +42,7 @@ pqueue_t* executing_q;  // Sorted by index (precedence sort)
 pqueue_t* transfer_q;  // To store reactions that are still blocked by other reactions.
 
 // The one and only mutex lock.
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
 
 // Condition variables used for notification between threads.
 pthread_cond_t event_q_changed = PTHREAD_COND_INITIALIZER;
