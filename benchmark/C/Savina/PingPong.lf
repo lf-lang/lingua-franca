@@ -7,20 +7,22 @@
  * Ping introduces a microstep delay using a logical action
  * to break the causality loop.
  * 
- * To get a sense, some (informal) results for 1,000,000 ping-pongs:
+ * To get a sense, some (informal) results for 1,000,000 ping-pongs
+ * on my Mac:
  * 
- * Unthreaded: 105 msec
- * Threaded: 280 msec
+ * Unthreaded: 97 msec
+ * Threaded: 265 msec
  * 
  * There is no parallelism in this application, so it does not benefit from being
  * being threaded, just some additional overhead.
  * 
  * These measurements are total execution time, including startup and shutdown.
  * These are about an order of magnitude faster than anything reported in the paper.
+ * 
+ * @author Edward A. Lee
  */
 target C {
-    fast: true,
-    threads: 8
+    fast: true
 };
 reactor Ping(count:int(1000000)) {
     input receive:int;
@@ -41,11 +43,21 @@ reactor Ping(count:int(1000000)) {
         }
     =}
 }
-reactor Pong {
+reactor Pong(expected:int(1000000)) {
     input receive:int;
     output send:int;
-    reaction (receive) -> send {=
+    state count:int(0);
+    reaction(receive) -> send {=
+        self->count++;
         set(send, receive);   
+    =}
+    reaction(shutdown) {=
+        if (self->count != self->expected) {
+            fprintf(stderr, "Pong expected to receive %d inputs, but it received %d.\n",
+                self->expected, self->count
+            );
+            exit(1);
+        }
     =}
 }
 main reactor PingPong {
