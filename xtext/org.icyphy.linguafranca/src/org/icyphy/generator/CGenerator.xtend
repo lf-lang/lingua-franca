@@ -1610,12 +1610,9 @@ class CGenerator extends GeneratorBase {
                 
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
-                } else {
-                    // FIXME: the default policy should be DROP. Make it the 0th element in the enum.
-                    // Also, we need to enforce MIT for logical actions.
-                    if (trigger.policy == QueuingPolicy.NONE) {
-                        trigger.policy = QueuingPolicy.DEFER;
-                    }
+                }
+                if (trigger.policy == QueuingPolicy.NONE) {
+                    trigger.policy = QueuingPolicy.DEFER; // FIXME: should be DROP
                 }
                 var element_size = "0"
                 if (trigger.type !== null) element_size = '''sizeof(«trigger.targetType.rootType»)'''
