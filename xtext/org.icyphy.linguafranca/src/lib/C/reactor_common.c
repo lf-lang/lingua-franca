@@ -48,10 +48,6 @@ bool fast = false;
 /** By default, execution is not threaded. */
 int number_of_threads = 0; // FIXME: should be unsigned
 
-
-/** The number of reactions in the system. */
-unsigned int number_of_reactions = 100; // FIXME set this in the generated code
-
 /**
  * Current time in nanoseconds since January 1, 1970.
  * This is not in scope for reactors.
@@ -114,17 +110,20 @@ instant_t get_elapsed_physical_time() {
     return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
 }
 
-/**
- * Specialized version of malloc used by Lingua Franca for action values
- * and messages contained in dynamically allocated memory.
- * @param size The size of the memory block to allocate.
- * @return A pointer to the allocated memory block.
+/** Print a non-negative time value in nanoseconds with commas separating thousands
+ *  followed by a carriage return. Ideally, this would use the locale to
+ *  use periods if appropriate, but I haven't found a sufficiently portable
+ *  way to do that.
+ *  @param time A time value.
  */
-void* lf_malloc(size_t size) {
-    // NOTE: For now, this just delegates to malloc.
-    // But in the future, we expect to use it to attach a reference count to the
-    // allocated object.
-    return malloc(size);
+void print_time(instant_t time) {
+    if (time < 1000 || time < 0) {
+        printf("%lld", time);
+        return;
+    }
+    print_time(time/1000LL);
+    int to_print = time%1000;
+    printf (",%03d", to_print);
 }
 
 /////////////////////////////
@@ -982,14 +981,18 @@ void termination() {
     }
     // Print elapsed times.
     interval_t elapsed_logical_time = current_time - physical_start_time;
-    printf("---- Elapsed logical time (in nsec): %lld\n", elapsed_logical_time);
-    
+    printf("---- Elapsed logical time (in nsec): ");
+    print_time(elapsed_logical_time);
+    printf("\n");
+
     struct timespec physicalEndTime;
     clock_gettime(CLOCK_REALTIME, &physicalEndTime);
     interval_t elapsed_physical_time
         = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
         - physical_start_time;
-    printf("---- Elapsed physical time (in nsec): %lld\n", elapsed_physical_time);
+    printf("---- Elapsed physical time (in nsec): ");
+    print_time(elapsed_physical_time);
+    printf("\n");
 }
 
 // ********** Start Windows Support
