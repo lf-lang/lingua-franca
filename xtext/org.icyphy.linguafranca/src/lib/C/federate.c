@@ -511,7 +511,7 @@ bool __fed_has_downstream = false;
 void __logical_time_complete(instant_t time) {
     if (__fed_has_downstream) {
         // Use a mutex lock to prevent multiple threads from simulatenously sending.
-        // printf("DEBUG: Federate %d pthread_mutex_lock send_time\n", __my_fed_id);
+        // printf("DEBUG: Federate %d pthread_mutex_lock __logical_time_complete\n", __my_fed_id);
         pthread_mutex_lock(&mutex);
         // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
 
@@ -582,18 +582,20 @@ void __logical_time_complete(instant_t time) {
          }
          // printf("DEBUG: Federate %d pthread_cond_wait returned\n", __my_fed_id);
 
-         // The RTI has not replied, so the wait must have been
-         // interrupted by activity on the event queue.
-         // If there is now an earlier event on the event queue,
-         // then we should return with the time of that event.
-         event_t* head_event = pqueue_peek(event_q);
-         if (head_event != NULL && head_event->time < time) {
-             return head_event->time;
+         if (__tag_pending) {
+             // The RTI has not replied, so the wait must have been
+             // interrupted by activity on the event queue.
+             // If there is now an earlier event on the event queue,
+             // then we should return with the time of that event.
+             event_t* head_event = pqueue_peek(event_q);
+             if (head_event != NULL && head_event->time < time) {
+                 return head_event->time;
+             }
+             // If we get here, any activity on the event queue is not relevant.
+             // Either the queue is empty or whatever appeared on it
+             // has a timestamp greater than this request.
+             // Keep waiting for the TAG.
          }
-         // Any activity on the event queue is not relevant.
-         // Either the queue is empty or whatever appeared on it
-         // has a timestamp greater than this request.
-         // Keep waiting.
      }
      return __tag;
 }
