@@ -19,8 +19,10 @@ main reactor AsyncCallback2 {
             // acquire the one global mutex.
             pthread_mutex_lock(&mutex);
             printf("------ invoking schedule function.\n");
-            schedule(a, 0);
-            schedule(a, 0);
+            // The mutex used is not recursive, so we have to use the
+            // unsynchronized version of schedule here.
+            __schedule(a, 0, NULL);
+            __schedule(a, 0, NULL);
             pthread_mutex_unlock(&mutex);
             printf("------ done invoking schedule function.\n");
         }
