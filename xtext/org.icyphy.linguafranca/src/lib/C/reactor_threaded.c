@@ -272,8 +272,7 @@ bool __next() {
                 pqueue_insert(reaction_q, event->trigger->reactions[i]);
             }
             // If the trigger is a periodic clock, create a new event for its next execution.
-            // FIXME: This isn't quite right. A logical action can also have a non-zero period field.
-            if (!(event->trigger->is_physical) && event->trigger->period > 0) {
+            if (event->trigger->is_timer) {
                 // Reschedule the trigger.
                 // Note that the delay here may be negative because the __schedule
                 // function will add the trigger->offset, which we don't want at this point.
