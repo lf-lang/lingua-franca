@@ -396,6 +396,66 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
 }
 
 /**
+ * Pop all events from event_q with timestamp equal to current_time, extract all
+ * the reactions triggered by these events, and stick them into the reaction
+ * queue.
+ */
+void __pop_events() {
+    event_t* event;
+    do {
+        event = pqueue_pop(event_q);
+
+        token_t* token = event->token;
+
+        // Push the corresponding reactions onto the reaction queue.
+        for (int i = 0; i < event->trigger->number_of_reactions; i++) {
+            // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
+            // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
+            pqueue_insert(reaction_q, event->trigger->reactions[i]);
+        }
+        // If the trigger is a periodic clock, create a new event for its next execution.
+        if (event->trigger->is_timer && event->trigger->period > 0LL) {
+            // Reschedule the trigger.
+            // Note that the delay here may be negative because the __schedule
+            // function will add the trigger->offset, which we don't want at this point.
+            // NULL argument indicates that there is no value.
+            __schedule(event->trigger, event->trigger->period - event->trigger->offset, NULL);
+        }
+
+        // Copy the token pointer into the trigger struct so that the
+        // reactions can access it. This overwrites the previous template token,
+        // for which we decrement the reference count.
+        if (event->trigger->token != event->token && event->trigger->token != NULL) {
+            // Mark the previous one ok_to_free so we don't get a memory leak.
+            event->trigger->token->ok_to_free = true;
+            // Free the token if its reference count is zero. Since __done_using
+            // decrements the reference count, first increment it here.
+            event->trigger->token->ref_count++;
+            __done_using(event->trigger->token);
+        }
+        event->trigger->token = token;
+        // Prevent this token from being freed. It is the new template.
+        // This might be null if there are no reactions to the action.
+        if (token != NULL) token->ok_to_free = false;
+
+        // Mark the trigger present.
+        event->trigger->is_present = true;
+
+        // Recycle the event.
+        // So that sorting doesn't cost anything,
+        // give all recycled events the same zero time stamp.
+        event->time = 0LL;
+        // Also remove pointers that will be replaced.
+        event->token = NULL;
+        pqueue_insert(recycle_q, event);
+
+        // Peek at the next event in the event queue.
+        event = pqueue_peek(event_q);
+    } while(event != NULL && event->time == current_time);
+
+}
+
+/**
  * Schedule the specified trigger at current_time plus the offset of the
  * specified trigger plus the delay. See schedule_token() in reactor.h for details.
  * This is the internal implementation shared by both the threaded
