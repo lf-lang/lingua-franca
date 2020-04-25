@@ -363,6 +363,13 @@ void __start_time_step();
  */
 void __initialize_trigger_objects();
 
+/**
+ * Pop all events from event_q with timestamp equal to current_time, extract all
+ * the reactions triggered by these events, and stick them into the reaction
+ * queue.
+ */
+void __pop_events();
+
 /** 
  * Internal version of the schedule() function, used by generated 
  * __start_timers() function. 
