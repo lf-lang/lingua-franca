@@ -41,7 +41,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * to swap bytes.
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>      // Defines perror(), errno
@@ -52,6 +51,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
 #include <assert.h>
+#include <sys/wait.h>   // Defines wait() for process to change state.
 #include "util.c"       // Defines error() and swap_bytes_if_big_endian().
 #include "rti.h"        // Defines TIMESTAMP. Includes <pthread.h> and "reactor.h".
 
@@ -82,8 +82,28 @@ instant_t start_time = NEVER;
  */
 int create_server(int port) {
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-    int socket_descriptor = socket(AF_INET , SOCK_STREAM , 0);
+    int socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_descriptor < 0) error("ERROR on creating RTI socket");
+
+    // SO_REUSEPORT (since Linux 3.9)
+    //       Permits multiple AF_INET or AF_INET6 sockets to be bound to an
+    //       identical socket address.  This option must be set on each
+    //       socket (including the first socket) prior to calling bind(2)
+    //       on the socket.  To prevent port hijacking, all of the
+    //       processes binding to the same address must have the same
+    //       effective UID.  This option can be employed with both TCP and
+    //       UDP sockets.
+
+    int reuse = 1;
+    if (setsockopt(socket_descriptor, SOL_SOCKET, SO_REUSEADDR, 
+            (const char*)&reuse, sizeof(reuse)) < 0)
+        perror("setsockopt(SO_REUSEADDR) failed");
+
+    #ifdef SO_REUSEPORT
+    if (setsockopt(socket_descriptor, SOL_SOCKET, SO_REUSEPORT, 
+            (const char*)&reuse, sizeof(reuse)) < 0) 
+        perror("setsockopt(SO_REUSEPORT) failed");
+    #endif
 
     // Server file descriptor.
     struct sockaddr_in server_fd;
@@ -536,5 +556,10 @@ void wait_for_federates(int socket_descriptor) {
     // before the port is released after this close. This is because
     // the OS is preventing another program from accidentally receiving
     // duplicated packets intended for this program.
+
+    // Before binding the socket, the RTI sets the SO_REUSEADDR (and
+    // SO_REUSEPORT if applicable) in order to circumvent the "ERROR on
+    // binding:Address already in use" error, which arises if the RTI 
+    // is restarted within the TIME_WAIT window.
     close(socket_descriptor);
 }
