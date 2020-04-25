@@ -86,12 +86,12 @@ handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* tok
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
-	int return_value = __schedule(trigger, extra_delay, token);
+    int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
     // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
     pthread_mutex_unlock(&mutex);
- 	return return_value;
+     return return_value;
 }
 
 /** Placeholder for code-generated function that will, in a federated
@@ -132,7 +132,7 @@ instant_t next_event_time(instant_t time);
 bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
     if (stop_time > 0LL && logical_time_ns > stop_time) {
-    	// Modify the time to wait until to be the timeout time.
+        // Modify the time to wait until to be the timeout time.
         logical_time_ns = stop_time;
         // Indicate on return that the time of the event was not reached.
         // We still wait for time to elapse in case asynchronous events come in.
@@ -144,11 +144,11 @@ bool wait_until(instant_t logical_time_ns) {
         struct timespec wait_until_time = {(time_t)logical_time_ns / BILLION, (long)logical_time_ns % BILLION};
 
         // printf("-------- Waiting for physical time to match logical time %llu.\n", logical_time_ns);
-    	// printf("-------- which is %splus %ld nanoseconds.\n", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
+        // printf("-------- which is %splus %ld nanoseconds.\n", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
 
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
-        	// printf("-------- Wait interrupted.\n");
-        	
+            // printf("-------- Wait interrupted.\n");
+
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule(), or
             // it may have been a control-C to stop the process.
@@ -191,17 +191,17 @@ bool __first_invocation = true;
  *  @return false if the program should be terminated, true otherwise.
  */
 bool __next() {
- 	// Previous logical time is complete.
-	if (stop_requested) {
+     // Previous logical time is complete.
+    if (stop_requested) {
         return false;
-	}
+    }
 
- 	// Peek at the earliest event in the event queue.
-	event_t* event = pqueue_peek(event_q);
+     // Peek at the earliest event in the event queue.
+    event_t* event = pqueue_peek(event_q);
     instant_t next_time = FOREVER;
     if (event != NULL) {
-    	// There is an event in the event queue.
-    	next_time = event->time;
+        // There is an event in the event queue.
+        next_time = event->time;
 
         // If a stop time was given, adjust the next_time from the
         // event time to that stop time.
@@ -314,7 +314,7 @@ bool __next() {
 
         return true;
     } else {
-    	// There is no event on the event queue.
+        // There is no event on the event queue.
         // printf("DEBUG: __next(): event queue is empty.\n");
         // If a stop time was given, adjust the next_time from FOREVER
         // to that stop time.
@@ -346,7 +346,7 @@ bool __next() {
             // could send messages. There may be a message on
             // the event queue. Continue executing.
             return true;
-    	}
+        }
         // If we get here, the RTI has granted time advance to the stop time
         // (or there is only federate) and keepalive has been specified.
         // If the event queue is no longer empty (e.g. an input message
@@ -366,9 +366,9 @@ bool __next() {
 
         // printf("DEBUG: __next(): Reached stop time. Requesting stop.\n");
         stop_requested = true;
-		// Signal the worker threads.
-		pthread_cond_broadcast(&reaction_q_changed);
-		return false;
+        // Signal the worker threads.
+        pthread_cond_broadcast(&reaction_q_changed);
+        return false;
     }
 }
 
@@ -456,28 +456,28 @@ bool __advancing_time = false;
  * Worker thread for the thread pool.
  */
 void* worker(void* arg) {
-	// printf("DEBUG: Worker thread started.\n");
-	// Keep track of whether we have decremented the idle thread count.
-	bool have_been_busy = false;
+    // printf("DEBUG: Worker thread started.\n");
+    // Keep track of whether we have decremented the idle thread count.
+    bool have_been_busy = false;
     // printf("DEBUG: pthread_mutex_lock worker\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
-	// Iterate until stop is requested and the reaction_q is empty (signaling
-	// that the current time instant is done).
-	while (!stop_requested || pqueue_size(reaction_q) > 0) {
-		// Obtain a reaction from the reaction_q that is ready to execute
+    // Iterate until stop is requested and the reaction_q is empty (signaling
+    // that the current time instant is done).
+    while (!stop_requested || pqueue_size(reaction_q) > 0) {
+        // Obtain a reaction from the reaction_q that is ready to execute
         // (i.e., it is not blocked by concurrently executing reactions
         // that it depends on).
         reaction_t* reaction = first_ready_reaction();
-		if (reaction == NULL) {
-			// There are no reactions ready to run.
+        if (reaction == NULL) {
+            // There are no reactions ready to run.
             // If we were previously busy, count this thread as idle now.
             if (have_been_busy) {
                 number_of_idle_threads++;
                 have_been_busy = false;
             }
 
-		    // If there are also no reactions in progress, then advance time,
+            // If there are also no reactions in progress, then advance time,
             // unless some other worker thread is already advancing time.
             if (pqueue_size(executing_q) == 0 && !__advancing_time) {
                 // The following will set stop_requested if there are
@@ -501,28 +501,28 @@ void* worker(void* arg) {
                 pthread_cond_wait(&reaction_q_changed, &mutex);
                 // printf("DEBUG: worker: Done waiting.\n");
             }
-		} else {
-		    // Got a reaction that is ready to run.
+        } else {
+            // Got a reaction that is ready to run.
 
-		    // If there are additional reactions on the reaction_q, notify one other
-		    // idle thread, if there is one, so that it can attempt to execute
-		    // that reaction.
-		    if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
-	            pthread_cond_signal(&reaction_q_changed);
-		    }
+            // If there are additional reactions on the reaction_q, notify one other
+            // idle thread, if there is one, so that it can attempt to execute
+            // that reaction.
+            if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
+                pthread_cond_signal(&reaction_q_changed);
+            }
 
-	    	// This thread will no longer be idle.
-	    	if (!have_been_busy) {
-	    		number_of_idle_threads--;
-	    		have_been_busy = true;
-	    	}
+            // This thread will no longer be idle.
+            if (!have_been_busy) {
+                number_of_idle_threads--;
+                have_been_busy = true;
+            }
 
-        	//reaction_t* reaction = pqueue_pop(reaction_q);
-        	// printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->local_deadline);
-        	
-        	// Push the reaction on the executing queue in order to prevent any
-        	// reactions that may depend on it from executing before this reaction is finished.
-        	pqueue_insert(executing_q, reaction);
+            //reaction_t* reaction = pqueue_pop(reaction_q);
+            // printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->local_deadline);
+
+            // Push the reaction on the executing queue in order to prevent any
+            // reactions that may depend on it from executing before this reaction is finished.
+            pqueue_insert(executing_q, reaction);
         
             // If the reaction has a deadline, compare to current physical time
             // and invoke the deadline violation reaction instead of the reaction function
@@ -551,7 +551,7 @@ void* worker(void* arg) {
                     // Invoke the local handler, if there is one.
                     reaction_function_t handler = reaction->deadline_violation_handler;
                     if (handler != NULL) {
-                		// Unlock the mutex to run the reaction.
+                        // Unlock the mutex to run the reaction.
                         // printf("DEBUG: pthread_mutex_unlock to run deadline handler.\n");
                         pthread_mutex_unlock(&mutex);
                         (*handler)(reaction->self);
@@ -565,7 +565,7 @@ void* worker(void* arg) {
                         // This thread holds the mutex lock, so if this is the last
                         // reaction of the current time step, this thread will also
                         // be the one to advance time.
-                	    pqueue_remove(executing_q, reaction);
+                        pqueue_remove(executing_q, reaction);
                     }
                 }
             }
@@ -573,36 +573,36 @@ void* worker(void* arg) {
                 // Unlock the mutex to run the reaction.
                 // printf("DEBUG: pthread_mutex_unlock to invoke reaction function\n");
                 pthread_mutex_unlock(&mutex);
-        	    // Invoke the reaction function.
- 			    // printf("DEBUG: worker: Invoking reaction.\n");
-        	    reaction->function(reaction->self);
-        	    // Reacquire the mutex lock.
+                // Invoke the reaction function.
+                 // printf("DEBUG: worker: Invoking reaction.\n");
+                reaction->function(reaction->self);
+                // Reacquire the mutex lock.
                 // printf("DEBUG: pthread_mutex_lock worker after invoking reaction function\n");
                 pthread_mutex_lock(&mutex);
                 // printf("DEBUG: pthread_mutex_locked\n");
-        	    // If the reaction produced outputs, put the resulting triggered
-        	    // reactions into the queue while holding the mutex lock.
-        	    schedule_output_reactions(reaction);
-        	    // Remove the reaction from the executing queue.
+                // If the reaction produced outputs, put the resulting triggered
+                // reactions into the queue while holding the mutex lock.
+                schedule_output_reactions(reaction);
+                // Remove the reaction from the executing queue.
                 // This thread holds the mutex lock, so if this is the last
                 // reaction of the current time step, this thread will also
                 // be the one to advance time.
-        	    pqueue_remove(executing_q, reaction);
+                pqueue_remove(executing_q, reaction);
 
- 			    // printf("DEBUG: worker: Done invoking reaction.\n");
+                 // printf("DEBUG: worker: Done invoking reaction.\n");
             }
-    	}
-	}
-	// This thread is exiting, so don't count it anymore.
-	number_of_threads--;
+        }
+    }
+    // This thread is exiting, so don't count it anymore.
+    number_of_threads--;
 
-	// printf("DEBUG: worker: Stop requested. Exiting.\n");
+    // printf("DEBUG: worker: Stop requested. Exiting.\n");
     // printf("DEBUG: pthread_mutex_unlock worker\n");
     // Signal the main thread.
     pthread_cond_signal(&executing_q_emptied);
     pthread_mutex_unlock(&mutex);
-	// timeout has been requested.
-	return NULL;
+    // timeout has been requested.
+    return NULL;
 }
 
 void print_snapshot() {
@@ -620,11 +620,11 @@ pthread_t* __thread_ids;
 // Start threads in the thread pool.
 void start_threads() {
     // printf("DEBUG: Starting %d worker threads.\n", number_of_threads);
-	__thread_ids = malloc(number_of_threads * sizeof(pthread_t));
-	number_of_idle_threads = number_of_threads;
-	for (int i = 0; i < number_of_threads; i++) {
-		pthread_create(&__thread_ids[i], NULL, worker, NULL);
-	}
+    __thread_ids = malloc(number_of_threads * sizeof(pthread_t));
+    number_of_idle_threads = number_of_threads;
+    for (int i = 0; i < number_of_threads; i++) {
+        pthread_create(&__thread_ids[i], NULL, worker, NULL);
+    }
 }
 
 /** Execute finalization functions, including reactions triggered
@@ -635,48 +635,51 @@ void start_threads() {
  *
  */
 void wrapup() {
-	// Invoke any code-generated wrapup. If this returns true,
+    // Invoke any code-generated wrapup. If this returns true,
     // then actions have been scheduled at the next microstep.
     // Invoke __next() one more time to react to those actions.
-	// printf("DEBUG: wrapup invoked.\n");
+    // printf("DEBUG: wrapup invoked.\n");
     if (__wrapup()) {
-    	// __wrapup() returns true if it has put shutdown events
-    	// onto the event queue.  We need to run reactions to those
-    	// events.
- 		// printf("DEBUG: __wrapup returned true.\n");
+        // __wrapup() returns true if it has put shutdown events
+        // onto the event queue.  We need to run reactions to those
+        // events.
+         // printf("DEBUG: __wrapup returned true.\n");
 
-    	// To make sure next() does its work, unset stop_requested.
-    	stop_requested = false;
-    	// To make sure next() doesn't wait for events that will
-    	// never arrive, unset keepalive.
-    	keepalive_specified = false;
+        // To make sure next() does its work, unset stop_requested.
+        stop_requested = false;
+        // To make sure next() doesn't wait for events that will
+        // never arrive, unset keepalive.
+        keepalive_specified = false;
         
-    	// Execute one iteration of next(), which will process the next
-    	// timestamp on the event queue, moving its reactions to the reaction
-    	// queue. This returns false if there was in fact nothing on the event
-    	// queue.
+        // Execute one iteration of next(), which will process the next
+        // timestamp on the event queue, moving its reactions to the reaction
+        // queue. This returns false if there was in fact nothing on the event
+        // queue.
         if (__next()) {
             if (!__first_invocation) {
                 logical_time_complete(current_time);
                 __first_invocation = false;
             }
-        	// printf("DEBUG: wrapup: next() returned\n");
-        	// Without relying on the worker threads, execute whatever is on the reaction_q.
-        	// NOTE: deadlines on these reactions are ignored.
-        	// Is that the right thing to do?
-        	while (pqueue_size(reaction_q) > 0) {
-        		reaction_t* reaction = pqueue_pop(reaction_q);
+            // printf("DEBUG: wrapup: next() returned\n");
+            // Without relying on the worker threads, execute whatever is on the reaction_q.
+            // NOTE: deadlines on these reactions are ignored.
+            // Is that the right thing to do?
+            while (pqueue_size(reaction_q) > 0) {
+                reaction_t* reaction = pqueue_pop(reaction_q);
 
-        		// Invoke the reaction function.
-        		// printf("DEBUG: wrapup(): Invoking reaction.\n");
-        		reaction->function(reaction->self);
+                // Invoke the reaction function.
+                // printf("DEBUG: wrapup(): Invoking reaction.\n");
+                reaction->function(reaction->self);
 
-        		// If the reaction produced outputs, insert the resulting triggered
-        		// reactions into the reaction queue.
-        		schedule_output_reactions(reaction);
-        		// printf("DEBUG: wrapup(): Done invoking reaction.\n");
-        	}
- 		}
+                // If the reaction produced outputs, insert the resulting triggered
+                // reactions into the reaction queue.
+                schedule_output_reactions(reaction);
+                // printf("DEBUG: wrapup(): Done invoking reaction.\n");
+            }
+         } else {
+             // Notify the RTI that the current logical time is complete.
+            logical_time_complete(current_time);
+         }
     }
 }
 
@@ -708,22 +711,22 @@ int main(int argc, char* argv[]) {
         __start_timers();
         start_threads();
         // printf("DEBUG: pthread_mutex_unlock main\n");
- 		pthread_mutex_unlock(&mutex);
- 		// printf("DEBUG: Waiting for worker threads to exit.\n");
+         pthread_mutex_unlock(&mutex);
+         // printf("DEBUG: Waiting for worker threads to exit.\n");
 
- 	    // Wait for the worker threads to exit.
- 	    void* worker_thread_exit_status;
- 	    for (int i = 0; i < number_of_threads; i++) {
- 	        pthread_join(__thread_ids[i], &worker_thread_exit_status);
- 	        printf("Worker thread exited.\n");
- 	    }
- 	    free(__thread_ids);
+         // Wait for the worker threads to exit.
+         void* worker_thread_exit_status;
+         for (int i = 0; i < number_of_threads; i++) {
+             pthread_join(__thread_ids[i], &worker_thread_exit_status);
+             printf("Worker thread exited.\n");
+         }
+         free(__thread_ids);
 
- 	    wrapup();
+         wrapup();
         termination();
-    	return 0;
+        return 0;
     } else {
         termination();
-    	return -1;
+        return -1;
     }
 }
