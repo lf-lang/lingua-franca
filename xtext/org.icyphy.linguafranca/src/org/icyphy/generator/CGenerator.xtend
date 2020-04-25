@@ -1596,12 +1596,12 @@ class CGenerator extends GeneratorBase {
             indent(result)
             if (trigger instanceof Timer) {
                 pr(result, '''
-                    «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, 0
+                    «triggerStructName»_reactions, «numberOfReactionsTriggered», true, 0LL, 0LL, NULL, false, NEVER, NONE, 0
                 ''')
             } else if (triggerInstance instanceof PortInstance) {
                 val rootType = (triggerInstance.definition as Port).targetType.rootType
                 pr(result, '''
-                    «triggerStructName»_reactions, «numberOfReactionsTriggered», 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
+                    «triggerStructName»_reactions, «numberOfReactionsTriggered», false, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
                 ''')
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
@@ -1622,6 +1622,7 @@ class CGenerator extends GeneratorBase {
                 pr(result, '''
                     «triggerStructName»_reactions,
                     «numberOfReactionsTriggered»,
+                    false,
                     «timeInTargetLanguage(minDelay)»,
                     «timeInTargetLanguage(minInterArrival)»,
                     NULL,

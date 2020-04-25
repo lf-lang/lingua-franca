@@ -293,8 +293,9 @@ typedef enum queuing_policy_t {
 struct trigger_t {
     reaction_t** reactions;   // Reactions sensitive to this trigger.
     int number_of_reactions;  // Number of reactions sensitive to this trigger.
-	interval_t offset;        // For an action, this will be a minimum delay.
-	interval_t period;        // For an action, this denotes the minimal interarrival time. // FIXME: add a field to distinguish between actions and timers.
+	bool is_timer;            // True if this is a timer (a special kind of action), false otherwise.
+    interval_t offset;        // Minimum delay of an action. For a timer, this is also the maximum delay.
+	interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
     token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action (i.e., to be scheduled relative to physical time).
     instant_t scheduled;      // Tag of the last event that was scheduled for this action.
@@ -361,6 +362,13 @@ void __start_time_step();
  * (i.e., inputs, timers, and actions).
  */
 void __initialize_trigger_objects();
+
+/**
+ * Pop all events from event_q with timestamp equal to current_time, extract all
+ * the reactions triggered by these events, and stick them into the reaction
+ * queue.
+ */
+void __pop_events();
 
 /** 
  * Internal version of the schedule() function, used by generated 
