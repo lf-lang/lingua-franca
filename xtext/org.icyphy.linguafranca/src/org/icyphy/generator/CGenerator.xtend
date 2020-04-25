@@ -2055,7 +2055,6 @@ class CGenerator extends GeneratorBase {
                     reactionStructName(reactionInstance) + ".index = " +
                         (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).
                             or(new BigInteger(reactionInstance.level.toString)) + "LL;")
-            // FIXME: add check to validator to make sure no deadline exceeds the maximum
             }
         }
         for (child : reactor.children) {
@@ -2574,47 +2573,44 @@ class CGenerator extends GeneratorBase {
         StringBuilder builder,
         Input input
     ) {
-        var present = input.name + '_is_present'
         pr(builder,
-            'bool ' + present + ' = *(self->__' + input.name + '_is_present);')
+            '''bool «input.name»_is_present = *(self->__«input.name»_is_present);''')
         
         if (input.inferredType.isTokenType) {
-            // FIXME: Redo the following with smart strings '''
             val rootType = input.targetType.rootType
-            pr(builder, rootType + '* ' + input.name + ';')
-            pr(builder, 'int ' + input.name + '_length = 0;')
             // Create the name_token variable.
-            pr(builder, '''token_t* «input.name»_token = *(self->__«input.name»);''')
-            pr(builder, 'if(' + present + ') {')
-            indent(builder)
-            pr(builder, input.name + '_length = (*(self->__' + input.name + '))->length;')
             // If the input is declared mutable, create a writable copy.
             // Note that this will not copy if the reference count is exactly one.
-            if (input.isMutable) {
-                pr(builder, '''
+            pr(builder, 
+            '''
+            «rootType»* «input.name»;
+            int «input.name»_length = 0;
+            token_t* «input.name»_token = *(self->__«input.name»);
+            if («input.name»_is_present) {
+                «input.name»_length = (*(self->__«input.name»))->length;
+                «IF input.isMutable»
                     «input.name»_token = writable_copy(*(self->__«input.name»));
                     «input.name» = («rootType»*)(«input.name»_token->value);
-                ''')
-            } else {
-                pr(builder, '''
+                «ELSE»
                     «input.name» = («rootType»*)((*(self->__«input.name»))->value);
-                ''')
-                
+                «ENDIF»
             }
+            ''')
         } else if (input.type !== null) {
             // Look for array type of form type[number].
             val matcher = arrayPatternFixed.matcher(input.type.targetType)
-            if (matcher.find()) {
-                pr(builder, matcher.group(1) + '* ' + input.name + ';')
-            } else {
-                pr(builder, input.type.targetType + ' ' + input.name + ';')
+            pr(builder,
+            '''
+            «IF matcher.find»
+                «matcher.group(1)»* «input.name»;
+            «ELSE»
+                «input.type.targetType» «input.name»;
+            «ENDIF»
+            if («input.name»_is_present) {
+            	«input.name» = *(self->__«input.name»);
             }
-            pr(builder, 'if(' + present + ') {')
-            indent(builder)
-            pr(builder, input.name + ' = *(self->__' + input.name + ');')
+            ''')
         }
-        unindent(builder)
-        pr(builder, '}')
     }
     /** Generate into the specified string builder the code to
      *  initialize local variables for ports in a reaction function
