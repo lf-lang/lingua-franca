@@ -143,7 +143,6 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
     unsigned int length;
     // Extract information from the header.
     extract_header(buffer + 1, &port_id, &federate_id, &length);
-    // printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
 
     unsigned int total_bytes_to_read = length + header_size;
     unsigned int bytes_to_read = length;
@@ -154,9 +153,15 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
     int bytes_read = bytes_to_read + header_size;
     // printf("DEBUG: Message received by RTI: %s.\n", buffer + header_size);
 
+    // Need to acquire the mutex lock to ensure that the thread handling
+    // messages coming from the socket connected to the destination does not
+    // issue a TAG before this message has been forwarded.
+    pthread_mutex_lock(&rti_mutex);
+
     // If the destination federate is no longer connected, issue a warning
     // and return.
     if (federates[federate_id].state == NOT_CONNECTED) {
+        pthread_mutex_unlock(&rti_mutex);
         printf("RTI: Destination federate %d is no longer connected. Dropping message.\n",
                 federate_id
         );
@@ -166,6 +171,7 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
     // Forward the message or message chunk.
     int destination_socket = federates[federate_id].socket;
 
+    // printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
     write_to_socket(destination_socket, bytes_read, buffer);
 
     // The message length may be longer than the buffer,
@@ -180,6 +186,7 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
 
         write_to_socket(destination_socket, bytes_to_read, buffer);
     }
+    pthread_mutex_unlock(&rti_mutex);
 }
 
 /** Send a time advance grant (TAG) message to the specified socket
@@ -251,12 +258,16 @@ instant_t transitive_next_event(federate_t* fed, instant_t candidate, bool visit
  *
  *  This should be called whenever an upstream federate either registers
  *  a next event time or completes a logical time.
+ *
+ *  This function assumes that the caller holds the mutex lock.
+ *
  *  @return True if the TAG message is sent and false otherwise.
  */
 bool send_time_advance_if_appropriate(federate_t* fed) {
     // Determine whether to send a time advance grant to the downstream reactor.
     // The first candidate is its next event time. But we may need to advance
     // it to a lesser time.
+
     instant_t candidate_time_advance = fed->next_event;
     // Look at its upstream federates (including this one).
     for (int j = 0; j < fed->num_upstream; j++) {
@@ -265,8 +276,7 @@ bool send_time_advance_if_appropriate(federate_t* fed) {
         federate_t* upstream = &federates[fed->upstream[j]];
         // There may be a delay on the connection. Add that to the candidate.
         interval_t delay = fed->upstream_delay[j];
-        instant_t upstream_completion_time = upstream->completed
-                + delay;
+        instant_t upstream_completion_time = upstream->completed + delay;
         // Preserve NEVER.
         if (upstream->completed == NEVER) upstream_completion_time = NEVER;
         // If the completion time of the upstream federate
@@ -296,6 +306,8 @@ bool send_time_advance_if_appropriate(federate_t* fed) {
     if (candidate_time_advance > fed->completed) {
         send_time_advance_grant(fed, candidate_time_advance);
         return true;
+    } else {
+        // printf("DEBUG: Not sending TAG to fed %d of %lld because it is not greater than the completed %lld.\n", fed->id, candidate_time_advance - start_time, fed->completed - start_time);
     }
     return false;
 }
@@ -309,6 +321,11 @@ void handle_logical_time_complete(federate_t* fed) {
         unsigned char c[sizeof(long long)];
     } buffer;
     read_from_socket(fed->socket, sizeof(long long), (unsigned char*)&buffer.c);
+
+    // Acquire a mutex lock to ensure that this state does change while a
+    // message is transport or being used to determine a TAG.
+    pthread_mutex_lock(&rti_mutex);
+
     fed->completed = swap_bytes_if_big_endian_ll(buffer.ull);
     // printf("DEBUG: RTI received from federate %d the logical time complete %lld.\n", fed->id, fed->completed - start_time);
 
@@ -316,6 +333,7 @@ void handle_logical_time_complete(federate_t* fed) {
     for (int i = 0; i < fed->num_downstream; i++) {
         send_time_advance_if_appropriate(&federates[fed->downstream[i]]);
     }
+    pthread_mutex_unlock(&rti_mutex);
 }
 
 /** Handle a next event time (NET) message.
@@ -327,6 +345,11 @@ void handle_next_event_time(federate_t* fed) {
         unsigned char c[sizeof(long long)];
     } buffer;
     read_from_socket(fed->socket, sizeof(long long), (unsigned char*)&buffer.c);
+
+    // Acquire a mutex lock to ensure that this state does change while a
+    // message is transport or being used to determine a TAG.
+    pthread_mutex_lock(&rti_mutex);
+
     fed->next_event = swap_bytes_if_big_endian_ll(buffer.ull);
     // printf("DEBUG: RTI received from federate %d the NET %lld.\n", fed->id, fed->next_event - start_time);
 
@@ -336,6 +359,7 @@ void handle_next_event_time(federate_t* fed) {
     if (fed->num_upstream > 0) {
         send_time_advance_if_appropriate(fed);
     }
+    pthread_mutex_unlock(&rti_mutex);
 }
 
 char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from federate an unrecognized message type";
