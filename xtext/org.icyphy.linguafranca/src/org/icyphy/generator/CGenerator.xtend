@@ -1518,7 +1518,7 @@ class CGenerator extends GeneratorBase {
                 val rootType = (output.definition as Port).targetType.rootType
                 pr(result, '''
                     trigger_t «structName» = {
-                        «structName»_reactions, 1, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
+                        «structName»_reactions, 1, false, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
                     };
                 ''')
                 
