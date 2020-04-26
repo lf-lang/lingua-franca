@@ -5,7 +5,7 @@
  *  @author Edward A. Lee
  */
 target C {
-    timeout: 1 sec,
+    timeout: 0 sec,
     federates: {
         RTI: {host: "localhost", port: 15046, launcher: true},
         Source: {reactors: [s]},
@@ -22,6 +22,7 @@ reactor Source {
 }
 reactor Destination {
     input in:string;
+    state received:bool(false);
     reaction(startup) {=
         printf("Destination started.\n");
     =}
@@ -30,6 +31,13 @@ reactor Destination {
         if (strcmp(in, "Hello World!") != 0) {
             printf("ERROR: Expected to receive 'Hello World!'\n");
             exit(1);
+        }
+        self->received = true;
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            printf("ERROR: Destination did not receive the message.\n");
+            exit(2);
         }
     =}
 }
