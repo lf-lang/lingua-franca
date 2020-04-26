@@ -277,6 +277,7 @@ bool __next() {
         // and in that case, the returned grant may be less than the
         // requested advance.
         instant_t grant_time = next_event_time(next_time);
+        // printf("DEBUG: __next(): RTI grants time advance to %lld.\n", grant_time - start_time);
         if (grant_time == next_time) {
             // RTI is OK with advancing time to stop_time or FOREVER.
             if (!keepalive_specified) {
@@ -297,7 +298,8 @@ bool __next() {
             return true;
         }
         // If we get here, the RTI has granted time advance to the stop time
-        // (or there is only federate) and keepalive has been specified.
+        // (or there is only federate, or to FOREVER is there is no stop time)
+        // and keepalive has been specified.
         // If the event queue is no longer empty (e.g. an input message
         // has arrived exactly at the stop time), then return true to
         // iterate again and process that message.
@@ -306,14 +308,18 @@ bool __next() {
 
         // The event queue is still empty, but since keepalive has been
         // specified, we should not stop unless physical time exceeds the
-        // stop_time.
+        // stop_time.  If --fast has been specified, however, this will
+        // return immediately.
+        // FIXME: --fast becomes useless for federated execution because
+        // the federates proceed immediately to the stop time or FOREVER!
+        // printf("DEBUG: __next(): Waiting until time %lld.\n", next_time - start_time);
         wait_until(next_time);
 
         // If the event queue is no longer empty, return true to iterate.
         event = pqueue_peek(event_q);
         if (event != NULL) return true;
 
-        // printf("DEBUG: __next(): Reached stop time. Requesting stop.\n");
+        // printf("DEBUG: __next(): Reached stop time of %lld. Requesting stop.\n", next_time - start_time);
         stop_requested = true;
         // Signal the worker threads.
         pthread_cond_broadcast(&reaction_q_changed);
@@ -639,6 +645,14 @@ int main(int argc, char* argv[]) {
     // Initialize the one and only mutex to be recursive, meaning that it is OK
     // for the same thread to lock and unlock the mutex even if it already holds
     // the lock.
+    // FIXME: This is dangerous. The docs say this: "It is advised that an
+    // application should not use a PTHREAD_MUTEX_RECURSIVE mutex with
+    // condition variables because the implicit unlock performed for a
+    // pthread_cond_wait() or pthread_cond_timedwait() may not actually
+    // release the mutex (if it had been locked multiple times).
+    // If this happens, no other thread can satisfy the condition
+    // of the predicate.”  This seems like a bug in the implementation of
+    // pthreads. Maybe it has been fixed?
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
