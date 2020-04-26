@@ -502,20 +502,11 @@ bool __fed_has_downstream = false;
 
 /** Send a logical time complete (LTC) message to the RTI
  *  if there are downstream federates. Otherwise, do nothing.
- *  This function assumes the caller does not hold the mutex lock,
- *  which it acquires to send the message to the RTI.
+ *  This function assumes the caller holds the mutex lock.
  */
 void __logical_time_complete(instant_t time) {
     if (__fed_has_downstream) {
-        // Use a mutex lock to prevent multiple threads from simulatenously sending.
-        // printf("DEBUG: Federate %d pthread_mutex_lock __logical_time_complete\n", __my_fed_id);
-        pthread_mutex_lock(&mutex);
-        // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
-
         send_time(LOGICAL_TIME_COMPLETE, time);
-
-        // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
-        pthread_mutex_unlock(&mutex);
     }
 }
 
