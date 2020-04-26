@@ -117,7 +117,7 @@ instant_t get_elapsed_physical_time() {
  *  @param time A time value.
  */
 void print_time(instant_t time) {
-    if (time < 1000 || time < 0) {
+    if (time < 1000LL || time < 0LL) {
         printf("%lld", time);
         return;
     }
@@ -1040,18 +1040,12 @@ void termination() {
         printf("**** Number of unfreed tokens: %d.\n", __count_token_allocations);
     }
     // Print elapsed times.
-    interval_t elapsed_logical_time = current_time - physical_start_time;
     printf("---- Elapsed logical time (in nsec): ");
-    print_time(elapsed_logical_time);
+    print_time(get_elapsed_logical_time());
     printf("\n");
 
-    struct timespec physicalEndTime;
-    clock_gettime(CLOCK_REALTIME, &physicalEndTime);
-    interval_t elapsed_physical_time
-        = (physicalEndTime.tv_sec * BILLION + physicalEndTime.tv_nsec)
-        - physical_start_time;
     printf("---- Elapsed physical time (in nsec): ");
-    print_time(elapsed_physical_time);
+    print_time(get_elapsed_physical_time());
     printf("\n");
 }
 
