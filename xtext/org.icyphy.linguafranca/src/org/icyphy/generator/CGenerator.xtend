@@ -1611,8 +1611,8 @@ class CGenerator extends GeneratorBase {
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
                 }
-                if (trigger.policy == QueuingPolicy.NONE) {
-                    trigger.policy = QueuingPolicy.DEFER; // FIXME: should be DROP
+                if (trigger.policy === null || trigger.policy == QueuingPolicy.NONE) {
+                    trigger.policy = QueuingPolicy.DEFER;
                 }
                 var element_size = "0"
                 if (trigger.type !== null) element_size = '''sizeof(«trigger.targetType.rootType»)'''

@@ -276,7 +276,7 @@ Path:
 
 /////////// Enums
 enum QueuingPolicy:
-    NONE | DEFER='DEFER' | DROP='DROP' | UPDATE='UPDATE';
+    NONE | DEFER='DEFER' | DROP='DROP';
 
 enum ActionOrigin:
     NONE | LOGICAL='logical' | PHYSICAL='physical';
