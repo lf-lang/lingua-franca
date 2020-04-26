@@ -495,7 +495,7 @@ class CGenerator extends GeneratorBase {
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
                 «IF targetFast»
-                    federates[i] = FAST;
+                    federates[i].mode = FAST;
                 «ENDIF»
             }
         ''')
