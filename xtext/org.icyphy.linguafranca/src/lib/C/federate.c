@@ -448,7 +448,9 @@ void* listen_to_rti(void* args) {
  *  It starts a thread to listen for messages from the RTI.
  *  It then waits for physical time to match the specified time,
  *  sets current logical time to the time returned by the RTI,
- *  and then returns.
+ *  and then returns. If --fast was specified, then this does
+ *  not wait for physical time to match the logical start time
+ *  returned by the RTI.
  *  @param id The assigned ID of the federate.
  *  @param hostname The name of the RTI host, such as "localhost".
  *  @param port The port used by the RTI.
@@ -483,14 +485,9 @@ void synchronize_with_other_federates(int id, char* hostname, int port) {
     // printf("DEBUG: Physical time is ahead of current time by %lld.\n", get_physical_time() - current_time);
 
     // Reinitialize the physical start time to match the current physical time.
-    // This will be the same on each federate.
-    physical_start_time = current_time;
-
-    /* To make it different on each federate, use this:
-    struct timespec actualStartTime;
-    clock_gettime(CLOCK_REALTIME, &actualStartTime);
-    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
-    */
+    // This will be different on each federate. If --fast was given, it could
+    // be very different.
+    physical_start_time = get_physical_time();
 }
 
 /** Indicator of whether this federate has upstream federates.
