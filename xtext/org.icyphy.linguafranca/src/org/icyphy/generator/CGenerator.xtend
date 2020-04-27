@@ -54,7 +54,6 @@ import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
@@ -1611,9 +1610,6 @@ class CGenerator extends GeneratorBase {
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
                 }
-                if (trigger.policy === null || trigger.policy == QueuingPolicy.NONE) {
-                    trigger.policy = QueuingPolicy.DEFER;
-                }
                 var element_size = "0"
                 if (trigger.type !== null) element_size = '''sizeof(«trigger.targetType.rootType»)'''
                 pr(result, '''
@@ -1625,7 +1621,7 @@ class CGenerator extends GeneratorBase {
                     NULL,
                     «isPhysical»,
                     NEVER,
-                    «trigger.policy»,
+                    «trigger.drop»,
                     «element_size»
                 ''')
                 // If this is a shutdown action, add it to the list of shutdown actions.
