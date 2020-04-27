@@ -398,12 +398,12 @@ void handle_time_advance_grant(unsigned char* buffer) {
     } result;
     read_from_socket(rti_socket, sizeof(long long), (unsigned char*)&result.c);
 
-    // printf("DEBUG: Federate %d received TAG %lld.\n", __my_fed_id, __tag - start_time);
     // printf("DEBUG: Federate %d pthread_mutex_lock handle_time_advance_grant\n", __my_fed_id);
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
     __tag = swap_bytes_if_big_endian_ll(result.ull);
     __tag_pending = false;
+    // printf("DEBUG: Federate %d received TAG %lld.\n", __my_fed_id, __tag - start_time);
     // Notify everything that is blocked.
     pthread_cond_broadcast(&event_q_changed);
     // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
