@@ -102,7 +102,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val TEXT_ERROR_CONTAINS_RECURSION = "Reactor contains recursive instantiation!"
 	public static val TEXT_ERROR_CONTAINS_CYCLE = "Reactor contains cyclic dependencies!"
 	public static val TEXT_ERROR_CYCLE_DETECTION = "Dependency cycle detection failed.\nCould not detect dependency cycles due to unexpected graph structure."
-	public static val TEXT_ERROR_CYCLE_BTN_SHOW = "Show Cycle (Reactor Details)"
+	public static val TEXT_ERROR_CYCLE_BTN_SHOW = "Show Cycle"
 	public static val TEXT_NO_MAIN_REACTOR = "No Main Reactor"
 	public static val TEXT_REACTOR_NULL = "Reactor is null"
 	public static val TEXT_HIDE_ACTION = "[Hide]"
