@@ -45,7 +45,7 @@ reactor Node {
 }
 
 main reactor ThreadRing(limit:number(25000)) {
-    state startTime:{=TimeValue|undefined=}({=undefined=});
+    state startTime:time;
     logical action end;
     reaction (startup) -> n1.start {=
         startTime = util.getCurrentPhysicalTime();

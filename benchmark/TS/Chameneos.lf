@@ -29,7 +29,7 @@ main reactor Chameneos(limit:number(25000)) {
             return null as never;
         }
     =}
-   state startTime:{=TimeValue|undefined=}({=undefined=});
+   state startTime:time;
    reaction (startup) -> m.start {=
         m.start = true;
         startTime = util.getCurrentPhysicalTime();

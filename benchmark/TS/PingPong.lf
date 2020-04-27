@@ -7,7 +7,7 @@ reactor Ping(limit:number(100000)) {
     input receive:number;
     output send:number;
     state pingsLeft:number(limit);
-    state startTime:{=TimeValue|undefined=}({=undefined=});
+    state startTime:time;
     logical action serve;
     logical action done;
     reaction (startup) -> send {=

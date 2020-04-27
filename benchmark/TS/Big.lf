@@ -10,7 +10,7 @@ target TypeScript {
 
 main reactor Big(limit:number(25000)) {
     
-    state startTime:{=TimeValue|undefined=}({=undefined=});
+    state startTime:time;
     
     s = new Sink();
     

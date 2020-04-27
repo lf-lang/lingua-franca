@@ -6,7 +6,7 @@ main reactor ForkJoin(limit:number(25000)) {
     logical action nextWorker:number;
     state totalWorkers:number(5);
     state workerCount:number(0);
-    state startTime:{=TimeValue|undefined=}({=undefined=});
+    state startTime:time;
     
     reaction (startup) -> nextWorker {=
         startTime = util.getCurrentPhysicalTime();

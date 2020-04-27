@@ -23,7 +23,7 @@ reactor Sender {
 }
 main reactor CountingActor(limit:number(25000)) {
     
-    state startTime:{=TimeValue|undefined=}({=undefined=});
+    state startTime:time;
     
     s = new Sender();
     c = new Counter(limit = limit);
