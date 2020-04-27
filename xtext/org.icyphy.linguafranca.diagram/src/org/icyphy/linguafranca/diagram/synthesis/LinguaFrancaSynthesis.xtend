@@ -838,7 +838,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				lineStyle = LineStyle.DOT
 				foreground = Colors.CHOCOLATE_1
 				boldLineSelectionStyle()
-				addHeadArrowDecorator()
+				addFixedTailArrowDecorator() // Fix for bug: https://github.com/kieler/KLighD/issues/38
 			]
 		]
 	}

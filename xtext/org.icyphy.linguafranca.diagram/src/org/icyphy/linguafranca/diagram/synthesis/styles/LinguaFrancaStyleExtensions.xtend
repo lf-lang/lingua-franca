@@ -5,11 +5,13 @@ import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KLabel
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
+import de.cau.cs.kieler.klighd.krendering.KPolyline
 import de.cau.cs.kieler.klighd.krendering.KRendering
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
 import de.cau.cs.kieler.klighd.krendering.KText
 import de.cau.cs.kieler.klighd.krendering.Underline
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
+import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY
@@ -24,6 +26,7 @@ import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 
 	@Inject extension KRenderingExtensions
+	@Inject extension KPolylineExtensions
     extension KRenderingFactory = KRenderingFactory::eINSTANCE
 
 	def noSelectionStyle(KRendering r) {
@@ -116,5 +119,19 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 		}
 		_onEdgeDelayLabelConfigurator.applyTo(label)
 	}
+	
+    def KRendering addFixedTailArrowDecorator(KPolyline pl) {
+    	val head = pl.addTailArrowDecorator()
+		head.placementData = createKDecoratorPlacementData => [
+            it.rotateWithLine = true
+            it.relative = 0f
+            it.absolute = 2f
+            it.width = 8
+            it.height = 6
+            it.setXOffset(-3f)
+            it.setYOffset(-4f)
+        ]
+        return head
+    }
 
 }
