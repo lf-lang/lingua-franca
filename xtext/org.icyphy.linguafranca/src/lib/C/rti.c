@@ -289,10 +289,12 @@ bool send_time_advance_if_appropriate(federate_t* fed) {
             // track of which upstream federates have been visited.
             bool visited[NUMBER_OF_FEDERATES];
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) visited[i] = false;
+
+            // Find the (transitive) next event time upstream.
             instant_t upstream_next_event = transitive_next_event(
                     upstream, upstream->next_event, visited);
             if (upstream_next_event != NEVER) upstream_next_event += delay;
-            if (upstream_next_event < candidate_time_advance) {
+            if (upstream_next_event <= candidate_time_advance) {
                 // Cannot advance the federate to the upstream
                 // next event time because that event has presumably not yet
                 // been produced.
