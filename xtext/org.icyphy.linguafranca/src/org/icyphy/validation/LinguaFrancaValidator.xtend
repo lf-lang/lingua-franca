@@ -49,18 +49,17 @@ import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Preamble
-import org.icyphy.linguaFranca.QueuingPolicy
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.Reaction
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -135,12 +134,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             error(
                 "Action must have modifier `logical` or `physical`.",
                 Literals.ACTION__ORIGIN
-            )
-        } else if (action.origin == ActionOrigin.LOGICAL &&
-            action.policy != QueuingPolicy.NONE) {
-            error(
-                "Logical action cannot specify a queuing policy.",
-                Literals.ACTION__POLICY
             )
         }
 
@@ -745,6 +738,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     @Check(FAST)
     def checkType(Type type) {
+        // FIXME: disallow the use of generics in C
         if (this.target == Targets.CPP) {
             if (type.stars.size > 0) {
                 warning(

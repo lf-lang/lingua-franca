@@ -33,15 +33,17 @@ import java.util.List
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Preamble
-import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
@@ -49,9 +51,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TimeValue
-import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.Parameter
 
 /** Generator for C++ target.
  * 
@@ -462,19 +461,18 @@ class CppGenerator extends GeneratorBase {
 
     def initialize(Action a) {
         if (a.origin == ActionOrigin.LOGICAL) {
-            if (a.minInterArrival !== null || a.policy !== QueuingPolicy.NONE) {
+            if (a.minInterArrival !== null || a.drop == true) {
                 a.reportError(
-                    "minInterArrival and minPolicy are not supported for logical actions!");
+                    "minInterArrival and tail drop are not supported for logical actions!");
             } else if (a.minDelay !== null) {
                 ''', «a.name»{"«a.name»", this, «a.minDelay.targetTime»}'''
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }
         } else {
-            if (a.minDelay !== null || a.minInterArrival !== null ||
-                a.policy !== QueuingPolicy.NONE) {
+            if (a.minDelay !== null || a.minInterArrival !== null || a.drop == true) {
                 a.reportError(
-                    "minDelay, minInterArrival and minPolicy are not supported for physical actions!");
+                    "minDelay, minInterArrival and tail drop are not supported for physical actions!");
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }

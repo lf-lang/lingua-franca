@@ -133,7 +133,7 @@ Timer:
 // to elapse between action occurrences.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=Value (',' minInterArrival=Value (',' policy=QueuingPolicy)? )? ')')?
+    ('(' minDelay=Value (',' minInterArrival=Value (',' drop?=TRUE | FALSE)? )? ')')?
     (':' type=Type)? ';';
 
 Reaction:
@@ -234,16 +234,28 @@ Port:
     
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (time?='time' (arraySpec=ArraySpec)?) | ((id=ID (stars+='*')* (arraySpec=ArraySpec)?) | code=Code);
+   (time?='time' (arraySpec=ArraySpec)?) | ((id=DottedName (stars+='*')* (arraySpec=ArraySpec | parameters=Generic)?) | code=Code);
 
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
     
-terminal BOOL:
-    'true' | 'false';
+terminal TRUE:
+    'true';
+    
+terminal FALSE:
+    'false'
+;
+
+DottedName:
+    (ID ('.' ID)*)
+;
+
+Generic:
+    '<' (DottedName (',' DottedName)*) '>'
+;
 
 Literal:
-    STRING | FLOAT | INT | NEGINT | BOOL;
+    STRING | FLOAT | INT | NEGINT | TRUE | FALSE;
 
 /////////// Elementary components
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
@@ -255,7 +267,7 @@ terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
 
 // Allow target properties to be expressed in Kebab case.
-Key: ID(ID|'-')*;
+Key: ID('-'ID)*;
 
 terminal NEGINT:
     '-' ('0'..'9')+;
@@ -275,9 +287,6 @@ Path:
     ID ('.' ID)*;
 
 /////////// Enums
-enum QueuingPolicy:
-    NONE | DEFER='DEFER' | DROP='DROP';
-
 enum ActionOrigin:
     NONE | LOGICAL='logical' | PHYSICAL='physical';
 
@@ -304,9 +313,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' |
     // Other terminals
-    FLOAT | NEGINT | BOOL |
-    // Queuing policies
-    'DEFER' | 'DROP' | 'UPDATE' |
+    FLOAT | NEGINT | TRUE | FALSE |
     // Action origins
     'logical' | 'physical' |
     // Visibility modifiers
