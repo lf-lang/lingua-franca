@@ -261,34 +261,6 @@ struct reaction_t {
     reaction_function_t deadline_violation_handler; // Local deadline violation handler.
 };
 
-/** 
- * Enumeration of different policies for handling events that succeed one
- * another more rapidly than is allowed by a physical action's min. inter-
- * arrival time.
- *
- * For logical actions, the policy should always be `NONE`. 
- *
- * For physical actions, the default policy is `DEFER`, which is to increase the
- * offsets of newly-scheduled events so that the min. interarrival time is
- * satisfied. This means that no events will be ignored, but they will occur
- * later. This policy has the drawback that it may cause the event queue to grow
- * indefinitely. 
- *
- * The `DROP` policy ignores events that are scheduled too close to one another.
- *
- * The `UPDATE` policy do the following. If the event that a newly-scheduled
- * event is in too close proximity of is still on the event queue, the value
- * carried by that event will be updated with the value of the newly-scheduled
- * event. If this is not possible because the original event has already been
- * popped off the queue, the `DEFER` policy applies.
- * */
-typedef enum queuing_policy_t {
-    NONE,
-    DEFER, 
-    DROP, 
-    UPDATE
-} queuing_policy_t;
-
 /** Trigger struct representing an output, timer, action, or input. */
 struct trigger_t {
     reaction_t** reactions;   // Reactions sensitive to this trigger.
@@ -299,7 +271,7 @@ struct trigger_t {
     token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action (i.e., to be scheduled relative to physical time).
     instant_t scheduled;      // Tag of the last event that was scheduled for this action.
-    queuing_policy_t policy;  // Indicates the policy for handling events that succeed one another more rapidly than allowable by the specified min. interarrival time. Only applies to physical actions.
+    bool drop;                // Whether or not to drop events if they succeed one another more quickly than the minimum interarrival time allows.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.

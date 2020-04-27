@@ -133,7 +133,7 @@ Timer:
 // to elapse between action occurrences.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=Value (',' minInterArrival=Value (',' drop?=TRUE | FALSE)? )? ')')?
+    ('(' minDelay=Value (',' minInterArrival=Value (',' (drop?=TRUE | FALSE))? )? ')')?
     (':' type=Type)? ';';
 
 Reaction:
@@ -243,8 +243,7 @@ terminal TRUE:
     'true';
     
 terminal FALSE:
-    'false'
-;
+    'false';
 
 DottedName:
     (ID ('.' ID)*)
