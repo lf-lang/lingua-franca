@@ -38,8 +38,8 @@ reactor Print {
         self->c++;
     =}
     reaction(shutdown) {=
-        if (self->c != 5) {
-            printf("Expected to receive 5 items.\n");
+        if (self->c != 6) {
+            printf("Expected to receive 6 items.\n");
             exit(2);
         }
     =}
