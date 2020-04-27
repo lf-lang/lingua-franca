@@ -234,7 +234,7 @@ Port:
     
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (time?='time' (arraySpec=ArraySpec)?) | ((id=DottedName (stars+='*')* (arraySpec=ArraySpec | parameters=Generic)?) | code=Code);
+   (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* (arraySpec=ArraySpec | parameters=Generic)?) | code=Code);
 
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
@@ -246,8 +246,9 @@ terminal FALSE:
     'false';
 
 DottedName:
-    (ID ('.' ID)*)
+    (ID (('.'|'::') ID)*)
 ;
+
 
 Generic:
     '<' (DottedName (',' DottedName)*) '>'
@@ -326,7 +327,7 @@ Token:
     // Brackets
     '[' | ']' | '<' | '>' | '[]' |
     // Punctuation
-    ':' | ';' | ',' | '.' |
+    ':' | ';' | ',' | '.' | '::' |
     // Hyphen
     '-' |
     // Arrow
