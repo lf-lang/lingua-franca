@@ -347,6 +347,62 @@ class LinguaFrancaValidationTest {
     }
     
     /**
+	 * Allow connection to the port of a contained reactor if another port with same name is effect of a reaction.
+	 */
+	@Test
+	def void connectionToEffectPort3() {
+		val model = '''
+			target C;
+			
+			reactor Foo {
+			    input in:int;
+			}
+			main reactor Bar {
+			    input in:int;
+			    x1 = new Foo();
+			    x2 = new Foo();
+			    in -> x1.in;
+			    reaction(startup) -> x2.in {=                    
+			    =}
+			}
+		'''.parse
+
+		Assertions.assertNotNull(model)
+		Assertions.assertTrue(model.eResource.errors.isEmpty,
+			"Encountered unexpected error while parsing: " +
+				model.eResource.errors)
+		model.assertNoErrors()
+	}
+
+	/**
+	 * Disallow connection to the port of a contained reactor if the same port is effect of a reaction.
+	 */
+	@Test
+	def void connectionToEffectPort4() {
+		val model = '''
+			target C;
+			
+			reactor Foo {
+			    input in:int;
+			}
+			main reactor Bar {
+			    input in:int;
+			    x1 = new Foo();
+			    in -> x1.in;
+			    reaction(startup) -> x1.in {=                    
+			    =}
+			}
+		'''.parse
+
+		Assertions.assertNotNull(model)
+		Assertions.assertTrue(model.eResource.errors.isEmpty,
+			"Encountered unexpected error while parsing: " +
+				model.eResource.errors)
+		model.assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+			"Cannot connect: Port named 'in' is already effect of a reaction.")
+	}
+    
+    /**
      * Detect cycles in the instantiation graph.
      */
     @Test
