@@ -115,7 +115,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
 	
-	public static val SynthesisOption PAPER_MODE = SynthesisOption.createCheckOption("Paper Mode", false).setCategory(APPEARANCE)
+	public static val SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
@@ -135,7 +135,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_ALL_REACTORS,
 			SHOW_REACTION_CODE,
 			MEMORIZE_EXPANSION_STATES,
-			PAPER_MODE,
+			SHOW_HYPERLINKS,
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
 			SHOW_INSTANCE_NAMES,
@@ -254,7 +254,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
 			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 1.1f)
 			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 1.1f)
-			if (PAPER_MODE.booleanValue) {
+			if (!SHOW_HYPERLINKS.booleanValue) {
 				node.setLayoutOption(CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6))
 				node.setLayoutOption(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
 			}
@@ -265,7 +265,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
 				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 
-				if (!PAPER_MODE.booleanValue) {
+				if (SHOW_HYPERLINKS.booleanValue) {
 					// Collapse button
 					addTextButton(TEXT_HIDE_ACTION) => [
 						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
@@ -277,7 +277,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactor.parameters.empty) {
 					addRectangle() => [
 						invisible = true
-						if (PAPER_MODE.booleanValue) {
+						if (!SHOW_HYPERLINKS.booleanValue) {
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
 						} else {
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 4, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
@@ -303,7 +303,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 				}
 
-				if (!PAPER_MODE.booleanValue) {
+				if (SHOW_HYPERLINKS.booleanValue) {
 					// Expand button
 					if (reactor.hasContent && !recursive) {
 						addTextButton(TEXT_SHOW_ACTION) => [
@@ -385,7 +385,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
 		node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
 		node.setLayoutOption(LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true)
-		if (PAPER_MODE.booleanValue) {
+		if (!SHOW_HYPERLINKS.booleanValue) {
 			node.setLayoutOption(CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6))
 			node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
 			node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
