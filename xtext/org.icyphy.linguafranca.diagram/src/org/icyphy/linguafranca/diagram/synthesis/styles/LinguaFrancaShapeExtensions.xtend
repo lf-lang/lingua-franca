@@ -39,6 +39,11 @@ import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
 import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 
+/**
+ * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 @ViewSynthesisShared
 class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
@@ -151,7 +156,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		// optional code content
 		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.code.tokens.nullOrEmpty
 		if (hasCode) {
-			contentContainer.addText(reaction.code.tokens.toString.trimCode) => [
+			contentContainer.addText(reaction.code.trimCode) => [
 				associateWith(reaction)
 				fontSize = 6
 				fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
@@ -189,7 +194,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 			// optional code content
 			if (hasDeadlineCode) {
-				contentContainer.addText(reaction.deadline.code.tokens.toString.trimCode) => [
+				contentContainer.addText(reaction.deadline.code.trimCode) => [
 					associateWith(reaction.deadline)
 					foreground = Colors.BROWN
 					fontSize = 6

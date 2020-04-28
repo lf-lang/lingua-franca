@@ -1,12 +1,10 @@
 package org.icyphy.linguafranca.diagram.synthesis
 
 import com.google.common.collect.HashBasedTable
-import com.google.common.collect.HashBiMap
 import com.google.common.collect.HashMultimap
 import com.google.common.collect.Table
 import de.cau.cs.kieler.klighd.DisplayedActionData
 import de.cau.cs.kieler.klighd.SynthesisOption
-import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
@@ -45,8 +43,6 @@ import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.emf.ecore.EObject
 import org.icyphy.ASTUtils
-import org.icyphy.AnnotatedDependencyGraph
-import org.icyphy.AnnotatedNode
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
@@ -67,11 +63,14 @@ import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
-import static extension de.cau.cs.kieler.klighd.kgraph.util.KGraphIterators.*
-import static extension java.lang.String.format
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 
+/**
+ * Diagram synthesis for Lingua Franca programs.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 @ViewSynthesisShared
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
@@ -85,14 +84,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension LinguaFrancaStyleExtensions
 	@Inject extension LinguaFrancaShapeExtensions
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
+	@Inject extension LinguaFrancaSynthesisCycleDetection
 	
 	// -------------------------------------------------------------------------
 
 	// -- INTERNAL --
 	public static val REACTOR_INSTANCE = new Property<Instantiation>("org.icyphy.linguafranca.diagram.synthesis.reactor.instantiation")
-	public static val RECURSIVE_INSTANTIATION = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.recursive.instantiation", false)
-	public static val DEPENDENCY_CYCLE = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.dependency.cycle", false)
-	private static val DEBUG_CYCLE_DETECTION = false
 
 	// -- STYLE --	
 	public static val ALTERNATIVE_DASH_PATTERN = #[3.0f]
@@ -218,7 +215,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val label = reactor.createReactorLabel(instance)
 		val recursive = parentReactors.contains(reactor)
 		if (recursive) {
-			node.setProperty(RECURSIVE_INSTANTIATION, true)
+			node.setProperty(LinguaFrancaSynthesisCycleDetection.RECURSIVE_INSTANTIATION, true)
 		}
 		parentReactors += reactor
 		
@@ -399,102 +396,23 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	private def KNode detectAndAnnotateCycles(KNode node) {
 		try {
-			var containsRecursion = false
-			var depGraph = new AnnotatedDependencyGraph()
-			
-        	// Some edges do not specify ports hence we introduce virtual ports to correctly handle dependency separation
-        	val virtualPorts = HashBiMap.<KNode,KPort>create
-			
-			// Build graph and find cycles
-            for (childNode : node.getKNodeIterator(false).toIterable) {
-            	if (childNode.getProperty(RECURSIVE_INSTANTIATION)) {
-            		containsRecursion = true
-            	}
-            	
-            	if (!childNode.outgoingEdges.empty && !childNode.incomingEdges.empty) { // simplify dependency graph
-            		val vPort = virtualPorts.getOrInit(childNode)[createPort()]
-            		val breaksCylce = switch(childNode.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)) {
-            			Action: true
-            			default: false
-            		}
-	            	if (childNode.ports.empty) {
-	            		// If node has no ports ignore outgoing if it breaks cycles
-		            	if (!breaksCylce) {
-			                depGraph.addEdges(new AnnotatedNode(vPort), childNode.outgoingEdges.map[
-			                	new AnnotatedNode(targetPort?:virtualPorts.getOrInit(target)[createPort()])
-			                ].toSet)
-		            	}
-	            	} else {
-	            		// If node has port prefer dependencies on ports
-	            		for (edge : childNode.outgoingEdges.filter[!target.outgoingEdges.empty]) { // also simplify dependency graph
-	            			depGraph.addEdge(
-		                		new AnnotatedNode(edge.sourcePort?:vPort),
-		                		new AnnotatedNode(edge.targetPort?:virtualPorts.getOrInit(edge.target)[createPort()])
-	            			)
-	            		}
-	            		// If node breaks cycles or has children -> do not introduce dependencies from input to output
-		            	if (!breaksCylce && childNode.children.empty) {
-		            		val vPortNode = new AnnotatedNode(vPort)
-		            		val outputs = childNode.outgoingEdges.map[sourcePort].filterNull.toSet.map[new AnnotatedNode(it)]
-		            		val inputs = childNode.incomingEdges.map[targetPort].filterNull.toSet.map[new AnnotatedNode(it)]
-		            		
-		            		for (input : inputs) {
-	            				depGraph.addEdge(input, vPortNode)
-		            		}
-	            			depGraph.addEdges(vPortNode, outputs.toSet)
-		            	}
-	            	}
-            	}
-            }
-            depGraph.detectCycles()
+			val result = node.detectAndHighlightCycles[
+				if (it instanceof KNode) {
+					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
+				} else if (it instanceof KEdge) {
+					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
+        			// TODO initiallyHide does not work with incremental (https://github.com/kieler/KLighD/issues/37)
+        			// cycleEgde.initiallyShow() // Show hidden order dependencies
+					it.KRendering.invisible = false
+				}
+			]
             
-            if (DEBUG_CYCLE_DETECTION) {
-	            println("-- DEBUG CYCLE DETECTION --")
-	            for (n : depGraph.nodes) {
-	            	for(d : depGraph.getDependencies(n)) {
-	            		val sN = (n.contents.eContainer?:virtualPorts.inverse.get(n.contents)) as KNode
-	            		val tN = (d.contents.eContainer?:virtualPorts.inverse.get(d.contents)) as KNode
-	            		val sO = sN?.getProperty(KlighdInternalProperties.MODEL_ELEMEMT).toString
-	            		val tO = tN?.getProperty(KlighdInternalProperties.MODEL_ELEMEMT).toString
-	            		val sP = n.contents.eContainer === null ? "virtual" : n.contents.getProperty(CoreOptions.PORT_SIDE).toString
-	            		val tP = d.contents.eContainer === null ? "virtual" : d.contents.getProperty(CoreOptions.PORT_SIDE).toString
-	            		println("%s[%s] -> %s[%s]".format(sO, sP, tO, tP))
-	            	}
-	            }
-			}
-            
-            if (!depGraph.cycles.empty) {
-    			// Highlight cycles
-                for (cycle : depGraph.cycles) {
-                	val cyclePorts = cycle.map[contents].toSet
-                	val cycleNodes = cycle.map[contents].map[
-                		if (it.node !== null) {
-                			it.node
-                		} else {
-                			virtualPorts.inverse.get(it)
-                		}
-                	].filterNull.toSet
-                	for (cycleNode : cycleNodes) {
-                		cycleNode.setProperty(DEPENDENCY_CYCLE, true)
-                		cycleNode.data.filter(KRendering).forEach[errorStyle()]
-                		for (cycleEgde : cycleNode.outgoingEdges.filter[
-                			cycleNodes.contains(target) &&
-                			sourcePort === null ? true : cyclePorts.contains(sourcePort)
-                		]) {
-                			cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
-                			cycleEgde.data.filter(KRendering).forEach[errorStyle()]
-                			// TODO initiallyHie does not work with incremental
-                			// cycleEgde.initiallyShow() // Show hidden order dependencies
-							cycleEgde.KRendering.invisible = false
-                		}
-                	}
-                }
-                
+            if (result.cycle) {
                 val err = node.addErrorComment(TEXT_ERROR_CONTAINS_CYCLE)
                 err.KContainerRendering.addRectangle() => [ // Add to existing figure
                 	setGridPlacementData().from(LEFT, 3, 0, TOP, -1, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
             		noSelectionStyle()
-            		 addSingleClickAction(ShowCycleAction.ID)
+            		addSingleClickAction(ShowCycleAction.ID)
             		
             		addText(TEXT_ERROR_CYCLE_BTN_SHOW) => [
             			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
@@ -504,7 +422,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             			addSingleClickAction(ShowCycleAction.ID)
             		]
                 ]
-                if (containsRecursion) {
+                if (result.recursion) {
                 	err.KContainerRendering.addText(TEXT_ERROR_CONTAINS_RECURSION) => [ // Add to existing figure
                 		styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
                 		setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
@@ -512,7 +430,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 }
                 
                 return err
-            } else if (containsRecursion) {
+            } else if (result.recursion) {
             	return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
             }
         } catch(Exception e) {
@@ -748,7 +666,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				// Do not remove them, as they are needed for cycle detection
 				edge.KRendering.invisible = !SHOW_REACTION_ORDER_EDGES.booleanValue
 				edge.KRendering.invisible.propagateToChildren = true
-				// TODO this does not work work with incremental update -> check for bug
+				// TODO this does not work work with incremental update (https://github.com/kieler/KLighD/issues/37)
 				// if (!SHOW_REACTION_ORDER_EDGES.booleanValue) edge.initiallyHide()
 				
 				prevNode = node
@@ -855,6 +773,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				lineStyle = LineStyle.DOT
 				foreground = Colors.CHOCOLATE_1
 				boldLineSelectionStyle()
+				// Arrow head on tail because edge must not be reversed because the direction is used in cycle detection!
 				addFixedTailArrowDecorator() // Fix for bug: https://github.com/kieler/KLighD/issues/38
 			]
 		]

@@ -3,8 +3,6 @@ package org.icyphy.linguafranca.diagram.synthesis
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
-import java.util.Map
-import java.util.function.Supplier
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.TerminalRule
 import org.eclipse.xtext.nodemodel.impl.CompositeNode
@@ -14,7 +12,13 @@ import org.eclipse.xtext.resource.XtextResource
 import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.Code
 
+/**
+ * Extension class that provides various utility methods for the synthesis.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 @ViewSynthesisShared
 class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions {
 	
@@ -49,13 +53,15 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	/**
 	 * Trims the hostcode of reactions.
 	 */
-	def trimCode(String code) {
-		if (code.nullOrEmpty) {
-			return code
+	def trimCode(Code tokenizedCode) {
+		if (tokenizedCode === null || tokenizedCode.tokens.nullOrEmpty) {
+			return ""
 		}
 		try {
-			val lines = newArrayList(code.split("\n"))
+			val code = NodeModelUtils.findActualNodeFor(tokenizedCode)?.text
 			var contentStart = 0
+			val lines = newArrayList()
+			lines += code.split("\n").dropWhile[!it.contains("{=")]
 			
 			// Remove start pattern
 			if (!lines.empty) {
@@ -102,7 +108,7 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 			return lines.join("\n")
 		} catch(Exception e) {
 			e.printStackTrace
-			return code
+			return tokenizedCode.tokens.join().replace(";",";\n") // just heuristic
 		}
 	}
 	
@@ -111,21 +117,6 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	 */
 	def setID(KGraphElement kge, String id) {
 		kge.data.add(createKIdentifier => [it.setId(id)])
-	}
-	
-	/**
-	 * Utility to get the value in a map or put an initial value and get that one.
-	 */
-	def <K,V> V getOrInit(Map<K, V> map, K key, Supplier<V> init) {
-		if (map === null) {
-			return null
-		} else if (map.containsKey(key)) {
-			return map.get(key)
-		} else {
-			val value = init.get()
-			map.put(key, value)
-			return value
-		}
 	}
 	
 	/**

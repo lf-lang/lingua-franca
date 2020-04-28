@@ -5,6 +5,11 @@ import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis
 import javax.inject.Inject
 import org.eclipse.emf.ecore.EObject
 
+/**
+ * Abstract super class for extension classes used in for the diagram synthesis that provides some convince methods.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 abstract class AbstractSynthesisExtensions {
 	
 	@Inject AbstractDiagramSynthesis<?> delegate
