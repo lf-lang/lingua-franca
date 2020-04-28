@@ -49,10 +49,23 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 		r.foreground = Colors.RED
 		r.lineWidth = 2
 		r.selectionLineWidth = 3
-		//r.background = Colors.TOMATO
 		
 		if (r.eContainer instanceof KEdge) { // also color potential arrow heads
 			r.background = Colors.RED
+			r.background.propagateToChildren = true
+			r.foreground.propagateToChildren = true
+			r.lineWidth.propagateToChildren = true
+		}
+	}
+	
+	def commentStyle(KRendering r) {
+		r.foreground = Colors.LIGHT_GOLDENROD
+		r.background = Colors.PALE_GOLDENROD
+		r.lineWidth = 1
+		r.selectionLineWidth = 2
+		
+		if (r.eContainer instanceof KEdge) { // also color potential arrow heads
+			r.background = Colors.LIGHT_GOLDENROD
 			r.background.propagateToChildren = true
 			r.foreground.propagateToChildren = true
 			r.lineWidth.propagateToChildren = true

@@ -16,7 +16,6 @@ import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.KRendering
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
-import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KLabelExtensions
@@ -31,10 +30,10 @@ import java.util.EnumSet
 import java.util.List
 import java.util.Map
 import javax.inject.Inject
+import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy
 import org.eclipse.elk.alg.layered.options.FixedAlignment
 import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
-import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy
 import org.eclipse.elk.core.math.ElkPadding
 import org.eclipse.elk.core.math.KVector
 import org.eclipse.elk.core.options.BoxLayouterOptions
@@ -44,6 +43,7 @@ import org.eclipse.elk.core.options.PortConstraints
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
+import org.eclipse.emf.ecore.EObject
 import org.icyphy.ASTUtils
 import org.icyphy.AnnotatedDependencyGraph
 import org.icyphy.AnnotatedNode
@@ -63,6 +63,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction
 import org.icyphy.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction
+import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
@@ -70,7 +71,6 @@ import static extension de.cau.cs.kieler.klighd.kgraph.util.KGraphIterators.*
 import static extension java.lang.String.format
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 
 @ViewSynthesisShared
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
@@ -127,6 +127,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(EXPERIMENTAL)
 	public static val SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency cycle detection", false).setCategory(EXPERIMENTAL)
+	public static val SynthesisOption SHOW_COMMENTS = SynthesisOption.createCheckOption("Comments", false).setCategory(EXPERIMENTAL)
 	
     /** Synthesis actions */
     public static val DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details")
@@ -144,7 +145,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			REACTOR_PARAMETER_MODE,
 			REACTOR_PARAMETER_TABLE_COLS,
 			CYCLE_DETECTION,
-			SHOW_REACTION_ORDER_EDGES
+			SHOW_REACTION_ORDER_EDGES,
+			SHOW_COMMENTS
 		]
 	}
 	
@@ -242,6 +244,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				figure.addChildArea()
 				node.children += reactor.transformReactorNetwork(emptyMap, emptyMap, parentReactors)
 			}
+			
+			nodes += reactor.createUserComments(node)
 			
 			node.configureReactorNodeLayout()
 			
@@ -354,6 +358,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				nodes += node.addErrorComment(TEXT_ERROR_RECURSIVE)
 			} else {
 				node.setLayoutOption(KlighdProperties.EXPAND, expandDefault)
+			}
+			
+			if (instance !== null) {
+				nodes += instance.createUserComments(node)
+				if (!SHOW_ALL_REACTORS.booleanValue) {
+					nodes += reactor.createUserComments(node)
+				}
+			} else {
+				nodes += reactor.createUserComments(node)
 			}
 			
 			node.configureReactorNodeLayout()
@@ -524,15 +537,16 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Transform instances
 		for (entry : reactor.instantiations.indexed) {
 			val instance = entry.value
-			val node = instance.reactorClass.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors)
-			node.head.setLayoutOption(CoreOptions.PRIORITY, reactor.instantiations.size - entry.key)
-			nodes += node
+			val rNodes = instance.reactorClass.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors)
+			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, reactor.instantiations.size - entry.key)
+			nodes += rNodes
 		}
 		
 		// Create timers
 		for (Timer timer : reactor.timers?:emptyList) {
 			val node = createNode().associateWith(timer)
 			nodes += node
+			nodes += timer.createUserComments(node)
 			timerNodes.put(timer, node)
 			
 			node.addTimerFigure(timer)
@@ -543,8 +557,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val idx = reactor.reactions.indexOf(reaction)
 			val node = createNode().associateWith(reaction)
 			nodes += node
+			nodes += reaction.createUserComments(node)
 			reactionNodes.put(reaction, node)
-			
+						
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			node.setLayoutOption(CoreOptions.PRIORITY, (reactor.reactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
 			node.setLayoutOption(LayeredOptions.POSITION, new KVector(0, idx)) // try order reactions vertically if in one layer
@@ -650,6 +665,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (Action action : actions) {
 			val node = createNode().associateWith(action)
 			nodes += node
+			nodes += action.createUserComments(node)
+			
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			
 			val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
@@ -921,6 +938,30 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         ]  
         
         return comment
+	}
+	
+	private def Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
+		if (SHOW_COMMENTS.booleanValue) {
+			val commentText = element.findComments()
+			
+			if (!commentText.nullOrEmpty) {
+				val comment = createNode()
+		        comment.setLayoutOption(CoreOptions.COMMENT_BOX, true)
+		        comment.addCommentFigure(commentText) => [
+		        	commentStyle()
+		        ]
+		        
+		        // connect
+		        createEdge() => [
+		        	source = comment
+		        	target = targetNode
+		        	addCommentPolyline().commentStyle()
+		        ]  
+		        
+		        return #[comment]
+			}
+		}
+		return #[]
 	}
 
 }
