@@ -122,7 +122,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ReactorParameterDisplayModes.values, ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE)
 	
-	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(EXPERIMENTAL)
+	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Dependencies", false).setCategory(EXPERIMENTAL)
 	public static val SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency cycle detection", false).setCategory(EXPERIMENTAL)
 	public static val SynthesisOption SHOW_COMMENTS = SynthesisOption.createCheckOption("Comments", false).setCategory(EXPERIMENTAL)
 	
@@ -404,6 +404,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         			// TODO initiallyHide does not work with incremental (https://github.com/kieler/KLighD/issues/37)
         			// cycleEgde.initiallyShow() // Show hidden order dependencies
 					it.KRendering.invisible = false
+				} else if (it instanceof KPort) {
+					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
+					it.reverseTrianglePort()
 				}
 			]
             

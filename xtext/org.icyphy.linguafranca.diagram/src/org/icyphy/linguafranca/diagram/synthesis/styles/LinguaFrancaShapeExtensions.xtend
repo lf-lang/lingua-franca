@@ -1,6 +1,7 @@
 package org.icyphy.linguafranca.diagram.synthesis.styles
 
 import de.cau.cs.kieler.klighd.KlighdConstants
+import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Arc
@@ -9,7 +10,9 @@ import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.KPolyline
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
+import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
 import de.cau.cs.kieler.klighd.krendering.KText
+import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.VerticalAlignment
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
@@ -35,9 +38,6 @@ import org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjus
 import static org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
-import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
-import de.cau.cs.kieler.klighd.kgraph.KEdge
-import de.cau.cs.kieler.klighd.krendering.LineStyle
 
 /**
  * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
@@ -341,6 +341,21 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
 			]
 		]
+	}
+	
+	/**
+	 * Reverses the arrow direction of a triangle port.
+	 */
+	def reverseTrianglePort(KPort port) {
+		val poly = port.KRendering
+		if (poly instanceof KPolyline) {
+			poly.points.clear
+			poly.points += #[
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0),
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
+			]
+		}
 	}
 	
 	/**

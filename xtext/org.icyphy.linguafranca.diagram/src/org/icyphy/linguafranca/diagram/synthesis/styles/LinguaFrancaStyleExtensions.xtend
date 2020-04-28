@@ -3,6 +3,7 @@ package org.icyphy.linguafranca.diagram.synthesis.styles
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KLabel
+import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.KPolyline
@@ -55,7 +56,7 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 		r.lineWidth = 2
 		r.selectionLineWidth = 3
 		
-		if (r.eContainer instanceof KEdge) { // also color potential arrow heads
+		if (r.eContainer instanceof KEdge || r.eContainer instanceof KPort) { // also color potential arrow heads
 			r.background = Colors.RED
 			r.background.propagateToChildren = true
 			r.foreground.propagateToChildren = true
