@@ -195,7 +195,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         var reactor = connection.eContainer as Reactor
         for (reaction : reactor.reactions) {
             for (effect : reaction.effects) {
-                if (connection.rightPort.variable === effect.variable) {
+                if (connection.rightPort.container === effect.container &&
+                	connection.rightPort.variable === effect.variable) {
                     error(
                         "Cannot connect: Port named '" + effect.variable.name +
                             "' is already effect of a reaction.",

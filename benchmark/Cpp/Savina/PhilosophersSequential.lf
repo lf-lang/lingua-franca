@@ -1,0 +1,382 @@
+target Cpp;
+
+import Philosopher.lf;
+import Master.lf;
+
+
+reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
+    
+    public preamble {=
+        constexpr unsigned num_philosophers = 20;
+        using ForkArray = std::array<bool, num_philosophers>;
+        using PhilosopherArray = std::array<Philosopher*, num_philosophers>;
+    =}
+    
+    private preamble {=
+        /*
+         * Try to acquire both forks for a philosopher. Returns true if
+         * successful and false otherwise. 
+         */
+        bool acquire_forks(ForkArray& forks, unsigned id) {
+            unsigned left = id;
+            unsigned right = (id + 1) % num_philosophers;
+            if (forks[left] || forks[right]) {
+                // someone else has access to the forks
+                return false;
+                // forks are free
+            } else {
+                forks[left] = true;
+                forks[right] = true;
+                return true;
+            }
+        }
+        
+        /*
+         * Release the forks acquired by a philosopher. This does not perform
+         * any checks!
+         */
+         void free_forks(ForkArray& forks, unsigned id) {
+            forks[id] = false; // left
+            forks[(id + 1) % num_philosophers] = false; // right
+         }
+    =}
+    
+    input start:void;
+    output finished:void;
+    
+    state forks:ForkArray(false);
+    state finished_philosophers:unsigned(0);
+    state retries:unsigned(0);
+    
+    // A little trick to be able to iterate over all philosophers 
+    state philosophers:PhilosopherArray({= &p0, &p1, &p2, &p3, &p4, &p5, &p6, &p7, &p8, &p9, &p10,
+                                           &p11, &p12, &p13, &p14, &p15, &p16, &p17, &p18, &p19 =});
+    
+    // FIXME: Can we do this in a loop?
+    p0 = new Philosopher(id=0, count=count, verbose=verbose);
+    p1 = new Philosopher(id=1, count=count, verbose=verbose);
+    p2 = new Philosopher(id=2, count=count, verbose=verbose);
+    p3 = new Philosopher(id=3, count=count, verbose=verbose);
+    p4 = new Philosopher(id=4, count=count, verbose=verbose);
+    p5 = new Philosopher(id=5, count=count, verbose=verbose);
+    p6 = new Philosopher(id=6, count=count, verbose=verbose);
+    p7 = new Philosopher(id=7, count=count, verbose=verbose);
+    p8 = new Philosopher(id=8, count=count, verbose=verbose);
+    p9 = new Philosopher(id=9, count=count, verbose=verbose);
+    p10 = new Philosopher(id=10, count=count, verbose=verbose);
+    p11 = new Philosopher(id=11, count=count, verbose=verbose);
+    p12 = new Philosopher(id=12, count=count, verbose=verbose);
+    p13 = new Philosopher(id=13, count=count, verbose=verbose);
+    p14 = new Philosopher(id=14, count=count, verbose=verbose);
+    p15 = new Philosopher(id=15, count=count, verbose=verbose);
+    p16 = new Philosopher(id=16, count=count, verbose=verbose);
+    p17 = new Philosopher(id=17, count=count, verbose=verbose);
+    p18 = new Philosopher(id=18, count=count, verbose=verbose);
+    p19 = new Philosopher(id=19, count=count, verbose=verbose);
+        
+    // FIXME: Would be great if this can be done for all Philosopher instances at once!
+    reaction(start) -> p0.start, p1.start, p2.start, p3.start,
+                       p4.start, p5.start, p6.start, p7.start,
+                       p8.start, p9.start, p10.start, p11.start,
+                       p12.start, p13.start, p14.start, p15.start,
+                       p16.start, p17.start, p18.start, p19.start {=
+        if (verbose)
+            std::cout << "Starting the arbitrator\n";
+        finished_philosophers = 0;
+        retries = 0;
+        
+        // FIXME: Can we do this in a loop without the hack?
+        for(auto p : philosophers) {
+            p->start.set();
+        }
+    =}
+    
+    reaction(p0.hungry) -> p0.eat, p0.denied {=
+        if (acquire_forks(forks, 0)) {
+            p0.eat.set();
+        } else {
+            retries++;
+            p0.denied.set();
+        }
+    =}
+    
+    reaction(p1.hungry) -> p1.eat, p1.denied {=
+        if (acquire_forks(forks, 1)) {
+            p1.eat.set();
+        } else {
+            retries++;
+            p1.denied.set();
+        }
+    =}
+
+    reaction(p2.hungry) -> p2.eat, p2.denied {=
+        if (acquire_forks(forks, 2)) {
+            p2.eat.set();
+        } else {
+            retries++;
+            p2.denied.set();
+        }
+    =}
+    
+    reaction(p3.hungry) -> p3.eat, p3.denied {=
+        if (acquire_forks(forks, 3)) {
+            p3.eat.set();
+        } else {
+            retries++;
+            p3.denied.set();
+        }
+    =}
+        
+    reaction(p4.hungry) -> p4.eat, p4.denied {=
+        if (acquire_forks(forks, 4)) {
+            p4.eat.set();
+        } else {
+            retries++;
+            p4.denied.set();
+        }
+    =}
+    
+    reaction(p5.hungry) -> p5.eat, p5.denied {=
+        if (acquire_forks(forks, 5)) {
+            p5.eat.set();
+        } else {
+            retries++;
+            p5.denied.set();
+        }
+    =}
+    
+    reaction(p6.hungry) -> p6.eat, p6.denied {=
+        if (acquire_forks(forks, 6)) {
+            p6.eat.set();
+        } else {
+            retries++;
+            p6.denied.set();
+        }
+    =}
+    
+    reaction(p7.hungry) -> p7.eat, p7.denied {=
+        if (acquire_forks(forks, 7)) {
+            p7.eat.set();
+        } else {
+            retries++;
+            p7.denied.set();
+        }
+    =}
+        
+    reaction(p8.hungry) -> p8.eat, p8.denied {=
+        if (acquire_forks(forks, 8)) {
+            p8.eat.set();
+        } else {
+            retries++;
+            p8.denied.set();
+        }
+    =}
+    
+    reaction(p9.hungry) -> p9.eat, p9.denied {=
+        if (acquire_forks(forks, 9)) {
+            p9.eat.set();
+        } else {
+            retries++;
+            p9.denied.set();
+        }
+    =}
+    
+    reaction(p10.hungry) -> p10.eat, p10.denied {=
+        if (acquire_forks(forks, 10)) {
+            p10.eat.set();
+        } else {
+            retries++;
+            p10.denied.set();
+        }
+    =}
+    
+    reaction(p11.hungry) -> p11.eat, p11.denied {=
+        if (acquire_forks(forks, 11)) {
+            p11.eat.set();
+        } else {
+            retries++;
+            p11.denied.set();
+        }
+    =}
+    
+    reaction(p12.hungry) -> p12.eat, p12.denied {=
+        if (acquire_forks(forks, 12)) {
+            p12.eat.set();
+        } else {
+            retries++;
+            p12.denied.set();
+        }
+    =}
+    
+    reaction(p13.hungry) -> p13.eat, p13.denied {=
+        if (acquire_forks(forks, 13)) {
+            p13.eat.set();
+        } else {
+            retries++;
+            p13.denied.set();
+        }
+    =}
+    
+    reaction(p14.hungry) -> p14.eat, p14.denied {=
+        if (acquire_forks(forks, 14)) {
+            p14.eat.set();
+        } else {
+            retries++;
+            p14.denied.set();
+        }
+    =}
+    
+    reaction(p15.hungry) -> p15.eat, p15.denied {=
+        if (acquire_forks(forks, 15)) {
+            p15.eat.set();
+        } else {
+            retries++;
+            p15.denied.set();
+        }
+    =}
+    
+    reaction(p16.hungry) -> p16.eat, p16.denied {=
+        if (acquire_forks(forks, 16)) {
+            p16.eat.set();
+        } else {
+            retries++;
+            p16.denied.set();
+        }
+    =}
+    
+    reaction(p17.hungry) -> p17.eat, p17.denied {=
+        if (acquire_forks(forks, 17)) {
+            p17.eat.set();
+        } else {
+            retries++;
+            p17.denied.set();
+        }
+    =}
+    
+    reaction(p18.hungry) -> p18.eat, p18.denied {=
+        if (acquire_forks(forks, 18)) {
+            p18.eat.set();
+        } else {
+            retries++;
+            p18.denied.set();
+        }
+    =}
+    
+    reaction(p19.hungry) -> p19.eat, p19.denied {=
+        if (acquire_forks(forks, 19)) {
+            p19.eat.set();
+        } else {
+            retries++;
+            p19.denied.set();
+        }
+    =}
+    
+    reaction(p0.done) {=
+        free_forks(forks, 0);
+    =}
+    
+    reaction(p1.done) {=
+        free_forks(forks, 1);
+    =}
+    
+    reaction(p2.done) {=
+        free_forks(forks, 2);
+    =}
+    
+    reaction(p3.done) {=
+        free_forks(forks, 3);
+    =}
+    
+    reaction(p4.done) {=
+        free_forks(forks, 4);
+    =}
+    
+    reaction(p5.done) {=
+        free_forks(forks, 5);
+    =}
+    
+    reaction(p6.done) {=
+        free_forks(forks, 6);
+    =}
+    
+    reaction(p7.done) {=
+        free_forks(forks, 7);
+    =}
+    
+    reaction(p8.done) {=
+        free_forks(forks, 8);
+    =}
+    
+    reaction(p9.done) {=
+        free_forks(forks, 9);
+    =}
+    
+    reaction(p10.done) {=
+        free_forks(forks, 10);
+    =}
+    
+    reaction(p11.done) {=
+        free_forks(forks, 11);
+    =}
+    
+    reaction(p12.done) {=
+        free_forks(forks, 12);
+    =}
+    
+    reaction(p13.done) {=
+        free_forks(forks, 13);
+    =}
+    
+    reaction(p14.done) {=
+        free_forks(forks, 14);
+    =}
+    
+    reaction(p15.done) {=
+        free_forks(forks, 15);
+    =}
+    
+    reaction(p16.done) {=
+        free_forks(forks, 16);
+    =}
+    
+    reaction(p17.done) {=
+        free_forks(forks, 17);
+    =}
+    
+    reaction(p18.done) {=
+        free_forks(forks, 18);
+    =}
+    
+    reaction(p19.done) {=
+        free_forks(forks, 19);
+    =}
+
+    // FIXME: Would be great if this can be done for all Philosopher instances at once!    
+    reaction (p0.finished, p1.finished, p2.finished, p3.finished,
+              p4.finished, p5.finished, p6.finished, p7.finished,
+              p8.finished, p9.finished, p10.finished, p11.finished,
+              p12.finished, p13.finished, p14.finished, p15.finished,
+              p16.finished, p17.finished, p18.finished, p19.finished) -> finished {=
+        // FIXME: Can we do this in a loop without the hack? Or just get the number of present values?
+        for(auto p : philosophers) {
+            if (p->finished.is_present())
+                finished_philosophers++;
+        }
+        
+        if (verbose)
+            std::cout << "finished philosophers: " << finished_philosophers << "\n";
+
+        if(finished_philosophers == num_philosophers) {
+            std::cout << "Num retries: " << retries << '\n';
+            finished.set();
+        }        
+    =}
+}
+
+main reactor PhilosophersSequentialInterleaved(iterations:unsigned(12), count:unsigned(10000), verbose:bool(false)) {
+    master = new Master(iterations=iterations);
+    arbitrator = new Arbitrator(count=count, verbose=verbose);
+    
+    master.start -> arbitrator.start;
+    arbitrator.finished -> master.finished;
+}
