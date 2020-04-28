@@ -40,7 +40,7 @@ main reactor ServerTest(port:number(8000)) {
         import * as querystring from "querystring"
     =}
     
-    state server:{=http.Server | undefined=}({=undefined=});
+    state server:http.Server;
     physical action serverRequest:{= [ http.IncomingMessage, http.ServerResponse ] =};
     
     // Register handler for incoming requests

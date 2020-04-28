@@ -54,7 +54,6 @@ import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.QueuingPolicy
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
@@ -1518,7 +1517,7 @@ class CGenerator extends GeneratorBase {
                 val rootType = (output.definition as Port).targetType.rootType
                 pr(result, '''
                     trigger_t «structName» = {
-                        «structName»_reactions, 1, false, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
+                        «structName»_reactions, 1, false, 0LL, 0LL, NULL, false, NEVER, false, sizeof(«rootType»)
                     };
                 ''')
                 
@@ -1596,12 +1595,12 @@ class CGenerator extends GeneratorBase {
             indent(result)
             if (trigger instanceof Timer) {
                 pr(result, '''
-                    «triggerStructName»_reactions, «numberOfReactionsTriggered», true, 0LL, 0LL, NULL, false, NEVER, NONE, 0
+                    «triggerStructName»_reactions, «numberOfReactionsTriggered», true, 0LL, 0LL, NULL, false, NEVER, false, 0
                 ''')
             } else if (triggerInstance instanceof PortInstance) {
                 val rootType = (triggerInstance.definition as Port).targetType.rootType
                 pr(result, '''
-                    «triggerStructName»_reactions, «numberOfReactionsTriggered», false, 0LL, 0LL, NULL, false, NEVER, NONE, sizeof(«rootType»)
+                    «triggerStructName»_reactions, «numberOfReactionsTriggered», false, 0LL, 0LL, NULL, false, NEVER, false, sizeof(«rootType»)
                 ''')
             } else if (trigger instanceof Action) {
                 var isPhysical = "true";
@@ -1610,9 +1609,6 @@ class CGenerator extends GeneratorBase {
                 
                 if (trigger.origin == ActionOrigin.LOGICAL) {
                     isPhysical = "false";
-                }
-                if (trigger.policy === null || trigger.policy == QueuingPolicy.NONE) {
-                    trigger.policy = QueuingPolicy.DEFER;
                 }
                 var element_size = "0"
                 if (trigger.type !== null) element_size = '''sizeof(«trigger.targetType.rootType»)'''
@@ -1625,7 +1621,7 @@ class CGenerator extends GeneratorBase {
                     NULL,
                     «isPhysical»,
                     NEVER,
-                    «trigger.policy»,
+                    «trigger.drop»,
                     «element_size»
                 ''')
                 // If this is a shutdown action, add it to the list of shutdown actions.

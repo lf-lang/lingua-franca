@@ -3,13 +3,16 @@ package org.icyphy.linguafranca.diagram.synthesis.styles
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KLabel
+import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
+import de.cau.cs.kieler.klighd.krendering.KPolyline
 import de.cau.cs.kieler.klighd.krendering.KRendering
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
 import de.cau.cs.kieler.klighd.krendering.KText
 import de.cau.cs.kieler.klighd.krendering.Underline
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
+import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY
@@ -20,10 +23,16 @@ import javax.inject.Inject
 import org.eclipse.elk.core.math.ElkPadding
 import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 
+/**
+ * Extension class that provides styles and coloring for the Lingua France diagram synthesis.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 @ViewSynthesisShared
 class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 
 	@Inject extension KRenderingExtensions
+	@Inject extension KPolylineExtensions
     extension KRenderingFactory = KRenderingFactory::eINSTANCE
 
 	def noSelectionStyle(KRendering r) {
@@ -46,10 +55,23 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 		r.foreground = Colors.RED
 		r.lineWidth = 2
 		r.selectionLineWidth = 3
-		//r.background = Colors.TOMATO
+		
+		if (r.eContainer instanceof KEdge || r.eContainer instanceof KPort) { // also color potential arrow heads
+			r.background = Colors.RED
+			r.background.propagateToChildren = true
+			r.foreground.propagateToChildren = true
+			r.lineWidth.propagateToChildren = true
+		}
+	}
+	
+	def commentStyle(KRendering r) {
+		r.foreground = Colors.LIGHT_GOLDENROD
+		r.background = Colors.PALE_GOLDENROD
+		r.lineWidth = 1
+		r.selectionLineWidth = 2
 		
 		if (r.eContainer instanceof KEdge) { // also color potential arrow heads
-			r.background = Colors.RED
+			r.background = Colors.LIGHT_GOLDENROD
 			r.background.propagateToChildren = true
 			r.foreground.propagateToChildren = true
 			r.lineWidth.propagateToChildren = true
@@ -116,5 +138,19 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 		}
 		_onEdgeDelayLabelConfigurator.applyTo(label)
 	}
+	
+    def KRendering addFixedTailArrowDecorator(KPolyline pl) {
+    	val head = pl.addTailArrowDecorator()
+		head.placementData = createKDecoratorPlacementData => [
+            it.rotateWithLine = true
+            it.relative = 0f
+            it.absolute = 2f
+            it.width = 8
+            it.height = 6
+            it.setXOffset(-3f)
+            it.setYOffset(-4f)
+        ]
+        return head
+    }
 
 }
