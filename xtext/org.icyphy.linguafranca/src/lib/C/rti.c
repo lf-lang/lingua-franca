@@ -96,13 +96,15 @@ int create_server(int port) {
 
     int reuse = 1;
     if (setsockopt(socket_descriptor, SOL_SOCKET, SO_REUSEADDR, 
-            (const char*)&reuse, sizeof(reuse)) < 0)
+            (const char*)&reuse, sizeof(reuse)) < 0) {
         perror("setsockopt(SO_REUSEADDR) failed");
+    }
 
     #ifdef SO_REUSEPORT
     if (setsockopt(socket_descriptor, SOL_SOCKET, SO_REUSEPORT, 
-            (const char*)&reuse, sizeof(reuse)) < 0) 
+            (const char*)&reuse, sizeof(reuse)) < 0)  {
         perror("setsockopt(SO_REUSEPORT) failed");
+    }
     #endif
 
     // Server file descriptor.
@@ -364,6 +366,38 @@ void handle_next_event_time(federate_t* fed) {
     pthread_mutex_unlock(&rti_mutex);
 }
 
+/** Handle a STOP message.
+ *  @param fed The federate sending a STOP message.
+ */
+void handle_stop_message(federate_t* fed) {
+    union {
+        long long ull;
+        unsigned char c[sizeof(long long)];
+    } buffer;
+    read_from_socket(fed->socket, sizeof(long long), (unsigned char*)&buffer.c);
+
+    // Acquire a mutex lock to ensure that this state does change while a
+    // message is transport or being used to determine a TAG.
+    pthread_mutex_lock(&rti_mutex);
+
+    instant_t stop_time = swap_bytes_if_big_endian_ll(buffer.ull);
+    // printf("DEBUG: RTI received from federate %d a STOP request with time %lld.\n", fed->id, stop_time - start_time);
+
+    // Iterate over federates and send each a STOP message.
+    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+        if (i != fed->id) {
+            if (federates[i].state == NOT_CONNECTED) continue;
+            unsigned char buffer[9];
+            buffer[0] = STOP;
+            encode_ll(stop_time, &(buffer[1]));
+            write_to_socket(federates[i].socket, 9, buffer);
+            // printf("DEBUG: RTI sent to federate %d the TAG %lld.\n", fed->id, time - start_time);
+        }
+    }
+
+    pthread_mutex_unlock(&rti_mutex);
+}
+
 char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from federate an unrecognized message type";
 
 /** Thread handling communication with a federate.
@@ -444,6 +478,9 @@ void* federate(void* fed) {
             break;
         case LOGICAL_TIME_COMPLETE:
             handle_logical_time_complete(my_fed);
+            break;
+        case STOP:
+            handle_stop_message(my_fed);
             break;
         default:
             error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);

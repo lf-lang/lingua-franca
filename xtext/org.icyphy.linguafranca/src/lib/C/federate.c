@@ -156,6 +156,15 @@ void send_time(unsigned char type, instant_t time) {
     write_to_socket(rti_socket, 9, buffer);
 }
 
+/** Send a STOP message to the RTI, which will then broadcast
+ *  the message to all federates.
+ *  This function assumes the caller holds the mutex lock.
+ */
+void __broadcast_stop() {
+    printf("Federate %d requesting a whole program stop.\n", FED_ID);
+    send_time(STOP, current_time);
+}
+
 /** Connect to the RTI at the specified host and port and return
  *  the socket descriptor for the connection. If this fails, the
  *  program exits. If it succeeds, it sets the rti_socket global
@@ -391,7 +400,7 @@ volatile bool __tag_pending = false;
  *  which it acquires to interact with the main thread, which may
  *  be waiting for a TAG (this broadcasts a condition signal).
  */
-void handle_time_advance_grant(unsigned char* buffer) {
+void handle_time_advance_grant() {
     union {
         long long ull;
         unsigned char c[sizeof(long long)];
@@ -407,6 +416,33 @@ void handle_time_advance_grant(unsigned char* buffer) {
     // Notify everything that is blocked.
     pthread_cond_broadcast(&event_q_changed);
     // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
+    pthread_mutex_unlock(&mutex);
+}
+
+/** Handle a STOP message from the RTI.
+ *  NOTE: The stop time is ignored. This federate will stop as soon
+ *  as possible.
+ *  FIXME: It should be possible to at least handle the situation
+ *  where the specified stop time is larger than current time.
+ *  This would require implementing a shutdown action.
+ *  @param buffer A pointer to the bytes specifying the stop time.
+ */
+void handle_incoming_stop_message() {
+    union {
+        long long ull;
+        unsigned char c[sizeof(long long)];
+    } time;
+    read_from_socket(rti_socket, sizeof(long long), (unsigned char*)&time.c);
+
+    // Acquire a mutex lock to ensure that this state does change while a
+    // message is transport or being used to determine a TAG.
+    pthread_mutex_lock(&mutex);
+
+    instant_t stop_time = swap_bytes_if_big_endian_ll(time.ull);
+    // printf("DEBUG: Federate %d received from RTI a STOP request with time %lld.\n", FED_ID, stop_time - start_time);
+    stop_requested = true;
+    pthread_cond_broadcast(&event_q_changed);
+
     pthread_mutex_unlock(&mutex);
 }
 
@@ -431,7 +467,10 @@ void* listen_to_rti(void* args) {
             handle_timed_message(buffer + 1);
             break;
         case TIME_ADVANCE_GRANT:
-            handle_time_advance_grant(buffer + 1);
+            handle_time_advance_grant();
+            break;
+        case STOP:
+            handle_incoming_stop_message();
             break;
         default:
             // printf("DEBUG: Erroneous message type: %d\n", buffer[0]);
