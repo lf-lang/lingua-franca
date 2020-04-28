@@ -126,6 +126,10 @@ class LinguaFrancaSynthesisCycleDetection extends AbstractSynthesisExtensions {
             			cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
             			highlighter.accept(cycleEgde)
             		}
+            		for (cyclePort : cycleNode.ports.filter[cyclePorts.contains(it)]) {
+            			cyclePort.setProperty(DEPENDENCY_CYCLE, true)
+            			highlighter.accept(cyclePort)
+            		}
             	}
             }
          }
