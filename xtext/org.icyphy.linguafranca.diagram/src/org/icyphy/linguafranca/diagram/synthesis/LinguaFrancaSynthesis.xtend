@@ -1,12 +1,10 @@
 package org.icyphy.linguafranca.diagram.synthesis
 
 import com.google.common.collect.HashBasedTable
-import com.google.common.collect.HashBiMap
 import com.google.common.collect.HashMultimap
 import com.google.common.collect.Table
 import de.cau.cs.kieler.klighd.DisplayedActionData
 import de.cau.cs.kieler.klighd.SynthesisOption
-import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
@@ -16,7 +14,6 @@ import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.KRendering
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
-import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KEdgeExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KLabelExtensions
@@ -31,10 +28,10 @@ import java.util.EnumSet
 import java.util.List
 import java.util.Map
 import javax.inject.Inject
+import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy
 import org.eclipse.elk.alg.layered.options.FixedAlignment
 import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
-import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy
 import org.eclipse.elk.core.math.ElkPadding
 import org.eclipse.elk.core.math.KVector
 import org.eclipse.elk.core.options.BoxLayouterOptions
@@ -44,9 +41,8 @@ import org.eclipse.elk.core.options.PortConstraints
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
+import org.eclipse.emf.ecore.EObject
 import org.icyphy.ASTUtils
-import org.icyphy.AnnotatedDependencyGraph
-import org.icyphy.AnnotatedNode
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
@@ -63,15 +59,18 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction
 import org.icyphy.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction
+import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
-import static extension de.cau.cs.kieler.klighd.kgraph.util.KGraphIterators.*
-import static extension java.lang.String.format
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 
+/**
+ * Diagram synthesis for Lingua Franca programs.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 @ViewSynthesisShared
 class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
@@ -85,14 +84,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension LinguaFrancaStyleExtensions
 	@Inject extension LinguaFrancaShapeExtensions
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
+	@Inject extension LinguaFrancaSynthesisCycleDetection
 	
 	// -------------------------------------------------------------------------
 
 	// -- INTERNAL --
 	public static val REACTOR_INSTANCE = new Property<Instantiation>("org.icyphy.linguafranca.diagram.synthesis.reactor.instantiation")
-	public static val RECURSIVE_INSTANTIATION = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.recursive.instantiation", false)
-	public static val DEPENDENCY_CYCLE = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.dependency.cycle", false)
-	private static val DEBUG_CYCLE_DETECTION = false
 
 	// -- STYLE --	
 	public static val ALTERNATIVE_DASH_PATTERN = #[3.0f]
@@ -102,7 +99,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val TEXT_ERROR_CONTAINS_RECURSION = "Reactor contains recursive instantiation!"
 	public static val TEXT_ERROR_CONTAINS_CYCLE = "Reactor contains cyclic dependencies!"
 	public static val TEXT_ERROR_CYCLE_DETECTION = "Dependency cycle detection failed.\nCould not detect dependency cycles due to unexpected graph structure."
-	public static val TEXT_ERROR_CYCLE_BTN_SHOW = "Show Cycle (Reactor Details)"
+	public static val TEXT_ERROR_CYCLE_BTN_SHOW = "Show Cycle"
 	public static val TEXT_NO_MAIN_REACTOR = "No Main Reactor"
 	public static val TEXT_REACTOR_NULL = "Reactor is null"
 	public static val TEXT_HIDE_ACTION = "[Hide]"
@@ -118,15 +115,16 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false)
 	
-	public static val SynthesisOption PAPER_MODE = SynthesisOption.createCheckOption("Paper Mode", false).setCategory(APPEARANCE)
+	public static val SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ReactorParameterDisplayModes.values, ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE)
 	
-	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(EXPERIMENTAL)
+	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Dependencies", false).setCategory(EXPERIMENTAL)
 	public static val SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency cycle detection", false).setCategory(EXPERIMENTAL)
+	public static val SynthesisOption SHOW_COMMENTS = SynthesisOption.createCheckOption("Comments", false).setCategory(EXPERIMENTAL)
 	
     /** Synthesis actions */
     public static val DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details")
@@ -137,14 +135,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_ALL_REACTORS,
 			SHOW_REACTION_CODE,
 			MEMORIZE_EXPANSION_STATES,
-			PAPER_MODE,
+			SHOW_HYPERLINKS,
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
 			SHOW_INSTANCE_NAMES,
 			REACTOR_PARAMETER_MODE,
 			REACTOR_PARAMETER_TABLE_COLS,
 			CYCLE_DETECTION,
-			SHOW_REACTION_ORDER_EDGES
+			SHOW_REACTION_ORDER_EDGES,
+			SHOW_COMMENTS
 		]
 	}
 	
@@ -216,7 +215,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val label = reactor.createReactorLabel(instance)
 		val recursive = parentReactors.contains(reactor)
 		if (recursive) {
-			node.setProperty(RECURSIVE_INSTANTIATION, true)
+			node.setProperty(LinguaFrancaSynthesisCycleDetection.RECURSIVE_INSTANTIATION, true)
 		}
 		parentReactors += reactor
 		
@@ -243,6 +242,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				node.children += reactor.transformReactorNetwork(emptyMap, emptyMap, parentReactors)
 			}
 			
+			nodes += reactor.createUserComments(node)
+			
 			node.configureReactorNodeLayout()
 			
 			// Additional layout adjustment for main node
@@ -253,7 +254,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.setLayoutOption(LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS)
 			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.^default * 1.1f)
 			node.setLayoutOption(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.^default * 1.1f)
-			if (PAPER_MODE.booleanValue) {
+			if (!SHOW_HYPERLINKS.booleanValue) {
 				node.setLayoutOption(CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6))
 				node.setLayoutOption(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
 			}
@@ -264,7 +265,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
 				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 
-				if (!PAPER_MODE.booleanValue) {
+				if (SHOW_HYPERLINKS.booleanValue) {
 					// Collapse button
 					addTextButton(TEXT_HIDE_ACTION) => [
 						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
@@ -276,7 +277,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactor.parameters.empty) {
 					addRectangle() => [
 						invisible = true
-						if (PAPER_MODE.booleanValue) {
+						if (!SHOW_HYPERLINKS.booleanValue) {
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
 						} else {
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 4, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
@@ -302,7 +303,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 				}
 
-				if (!PAPER_MODE.booleanValue) {
+				if (SHOW_HYPERLINKS.booleanValue) {
 					// Expand button
 					if (reactor.hasContent && !recursive) {
 						addTextButton(TEXT_SHOW_ACTION) => [
@@ -356,6 +357,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				node.setLayoutOption(KlighdProperties.EXPAND, expandDefault)
 			}
 			
+			if (instance !== null) {
+				nodes += instance.createUserComments(node)
+				if (!SHOW_ALL_REACTORS.booleanValue) {
+					nodes += reactor.createUserComments(node)
+				}
+			} else {
+				nodes += reactor.createUserComments(node)
+			}
+			
 			node.configureReactorNodeLayout()
 		}
 		
@@ -375,7 +385,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		node.setLayoutOption(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts)
 		node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER)
 		node.setLayoutOption(LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true)
-		if (PAPER_MODE.booleanValue) {
+		if (!SHOW_HYPERLINKS.booleanValue) {
 			node.setLayoutOption(CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6))
 			node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.^default * 0.75f)
 			node.setLayoutOption(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.^default * 0.75f)
@@ -386,102 +396,26 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	private def KNode detectAndAnnotateCycles(KNode node) {
 		try {
-			var containsRecursion = false
-			var depGraph = new AnnotatedDependencyGraph()
-			
-        	// Some edges do not specify ports hence we introduce virtual ports to correctly handle dependency separation
-        	val virtualPorts = HashBiMap.<KNode,KPort>create
-			
-			// Build graph and find cycles
-            for (childNode : node.getKNodeIterator(false).toIterable) {
-            	if (childNode.getProperty(RECURSIVE_INSTANTIATION)) {
-            		containsRecursion = true
-            	}
-            	
-            	if (!childNode.outgoingEdges.empty && !childNode.incomingEdges.empty) { // simplify dependency graph
-            		val vPort = virtualPorts.getOrInit(childNode)[createPort()]
-            		val breaksCylce = switch(childNode.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)) {
-            			Action: true
-            			default: false
-            		}
-	            	if (childNode.ports.empty) {
-	            		// If node has no ports ignore outgoing if it breaks cycles
-		            	if (!breaksCylce) {
-			                depGraph.addEdges(new AnnotatedNode(vPort), childNode.outgoingEdges.map[
-			                	new AnnotatedNode(targetPort?:virtualPorts.getOrInit(target)[createPort()])
-			                ].toSet)
-		            	}
-	            	} else {
-	            		// If node has port prefer dependencies on ports
-	            		for (edge : childNode.outgoingEdges.filter[!target.outgoingEdges.empty]) { // also simplify dependency graph
-	            			depGraph.addEdge(
-		                		new AnnotatedNode(edge.sourcePort?:vPort),
-		                		new AnnotatedNode(edge.targetPort?:virtualPorts.getOrInit(edge.target)[createPort()])
-	            			)
-	            		}
-	            		// If node breaks cycles or has children -> do not introduce dependencies from input to output
-		            	if (!breaksCylce && childNode.children.empty) {
-		            		val vPortNode = new AnnotatedNode(vPort)
-		            		val outputs = childNode.outgoingEdges.map[sourcePort].filterNull.toSet.map[new AnnotatedNode(it)]
-		            		val inputs = childNode.incomingEdges.map[targetPort].filterNull.toSet.map[new AnnotatedNode(it)]
-		            		
-		            		for (input : inputs) {
-	            				depGraph.addEdge(input, vPortNode)
-		            		}
-	            			depGraph.addEdges(vPortNode, outputs.toSet)
-		            	}
-	            	}
-            	}
-            }
-            depGraph.detectCycles()
+			val result = node.detectAndHighlightCycles[
+				if (it instanceof KNode) {
+					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
+				} else if (it instanceof KEdge) {
+					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
+        			// TODO initiallyHide does not work with incremental (https://github.com/kieler/KLighD/issues/37)
+        			// cycleEgde.initiallyShow() // Show hidden order dependencies
+					it.KRendering.invisible = false
+				} else if (it instanceof KPort) {
+					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
+					it.reverseTrianglePort()
+				}
+			]
             
-            if (DEBUG_CYCLE_DETECTION) {
-	            println("-- DEBUG CYCLE DETECTION --")
-	            for (n : depGraph.nodes) {
-	            	for(d : depGraph.getDependencies(n)) {
-	            		val sN = (n.contents.eContainer?:virtualPorts.inverse.get(n.contents)) as KNode
-	            		val tN = (d.contents.eContainer?:virtualPorts.inverse.get(d.contents)) as KNode
-	            		val sO = sN?.getProperty(KlighdInternalProperties.MODEL_ELEMEMT).toString
-	            		val tO = tN?.getProperty(KlighdInternalProperties.MODEL_ELEMEMT).toString
-	            		val sP = n.contents.eContainer === null ? "virtual" : n.contents.getProperty(CoreOptions.PORT_SIDE).toString
-	            		val tP = d.contents.eContainer === null ? "virtual" : d.contents.getProperty(CoreOptions.PORT_SIDE).toString
-	            		println("%s[%s] -> %s[%s]".format(sO, sP, tO, tP))
-	            	}
-	            }
-			}
-            
-            if (!depGraph.cycles.empty) {
-    			// Highlight cycles
-                for (cycle : depGraph.cycles) {
-                	val cyclePorts = cycle.map[contents].toSet
-                	val cycleNodes = cycle.map[contents].map[
-                		if (it.node !== null) {
-                			it.node
-                		} else {
-                			virtualPorts.inverse.get(it)
-                		}
-                	].filterNull.toSet
-                	for (cycleNode : cycleNodes) {
-                		cycleNode.setProperty(DEPENDENCY_CYCLE, true)
-                		cycleNode.data.filter(KRendering).forEach[errorStyle()]
-                		for (cycleEgde : cycleNode.outgoingEdges.filter[
-                			cycleNodes.contains(target) &&
-                			sourcePort === null ? true : cyclePorts.contains(sourcePort)
-                		]) {
-                			cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
-                			cycleEgde.data.filter(KRendering).forEach[errorStyle()]
-                			// TODO initiallyHie does not work with incremental
-                			// cycleEgde.initiallyShow() // Show hidden order dependencies
-							cycleEgde.KRendering.invisible = false
-                		}
-                	}
-                }
-                
+            if (result.cycle) {
                 val err = node.addErrorComment(TEXT_ERROR_CONTAINS_CYCLE)
                 err.KContainerRendering.addRectangle() => [ // Add to existing figure
                 	setGridPlacementData().from(LEFT, 3, 0, TOP, -1, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
             		noSelectionStyle()
-            		 addSingleClickAction(ShowCycleAction.ID)
+            		addSingleClickAction(ShowCycleAction.ID)
             		
             		addText(TEXT_ERROR_CYCLE_BTN_SHOW) => [
             			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
@@ -491,7 +425,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             			addSingleClickAction(ShowCycleAction.ID)
             		]
                 ]
-                if (containsRecursion) {
+                if (result.recursion) {
                 	err.KContainerRendering.addText(TEXT_ERROR_CONTAINS_RECURSION) => [ // Add to existing figure
                 		styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
                 		setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
@@ -499,7 +433,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 }
                 
                 return err
-            } else if (containsRecursion) {
+            } else if (result.recursion) {
             	return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
             }
         } catch(Exception e) {
@@ -524,15 +458,16 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Transform instances
 		for (entry : reactor.instantiations.indexed) {
 			val instance = entry.value
-			val node = instance.reactorClass.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors)
-			node.head.setLayoutOption(CoreOptions.PRIORITY, reactor.instantiations.size - entry.key)
-			nodes += node
+			val rNodes = instance.reactorClass.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors)
+			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, reactor.instantiations.size - entry.key)
+			nodes += rNodes
 		}
 		
 		// Create timers
 		for (Timer timer : reactor.timers?:emptyList) {
 			val node = createNode().associateWith(timer)
 			nodes += node
+			nodes += timer.createUserComments(node)
 			timerNodes.put(timer, node)
 			
 			node.addTimerFigure(timer)
@@ -543,8 +478,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val idx = reactor.reactions.indexOf(reaction)
 			val node = createNode().associateWith(reaction)
 			nodes += node
+			nodes += reaction.createUserComments(node)
 			reactionNodes.put(reaction, node)
-			
+						
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			node.setLayoutOption(CoreOptions.PRIORITY, (reactor.reactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
 			node.setLayoutOption(LayeredOptions.POSITION, new KVector(0, idx)) // try order reactions vertically if in one layer
@@ -650,6 +586,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		for (Action action : actions) {
 			val node = createNode().associateWith(action)
 			nodes += node
+			nodes += action.createUserComments(node)
+			
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			
 			val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
@@ -731,7 +669,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				// Do not remove them, as they are needed for cycle detection
 				edge.KRendering.invisible = !SHOW_REACTION_ORDER_EDGES.booleanValue
 				edge.KRendering.invisible.propagateToChildren = true
-				// TODO this does not work work with incremental update -> check for bug
+				// TODO this does not work work with incremental update (https://github.com/kieler/KLighD/issues/37)
 				// if (!SHOW_REACTION_ORDER_EDGES.booleanValue) edge.initiallyHide()
 				
 				prevNode = node
@@ -838,7 +776,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				lineStyle = LineStyle.DOT
 				foreground = Colors.CHOCOLATE_1
 				boldLineSelectionStyle()
-				addHeadArrowDecorator()
+				// Arrow head on tail because edge must not be reversed because the direction is used in cycle detection!
+				addFixedTailArrowDecorator() // Fix for bug: https://github.com/kieler/KLighD/issues/38
 			]
 		]
 	}
@@ -921,6 +860,30 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         ]  
         
         return comment
+	}
+	
+	private def Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
+		if (SHOW_COMMENTS.booleanValue) {
+			val commentText = element.findComments()
+			
+			if (!commentText.nullOrEmpty) {
+				val comment = createNode()
+		        comment.setLayoutOption(CoreOptions.COMMENT_BOX, true)
+		        comment.addCommentFigure(commentText) => [
+		        	commentStyle()
+		        ]
+		        
+		        // connect
+		        createEdge() => [
+		        	source = comment
+		        	target = targetNode
+		        	addCommentPolyline().commentStyle()
+		        ]  
+		        
+		        return #[comment]
+			}
+		}
+		return #[]
 	}
 
 }

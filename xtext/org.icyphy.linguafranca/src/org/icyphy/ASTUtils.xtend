@@ -157,6 +157,7 @@ class ASTUtils {
             }
         }
         action.type = type
+        
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.physical) {
             action.origin = ActionOrigin.PHYSICAL
@@ -298,6 +299,10 @@ class ASTUtils {
                 clone.arraySpec.ofVariableLength = original.arraySpec.
                     ofVariableLength
                 clone.arraySpec.length = original.arraySpec.length
+            }
+            
+            if (original.parameters !== null) {
+                clone.parameters = original.parameters
             }
             
             return clone

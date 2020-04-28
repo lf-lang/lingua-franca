@@ -1,6 +1,7 @@
 package org.icyphy.linguafranca.diagram.synthesis.styles
 
 import de.cau.cs.kieler.klighd.KlighdConstants
+import de.cau.cs.kieler.klighd.kgraph.KEdge
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.kgraph.KPort
 import de.cau.cs.kieler.klighd.krendering.Arc
@@ -9,7 +10,9 @@ import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.KPolyline
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
+import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
 import de.cau.cs.kieler.klighd.krendering.KText
+import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.VerticalAlignment
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import de.cau.cs.kieler.klighd.krendering.extensions.KColorExtensions
@@ -35,10 +38,12 @@ import org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjus
 import static org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
-import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
-import de.cau.cs.kieler.klighd.kgraph.KEdge
-import de.cau.cs.kieler.klighd.krendering.LineStyle
 
+/**
+ * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 @ViewSynthesisShared
 class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
@@ -61,7 +66,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the main reactor frame.
 	 */
 	def addMainReactorFigure(KNode node, String text) {
-		val padding = PAPER_MODE.booleanValue ? 6 : 8
+		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
 			lineWidth = 1
@@ -82,7 +87,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a reactor node
 	 */
 	def addReactorFigure(KNode node, Reactor reactor, String text) {
-		val padding = PAPER_MODE.booleanValue ? 6 : 8
+		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
 			lineWidth = 1
@@ -151,7 +156,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		// optional code content
 		val hasCode = SHOW_REACTION_CODE.booleanValue && !reaction.code.tokens.nullOrEmpty
 		if (hasCode) {
-			contentContainer.addText(reaction.code.tokens.toString.trimCode) => [
+			contentContainer.addText(reaction.code.trimCode) => [
 				associateWith(reaction)
 				fontSize = 6
 				fontName = KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME
@@ -189,7 +194,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
 			// optional code content
 			if (hasDeadlineCode) {
-				contentContainer.addText(reaction.deadline.code.tokens.toString.trimCode) => [
+				contentContainer.addText(reaction.deadline.code.trimCode) => [
 					associateWith(reaction.deadline)
 					foreground = Colors.BROWN
 					fontSize = 6
@@ -336,6 +341,21 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
 			]
 		]
+	}
+	
+	/**
+	 * Reverses the arrow direction of a triangle port.
+	 */
+	def reverseTrianglePort(KPort port) {
+		val poly = port.KRendering
+		if (poly instanceof KPolyline) {
+			poly.points.clear
+			poly.points += #[
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0),
+				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
+				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
+			]
+		}
 	}
 	
 	/**

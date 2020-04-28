@@ -9,6 +9,7 @@ Bundle-ActivationPolicy: lazy
 Require-Bundle: de.cau.cs.kieler.klighd;bundle-version="1.1.0",
  de.cau.cs.kieler.klighd.krendering.extensions;bundle-version="1.1.0",
  com.google.guava,
+ org.eclipse.xtext,
  org.eclipse.xtext.xbase.lib,
  org.eclipse.xtend.lib,
  org.eclipse.xtend.lib.macro,
