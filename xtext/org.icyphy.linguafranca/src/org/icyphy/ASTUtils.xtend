@@ -149,8 +149,12 @@ class ASTUtils {
         if (connection.delay !== null) {
             action.minDelay = factory.createValue
             action.minDelay.time = factory.createTime
-            action.minDelay.time.interval = connection.delay.time.interval
-            action.minDelay.time.unit = connection.delay.time.unit
+            if (connection.delay.time !== null) {
+                action.minDelay.time.interval = connection.delay.time.interval
+                action.minDelay.time.unit = connection.delay.time.unit
+            } else {
+                action.minDelay.literal = connection.delay.literal
+            }
         }
         action.type = type
         // The connection is 'physical' if it uses the ~> notation.
