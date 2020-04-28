@@ -5,6 +5,12 @@ import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import java.util.Map
 import java.util.function.Supplier
+import org.eclipse.emf.ecore.EObject
+import org.eclipse.xtext.TerminalRule
+import org.eclipse.xtext.nodemodel.impl.CompositeNode
+import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.eclipse.xtext.resource.XtextResource
 import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Value
@@ -100,10 +106,16 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 		}
 	}
 	
+	/**
+	 * Sets KGE ID.
+	 */
 	def setID(KGraphElement kge, String id) {
 		kge.data.add(createKIdentifier => [it.setId(id)])
 	}
 	
+	/**
+	 * Utility to get the value in a map or put an initial value and get that one.
+	 */
 	def <K,V> V getOrInit(Map<K, V> map, K key, Supplier<V> init) {
 		if (map === null) {
 			return null
@@ -114,6 +126,48 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 			map.put(key, value)
 			return value
 		}
+	}
+	
+	/**
+	 * Retrieves comments associated with model element form the AST.
+	 */
+	def String findComments(EObject object) {
+		if (object.eResource instanceof XtextResource) {
+			val compNode = NodeModelUtils.findActualNodeFor(object)
+			if (compNode !== null) {
+				val comments = newArrayList
+				var node = compNode.firstChild
+				while (node instanceof CompositeNode) {
+					node = node.firstChild
+				}
+				while (node instanceof HiddenLeafNode) { // only comments preceding start of element
+					val rule = node.grammarElement
+					if (rule instanceof TerminalRule) {
+						if ("SL_COMMENT".equals(rule.name)) {
+							comments += node.text.substring(2).trim()
+						} else if ("ML_COMMENT".equals(rule.name)) {
+							var block = node.text
+							block = block.substring(2, block.length - 2).trim()
+							val lines = block.split("\n").map[trim()].toList
+							comments += lines.map[
+								if (it.startsWith("* ")) {
+									it.substring(2)
+								} else if (it.startsWith("*")) {
+									it.substring(2)
+								} else {
+									it
+								}
+							].join("\n")
+						}
+					}
+					node = node.nextSibling
+				}
+				if (!comments.empty) {
+					return comments.join("\n")
+				}
+			}
+		}
+		return null
 	}
 
 }
