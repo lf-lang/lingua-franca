@@ -350,6 +350,9 @@ void stop() {
     // printf("DEBUG: pthread_mutex_lock stop\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
+#if (NUMBER_OF_FEDERATES > 1)
+    __broadcast_stop();
+#endif
     stop_requested = true;
     // Notify the RTI that nothing more will happen.
     next_event_time(FOREVER);

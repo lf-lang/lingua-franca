@@ -504,12 +504,9 @@ handle_t schedule_value(trigger_t* action, interval_t extra_delay, void* value, 
 handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length);
 
 /**
- * Specialized version of malloc used by Lingua Franca for action values
- * and messages contained in dynamically allocated memory.
- * @param size The size of the memory block to allocate.
- * @return A pointer to the allocated memory block.
+ * For a federated execution, broadcast stop() to all federates.
  */
-void* lf_malloc(size_t size);
+void __broadcast_stop();
 
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.

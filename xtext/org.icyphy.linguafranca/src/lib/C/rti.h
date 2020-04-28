@@ -103,6 +103,17 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define LOGICAL_TIME_COMPLETE 8
 
+/** Byte identifying a stop message. When any federate calls stop(), it will
+ *  send this message to the RTI, which will then broadcast it to all other
+ *  federates. The next 8 bytes will be the timestamp.
+ *  NOTE: It is not clear whether sending a stopping timestamp is useful.
+ *  If any federate can send a STOP message that specifies the stop time on
+ *  all other federates, then every federate depends on every other federate
+ *  and time cannot be advanced. Hence, the current implementations may result
+ *  in nondeterministic stop times.
+ */
+#define STOP 9
+
 /////////////////////////////////////////////
 //// Data structures
 
