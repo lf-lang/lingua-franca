@@ -66,7 +66,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the main reactor frame.
 	 */
 	def addMainReactorFigure(KNode node, String text) {
-		val padding = PAPER_MODE.booleanValue ? 6 : 8
+		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
 			lineWidth = 1
@@ -87,7 +87,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a reactor node
 	 */
 	def addReactorFigure(KNode node, Reactor reactor, String text) {
-		val padding = PAPER_MODE.booleanValue ? 6 : 8
+		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
 			lineWidth = 1
