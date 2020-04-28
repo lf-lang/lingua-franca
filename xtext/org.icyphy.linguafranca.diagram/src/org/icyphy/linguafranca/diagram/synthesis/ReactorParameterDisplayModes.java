@@ -1,5 +1,10 @@
 package org.icyphy.linguafranca.diagram.synthesis;
 
+/**
+ * Enumeration of different display options for reactor parameters.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 public enum ReactorParameterDisplayModes {
     NONE,
     TITLE,

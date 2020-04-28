@@ -7,6 +7,11 @@ import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
 import static extension de.cau.cs.kieler.klighd.util.ModelingUtil.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 
+/**
+ * Action that expands (shows details) of all reactor nodes.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 class CollapseAllReactorsAction extends AbstractAction {
     
     public static val ID = "org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction"

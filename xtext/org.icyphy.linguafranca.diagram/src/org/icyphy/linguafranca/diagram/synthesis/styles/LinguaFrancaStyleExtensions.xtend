@@ -22,6 +22,11 @@ import javax.inject.Inject
 import org.eclipse.elk.core.math.ElkPadding
 import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 
+/**
+ * Extension class that provides styles and coloring for the Lingua France diagram synthesis.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 @ViewSynthesisShared
 class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 

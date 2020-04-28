@@ -22,6 +22,13 @@ import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
 
 import static extension com.google.common.base.Preconditions.*
 
+/**
+ * Action for toggling collapse/expand state of reactors that memorizes the state and
+ * allows correct initialization synthesis runs for the same model.
+ * Prevents automatic collapsing of manually expanded nodes.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 class MemorizingExpandCollapseAction extends AbstractAction {
     
     public static val MEM_EXPAND_COLLAPSE_ACTION_ID = "org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction"

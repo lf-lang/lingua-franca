@@ -6,6 +6,11 @@ import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import org.icyphy.linguaFranca.Reactor
 
+/**
+ * Abstract super class for diagram actions that provides some convince methods.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ */
 abstract class AbstractAction implements IAction {
 	
 	def Object sourceElement(KGraphElement elem) {

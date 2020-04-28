@@ -12,7 +12,9 @@ import org.eclipse.elk.graph.properties.Property
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 
 /**
- * Adjusts the port position of reactions node AFTER layout to allow free port order but also adapt to point figure of the node.
+ * Adjusts the port position of reactions node AFTER layout, to allow free port order but also adapt (snuggle) to pointy shape of reaction node.
+ * 
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 class ReactionPortAdjustment implements IStyleModifier {
 
