@@ -696,7 +696,7 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "678c2da65dd3394077fc986ef3a86820adf5d8ad"
+          GIT_TAG "4b309e200a770a2267aefae3178f34578489d7b2"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
@@ -735,10 +735,10 @@ class CppGenerator extends GeneratorBase {
         )
         target_link_libraries(«filename» reactor-cpp)
         
-        install(TARGETS «filename» RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        install(TARGETS «filename» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
         
         «IF targetCmakeInclude !== null»
-            include(«directory»«File.separator»«targetCmakeInclude»)
+            include("«directory»«File.separator»«targetCmakeInclude»")
         «ENDIF»
     '''
 
@@ -780,8 +780,8 @@ class CppGenerator extends GeneratorBase {
 
         makeCmd.addAll("make",
             "-j" + Runtime.getRuntime().availableProcessors(), "install")
-        cmakeCmd.addAll(cmake, "-DCMAKE_INSTALL_PREFIX=" + installPath,
-            "-DREACTOR_CPP_BUILD_DIR=" + reactorCppPath, srcPath)
+        cmakeCmd.addAll(cmake, '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
+            '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''', srcPath)
 
         println("--- In directory: " + buildDir)
         println("--- Running: " + cmakeCmd.join(' '))

@@ -1246,9 +1246,10 @@ abstract class GeneratorBase {
         if (uri.isPlatform) {
             val file = ResourcesPlugin.workspace.root.getFile(
                 new Path(uri.toPlatformString(true)))
-            return file.rawLocation.toOSString
+            return file.rawLocation.toFile.absolutePath
         } else if (uri.isFile) {
-            return uri.path
+        	val file = new File(uri.toFileString)
+            return file.absolutePath
         } else {
             throw new IOException("Unrecognized file protocol in URI " +
                 uri.toString)
