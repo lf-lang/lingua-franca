@@ -352,32 +352,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                                 // Check port and host parameter form.
                                 for (property : federate.value.keyvalue.pairs) {
                                     switch property.name {
-                                        case "port": // FIXME: use enum
-                                            if (property.value.literal ===
-                                                null) {
-                                                error(
-                                                    "port property needs to be a number.",
-                                                    Literals.
-                                                        KEY_VALUE_PAIR__VALUE)
-                                            } else {
-                                                try {
-                                                    Integer.parseInt(
-                                                        property.value.literal)
-                                                } catch (NumberFormatException ex) {
-                                                    error(
-                                                        "port property needs to be a number.",
-                                                        Literals.
-                                                            KEY_VALUE_PAIR__VALUE)
-                                                }
-                                            }
-                                        case "host":
-                                            if (property.value.literal ===
-                                                null) {
-                                                error(
-                                                    "host property needs to be a string.",
-                                                    Literals.
-                                                        KEY_VALUE_PAIR__VALUE)
-                                            }
                                         case "launcher":
                                             if (property.value.literal ===
                                                 null ||

@@ -16,12 +16,7 @@
  * @author Edward A. Lee
  */
 target C {
-    threads: 1, // Must use threaded implementation so schedule is thread safe.
-    timeout: 5 secs,
-    keepalive: true, // FIXME: This should be automatic with a physical action.
-    federates: {
-        RTI: {host: "localhost", port: 15044, launcher: true}
-    }
+    timeout: 5 secs
 };
 
 /**
@@ -83,7 +78,7 @@ reactor PrintMessage {
     =}
 }
 
-federated reactor Distributed {
+federated reactor DistributedToken {
     msg = new MessageGenerator(root = "Hello World");
     dsp = new PrintMessage();
     msg.message ~> dsp.message after 10 msec;

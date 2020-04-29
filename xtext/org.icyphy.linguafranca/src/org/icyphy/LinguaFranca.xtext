@@ -63,6 +63,7 @@ Reactor:
     ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
+    ('@' host=(Host) ':' (port=INT)?)?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -247,7 +248,7 @@ terminal FALSE:
     'false';
 
 Host:
-    IPV4 | (ID (('.') ID)*)
+    IPV4 | (ID (('.') ID)*) | (ID ':' ID ((':') ID)*)
 ;
 
 DottedName:

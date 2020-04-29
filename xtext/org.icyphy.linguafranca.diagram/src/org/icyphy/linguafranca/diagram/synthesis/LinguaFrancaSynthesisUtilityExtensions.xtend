@@ -140,11 +140,13 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 							var block = node.text
 							block = block.substring(2, block.length - 2).trim()
 							val lines = block.split("\n").map[trim()].toList
+							// FIXME: The following results in leading blank lines if
+							// the comment starts with /**
 							comments += lines.map[
 								if (it.startsWith("* ")) {
 									it.substring(2)
 								} else if (it.startsWith("*")) {
-									it.substring(2)
+									it.substring(1)
 								} else {
 									it
 								}

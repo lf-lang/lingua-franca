@@ -22,23 +22,18 @@
  * 
  * @author Edward A. Lee
  */
-target C {
-    keepalive: true,
-    federates: {
-        RTI: {host: "192.168.1.6", port: 15045, launcher: true}
-    }
-};
-reactor Ping(count:int(100)) {
+target C;
+reactor Ping(count:int(10)) {
     input receive:int;
     output send:int;
     state pingsLeft:int(count);
     logical action serve;
     reaction (startup) -> send {=
-        printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
+        // printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
         set(send, self->pingsLeft--);
     =}
     reaction (serve) -> send {= 
-        printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
+        // printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
         set(send, self->pingsLeft--);
     =}
     reaction (receive) -> serve {=
@@ -49,13 +44,13 @@ reactor Ping(count:int(100)) {
         }
     =}
 } 
-reactor Pong(expected:int(100)) {
+reactor Pong(expected:int(10)) {
     input receive:int;
     output send:int;
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
-        printf("At logical time %lld, Pong received %d.\n", get_elapsed_logical_time(), receive);
+        // printf("At logical time %lld, Pong received %d.\n", get_elapsed_logical_time(), receive);
         set(send, receive);   
     =}
     reaction(shutdown) {=
@@ -64,12 +59,13 @@ reactor Pong(expected:int(100)) {
                 self->expected, self->count
             );
             exit(1);
-        } 
+        }
+        printf("Pong received %d pings.\n", self->count);
     =}
 }
-main reactor PingPong {
-    ping = new Ping();
-    pong = new Pong();
+federated reactor PingPong(count:int(1000000)) {
+    ping = new Ping(count = count);
+    pong = new Pong(expected = count);
     ping.send ~> pong.receive;
     pong.send ~> ping.receive; 
 }
