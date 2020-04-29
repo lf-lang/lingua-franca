@@ -133,7 +133,7 @@ class FederateInstance {
      */
     def containsReaction(Reactor reactor, Reaction reaction) {
         // Easy case first.
-        if (!reactor.main || isSingleton) return true
+        if (!reactor.federated || isSingleton) return true
         
         // If this has been called before, then the result of the
         // following check is cached.

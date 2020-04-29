@@ -254,7 +254,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
         allNames.add(instantiation.name)
-        if (instantiation.reactorClass.isMain) {
+        if (instantiation.reactorClass.isMain || instantiation.reactorClass.isFederated) {
             error(
                 "Cannot instantiate a main reactor: " +
                     instantiation.reactorClass.name,
