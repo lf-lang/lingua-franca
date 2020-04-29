@@ -7,9 +7,7 @@
 target C {
     timeout: 0 sec,
     federates: {
-        RTI: {host: "localhost", port: 15046, launcher: true},
-        Source: {reactors: [s]},
-        Destination: {reactors: [d]}
+        RTI: {host: "localhost", port: 15046, launcher: true}
     }
 };
 reactor Source {
