@@ -5,10 +5,7 @@
  *  @author Edward A. Lee
  */
 target C {
-    timeout: 1 sec,
-    federates: {
-        RTI: {host: "localhost", port: 15045, launcher: true}
-    }
+    timeout: 1 sec
 };
 reactor Count {
     timer t(0, 200 msec);
@@ -43,7 +40,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount {
+federated reactor DistributedCount @localhost:15045 {
     c = new Count();
     p = new Print();
     c.out -> p.in;    // Indicating a 'logical' connection.

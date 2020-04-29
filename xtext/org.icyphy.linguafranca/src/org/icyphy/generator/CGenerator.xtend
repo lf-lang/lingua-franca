@@ -153,10 +153,12 @@ class CGenerator extends GeneratorBase {
             files.add("reactor_threaded.c")
         }
         // If there are federates, copy the required files for that.
-        // Also, create the RTI C file.
+        // Also, create two RTI C files, one that launches the federates
+        // and one that does not.
         if (federates.length > 1) {
             files.addAll("rti.c", "rti.h", "federate.c")
-            createFederateRTI()
+            createFederateRTI(false)
+            createFederateRTI(true)
         }
         
         for (file : files) {
@@ -433,14 +435,18 @@ class CGenerator extends GeneratorBase {
             }
             executeCommand(compileCommand, directory)
         }
-        // Also compile the RTI if there is more than one federate.
+        // Also compile the RTI files if there is more than one federate.
         if (federates.length > 1) {
-            if (federationRTIProperties.get('launcher') as Boolean) {
-                fileToCompile = filename                
-            } else {
-                fileToCompile = filename + '_RTI'
-            }
+            fileToCompile = filename                
             var compileCommand = newArrayList
+            compileCommand.addAll("gcc", "-O2", 
+                    "src-gen" + File.separator + fileToCompile + '.c',
+                    "-o", "bin" + File.separator + fileToCompile,
+                    "-pthread")
+            executeCommand(compileCommand, directory)
+
+            fileToCompile = filename + '_RTI'
+            compileCommand.clear
             compileCommand.addAll("gcc", "-O2", 
                     "src-gen" + File.separator + fileToCompile + '.c',
                     "-o", "bin" + File.separator + fileToCompile,
@@ -452,14 +458,20 @@ class CGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Code generators.
         
-    /** Create a file  */
-    def createFederateRTI() {
+    /** Create the runtime infrastructure (RTI) file.
+     *  This can create either of two versions, depending on whether the
+     *  launcher argument is given. If the launcher argument is true,
+     *  then it creates an executable that will launch all the federates.
+     *  Otherwise, it creates an executable that just implements the RTI.
+     *  @param launcher True to create a program that launches the federates.
+     */
+    def createFederateRTI(boolean launcher) {
         // Derive target filename from the .lf filename.
         var cFilename = filename + "_RTI.c"
         
         // If the RTI is to launch all the federates, omit the '_RTI'.
-        if (federationRTIProperties.get('launcher') as Boolean) {
-            cFilename = filename + ".c"              
+        if (launcher) {
+            cFilename = filename + ".c"
         }
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
@@ -567,7 +579,7 @@ class CGenerator extends GeneratorBase {
             int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
         ''')
 
-        if (federationRTIProperties.get('launcher') as Boolean) {
+        if (launcher) {
             for (federate : federates) {
                 pr(rtiCode, '''
                     if (federate_launcher("«outPath»«File.separator»«filename»_«federate.name»") == -1) exit(-1);
@@ -578,7 +590,7 @@ class CGenerator extends GeneratorBase {
         // Generate code that blocks until the federates resign.
         pr(rtiCode, "wait_for_federates(socket_descriptor);")
         
-        if (federationRTIProperties.get('launcher') as Boolean) {
+        if (launcher) {
             pr(rtiCode, '''
                 int exit_code = 0;
                 for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {

@@ -162,12 +162,11 @@ abstract class GeneratorBase {
     protected var Map<String,FederateInstance> federateByReactor
 
     /** The federation RTI properties, which defaults to
-     *  {host: "localhost", port: 15045, launcher: false}
+     *  localhost: 15045
      */
     protected val federationRTIProperties = newLinkedHashMap(
         'host' -> 'localhost',
-        'port' -> 15045,
-        'launcher' -> false
+        'port' -> 15045
     ) 
 
     /** The build-type target parameter, or null if there is none. */
@@ -1114,31 +1113,6 @@ abstract class GeneratorBase {
      *  for a reference implementation.
      */
     private def analyzeFederates(Resource resource) {
-        var target = resource.findTarget
-        // First, collect the properties of the RTI, if there is one,
-        // and create a FederateInstance for each federate.
-        for (param : target.config?.pairs ?: emptyList) {
-            if (param.name.equals("federates")) {
-                for (federate : param.value.keyvalue.pairs) {
-                    if (federate.name == "RTI") {
-                        for (property : federate.value.keyvalue.pairs) {
-                            // Validator has checked the form of these entries.
-                            switch property.name {
-                            case "host": 
-                                federationRTIProperties.put('host',
-                                        property.value.literal.withoutQuotes)
-                            case "port":
-                                federationRTIProperties.put('port',
-                                        Integer.parseInt(property.value.literal))
-                            case "launcher":
-                                federationRTIProperties.put('launcher',
-                                        Boolean.parseBoolean(property.value.literal))
-                            }
-                        }
-                    }
-                }
-            }
-        }
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
@@ -1153,6 +1127,17 @@ abstract class GeneratorBase {
             // otherwise a federate could exit simply because it hasn't received
             // any messages.
             targetKeepalive = true
+            
+            // Get the host information, if specified.
+            // If not specified, this defaults to 'localhost'
+            if (mainDef.reactorClass.host !== null) {
+                federationRTIProperties.put('host', mainDef.reactorClass.host)                
+            }
+            // Get the port information, if specified.
+            // If not specified, this defaults to 14045
+            if (mainDef.reactorClass.port !== 0) {
+                federationRTIProperties.put('port', mainDef.reactorClass.port)                
+            }
             
             // Create a FederateInstance for each top-level reactor.
             for (instantiation : mainDef.reactorClass.instantiations) {
@@ -1179,6 +1164,9 @@ abstract class GeneratorBase {
             // which corresponds to the "lookahead" of HLA.
             // FIXME: If there is no delay, we may have to transmit
             // the microstep, not just the timestamp.
+            // FIXME: Now that each top-level reactor is a federate,
+            // this is redundant with the connectivity information in
+            // ReactorInstanace.
             
             // For each connection between federates, replace it in the
             // AST with an action (which inherits the delay) and two reactions.

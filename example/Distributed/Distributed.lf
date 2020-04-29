@@ -26,9 +26,11 @@
  * 
  * To run this:
  * 
- * The code generator produces three executable files, Distributed_RTI,
- * Distributed_Sender, and Distributed_Receiver. Start all three in any
- * order. They will synchronize the start time and run for 10 seconds.
+ * The code generator produces four executable files, Distributed,
+ * Distributed_RTI, Distributed_msg, and Distributed_dsp. The first
+ * launches all three programs, the RTI and the two federates.
+ * Alternatively, you can start each of the remaining three programs in
+ * any order. They will synchronize the start time and run for 10 seconds.
  * A Makefile is provided for convenience.  Using "make all" will
  * generate the code, compile it, and run all three programs, two of
  * which run in the background. The target "make run" will just run
@@ -38,13 +40,7 @@
  * @author Edward A. Lee
  */
 target C {
-    timeout: 10 secs,
-    keepalive: true,
-    federates: {
-        RTI: {host: "localhost", port: 15044},
-        Sender: {reactors: [msg]},
-        Receiver: {reactors: [dsp]}
-    }
+    timeout: 10 secs
 };
 
 /**
@@ -92,7 +88,7 @@ reactor PrintMessage {
     =}
 }
 
-main reactor Distributed {
+federated reactor Distributed @localhost:15044 {
     msg = new MessageGenerator(root = "Hello World");
     dsp = new PrintMessage();
     msg.message ~> dsp.message after 10 msec;
