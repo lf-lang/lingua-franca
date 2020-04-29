@@ -1115,11 +1115,13 @@ abstract class GeneratorBase {
      */
     private def analyzeFederates(Resource resource) {
         var target = resource.findTarget
+        // FIXME: foundOne should be replaced by detecting whether "main" or "federated" is used.
         var foundOne = false
         // First, collect the properties of the RTI, if there is one,
         // and create a FederateInstance for each federate.
         for (param : target.config?.pairs ?: emptyList) {
             if (param.name.equals("federates")) {
+                foundOne = true
                 for (federate : param.value.keyvalue.pairs) {
                     if (federate.name == "RTI") {
                         for (property : federate.value.keyvalue.pairs) {
@@ -1135,22 +1137,6 @@ abstract class GeneratorBase {
                                 federationRTIProperties.put('launcher',
                                         Boolean.parseBoolean(property.value.literal))
                             }
-                        }
-                    } else {
-                        // Assign an integer ID to the federate.
-                        var federateID = federates.length
-                        // Add the federate name to the list of names.
-                        var federateInstance = new FederateInstance(federate, federateID, this)
-                        federates.add(federateInstance)
-                        federateByName.put(federate.name, federateInstance)
-                        federateByID.put(federateID, federateInstance)
-                        foundOne = true
-                        
-                        if (federateByReactor === null) {
-                            federateByReactor = new HashMap<String,FederateInstance>()
-                        }
-                        for (reactorName : federateInstance.containedReactorNames) {
-                            federateByReactor.put(reactorName, federateInstance)
                         }
                     }
                 }
@@ -1170,6 +1156,24 @@ abstract class GeneratorBase {
             // otherwise a federate could exit simply because it hasn't received
             // any messages.
             targetKeepalive = true
+            
+            // Create a FederateInstance for each top-level reactor.
+            for (instantiation : mainDef.reactorClass.instantiations) {
+                // Assign an integer ID to the federate.
+                var federateID = federates.length
+                // Add the federate name to the list of names.
+                var federateInstance = new FederateInstance(instantiation, federateID, this)
+                federates.add(federateInstance)
+                federateByName.put(instantiation.name, federateInstance)
+                federateByID.put(federateID, federateInstance)
+
+                if (federateByReactor === null) {
+                    federateByReactor = new HashMap<String, FederateInstance>()
+                }
+                for (reactorName : federateInstance.containedReactorNames) {
+                    federateByReactor.put(reactorName, federateInstance)
+                }
+            }
             
             // Analyze the connection topology of federates.
             // First, find all the connections between federates.

@@ -32,47 +32,39 @@ import java.util.LinkedList
 import java.util.Set
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.KeyValuePair
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 
 /** Instance of a federate, or marker that no federation has been defined
- *  (if isSingleton() returns true).
+ *  (if isSingleton() returns true). Every top-level reactor (contained
+ *  directly by the main reactor) is a federate, so there will be one
+ *  instance of this class for each top-level reactor.
  * 
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class FederateInstance {
-    
 
-    /** Construct a new instance with the specified definition
-     *  and parent. The definition has a name (the federate name)
-     *  and a value (of type Element), where the value has a field
-     *  keyvalue (of type KeyValuePair) containing the properties
-     *  of the federate.  For convenient access, those properties
-     *  are exported by getting methods of this instance.
-     *  @param definition The definition in the AST for this
-     *   instance, or null if no federation has been defined.
+    /** Construct a new instance with the specified instantiation of
+     *  of a top-level reactor. The federate will be given the specified
+     *  integer ID.
+     *  @param instantiation The instantiation of a top-level reactor,
+     *   or null if no federation has been defined.
      *  @param The generator (for reporting errors).
      */
-    protected new(KeyValuePair definition, int id, GeneratorBase generator) {
-        this.definition = definition
+    protected new(Instantiation instantiation, int id, GeneratorBase generator) {
+        this.instantiation = instantiation
         this.id = id
         this.generator = generator
                 
-        // Populate the contained reactor names.
-        if (definition !== null) {
-            // NOTE: Validator checks for the following structure.
-            for (property : definition.value.keyvalue.pairs) {
-                if (property.name.equals("reactors")) {
-                    for (reactor : property.value.array.elements) {
-                        containedReactorNames.add(reactor.id)
-                    }
-                }
-            }
+        // The contained reactor names set has just one name, the name
+        // of this reactor.
+        if (instantiation !== null) {
+            containedReactorNames.add(instantiation.name)
         }
     }
 
@@ -84,8 +76,8 @@ class FederateInstance {
      */
     public var Set<String> containedReactorNames = new HashSet<String>
     
-    /** The Instantiation AST object from which this was created. */
-    public var KeyValuePair definition
+    /** The instantiation of the top-level reactor, or null if there is no federation. */
+    public var Instantiation instantiation;
     
     /** Map from the federates that this federate receives messages from
      *  to the delays on connections from that federate. The delay set
@@ -192,10 +184,10 @@ class FederateInstance {
     }
     
     /** Return the name of this federate. 
-     *  @return The name of this federate.
+     *  @return The name of this federate or null if this is not a federation.
      */
     def getName() {
-        this.definition.name
+        this.instantiation?.name
     }
     
     /** Return true if this is singleton, meaning that no federation
@@ -203,7 +195,7 @@ class FederateInstance {
      *  @return True if no federation has been defined.
      */
      def isSingleton() {
-         return (definition === null)
+         return (instantiation === null)
      }
 
     /////////////////////////////////////////////
