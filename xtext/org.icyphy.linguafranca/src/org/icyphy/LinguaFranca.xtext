@@ -60,9 +60,10 @@ Import:
  * Declaration of a reactor class.
  */
 Reactor:
-    (main?='main'? & realtime?='realtime'?) 'reactor' name=ID 
+    ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
-    ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')? '{'
+    ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
+    '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
         | (inputs+=Input)
@@ -164,7 +165,7 @@ Instantiation:
     name=ID '=' 'new' 
     reactorClass=[Reactor] '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ';';
+    ')' ('@' host=(Host) ':' (port=INT)?)? ';';
 
 Connection:
     leftPort=VarRef ('->' | physical?='~>') rightPort=VarRef ('after' delay=Value)? ';';
@@ -245,6 +246,10 @@ terminal TRUE:
 terminal FALSE:
     'false';
 
+Host:
+    IPV4 | (ID (('.') ID)*)
+;
+
 DottedName:
     (ID (('.'|'::') ID)*)
 ;
@@ -272,8 +277,20 @@ Key: ID('-'ID)*;
 terminal NEGINT:
     '-' ('0'..'9')+;
 
+//terminal IPV4:
+//    (('25'('0'..'5'))|('2'('0'..'4')('0'..'9'))|(('0'..'1')('0'..'9')('0'..'9')))|(('0'..'9')('0'..'9'))|('0'..'9')'.'
+//    (('25'('0'..'5'))|('2'('0'..'4')('0'..'9'))|(('0'..'1')('0'..'9')('0'..'9')))|(('0'..'9')('0'..'9'))|('0'..'9')'.'
+//    (('25'('0'..'5'))|('2'('0'..'4')('0'..'9'))|(('0'..'1')('0'..'9')('0'..'9')))|(('0'..'9')('0'..'9'))|('0'..'9')'.'
+//    (('25'('0'..'5'))|('2'('0'..'4')('0'..'9'))|(('0'..'1')('0'..'9')('0'..'9')))|(('0'..'9')('0'..'9'))|('0'..'9')     
+//;
+
+terminal IPV4:
+    INT '.' INT '.' INT '.' INT
+;
+
 terminal FLOAT:
     '-'? ('0'..'9')+ '.' ('0'..'9')+;
+
 
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
@@ -311,9 +328,9 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' |
+    'new' | 'federated' | '@' |
     // Other terminals
-    FLOAT | NEGINT | TRUE | FALSE |
+    FLOAT | NEGINT | TRUE | FALSE | IPV4 |
     // Action origins
     'logical' | 'physical' |
     // Visibility modifiers
