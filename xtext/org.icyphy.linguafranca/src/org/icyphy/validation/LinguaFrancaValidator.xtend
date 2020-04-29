@@ -261,6 +261,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.INSTANTIATION__REACTOR_CLASS
             )
         }
+        
         // Report error if this instantiation is part of a cycle.
         if (this.info.instantiationGraph.cycles.size > 0) {
             for (cycle : this.info.instantiationGraph.cycles) {
@@ -524,6 +525,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             error(
                 "Reactor cannot be named '" + reactor.name + "'",
                 Literals.REACTOR__NAME
+            )
+        }
+        
+        if (!reactor.isFederated && !reactor.host.isNullOrEmpty) {
+            error(
+                "Cannot assign a host to reactor '" + reactor.name + "' because it is not federated.",
+                Literals.REACTOR__HOST
             )
         }
         // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
