@@ -291,7 +291,7 @@ abstract class GeneratorBase {
         
         // Find the main reactor and create an AST node for its instantiation.
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            if (reactor.isMain) {
+            if (reactor.isMain || reactor.isFederated) {
                 // Creating an definition for the main reactor because there isn't one.
                 this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
                 this.mainDef.setName(reactor.name)
@@ -373,7 +373,7 @@ abstract class GeneratorBase {
         // federate. But it seems harmless to generate it since a good
         // compiler will remove it anyway as dead code.
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            if (!reactor.isMain) {
+            if (!reactor.isMain && !reactor.isFederated) {
                 generateReactor(reactor)
             }
         }
@@ -697,7 +697,7 @@ abstract class GeneratorBase {
                 // Call generateReactor for each reactor contained by the import
                 // that is not a main reactor.
                 for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-                    if (!reactor.isMain) {
+                    if (!reactor.isMain && !reactor.isFederated) {
                         println("Including imported reactor: " + reactor.name)
                         generateReactor(reactor)
                     }

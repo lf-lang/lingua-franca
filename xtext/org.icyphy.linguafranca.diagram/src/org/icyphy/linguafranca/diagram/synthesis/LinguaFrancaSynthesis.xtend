@@ -158,7 +158,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		try {
 			// Find main
-			val main = model.reactors.findFirst[main]
+			val main = model.reactors.findFirst[main || federated]
 			if (main !== null) {
 				rootNode.children += main.createReactorNode(true, true, null, null, null, newHashSet)
 			} else {
