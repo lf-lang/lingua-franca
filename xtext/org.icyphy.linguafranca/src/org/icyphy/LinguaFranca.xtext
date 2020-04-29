@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
 
+import "http://www.eclipse.org/emf/2002/Ecore" as ecore
+
 generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 
 /////////// Overall file
@@ -63,7 +65,7 @@ Reactor:
     ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
-    ('@' host=(Host) ':' (port=INT)?)?
+    ('@' host=(Host) ':' (port=Number)?)?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -166,7 +168,7 @@ Instantiation:
     name=ID '=' 'new' 
     reactorClass=[Reactor] '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ('@' host=(Host) ':' (port=INT)?)? ';';
+    ')' ('@' host=(Host) ':' (port=Number)?)? ';';
 
 Connection:
     leftPort=VarRef ('->' | physical?='~>') rightPort=VarRef ('after' delay=Value)? ';';
@@ -186,7 +188,7 @@ Element:
     keyvalue=KeyValuePairs 
     | array=Array
     | literal=Literal 
-    | (time=INT unit=TimeUnit) 
+    | (time=Number unit=TimeUnit) 
     | id=ID;
 
 /////////// Pieces
@@ -208,7 +210,9 @@ VarRef:
 Assignment:
     (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
 
-
+Number returns ecore::EInt:
+    INT | BYTE
+;
 /**
  * Parameter declaration with optional type and mandatory initialization.
  */
@@ -228,7 +232,7 @@ Value:
 
 
 Time:
-    (interval=INT unit=TimeUnit)
+    (interval=Number unit=TimeUnit)
 ;
 
 Port:
@@ -239,7 +243,7 @@ Type:
    (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* (arraySpec=ArraySpec | parameters=Generic)?) | code=Code);
 
 ArraySpec:
-    ofVariableLength?='[]' | '[' length=INT ']';
+    ofVariableLength?='[]' | '[' length=Number ']';
     
 terminal TRUE:
     'true';
@@ -248,7 +252,7 @@ terminal FALSE:
     'false';
 
 Host:
-    IPV4 | (ID (('.') ID)*) | (ID ':' ID ((':') ID)*)
+    IPV4 | ('[' IPV6 ']') | (ID (('.') ID)*)
 ;
 
 DottedName:
@@ -261,7 +265,7 @@ Generic:
 ;
 
 Literal:
-    STRING | FLOAT | INT | NEGINT | TRUE | FALSE;
+    STRING | FLOAT | INT | BYTE | NEGINT | TRUE | FALSE;
 
 /////////// Elementary components
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
@@ -278,9 +282,30 @@ Key: ID('-'ID)*;
 terminal NEGINT:
     '-' ('0'..'9')+;
 
-terminal IPV4:
-    INT '.' INT '.' INT '.' INT
+terminal BYTE returns ecore::EInt:
+    '2'('0'..'5')('0'..'5') | 
+    '1'('0'..'9')('0'..'9') |
+    '0'?('0'..'9')('0'..'9') |
+    ('0'..'9')
 ;
+
+terminal IPV4:
+    BYTE '.' BYTE '.' BYTE '.' BYTE
+;
+
+// FIXME: This doesn't deal with truncation accordingly.
+// Every solution I've come up with so far introduces ambiguities.
+terminal IPV6:
+    ((('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')))
+    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
+    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
+    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
+    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
+    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
+    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
+    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')))
+;
+
 
 terminal FLOAT:
     '-'? ('0'..'9')+ '.' ('0'..'9')+;
@@ -324,7 +349,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | '@' |
     // Other terminals
-    FLOAT | NEGINT | TRUE | FALSE | IPV4 |
+    FLOAT | NEGINT | TRUE | FALSE | BYTE | IPV4 | IPV6 |
     // Action origins
     'logical' | 'physical' |
     // Visibility modifiers
