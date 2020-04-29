@@ -1115,13 +1115,10 @@ abstract class GeneratorBase {
      */
     private def analyzeFederates(Resource resource) {
         var target = resource.findTarget
-        // FIXME: foundOne should be replaced by detecting whether "main" or "federated" is used.
-        var foundOne = false
         // First, collect the properties of the RTI, if there is one,
         // and create a FederateInstance for each federate.
         for (param : target.config?.pairs ?: emptyList) {
             if (param.name.equals("federates")) {
-                foundOne = true
                 for (federate : param.value.keyvalue.pairs) {
                     if (federate.name == "RTI") {
                         for (property : federate.value.keyvalue.pairs) {
@@ -1145,7 +1142,7 @@ abstract class GeneratorBase {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        if (!foundOne) {
+        if (!mainDef.reactorClass.isFederated) {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, this)
             federates.add(federateInstance)
