@@ -310,9 +310,9 @@ public enum Targets {
         FLAGS("flags", Arrays.asList(Targets.C)),
         
         /**
-         * FIXME
+         * Directive to specify the coordination mode
          */
-        FEDERATES("federates", Arrays.asList(Targets.C)),
+        COORDINATION("coordination", Arrays.asList(Targets.C)),
         
         /**
          * FIXME

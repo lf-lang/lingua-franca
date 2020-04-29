@@ -5,8 +5,10 @@
  *  @author Edward A. Lee
  */
 target C {
-    timeout: 1 sec
+    timeout: 1 sec,
+    coordination: centralized
 };
+
 reactor Count {
     timer t(0, 200 msec);
     state s:int(0);
