@@ -336,69 +336,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             "Target property fast is required to be true or false.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
-                case FEDERATES:
-                    if (param.value.keyvalue === null) {
-                        error(
-                            "Target property federates is required to be a set of key-value pairs.",
-                            Literals.KEY_VALUE_PAIR__VALUE)
-                    } else {
-                        for (federate : param.value.keyvalue.pairs) {
-                            if (federate.value.keyvalue === null) {
-                                error(
-                                    "Each federate needs to be defined by key-value pairs.",
-                                    Literals.KEY_VALUE_PAIR__VALUE)
-                            }
-                            if (federate.name == "RTI") {
-                                // Check port and host parameter form.
-                                for (property : federate.value.keyvalue.pairs) {
-                                    switch property.name {
-                                        case "launcher":
-                                            if (property.value.literal ===
-                                                null ||
-                                                (property.value.literal !=
-                                                    'true' &&
-                                                    property.value.literal !=
-                                                        'false')) {
-                                                error(
-                                                    "launcher property needs to be true or false.",
-                                                    Literals.
-                                                        KEY_VALUE_PAIR__VALUE)
-                                            }
-                                        }
-                                    }
-                            } else {
-                                // Check that there is a 'reactors' property that is an array of ids.
-                                var foundReactors = false
-                                // Check that each federate specifies a set of reactors.
-                                for (property : federate.value.keyvalue.pairs) {
-                                    if (property.name.equals("reactors")) {
-                                        foundReactors = true
-                                        if (property.value.array === null) {
-                                            error(
-                                                "Each reactor property needs to be an array of ids.",
-                                                Literals.KEY_VALUE_PAIR__VALUE)
-                                        }
-                                        for (reactor : property.value.array.
-                                            elements) {
-                                            if (reactor.id === null) {
-                                                error(
-                                                    "Each reactor property needs to be an array of ids.",
-                                                    Literals.
-                                                        KEY_VALUE_PAIR__VALUE)
-                                            }
-                                        }
-                                    // FIXME: Should check that the reactor is an instance
-                                    // main reactor.
-                                    }
-                                }
-                                if (!foundReactors) {
-                                    error(
-                                        "Each federate needs to have a reactor property.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                                }
-                            }
-                        }
-                    }
                 case KEEPALIVE:
                     if (!param.value.id.equals('true') &&
                         !param.value.id.equals('false')) {
