@@ -324,6 +324,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             "Target property compile is required to be a string.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
+                case COORDINATION:
+                    if (param.value.id.isNullOrEmpty || 
+                        !(param.value.id.equals("centralized") || 
+                        param.value.id.equals("distributed"))) {
+                        error("Target property 'coordination' can either be " +
+                            "'centralized' or 'distributed'.",
+                            Literals.KEY_VALUE_PAIR__VALUE)
+                    } 
                 case FLAGS:
                     if (param.value.literal === null) {
                         error(
