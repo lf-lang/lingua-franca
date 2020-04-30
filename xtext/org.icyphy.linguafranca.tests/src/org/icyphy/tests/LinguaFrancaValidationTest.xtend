@@ -401,6 +401,39 @@ class LinguaFrancaValidationTest {
 		model.assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
 			"Cannot connect: Port named 'in' is already effect of a reaction.")
 	}
+	
+    /**
+     * Disallow connection of multiple ports to the same input port.
+     */
+    @Test
+    def void multipleConnectionsToInputTest() {
+        val model = '''
+            target C;
+            
+            reactor Source {
+                output out:int;
+            }
+            reactor Sink {
+            	input in:int;
+            }
+
+            main reactor Bar {
+            	input in:int;
+            	   src = new Source();
+            	   sink = new Sink();
+
+                in -> sink.in;
+                src.out -> sink.in;
+            }
+        '''.parse
+
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        model.assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+            "Cannot connect: Port named 'in' may only be connected to a single upstream port.")
+    }
     
     /**
      * Detect cycles in the instantiation graph.

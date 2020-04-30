@@ -196,12 +196,23 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         for (reaction : reactor.reactions) {
             for (effect : reaction.effects) {
                 if (connection.rightPort.container === effect.container &&
-                	connection.rightPort.variable === effect.variable) {
+                    connection.rightPort.variable === effect.variable) {
                     error(
                         "Cannot connect: Port named '" + effect.variable.name +
                             "' is already effect of a reaction.",
                         Literals.CONNECTION__RIGHT_PORT)
                 }
+            }
+        }
+
+        for (c : reactor.connections) {
+            if (c !== connection &&
+                connection.rightPort.container === c.rightPort.container &&
+                connection.rightPort.variable === c.rightPort.variable) {
+                error(
+                    "Cannot connect: Port named '" + c.rightPort.variable.name +
+                        "' may only be connected to a single upstream port.",
+                    Literals.CONNECTION__RIGHT_PORT)
             }
         }
     }
