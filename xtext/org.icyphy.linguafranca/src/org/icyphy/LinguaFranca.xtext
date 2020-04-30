@@ -65,7 +65,7 @@ Reactor:
     ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
-    ('@' host=(Host) ':' (port=Number)?)?
+    ('@' host=(Host) (':' port=Number)?)?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -168,7 +168,7 @@ Instantiation:
     name=ID '=' 'new' 
     reactorClass=[Reactor] '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ('@' host=(Host) ':' (port=Number)?)? ';';
+    ')' ('@' host=(Host) (':' port=Number)?)? ';';
 
 Connection:
     leftPort=VarRef ('->' | physical?='~>') rightPort=VarRef ('after' delay=Value)? ';';
