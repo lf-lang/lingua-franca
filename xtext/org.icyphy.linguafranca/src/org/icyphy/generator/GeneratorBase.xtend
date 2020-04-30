@@ -1116,7 +1116,7 @@ abstract class GeneratorBase {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        if (!mainDef.reactorClass.isFederated) {
+        if (mainDef === null || !mainDef.reactorClass.isFederated) {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, this)
             federates.add(federateInstance)
