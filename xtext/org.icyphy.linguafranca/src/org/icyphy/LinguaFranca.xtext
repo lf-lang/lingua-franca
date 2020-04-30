@@ -65,7 +65,7 @@ Reactor:
     ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
-    ('@' host=(Host) (':' port=Number)?)?
+    ('at' host=(Host) (':' port=Number)?)?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -113,10 +113,10 @@ Target:
 ;
 
 Input:
-    (mutable?='mutable')? 'input' name=ID (':' type=Type)? ';';
+    (mutable?='mutable' & multiplex?='multiplex')? 'input' name=ID (':' type=Type)? ';';
 
 Output:
-    'output' name=ID (':' type=Type)? ';';
+    (multiplex?='multiplex')? 'output' name=ID (':' type=Type)? ';';
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -168,7 +168,7 @@ Instantiation:
     name=ID '=' 'new' 
     reactorClass=[Reactor] '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ('@' host=(Host) (':' port=Number)?)? ';';
+    ')' ('at' host=(Host) (':' port=Number)?)? ';';
 
 Connection:
     leftPort=VarRef ('->' | physical?='~>') rightPort=VarRef ('after' delay=Value)? ';';
@@ -347,7 +347,7 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | '@' |
+    'new' | 'federated' | 'at' | 'multiplex' |
     // Other terminals
     FLOAT | NEGINT | TRUE | FALSE | BYTE | IPV4 | IPV6 |
     // Action origins
