@@ -113,7 +113,7 @@ Target:
 ;
 
 Input:
-    (mutable?='mutable' & multiplex?='multiplex')? 'input' name=ID (':' type=Type)? ';';
+    (mutable?='mutable'? & multiplex?='multiplex'?) 'input' name=ID (':' type=Type)? ';';
 
 Output:
     (multiplex?='multiplex')? 'output' name=ID (':' type=Type)? ';';
