@@ -29,7 +29,9 @@ package org.icyphy.generator
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
+import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.HashSet
@@ -40,6 +42,7 @@ import java.util.Set
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
+import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -64,11 +67,9 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-import org.eclipse.core.runtime.Path
 
 /** Generator base class for shared code between code generators.
  * 
@@ -77,7 +78,7 @@ import org.eclipse.core.runtime.Path
  *  @author{Chris Gill, <cdgill@wustl.edu>}
  *  @author{Christian Menard <christian.menard@tu-dresden.de}
  */
-abstract class GeneratorBase {
+abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -948,6 +949,9 @@ abstract class GeneratorBase {
      *  @param message The error message.
      */
     protected def reportError(EObject object, String message) {
+        // The following throws a NPE.
+        // error(message, object, Literals.REACTOR__NAME, INSIGNIFICANT_INDEX, "WTF?");
+        
         generatorErrorsOccurred = true;
         // FIXME: All calls to this should also be checked by the validator (See LinguaFrancaValidator.xtend).
         // In case we are using a command-line tool, we report the line number.
