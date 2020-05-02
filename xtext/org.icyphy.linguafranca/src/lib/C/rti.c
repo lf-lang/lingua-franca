@@ -528,15 +528,21 @@ void connect_to_federates(int socket_descriptor) {
             fprintf(stderr, "ERROR: RTI expected a FED_ID message. Got %u (see rti.h).\n", buffer[0]);
         }
 
-        int fed_id = swap_bytes_if_big_endian_int(*((int*)(&(buffer[1]))));
+        ushort fed_id = extract_ushort(buffer + 1);
         // printf("DEBUG: RTI received federate ID: %d\n", fed_id);
+
+        if (fed_id >= NUMBER_OF_FEDERATES) {
+            fprintf(stderr, "ERROR: Federate ID %d is required to be between zero and %d.\n", fed_id, NUMBER_OF_FEDERATES-1);
+            // FIXME: Rather harsh error handling here.
+            exit(1);
+        }
 
         if (federates[fed_id].state != NOT_CONNECTED) {
             fprintf(stderr, "Duplicate federate ID: %d.\n", fed_id);
             // FIXME: Rather harsh error handling here.
             exit(1);
         }
-        // Default state is as if an NMR has been granted for the start time.
+        // Default state is as if an NET has been granted for the start time.
         federates[fed_id].state = GRANTED;
         federates[fed_id].socket = socket_id;
 
