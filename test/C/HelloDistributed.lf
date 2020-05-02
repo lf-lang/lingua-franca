@@ -36,7 +36,7 @@ reactor Destination {
         }
     =}
 }
-federated reactor HelloDistributed @localhost:15046 {
+federated reactor HelloDistributed at localhost:15046 {
     s = new Source();      // Reactor s is in federate Source
     d = new Destination(); // Reactor d is in federate Destination
     s.out -> d.in;         // This version preserves the timestamp.
