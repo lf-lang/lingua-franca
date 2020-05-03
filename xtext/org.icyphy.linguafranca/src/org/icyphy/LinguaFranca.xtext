@@ -253,9 +253,8 @@ IPV4Host:
     addr=IPV4Addr (':' port=INT)? 
 ;
 
-// Brackets are optional if not port is given.
 IPV6Host:
-    (brackets+='[' addr=IPV6Addr brackets+=']') (':' port=INT)?
+    ('[' addr=IPV6Addr ']' (':' port=INT)?)
 ;
 
 NamedHost:
