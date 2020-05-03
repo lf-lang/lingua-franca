@@ -63,7 +63,7 @@ Reactor:
     ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
-    ('at' host=(Host) (':' port=INT)?)?
+    ('at' host=Host)?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -176,7 +176,7 @@ Instantiation:
     name=ID '=' 'new' 
     reactorClass=[Reactor] '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ('at' host=(Host) (':' port=INT)?)? ';';
+    ')' ('at' host=Host)? ';';
 
 Connection:
     leftPort=VarRef ('->' | physical?='~>') rightPort=VarRef ('after' delay=Value)? ';';
@@ -249,8 +249,21 @@ ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
     
 
+IPV4Host:
+    addr=IPV4Addr (':' port=INT)? 
+;
+
+// Brackets are optional if not port is given.
+IPV6Host:
+    (brackets+='[' addr=IPV6Addr brackets+=']') (':' port=INT)?
+;
+
+NamedHost:
+    addr=DomainName (':' port=INT)?
+;
+
 Host:
-    ipv4=IPV4Addr | ('[' ipv6=IPV6Addr ']') | domainName=DomainName
+    IPV4Host | IPV6Host | NamedHost
 ;
 
 DomainName:
