@@ -187,7 +187,7 @@ KeyValuePairs:
     '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
 
 KeyValuePair:
-    name=Key ':' value=Element;
+    name=Kebab ':' value=Element;
 
 Array:
     '[' elements+=Element (',' (elements+=Element))* ']';
@@ -259,15 +259,15 @@ IPV6Host:
 ;
 
 NamedHost:
-    addr=DomainName (':' port=INT)?
+    addr=HostName (':' port=INT)?
 ;
 
 Host:
     IPV4Host | IPV6Host | NamedHost
 ;
 
-DomainName:
-    (ID (('.') ID)*)
+HostName:
+    (Kebab (('.') Kebab)*)
 ;
 
 DottedName:
@@ -295,8 +295,7 @@ terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 @Override
 terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
 
-// Allow target properties to be expressed in Kebab case.
-Key: ID('-'ID)*;
+Kebab: ID('-'ID)*;
 
 terminal NEGINT:
     '-' ('0'..'9')+;
