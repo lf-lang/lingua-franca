@@ -1135,12 +1135,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // Get the host information, if specified.
             // If not specified, this defaults to 'localhost'
             if (mainDef.reactorClass.host !== null) {
-                federationRTIProperties.put('host', mainDef.reactorClass.host)                
+                federationRTIProperties.put('host', mainDef.reactorClass.host.addr)                
             }
             // Get the port information, if specified.
             // If not specified, this defaults to 14045
-            if (mainDef.reactorClass.port !== 0) {
-                federationRTIProperties.put('port', mainDef.reactorClass.port)                
+            if (mainDef.reactorClass.host.port !== 0) {
+                federationRTIProperties.put('port', mainDef.reactorClass.host.port)                
             }
             
             // Create a FederateInstance for each top-level reactor.

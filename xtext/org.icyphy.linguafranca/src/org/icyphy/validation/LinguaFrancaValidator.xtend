@@ -60,6 +60,8 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.IPV4Host
+import org.icyphy.linguaFranca.IPV6Host
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -573,21 +575,23 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     Literals.REACTOR__HOST
                 )
             } else {
-                if (!reactor.host.ipv4.isNullOrEmpty) {
-                    if (!reactor.host.ipv4.matches(ipv4Regex)) {
-                        error(
-                            "Invalid IP address.",
-                            Literals.REACTOR__HOST
-                        )
-                    }
-                } else if (!reactor.host.ipv6.isNullOrEmpty) {
-                    if (!reactor.host.ipv6.matches(ipv6Regex)) {
-                        error(
-                            "Invalid IP address.",
-                            Literals.REACTOR__HOST
-                        )
-                    }
+                val addr = reactor.host.addr
+                
+                if (reactor.host instanceof IPV4Host && !addr.matches(ipv4Regex)) {
+                    error(
+                        "Invalid IP address.",
+                        Literals.REACTOR__HOST
+                    )
                 }
+                
+                if (reactor.host instanceof IPV6Host && !addr.matches(ipv6Regex)) {
+                    error(
+                        "Invalid IP address.",
+                        Literals.REACTOR__HOST
+                    )
+                }
+                
+                // FIXME: Do any additional checking for NamedHost?
             }
         }
         // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
