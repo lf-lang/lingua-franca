@@ -55,6 +55,10 @@ class LinguaFrancaValidationTest {
 	@Inject extension ParseHelper<Model>
     @Inject extension ValidationTestHelper
 
+    /**
+     * Helper function to parse a Lingua Franca program and expect no errors.
+     * @return A model representing the parsed string.
+     */
     def parseWithoutError(String s) {
         val model = s.parse
         Assertions.assertNotNull(model)
@@ -64,6 +68,10 @@ class LinguaFrancaValidationTest {
         return model
     }
     
+    /**
+     * Helper function to parse a Lingua Franca program and expect errors.
+     * @return A model representing the parsed string.
+     */
     def parseWithError(String s) {
         val model = s.parse
         Assertions.assertNotNull(model)
@@ -630,69 +638,39 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void recognizeIPV4() {
-        parseWithoutError('''
-        target C;
-        federated reactor X  at 127.0.0.1 {
-        }
-        ''')
         
-        parseWithoutError('''
-        target C;
-        federated reactor X  at 10.0.0.1 {
-        }
-        ''')
-                
-        parseWithoutError('''
-        target C;
-        federated reactor X  at 192.168.1.1 {
-        }
-        ''')
-                
-        parseWithoutError('''
-        target C;
-        federated reactor X  at 0.0.0.0 {
-        }
-        ''')        
-        
-        parseWithoutError('''
-        target C;
-        federated reactor X  at 0.0.0.0 {
-        }
-        ''')
-                
-        parseWithoutError('''
-        target C;
-        federated reactor X  at 192.168.1.1:8000 {
-        }
-        ''')
-                
-        // The following ones should not even parse:
-        parseWithError('''
-        target C;
-        federated reactor X  at 10002.3.4 {
-        }
-        ''')
-        
-        parseWithError('''
-        target C;
-        federated reactor X  at 1.2.3.4.5 {
-        }
-        ''')
-        
-        // The following ones should trigger errors:
-        parseWithoutError('''
-        target C;
-        federated reactor X  at 256.0.0.0 {
-        }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
-            "Invalid IP address.")
-            
-        parseWithoutError('''
-        target C;
-        federated reactor X  at 260.0.0.0 {
-        }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
-            "Invalid IP address.")
+        val correct = #["127.0.0.1", "10.0.0.1", "192.168.1.1", "0.0.0.0",
+            "192.168.1.1:8000"]
+        val parseError = #["10002.3.4", "1.2.3.4.5"]
+        val validationError = #["256.0.0.0", "260.0.0.0"]
+
+        // Correct IP addresses.
+        correct.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                federated reactor X  at «addr» {
+                }
+            ''')
+        ]
+
+        // IP addresses that don't parse.
+        parseError.forEach [ addr |
+            parseWithError('''
+                target C;
+                federated reactor X  at «addr» {
+                }
+            ''')
+        ]
+
+        // IP addresses that parse but are invalid.
+        validationError.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                federated reactor X  at «addr» {
+                }
+            ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+                "Invalid IP address.")
+        ]
     }
     
     /**
@@ -700,26 +678,27 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void recognizeIPV6() {
-        parseWithoutError(
-        '''
+        parseWithoutError('''
         target C;
         federated reactor X  at [1:2:3:4:5:6:7:8] {
-        }
-        ''')
+        }''')
         
-        parseWithoutError(
-        '''
+        parseWithoutError('''
         target C;
         federated reactor X  at [1::] {
-        }
-        ''')
+        }''')
         
-        parseWithoutError(
-        '''
+        parseWithoutError('''
         target C;
         federated reactor X  at [1::8] {
-        }
-        ''')                
+        }''')
+        
+        parseWithoutError('''
+        target C;
+        federated reactor X  at [1::7:8] {
+        }''')           
+
+
         
     }
  }
