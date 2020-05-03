@@ -678,27 +678,21 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void recognizeIPV6() {
-        parseWithoutError('''
-        target C;
-        federated reactor X  at [1:2:3:4:5:6:7:8] {
-        }''')
         
-        parseWithoutError('''
-        target C;
-        federated reactor X  at [1::] {
-        }''')
+        val correct = #["1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7::", "1:2:3:4:5:6::8",
+            "1:2:3:4:5::8", "1:2:3:4::8", "1:2:3::8", "1:2::8", "1::8", "::8",
+            "1::3:4:5:6:7:8", "1::4:5:6:7:8", "1::5:6:7:8", "1::6:7:8",
+            "1::7:8", "1::8", "1::", "1:2:3:4:5::7:8", "1:2:3:4::6:7:8",
+            "1:2:3::5:6:7:8", "1:2::4:5:6:7:8", "1::3:4:5:6:7:8",
+            "::2:3:4:5:6:7:8"]//, "fe80::7:8%eth0"]// "fe80::7:8%1", "::255.255.255.255" "::ffff:255.255.255.255", "::ffff:0:255.255.255.0"
         
-        parseWithoutError('''
-        target C;
-        federated reactor X  at [1::8] {
-        }''')
-        
-        parseWithoutError('''
-        target C;
-        federated reactor X  at [1::7:8] {
-        }''')           
-
-
-        
+        // Correct IP addresses.
+        correct.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                federated reactor X  at [«addr»] {
+                }
+            ''')
+        ]
     }
  }
