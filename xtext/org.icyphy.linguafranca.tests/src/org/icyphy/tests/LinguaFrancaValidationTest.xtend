@@ -771,4 +771,127 @@ class LinguaFrancaValidationTest {
             "Missing time units. Should be one of " +
             	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }  
-}
+    
+    
+    /**
+     * Recognize valid IP addresses, report invalid ones..
+     */
+    @Test
+    def void recognizeIPV4() {
+        var model = '''
+        target C;
+        federated reactor X  at 127.0.0.1 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        
+        model = '''
+        target C;
+        federated reactor X  at 10.0.0.1 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+                
+        model = '''
+        target C;
+        federated reactor X  at 192.168.1.1 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+                
+        model = '''
+        target C;
+        federated reactor X  at 0.0.0.0 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+                
+        model = '''
+        target C;
+        federated reactor X  at 0.0.0.0 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+                
+        model = '''
+        target C;
+        federated reactor X  at 192.168.1.1:8000 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+                
+        // The following ones should not even parse:
+        model = '''
+        target C;
+        federated reactor X  at 10002.3.4 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertFalse(model.eResource.errors.isEmpty)
+        
+        model = '''
+        target C;
+        federated reactor X  at 1.2.3.4.5 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertFalse(model.eResource.errors.isEmpty)
+        
+        // The following ones should trigger errors:
+        
+        model = '''
+        target C;
+        federated reactor X  at 256.0.0.0 {
+        }
+        '''.parse
+        
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+                
+        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            "Invalid IP address.")
+            
+        model = '''
+        target C;
+        federated reactor X  at 260.0.0.0 {
+        }
+        '''.parse
+        
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+                
+        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            "Invalid IP address.")
+    }
+ }

@@ -85,9 +85,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     var info = new ModelInfo()
 
+    /**
+     * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
+     */
     static val ipv4Regex = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
                                 "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"
-    
+    /**
+     * Regular expression to check the validity of IPV6 addresses (due to David M. Syzdek).
+     */
     static val ipv6Regex = 
                "(([0-9a-fA-F]{1,4}:){7,7}  [0-9a-fA-F]{1,4}         |" +
                 "([0-9a-fA-F]{1,4}:){1,7} :                         |" + 
