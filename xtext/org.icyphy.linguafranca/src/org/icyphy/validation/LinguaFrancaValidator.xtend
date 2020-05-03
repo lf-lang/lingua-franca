@@ -83,6 +83,24 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     var info = new ModelInfo()
 
+    static val ipv4Regex = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
+                                "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"
+    
+    static val ipv6Regex = 
+               "(([0-9a-fA-F]{1,4}:){7,7}  [0-9a-fA-F]{1,4}         |" +
+                "([0-9a-fA-F]{1,4}:){1,7} :                         |" + 
+                "([0-9a-fA-F]{1,4}:){1,6} :[0-9a-fA-F]{1,4}         |" +
+                "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}   |" + 
+                "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}   |" + 
+                "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}   |" + 
+                "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}   |" + 
+                " [0-9a-fA-F]{1,4}:(     (:[0-9a-fA-F]{1,4}){1,6})  |" + 
+                                 ":(     (:[0-9a-fA-F]{1,4}){1,7}|:)|" +
+        "fe80:(:  [0-9a-fA-F]{1,4}){0,4} % [0-9a-zA-Z]{1,}          |" + 
+        "::(ffff(:0{1,4}){0,1}:){0,1}"      + ipv4Regex +          "|" + 
+        "([0-9a-fA-F]{1,4}:){1,4}:"         + ipv4Regex + ")"
+            
+
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
     // Check the name of a feature for illegal substrings.
@@ -547,11 +565,30 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
         
-        if (!reactor.isFederated && !reactor.host.isNullOrEmpty) {
-            error(
-                "Cannot assign a host to reactor '" + reactor.name + "' because it is not federated.",
-                Literals.REACTOR__HOST
-            )
+        if (reactor.host !== null) {
+            if (!reactor.isFederated) {
+                error(
+                    "Cannot assign a host to reactor '" + reactor.name + 
+                    "' because it is not federated.",
+                    Literals.REACTOR__HOST
+                )
+            } else {
+                if (!reactor.host.ipv4.isNullOrEmpty) {
+                    if (!reactor.host.ipv4.matches(ipv4Regex)) {
+                        error(
+                            "Invalid IP address.",
+                            Literals.REACTOR__HOST
+                        )
+                    }
+                } else if (!reactor.host.ipv6.isNullOrEmpty) {
+                    if (!reactor.host.ipv6.matches(ipv6Regex)) {
+                        error(
+                            "Invalid IP address.",
+                            Literals.REACTOR__HOST
+                        )
+                    }
+                }
+            }
         }
         // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
         // (essentially all the classes that are imported by default).
