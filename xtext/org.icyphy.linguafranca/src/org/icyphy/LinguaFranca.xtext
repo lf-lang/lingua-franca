@@ -111,10 +111,10 @@ Target:
 ;
 
 Input:
-    (mutable?='mutable'? & multiplex?='multiplex'?) 'input' name=ID (':' type=Type)? ';';
+    (mutable?='mutable'? & multiplex?='multiplex'?) 'input' (arraySpec=ArraySpec)? name=ID (':' type=Type)? ';';
 
 Output:
-    (multiplex?='multiplex')? 'output' name=ID (':' type=Type)? ';';
+    (multiplex?='multiplex')? 'output' (arraySpec=ArraySpec)? name=ID (':' type=Type)? ';';
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -174,7 +174,7 @@ Preamble:
 
 Instantiation:
     name=ID '=' 'new' 
-    reactorClass=[Reactor] '(' 
+    reactorClass=[Reactor] (arraySpec=ArraySpec)? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
     ')' ('at' host=Host)? ';';
 
@@ -210,8 +210,8 @@ Effect:
     Action | Output;
 
 VarRef:
-    variable=[Variable]
-    | container=[Instantiation] '.' variable=[Variable];
+    variable=[Variable] (variableArraySpec=ArraySpec)?
+    | container=[Instantiation] (containerArraySpec=ArraySpec)? '.' variable=[Variable] (variableArraySpec=ArraySpec)?;
 
 Assignment:
     (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
