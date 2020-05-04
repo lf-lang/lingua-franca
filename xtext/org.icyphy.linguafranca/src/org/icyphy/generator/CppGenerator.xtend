@@ -614,14 +614,29 @@ class CppGenerator extends GeneratorBase {
 
     def generate(Connection c) {
         val leftContainer = c.leftPort.container
-        val rightContainer = c.leftPort.container
+        val rightContainer = c.rightPort.container
         val leftPort = c.leftPort.variable as Port
         val rightPort = c.rightPort.variable as Port
 
-        if (leftContainer !== null && leftContainer.arraySpec !== null) {
+        if (leftContainer !== null && leftContainer.arraySpec !== null &&
+            rightContainer !== null && rightContainer.arraySpec !== null) {
             return '''
                 for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
                   «leftContainer.name»[i].«leftPort.name».bind_to(&«rightContainer.name»[i].«rightPort.name»);
+                }
+            '''
+        } else if (leftContainer !== null && leftContainer.arraySpec !== null &&
+            rightPort.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
+                  «leftContainer.name»[i].«leftPort.name».bind_to(&«c.rightPort.name»[i]);
+                }
+            '''
+        } else if (leftPort.arraySpec !== null && rightContainer !== null &&
+            rightContainer.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
+                  «c.leftPort.name»[i].bind_to(&«rightContainer.name»[i].«rightPort.name»);
                 }
             '''
         } else if (leftPort.arraySpec !== null) {
@@ -630,9 +645,9 @@ class CppGenerator extends GeneratorBase {
                   «c.leftPort.name»[i].bind_to(&«c.rightPort.name»[i]);
                 }
             '''
+        } else {
+            return '''«c.leftPort.name».bind_to(&«c.rightPort.name»);'''
         }
-        // FIXME: Support the other cases!
-        return '''«c.leftPort.name».bind_to(&«c.rightPort.name»);'''
     }
 
     def generateReactorSource(Reactor r) '''
