@@ -116,7 +116,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     static val usernameRegex = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$"
 
-    static val domainNameRegex = "^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$"
+    static val hostOrFQNRegex = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$"
 
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
@@ -615,7 +615,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 "Invalid IP address.",
                 Literals.HOST__ADDR
             )
-        } else if (host instanceof NamedHost && !addr.matches(domainNameRegex)) {
+        } else if (host instanceof NamedHost && !addr.matches(hostOrFQNRegex)) {
             warning(
                 "Invalid host name or fully qualified domain name.",
                 Literals.HOST__ADDR
