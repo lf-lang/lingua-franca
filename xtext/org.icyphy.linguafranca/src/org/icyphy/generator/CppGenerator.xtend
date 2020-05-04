@@ -53,6 +53,8 @@ import org.icyphy.linguaFranca.Visibility
 import static extension org.icyphy.ASTUtils.*
 import java.util.stream.IntStream
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Port
+
 
 /** Generator for C++ target.
  * 
@@ -227,10 +229,18 @@ class CppGenerator extends GeneratorBase {
 
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-            reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
+            «IF i.arraySpec !== null»
+                std::array<reactor::Input<«i.targetType»>, «i.arraySpec.length»> «i.name»{{«FOR id : IntStream.range(0, i.arraySpec.length).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
+            «ELSE»
+                reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
+            «ENDIF»
         «ENDFOR»
         «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-            reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
+            «IF o.arraySpec !== null»
+                std::array<reactor::Output<«o.targetType»>, «o.arraySpec.length»> «o.name»{{«FOR id : IntStream.range(0, o.arraySpec.length).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
+            «ELSE»
+                reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
+            «ENDIF»
         «ENDFOR»
     '''
 
@@ -313,9 +323,26 @@ class CppGenerator extends GeneratorBase {
         '''
     }
 
+    def declareTrigger(Reaction n, TriggerRef t) {
+        if (t instanceof VarRef) {
+        	if (t.variable instanceof Port) {
+                val p = t.variable as Port
+                if (p.arraySpec !== null) {
+                    return '''
+                        for (unsigned i = 0; i < «t.name».size(); i++) {
+                        	«n.name».declare_trigger(&«t.name»[i]);
+                        }
+                    '''
+                }
+            }
+            // FIXME: support other cases
+        }
+        return '''«n.name».declare_trigger(&«t.name»);'''
+    }
+
     def declareTriggers(Reaction n) '''
         «FOR t : n.triggers»
-            «n.name».declare_trigger(&«t.name»);
+            «n.declareTrigger(t)»
         «ENDFOR»
     '''
 
@@ -338,27 +365,45 @@ class CppGenerator extends GeneratorBase {
             }
         }
     }
+    
+    def declareDependency(Reaction n, VarRef v) {
+        val p = v.variable as Port
+        if (p.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «v.name».size(); i++) {
+                    «n.name».declare_dependency(&«v.name»[i]);
+                }
+            '''
+        }
+        // FIXME: support other cases
+        return '''«n.name».declare_dependency(&«v.name»);'''
+    }
 
     def declareDependencies(Reaction n) '''
-        «FOR t : n.sources»
-            «IF t.container !== null»
-                «n.name».declare_dependency(&«t.container.name».«t.variable.name»);
-            «ELSE»
-                «n.name».declare_dependency(&«t.variable.name»);
-            «ENDIF»
+        «FOR v : n.sources»
+            «n.declareDependency(v)»
         «ENDFOR»
     '''
 
+    def declareAntidependency(Reaction n, VarRef v) {
+        val p = v.variable as Port
+        if (p.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «v.name».size(); i++) {
+                    «n.name».declare_antidependency(&«v.name»[i]);
+                }
+            '''
+        }
+        // FIXME: support other cases
+        return '''«n.name».declare_antidependency(&«v.name»);'''
+    }
+
     def declareAntidependencies(Reaction n) '''
-        «FOR t : n.effects»
-            «IF t.variable instanceof Action»
-                «n.name».declare_scheduable_action(&«t.variable.name»);
+        «FOR v : n.effects»
+            «IF v.variable instanceof Action»
+                «n.name».declare_scheduable_action(&«v.variable.name»);
             «ELSE»
-                «IF t.container !== null»
-                    «n.name».declare_antidependency(&«t.container.name».«t.variable.name»);
-                «ELSE»
-                    «n.name».declare_antidependency(&«t.variable.name»);
-                «ENDIF»
+                «n.declareAntidependency(v)»
             «ENDIF»
         «ENDFOR»
     '''
@@ -568,17 +613,26 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def generate(Connection c) {
-        if (c.leftPort.container !== null &&
-            c.leftPort.container.arraySpec !== null) {
+        val leftContainer = c.leftPort.container
+        val rightContainer = c.leftPort.container
+        val leftPort = c.leftPort.variable as Port
+        val rightPort = c.rightPort.variable as Port
+
+        if (leftContainer !== null && leftContainer.arraySpec !== null) {
             return '''
-                for (unsigned i = 0; i < «c.leftPort.container.name».size(); i++) {
-                  «c.leftPort.container.name»[i].«c.leftPort.variable.name».bind_to(&«c.rightPort.container.name»[i].«c.rightPort.variable.name»);
+                for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
+                  «leftContainer.name»[i].«leftPort.name».bind_to(&«rightContainer.name»[i].«rightPort.name»);
                 }
             '''
-        } else {
-            return '''«c.leftPort.name».bind_to(&«c.rightPort.name»);'''
+        } else if (leftPort.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
+                  «c.leftPort.name»[i].bind_to(&«c.rightPort.name»[i]);
+                }
+            '''
         }
         // FIXME: Support the other cases!
+        return '''«c.leftPort.name».bind_to(&«c.rightPort.name»);'''
     }
 
     def generateReactorSource(Reactor r) '''
