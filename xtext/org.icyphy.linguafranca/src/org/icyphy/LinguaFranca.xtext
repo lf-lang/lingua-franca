@@ -316,14 +316,14 @@ IPV6Addr:
     // IPV6 with truncation.
     '::' | ('::' (IPV6Seg (':'))* IPV6Seg) | ((IPV6Seg (':'|'::'))+ IPV6Seg?) | 
     
-    // (Link-local IPv6 addresses with zone index)
-    (ID '::' IPV6Seg (':' IPV6Seg)* '%' (INT? ID) | INT) |
+    // (Link-local IPv6 addresses with zone index) "fe80::7:8%1"
+    (ID '::' IPV6Seg (':' IPV6Seg)* '%' (INT | ID)+) |
 
     // IPv4-mapped IPv6 addresses and IPv4-translated addresses
     ('::' IPV4Addr) | ('::' ID ':' (INT ':')? IPV4Addr) |
     
     // IPv4-Embedded IPv6 Address
-    (IPV6Seg (':' IPV6Seg)* '::' IPV4Addr)
+    (((IPV6Seg (':' IPV6Seg)* '::') | (IPV6Seg (':' IPV6Seg)*) ':') IPV4Addr)
 ;
 
 
@@ -390,5 +390,7 @@ Token:
     // Assignment
     '=' |
     // Asterisk
-    '*'
+    '*' |
+    // Percentage
+    '%'
 ;
