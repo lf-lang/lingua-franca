@@ -739,4 +739,51 @@ class LinguaFrancaValidationTest {
                 "Invalid IP address.")
         ]
     }
+    
+    /**
+     * Recognize valid host names and fully qualified names, report invalid ones.
+     */
+    @Test
+    def void recognizeHostNames() {
+        
+        val correct = #["localhost"] // FIXME: add more
+    
+        val validationError = #["x.y.z"] // FIXME: add more
+        
+        val parseError = #["..xyz"] // FIXME: add more
+                
+        // Correct names.
+        correct.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''').assertNoIssues()
+        ]
+        
+        // Names that don't parse.
+        parseError.forEach [ addr |
+            parseWithError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''')
+        ]
+        
+        // Names that parse but are invalid.
+        validationError.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
+                "Invalid host name or fully qualified domain name.")
+        ]
+    }
  }
