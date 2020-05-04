@@ -88,8 +88,8 @@ reactor PrintMessage {
     =}
 }
 
-federated reactor Distributed @localhost:15044 {
+federated reactor Distributed at localhost:15044 {
     msg = new MessageGenerator(root = "Hello World");
     dsp = new PrintMessage();
-    msg.message ~> dsp.message after 10 msec;
+    msg.message -> dsp.message after 10 msec;
 }

@@ -40,7 +40,7 @@ reactor Print {
         }
     =}
 }
-federated reactor DistributedCount @localhost:15047 {
+federated reactor DistributedCount at localhost:15047 {
     c = new Count();
     p = new Print();
     c.out ~> p.in;    // Indicating a 'physical' connection.
