@@ -51,6 +51,8 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import java.util.stream.IntStream
+import org.icyphy.linguaFranca.Connection
 
 /** Generator for C++ target.
  * 
@@ -203,7 +205,11 @@ class CppGenerator extends GeneratorBase {
 
     def declareInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
-            «i.reactorClass.name» «i.name»;
+            «IF i.arraySpec !== null»
+                std::array<«i.reactorClass.name», «i.arraySpec.length»> «i.name»;
+            «ELSE»
+                «i.reactorClass.name» «i.name»;
+            «ENDIF»
         «ENDFOR»
     '''
 
@@ -429,9 +435,21 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
+    def initializerList(Instantiation i) '''
+        {"«i.name»", this«FOR p : i.reactorClass.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
+    '''
+
+    def initializerList(Instantiation i, Integer id) '''
+        {"«i.name»_«id»", this«FOR p : i.reactorClass.parameters», «IF p.name == "id"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
+    '''
+
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            , «i.name»{"«i.name»", this«FOR p : i.reactorClass.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
+            «IF i.arraySpec !== null»
+                , «i.name»{{«FOR id : IntStream.range(0, i.arraySpec.length).toArray SEPARATOR ", "»«i.initializerList(id)»«ENDFOR»}}
+            «ELSE»
+                , «i.name»«i.initializerList»
+            «ENDIF»
         «ENDFOR»
     '''
 
@@ -549,6 +567,20 @@ class CppGenerator extends GeneratorBase {
         };
     '''
 
+    def generate(Connection c) {
+        if (c.leftPort.container !== null &&
+            c.leftPort.container.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «c.leftPort.container.name».size(); i++) {
+                  «c.leftPort.container.name»[i].«c.leftPort.variable.name».bind_to(&«c.rightPort.container.name»[i].«c.rightPort.variable.name»);
+                }
+            '''
+        } else {
+            return '''«c.leftPort.name».bind_to(&«c.rightPort.name»);'''
+        }
+        // FIXME: Support the other cases!
+    }
+
     def generateReactorSource(Reactor r) '''
         «r.eResource.header»
         
@@ -568,7 +600,7 @@ class CppGenerator extends GeneratorBase {
               «r.assembleReaction(n)»
           «ENDFOR»
           «FOR c : r.connections BEFORE "  // connections\n"»
-              «'''  «c.leftPort.name».bind_to(&«c.rightPort.name»);'''»
+              «c.generate»
           «ENDFOR»
         }
         
