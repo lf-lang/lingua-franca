@@ -24,6 +24,6 @@ reactor Sink(id:unsigned(0)) {
 
 main reactor ArrayReactorInstances {
     source = new Source();
-    sink = new Sink[4]();
+    sink = new[4] Sink();
     source.out -> sink.in;
 }
