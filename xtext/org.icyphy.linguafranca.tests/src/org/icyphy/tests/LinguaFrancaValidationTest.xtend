@@ -692,6 +692,13 @@ class LinguaFrancaValidationTest {
             "1:2:3:4:5:6:77:88", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
             "2001:db8:3:4::192.0.2.33", "64:ff9b::192.0.2.33", "0:0:0:0:0:0:10.0.0.1"] 
         
+        val validationError = #["1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6::7:8",
+            "1:2:3:4:5:6:7:8:", "::1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7:8::",
+            "1:2:3:4:5:6:7:88888", "2001:db8:3:4:5::192.0.2.33",
+            "fe08::7:8interface", "fe08::7:8interface", "fe08::7:8i"]
+            
+        val parseError = #["fe08::7:8%", ":1:2:3:4:5:6:7:8"]
+        
         // Correct IP addresses.
         correct.forEach [ addr |
             parseWithoutError('''
@@ -699,6 +706,25 @@ class LinguaFrancaValidationTest {
                 federated reactor X  at [«addr»] {
                 }
             ''').assertNoIssues()
+        ]
+        
+        // IP addresses that don't parse.
+        parseError.forEach [ addr |
+            parseWithError('''
+                target C;
+                federated reactor X  at «addr» {
+                }
+            ''')
+        ]
+        
+        // IP addresses that parse but are invalid.
+        validationError.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                federated reactor X  at [«addr»] {
+                }
+            ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+                "Invalid IP address.")
         ]
     }
  }
