@@ -250,15 +250,15 @@ ArraySpec:
     
 
 IPV4Host:
-    addr=IPV4Addr (':' port=INT)? 
+    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)? 
 ;
 
 IPV6Host:
-    ('[' addr=IPV6Addr ']' (':' port=INT)?)
+    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?)
 ;
 
 NamedHost:
-    addr=HostName (':' port=INT)?
+    (user=Kebab '@')? addr=HostName (':' port=INT)?
 ;
 
 Host:

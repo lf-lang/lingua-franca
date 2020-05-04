@@ -649,7 +649,7 @@ class LinguaFrancaValidationTest {
             parseWithoutError('''
                 target C;
                 reactor Y {}
-                federated reactor X at «addr»:4242 {
+                federated reactor X at foo@«addr»:4242 {
                     y = new Y() at «addr»:2424; 
                 }
             ''')
@@ -660,7 +660,7 @@ class LinguaFrancaValidationTest {
             parseWithError('''
                 target C;
                 reactor Y {}
-                federated reactor X at «addr»:4242 {
+                federated reactor X at foo@«addr»:4242 {
                     y = new Y() at «addr»:2424; 
                 }
             ''')
@@ -671,10 +671,10 @@ class LinguaFrancaValidationTest {
             parseWithoutError('''
                 target C;
                 reactor Y {}
-                federated reactor X at «addr»:4242 {
+                federated reactor X at foo@«addr»:4242 {
                     y = new Y() at «addr»:2424; 
                 }
-            ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
                 "Invalid IP address.")
         ]
     }
@@ -710,7 +710,7 @@ class LinguaFrancaValidationTest {
             parseWithoutError('''
                 target C;
                 reactor Y {}
-                federated reactor X at [«addr»]:4242 {
+                federated reactor X at [foo@«addr»]:4242 {
                     y = new Y() at [«addr»]:2424; 
                 }
             ''').assertNoIssues()
@@ -721,7 +721,7 @@ class LinguaFrancaValidationTest {
             parseWithError('''
                 target C;
                 reactor Y {}
-                federated reactor X at [«addr»]:4242 {
+                federated reactor X at [foo@«addr»]:4242 {
                     y = new Y() at [«addr»]:2424; 
                 }
             ''')
@@ -732,10 +732,10 @@ class LinguaFrancaValidationTest {
             parseWithoutError('''
                 target C;
                 reactor Y {}
-                federated reactor X at [«addr»]:4242 {
+                federated reactor X at [foo@«addr»]:4242 {
                     y = new Y() at [«addr»]:2424; 
                 }
-            ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
                 "Invalid IP address.")
         ]
     }
