@@ -1,0 +1,31 @@
+target Cpp;
+
+reactor Source {
+    output[4] out:unsigned;
+    
+    reaction (startup) -> out {=
+        for (unsigned i; i < out.size(); i++) {
+            out[i].set(i);
+        }
+    =}
+}
+
+reactor Sink {
+    input[4] in:unsigned;
+    
+    reaction (in) {=
+        for (unsigned i; i < in.size(); i++) {
+            std::cout << "Received " << *in[i].get() << '\n';
+            if (*in[i].get() != i) {
+                std::cerr << "Error: expected " << i << "!\n";
+                exit(1);    
+            }
+        }
+    =}
+}
+
+main reactor ArrayReactorInstances {
+    source = new Source();
+    sink = new Sink();
+    source.out -> sink.in;
+}
