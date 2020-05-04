@@ -640,7 +640,7 @@ class LinguaFrancaValidationTest {
     def void recognizeIPV4() {
         
         val correct = #["127.0.0.1", "10.0.0.1", "192.168.1.1", "0.0.0.0",
-            "192.168.1.1:8000"]
+            "192.168.1.1"]
         val parseError = #["10002.3.4", "1.2.3.4.5"]
         val validationError = #["256.0.0.0", "260.0.0.0"]
 
@@ -648,7 +648,9 @@ class LinguaFrancaValidationTest {
         correct.forEach [ addr |
             parseWithoutError('''
                 target C;
-                federated reactor X  at «addr» {
+                reactor Y {}
+                federated reactor X at «addr»:4242 {
+                    y = new Y() at «addr»:2424; 
                 }
             ''')
         ]
@@ -657,7 +659,9 @@ class LinguaFrancaValidationTest {
         parseError.forEach [ addr |
             parseWithError('''
                 target C;
-                federated reactor X  at «addr» {
+                reactor Y {}
+                federated reactor X at «addr»:4242 {
+                    y = new Y() at «addr»:2424; 
                 }
             ''')
         ]
@@ -666,7 +670,9 @@ class LinguaFrancaValidationTest {
         validationError.forEach [ addr |
             parseWithoutError('''
                 target C;
-                federated reactor X  at «addr» {
+                reactor Y {}
+                federated reactor X at «addr»:4242 {
+                    y = new Y() at «addr»:2424; 
                 }
             ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
                 "Invalid IP address.")
@@ -703,7 +709,9 @@ class LinguaFrancaValidationTest {
         correct.forEach [ addr |
             parseWithoutError('''
                 target C;
-                federated reactor X  at [«addr»] {
+                reactor Y {}
+                federated reactor X at [«addr»]:4242 {
+                    y = new Y() at [«addr»]:2424; 
                 }
             ''').assertNoIssues()
         ]
@@ -712,7 +720,9 @@ class LinguaFrancaValidationTest {
         parseError.forEach [ addr |
             parseWithError('''
                 target C;
-                federated reactor X  at «addr» {
+                reactor Y {}
+                federated reactor X at [«addr»]:4242 {
+                    y = new Y() at [«addr»]:2424; 
                 }
             ''')
         ]
@@ -721,7 +731,9 @@ class LinguaFrancaValidationTest {
         validationError.forEach [ addr |
             parseWithoutError('''
                 target C;
-                federated reactor X  at [«addr»] {
+                reactor Y {}
+                federated reactor X at [«addr»]:4242 {
+                    y = new Y() at [«addr»]:2424; 
                 }
             ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
                 "Invalid IP address.")
