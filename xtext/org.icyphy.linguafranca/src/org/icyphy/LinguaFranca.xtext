@@ -33,8 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 grammar org.icyphy.LinguaFranca with org.eclipse.xtext.common.Terminals
 
-import "http://www.eclipse.org/emf/2002/Ecore" as ecore
-
 generate linguaFranca "http://www.icyphy.org/LinguaFranca"
 
 /////////// Overall file
@@ -65,7 +63,7 @@ Reactor:
     ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
     ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
-    ('at' host=(Host) (':' port=Number)?)?
+    ('at' host=Host)?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -125,6 +123,16 @@ Output:
 Timer:
     'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';';
 
+Boolean:
+    TRUE | FALSE
+;
+
+terminal TRUE:
+    'true';
+    
+terminal FALSE:
+    'false';
+
 // Action that has either a physical or logical origin.
 // 
 // If the origin is logical, the minDelay is a minimum logical delay
@@ -168,7 +176,7 @@ Instantiation:
     name=ID '=' 'new' 
     reactorClass=[Reactor] '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ('at' host=(Host) (':' port=Number)?)? ';';
+    ')' ('at' host=Host)? ';';
 
 Connection:
     leftPort=VarRef ('->' | physical?='~>') rightPort=VarRef ('after' delay=Value)? ';';
@@ -179,7 +187,7 @@ KeyValuePairs:
     '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
 
 KeyValuePair:
-    name=Key ':' value=Element;
+    name=Kebab ':' value=Element;
 
 Array:
     '[' elements+=Element (',' (elements+=Element))* ']';
@@ -188,7 +196,7 @@ Element:
     keyvalue=KeyValuePairs 
     | array=Array
     | literal=Literal 
-    | (time=Number unit=TimeUnit) 
+    | (time=INT unit=TimeUnit) 
     | id=ID;
 
 /////////// Pieces
@@ -205,14 +213,9 @@ VarRef:
     variable=[Variable]
     | container=[Instantiation] '.' variable=[Variable];
 
-//Assignment:
-//    (lhs=[Parameter] '=' rhs=Value);
 Assignment:
     (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
 
-Number returns ecore::EInt:
-    INT | BYTE
-;
 /**
  * Parameter declaration with optional type and mandatory initialization.
  */
@@ -232,7 +235,7 @@ Value:
 
 
 Time:
-    (interval=Number unit=TimeUnit)
+    (interval=INT unit=TimeUnit)
 ;
 
 Port:
@@ -243,16 +246,27 @@ Type:
    (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* (arraySpec=ArraySpec | parameters=Generic)?) | code=Code);
 
 ArraySpec:
-    ofVariableLength?='[]' | '[' length=Number ']';
+    ofVariableLength?='[]' | '[' length=INT ']';
     
-terminal TRUE:
-    'true';
-    
-terminal FALSE:
-    'false';
+
+IPV4Host:
+    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)? 
+;
+
+IPV6Host:
+    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?)
+;
+
+NamedHost:
+    (user=Kebab '@')? addr=HostName (':' port=INT)?
+;
 
 Host:
-    IPV4 | ('[' IPV6 ']') | (ID (('.') ID)*)
+    IPV4Host | IPV6Host | NamedHost
+;
+
+HostName:
+    (Kebab (('.') Kebab)*)
 ;
 
 DottedName:
@@ -264,8 +278,12 @@ Generic:
     '<' (DottedName (',' DottedName)*) '>'
 ;
 
+SignedInt:
+    INT | NEGINT
+;
+
 Literal:
-    STRING | FLOAT | INT | BYTE | NEGINT | TRUE | FALSE;
+    STRING | SignedFloat | SignedInt | Boolean;
 
 /////////// Elementary components
 // Terminals must be mutually exclusive. They are used by the lexer before parsing.
@@ -276,40 +294,41 @@ terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 @Override
 terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
 
-// Allow target properties to be expressed in Kebab case.
-Key: ID('-'ID)*;
+Kebab: ID('-'ID)*;
 
 terminal NEGINT:
     '-' ('0'..'9')+;
 
-terminal BYTE returns ecore::EInt:
-    '2'('0'..'5')('0'..'5') | 
-    '1'('0'..'9')('0'..'9') |
-    '0'?('0'..'9')('0'..'9') |
-    ('0'..'9')
+IPV4Addr:
+    INT '.' INT '.' INT '.' INT
 ;
 
-terminal IPV4:
-    BYTE '.' BYTE '.' BYTE '.' BYTE
-;
-
-// FIXME: This doesn't deal with truncation accordingly.
-// Every solution I've come up with so far introduces ambiguities.
-terminal IPV6:
-    ((('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')))
-    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
-    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
-    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
-    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
-    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
-    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')) | ':')
-    (':'(('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')('0'..'9'|'a'..'f'|'A'..'F')))
+IPV6Seg:
+    // NOTE: This rule is too permissive by design. 
+    // Further checking is done during validation.
+    (INT | (INT? ID))
 ;
 
 
-terminal FLOAT:
-    '-'? ('0'..'9')+ '.' ('0'..'9')+;
+IPV6Addr:
+    // NOTE: This rule is too permissive by design. 
+    // Further checking is done during validation. 
+    // IPV6 with truncation.
+    '::' | ('::' (IPV6Seg (':'))* IPV6Seg) | ((IPV6Seg (':'|'::'))+ IPV6Seg?) | 
+    
+    // (Link-local IPv6 addresses with zone index) "fe80::7:8%1"
+    (ID '::' IPV6Seg (':' IPV6Seg)* '%' (INT | ID)+) |
 
+    // IPv4-mapped IPv6 addresses and IPv4-translated addresses
+    ('::' IPV4Addr) | ('::' ID ':' (INT ':')? IPV4Addr) |
+    
+    // IPv4-Embedded IPv6 Address
+    (((IPV6Seg (':' IPV6Seg)* '::') | (IPV6Seg (':' IPV6Seg)*) ':') IPV4Addr)
+;
+
+
+SignedFloat:
+    '-'? INT '.' INT;
 
 // FIXME: What if the code needs to contain '=}'?
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
@@ -349,7 +368,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'multiplex' |
     // Other terminals
-    FLOAT | NEGINT | TRUE | FALSE | BYTE | IPV4 | IPV6 |
+    NEGINT | TRUE | FALSE |
     // Action origins
     'logical' | 'physical' |
     // Visibility modifiers
@@ -371,5 +390,7 @@ Token:
     // Assignment
     '=' |
     // Asterisk
-    '*'
+    '*' |
+    // Percentage
+    '%'
 ;

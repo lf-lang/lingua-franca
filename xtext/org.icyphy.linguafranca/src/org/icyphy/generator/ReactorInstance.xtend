@@ -544,6 +544,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             graph.removeNode(n)
         }
         if (graph.nodeCount != 0) {
+            generator.reportError(generator.mainDef, "Reactions form a cycle!");
             throw new Exception(
                 "Reactions form a cycle!")
         }

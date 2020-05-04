@@ -60,6 +60,10 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.IPV4Host
+import org.icyphy.linguaFranca.IPV6Host
+import org.icyphy.linguaFranca.Host
+import org.icyphy.linguaFranca.NamedHost
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -82,6 +86,37 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     var Targets target;
 
     var info = new ModelInfo()
+
+    /**
+     * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
+     */
+    static val ipv4Regex = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
+                                "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"
+    // ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])
+    /**
+     * Regular expression to check the validity of IPV6 addresses (due to David M. Syzdek),
+     * with minor adjustment to allow up to six IPV6 segments (without truncation) in front
+     * of an embedded IPv4-address. 
+     **/
+    static val ipv6Regex = 
+             
+               "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,7}:|" + 
+                "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|" + 
+                "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|" + 
+                "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|" + 
+                "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|" + 
+                 "[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|" + 
+                                 ":((:[0-9a-fA-F]{1,4}){1,7}|:)|" +
+        "fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|" + 
+        "::(ffff(:0{1,4}){0,1}:){0,1}" + ipv4Regex + "|" + 
+        "([0-9a-fA-F]{1,4}:){1,4}:"    + ipv4Regex + "|" +
+        "([0-9a-fA-F]{1,4}:){1,6}"     + ipv4Regex + ")"                          
+
+    static val usernameRegex = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$"
+
+    static val hostOrFQNRegex = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$"
 
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
@@ -547,14 +582,45 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             )
         }
         
-        if (!reactor.isFederated && !reactor.host.isNullOrEmpty) {
-            error(
-                "Cannot assign a host to reactor '" + reactor.name + "' because it is not federated.",
-                Literals.REACTOR__HOST
-            )
+        if (reactor.host !== null) {
+            if (!reactor.isFederated) {
+                error(
+                    "Cannot assign a host to reactor '" + reactor.name + 
+                    "' because it is not federated.",
+                    Literals.REACTOR__HOST
+                )
+            }
         }
         // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
         // (essentially all the classes that are imported by default).
+    }
+
+    @Check(FAST)
+    def checkHost(Host host) {
+        val addr = host.addr
+        val user = host.user
+        if (user !== null && !user.matches(usernameRegex)) {
+            warning(
+                "Invalid user name.",
+                Literals.HOST__USER
+            )
+        }
+        if (host instanceof IPV4Host && !addr.matches(ipv4Regex)) {
+            warning(
+                "Invalid IP address.",
+                Literals.HOST__ADDR
+            )
+        } else if (host instanceof IPV6Host && !addr.matches(ipv6Regex)) {
+            warning(
+                "Invalid IP address.",
+                Literals.HOST__ADDR
+            )
+        } else if (host instanceof NamedHost && !addr.matches(hostOrFQNRegex)) {
+            warning(
+                "Invalid host name or fully qualified domain name.",
+                Literals.HOST__ADDR
+            )
+        }
     }
 
     @Check(FAST)

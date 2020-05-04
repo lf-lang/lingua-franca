@@ -53,7 +53,7 @@ char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from RTI an unrecognized
 /** The ID of this federate as assigned when synchronize_with_other_federates()
  *  is called.
  */
-int __my_fed_id = 0;
+ushort __my_fed_id = 0;
 
 /** The socket descriptor for this federate to communicate with the RTI.
  *  This is set by connect_to_rti(), which must be called before other
@@ -161,7 +161,7 @@ void send_time(unsigned char type, instant_t time) {
  *  This function assumes the caller holds the mutex lock.
  */
 void __broadcast_stop() {
-    printf("Federate %d requesting a whole program stop.\n", FED_ID);
+    printf("Federate %d requesting a whole program stop.\n", __my_fed_id);
     send_time(STOP, current_time);
 }
 
@@ -347,7 +347,7 @@ handle_t schedule_value_already_locked(
  */
 void handle_timed_message(unsigned char* buffer) {
     // Read the header.
-    read_from_socket(rti_socket, 8, buffer);
+    read_from_socket(rti_socket, 16, buffer);
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
@@ -356,7 +356,6 @@ void handle_timed_message(unsigned char* buffer) {
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 
     // Read the timestamp.
-    read_from_socket(rti_socket, 8, buffer + 8);
     instant_t timestamp = extract_ll(buffer + 8);
     // printf("DEBUG: Message timestamp: %lld.\n", timestamp - start_time);
 
@@ -494,7 +493,7 @@ void* listen_to_rti(void* args) {
  *  @param hostname The name of the RTI host, such as "localhost".
  *  @param port The port used by the RTI.
  */
-void synchronize_with_other_federates(int id, char* hostname, int port) {
+void synchronize_with_other_federates(ushort id, char* hostname, int port) {
 
     __my_fed_id = id;
 

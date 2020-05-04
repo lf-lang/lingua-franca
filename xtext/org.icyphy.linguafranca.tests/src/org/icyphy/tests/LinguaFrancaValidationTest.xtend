@@ -56,24 +56,41 @@ class LinguaFrancaValidationTest {
     @Inject extension ValidationTestHelper
 
     /**
+     * Helper function to parse a Lingua Franca program and expect no errors.
+     * @return A model representing the parsed string.
+     */
+    def parseWithoutError(String s) {
+        val model = s.parse
+        Assertions.assertNotNull(model)
+        Assertions.assertTrue(model.eResource.errors.isEmpty,
+            "Encountered unexpected error while parsing: " +
+                model.eResource.errors)
+        return model
+    }
+    
+    /**
+     * Helper function to parse a Lingua Franca program and expect errors.
+     * @return A model representing the parsed string.
+     */
+    def parseWithError(String s) {
+        val model = s.parse
+        Assertions.assertNotNull(model)
+        Assertions.assertFalse(model.eResource.errors.isEmpty)
+        return model
+    } 
+
+    /**
      * Ensure that duplicate identifiers for actions reported.
      */
     @Test
     def void unresolvedReactorReference() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             main reactor Foo {
                 logical action bar;
                 physical action bar;
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.action,
-            null, // FIXME: Maybe report something descriptive here?
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.action, null,
             'Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: bar')
     }
     
@@ -124,19 +141,12 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void disallowUnderscoreInputs() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             main reactor Foo {
                 input __bar;
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.input,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.input, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -145,19 +155,12 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void disallowUnderscoreOutputs() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             main reactor Foo {
                 output __bar;
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.output,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.output, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -166,19 +169,12 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void disallowUnderscoreActions() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             main reactor Foo {
                 logical action __bar;
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.action,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.action, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -187,19 +183,12 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void disallowUnderscoreTimers() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             main reactor Foo {
                 timer __bar(0);
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.timer,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.timer, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -208,18 +197,11 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void disallowUnderscoreParameters() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             main reactor Foo(__bar) {
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -228,19 +210,12 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void disallowUnderscoreStates() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             main reactor Foo {
                 state __bar;
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.stateVar,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.stateVar, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -249,18 +224,11 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void disallowUnderscoreReactorDef() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             main reactor __Foo {
             }
-        '''.parse
-
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.reactor,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __Foo")
     }
     
@@ -269,21 +237,14 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void disallowUnderscoreReactorInstantiation() {
-        val model = '''
+        parseWithoutError('''
             target TypeScript;
             reactor Foo {
             }
             main reactor Bar {
                 __x = new Foo();
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.instantiation, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __x")
     }
     
@@ -292,7 +253,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void connectionToEffectPort() {
-        val model = '''
+        parseWithoutError('''
             target C;
             reactor Foo {
                 output out:int;
@@ -304,14 +265,7 @@ class LinguaFrancaValidationTest {
                 reaction(startup) -> out {=                    
                 =}
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.connection,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'out' is already effect of a reaction.")
     }
     
@@ -320,7 +274,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void connectionToEffectPort2() {
-        val model = '''
+        parseWithoutError('''
             target C;
             reactor Foo {
                 input inp:int;
@@ -335,14 +289,7 @@ class LinguaFrancaValidationTest {
                 reaction(startup) -> x.inp {=                    
                 =}
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.connection,
-            null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'inp' is already effect of a reaction.")
     }
     
@@ -351,7 +298,7 @@ class LinguaFrancaValidationTest {
 	 */
 	@Test
 	def void connectionToEffectPort3() {
-		val model = '''
+		parseWithoutError('''
 			target C;
 			
 			reactor Foo {
@@ -365,13 +312,7 @@ class LinguaFrancaValidationTest {
 			    reaction(startup) -> x2.in {=                    
 			    =}
 			}
-		'''.parse
-
-		Assertions.assertNotNull(model)
-		Assertions.assertTrue(model.eResource.errors.isEmpty,
-			"Encountered unexpected error while parsing: " +
-				model.eResource.errors)
-		model.assertNoErrors()
+		''').assertNoErrors()
 	}
 
 	/**
@@ -379,7 +320,7 @@ class LinguaFrancaValidationTest {
 	 */
 	@Test
 	def void connectionToEffectPort4() {
-		val model = '''
+		parseWithoutError('''
 			target C;
 			
 			reactor Foo {
@@ -392,13 +333,7 @@ class LinguaFrancaValidationTest {
 			    reaction(startup) -> x1.in {=                    
 			    =}
 			}
-		'''.parse
-
-		Assertions.assertNotNull(model)
-		Assertions.assertTrue(model.eResource.errors.isEmpty,
-			"Encountered unexpected error while parsing: " +
-				model.eResource.errors)
-		model.assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+		''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
 			"Cannot connect: Port named 'in' is already effect of a reaction.")
 	}
 	
@@ -407,7 +342,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void multipleConnectionsToInputTest() {
-        val model = '''
+        parseWithoutError('''
             target C;
             
             reactor Source {
@@ -425,13 +360,7 @@ class LinguaFrancaValidationTest {
                 in -> sink.in;
                 src.out -> sink.in;
             }
-        '''.parse
-
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'in' may only be connected to a single upstream port.")
     }
     
@@ -440,19 +369,13 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void detectInstantiationCycle() {
-        val model = '''
+        parseWithoutError('''
             target C;
             
             reactor Contained {
                 x = new Contained();
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
             null, 'Instantiation is part of a cycle: Contained')
     }
     
@@ -462,7 +385,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void detectInstantiationCycle2() {
-        val model = '''
+        val model = parseWithoutError('''
             target C;
             reactor Intermediate {
                 x = new Contained();
@@ -471,12 +394,7 @@ class LinguaFrancaValidationTest {
             reactor Contained {
                 x = new Intermediate();
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
+        ''')
         model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
             null, 'Instantiation is part of a cycle: Contained')
         model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
@@ -488,7 +406,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void nonZeroTimeValueWithoutUnits() {
-        val model = '''
+        parseWithoutError('''
             target C;
               main reactor HelloWorld {
                   timer t(42, 1 sec);
@@ -496,13 +414,7 @@ class LinguaFrancaValidationTest {
                       printf("Hello World.\n");
                   =}
              }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.value,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.value,
             null, "Missing time units. Should be one of " +
                                 TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }    
@@ -512,7 +424,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void parameterTypeMismatch() {
-        val model = '''
+        parseWithoutError('''
             target C;
               main reactor HelloWorld(p:int(0)) {
                   timer t(p, 1 sec);
@@ -520,13 +432,7 @@ class LinguaFrancaValidationTest {
                       printf("Hello World.\n");
                   =}
              }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.value,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.value,
             null, 'Parameter is not of time type')
         
     }
@@ -536,7 +442,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void targetCodeInTimeArgument() {
-        val model = '''
+        parseWithoutError('''
             target C;
             main reactor HelloWorld {
                 timer t({=foo()=}, 1 sec);
@@ -544,13 +450,7 @@ class LinguaFrancaValidationTest {
                     printf("Hello World.\n");
                 =}
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.value,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.value,
             null, 'Invalid time literal')
     }  
     
@@ -560,7 +460,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void overflowingDeadlineC() {
-        val model = '''
+        parseWithoutError('''
             target C;
             main reactor HelloWorld {
             timer t;
@@ -569,13 +469,7 @@ class LinguaFrancaValidationTest {
                 =} deadline (40 hours) {=
                 =}
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.deadline, null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.deadline, null,
             "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE +
                 " nanoseconds.")
     }  
@@ -586,7 +480,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void overflowingParameterC() {
-        val model = '''
+        parseWithoutError('''
             target C;
             main reactor HelloWorld(d:time(40 hours)) {
             timer t;
@@ -595,13 +489,7 @@ class LinguaFrancaValidationTest {
                 =} deadline (d) {=
                 =}
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
             "Time value used to specify a deadline exceeds the maximum of " +
                 TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
     }  
@@ -612,7 +500,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void overflowingAssignmentC() {
-        val model = '''
+        parseWithoutError('''
             target C;
             reactor Print(d:time(39 hours)) {
                 timer t;
@@ -624,13 +512,7 @@ class LinguaFrancaValidationTest {
             main reactor HelloWorld {
                 p = new Print(d=40 hours);
             }
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertError(LinguaFrancaPackage::eINSTANCE.assignment, null,
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.assignment, null,
             "Time value used to specify a deadline exceeds the maximum of " +
                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
     }  
@@ -640,20 +522,14 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void missingTrigger() {
-        val model = '''
+        parseWithoutError('''
 		target C;
 		reactor X {
 		   	reaction() {=
 		   		//
 		   	=}
 		}
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
-        model.assertWarning(LinguaFrancaPackage::eINSTANCE.reaction, null,
+        ''').assertWarning(LinguaFrancaPackage::eINSTANCE.reaction, null,
             "Reaction has no trigger.")
     }
         
@@ -664,36 +540,25 @@ class LinguaFrancaValidationTest {
     def void testPreambleVisibility() {
         for (target : Targets.values) {
             for (visibility : Visibility.values) {
-                val model_reactor_scope = '''
+                val model_reactor_scope = parseWithoutError('''
                     target «target.name»;
                     reactor Foo {
                         «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
                     }
-                '''.parse
+                ''')
                 
-                val model_file_scope = '''
+                val model_file_scope = parseWithoutError('''
                     target «target.name»;
                     «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
                     reactor Foo {
                     }
-                '''.parse
+                ''')
                 
-                val model_no_preamble = '''
+                val model_no_preamble = parseWithoutError('''
                     target «target.name»;
                     reactor Foo {
                     }
-                '''.parse
-                
-                Assertions.assertNotNull(model_reactor_scope)
-                Assertions.assertNotNull(model_file_scope)
-                Assertions.assertNotNull(model_no_preamble)
-                
-                Assertions.assertTrue(model_reactor_scope.eResource.errors.isEmpty,
-                    "Encountered unexpected error while parsing: " + model_reactor_scope.eResource.errors)
-                Assertions.assertTrue(model_file_scope.eResource.errors.isEmpty,
-                    "Encountered unexpected error while parsing: " + model_file_scope.eResource.errors)     
-                Assertions.assertTrue(model_no_preamble.eResource.errors.isEmpty,
-                    "Encountered unexpected error while parsing: " + model_no_preamble.eResource.errors)
+                ''')
                 
                 model_no_preamble.assertNoIssues
                 
@@ -728,7 +593,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void stateAndParameterDeclarationsInC() {
-        val model = '''
+        val model = parseWithoutError('''
 			target C;
 			reactor Bar(a(0),			// ERROR: type missing
 						b:int,			// ERROR: uninitialized
@@ -743,12 +608,7 @@ class LinguaFrancaValidationTest {
 				state foo:time("bla");	// ERROR: assigned value not a time
 				timer tick(1);			// ERROR: not a time
 			}
-        '''.parse
-        
-        Assertions.assertNotNull(model)
-        Assertions.assertTrue(model.eResource.errors.isEmpty,
-            "Encountered unexpected error while parsing: " +
-                model.eResource.errors)
+        ''')
 
 		model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
             "Type declaration missing.")
@@ -771,4 +631,159 @@ class LinguaFrancaValidationTest {
             "Missing time units. Should be one of " +
             	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }  
-}
+    
+    
+    /**
+     * Recognize valid IPV4 addresses, report invalid ones.
+     */
+    @Test
+    def void recognizeIPV4() {
+        
+        val correct = #["127.0.0.1", "10.0.0.1", "192.168.1.1", "0.0.0.0",
+            "192.168.1.1"]
+        val parseError = #["10002.3.4", "1.2.3.4.5"]
+        val validationError = #["256.0.0.0", "260.0.0.0"]
+
+        // Correct IP addresses.
+        correct.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''')
+        ]
+
+        // IP addresses that don't parse.
+        parseError.forEach [ addr |
+            parseWithError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''')
+        ]
+
+        // IP addresses that parse but are invalid.
+        validationError.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
+                "Invalid IP address.")
+        ]
+    }
+    
+    /**
+     * Recognize valid IPV6 addresses, report invalid ones.
+     */
+    @Test
+    def void recognizeIPV6() {
+        
+        val correct = #["1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7::", "1:2:3:4:5:6::8",
+            "1:2:3:4:5::8", "1:2:3:4::8", "1:2:3::8", "1:2::8", "1::8", "::8",
+            "::", "1::3:4:5:6:7:8", "1::4:5:6:7:8", "1::5:6:7:8", "1::6:7:8",
+            "1::7:8", "1::8", "1::", "1:2:3:4:5::7:8", "1:2:3:4::6:7:8",
+            "1:2:3::5:6:7:8", "1:2::4:5:6:7:8", "1::3:4:5:6:7:8",
+            "::2:3:4:5:6:7:8", "fe80::7:8", "fe80::7:8%eth0", "fe80::7:8%1",
+            "::255.255.255.255", "::ffff:255.255.255.255",
+            "::ffff:0:255.255.255.0", "::ffff:00:255.255.255.0",
+            "::ffff:000:255.255.255.0", "::ffff:0000:255.255.255.0",
+            "::ffff:0.0.0.0", "::ffff:1.2.3.4", "::ffff:10.0.0.1",
+            "1:2:3:4:5:6:77:88", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+            "2001:db8:3:4::192.0.2.33", "64:ff9b::192.0.2.33", "0:0:0:0:0:0:10.0.0.1"] 
+        
+        val validationError = #["1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6::7:8",
+            "1:2:3:4:5:6:7:8:", "::1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7:8::",
+            "1:2:3:4:5:6:7:88888", "2001:db8:3:4:5::192.0.2.33",
+            "fe08::7:8interface", "fe08::7:8interface", "fe08::7:8i"]
+            
+        val parseError = #["fe08::7:8%", ":1:2:3:4:5:6:7:8"]
+        
+        // Correct IP addresses.
+        correct.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                reactor Y {}
+                federated reactor X at [foo@«addr»]:4242 {
+                    y = new Y() at [«addr»]:2424; 
+                }
+            ''').assertNoIssues()
+        ]
+        
+        // IP addresses that don't parse.
+        parseError.forEach [ addr |
+            parseWithError('''
+                target C;
+                reactor Y {}
+                federated reactor X at [foo@«addr»]:4242 {
+                    y = new Y() at [«addr»]:2424; 
+                }
+            ''')
+        ]
+        
+        // IP addresses that parse but are invalid.
+        validationError.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                reactor Y {}
+                federated reactor X at [foo@«addr»]:4242 {
+                    y = new Y() at [«addr»]:2424; 
+                }
+            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
+                "Invalid IP address.")
+        ]
+    }
+    
+    /**
+     * Recognize valid host names and fully qualified names, report invalid ones.
+     */
+    @Test
+    def void recognizeHostNames() {
+        
+        val correct = #["localhost"] // FIXME: add more
+    
+        val validationError = #["x.y.z"] // FIXME: add more
+        
+        val parseError = #["..xyz"] // FIXME: add more
+                
+        // Correct names.
+        correct.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''').assertNoIssues()
+        ]
+        
+        // Names that don't parse.
+        parseError.forEach [ addr |
+            parseWithError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''')
+        ]
+        
+        // Names that parse but are invalid.
+        validationError.forEach [ addr |
+            parseWithoutError('''
+                target C;
+                reactor Y {}
+                federated reactor X at foo@«addr»:4242 {
+                    y = new Y() at «addr»:2424; 
+                }
+            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
+                "Invalid host name or fully qualified domain name.")
+        ]
+    }
+ }

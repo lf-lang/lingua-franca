@@ -29,7 +29,9 @@ package org.icyphy.generator
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
+import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.HashSet
@@ -40,6 +42,7 @@ import java.util.Set
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
+import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -64,11 +67,9 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-import org.eclipse.core.runtime.Path
 
 /** Generator base class for shared code between code generators.
  * 
@@ -77,7 +78,7 @@ import org.eclipse.core.runtime.Path
  *  @author{Chris Gill, <cdgill@wustl.edu>}
  *  @author{Christian Menard <christian.menard@tu-dresden.de}
  */
-abstract class GeneratorBase {
+abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -948,6 +949,9 @@ abstract class GeneratorBase {
      *  @param message The error message.
      */
     protected def reportError(EObject object, String message) {
+        // The following throws a NPE.
+        // error(message, object, Literals.REACTOR__NAME, INSIGNIFICANT_INDEX, "WTF?");
+        
         generatorErrorsOccurred = true;
         // FIXME: All calls to this should also be checked by the validator (See LinguaFrancaValidator.xtend).
         // In case we are using a command-line tool, we report the line number.
@@ -1116,7 +1120,7 @@ abstract class GeneratorBase {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        if (!mainDef.reactorClass.isFederated) {
+        if (mainDef === null || !mainDef.reactorClass.isFederated) {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, this)
             federates.add(federateInstance)
@@ -1128,15 +1132,18 @@ abstract class GeneratorBase {
             // any messages.
             targetKeepalive = true
             
-            // Get the host information, if specified.
-            // If not specified, this defaults to 'localhost'
             if (mainDef.reactorClass.host !== null) {
-                federationRTIProperties.put('host', mainDef.reactorClass.host)                
-            }
-            // Get the port information, if specified.
-            // If not specified, this defaults to 14045
-            if (mainDef.reactorClass.port !== 0) {
-                federationRTIProperties.put('port', mainDef.reactorClass.port)                
+                // Get the host information, if specified.
+                // If not specified, this defaults to 'localhost'
+                if (mainDef.reactorClass.host.addr !== null) {
+                    federationRTIProperties.put('host', mainDef.reactorClass.host.addr)                
+                }
+                // Get the port information, if specified.
+                // If not specified, this defaults to 14045
+                if (mainDef.reactorClass.host.port !== 0) {
+                    federationRTIProperties.put('port', mainDef.reactorClass.host.port)                
+                }
+                
             }
             
             // Create a FederateInstance for each top-level reactor.

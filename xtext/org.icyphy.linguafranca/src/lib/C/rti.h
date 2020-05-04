@@ -59,7 +59,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // These message types will be encoded in an unsigned char,
 // so the magnitude must not exceed 255.
 
-/** Byte identifying a federate ID message, which is 32 bits long. */
+/** Byte identifying a federate ID message, which is 16 bits long.
+ *  Each federate needs to have a unique ID between 0 and
+ *  NUMBER_OF_FEDERATES-1.
+ *  Each federate, when starting up, should send a message of this
+ *  type to the RTI. This is its first message to the RTI.
+ *  If the federate is a C target LF program, the generated
+ *  code does this by calling synchronize_with_other_federates(),
+ *  passing to it this ID.
+ */
 #define FED_ID 1
 
 /** Byte identifying a timestamp message, which is 64 bits long. */
