@@ -173,8 +173,8 @@ Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
 
 Instantiation:
-    name=ID '=' 'new' 
-    reactorClass=[Reactor] (arraySpec=ArraySpec)? '(' 
+    name=ID '=' 'new' (arraySpec=ArraySpec)?
+    reactorClass=[Reactor] '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
     ')' ('at' host=Host)? ';';
 

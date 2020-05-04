@@ -23,7 +23,7 @@ reactor Sink {
 }
 
 main reactor ArrayReactorInstances {
-    source = new Source[4]();
+    source = new[4] Source();
     sink = new Sink();
     source.out -> sink.in;
 }
