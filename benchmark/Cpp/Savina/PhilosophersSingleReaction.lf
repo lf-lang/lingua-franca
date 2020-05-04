@@ -9,7 +9,6 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
     public preamble {=
         constexpr unsigned num_philosophers = 20;
         using ForkArray = std::array<bool, num_philosophers>;
-        using PhilosopherArray = std::array<Philosopher*, num_philosophers>;
     =}
     
     private preamble {=
@@ -44,80 +43,40 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
     input start:void;
     output finished:void;
     
+    output[20] philosopher_start:void; 
+    input[20] philosopher_finished:void;
+    
+    input[20] hungry:void;
+    input[20] done:void;
+    output[20] eat:void;
+    output[20] denied:void;
+    
     state forks:ForkArray(false);
     state finished_philosophers:unsigned(0);
     state arbitration_id:unsigned(0);
     state retries:unsigned(0);
-    
-    // A little trick to be able to iterate over all philosophers 
-    state philosophers:PhilosopherArray({= &p0, &p1, &p2, &p3, &p4, &p5, &p6, &p7, &p8, &p9, &p10,
-                                           &p11, &p12, &p13, &p14, &p15, &p16, &p17, &p18, &p19 =});
-    
-    // FIXME: Can we do this in a loop?
-    p0 = new Philosopher(id=0, count=count, verbose=verbose);
-    p1 = new Philosopher(id=1, count=count, verbose=verbose);
-    p2 = new Philosopher(id=2, count=count, verbose=verbose);
-    p3 = new Philosopher(id=3, count=count, verbose=verbose);
-    p4 = new Philosopher(id=4, count=count, verbose=verbose);
-    p5 = new Philosopher(id=5, count=count, verbose=verbose);
-    p6 = new Philosopher(id=6, count=count, verbose=verbose);
-    p7 = new Philosopher(id=7, count=count, verbose=verbose);
-    p8 = new Philosopher(id=8, count=count, verbose=verbose);
-    p9 = new Philosopher(id=9, count=count, verbose=verbose);
-    p10 = new Philosopher(id=10, count=count, verbose=verbose);
-    p11 = new Philosopher(id=11, count=count, verbose=verbose);
-    p12 = new Philosopher(id=12, count=count, verbose=verbose);
-    p13 = new Philosopher(id=13, count=count, verbose=verbose);
-    p14 = new Philosopher(id=14, count=count, verbose=verbose);
-    p15 = new Philosopher(id=15, count=count, verbose=verbose);
-    p16 = new Philosopher(id=16, count=count, verbose=verbose);
-    p17 = new Philosopher(id=17, count=count, verbose=verbose);
-    p18 = new Philosopher(id=18, count=count, verbose=verbose);
-    p19 = new Philosopher(id=19, count=count, verbose=verbose);
         
-    // FIXME: Would be great if this can be done for all Philosopher instances at once!
-    reaction(start) -> p0.start, p1.start, p2.start, p3.start,
-                       p4.start, p5.start, p6.start, p7.start,
-                       p8.start, p9.start, p10.start, p11.start,
-                       p12.start, p13.start, p14.start, p15.start,
-                       p16.start, p17.start, p18.start, p19.start {=
+    reaction(start) -> philosopher_start {=
         if (verbose)
             std::cout << "Starting the arbitrator\n";
         finished_philosophers = 0;
         retries = 0;
-        
-        // FIXME: Can we do this in a loop without the hack?
-        for(auto p : philosophers) {
-            p->start.set();
+
+        for(auto& p : philosopher_start) {
+            p.set();
         }
     =}
     
-    // FIXME: Would be great if this can be done for all Philosopher instances at once!
-    reaction(p0.hungry, p1.hungry, p2.hungry, p3.hungry,
-             p4.hungry, p5.hungry, p6.hungry, p7.hungry,
-             p8.hungry, p9.hungry, p10.hungry, p11.hungry,
-             p12.hungry, p13.hungry, p14.hungry, p15.hungry,
-             p16.hungry, p17.hungry, p18.hungry, p19.hungry) -> 
-             p0.eat, p1.eat, p2.eat, p3.eat,
-             p4.eat, p5.eat, p6.eat, p7.eat,
-             p8.eat, p9.eat, p10.eat, p11.eat,
-             p12.eat, p13.eat, p14.eat, p15.eat,
-             p16.eat, p17.eat, p18.eat, p19.eat,
-             p0.denied, p1.denied, p2.denied, p3.denied,
-             p4.denied, p5.denied, p6.denied, p7.denied,
-             p8.denied, p9.denied, p10.denied, p11.denied,
-             p12.denied, p13.denied, p14.denied, p15.denied,
-             p16.denied, p17.denied, p18.denied, p19.denied {=
-    
+    reaction(hungry) -> eat, denied {= 
         // Iterate over all philosophers, each time starting from a different one.
-        // This arbitration ensures that no philosopher has to starbe.
+        // This arbitration ensures that no philosopher has to starve.
         for(unsigned i = arbitration_id; i < arbitration_id + num_philosophers; i++) {
             unsigned j = i % num_philosophers;
-            if (philosophers[j]->hungry.is_present()) {
+            if (hungry[j].is_present()) {
                 if (acquire_forks(forks, j)) {
-                    philosophers[j]->eat.set();
+                    eat[j].set();
                 } else {
-                    philosophers[j]->denied.set();
+                    denied[j].set();
                     retries++;
                 }    
             }
@@ -129,30 +88,17 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
         }
     =}
     
-    // FIXME: Would be great if this can be done for all Philosopher instances at once!
-    reaction(p0.done, p1.done, p2.done, p3.done,
-             p4.done, p5.done, p6.done, p7.done,
-             p8.done, p9.done, p10.done, p11.done,
-             p12.done, p13.done, p14.done, p15.done,
-             p16.done, p17.done, p18.done, p19.done) {=
-        // FIXME: Can we do this in a loop without the hack?
-        for(unsigned i = 0; i < num_philosophers; i++)
-        {
-            if (philosophers[i]->done.is_present()) {
+    reaction(done) {=
+        for(unsigned i = 0; i < done.size(); i++) {
+            if (done[i].is_present()) {
                 free_forks(forks, i);
             }
         }
     =}
-
-    // FIXME: Would be great if this can be done for all Philosopher instances at once!    
-    reaction (p0.finished, p1.finished, p2.finished, p3.finished,
-              p4.finished, p5.finished, p6.finished, p7.finished,
-              p8.finished, p9.finished, p10.finished, p11.finished,
-              p12.finished, p13.finished, p14.finished, p15.finished,
-              p16.finished, p17.finished, p18.finished, p19.finished) -> finished {=
-        // FIXME: Can we do this in a loop without the hack? Or just get the number of present values?
-        for(auto p : philosophers) {
-            if (p->finished.is_present())
+    
+    reaction (philosopher_finished) -> finished {=
+        for(auto& f : philosopher_finished) {
+            if (f.is_present())
                 finished_philosophers++;
         }
         
@@ -168,8 +114,18 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
 
 main reactor PhilosophersSequentialInterleaved(iterations:unsigned(12), count:unsigned(10000), verbose:bool(false)) {
     master = new Master(iterations=iterations);
-    arbitrator = new Arbitrator(count=count, verbose=verbose);
     
+    arbitrator = new Arbitrator(count=count, verbose=verbose);
+    philosophers = new[20] Philosopher(count=count, verbose=verbose);
+
     master.start -> arbitrator.start;
     arbitrator.finished -> master.finished;
+    
+    arbitrator.philosopher_start -> philosophers.start;
+    philosophers.finished -> arbitrator.philosopher_finished;
+    
+    philosophers.hungry -> arbitrator.hungry;
+    philosophers.done -> arbitrator.done;
+    arbitrator.eat -> philosophers.eat;
+    arbitrator.denied -> philosophers.denied;
 }
