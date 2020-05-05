@@ -1205,5 +1205,9 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
     override protected String getTargetVariableSizeListType(String baseType) {
         '''Array<«baseType»>'''
     }
+    
+    override supportsGenerics() {
+        true
+    }
 
 }

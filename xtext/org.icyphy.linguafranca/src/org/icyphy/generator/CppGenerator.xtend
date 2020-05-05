@@ -1000,4 +1000,9 @@ class CppGenerator extends GeneratorBase {
 
     override getTargetVariableSizeListType(
         String baseType) '''std::vector<«baseType»>'''
+        
+    override supportsGenerics() {
+        true
+    }
+        
 }

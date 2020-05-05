@@ -2946,5 +2946,10 @@ class CGenerator extends GeneratorBase {
             	return p.init.get(0).targetValue
             }
         
-    }    
+    }
+    
+    override supportsGenerics() {
+        return false
+    }
+    
 }
