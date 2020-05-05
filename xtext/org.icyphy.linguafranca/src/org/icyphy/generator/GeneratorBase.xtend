@@ -87,7 +87,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     // the specified time unit into nanoseconds. This expression may need
     // to have a suffix like 'LL' or 'L' appended to it, depending on the
     // target language, to ensure that the result is a 64-bit long.            
-    static public var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+    public static var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
         TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
         TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
         TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
@@ -97,6 +97,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
+    
+    public static var GEN_DELAY_CLASS_NAME = "__GeneratedDelay"
     
     static protected CharSequence listItemSeparator = ', '
     
@@ -311,20 +313,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         analyzeFederates(resource)
 
         // Find connections, and see whether they have a delay associated with them.
-        // For those that do, remove the connection, and replace it with two reactions
-        // and an action. Removal of the connection must occur after iterating to avoid
-        // concurrent modification problems.
-        val toRemove = new LinkedList<Connection>()
+        // For those that do, reroute the connection via a delay reactor. The connection
+        // between the delay reactor's output and the destination of the original connection
+        // must be added after iterating to avoid concurrent modification problems.
+        
+        
+        
+        val toAdd = new LinkedList<Connection>()
+        val delayReactors = new LinkedList<Reactor>()
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
-                connection.desugarDelay(this)
-                toRemove.add(connection)
+                val delayClass = defineDelayReactor((connection.rightPort.variable as Port).type, delayReactors, this)
+                toAdd.add(connection.desugarDelay(delayClass))
             }
         }
-        for (connection : toRemove) {
-            val parent = (connection.eContainer as Reactor)
-            parent.connections.remove(connection)
-        }
+        
+        toAdd.forEach[connection | (connection.eContainer as Reactor).connections.add(connection)]
+        delayReactors.forEach[reactor | this.resource.contents.add(reactor)]
     }
     
     /** Generate code from the Lingua Franca model contained by the
@@ -1379,6 +1384,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         return returnCode
     }
+    
+    abstract def boolean supportsGenerics()
     
     abstract protected def String getTargetTimeType()
 

@@ -40,6 +40,7 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.TimeValue
 import org.icyphy.Targets
 import org.icyphy.linguaFranca.Visibility
+import org.icyphy.generator.GeneratorBase
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -135,7 +136,7 @@ class LinguaFrancaValidationTest {
         model_error_2.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
             "Reactor cannot be named 'Preamble'")
     }
-    
+ 
     /**
      * Ensure that "__" is not allowed at the start of an input name.
      */

@@ -41,11 +41,15 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
+import org.icyphy.linguaFranca.Host
+import org.icyphy.linguaFranca.IPV4Host
+import org.icyphy.linguaFranca.IPV6Host
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.NamedHost
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Preamble
@@ -60,10 +64,6 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.IPV4Host
-import org.icyphy.linguaFranca.IPV6Host
-import org.icyphy.linguaFranca.Host
-import org.icyphy.linguaFranca.NamedHost
 
 /**
  * Custom validation checks for Lingua Franca programs.

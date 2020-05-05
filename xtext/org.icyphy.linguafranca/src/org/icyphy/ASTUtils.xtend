@@ -47,6 +47,10 @@ import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Value
 import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.Action
+import java.util.List
+import java.util.LinkedList
+import org.icyphy.linguaFranca.Model
+import java.util.Set
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -68,56 +72,116 @@ class ASTUtils {
      * @param connection The connection to replace.
      * @param delay The delay associated with the connection.
      */
-    static def void desugarDelay(Connection connection, GeneratorBase generator) {
-        val type = (connection.rightPort.variable as Port).type.copy
+    static def Connection desugarDelay(Connection connection, Reactor delayClass) {
+               
+        val parent = connection.eContainer as Reactor
+        val newConn = factory.createConnection
+        val dst = factory.createVarRef
+        val src = factory.createVarRef
+        val delayInstance = factory.createInstantiation
+        val delay = factory.createAssignment
+        delay.lhs = delayClass.parameters.get(0)
+        delay.rhs.add(connection.delay.copy)
+        
+        delayInstance.reactorClass = delayClass
+        delayInstance.parameters.add(delay)
+        delayInstance.name = getUniqueIdentifier(parent as Reactor, "delay")
+        
+        // Establish references to the involved ports.
+        
+        dst.container = delayInstance
+        dst.variable = delayClass.inputs.get(0)
+        src.container = delayInstance
+        src.variable = delayClass.outputs.get(0)
+//        connection.rightPort = dst
+//        newConn.leftPort = src
+//        newConn.rightPort = connection.rightPort
+//        
+        return newConn
+    }
+    
+    static def Reactor defineDelayReactor(Type type, List<Reactor> delayReactors, GeneratorBase generator) {
+        
+        val className = 
+            generator.supportsGenerics ? 
+                GeneratorBase.GEN_DELAY_CLASS_NAME : 
+            '''«GeneratorBase.GEN_DELAY_CLASS_NAME»_«InferredType.fromAST(type).toText.hashCode.toString»'''
+        // Only add class definition if it is not already there.
+        val classDef = delayReactors.findFirst[it | it.name.equals(className)]
+        if (classDef !== null) {
+            return classDef
+        }
+        
+        val delayClass = factory.createReactor
+        val delayParameter = factory.createParameter
         val action = factory.createAction
         val triggerRef = factory.createVarRef
         val effectRef = factory.createVarRef
+        val input = factory.createInput
+        val output = factory.createOutput
         val inRef = factory.createVarRef
         val outRef = factory.createVarRef
-        val parent = (connection.eContainer as Reactor)
+            
         val r1 = factory.createReaction
         val r2 = factory.createReaction
-
+                        
         // Name the newly created action; set its delay and type.
-        action.name = getUniqueIdentifier(parent, "delay")
+        action.name = "delay"
         action.minDelay = factory.createValue
-        action.minDelay = connection.delay.copy
-         
-        action.type = type
+        action.minDelay.parameter = delayParameter
+            
+        if (generator.supportsGenerics) {
+            action.type = factory.createType
+            action.type.id = "T"
+        } else {
+            action.type = type.copy
+        }
+            
         action.origin = ActionOrigin.LOGICAL
 
+        // Establish references to the involved ports.
+        inRef.variable = input
+        outRef.variable = output
+        
         // Establish references to the action.
         triggerRef.variable = action
         effectRef.variable = action
-
-        // Establish references to the involved ports.
-        inRef.container = connection.leftPort.container
-        inRef.variable = connection.leftPort.variable
-        outRef.container = connection.rightPort.container
-        outRef.variable = connection.rightPort.variable
-
+        
         // Add the action to the reactor.
-        parent.actions.add(action)
+        delayClass.name = GeneratorBase.GEN_DELAY_CLASS_NAME 
+        delayClass.actions.add(action)
 
         // Configure the first reaction.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
         r1.code = factory.createCode()
         r1.code.tokens.add(generator.generateDelayBody(action, inRef))
-
+    
         // Configure the second reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
         r2.code = factory.createCode()
-        r2.code.tokens.add(generator.generateForwardBody(action, outRef))
-
-        // Add the reactions to the parent.
+        r2.code.tokens.add(generator.generateForwardBody(action, outRef))    
+    
+        // Add the reactions to the newly created reactor class.
         // These need to go in the opposite order in case
         // a new input arrives at the same time the delayed
         // output is delivered!
-        parent.reactions.add(r2)
-        parent.reactions.add(r1)
+            
+        delayClass.reactions.add(r2)
+        delayClass.reactions.add(r1)
+
+        // Add a type parameter if the target supports it.
+        if (generator.supportsGenerics) {
+            delayClass.typeParms.add("T")
+        }
+        delayClass.inputs.add(input)
+        delayClass.outputs.add(output)
+        delayClass.parameters.add(delayParameter)
+        
+        delayReactors.add(delayClass)
+        
+        return delayClass
     }
     
     /** 
