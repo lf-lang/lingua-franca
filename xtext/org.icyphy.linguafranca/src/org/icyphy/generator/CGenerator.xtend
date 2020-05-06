@@ -2952,4 +2952,8 @@ class CGenerator extends GeneratorBase {
         return false
     }
     
+    override generateDelayGeneric() {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
 }

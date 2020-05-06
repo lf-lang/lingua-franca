@@ -205,7 +205,7 @@ class ASTUtils {
         // Add a type parameter if the target supports it.
         if (generator.supportsGenerics) {
             val parm = factory.createTypeParm
-            parm.literal = "T extends Present"
+            parm.literal = generator.generateDelayGeneric()
             delayClass.typeParms.add(parm)
         }
         

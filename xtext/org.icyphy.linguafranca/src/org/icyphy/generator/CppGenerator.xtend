@@ -1036,5 +1036,8 @@ class CppGenerator extends GeneratorBase {
     override supportsGenerics() {
         true
     }
-        
+    
+    override String generateDelayGeneric()
+        '''T'''
+    
 }
