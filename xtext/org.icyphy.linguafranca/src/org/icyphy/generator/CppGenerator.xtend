@@ -286,6 +286,8 @@ class CppGenerator extends GeneratorBase {
         «FOR n : r.reactions SEPARATOR '\n'»
             «IF r.isGeneric»«r.templateLine»«ENDIF»
             void «r.templateName»::«n.name»_body() {
+              using namespace std::chrono_literals;
+              using namespace reactor::operators;
               «n.code.toText»
             }
         «ENDFOR»
@@ -295,6 +297,8 @@ class CppGenerator extends GeneratorBase {
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
             «IF r.isGeneric»«r.templateLine»«ENDIF»
             void «r.templateName»::«n.name»_deadline_handler() {
+              using namespace std::chrono_literals;
+              using namespace reactor::operators;
               «n.deadline.code.toText»
             }
         «ENDFOR»
@@ -678,9 +682,6 @@ class CppGenerator extends GeneratorBase {
         
         «IF !r.isGeneric»
         #include "reactor-cpp/reactor-cpp.hh"
-        
-        using namespace std::chrono_literals;
-        using namespace reactor::operators;
         
         #include "«r.headerFile»"
         «ENDIF»
