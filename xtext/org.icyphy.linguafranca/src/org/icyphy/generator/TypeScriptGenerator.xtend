@@ -1211,5 +1211,8 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
     override supportsGenerics() {
         true
     }
+    
+    override String generateDelayGeneric()
+        '''T extends Present'''
 
 }

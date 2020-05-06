@@ -437,6 +437,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     abstract def String generateForwardBody(Action action, VarRef port);
     
+    abstract def String generateDelayGeneric();
+    
+    
     /**
      * Generate code for referencing a port, action, or timer.
      * @param reference The referenced variable.
