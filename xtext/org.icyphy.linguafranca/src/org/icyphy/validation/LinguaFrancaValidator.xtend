@@ -543,12 +543,27 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkPreamble(Preamble preamble) {
-        if (this.target == Targets.CPP && preamble.visibility == Visibility.NONE) {
-            error(
-                "Preambles for the C++ target need a visibility qualifier (private or public)!",
-                Literals.PREAMBLE__VISIBILITY
-            )
-        } else if (this.target != Targets.CPP && preamble.visibility != Visibility.NONE) {
+        if (this.target == Targets.CPP) {
+            if (preamble.visibility == Visibility.NONE) {
+                error(
+                    "Preambles for the C++ target need a visibility qualifier (private or public)!",
+                    Literals.PREAMBLE__VISIBILITY
+                )
+            } else if (preamble.visibility == Visibility.PRIVATE) {
+                val container = preamble.eContainer
+                if (container !== null && container instanceof Reactor) {
+                    val reactor = container as Reactor
+                    if (reactor.isGeneric) {
+                        warning(
+                            "Private preambles in generic reactors are not truly private. " +
+                                "Since the generated code is placed in a *_impl.hh file, it will " +
+                                "be visible on the public interface. Consider using a public " +
+                                "preamble within the reactor or a private preamble on file scope.",
+                            Literals.PREAMBLE__VISIBILITY)
+                    }
+                }
+            }
+        } else if (preamble.visibility != Visibility.NONE) {
             warning(
                 '''The «preamble.visibility» qualifier has no meaning for the «this.target.name» target. It should be removed.''',
                 Literals.PREAMBLE__VISIBILITY
