@@ -683,8 +683,8 @@ class CppGenerator extends GeneratorBase {
         using namespace reactor::operators;
         
         #include "«r.headerFile»"
-        #include "lfutil.hh"
         «ENDIF»
+        #include "lfutil.hh"
         
         «r.privatePreamble»
 
