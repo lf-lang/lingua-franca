@@ -318,18 +318,32 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // must be added after iterating to avoid concurrent modification problems.
         
         
-        
-        val toAdd = new LinkedList<Connection>()
-        val delayReactors = new LinkedList<Reactor>()
+        val oldConnections = new LinkedList<Connection>()
+        val newConnections = new HashMap<Reactor, List<Connection>>()
+        val delayInstances = new HashMap<Reactor, List<Instantiation>>()
+        val delayClasses = new HashSet<Reactor>()
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
-                val delayClass = defineDelayReactor((connection.rightPort.variable as Port).type, delayReactors, this)
-                toAdd.add(connection.desugarDelay(delayClass))
+                val parent = connection.eContainer as Reactor
+                val delayClass = getDelayClass((connection.rightPort.variable as Port).type, delayClasses, this)
+                val delayInstance = getDelayInstance(delayClass, connection.delay)
+                var connections = newConnections.get(parent)
+                if (connection !== null) connections = new LinkedList()
+                connections.addAll(connection.rerouteViaDelay(delayInstance))
+                newConnections.put(parent, connections)
+                oldConnections.add(connection)
+                delayClasses.add(delayClass)
+                var instances = (delayInstances.get(parent)?: emptyList)
+                if (instances !== null) instances = new LinkedList()
+                instances.addAll(delayInstance)
+                delayInstances.put(parent, instances)
             }
         }
-        
-        toAdd.forEach[connection | (connection.eContainer as Reactor).connections.add(connection)]
-        delayReactors.forEach[reactor | this.resource.contents.add(reactor)]
+        oldConnections.forEach[ connection | (connection.eContainer as Reactor).connections.remove(connection)]
+        newConnections.forEach[ reactor, connections | reactor.connections.addAll(connections)]
+        delayClasses.forEach[ reactor | this.resource.contents.add(reactor)]
+        delayInstances.forEach[ reactor, instantiations | instantiations.forEach[ instantiation | instantiation.name = reactor.getUniqueIdentifier("delay")]; reactor.instantiations.addAll(instantiations)]
+    
     }
     
     /** Generate code from the Lingua Franca model contained by the
@@ -1387,13 +1401,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     
     abstract def boolean supportsGenerics()
     
-    abstract protected def String getTargetTimeType()
+    abstract public def String getTargetTimeType()
 
-    abstract protected def String getTargetUndefinedType()
+    abstract public def String getTargetUndefinedType()
     
-    abstract protected def String getTargetFixedSizeListType(String baseType, Integer size)
+    abstract public def String getTargetFixedSizeListType(String baseType, Integer size)
 
-    abstract protected def String getTargetVariableSizeListType(String baseType);
+    abstract public def String getTargetVariableSizeListType(String baseType);
     
     protected def String getTargetType(InferredType type) {
         if (type.isUndefined) {
