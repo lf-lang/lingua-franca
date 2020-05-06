@@ -118,7 +118,7 @@ class ASTUtils {
         val className = 
             generator.supportsGenerics ? 
                 GeneratorBase.GEN_DELAY_CLASS_NAME : 
-            '''«GeneratorBase.GEN_DELAY_CLASS_NAME»_«InferredType.fromAST(type).toText.hashCode.toString»'''
+            '''«GeneratorBase.GEN_DELAY_CLASS_NAME»_«Integer.toHexString(InferredType.fromAST(type).toText.hashCode)»'''
         // Only add class definition if it is not already there.
         val classDef = generatedClasses.findFirst[it | it.name.equals(className)]
         if (classDef !== null) {
@@ -146,15 +146,21 @@ class ASTUtils {
         action.name = "delay"
         action.minDelay = factory.createValue
         action.minDelay.parameter = delayParameter
-            
+        action.origin = ActionOrigin.LOGICAL
+                
         if (generator.supportsGenerics) {
             action.type = factory.createType
             action.type.id = "T"
         } else {
             action.type = type.copy
         }
-            
-        action.origin = ActionOrigin.LOGICAL
+        
+        input.name = "inp"
+        input.type = action.type.copy
+        
+        output.name = "out"
+        output.type = action.type.copy
+        
 
         // Establish references to the involved ports.
         inRef.variable = input
@@ -165,7 +171,7 @@ class ASTUtils {
         effectRef.variable = action
         
         // Add the action to the reactor.
-        delayClass.name = GeneratorBase.GEN_DELAY_CLASS_NAME 
+        delayClass.name = className
         delayClass.actions.add(action)
 
         // Configure the first reaction.
@@ -192,10 +198,12 @@ class ASTUtils {
         if (generator.supportsGenerics) {
             delayClass.typeParms.add("T")
         }
-        delayClass.actions.add(action)
+        
         delayClass.inputs.add(input)
         delayClass.outputs.add(output)
         delayClass.parameters.add(delayParameter)
+        
+        generatedClasses.add(delayClass)
         
         return delayClass
     }

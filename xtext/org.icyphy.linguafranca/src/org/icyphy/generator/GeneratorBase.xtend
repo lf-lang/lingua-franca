@@ -98,7 +98,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
     
-    public static var GEN_DELAY_CLASS_NAME = "__GeneratedDelay"
+    public static var GEN_DELAY_CLASS_NAME = "__GenDelay"
     
     static protected CharSequence listItemSeparator = ', '
     
@@ -332,7 +332,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 connections.addAll(connection.rerouteViaDelay(delayInstance))
                 newConnections.put(parent, connections)
                 oldConnections.add(connection)
-                delayClasses.add(delayClass)
+                
                 var instances = (delayInstances.get(parent)?: emptyList)
                 if (instances !== null) instances = new LinkedList()
                 instances.addAll(delayInstance)
@@ -342,7 +342,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         oldConnections.forEach[ connection | (connection.eContainer as Reactor).connections.remove(connection)]
         newConnections.forEach[ reactor, connections | reactor.connections.addAll(connections)]
         delayClasses.forEach[ reactor | this.resource.contents.add(reactor)]
-        delayInstances.forEach[ reactor, instantiations | instantiations.forEach[ instantiation | instantiation.name = reactor.getUniqueIdentifier("delay")]; reactor.instantiations.addAll(instantiations)]
+        delayInstances.forEach[ reactor, instantiations | instantiations.forEach[ instantiation | instantiation.name = reactor.getUniqueIdentifier("delay"); reactor.instantiations.add(instantiation)]]
     
     }
     
@@ -1401,15 +1401,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     
     abstract def boolean supportsGenerics()
     
-    abstract public def String getTargetTimeType()
+    abstract def String getTargetTimeType()
 
-    abstract public def String getTargetUndefinedType()
+    abstract def String getTargetUndefinedType()
     
-    abstract public def String getTargetFixedSizeListType(String baseType, Integer size)
+    abstract def String getTargetFixedSizeListType(String baseType, Integer size)
 
-    abstract public def String getTargetVariableSizeListType(String baseType);
+    abstract def String getTargetVariableSizeListType(String baseType);
     
-    protected def String getTargetType(InferredType type) {
+    def String getTargetType(InferredType type) { // FIXME: what about asterisks?
         if (type.isUndefined) {
             return targetUndefinedType
         } else if (type.isTime) {
