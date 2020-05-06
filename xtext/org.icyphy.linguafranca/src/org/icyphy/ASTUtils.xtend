@@ -985,4 +985,13 @@ class ASTUtils {
         }
         return InferredType.undefined
     }
+
+    /**
+     * Check if the reactor class uses generics
+     * @param r the reactor to check 
+     * @true true if the reactor uses generics
+     */
+    def static isGeneric(Reactor r) {
+        return r.typeParms.length != 0;
+    }
 }

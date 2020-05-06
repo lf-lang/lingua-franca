@@ -594,6 +594,7 @@ class CppGenerator extends GeneratorBase {
         «r.includeInstances»
         «r.publicPreamble»
         
+        «IF r.isGeneric»«r.templateLine»«ENDIF»
         class «r.name» : public reactor::Reactor {
          private:
           «r.declareParameters»
@@ -610,6 +611,10 @@ class CppGenerator extends GeneratorBase {
           
           void assemble() override;
         };
+    '''
+
+    def templateLine(Reactor r) '''
+        template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>
     '''
 
     def generate(Connection c) {
