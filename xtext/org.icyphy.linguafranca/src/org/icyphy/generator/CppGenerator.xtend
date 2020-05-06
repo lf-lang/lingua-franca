@@ -116,6 +116,10 @@ class CppGenerator extends GeneratorBase {
         r.eResource.toDir + File.separator + r.name + ".hh"
     }
 
+    def headerImplFile(Reactor r) {
+        r.eResource.toDir + File.separator + r.name + "_impl.hh"
+    }
+
     def sourceFile(Reactor r) {
         r.eResource.toDir + File.separator + r.name + ".cc"
     }
@@ -146,7 +150,8 @@ class CppGenerator extends GeneratorBase {
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile,
                 r.generateReactorHeader)
-            fsa.generateFile(filename + File.separator + r.sourceFile,
+            val implFile = r.isGeneric ? r.headerImplFile : r.sourceFile
+            fsa.generateFile(filename + File.separator + implFile,
                 r.generateReactorSource)
         }
 
@@ -611,6 +616,10 @@ class CppGenerator extends GeneratorBase {
           
           void assemble() override;
         };
+        «IF r.isGeneric»
+        
+        #include "«r.headerImplFile»"
+        «ENDIF»
     '''
 
     def templateLine(Reactor r) '''
