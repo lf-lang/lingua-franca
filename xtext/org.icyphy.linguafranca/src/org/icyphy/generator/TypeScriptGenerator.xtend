@@ -263,11 +263,14 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
-
+        
+        val reactorName = reactor.name + reactor.typeParms?.join('<', ',', '>', [it.toText])
+        // NOTE: type parameters that are referenced in ports or actions must extend
+        // Present in order for the program to type check.
         if(reactor.isMain()){
-            pr("export class " + reactor.name + " extends App {")
+            pr("export class " + reactorName + " extends App {")
         } else {
-            pr("export class " + reactor.name + " extends Reactor {")
+            pr("export class " + reactorName + " extends Reactor {")
         }
         
         indent()
@@ -310,7 +313,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle child reactors instantiations
         for (childReactor : reactor.instantiations ) {
-            pr(childReactor.getName() + ": " + childReactor.reactorClass.name )
+            pr(childReactor.getName() + ": " + childReactor.reactorClass.name + childReactor.typeParms.join('<', ',', '>', [it | it.toText]))
             
             var childReactorArguments = new StringJoiner(", ");
             childReactorArguments.add("this")
@@ -323,10 +326,9 @@ class TypeScriptGenerator extends GeneratorBase {
                 childReactorArguments.add(parameter.getTargetInitializer(childReactor))
             }
             
-            
             pr(reactorConstructor, "this." + childReactor.getName()
-                + " = new " + childReactor.reactorClass.name + "("
-                + childReactorArguments + ")" )
+                + " = new " + childReactor.reactorClass.name + 
+                "(" + childReactorArguments + ")" )
         }
        
         

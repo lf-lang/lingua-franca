@@ -61,7 +61,7 @@ Import:
  */
 Reactor:
     ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
-    ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
+    ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
     '{'
@@ -76,6 +76,16 @@ Reactor:
         | (reactions+=Reaction)
         | (mutations+=Mutation)
     )* '}';
+
+
+TypeParm:
+    literal=TypeExpr | code=Code
+;
+
+// Allows simple statements like "A extends B". We probably want to further expand this.
+TypeExpr:
+    ID+
+;
 
 /**
  * Specification of the target language. Target properties can be specified in
@@ -174,7 +184,7 @@ Preamble:
 
 Instantiation:
     name=ID '=' 'new' (arraySpec=ArraySpec)?
-    reactorClass=[Reactor] '(' 
+    reactorClass=[Reactor] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
     ')' ('at' host=Host)? ';';
 
@@ -243,7 +253,7 @@ Port:
     
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* (arraySpec=ArraySpec | parameters=Generic)?) | code=Code);
+   (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
 
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
