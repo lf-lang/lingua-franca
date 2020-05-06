@@ -280,7 +280,8 @@ class CppGenerator extends GeneratorBase {
 
     def implementReactionBodies(Reactor r) '''
         «FOR n : r.reactions SEPARATOR '\n'»
-            void «r.name»::«n.name»_body() {
+            «IF r.isGeneric»«r.templateLine»«ENDIF»
+            void «r.templateName»::«n.name»_body() {
               «n.code.toText»
             }
         «ENDFOR»
@@ -288,7 +289,8 @@ class CppGenerator extends GeneratorBase {
 
     def implementReactionDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
-            void «r.name»::«n.name»_deadline_handler() {
+            «IF r.isGeneric»«r.templateLine»«ENDIF»
+            void «r.templateName»::«n.name»_deadline_handler() {
               «n.deadline.code.toText»
             }
         «ENDFOR»
@@ -429,9 +431,12 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
+    def templateName(Reactor r) '''«r.name»«IF r.isGeneric»<«FOR t : r.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»'''
+
     def defineConstructor(Reactor r) '''
+        «IF r.isGeneric»«r.templateLine»«ENDIF»
         «IF r.parameters.length > 0»
-            «r.name»::«r.name»(const std::string& name,
+            «r.templateName»::«r.name»(const std::string& name,
                 «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
                 «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
         «ELSE»
@@ -667,6 +672,7 @@ class CppGenerator extends GeneratorBase {
     def generateReactorSource(Reactor r) '''
         «r.eResource.header»
         
+        «IF !r.isGeneric»
         #include "reactor-cpp/reactor-cpp.hh"
         
         using namespace std::chrono_literals;
@@ -674,21 +680,28 @@ class CppGenerator extends GeneratorBase {
         
         #include "«r.headerFile»"
         #include "lfutil.hh"
+        «ENDIF»
         
         «r.privatePreamble»
+
         «r.defineConstructor»
         
-        void «r.name»::assemble() {
-          «FOR n : r.reactions»
-              «r.assembleReaction(n)»
-          «ENDFOR»
-          «FOR c : r.connections BEFORE "  // connections\n"»
-              «c.generate»
-          «ENDFOR»
-        }
-        
+        «r.defineAssembleMethod»
+
         «r.implementReactionBodies»
         «r.implementReactionDeadlineHandlers»
+    '''
+    
+    def defineAssembleMethod(Reactor r) '''
+        «IF r.isGeneric»«r.templateLine»«ENDIF»
+        void «r.templateName»::assemble() {
+          «FOR n : r.reactions»
+             «r.assembleReaction(n)»
+          «ENDFOR»
+          «FOR c : r.connections BEFORE "  // connections\n"»
+             «c.generate»
+          «ENDFOR»
+        }
     '''
 
     def header(Resource r) '''
@@ -837,7 +850,7 @@ class CppGenerator extends GeneratorBase {
         add_executable(«filename»
           main.cc
           «FOR r : reactors»
-              «r.sourceFile»
+              «IF !r.isGeneric»«r.sourceFile»«ENDIF»
           «ENDFOR»
           «FOR r : importedResources.keySet»
               «r.preambleSourceFile»
