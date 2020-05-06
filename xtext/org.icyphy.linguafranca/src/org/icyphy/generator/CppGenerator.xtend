@@ -210,12 +210,16 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
+    def templateInstance(Instantiation i) '''
+        «i.reactorClass.name»«IF i.reactorClass.isGeneric»<«FOR t : i.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»
+    '''
+
     def declareInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
             «IF i.arraySpec !== null»
-                std::array<«i.reactorClass.name», «i.arraySpec.length»> «i.name»;
+                std::array<«i.templateInstance», «i.arraySpec.length»> «i.name»;
             «ELSE»
-                «i.reactorClass.name» «i.name»;
+                «i.templateInstance» «i.name»;
             «ENDIF»
         «ENDFOR»
     '''
