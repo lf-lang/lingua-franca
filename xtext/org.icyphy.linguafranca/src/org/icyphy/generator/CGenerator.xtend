@@ -2935,7 +2935,7 @@ class CGenerator extends GeneratorBase {
     override getTargetFixedSizeListType(String baseType,
         Integer size) '''«baseType»[«size»]'''
         
-    override protected String getTargetVariableSizeListType(
+    override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''
     
     protected def String getInitializer(ParameterInstance p) {

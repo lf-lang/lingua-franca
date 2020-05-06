@@ -28,29 +28,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy
 
 import java.util.HashSet
+import java.util.LinkedList
+import java.util.List
+import java.util.Set
+import org.eclipse.emf.common.util.EList
 import org.eclipse.xtext.nodemodel.ILeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.generator.FederateInstance
 import org.icyphy.generator.GeneratorBase
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.Time
-import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Value
-import org.eclipse.emf.common.util.EList
-import org.icyphy.linguaFranca.Action
-import java.util.List
-import java.util.LinkedList
-import org.icyphy.linguaFranca.Model
-import java.util.Set
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -72,42 +72,55 @@ class ASTUtils {
      * @param connection The connection to replace.
      * @param delay The delay associated with the connection.
      */
-    static def Connection desugarDelay(Connection connection, Reactor delayClass) {
-               
-        val parent = connection.eContainer as Reactor
-        val newConn = factory.createConnection
-        val dst = factory.createVarRef
-        val src = factory.createVarRef
-        val delayInstance = factory.createInstantiation
-        val delay = factory.createAssignment
-        delay.lhs = delayClass.parameters.get(0)
-        delay.rhs.add(connection.delay.copy)
+    static def List<Connection> rerouteViaDelay(Connection connection, Instantiation delayInstance) {
         
-        delayInstance.reactorClass = delayClass
-        delayInstance.parameters.add(delay)
-        delayInstance.name = getUniqueIdentifier(parent as Reactor, "delay")
+        val connections = new LinkedList<Connection>()
+               
+        val upstream = factory.createConnection
+        val downstream = factory.createConnection
+        val input = factory.createVarRef
+        val output = factory.createVarRef
+        
+        val delayClass = delayInstance.reactorClass
         
         // Establish references to the involved ports.
-        
-        dst.container = delayInstance
-        dst.variable = delayClass.inputs.get(0)
-        src.container = delayInstance
-        src.variable = delayClass.outputs.get(0)
-//        connection.rightPort = dst
-//        newConn.leftPort = src
-//        newConn.rightPort = connection.rightPort
-//        
-        return newConn
+        input.container = delayInstance
+        input.variable = delayClass.inputs.get(0)
+        output.container = delayInstance
+        output.variable = delayClass.outputs.get(0)
+        upstream.leftPort = connection.leftPort
+        upstream.rightPort = input
+        downstream.leftPort = output
+        downstream.rightPort = connection.rightPort
+
+        connections.add(upstream)
+        connections.add(downstream)
+        return connections
     }
     
-    static def Reactor defineDelayReactor(Type type, List<Reactor> delayReactors, GeneratorBase generator) {
+    static def Instantiation getDelayInstance(Reactor delayClass, Value time) {
+        val delayInstance = factory.createInstantiation
+        delayInstance.reactorClass = delayClass
+                
+        // FIXME: factor this into method in ASTUtils
+        val delay = factory.createAssignment
+        delay.lhs = delayClass.parameters.get(0)
+        delay.rhs.add(time.copy)
+        delayInstance.parameters.add(delay)
+        delayInstance.name = "delay" // This has to be overridden at the call site to avoid name collisions in the container
+        
+        return delayInstance
+                
+    }
+    
+    static def Reactor getDelayClass(Type type, Set<Reactor> generatedClasses, GeneratorBase generator) {
         
         val className = 
             generator.supportsGenerics ? 
                 GeneratorBase.GEN_DELAY_CLASS_NAME : 
             '''«GeneratorBase.GEN_DELAY_CLASS_NAME»_«InferredType.fromAST(type).toText.hashCode.toString»'''
         // Only add class definition if it is not already there.
-        val classDef = delayReactors.findFirst[it | it.name.equals(className)]
+        val classDef = generatedClasses.findFirst[it | it.name.equals(className)]
         if (classDef !== null) {
             return classDef
         }
@@ -124,7 +137,11 @@ class ASTUtils {
             
         val r1 = factory.createReaction
         val r2 = factory.createReaction
-                        
+        
+        delayParameter.name = "interval"
+        delayParameter.type = factory.createType
+        delayParameter.type.id = generator.targetTimeType
+        
         // Name the newly created action; set its delay and type.
         action.name = "delay"
         action.minDelay = factory.createValue
@@ -175,11 +192,10 @@ class ASTUtils {
         if (generator.supportsGenerics) {
             delayClass.typeParms.add("T")
         }
+        delayClass.actions.add(action)
         delayClass.inputs.add(input)
         delayClass.outputs.add(output)
         delayClass.parameters.add(delayParameter)
-        
-        delayReactors.add(delayClass)
         
         return delayClass
     }

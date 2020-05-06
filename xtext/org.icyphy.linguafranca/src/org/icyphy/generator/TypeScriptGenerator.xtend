@@ -1190,19 +1190,19 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
 
 '''
         
-    override protected String getTargetTimeType() {
+    override String getTargetTimeType() {
         "TimeValue"
     }
     
-    override protected String getTargetUndefinedType() {
+    override String getTargetUndefinedType() {
         "unknown"
     }
     
-    override protected String getTargetFixedSizeListType(String baseType, Integer size) {
+    override String getTargetFixedSizeListType(String baseType, Integer size) {
         '''Array(«size»)<«baseType»>'''
     }
     
-    override protected String getTargetVariableSizeListType(String baseType) {
+    override String getTargetVariableSizeListType(String baseType) {
         '''Array<«baseType»>'''
     }
     
