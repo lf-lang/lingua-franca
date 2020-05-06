@@ -2096,7 +2096,7 @@ class CGenerator extends GeneratorBase {
             if («ref»_is_present) {
                 // Put the whole token on the event queue, not just the payload.
                 // This way, the length and element_size are transported.
-                schedule_token(«action.name», 0, «ref»);
+                schedule_token(«action.name», 0, «ref»_token);
             }
             '''
         } else {
