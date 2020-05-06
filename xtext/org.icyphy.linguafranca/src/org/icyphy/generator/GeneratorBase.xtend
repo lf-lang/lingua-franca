@@ -325,8 +325,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         for (connection : resource.allContents.toIterable.filter(Connection)) {
             if (connection.delay !== null) {
                 val parent = connection.eContainer as Reactor
-                val delayClass = getDelayClass((connection.rightPort.variable as Port).type, delayClasses, this)
-                val delayInstance = getDelayInstance(delayClass, connection.delay)
+                val type = (connection.rightPort.variable as Port).type
+                val delayClass = getDelayClass(type, delayClasses, this)
+                val generic = this.supportsGenerics? InferredType.fromAST(type).toText : ""
+                val delayInstance = getDelayInstance(delayClass, connection.delay, generic)
+                
                 var connections = newConnections.get(parent)
                 if (connection !== null) connections = new LinkedList()
                 connections.addAll(connection.rerouteViaDelay(delayInstance))
@@ -1409,7 +1412,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     abstract def String getTargetVariableSizeListType(String baseType);
     
-    def String getTargetType(InferredType type) { // FIXME: what about asterisks?
+    def String getTargetType(InferredType type) {
         if (type.isUndefined) {
             return targetUndefinedType
         } else if (type.isTime) {

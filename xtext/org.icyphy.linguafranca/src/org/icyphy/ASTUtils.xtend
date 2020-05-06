@@ -51,6 +51,7 @@ import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.TypeParm
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -98,11 +99,15 @@ class ASTUtils {
         return connections
     }
     
-    static def Instantiation getDelayInstance(Reactor delayClass, Value time) {
+    static def Instantiation getDelayInstance(Reactor delayClass, Value time, String generic) {
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
-                
-        // FIXME: factor this into method in ASTUtils
+        if (!generic.isNullOrEmpty) {
+            val typeParm = factory.createTypeParm
+            typeParm.literal = generic
+            delayInstance.typeParms.add(typeParm)
+            
+        }
         val delay = factory.createAssignment
         delay.lhs = delayClass.parameters.get(0)
         delay.rhs.add(time.copy)
@@ -138,12 +143,15 @@ class ASTUtils {
         val r1 = factory.createReaction
         val r2 = factory.createReaction
         
-        delayParameter.name = "interval"
+        delayParameter.name = "delay"
         delayParameter.type = factory.createType
         delayParameter.type.id = generator.targetTimeType
+        val defaultValue = factory.createValue
+        defaultValue.literal = generator.timeInTargetLanguage(new TimeValue(0, TimeUnit.NONE))
+        delayParameter.init.add(defaultValue)
         
         // Name the newly created action; set its delay and type.
-        action.name = "delay"
+        action.name = "act"
         action.minDelay = factory.createValue
         action.minDelay.parameter = delayParameter
         action.origin = ActionOrigin.LOGICAL
@@ -196,7 +204,9 @@ class ASTUtils {
 
         // Add a type parameter if the target supports it.
         if (generator.supportsGenerics) {
-            delayClass.typeParms.add("T")
+            val parm = factory.createTypeParm
+            parm.literal = "T extends Present"
+            delayClass.typeParms.add(parm)
         }
         
         delayClass.inputs.add(input)
@@ -363,6 +373,17 @@ class ASTUtils {
         }
     }
     
+    private static def getCopy(TypeParm original) {
+        val clone = factory.createTypeParm
+        if (!original.literal.isNullOrEmpty) {
+            clone.literal = original.literal
+        } else if (original.code !== null) {
+                clone.code = factory.createCode
+                original.code.tokens.forEach[clone.code.tokens.add(it)]
+        }
+        return clone
+    }
+    
     /**
      * Given a "type" AST node, return a deep copy of that node.
      * @param original The original to create a deep copy of.
@@ -389,13 +410,13 @@ class ASTUtils {
                 clone.arraySpec.length = original.arraySpec.length
             }
             
-            if (original.parameters !== null) {
-                clone.parameters = original.parameters
-            }
+            original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
             
             return clone
         }
     }
+    
+    
     
     /**
      * Translate the given code into its textual representation.
@@ -431,6 +452,14 @@ class ASTUtils {
             }
         }
         return ""
+    }
+    
+    def static toText(TypeParm t) {
+        if (!t.literal.isNullOrEmpty) {
+            t.literal
+        } else {
+            t.code.toText
+        }
     }
     
     /**
