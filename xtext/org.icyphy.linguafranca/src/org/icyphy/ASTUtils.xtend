@@ -52,6 +52,8 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.TypeParm
+import org.eclipse.emf.ecore.resource.Resource
+import java.util.HashMap
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -67,13 +69,73 @@ class ASTUtils {
     public static val factory = LinguaFrancaFactory.eINSTANCE
     
     /**
+     * Find connections in the given resource that have a delay associated with them, 
+     * and reroute them via a generated delay reactor.
+     * @param resource The AST.
+     * @param generator A code generator.
+     */
+    static def insertGeneratedDelays(Resource resource, GeneratorBase generator) {
+        // The resulting changes to the AST are performed _after_ iterating 
+        // in order to avoid concurrent modification problems.
+        val oldConnections = new LinkedList<Connection>()
+        val newConnections = new HashMap<Reactor, List<Connection>>()
+        val delayInstances = new HashMap<Reactor, List<Instantiation>>()
+        val delayClasses = new HashSet<Reactor>()
+        
+        // Iterate over the connections in the tree.
+        for (connection : resource.allContents.toIterable.filter(Connection)) {
+            if (connection.delay !== null) {
+                val parent = connection.eContainer as Reactor
+                val type = (connection.rightPort.variable as Port).type
+                val delayClass = getDelayClass(type, delayClasses, generator)
+                val generic = generator.supportsGenerics ? 
+                    InferredType.fromAST(type).toText : ""
+                val delayInstance = getDelayInstance(delayClass,
+                    connection.delay, generic)
+
+                // Stage the new connections for insertion into the tree.
+                var connections = newConnections.get(parent)
+                if (connection !== null) connections = new LinkedList()
+                connections.addAll(connection.rerouteViaDelay(delayInstance))
+                newConnections.put(parent, connections)
+
+                // Stage the original connection for deletion from the tree.
+                oldConnections.add(connection)
+
+                // Stage the newly created delay reactor instance for insertion
+                var instances = (delayInstances.get(parent) ?: emptyList)
+                if (instances !== null) instances = new LinkedList()
+                instances.addAll(delayInstance)
+                delayInstances.put(parent, instances)
+            }
+        }
+        // Remove old connections; insert new ones.
+        oldConnections.forEach [ connection |
+            (connection.eContainer as Reactor).connections.remove(connection)
+        ]
+        newConnections.forEach [ reactor, connections |
+            reactor.connections.addAll(connections)
+        ]
+        // Also add class definitions of the created delay reactor(s).
+        delayClasses.forEach[reactor|resource.contents.add(reactor)]
+        // Finally, insert the instances and, before doing so, assign them a unique name.
+        delayInstances.forEach [ reactor, instantiations |
+            instantiations.forEach [ instantiation |
+                instantiation.name = reactor.getUniqueIdentifier("delay");
+                reactor.instantiations.add(instantiation)
+            ]
+        ]
+    }
+    
+    /**
      * Take a connection and reroute it via an instance of a generated delay
      * reactor. This method returns a list to new connections to substitute
      * the original one.
      * @param connection The connection to reroute.
      * @param delayInstance The delay instance to route the connection through.
      */
-    static def List<Connection> rerouteViaDelay(Connection connection, Instantiation delayInstance) {
+    private static def List<Connection> rerouteViaDelay(Connection connection, 
+            Instantiation delayInstance) {
         
         val connections = new LinkedList<Connection>()
                
@@ -117,7 +179,7 @@ class ASTUtils {
      * @param generic A string that denotes the appropriate type parameter, 
      * which should be null or empty if the target does not support generics. 
      */
-    static def Instantiation getDelayInstance(Reactor delayClass, 
+    private static def Instantiation getDelayInstance(Reactor delayClass, 
             Value time, String generic) {
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
@@ -138,16 +200,32 @@ class ASTUtils {
     }
     
     /**
-     * 
+     * Return a synthesized AST node that represents the definition of a delay
+     * reactor. Depending on whether the target supports generics, either this
+     * method will synthesize a generic definition and keep returning it upon
+     * subsequent calls, or otherwise, it will synthesize a new definition for 
+     * each new type it hasn't yet created a compatible delay reactor for. All
+     * the classes generated so far are passed as an argument to this method,
+     * and newly created definitions are accumulated as a side effect of
+     * invoking this method. For each invocation, if no existing definition
+     * exists that can handle the given type, a new definition is created, 
+     * it is added to the set generated classes, and it is returned.
+     * @param type The type the delay class must be compatible with.
+     * @param generatedClasses Set of class definitions already generated.
+     * @param generator A code generator.
      */
-    static def Reactor getDelayClass(Type type, Set<Reactor> generatedClasses, GeneratorBase generator) {
+    private static def Reactor getDelayClass(Type type, 
+            Set<Reactor> generatedClasses, GeneratorBase generator) {
         
-        val className = 
-            generator.supportsGenerics ? 
-                GeneratorBase.GEN_DELAY_CLASS_NAME : 
-            '''«GeneratorBase.GEN_DELAY_CLASS_NAME»_«Integer.toHexString(InferredType.fromAST(type).toText.hashCode)»'''
+        val className = generator.supportsGenerics ? 
+            GeneratorBase.GEN_DELAY_CLASS_NAME : {
+                val id = Integer.toHexString(
+                    InferredType.fromAST(type).toText.hashCode)
+                '''«GeneratorBase.GEN_DELAY_CLASS_NAME»_«id»'''
+            }
+            
         // Only add class definition if it is not already there.
-        val classDef = generatedClasses.findFirst[it | it.name.equals(className)]
+        val classDef = generatedClasses.findFirst[it|it.name.equals(className)]
         if (classDef !== null) {
             return classDef
         }
@@ -169,7 +247,8 @@ class ASTUtils {
         delayParameter.type = factory.createType
         delayParameter.type.id = generator.targetTimeType
         val defaultValue = factory.createValue
-        defaultValue.literal = generator.timeInTargetLanguage(new TimeValue(0, TimeUnit.NONE))
+        defaultValue.literal = generator.timeInTargetLanguage(
+            new TimeValue(0, TimeUnit.NONE))
         delayParameter.init.add(defaultValue)
         
         // Name the newly created action; set its delay and type.
@@ -191,7 +270,6 @@ class ASTUtils {
         output.name = "out"
         output.type = action.type.copy
         
-
         // Establish references to the involved ports.
         inRef.variable = input
         outRef.variable = output
@@ -395,6 +473,11 @@ class ASTUtils {
         }
     }
     
+    /**
+     * Given a "type" AST node, return a deep copy of that node.
+     * @param original The original to create a deep copy of.
+     * @return A deep copy of the given AST node.
+     */
     private static def getCopy(TypeParm original) {
         val clone = factory.createTypeParm
         if (!original.literal.isNullOrEmpty) {
@@ -772,22 +855,6 @@ class ASTUtils {
         }
         return true
     }
-
-	/**
-	 * Report whether the given state variable denotes time list, meaning it is a list
-	 * of which all elements are valid times.
-     * @param value AST node to inspect.
-     * @return True if the argument denotes a valid time list, false otherwise.
-     */	
-    def static boolean isValidTimeList(StateVar s) {
-        if (s !== null) {
-            if (s.type !== null && s.type.isTime && s.type.arraySpec !== null) {
-              // FIXME  
-            }
-        }
-        return false
-    }
-
 
     /**
      * Report whether the given parameter has been declared a type or has been

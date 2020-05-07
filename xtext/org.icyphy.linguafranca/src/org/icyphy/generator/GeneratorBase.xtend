@@ -303,55 +303,28 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         this.resource = resource
         // Figure out the file name for the target code from the source file name.
-        analyzeResource(resource)
+        resource.analyzeResource
         
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.
         // Also create a list of federate names or a list with a single
         // empty name if there are no federates specified.
         // This must be done before desugaring delays below.
-        analyzeFederates(resource)
+        resource.analyzeFederates
 
-        // Find connections, and see whether they have a delay associated with them.
-        // For those that do, reroute the connection via a delay reactor. 
-        insertGeneratedDelays()
+        // Replace connections annotated with the "after" keyword by ones
+        // that go through a delay reactor. 
+        resource.insertGeneratedDelays()
             
     }
     
-    def void insertGeneratedDelays() {
-        // FIXME: move most of this to ASTUtils because the static functions shouldn't be public
-        
-        // The resulting changes to the AST are performed _after_ iterating iterating 
-        // to avoid concurrent modification problems.
-        val oldConnections = new LinkedList<Connection>()
-        val newConnections = new HashMap<Reactor, List<Connection>>()
-        val delayInstances = new HashMap<Reactor, List<Instantiation>>()
-        val delayClasses = new HashSet<Reactor>()
-        for (connection : resource.allContents.toIterable.filter(Connection)) {
-            if (connection.delay !== null) {
-                val parent = connection.eContainer as Reactor
-                val type = (connection.rightPort.variable as Port).type
-                val delayClass = getDelayClass(type, delayClasses, this)
-                val generic = this.supportsGenerics? InferredType.fromAST(type).toText : ""
-                val delayInstance = getDelayInstance(delayClass, connection.delay, generic)
-                
-                var connections = newConnections.get(parent)
-                if (connection !== null) connections = new LinkedList()
-                connections.addAll(connection.rerouteViaDelay(delayInstance))
-                newConnections.put(parent, connections)
-                oldConnections.add(connection)
-                
-                var instances = (delayInstances.get(parent)?: emptyList)
-                if (instances !== null) instances = new LinkedList()
-                instances.addAll(delayInstance)
-                delayInstances.put(parent, instances)
-            }
-        }
-        oldConnections.forEach[ connection | (connection.eContainer as Reactor).connections.remove(connection)]
-        newConnections.forEach[ reactor, connections | reactor.connections.addAll(connections)]
-        delayClasses.forEach[ reactor | this.resource.contents.add(reactor)]
-        delayInstances.forEach[ reactor, instantiations | instantiations.forEach[ instantiation | instantiation.name = reactor.getUniqueIdentifier("delay"); reactor.instantiations.add(instantiation)]]
-        
+    /**
+     * Find connections that have a delay associated with them and reroute them via
+     * a generated delay reactor.
+     * @param resource The AST.
+     */
+    def void insertGeneratedDelays(Resource resource) {
+        resource.insertGeneratedDelays(this)
     }
     
     /** Generate code from the Lingua Franca model contained by the
