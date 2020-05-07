@@ -675,21 +675,19 @@ class CppGenerator extends GeneratorBase {
 
     def generateReactorSource(Reactor r) '''
         «r.eResource.header»
-        
-        «IF !r.isGeneric»
-        #include "reactor-cpp/reactor-cpp.hh"
-        
-        #include "«r.headerFile»"
-        «ENDIF»
-        #include "lfutil.hh"
-        
+
+        «IF !r.isGeneric»#include "reactor-cpp/reactor-cpp.hh"«ENDIF»
+
         using namespace std::chrono_literals;
         using namespace reactor::operators;
-        
+
+        «IF !r.isGeneric»#include "«r.headerFile»"«ENDIF»
+        #include "lfutil.hh"
+
         «r.privatePreamble»
 
         «r.defineConstructor»
-        
+
         «r.defineAssembleMethod»
 
         «r.implementReactionBodies»
