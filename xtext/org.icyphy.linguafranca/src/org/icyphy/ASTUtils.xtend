@@ -27,13 +27,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy
 
-import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
 import org.eclipse.emf.common.util.EList
-import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.nodemodel.ILeafNode
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.generator.FederateInstance
 import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
@@ -50,8 +50,10 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.TypeParm
+import org.eclipse.emf.ecore.resource.Resource
+import java.util.HashMap
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -527,33 +529,28 @@ class ASTUtils {
      * @return Textual representation of the given argument.
      */
     def static String toText(Code code) {
-        if (code !== null && code.body !== null) {
-            return code.body.trimCodeBlock
-//            val node = NodeModelUtils.getNode(code)
-//            if (node !== null) {
-//                val builder = new StringBuilder(
-//                    Math.max(node.getTotalLength(), 1))
-//                for (ILeafNode leaf : node.getLeafNodes()) {
-//                    builder.append(leaf.getText());
-//                }
-//                var str = builder.toString.trim
-//                // remove the code delimiters
-//                str = str.substring(2, str.length - 2)
-//                if (str.split('\n').length > 1) {
-//                    // multi line code
-//                    return str.trimCodeBlock
-//                } else {
-//                    // single line code
-//                    return str.trim
-//                }    
-//            } else {
-//                // Code must have been added as a simple string.
-//                val builder = new StringBuilder(Math.max(code.tokens.length, 1))
-//                for (token : code.tokens) {
-//                    builder.append(token)
-//                }
-//                return builder.toString
-//            }
+        if (code !== null) {
+            val node = NodeModelUtils.getNode(code)
+            if (node !== null) {
+                val builder = new StringBuilder(
+                    Math.max(node.getTotalLength(), 1))
+                for (ILeafNode leaf : node.getLeafNodes()) {
+                    builder.append(leaf.getText());
+                }
+                var str = builder.toString.trim
+                // remove the code delimiters
+                str = str.substring(2, str.length - 2)
+                if (str.split('\n').length > 1) {
+                    // multi line code
+                    return str.trimCodeBlock
+                } else {
+                    // single line code
+                    return str.trim
+                }    
+            } else if (code.body !== null) {
+                // Code must have been added as a simple string.
+                return code.body.toString
+            }
         }
         return ""
     }
