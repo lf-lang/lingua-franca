@@ -230,6 +230,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /** The threads timeout unit parameter, or the default null if there is none. */
     protected TimeUnit targetTimeoutUnit
+    
+    /** The tracing  target parameter, or false if there is none. */
+    protected boolean targetTracing = false
 
     ////////////////////////////////////////////
     //// Private fields.
@@ -295,6 +298,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         targetTimeout = param.value.time
                         targetTimeoutUnit = param.value.unit
                     }
+                    case "tracing":
+                        if (param.value.literal == 'true') {
+                            targetTracing = true
+                        }
                 }
             }
         }

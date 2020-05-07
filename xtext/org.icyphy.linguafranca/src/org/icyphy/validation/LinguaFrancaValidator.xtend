@@ -475,6 +475,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             "Target property timeout requires a non-negative time value with units.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
+               case TRACING:
+                    if (!param.value.id.equals('true') &&
+                        !param.value.id.equals('false')) {
+                        error(
+                            "Target property tracing is required to be true or false.",
+                            Literals.KEY_VALUE_PAIR__VALUE)
+                    }
             }
         }
     }
