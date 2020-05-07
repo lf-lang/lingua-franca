@@ -313,11 +313,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         analyzeFederates(resource)
 
         // Find connections, and see whether they have a delay associated with them.
-        // For those that do, reroute the connection via a delay reactor. The connection
-        // between the delay reactor's output and the destination of the original connection
-        // must be added after iterating to avoid concurrent modification problems.
+        // For those that do, reroute the connection via a delay reactor. 
+        insertGeneratedDelays()
+            
+    }
+    
+    def void insertGeneratedDelays() {
+        // FIXME: move most of this to ASTUtils because the static functions shouldn't be public
         
-        
+        // The resulting changes to the AST are performed _after_ iterating iterating 
+        // to avoid concurrent modification problems.
         val oldConnections = new LinkedList<Connection>()
         val newConnections = new HashMap<Reactor, List<Connection>>()
         val delayInstances = new HashMap<Reactor, List<Instantiation>>()
@@ -346,7 +351,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         newConnections.forEach[ reactor, connections | reactor.connections.addAll(connections)]
         delayClasses.forEach[ reactor | this.resource.contents.add(reactor)]
         delayInstances.forEach[ reactor, instantiations | instantiations.forEach[ instantiation | instantiation.name = reactor.getUniqueIdentifier("delay"); reactor.instantiations.add(instantiation)]]
-    
+        
     }
     
     /** Generate code from the Lingua Franca model contained by the
@@ -437,8 +442,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     abstract def String generateForwardBody(Action action, VarRef port);
     
+    /**
+     * Generate code for the generic type to be used in the class definition
+     * of a generated delay reactor.
+     */
     abstract def String generateDelayGeneric();
-    
     
     /**
      * Generate code for referencing a port, action, or timer.
@@ -1405,6 +1413,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return returnCode
     }
     
+    /**
+     * Return true if the target supports generics (i.e., parametric
+     * polymorphism), false otherwise.
+     */
     abstract def boolean supportsGenerics()
     
     abstract def String getTargetTimeType()

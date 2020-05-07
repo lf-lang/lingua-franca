@@ -67,11 +67,11 @@ class ASTUtils {
     public static val factory = LinguaFrancaFactory.eINSTANCE
     
     /**
-     * Take a connection and replace it with an action and two reactions
-     * that implement a delayed transfer between the end points of the 
-     * given connection.
-     * @param connection The connection to replace.
-     * @param delay The delay associated with the connection.
+     * Take a connection and reroute it via an instance of a generated delay
+     * reactor. This method returns a list to new connections to substitute
+     * the original one.
+     * @param connection The connection to reroute.
+     * @param delayInstance The delay instance to route the connection through.
      */
     static def List<Connection> rerouteViaDelay(Connection connection, Instantiation delayInstance) {
         
@@ -99,7 +99,26 @@ class ASTUtils {
         return connections
     }
     
-    static def Instantiation getDelayInstance(Reactor delayClass, Value time, String generic) {
+    /**
+     * Create a new instance delay instances using the given reactor class.
+     * The supplied time value is used to override the default interval (which
+     * is zero).
+     * If the target supports parametric polymorphism, then a single class may
+     * be used for each instantiation, in which case a non-empty string must
+     * be supplied to parameterize the instance.
+     * A default name ("delay") is assigned to the instantiation, but this
+     * name must be overridden at the call site, where checks can be done to
+     * avoid name collisions in the container in which the instantiation is
+     * to be placed. Such checks (or modifications of the AST) are not
+     * performed in this method to avoid causing concurrent modification
+     * exceptions. 
+     * @param delayClass The class to create an instantiation for
+     * @param value A time interval corresponding to the desired delay
+     * @param generic A string that denotes the appropriate type parameter, 
+     * which should be null or empty if the target does not support generics. 
+     */
+    static def Instantiation getDelayInstance(Reactor delayClass, 
+            Value time, String generic) {
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
         if (!generic.isNullOrEmpty) {
@@ -112,12 +131,15 @@ class ASTUtils {
         delay.lhs = delayClass.parameters.get(0)
         delay.rhs.add(time.copy)
         delayInstance.parameters.add(delay)
-        delayInstance.name = "delay" // This has to be overridden at the call site to avoid name collisions in the container
+        delayInstance.name = "delay" // This has to be overridden.
         
         return delayInstance
                 
     }
     
+    /**
+     * 
+     */
     static def Reactor getDelayClass(Type type, Set<Reactor> generatedClasses, GeneratorBase generator) {
         
         val className = 
