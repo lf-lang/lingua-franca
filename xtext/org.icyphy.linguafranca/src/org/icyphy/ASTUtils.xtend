@@ -527,7 +527,7 @@ class ASTUtils {
      * @return Textual representation of the given argument.
      */
     def static String toText(Code code) {
-        if (code !== null) {
+        if (code !== null && code.body !== null) {
             return code.body.trimCodeBlock
 //            val node = NodeModelUtils.getNode(code)
 //            if (node !== null) {
