@@ -31,16 +31,15 @@ import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.eclipse.xtext.testing.validation.ValidationTestHelper
+import org.icyphy.Targets
+import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Visibility
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
-import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.TimeValue
-import org.icyphy.Targets
-import org.icyphy.linguaFranca.Visibility
-import org.icyphy.generator.GeneratorBase
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
