@@ -92,15 +92,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
      */
     static val ipv4Regex = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
                                 "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"
-    // ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])
+
     /**
      * Regular expression to check the validity of IPV6 addresses (due to David M. Syzdek),
      * with minor adjustment to allow up to six IPV6 segments (without truncation) in front
      * of an embedded IPv4-address. 
      **/
     static val ipv6Regex = 
-             
-               "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
+                "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
                 "([0-9a-fA-F]{1,4}:){1,7}:|" + 
                 "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|" +
                 "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|" + 

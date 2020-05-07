@@ -27,13 +27,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy
 
+import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
 import org.eclipse.emf.common.util.EList
-import org.eclipse.xtext.nodemodel.ILeafNode
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.eclipse.emf.ecore.resource.Resource
 import org.icyphy.generator.FederateInstance
 import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
@@ -50,10 +50,8 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.TypeParm
-import org.eclipse.emf.ecore.resource.Resource
-import java.util.HashMap
+import org.icyphy.linguaFranca.Value
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -286,13 +284,13 @@ class ASTUtils {
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
         r1.code = factory.createCode()
-        r1.code.tokens.add(generator.generateDelayBody(action, inRef))
+        r1.code.body = generator.generateDelayBody(action, inRef)
     
         // Configure the second reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
         r2.code = factory.createCode()
-        r2.code.tokens.add(generator.generateForwardBody(action, outRef))    
+        r2.code.body = generator.generateForwardBody(action, outRef)    
     
         // Add the reactions to the newly created reactor class.
         // These need to go in the opposite order in case
@@ -386,20 +384,20 @@ class ASTUtils {
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
         r1.code = factory.createCode()
-        r1.code.tokens.add(generator.generateNetworkSenderBody(
+        r1.code.body = generator.generateNetworkSenderBody(
             inRef,
             outRef,
             receivingPortID,
             leftFederate,
             rightFederate,
             action.inferredType
-        ))
+        )
 
         // Configure the receiving reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
         r2.code = factory.createCode()
-        r2.code.tokens.add(generator.generateNetworkReceiverBody(
+        r2.code.body = generator.generateNetworkReceiverBody(
             action,
             inRef,
             outRef,
@@ -407,7 +405,7 @@ class ASTUtils {
             leftFederate,
             rightFederate,
             action.inferredType
-        ))
+        )
 
         // Add the reactions to the parent.
         parent.reactions.add(r1)
@@ -467,7 +465,7 @@ class ASTUtils {
             }
             if (original.code !== null) {
                 clone.code = factory.createCode
-                original.code.tokens.forEach[clone.code.tokens.add(it)]
+                clone.code.body = original.code.body
             }
             return clone
         }
@@ -484,7 +482,7 @@ class ASTUtils {
             clone.literal = original.literal
         } else if (original.code !== null) {
                 clone.code = factory.createCode
-                original.code.tokens.forEach[clone.code.tokens.add(it)]
+                clone.code.body = original.code.body
         }
         return clone
     }
@@ -502,7 +500,7 @@ class ASTUtils {
             // Set the type based on the argument type.
             if (original.code !== null) {
                 clone.code = factory.createCode
-                original.code.tokens?.forEach[clone.code.tokens.add(it)]
+                clone.code.body = original.code.body
             } 
             if (original.stars !== null) {
                 original.stars?.forEach[clone.stars.add(it)]
@@ -530,31 +528,32 @@ class ASTUtils {
      */
     def static String toText(Code code) {
         if (code !== null) {
-            val node = NodeModelUtils.getNode(code)
-            if (node !== null) {
-                val builder = new StringBuilder(
-                    Math.max(node.getTotalLength(), 1))
-                for (ILeafNode leaf : node.getLeafNodes()) {
-                    builder.append(leaf.getText());
-                }
-                var str = builder.toString.trim
-                // remove the code delimiters
-                str = str.substring(2, str.length - 2)
-                if (str.split('\n').length > 1) {
-                    // multi line code
-                    return str.trimCodeBlock
-                } else {
-                    // single line code
-                    return str.trim
-                }    
-            } else {
-                // Code must have been added as a simple string.
-                val builder = new StringBuilder(Math.max(code.tokens.length, 1))
-                for (token : code.tokens) {
-                    builder.append(token)
-                }
-                return builder.toString
-            }
+            return code.body.trimCodeBlock
+//            val node = NodeModelUtils.getNode(code)
+//            if (node !== null) {
+//                val builder = new StringBuilder(
+//                    Math.max(node.getTotalLength(), 1))
+//                for (ILeafNode leaf : node.getLeafNodes()) {
+//                    builder.append(leaf.getText());
+//                }
+//                var str = builder.toString.trim
+//                // remove the code delimiters
+//                str = str.substring(2, str.length - 2)
+//                if (str.split('\n').length > 1) {
+//                    // multi line code
+//                    return str.trimCodeBlock
+//                } else {
+//                    // single line code
+//                    return str.trim
+//                }    
+//            } else {
+//                // Code must have been added as a simple string.
+//                val builder = new StringBuilder(Math.max(code.tokens.length, 1))
+//                for (token : code.tokens) {
+//                    builder.append(token)
+//                }
+//                return builder.toString
+//            }
         }
         return ""
     }

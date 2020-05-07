@@ -344,7 +344,8 @@ SignedFloat:
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
 Code:
-    {Code} '{=' (tokens+=Token)* '=}'
+    //{Code} '{=' (tokens+=Token)* '=}'
+    {Code} '{=' body=Body '=}'
 ;
 
 // The following cannot be terminal because it overlaps ID.
@@ -368,6 +369,10 @@ enum TimeUnit:
     HOUR='hour' | HOURS='hours' |
     DAY='day' | DAYS='days' |
     WEEK='week' | WEEKS='weeks';
+
+Body:
+    Token*
+;
 
 Token:
     // Imported terminals
