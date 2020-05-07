@@ -41,11 +41,15 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
+import org.icyphy.linguaFranca.Host
+import org.icyphy.linguaFranca.IPV4Host
+import org.icyphy.linguaFranca.IPV6Host
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.NamedHost
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Preamble
@@ -60,10 +64,6 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.IPV4Host
-import org.icyphy.linguaFranca.IPV6Host
-import org.icyphy.linguaFranca.Host
-import org.icyphy.linguaFranca.NamedHost
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -92,15 +92,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
      */
     static val ipv4Regex = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
                                 "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"
-    // ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])
+
     /**
      * Regular expression to check the validity of IPV6 addresses (due to David M. Syzdek),
      * with minor adjustment to allow up to six IPV6 segments (without truncation) in front
      * of an embedded IPv4-address. 
      **/
     static val ipv6Regex = 
-             
-               "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
+                "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
                 "([0-9a-fA-F]{1,4}:){1,7}:|" + 
                 "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|" +
                 "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|" + 
@@ -543,12 +542,27 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkPreamble(Preamble preamble) {
-        if (this.target == Targets.CPP && preamble.visibility == Visibility.NONE) {
-            error(
-                "Preambles for the C++ target need a visibility qualifier (private or public)!",
-                Literals.PREAMBLE__VISIBILITY
-            )
-        } else if (this.target != Targets.CPP && preamble.visibility != Visibility.NONE) {
+        if (this.target == Targets.CPP) {
+            if (preamble.visibility == Visibility.NONE) {
+                error(
+                    "Preambles for the C++ target need a visibility qualifier (private or public)!",
+                    Literals.PREAMBLE__VISIBILITY
+                )
+            } else if (preamble.visibility == Visibility.PRIVATE) {
+                val container = preamble.eContainer
+                if (container !== null && container instanceof Reactor) {
+                    val reactor = container as Reactor
+                    if (reactor.isGeneric) {
+                        warning(
+                            "Private preambles in generic reactors are not truly private. " +
+                                "Since the generated code is placed in a *_impl.hh file, it will " +
+                                "be visible on the public interface. Consider using a public " +
+                                "preamble within the reactor or a private preamble on file scope.",
+                            Literals.PREAMBLE__VISIBILITY)
+                    }
+                }
+            }
+        } else if (preamble.visibility != Visibility.NONE) {
             warning(
                 '''The «preamble.visibility» qualifier has no meaning for the «this.target.name» target. It should be removed.''',
                 Literals.PREAMBLE__VISIBILITY
