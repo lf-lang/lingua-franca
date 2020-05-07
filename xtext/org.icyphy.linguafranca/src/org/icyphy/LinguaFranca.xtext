@@ -61,7 +61,7 @@ Import:
  */
 Reactor:
     ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
-    ('<' typeParms+=ID (',' typeParms+=ID)* '>')?
+    ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
     '{'
@@ -76,6 +76,16 @@ Reactor:
         | (reactions+=Reaction)
         | (mutations+=Mutation)
     )* '}';
+
+
+TypeParm:
+    literal=TypeExpr | code=Code
+;
+
+// Allows simple statements like "A extends B". We probably want to further expand this.
+TypeExpr:
+    ID+
+;
 
 /**
  * Specification of the target language. Target properties can be specified in
@@ -111,10 +121,10 @@ Target:
 ;
 
 Input:
-    (mutable?='mutable'? & multiplex?='multiplex'?) 'input' (arraySpec=ArraySpec)? name=ID (':' type=Type)? ';';
+    mutable?='mutable'? 'input' (arraySpec=ArraySpec)? name=ID (':' type=Type)? ';';
 
 Output:
-    (multiplex?='multiplex')? 'output' (arraySpec=ArraySpec)? name=ID (':' type=Type)? ';';
+    'output' (arraySpec=ArraySpec)? name=ID (':' type=Type)? ';';
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -174,7 +184,7 @@ Preamble:
 
 Instantiation:
     name=ID '=' 'new' (arraySpec=ArraySpec)?
-    reactorClass=[Reactor] '(' 
+    reactorClass=[Reactor] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
     ')' ('at' host=Host)? ';';
 
@@ -243,7 +253,7 @@ Port:
     
 // A type is in the target language, hence either an ID or target code.
 Type:
-   (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* (arraySpec=ArraySpec | parameters=Generic)?) | code=Code);
+   (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
 
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
@@ -334,7 +344,8 @@ SignedFloat:
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
 Code:
-    {Code} '{=' (tokens+=Token)* '=}'
+    //{Code} '{=' (tokens+=Token)* '=}'
+    {Code} '{=' body=Body '=}'
 ;
 
 // The following cannot be terminal because it overlaps ID.
@@ -359,6 +370,10 @@ enum TimeUnit:
     DAY='day' | DAYS='days' |
     WEEK='week' | WEEKS='weeks';
 
+Body:
+    Token*
+;
+
 Token:
     // Imported terminals
     ID | INT | STRING | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER | 
@@ -366,7 +381,7 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | 'at' | 'multiplex' |
+    'new' | 'federated' | 'at' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
