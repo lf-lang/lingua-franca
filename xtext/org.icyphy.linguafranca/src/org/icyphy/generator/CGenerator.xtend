@@ -703,6 +703,10 @@ class CGenerator extends GeneratorBase {
         // Preamble code contains state declarations with static initializers.
         for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
+            // The cast below should not be needed, but there is a bug in Eclipse
+            // or Xtend where everything breaks if it is not there. p implements
+            // Preamble, which extends EObject, so the cast should not be needed.
+            prSourceLineNumber(p as EObject)
             pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
