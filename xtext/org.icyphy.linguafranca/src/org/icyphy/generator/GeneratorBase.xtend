@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
@@ -40,6 +41,7 @@ import java.util.List
 import java.util.Map
 import java.util.Set
 import java.util.regex.Pattern
+import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
@@ -49,6 +51,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.nodemodel.ICompositeNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.InferredType
 import org.icyphy.TimeValue
@@ -116,6 +119,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /** Indicator of whether generator errors occurred. */
     protected var generatorErrorsOccurred = false
+    
+    /** If running in an Eclipse IDE, the iResource refers to the
+     *  IFile representing the Lingua Franca program.
+     */
+    protected var iResource = null as IResource
     
     /** Definition of the main (top-level) reactor */
     protected Instantiation mainDef
@@ -303,6 +311,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Figure out the file name for the target code from the source file name.
         analyzeResource(resource)
         
+        // Clear any markers that may have been created by a pervious build.
+        // Markers mark problems in the Eclipse IDE when running in integrated mode.
+        clearMarkers()
+        
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.
         // Also create a list of federate names or a list with a single
@@ -481,6 +493,26 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         code = new StringBuilder
     }
     
+    /** Clear markers in the IDE if running in integrated mode.
+     *  This has the side effect of setting the iResource variable
+     *  to point to the IFile for the Lingua Franca program.
+     */
+    protected def clearMarkers() {
+        if (mode == Mode.INTEGRATED) {
+            val uri = resource.getURI()
+            val platformResourceString = uri.toPlatformString(true);
+            iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(platformResourceString))
+            try {
+                // First argument can be null to delete all markers.
+                // But will that delete xtext markers too?
+                iResource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
+            } catch (Exception e) {
+                // Ignore, but print a warning.
+                println("Warning: Deleting markers in the IDE failed: " + e)
+            }
+        }
+    } 
+    
     /** Execute the command given by the specified list of strings,
      *  print the command, its return code, and its output to
      *  stderr and stdout, and return the return code, which is 0
@@ -504,7 +536,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *     sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
      * 
      *  But asking users to do that is not ideal. Hence, we try a more
-     *  hack-y approach of just trying to execute using a bash shel.
+     *  hack-y approach of just trying to execute using a bash shell.
      * 
      *  @param command The command.
      *  @param directory The directory in which to execute the command.
@@ -516,9 +548,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var builder = new ProcessBuilder(command);
         builder.directory(new File(directory));
         try {
-            println("--- Standard output and error from command:")
-            val returnCode = builder.runSubprocess()
-            println("--- End of standard output and error.")
+            val stdout = new ByteArrayOutputStream()
+            val stderr = new ByteArrayOutputStream()
+            val returnCode = builder.runSubprocess(stdout, stderr)
+            if (stdout.size() > 0) {
+                println("--- Standard output from command:")
+                println(stdout.toString())
+                println("--- End of standard output.")
+            }
+            if (stderr.size() > 0) {
+                println("--- Standard error from command:")
+                println(stderr.toString())
+                println("--- End of standard error.")
+            }
             if (returnCode !== 0) {
                 // Throw an exception, which will be caught below for a second attempt.
                 throw new Exception("Command returns error code " + returnCode)
@@ -535,12 +577,26 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // bashCommand.addAll("bash", "--login", "-c", 'ls', '-a')
             println("--- Attempting instead to run: " + bashCommand.join(" "))
             builder.command(bashCommand)
-            println("--- Standard output and error from bash command:")
-            val returnCode = builder.runSubprocess()
-            println("--- End of standard output and error.")
+            val stdout = new ByteArrayOutputStream()
+            val stderr = new ByteArrayOutputStream()
+            val returnCode = builder.runSubprocess(stdout, stderr)
+            if (stdout.size() > 0) {
+                println("--- Standard output from command:")
+                println(stdout.toString())
+                println("--- End of standard output.")
+            }
+            if (stderr.size() > 0) {
+                println("--- Standard error from command:")
+                println(stderr.toString())
+                println("--- End of standard error.")
+            }
             
             if (returnCode !== 0) {
-                reportError("Bash command returns error code " + returnCode)
+                if (mode === Mode.INTEGRATED) {
+                    reportCompileErrors(stderr.toString())
+                } else {
+                    reportError("Bash command returns error code " + returnCode)
+                }
             }
             return returnCode
         }
@@ -861,6 +917,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // remove this resource from the recursion stack
         importRecursionStack.remove(resource);
     }
+    
+    /** Parse the specified string for compile errors that can be reported
+     *  using marks in the Eclipse IDE.
+     */
+    protected def reportCompileErrors(String stderr) {
+        // FIXME: Do the parsing.
+        report(null, stderr, IMarker.SEVERITY_ERROR)
+    }
 
     /**
      *  Lookup a file in the classpath and copy its contents to a destination path 
@@ -937,11 +1001,66 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
 
+    /** Report a warning or error on the specified parse tree object,
+     *  The caller should not throw an exception so compilation can continue.
+     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
+     *  adds a marker to the editor.
+     *  @param object The parse tree object or null if not known.
+     *  @param message The error message.
+     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
+     */
+    protected def report(EObject object, String message, int severity) {        
+        if (severity === IMarker.SEVERITY_ERROR) {
+            generatorErrorsOccurred = true;
+        }
+        var line = "unknown"
+        var node = null as ICompositeNode
+        if (object !== null) {
+            node = NodeModelUtils.getNode(object)
+            if (node !== null) {
+                line = "" + node.getStartLine
+            }
+        }
+        val header = (severity === IMarker.SEVERITY_ERROR)? "ERROR" : "WARNING"
+        val toPrint = header + ": Line " + line + ": " + message
+        System.err.println(toPrint)
+        
+        // If running in INTEGRATED mode, create a marker in the IDE for the error.
+        // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
+        if (iResource !== null) {
+            val marker = iResource.createMarker(IMarker.PROBLEM)
+            marker.setAttribute(IMarker.MESSAGE, toPrint);
+            // FIXME: The line number could belong to an imported file!
+            if (line != "unknown") {
+                marker.setAttribute(IMarker.LINE_NUMBER, node.getStartLine);
+            } else {
+                marker.setAttribute(IMarker.LINE_NUMBER, 1);
+            }
+            // Human-readable line number information.
+            marker.setAttribute(IMarker.LOCATION, line);
+            // Mark as an error or warning.
+            marker.setAttribute(IMarker.SEVERITY, severity);
+            marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
+        
+            marker.setAttribute(IMarker.USER_EDITABLE, false);
+        
+            // NOTE: It might be useful to set a start and end.
+            // marker.setAttribute(IMarker.CHAR_START, 0);
+            // marker.setAttribute(IMarker.CHAR_END, 5);
+        }
+        
+        // Return a string that can be inserted into the generated code.
+        if (severity === IMarker.SEVERITY_ERROR) {
+            return "[[ERROR: " + message + "]]"
+        }
+        return ""
+    }
+
     /** Report an error.
      *  @param message The error message.
      */
     protected def reportError(String message) {
-        System.err.println("ERROR: " + message)
+        return report(null, message, IMarker.SEVERITY_ERROR)
     }
 
     /** Report an error on the specified parse tree object.
@@ -949,18 +1068,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  @param message The error message.
      */
     protected def reportError(EObject object, String message) {
-        // The following throws a NPE.
-        // error(message, object, Literals.REACTOR__NAME, INSIGNIFICANT_INDEX, "WTF?");
-        
-        generatorErrorsOccurred = true;
-        // FIXME: All calls to this should also be checked by the validator (See LinguaFrancaValidator.xtend).
-        // In case we are using a command-line tool, we report the line number.
-        // The caller should not throw an exception so compilation can continue.
-        var node = NodeModelUtils.getNode(object)
-        val line = (node === null) ? "unknown" : node.getStartLine
-        System.err.println("ERROR: Line " + line + ": " + message)
-        // Return a string that can be inserted into the generated code.
-        "[[ERROR: " + message + "]]"
+        return report(object, message, IMarker.SEVERITY_ERROR)
     }
 
     /** Report a warning on the specified parse tree object.
@@ -968,14 +1076,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  @param message The error message.
      */
     protected def reportWarning(EObject object, String message) {
-        // FIXME: All calls to this should also be checked by the validator (See LinguaFrancaValidator.xtend).
-        // In case we are using a command-line tool, we report the line number.
-        // The caller should not throw an exception so compilation can continue.
-        var node = NodeModelUtils.getNode(object)
-        System.err.println("WARNING: Line " + node.getStartLine() + ": " +
-            message)
-        // Return an empty string that can be inserted into the generated code.
-        ""
+        return report(object, message, IMarker.SEVERITY_WARNING)
     }
 
     /** Reduce the indentation by one level for generated code
