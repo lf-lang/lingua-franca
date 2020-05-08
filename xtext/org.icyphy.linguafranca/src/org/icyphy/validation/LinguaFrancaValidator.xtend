@@ -28,6 +28,10 @@ package org.icyphy.validation
 
 import java.util.Arrays
 import org.eclipse.emf.ecore.EStructuralFeature
+import org.eclipse.core.resources.IMarker
+import org.eclipse.core.resources.IResource
+import org.eclipse.core.resources.ResourcesPlugin
+import org.eclipse.core.runtime.Path
 import org.eclipse.xtext.validation.Check
 import org.icyphy.AnnotatedNode
 import org.icyphy.ModelInfo
@@ -260,6 +264,27 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 "Deadline exceeds the maximum of " +
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY)
+        }
+    }
+    
+    @Check(NORMAL)
+    def checkBuild(Model model) {
+        if (model.eResource?.URI?.isPlatform) {
+            // Running in INTEGRATED mode. Clear marks.
+            // This has to be done here rather than in doGenerate()
+            // of GeneratorBase because, apparently, doGenerate() is
+            // not called at all if there are marks.
+            val uri = model.eResource.URI
+            val platformResourceString = uri.toPlatformString(true);
+            val iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(platformResourceString))
+            try {
+                // First argument can be null to delete all markers.
+                // But will that delete xtext markers too?
+                iResource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
+            } catch (Exception e) {
+                // Ignore, but print a warning.
+                println("Warning: Deleting markers in the IDE failed: " + e)
+            }
         }
     }
 
