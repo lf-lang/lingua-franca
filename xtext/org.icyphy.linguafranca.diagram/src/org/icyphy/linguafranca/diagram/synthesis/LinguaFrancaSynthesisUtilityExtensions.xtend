@@ -54,7 +54,7 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	 * Trims the hostcode of reactions.
 	 */
 	def trimCode(Code tokenizedCode) {
-		if (tokenizedCode === null || tokenizedCode.tokens.nullOrEmpty) {
+		if (tokenizedCode === null || tokenizedCode.body.nullOrEmpty) {
 			return ""
 		}
 		try {
@@ -108,7 +108,7 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 			return lines.join("\n")
 		} catch(Exception e) {
 			e.printStackTrace
-			return tokenizedCode.tokens.join().replace(";",";\n") // just heuristic
+			return tokenizedCode.body
 		}
 	}
 	

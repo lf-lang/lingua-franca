@@ -90,7 +90,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     // the specified time unit into nanoseconds. This expression may need
     // to have a suffix like 'LL' or 'L' appended to it, depending on the
     // target language, to ensure that the result is a 64-bit long.            
-    static public var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+    public static var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
         TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
         TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
         TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
@@ -100,6 +100,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
+    
+    public static var GEN_DELAY_CLASS_NAME = "__GenDelay"
     
     static protected CharSequence listItemSeparator = ', '
     
@@ -309,7 +311,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         this.resource = resource
         // Figure out the file name for the target code from the source file name.
-        analyzeResource(resource)
+        resource.analyzeResource
         
         // Clear any markers that may have been created by a pervious build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
@@ -320,23 +322,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Also create a list of federate names or a list with a single
         // empty name if there are no federates specified.
         // This must be done before desugaring delays below.
-        analyzeFederates(resource)
+        resource.analyzeFederates
 
-        // Find connections, and see whether they have a delay associated with them.
-        // For those that do, remove the connection, and replace it with two reactions
-        // and an action. Removal of the connection must occur after iterating to avoid
-        // concurrent modification problems.
-        val toRemove = new LinkedList<Connection>()
-        for (connection : resource.allContents.toIterable.filter(Connection)) {
-            if (connection.delay !== null) {
-                connection.desugarDelay(this)
-                toRemove.add(connection)
-            }
-        }
-        for (connection : toRemove) {
-            val parent = (connection.eContainer as Reactor)
-            parent.connections.remove(connection)
-        }
+        // Replace connections annotated with the "after" keyword by ones
+        // that go through a delay reactor. 
+        resource.insertGeneratedDelays()
+            
+    }
+    
+    /**
+     * Find connections that have a delay associated with them and reroute them via
+     * a generated delay reactor.
+     * @param resource The AST.
+     */
+    def void insertGeneratedDelays(Resource resource) {
+        resource.insertGeneratedDelays(this)
     }
     
     /** Generate code from the Lingua Franca model contained by the
@@ -426,6 +426,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param the port to write to
      */
     abstract def String generateForwardBody(Action action, VarRef port);
+    
+    /**
+     * Generate code for the generic type to be used in the class definition
+     * of a generated delay reactor.
+     */
+    abstract def String generateDelayGeneric();
     
     /**
      * Generate code for referencing a port, action, or timer.
@@ -1481,15 +1487,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return returnCode
     }
     
-    abstract protected def String getTargetTimeType()
-
-    abstract protected def String getTargetUndefinedType()
+    /**
+     * Return true if the target supports generics (i.e., parametric
+     * polymorphism), false otherwise.
+     */
+    abstract def boolean supportsGenerics()
     
-    abstract protected def String getTargetFixedSizeListType(String baseType, Integer size)
+    abstract def String getTargetTimeType()
 
-    abstract protected def String getTargetVariableSizeListType(String baseType);
+    abstract def String getTargetUndefinedType()
     
-    protected def String getTargetType(InferredType type) {
+    abstract def String getTargetFixedSizeListType(String baseType, Integer size)
+
+    abstract def String getTargetVariableSizeListType(String baseType);
+    
+    def String getTargetType(InferredType type) {
         if (type.isUndefined) {
             return targetUndefinedType
         } else if (type.isTime) {
