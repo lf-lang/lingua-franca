@@ -2100,7 +2100,7 @@ class CGenerator extends GeneratorBase {
             if («ref»_is_present) {
                 // Put the whole token on the event queue, not just the payload.
                 // This way, the length and element_size are transported.
-                schedule_token(«action.name», 0, «ref»);
+                schedule_token(«action.name», 0, «ref»_token);
             }
             '''
         } else {
@@ -2939,7 +2939,7 @@ class CGenerator extends GeneratorBase {
     override getTargetFixedSizeListType(String baseType,
         Integer size) '''«baseType»[«size»]'''
         
-    override protected String getTargetVariableSizeListType(
+    override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''
     
     protected def String getInitializer(ParameterInstance p) {
@@ -2950,5 +2950,14 @@ class CGenerator extends GeneratorBase {
             	return p.init.get(0).targetValue
             }
         
-    }    
+    }
+    
+    override supportsGenerics() {
+        return false
+    }
+    
+    override generateDelayGeneric() {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
 }
