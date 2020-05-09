@@ -36,6 +36,7 @@ import java.util.HashSet
 import java.util.LinkedList
 import java.util.regex.Pattern
 import org.eclipse.core.resources.IMarker
+import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -1727,6 +1728,22 @@ class CGenerator extends GeneratorBase {
         return "OK"
     }
 
+    /** Open an import at the Lingua Franca file at the specified URI
+     *  in the specified resource set and call generateReactor() on
+     *  any non-main reactors given in that file.
+     *  This overrides the base class to first output a #line
+     *  statement so that errors in the imported file can be
+     *  correctly reported.
+     *  @param importStatement The import statement.
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
+     *  @return The imported resource or null if the import fails.
+     */
+    override openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
+        prSourceLineNumber(importStatement)
+        super.openLFImport(importStatement, resourceSet, resolvedURI)
+    }
+
     /** Return the unique name for the "self" struct of the specified
      *  reactor instance from the instance ID.
      *  @param instance The reactor instance.
@@ -2329,7 +2346,7 @@ class CGenerator extends GeneratorBase {
     // form of "pattern:/path/file.lf". The second match will be a line number.
     // The third match is a character position within the line.
     // The fourth match will be the error message.
-    static final Pattern compileErrorPattern = Pattern.compile("^(platform:/.*):([0-9]+):([0-9]+):(.*)$");
+    static final Pattern compileErrorPattern = Pattern.compile("^(file:/.*):([0-9]+):([0-9]+):(.*)$");
     
     /** Parse the specified string for command errors that can be reported
      *  using marks in the Eclipse IDE. In this class, we attempt to parse
@@ -2350,18 +2367,23 @@ class CGenerator extends GeneratorBase {
                 // If there is a previously accumulated message, report it.
                 if (message.length > 0) {
                     report(message.toString(), IMarker.SEVERITY_ERROR, lineNumber, resource)
+                    if (iResource != resource) {
+                        // Report an error also in the top-level resource.
+                        // FIXME: It should be possible to descend through the import
+                        // statements to find which one matches and mark all the
+                        // import statements down the chain. But what a pain!
+                        report("Error in imported file: " + resource.fullPath, IMarker.SEVERITY_ERROR,
+                            null, iResource
+                        )
+                    }
                 }
-                // FIXME: Use group(1) to report errors in the correct file.
-                // Xtend bug requires cast to Object.
-                // val resourceAsString = (resource as Object).toString()
-                // if (matcher.group(1) != resourceAsString) {
-                    // Error message gives a different resource.
-                    // FIXME
-                    // val uri = new URI(resourceAsString)
-                    // val platformResourceString = uri.toPlatformString(true);
-                    // iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(platformResourceString))
-                // }
+                
+                // Start accumulating a new message.
+                // Append the message on the line number designator line.
+                message.append(matcher.group(4))
                 message = new StringBuilder()
+                
+                // Set the new line number.
                 try {
                     val lineNumberAsString = matcher.group(2)
                     lineNumber = Integer.decode(lineNumberAsString)
@@ -2369,8 +2391,25 @@ class CGenerator extends GeneratorBase {
                     // Set the line number unknown.
                     lineNumber = null
                 }
-                message.append(matcher.group(4))
                 // FIXME: Ignoring the position within the line.
+                
+                // Determine the resource within which the error occurred.
+                val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
+                // Sadly, Eclipse defines an interface called "URI" that conflicts with the
+                // Java one, so we have to give the full class name here.
+                val uri = new java.net.URI(matcher.group(1))
+                val files = workspaceRoot.findFilesForLocationURI(uri)
+                // No idea why there might be more than one file matching the URI,
+                // but Eclipse seems to think there might be. We will just use the
+                // first one. If there is no such file, then reset the line to
+                // unknown and keep the resource as before.
+                if (files === null || files.length === 0 || files.get(0) === null) {
+                    lineNumber = null
+                } else if (files.get(0) != resource) {
+                    // The resource has changed, which means that the error
+                    // occurred in imported code.
+                    resource = files.get(0)
+                }
             } else {
                 if (message.length > 0) {
                     message.append("\n")
@@ -2380,6 +2419,15 @@ class CGenerator extends GeneratorBase {
         }
         if (message.length > 0) {
             report(message.toString, IMarker.SEVERITY_ERROR, lineNumber, resource)
+            if (iResource != resource) {
+                // Report an error also in the top-level resource.
+                // FIXME: It should be possible to descend through the import
+                // statements to find which one matches and mark all the
+                // import statements down the chain. But what a pain!
+                report("Error in imported file: " + resource.fullPath, IMarker.SEVERITY_ERROR,
+                    null, iResource
+                )
+            }
         }
     }
     
@@ -2933,7 +2981,7 @@ class CGenerator extends GeneratorBase {
     private def prSourceLineNumber(EObject eObject, int offset) {
         var node = NodeModelUtils.getNode(eObject)
         if (node !== null) {
-            pr("#line " + (node.getStartLine() + offset) + ' "' + resource.getURI() + '"')
+            pr("#line " + (node.getStartLine() + offset) + ' "file:' + sourceFile + '"')
         }
     }
 

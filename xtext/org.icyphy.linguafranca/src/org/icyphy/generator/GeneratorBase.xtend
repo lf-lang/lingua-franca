@@ -145,7 +145,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var Resource resource
     
     /** The full path to the file containing the .lf file including the
-     *  full filename with the .lf extension.
+     *  full filename with the .lf extension. This starts out as the
+     *  main .lf file, but while a file is being imported, it temporarily
+     *  changes to the full path of the imported file.
      */
     protected var String sourceFile
     
@@ -725,14 +727,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /** Open an import at the Lingua Franca file at the specified URI
      *  in the specified resource set and call generateReactor() on
      *  any non-main reactors given in that file.
+     *  @param importStatement The import statement.
      *  @param resourceSet The resource set in which to find the file.
      *  @param resolvedURI The URI to import.
-     *  @return The imported resource
+     *  @return The imported resource or null if the import fails.
      */
-    protected def openLFImport(ResourceSet resourceSet, URI resolvedURI) {
+    protected def openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
         val importResource = resourceSet?.getResource(resolvedURI, true);
         if (importResource === null) {
-            throw new Exception("Failed to load resource.")
+            reportError(importStatement, "Cannot find import file: " + resolvedURI)
+            return null
         } else {
             // Make sure the target of the import is acceptable.
             var targetOK = (acceptableTargets === null)
@@ -746,22 +750,31 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 if (!targetOK) offendingTarget = target.name
             }
             if (!targetOK) {
-                throw new Exception("Import target " + offendingTarget
+                reportError(importStatement, "Import target " + offendingTarget
                     + " is not an acceptable target in import "
                     + importResource.getURI
                     + ". Acceptable targets are: "
                     + acceptableTargets.join(", ")
                 )
+                return null
             } else {
-                // Process any imports that the import has.
-                processImports(importResource)
-                // Call generateReactor for each reactor contained by the import
-                // that is not a main reactor.
-                for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-                    if (!reactor.isMain && !reactor.isFederated) {
-                        println("Including imported reactor: " + reactor.name)
-                        generateReactor(reactor)
+                // Temporarily change the sourceFile variable to point to the
+                // import file. Then change it back.
+                val previousSourceFile = sourceFile
+                sourceFile = importResource.toPath
+                try {
+                    // Process any imports that the import has.
+                    processImports(importResource)
+                    // Call generateReactor for each reactor contained by the import
+                    // that is not a main reactor.
+                    for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
+                        if (!reactor.isMain && !reactor.isFederated) {
+                            println("Including imported reactor: " + reactor.name)
+                            generateReactor(reactor)
+                        }
                     }
+                } finally {
+                    sourceFile = previousSourceFile
                 }
             }
         }
@@ -888,32 +901,34 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         importedResources.put(resource, new HashSet<Resource>())        
         importRecursionStack.add(resource);
 
-        for (import : resource.allContents.toIterable.filter(Import)) {
+        for (importStatement : resource.allContents.toIterable.filter(Import)) {
             // Resolve the import as a URI relative to the current resource's URI.
             val URI currentURI = resource?.getURI;
-            val URI importedURI = URI?.createFileURI(import.importURI);
+            val URI importedURI = URI?.createFileURI(importStatement.importURI);
             val URI resolvedURI = importedURI?.resolve(currentURI);
             val ResourceSet resourceSet = resource?.resourceSet;
             
             // Check for self import.
             if (resolvedURI.equals(currentURI)) {
-                reportError(import,
-                    "Recursive imports are not permitted: " + import.importURI)
+                reportError(importStatement,
+                    "Recursive imports are not permitted: " + importStatement.importURI)
                 return
             }
             try {
-                if (import.importURI.endsWith(".lf")) {
+                if (importStatement.importURI.endsWith(".lf")) {
                     // Handle Lingua Franca imports.
-                    val imported = openLFImport(resourceSet, resolvedURI)
-                    importedResources.get(resource).add(imported)
+                    val imported = openLFImport(importStatement, resourceSet, resolvedURI)
+                    if (imported !== null) {
+                        importedResources.get(resource).add(imported)
+                    }
                 } else {
                     // Handle other supported imports (if any).
-                    openForeignImport(import, resourceSet, resolvedURI)
+                    openForeignImport(importStatement, resourceSet, resolvedURI)
                 }
             } catch (Exception ex) {
                 reportError(
-                    import,
-                    "Import error: " + import.importURI +
+                    importStatement,
+                    "Import error: " + importStatement.importURI +
                     "\nException message: " + ex.message
                 )
             }
