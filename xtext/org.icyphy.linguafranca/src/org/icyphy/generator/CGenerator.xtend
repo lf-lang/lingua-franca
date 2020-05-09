@@ -35,6 +35,7 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.regex.Pattern
+import org.eclipse.core.resources.IMarker
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -706,7 +707,7 @@ class CGenerator extends GeneratorBase {
             // The cast below should not be needed, but there is a bug in Eclipse
             // or Xtend where everything breaks if it is not there. p implements
             // Preamble, which extends EObject, so the cast should not be needed.
-            prSourceLineNumber(p as EObject)
+            prSourceLineNumber(p as EObject, 1)
             pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
@@ -1066,7 +1067,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         // Code verbatim from 'reaction'
-        prSourceLineNumber(reaction)
+        prSourceLineNumber(reaction, 1)
         pr(body)
         unindent()
         pr("}")
@@ -1080,7 +1081,7 @@ class CGenerator extends GeneratorBase {
             indent();
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline)
+            prSourceLineNumber(reaction.deadline, 1)
             pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
@@ -2323,7 +2324,66 @@ class CGenerator extends GeneratorBase {
         reaction.uniqueID
     }
     
-        // //////////////////////////////////////////
+    // Regular expression pattern for compiler error messages with resource
+    // and line number information. The first match will a resource URI in the
+    // form of "pattern:/path/file.lf". The second match will be a line number.
+    // The third match is a character position within the line.
+    // The fourth match will be the error message.
+    static final Pattern compileErrorPattern = Pattern.compile("^(platform:/.*):([0-9]+):([0-9]+):(.*)$");
+    
+    /** Parse the specified string for command errors that can be reported
+     *  using marks in the Eclipse IDE. In this class, we attempt to parse
+     *  the messages to look for file and line information, thereby generating
+     *  marks on the appropriate lines.
+     *  @param stderr The output on standard error of executing a command.
+     */
+    override reportCommandErrors(String stderr) {
+        // First, split the message into lines.
+        val lines = stderr.split("\\r?\\n")
+        var message = new StringBuilder()
+        var lineNumber = null as Integer
+        var resource = iResource  // Default resource.
+        for (line: lines) {
+            val matcher = compileErrorPattern.matcher(line)
+            if (matcher.find()) {
+                // Found a new line number designator.
+                // If there is a previously accumulated message, report it.
+                if (message.length > 0) {
+                    report(message.toString(), IMarker.SEVERITY_ERROR, lineNumber, resource)
+                }
+                // FIXME: Use group(1) to report errors in the correct file.
+                // Xtend bug requires cast to Object.
+                // val resourceAsString = (resource as Object).toString()
+                // if (matcher.group(1) != resourceAsString) {
+                    // Error message gives a different resource.
+                    // FIXME
+                    // val uri = new URI(resourceAsString)
+                    // val platformResourceString = uri.toPlatformString(true);
+                    // iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(platformResourceString))
+                // }
+                message = new StringBuilder()
+                try {
+                    val lineNumberAsString = matcher.group(2)
+                    lineNumber = Integer.decode(lineNumberAsString)
+                } catch (Exception ex) {
+                    // Set the line number unknown.
+                    lineNumber = null
+                }
+                message.append(matcher.group(4))
+                // FIXME: Ignoring the position within the line.
+            } else {
+                if (message.length > 0) {
+                    message.append("\n")
+                }
+                message.append(line)
+            }
+        }
+        if (message.length > 0) {
+            report(message.toString, IMarker.SEVERITY_ERROR, lineNumber, resource)
+        }
+    }
+    
+    // //////////////////////////////////////////
     // // Private methods.
     
     /** Perform deferred initializations in initialize_trigger_objects.
@@ -2857,15 +2917,24 @@ class CGenerator extends GeneratorBase {
         result
     }
 
-    // Print the #line compiler directive with the line number of
-    // the most recently used node.
-
+    /** Print the #line compiler directive with the line number of
+     *  the most recently used node.
+     *  @param eObject The node.
+     */
     private def prSourceLineNumber(EObject eObject) {
+        prSourceLineNumber(eObject, 0)
+    }
+
+    /** Print the #line compiler directive with the line number of
+     *  the most recently used node.
+     *  @param eObject The node.
+     *  @param offset Offset to add to the line number.
+     */
+    private def prSourceLineNumber(EObject eObject, int offset) {
         var node = NodeModelUtils.getNode(eObject)
         if (node !== null) {
-            pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
+            pr("#line " + (node.getStartLine() + offset) + ' "' + resource.getURI() + '"')
         }
-
     }
 
     /** For each output that has a token type (type* or type[]),
