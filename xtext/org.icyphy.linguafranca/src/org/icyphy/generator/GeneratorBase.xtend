@@ -51,7 +51,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.eclipse.xtext.nodemodel.ICompositeNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.InferredType
 import org.icyphy.TimeValue
@@ -599,7 +598,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             
             if (returnCode !== 0) {
                 if (mode === Mode.INTEGRATED) {
-                    reportCompileErrors(stderr.toString())
+                    reportCommandErrors(stderr.toString())
                 } else {
                     reportError("Bash command returns error code " + returnCode)
                 }
@@ -924,12 +923,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         importRecursionStack.remove(resource);
     }
     
-    /** Parse the specified string for compile errors that can be reported
-     *  using marks in the Eclipse IDE.
+    /** Parse the specified string for command errors that can be reported
+     *  using marks in the Eclipse IDE. In this base class, this is simply
+     *  reported as a mark on the first line of the file. Subclasses can
+     *  be much smarter by parsing the argument and looking for line numbers
+     *  and file names to report on the relevant lines.
+     *  @param stderr The output on standard error of executing a command.
      */
-    protected def reportCompileErrors(String stderr) {
-        // FIXME: Do the parsing.
-        report(null, stderr, IMarker.SEVERITY_ERROR)
+    protected def reportCommandErrors(String stderr) {
+        report(stderr, IMarker.SEVERITY_ERROR, null)
     }
 
     /**
@@ -1007,43 +1009,37 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
 
-    /** Report a warning or error on the specified parse tree object,
-     *  The caller should not throw an exception so compilation can continue.
+    /** Report a warning or error on the specified line of the specified resource.
+     *  The caller should not throw an exception so execution can continue.
+     *  This will print the error message to stderr.
      *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
      *  adds a marker to the editor.
-     *  @param object The parse tree object or null if not known.
      *  @param message The error message.
      *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
+     *  @param line The line number or null if it is not known.
+     *  @param resource The resource.
      */
-    protected def report(EObject object, String message, int severity) {        
+    protected def report(String message, int severity, Integer line, IResource resource) {        
         if (severity === IMarker.SEVERITY_ERROR) {
             generatorErrorsOccurred = true;
         }
-        var line = "unknown"
-        var node = null as ICompositeNode
-        if (object !== null) {
-            node = NodeModelUtils.getNode(object)
-            if (node !== null) {
-                line = "" + node.getStartLine
-            }
-        }
         val header = (severity === IMarker.SEVERITY_ERROR)? "ERROR" : "WARNING"
-        val toPrint = header + ": Line " + line + ": " + message
+        val lineAsString = (line === null)? "unknown" : "" + line
+        val toPrint = header + ": " + resource.fullPath + ": Line " + lineAsString + ":\n" + message
         System.err.println(toPrint)
         
         // If running in INTEGRATED mode, create a marker in the IDE for the error.
         // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (iResource !== null) {
-            val marker = iResource.createMarker(IMarker.PROBLEM)
+        if (mode === Mode.INTEGRATED) {
+            val marker = resource.createMarker(IMarker.PROBLEM)
             marker.setAttribute(IMarker.MESSAGE, toPrint);
-            // FIXME: The line number could belong to an imported file!
-            if (line != "unknown") {
-                marker.setAttribute(IMarker.LINE_NUMBER, node.getStartLine);
+            if (line !== null) {
+                marker.setAttribute(IMarker.LINE_NUMBER, line);
             } else {
                 marker.setAttribute(IMarker.LINE_NUMBER, 1);
             }
             // Human-readable line number information.
-            marker.setAttribute(IMarker.LOCATION, line);
+            marker.setAttribute(IMarker.LOCATION, "Line " + lineAsString);
             // Mark as an error or warning.
             marker.setAttribute(IMarker.SEVERITY, severity);
             marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
@@ -1061,12 +1057,32 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
         return ""
     }
+    
+    /** Report a warning or error on the specified parse tree object in the
+     *  current resource.
+     *  The caller should not throw an exception so execution can continue.
+     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
+     *  adds a marker to the editor.
+     *  @param message The error message.
+     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
+     *  @param object The parse tree object or null if not known.
+     */
+    protected def report(String message, int severity, EObject object) {        
+        var line = null as Integer
+        if (object !== null) {
+            val node = NodeModelUtils.getNode(object)
+            if (node !== null) {
+                line = node.getStartLine
+            }
+        }
+        return report(message, severity, line, iResource)
+    }
 
     /** Report an error.
      *  @param message The error message.
      */
     protected def reportError(String message) {
-        return report(null, message, IMarker.SEVERITY_ERROR)
+        return report(message, IMarker.SEVERITY_ERROR, null)
     }
 
     /** Report an error on the specified parse tree object.
@@ -1074,7 +1090,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  @param message The error message.
      */
     protected def reportError(EObject object, String message) {
-        return report(object, message, IMarker.SEVERITY_ERROR)
+        return report(message, IMarker.SEVERITY_ERROR, object)
     }
 
     /** Report a warning on the specified parse tree object.
@@ -1082,7 +1098,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  @param message The error message.
      */
     protected def reportWarning(EObject object, String message) {
-        return report(object, message, IMarker.SEVERITY_WARNING)
+        return report(message, IMarker.SEVERITY_WARNING, object)
     }
 
     /** Reduce the indentation by one level for generated code
