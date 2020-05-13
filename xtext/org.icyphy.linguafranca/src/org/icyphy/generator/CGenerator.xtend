@@ -35,8 +35,6 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.regex.Pattern
-import org.eclipse.core.resources.IMarker
-import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -2343,94 +2341,36 @@ class CGenerator extends GeneratorBase {
     
     // Regular expression pattern for compiler error messages with resource
     // and line number information. The first match will a resource URI in the
-    // form of "pattern:/path/file.lf". The second match will be a line number.
+    // form of "file:/path/file.lf". The second match will be a line number.
     // The third match is a character position within the line.
     // The fourth match will be the error message.
     static final Pattern compileErrorPattern = Pattern.compile("^(file:/.*):([0-9]+):([0-9]+):(.*)$");
     
-    /** Parse the specified string for command errors that can be reported
-     *  using marks in the Eclipse IDE. In this class, we attempt to parse
-     *  the messages to look for file and line information, thereby generating
-     *  marks on the appropriate lines.
-     *  @param stderr The output on standard error of executing a command.
+    /** Given a line of text from the output of a compiler, return
+     *  an instance of ErrorFileAndLine if the line is recognized as
+     *  the first line of an error message. Otherwise, return null.
+     *  @param line A line of output from a compiler or other external
+     *   tool that might generate errors.
+     *  @return If the line is recognized as the start of an error message,
+     *   then return a class containing the path to the file on which the
+     *   error occurred (or null if there is none), the line number (or the
+     *   string "1" if there is none), the character position (or the string
+     *   "0" if there is none), and the message (or an empty string if there
+     *   is none).
      */
-    override reportCommandErrors(String stderr) {
-        // First, split the message into lines.
-        val lines = stderr.split("\\r?\\n")
-        var message = new StringBuilder()
-        var lineNumber = null as Integer
-        var resource = iResource  // Default resource.
-        for (line: lines) {
-            val matcher = compileErrorPattern.matcher(line)
-            if (matcher.find()) {
-                // Found a new line number designator.
-                // If there is a previously accumulated message, report it.
-                if (message.length > 0) {
-                    report(message.toString(), IMarker.SEVERITY_ERROR, lineNumber, resource)
-                    if (iResource != resource) {
-                        // Report an error also in the top-level resource.
-                        // FIXME: It should be possible to descend through the import
-                        // statements to find which one matches and mark all the
-                        // import statements down the chain. But what a pain!
-                        report("Error in imported file: " + resource.fullPath, IMarker.SEVERITY_ERROR,
-                            null, iResource
-                        )
-                    }
-                }
-                
-                // Start accumulating a new message.
-                message = new StringBuilder()
-                // Append the message on the line number designator line.
-                message.append(matcher.group(4))
-                
-                // Set the new line number.
-                try {
-                    val lineNumberAsString = matcher.group(2)
-                    lineNumber = Integer.decode(lineNumberAsString)
-                } catch (Exception ex) {
-                    // Set the line number unknown.
-                    lineNumber = null
-                }
-                // FIXME: Ignoring the position within the line.
-                
-                // Determine the resource within which the error occurred.
-                val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
-                // Sadly, Eclipse defines an interface called "URI" that conflicts with the
-                // Java one, so we have to give the full class name here.
-                val uri = new java.net.URI(matcher.group(1))
-                val files = workspaceRoot.findFilesForLocationURI(uri)
-                // No idea why there might be more than one file matching the URI,
-                // but Eclipse seems to think there might be. We will just use the
-                // first one. If there is no such file, then reset the line to
-                // unknown and keep the resource as before.
-                if (files === null || files.length === 0 || files.get(0) === null) {
-                    lineNumber = null
-                } else if (files.get(0) != resource) {
-                    // The resource has changed, which means that the error
-                    // occurred in imported code.
-                    resource = files.get(0)
-                }
-            } else {
-                if (message.length > 0) {
-                    message.append("\n")
-                }
-                message.append(line)
-            }
+    override parseCommandOutput(String line) {
+        val matcher = compileErrorPattern.matcher(line)
+        if (matcher.find()) {
+            val result = new ErrorFileAndLine()
+            result.filepath = matcher.group(1)
+            result.line = matcher.group(2)
+            result.character = matcher.group(3)
+            result.message = matcher.group(4)
+            return result
         }
-        if (message.length > 0) {
-            report(message.toString, IMarker.SEVERITY_ERROR, lineNumber, resource)
-            if (iResource != resource) {
-                // Report an error also in the top-level resource.
-                // FIXME: It should be possible to descend through the import
-                // statements to find which one matches and mark all the
-                // import statements down the chain. But what a pain!
-                report("Error in imported file: " + resource.fullPath, IMarker.SEVERITY_ERROR,
-                    null, iResource
-                )
-            }
-        }
+        return null as ErrorFileAndLine
     }
-    
+        
     // //////////////////////////////////////////
     // // Private methods.
     
