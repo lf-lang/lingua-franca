@@ -2379,9 +2379,9 @@ class CGenerator extends GeneratorBase {
                 }
                 
                 // Start accumulating a new message.
+                message = new StringBuilder()
                 // Append the message on the line number designator line.
                 message.append(matcher.group(4))
-                message = new StringBuilder()
                 
                 // Set the new line number.
                 try {
