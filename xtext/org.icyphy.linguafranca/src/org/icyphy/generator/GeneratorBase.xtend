@@ -1032,15 +1032,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  @param message The error message.
      *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
      *  @param line The line number or null if it is not known.
-     *  @param resource The resource.
+     *  @param object The Ecore object, or null if it is not known.
+     *  @param resource The resource, or null if it is not known.
      */
-    protected def report(String message, int severity, Integer line, IResource resource) {        
+    protected def report(String message, int severity, Integer line, EObject object, IResource resource) {        
         if (severity === IMarker.SEVERITY_ERROR) {
             generatorErrorsOccurred = true;
         }
         val header = (severity === IMarker.SEVERITY_ERROR)? "ERROR" : "WARNING"
         val lineAsString = (line === null)? "unknown" : "" + line
-        val toPrint = header + ": " + resource?.fullPath + ": Line " + lineAsString + ":\n" + message
+        var fullPath = resource?.fullPath?.toString
+        if (fullPath === null) {
+            fullPath = object?.eResource?.toPath
+        }
+        if (fullPath === null) {
+            fullPath = "path unknown"
+        }
+        val toPrint = header + ": " + fullPath + ": Line " + lineAsString + ":\n" + message
         System.err.println(toPrint)
         
         // If running in INTEGRATED mode, create a marker in the IDE for the error.
@@ -1090,7 +1098,20 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 line = node.getStartLine
             }
         }
-        return report(message, severity, line, iResource)
+        return report(message, severity, line, object, null)
+    }
+
+    /** Report a warning or error on the specified parse tree object in the
+     *  current resource.
+     *  The caller should not throw an exception so execution can continue.
+     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
+     *  adds a marker to the editor.
+     *  @param message The error message.
+     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
+     *  @param resource The resource.
+     */
+    protected def report(String message, int severity, Integer line, IResource resource) {        
+        return report(message, severity, line, null, resource)
     }
 
     /** Report an error.
