@@ -1040,12 +1040,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
         val header = (severity === IMarker.SEVERITY_ERROR)? "ERROR" : "WARNING"
         val lineAsString = (line === null)? "unknown" : "" + line
-        val toPrint = header + ": " + resource.fullPath + ": Line " + lineAsString + ":\n" + message
+        val toPrint = header + ": " + resource?.fullPath + ": Line " + lineAsString + ":\n" + message
         System.err.println(toPrint)
         
         // If running in INTEGRATED mode, create a marker in the IDE for the error.
         // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (mode === Mode.INTEGRATED) {
+        if (mode === Mode.INTEGRATED && resource !== null) {
             val marker = resource.createMarker(IMarker.PROBLEM)
             marker.setAttribute(IMarker.MESSAGE, toPrint);
             if (line !== null) {
