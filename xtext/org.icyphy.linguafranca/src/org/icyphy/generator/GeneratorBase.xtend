@@ -1039,39 +1039,58 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         if (severity === IMarker.SEVERITY_ERROR) {
             generatorErrorsOccurred = true;
         }
-        val header = (severity === IMarker.SEVERITY_ERROR)? "ERROR" : "WARNING"
-        val lineAsString = (line === null)? "unknown" : "" + line
+        val header = (severity === IMarker.SEVERITY_ERROR)? "ERROR: " : "WARNING: "
+        val lineAsString = (line === null)? "" : "Line " + line
         var fullPath = resource?.fullPath?.toString
         if (fullPath === null) {
             fullPath = object?.eResource?.toPath
         }
         if (fullPath === null) {
-            fullPath = "path unknown"
+            if (line === null) {
+                fullPath = ""
+            } else {
+                fullPath = "path unknown"
+            }
         }
-        val toPrint = header + ": " + fullPath + ": Line " + lineAsString + ":\n" + message
+        val toPrint = header + fullPath + " " + lineAsString + "\n" + message
         System.err.println(toPrint)
         
         // If running in INTEGRATED mode, create a marker in the IDE for the error.
         // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (mode === Mode.INTEGRATED && resource !== null) {
-            val marker = resource.createMarker(IMarker.PROBLEM)
-            marker.setAttribute(IMarker.MESSAGE, toPrint);
-            if (line !== null) {
-                marker.setAttribute(IMarker.LINE_NUMBER, line);
-            } else {
-                marker.setAttribute(IMarker.LINE_NUMBER, 1);
+        if (mode === Mode.INTEGRATED) {
+            var myResource = resource
+            if (myResource === null && object !== null) {
+                // Attempt to identify the IResource from the object.
+                val eResource = object.eResource
+                if (eResource !== null) {
+                    val uri = new java.net.URI("file:/" + eResource.toPath)
+                    val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
+                    val files = workspaceRoot.findFilesForLocationURI(uri)
+                    if (files !== null && files.length > 0 && files.get(0) !== null) {
+                        myResource = files.get(0)
+                    }
+                }
             }
-            // Human-readable line number information.
-            marker.setAttribute(IMarker.LOCATION, "Line " + lineAsString);
-            // Mark as an error or warning.
-            marker.setAttribute(IMarker.SEVERITY, severity);
-            marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
+            if (myResource !== null) {
+                val marker = myResource.createMarker(IMarker.PROBLEM)
+                marker.setAttribute(IMarker.MESSAGE, toPrint);
+                if (line !== null) {
+                    marker.setAttribute(IMarker.LINE_NUMBER, line);
+                } else {
+                    marker.setAttribute(IMarker.LINE_NUMBER, 1);
+                }
+                // Human-readable line number information.
+                marker.setAttribute(IMarker.LOCATION, lineAsString);
+                // Mark as an error or warning.
+                marker.setAttribute(IMarker.SEVERITY, severity);
+                marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
         
-            marker.setAttribute(IMarker.USER_EDITABLE, false);
+                marker.setAttribute(IMarker.USER_EDITABLE, false);
         
-            // NOTE: It might be useful to set a start and end.
-            // marker.setAttribute(IMarker.CHAR_START, 0);
-            // marker.setAttribute(IMarker.CHAR_END, 5);
+                // NOTE: It might be useful to set a start and end.
+                // marker.setAttribute(IMarker.CHAR_START, 0);
+                // marker.setAttribute(IMarker.CHAR_END, 5);
+            }
         }
         
         // Return a string that can be inserted into the generated code.
