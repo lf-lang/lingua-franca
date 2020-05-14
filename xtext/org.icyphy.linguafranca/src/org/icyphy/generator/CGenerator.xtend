@@ -2366,6 +2366,10 @@ class CGenerator extends GeneratorBase {
             result.line = matcher.group(2)
             result.character = matcher.group(3)
             result.message = matcher.group(4)
+            
+            if (result.message.trim.toLowerCase.startsWith("warning")) {
+                result.isError = false
+            }
             return result
         }
         return null as ErrorFileAndLine
