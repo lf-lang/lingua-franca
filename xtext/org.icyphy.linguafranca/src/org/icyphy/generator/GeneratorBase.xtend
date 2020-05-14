@@ -572,6 +572,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Throw an exception, which will be caught below for a second attempt.
                 throw new Exception("Command returns error code " + returnCode)
             }
+            // For warnings (vs. errors), the return code is 0.
+            // But we still want to mark the IDE.
+            if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
+                reportCommandErrors(stderr.toString())
+            }
             return returnCode
         } catch (Exception ex) {
             println("--- Exception: " + ex)
@@ -944,6 +949,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         public var line = "1"
         public var character = "0"
         public var message = ""
+        public var isError = true // false for a warning.
     }
     
     /** Given a line of text from the output of a compiler, return
@@ -975,13 +981,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var message = new StringBuilder()
         var lineNumber = null as Integer
         var resource = iResource  // Default resource.
+        var severity = IMarker.SEVERITY_ERROR
         for (line: lines) {
             val parsed = parseCommandOutput(line)
             if (parsed !== null) {
                 // Found a new line number designator.
                 // If there is a previously accumulated message, report it.
                 if (message.length > 0) {
-                    report(message.toString(), IMarker.SEVERITY_ERROR, lineNumber, resource)
+                    report(message.toString(), severity, lineNumber, resource)
                     if (iResource != resource) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
@@ -991,6 +998,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             null, iResource
                         )
                     }
+                }
+                if (parsed.isError) {
+                    severity = IMarker.SEVERITY_ERROR
+                } else {
+                    severity = IMarker.SEVERITY_WARNING
                 }
                 
                 // Start accumulating a new message.
@@ -1032,7 +1044,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
         }
         if (message.length > 0) {
-            report(message.toString, IMarker.SEVERITY_ERROR, lineNumber, resource)
+            report(message.toString, severity, lineNumber, resource)
             if (iResource != resource) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
