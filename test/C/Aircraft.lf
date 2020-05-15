@@ -21,7 +21,7 @@ reactor NetworkReceiver(D:time(10 msec), E:time(1 msec), L:time(10 msec)) {
     	char buffer[1024] = {0}; 
     	char *hello = "Hello from server"; 
     	
-    	int init_server() {
+    	void init_server() {
 	    	// Creating socket file descriptor 
 		    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
 		    { 
@@ -61,14 +61,14 @@ reactor NetworkReceiver(D:time(10 msec), E:time(1 msec), L:time(10 msec)) {
 	    }
 		
 		void wait_for_message(void* a) {
-		    valread = read(sock , buffer, 1024); // FIXME: is this blocking or not?
+		    valread = read(new_socket , buffer, 1024); // FIXME: is this blocking or not?
             schedule_copy(a, 0, &buffer, valread);
 		}	
 	=}
 	
 	output out:{=char*=};
-	physical action interrupt;
-	logical action safe_to_process;
+	physical action interrupt:char*;
+	logical action safe_to_process:char*;
 	
 	reaction(startup) -> interrupt {=
 		init_server();
@@ -77,11 +77,11 @@ reactor NetworkReceiver(D:time(10 msec), E:time(1 msec), L:time(10 msec)) {
 	
 	reaction(interrupt) -> safe_to_process {=
 		// delay should be message_time_stamp + E (clock sync error) + L (latency) + D (deadline of the sender) - current_logical_time
-		schedule(safe_to_process, 0, interrupt->value);
+		schedule_token(safe_to_process, 0, interrupt_token);
 	=}
 	
 	reaction(safe_to_process) -> out {=
-		set(out, safe_to_process->value);
+		set_token(out, safe_to_process_token);
 	=}
 }
 
@@ -121,7 +121,8 @@ reactor NetworkSender(D:time(10 msec)) {
 		    { 
 		        printf("\nConnection Failed \n"); 
 		        return -1; 
-		    } 
+		    }
+		    return 0;
     } 	
 	    
 		void send_message(char* message) {
@@ -145,7 +146,7 @@ reactor NetworkSender(D:time(10 msec)) {
 reactor DisarmAndOpen {
 	
 	physical action button;
-	output message:{=char*=};
+	output message:string;
 	
 	reaction(button) -> message {=
 		set(message, "disarm_and_open");
