@@ -15,9 +15,9 @@ reactor ROSReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
 	=}
 	
 	input in:string;
-	output out:string;
-	physical action interrupt;
-	logical action safe_to_process;
+	output out:char*;
+	physical action interrupt:char*;
+	logical action safe_to_process:char*;
 	
 	state thread_id:pthread_t(0);
 	
@@ -28,11 +28,11 @@ reactor ROSReceiver(d:time(10 msec), e:time(1 msec), l:time(10 msec)) {
 	
 	reaction(interrupt) -> safe_to_process {=
 		// delay should be message_time_stamp + E (clock sync error) + L (latency) + D (deadline of the sender) - current_logical_time
-		schedule_value(safe_to_process, 0, interrupt->value);
+		schedule_token(safe_to_process, 0, interrupt_token);
 	=}
 	
 	reaction(safe_to_process) -> out {=
-		set(out, safe_to_process->value);
+		set_token(out, safe_to_process_token);
 	=}
 }
 
@@ -119,11 +119,11 @@ reactor Door {
 	actuator = new AircraftDoor();
 	
 	reaction(ros.out) -> actuator.open, actuator.disarm, actuator.emergency {=
-		if (strcmp(ros.out, "disarm")) {
+		if (strcmp(ros.out->value, "disarm")) {
 			set(actuator.disarm, true);
-		} else if (strcmp(ros.out, "open")) {
+		} else if (strcmp(ros.out->value, "open")) {
 			set(actuator.open, true);
-		} else if (strcmp(ros.out, "emergency")) {
+		} else if (strcmp(ros.out->value, "emergency")) {
 			set(actuator.emergency, true);
 		}
 	=}
