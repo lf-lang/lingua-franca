@@ -46,6 +46,7 @@ import org.icyphy.InferredType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -703,10 +704,7 @@ class CGenerator extends GeneratorBase {
         // Preamble code contains state declarations with static initializers.
         for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
-            // The cast below should not be needed, but there is a bug in Eclipse
-            // or Xtend where everything breaks if it is not there. p implements
-            // Preamble, which extends EObject, so the cast should not be needed.
-            prSourceLineNumber(p as EObject, 1)
+            prSourceLineNumber(p.code)
             pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
@@ -1066,7 +1064,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         // Code verbatim from 'reaction'
-        prSourceLineNumber(reaction, 1)
+        prSourceLineNumber(reaction.code)
         pr(body)
         unindent()
         pr("}")
@@ -1080,7 +1078,7 @@ class CGenerator extends GeneratorBase {
             indent();
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline, 1)
+            prSourceLineNumber(reaction.deadline.code)
             pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
@@ -2910,21 +2908,20 @@ class CGenerator extends GeneratorBase {
     }
 
     /** Print the #line compiler directive with the line number of
-     *  the most recently used node.
+     *  the specified object.
      *  @param eObject The node.
      */
     private def prSourceLineNumber(EObject eObject) {
-        prSourceLineNumber(eObject, 0)
-    }
-
-    /** Print the #line compiler directive with the line number of
-     *  the most recently used node.
-     *  @param eObject The node.
-     *  @param offset Offset to add to the line number.
-     */
-    private def prSourceLineNumber(EObject eObject, int offset) {
         var node = NodeModelUtils.getNode(eObject)
         if (node !== null) {
+            // For code blocks (delimited by {= ... =}, unfortunately,
+            // we have to adjust the offset by the number of newlines before {=.
+            // Unfortunately, this is complicated because the code has been
+            // tokenized.
+            var offset = 0
+            if (eObject instanceof Code) {
+                offset += 1
+            }
             pr("#line " + (node.getStartLine() + offset) + ' "file:' + sourceFile + '"')
         }
     }

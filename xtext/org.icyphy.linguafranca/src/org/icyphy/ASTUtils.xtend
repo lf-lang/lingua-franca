@@ -538,8 +538,11 @@ class ASTUtils {
                     builder.append(leaf.getText());
                 }
                 var str = builder.toString.trim
-                // remove the code delimiters
-                str = str.substring(2, str.length - 2)
+                // Remove the code delimiters (and any surrounding comments).
+                // This assumes any comment before {= does not include {=.
+                val start = str.indexOf("{=")
+                val end = str.indexOf("=}", start)
+                str = str.substring(start + 2, end)
                 if (str.split('\n').length > 1) {
                     // multi line code
                     return str.trimCodeBlock
@@ -566,10 +569,8 @@ class ASTUtils {
     /**
      * Intelligently trim the white space in a code block.
 	 * 
-	 * First this removes any lines only containing whitespaces in the beginning
-	 * of the block. It considers the first line containing non-whitespace 
-	 * characters as the first code line. The leading whitespaces of this first
-	 * code line are considered as a common prefix across all code lines. If the
+	 * The leading whitespaces of the first non-empty
+	 * code line is considered as a common prefix across all code lines. If the
 	 * remaining code lines indeed start with this prefix, it removes the prefix
 	 * from the code line.
 	 * 
@@ -588,6 +589,10 @@ class ASTUtils {
      * }
      * }</pre>
      * 
+     * In addition, if the very first line has whitespace only, then
+     * that line is removed. This just means that the {= delimiter
+     * is followed by a newline.
+     * 
      * @param code the code block to be trimmed
      * @return trimmed code block 
      */
@@ -595,9 +600,9 @@ class ASTUtils {
         var codeLines = code.split("\n")
         var String prefix = null
         var buffer = new StringBuilder()
+        var first = true
         for (line : codeLines) {
             if (prefix === null) {
-                // skip any lines that only contain whitespaces
                 if (line.trim.length > 0) {
                     // this is the first code line
                     
@@ -614,8 +619,13 @@ class ASTUtils {
 
                     // extract the whitespace prefix
                     prefix = line.substring(0, firstCharacter)
+                } else if(!first) {
+                    // Do not remove blank lines. They throw off #line directives.
+                    buffer.append(line)
+                    buffer.append('\n')
                 }
             }
+            first = false
 
             // try to remove the prefix from all subsequent lines
             if (prefix !== null) {
@@ -628,8 +638,9 @@ class ASTUtils {
                 }
             }
         }
-        if (buffer.length > 1)
-        	buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
+        if (buffer.length > 1) {
+        	buffer.deleteCharAt(buffer.length - 1) // remove the last newline
+        } 
         buffer.toString
     }
     
