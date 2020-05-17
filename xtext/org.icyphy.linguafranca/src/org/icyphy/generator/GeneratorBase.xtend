@@ -1179,6 +1179,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     }
                 }
             }
+            // If the resource is still null, use the resource associated with
+            // the top-level file.
+            if (myResource === null) {
+                myResource = iResource
+            }
             if (myResource !== null) {
                 val marker = myResource.createMarker(IMarker.PROBLEM)
                 marker.setAttribute(IMarker.MESSAGE, toPrint);
