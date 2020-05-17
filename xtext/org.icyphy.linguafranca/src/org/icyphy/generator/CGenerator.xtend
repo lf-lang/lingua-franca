@@ -158,8 +158,8 @@ class CGenerator extends GeneratorBase {
         // and one that does not.
         if (federates.length > 1) {
             files.addAll("rti.c", "rti.h", "federate.c")
-            createFederateRTI(false)
-            createFederateRTI(true)
+            createFederateRTI()
+            createLauncher()
         }
         
         for (file : files) {
@@ -396,58 +396,12 @@ class CGenerator extends GeneratorBase {
             if (!federate.isSingleton) {
                 fileToCompile = filename + '_' + federate.name
             }
-            
-            // Derive target filename from the .lf filename.
-            val cFilename = fileToCompile + ".c";            
-            val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-            val relativeBinFilename = "bin" + File.separator + fileToCompile;
-            
-            var compileCommand = newArrayList
-            compileCommand.add(targetCompiler)
-            val flags = targetCompilerFlags.split(' ')
-            compileCommand.addAll(flags)
-            compileCommand.add(relativeSrcFilename)
-            if (compileAdditionalSources !== null) {
-                compileCommand.addAll(compileAdditionalSources)
-            }
-            if (compileLibraries !== null) {
-                compileCommand.addAll(compileLibraries)
-            }
-            // Only set the output file name if it hasn't already been set
-            // using a target property or command line flag.
-            if (compileCommand.forall[it.trim != "-o"]) {
-                compileCommand.addAll("-o", relativeBinFilename)    
-            }
-            
-            // If threaded computation is requested, add a -pthread option.
-            if (targetThreads !== 0) {
-                compileCommand.add("-pthread")
-            }
-            // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-            // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-            // Then again, I think this only makes sense when we can do linking.
-            // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-            if (main === null) {
-                compileCommand.add("-c") // FIXME: revisit
-                if (mode === Mode.STANDALONE) {
-                    reportError(
-                        "ERROR: Did not output executable; no main reactor found.")
-                }
-            }
-            executeCommand(compileCommand, directory)
+            executeCommand(compileCommand(fileToCompile), directory)
         }
         // Also compile the RTI files if there is more than one federate.
         if (federates.length > 1) {
-            fileToCompile = filename                
             var compileCommand = newArrayList
-            compileCommand.addAll("gcc", "-O2", 
-                    "src-gen" + File.separator + fileToCompile + '.c',
-                    "-o", "bin" + File.separator + fileToCompile,
-                    "-pthread")
-            executeCommand(compileCommand, directory)
-
             fileToCompile = filename + '_RTI'
-            compileCommand.clear
             compileCommand.addAll("gcc", "-O2", 
                     "src-gen" + File.separator + fileToCompile + '.c',
                     "-o", "bin" + File.separator + fileToCompile,
@@ -459,21 +413,12 @@ class CGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Code generators.
         
-    /** Create the runtime infrastructure (RTI) file.
-     *  This can create either of two versions, depending on whether the
-     *  launcher argument is given. If the launcher argument is true,
-     *  then it creates an executable that will launch all the federates.
-     *  Otherwise, it creates an executable that just implements the RTI.
-     *  @param launcher True to create a program that launches the federates.
+    /** Create the runtime infrastructure (RTI) source file.
      */
-    def createFederateRTI(boolean launcher) {
+    def createFederateRTI() {
         // Derive target filename from the .lf filename.
         var cFilename = filename + "_RTI.c"
         
-        // If the RTI is to launch all the federates, omit the '_RTI'.
-        if (launcher) {
-            cFilename = filename + ".c"
-        }
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
 
@@ -579,29 +524,10 @@ class CGenerator extends GeneratorBase {
         pr(rtiCode, '''
             int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
         ''')
-
-        if (launcher) {
-            for (federate : federates) {
-                pr(rtiCode, '''
-                    if (federate_launcher("«outPath»«File.separator»«filename»_«federate.name»") == -1) exit(-1);
-                ''')
-            }
-        }
         
         // Generate code that blocks until the federates resign.
         pr(rtiCode, "wait_for_federates(socket_descriptor);")
         
-        if (launcher) {
-            pr(rtiCode, '''
-                int exit_code = 0;
-                for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                    int subprocess_exit_code;
-                    wait(&subprocess_exit_code);
-                    if (subprocess_exit_code != 0) exit_code = subprocess_exit_code;
-                }
-                exit(exit_code);
-            ''')
-        }
         unindent(rtiCode)
         pr(rtiCode, "}")
         
@@ -609,6 +535,66 @@ class CGenerator extends GeneratorBase {
                 new File(srcGenPath + File.separator + cFilename));
         fOut.write(rtiCode.toString().getBytes())
         fOut.close()
+    }
+    
+    /** Create the launcher shell script(s).
+     *  This will create a file in the output path (bin directory)
+     *  with name equal to the filename of the source file without the
+     *  ".lf" extension. This will be a shell script that launches the
+     *  RTI and the federates.  If, in addition, either the RTI or any
+     *  federate is mapped to a particular machine (anything other than
+     *  the default "localhost"), then generate a shell script in the
+     *  bin directory with name filename_distribute.sh that copies the
+     *  relevant source files to the remote host and compiles them so
+     *  that they are ready to execute using the launcher.
+     * 
+     *  A precondition for this to work is that the user invoking this
+     *  code generator can log into the remote host without supplying
+     *  a password. Specifically, you have to have installed your
+     *  public key (typically found in ~/.ssh/id_rsa.pub) in
+     *  ~/.ssh/authorized_keys on the remote host. In addition, the
+     *  remote host must be running an ssh service.
+     *  On an Arch Linux system using systemd, for example, this means
+     *  running:
+     * 
+     *      sudo systemctl <start|enable> ssh.service
+     * 
+     *  Enable means to always start the service at startup, whereas
+     *  start means to just start it this once.
+     */
+    def createLauncher() {        
+        var outPath = directory + File.separator + "bin"
+
+        // Delete file previously produced, if any.
+        var file = new File(outPath + File.separator + filename)
+        if (file.exists) {
+            file.delete
+        }
+        
+        val shCode = new StringBuilder()
+        // FIXME: So far, everything is assumed to be on localhost.
+        pr(shCode, '''
+            #!/bin/bash
+            # Launcher for federated «filename».lf Lingua Franca program.
+            # Launch the federates:
+        ''')
+        for (federate : federates) {
+            pr(shCode, '''
+                «outPath»«File.separator»«filename»_«federate.name» &
+            ''')
+        }
+        // Launch the RTI in the foreground.
+        pr(shCode, '''
+            # Launch the runtime infrastructure (RTI):
+            «outPath»«File.separator»«filename»_RTI
+        ''')
+        
+        var fOut = new FileOutputStream(file)
+        fOut.write(shCode.toString().getBytes())
+        fOut.close()
+        if (!file.setExecutable(true, false)) {
+            reportWarning(null, "Unable to make launcher script executable.")
+        }
     }
     
     /** Generate a reactor class definition. This version unconditionally
@@ -2375,6 +2361,48 @@ class CGenerator extends GeneratorBase {
         
     // //////////////////////////////////////////
     // // Private methods.
+    
+    /** Return a command to compile the specified C file.
+     *  @param fileToCompile The C filename without the .c extension.
+     */
+    protected def compileCommand(String fileToCompile) {
+        val cFilename = fileToCompile + ".c";            
+        val relativeSrcFilename = "src-gen" + File.separator + cFilename;
+        val relativeBinFilename = "bin" + File.separator + fileToCompile;
+
+        var compileCommand = newArrayList
+        compileCommand.add(targetCompiler)
+        val flags = targetCompilerFlags.split(' ')
+        compileCommand.addAll(flags)
+        compileCommand.add(relativeSrcFilename)
+        if (compileAdditionalSources !== null) {
+            compileCommand.addAll(compileAdditionalSources)
+        }
+        if (compileLibraries !== null) {
+            compileCommand.addAll(compileLibraries)
+        }
+        // Only set the output file name if it hasn't already been set
+        // using a target property or command line flag.
+        if (compileCommand.forall[it.trim != "-o"]) {
+            compileCommand.addAll("-o", relativeBinFilename)
+        }
+
+        // If threaded computation is requested, add a -pthread option.
+        if (targetThreads !== 0) {
+            compileCommand.add("-pthread")
+        }
+        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
+        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+        // Then again, I think this only makes sense when we can do linking.
+        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
+        if (main === null) {
+            compileCommand.add("-c") // FIXME: revisit
+            if (mode === Mode.STANDALONE) {
+                reportError("ERROR: Did not output executable; no main reactor found.")
+            }
+        }
+        return compileCommand
+    }
     
     /** Perform deferred initializations in initialize_trigger_objects.
      *  @param federate The federate for which we are doing this.
