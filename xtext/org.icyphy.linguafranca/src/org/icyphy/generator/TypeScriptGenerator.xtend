@@ -551,15 +551,16 @@ class TypeScriptGenerator extends GeneratorBase {
                         reactEpilogue.unindent()
                         pr(reactEpilogue, "}")
                     }
-                    
-                    pr(reactPrologue, "let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
+                    if (!(effect.variable instanceof Action)) { // Schedule<T> does not have get().
+                        pr(reactPrologue, "let " + effect.variable.name + " = __" + effect.variable.name + ".get();")    
+                    }
                     reactSignature.add(reactSignatureElement)
                     
                     functArg = "this." + effect.variable.name 
                     if( effect.variable instanceof Action ){
-                        reactFunctArgs.add("this.getSchedulable(" + functArg + ")")
+                        reactFunctArgs.add("this.schedulable(" + functArg + ")")
                     } else if (effect.variable instanceof Port) {
-                        reactFunctArgs.add("this.getWriter(" + functArg + ")")
+                        reactFunctArgs.add("this.writable(" + functArg + ")")
                     }  
                 } else {
                     var args = containerToArgs.get(effect.container)
@@ -623,7 +624,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     var containedPrologueElement = ""
                     if (containedVariable instanceof Input) {
                         containedSigElement +=  containedVariable.name + ": ReadWrite<" + containedVariable.type.targetType + ">"
-                        containedArgElement += containedVariable.name + ": " + "this.getWriter(" + functArg + ")"
+                        containedArgElement += containedVariable.name + ": " + "this.writable(" + functArg + ")"
                         containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
                         pr(reactEpilogue, "if (" + container.name + "." + containedVariable.name + " !== undefined) {")
                         reactEpilogue.indent()
