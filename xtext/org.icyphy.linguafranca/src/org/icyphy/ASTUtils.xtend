@@ -54,6 +54,7 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.TypeParm
 import org.eclipse.emf.ecore.resource.Resource
 import java.util.HashMap
+import org.icyphy.linguaFranca.VarRef
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -674,6 +675,14 @@ class ASTUtils {
             return v.code.toText
         }
         ""
+    }
+    
+     def static toText(VarRef v) {
+        if (v.container !== null) {
+            '''«v.container.name».«v.variable.name»'''
+        } else {
+            '''«v.variable.name»'''
+        }
     }
     
     /**
