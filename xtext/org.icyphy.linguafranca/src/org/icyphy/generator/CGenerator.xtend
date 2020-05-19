@@ -593,12 +593,11 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 pr(distCode, '''
-                    cd «path»
-                    ssh «target» mkdir -p «path»/src-gen «path»/bin
+                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin
                     pushd src-gen
-                    scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c «target»:«path»/src-gen
+                    scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen
                     popd
-                    ssh «target» 'gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+                    ssh «federate.host» 'cd «path»; gcc -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
                 ''')
             }
         }
