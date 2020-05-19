@@ -1003,7 +1003,7 @@ void termination() {
     __termination();
 
     // If the event queue still has events on it, report that.
-    if (pqueue_size(event_q) > 0) {
+    if (event_q != NULL && pqueue_size(event_q) > 0) {
         printf("---- There are %zu unprocessed future events on the event queue.\n", pqueue_size(event_q));
         event_t* event = pqueue_peek(event_q);
         interval_t event_time = event->time - start_time;
@@ -1023,9 +1023,13 @@ void termination() {
     print_time(get_elapsed_logical_time());
     printf("\n");
 
-    printf("---- Elapsed physical time (in nsec): ");
-    print_time(get_elapsed_physical_time());
-    printf("\n");
+    // If physical_start_time is 0, then execution didn't get far enough along
+    // to initialize this.
+    if (physical_start_time > 0LL) {
+        printf("---- Elapsed physical time (in nsec): ");
+        print_time(get_elapsed_physical_time());
+        printf("\n");
+    }
 }
 
 // ********** Start Windows Support
