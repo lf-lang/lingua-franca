@@ -400,13 +400,8 @@ class CGenerator extends GeneratorBase {
         }
         // Also compile the RTI files if there is more than one federate.
         if (federates.length > 1) {
-            var compileCommand = newArrayList
             fileToCompile = filename + '_RTI'
-            compileCommand.addAll("gcc", "-O2", 
-                    "src-gen" + File.separator + fileToCompile + '.c',
-                    "-o", "bin" + File.separator + fileToCompile,
-                    "-pthread")
-            executeCommand(compileCommand, directory)
+            executeCommand(compileCommand(fileToCompile), directory)
         }
     }
 
@@ -537,13 +532,13 @@ class CGenerator extends GeneratorBase {
         fOut.close()
     }
     
-    /** Create the launcher shell script(s).
-     *  This will create a file in the output path (bin directory)
-     *  with name equal to the filename of the source file without the
-     *  ".lf" extension. This will be a shell script that launches the
+    /** Create the launcher shell scripts. This will create one or two file
+     *  in the output path (bin directory). The first has name equal to
+     *  the filename of the source file without the ".lf" extension.
+     *  This will be a shell script that launches the
      *  RTI and the federates.  If, in addition, either the RTI or any
      *  federate is mapped to a particular machine (anything other than
-     *  the default "localhost"), then generate a shell script in the
+     *  the default "localhost"), then this will generate a shell script in the
      *  bin directory with name filename_distribute.sh that copies the
      *  relevant source files to the remote host and compiles them so
      *  that they are ready to execute using the launcher.
@@ -565,35 +560,129 @@ class CGenerator extends GeneratorBase {
     def createLauncher() {        
         var outPath = directory + File.separator + "bin"
 
+        val shCode = new StringBuilder()
+        val distCode = new StringBuilder()
+        pr(shCode, '''
+            #!/bin/bash
+            # Launcher for federated «filename».lf Lingua Franca program.
+            # Uncomment to specify to behave as close as possible to the POSIX standard.
+            # set -o posix
+            # Launch the federates:
+        ''')
+        val distHeader = '''
+            #!/bin/bash
+            # Distributor for federated «filename».lf Lingua Franca program.
+            # Uncomment to specify to behave as close as possible to the POSIX standard.
+            # set -o posix
+        '''
+        val host = federationRTIProperties.get('host')
+        var target = host
+
+        var path = federationRTIProperties.get('dir')
+        if(path === null) path = 'LinguaFrancaRemote'
+
+        var user = federationRTIProperties.get('user')
+        if (user !== null) {
+            target = user + '@' + host
+        }
+        for (federate : federates) {
+            pr(shCode, '''
+                echo "#### Launching the federate «federate.name»."
+                «outPath»«File.separator»«filename»_«federate.name» &
+            ''')
+            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
+                if(distCode.length === 0) pr(distCode, distHeader)
+                pr(distCode, '''
+                    cd «path»
+                    ssh «target» mkdir -p «path»/src-gen «path»/bin
+                    pushd src-gen
+                    scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c «target»:«path»/src-gen
+                    popd
+                    ssh «target» 'gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+                ''')
+            }
+        }
+        // Launch the RTI in the foreground.
+        if (host == 'localhost' || host == '0.0.0.0') {
+            pr(shCode, '''
+                echo "#### Launching the runtime infrastructure (RTI)."
+                «outPath»«File.separator»«filename»_RTI
+            ''')
+        } else {
+            // Copy the source code onto the remote machine and compile it there.
+            if (distCode.length === 0) pr(distCode, distHeader)
+            // The mkdir -p flag below creates intermediate directories if needed.
+            pr(distCode, '''
+                cd «path»
+                ssh «target» mkdir -p «path»/src-gen «path»/bin
+                pushd src-gen
+                scp «filename»_RTI.c rti.c rti.h util.h util.c reactor.h «target»:«path»/src-gen
+                popd
+                ssh «target» 'gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+            ''')
+
+            // Launch the RTI on the remote machine using ssh and screen.
+            // The -t argument to ssh creates a virtual terminal, which is needed by screen.
+            // The -S gives the session a name.
+            // The -L option turns on logging. Unfortunately, the -Logfile giving the log file name
+            // is not standardized in screen. Logs go to screenlog.0 (or screenlog.n).
+            // FIXME: Remote errors are not reported back via ssh from screen.
+            // How to get them back to the local machine?
+            // Perhaps use -c and generate a screen command file to control the logfile name,
+            // but screen apparently doesn't write anything to the log file!
+            //
+            // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
+            // The sleep at the end prevents screen from exiting before outgoing messages from
+            // the federate have had time to go out to the RTI through the socket.
+            pr(shCode, '''
+                echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
+                echo "####    Using screen so you can detach, and the process keeps running."
+                echo "####    To detach, do control-a d."
+                echo "####    To reattach, ssh into the remote machine and do:"
+                echo "####       screen -r «filename»_RTI"
+                ssh -t «target» cd «path»; screen -S «filename»_RTI -L bin/«filename»_RTI 2>&1; sleep 2
+                if [ $? -eq 0 ]
+                then
+                    echo "#### screen has exited."
+                else
+                    echo "#### ERROR: ssh failed to start RTI."
+                fi
+            ''')
+        }
+        // Add a trap to kill federates on exit.
+        // FIXME: Terminate remote federates.
+        pr(shCode, '''
+            echo "#### Killing federates."
+            trap 'kill $(jobs -p)' EXIT
+        ''')
+
+        // Write the launcher file.
         // Delete file previously produced, if any.
         var file = new File(outPath + File.separator + filename)
         if (file.exists) {
             file.delete
         }
-        
-        val shCode = new StringBuilder()
-        // FIXME: So far, everything is assumed to be on localhost.
-        pr(shCode, '''
-            #!/bin/bash
-            # Launcher for federated «filename».lf Lingua Franca program.
-            # Launch the federates:
-        ''')
-        for (federate : federates) {
-            pr(shCode, '''
-                «outPath»«File.separator»«filename»_«federate.name» &
-            ''')
-        }
-        // Launch the RTI in the foreground.
-        pr(shCode, '''
-            # Launch the runtime infrastructure (RTI):
-            «outPath»«File.separator»«filename»_RTI
-        ''')
-        
+                
         var fOut = new FileOutputStream(file)
         fOut.write(shCode.toString().getBytes())
         fOut.close()
         if (!file.setExecutable(true, false)) {
             reportWarning(null, "Unable to make launcher script executable.")
+        }
+        
+        // Write the distributor file.
+        // Delete the file even if it does not get generated.
+        file = new File(outPath + File.separator + filename + '_distribute.sh')
+        if (file.exists) {
+            file.delete
+        }
+        if (distCode.length > 0) {
+            fOut = new FileOutputStream(file)
+            fOut.write(distCode.toString().getBytes())
+            fOut.close()
+            if (!file.setExecutable(true, false)) {
+                reportWarning(null, "Unable to make distributor script executable.")
+            }
         }
     }
     
