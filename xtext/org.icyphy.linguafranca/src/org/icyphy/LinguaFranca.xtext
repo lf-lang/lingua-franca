@@ -260,15 +260,15 @@ ArraySpec:
     
 
 IPV4Host:
-    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)? 
+    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)? ('/' dir=Directory)?
 ;
 
 IPV6Host:
-    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?)
+    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?) ('/' dir=Directory)?
 ;
 
 NamedHost:
-    (user=Kebab '@')? addr=HostName (':' port=INT)?
+    (user=Kebab '@')? addr=HostName (':' port=INT)? ('/' dir=Directory)?
 ;
 
 Host:
@@ -351,6 +351,11 @@ Code:
 // The following cannot be terminal because it overlaps ID.
 Path: 
     ID ('.' ID)*;
+    
+// Absolute or relative directory path in Windows, Linux, or MacOS.
+Directory:
+    (ID ':\\')? ('\\' | '/')? ID (('\\' | '/') ID)*
+;
 
 /////////// Enums
 enum ActionOrigin:
