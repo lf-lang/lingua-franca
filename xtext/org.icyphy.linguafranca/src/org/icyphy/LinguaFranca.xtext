@@ -260,15 +260,15 @@ ArraySpec:
     
 
 IPV4Host:
-    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)? ('/' dir=Directory)?
+    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)? // ('/' dir=Directory)?
 ;
 
 IPV6Host:
-    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?) ('/' dir=Directory)?
+    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?) // ('/' dir=Directory)?
 ;
 
 NamedHost:
-    (user=Kebab '@')? addr=HostName (':' port=INT)? ('/' dir=Directory)?
+    (user=Kebab '@')? addr=HostName (':' port=INT)? // ('/' dir=Directory)?
 ;
 
 Host:

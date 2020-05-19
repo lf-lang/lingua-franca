@@ -295,6 +295,7 @@ int main(int argc, char* argv[]) {
         termination();
         return 0;
     } else {
+        printf("DEBUG: invoking termination.\n");
         termination();
         return -1;
     }

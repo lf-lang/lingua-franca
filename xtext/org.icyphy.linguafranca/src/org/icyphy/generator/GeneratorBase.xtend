@@ -1439,9 +1439,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     federationRTIProperties.put('user', mainDef.reactorClass.host.user)                
                 }
                 // Get the directory information, if specified.
+                /* FIXME
                 if (mainDef.reactorClass.host.dir !== null) {
                     federationRTIProperties.put('dir', mainDef.reactorClass.host.dir)                
                 }
+                */
             }
             
             // Create a FederateInstance for each top-level reactor.
@@ -1460,7 +1462,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     federateInstance.port = instantiation.host.port
                     // The following could be null.
                     federateInstance.user = instantiation.host.user
+                    /* FIXME
                     federateInstance.dir = instantiation.host.dir
+                    */
                 }
 
                 if (federateByReactor === null) {
