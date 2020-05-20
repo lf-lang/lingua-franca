@@ -538,10 +538,10 @@ class CGenerator extends GeneratorBase {
      *  This will be a shell script that launches the
      *  RTI and the federates.  If, in addition, either the RTI or any
      *  federate is mapped to a particular machine (anything other than
-     *  the default "localhost"), then this will generate a shell script in the
-     *  bin directory with name filename_distribute.sh that copies the
-     *  relevant source files to the remote host and compiles them so
-     *  that they are ready to execute using the launcher.
+     *  the default "localhost" or "0.0.0.0"), then this will generate
+     *  a shell script in the bin directory with name filename_distribute.sh
+     *  that copies the relevant source files to the remote host and compiles
+     *  them so that they are ready to execute using the launcher.
      * 
      *  A precondition for this to work is that the user invoking this
      *  code generator can log into the remote host without supplying
@@ -556,8 +556,23 @@ class CGenerator extends GeneratorBase {
      * 
      *  Enable means to always start the service at startup, whereas
      *  start means to just start it this once.
+     *  On MacOS, open System Preferences from the Apple menu and 
+     *  click on the "Sharing" preference panel. Select the checkbox
+     *  next to "Remote Login" to enable it.
      */
-    def createLauncher() {        
+    def createLauncher() {
+        // NOTE: It might be good to use screen when invoking the RTI
+        // or federates remotely so you can detach and the process keeps running.
+        // However, I was unable to get it working properly.
+        // What this means is that the shell that invokes the launcher
+        // needs to remain live for the duration of the federation.
+        // If that shell is killed, the federation will die.
+        // Hence, it is reasonable to launch the federation on a
+        // machine that participates in the federation, for example,
+        // on the machine that runs the RTI.  The command I tried
+        // to get screen to work looks like this:
+        // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
+        
         var outPath = directory + File.separator + "bin"
 
         val shCode = new StringBuilder()
@@ -567,6 +582,8 @@ class CGenerator extends GeneratorBase {
             # Launcher for federated «filename».lf Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
+            # Set a trap to kill all background jobs on error.
+            trap 'echo "#### Killing federates."; kill $(jobs -p)' ERR
             # Launch the federates:
         ''')
         val distHeader = '''
@@ -586,19 +603,31 @@ class CGenerator extends GeneratorBase {
             target = user + '@' + host
         }
         for (federate : federates) {
-            pr(shCode, '''
-                echo "#### Launching the federate «federate.name»."
-                «outPath»«File.separator»«filename»_«federate.name» &
-            ''')
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 pr(distCode, '''
-                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin
-                    pushd src-gen
+                    echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
+                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log
+                    pushd src-gen > /dev/null
+                    echo "Copying source files to host «federate.host»"
                     scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen
-                    popd
+                    popd > /dev/null
+                    echo "Compiling on host «federate.host» using: gcc -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
                     ssh «federate.host» 'cd «path»; gcc -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
                 ''')
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    ssh «federate.host» '\
+                        cd «path»; bin/«filename»_«federate.name» >& log/«filename»_«federate.name».out; \
+                        echo "****** Output from federate «federate.name» on host «federate.host»:"; \
+                        cat log/«filename»_«federate.name».out; \
+                        echo "****** End of output from federate «federate.name» on host «federate.host»"' &
+                ''')                
+            } else {
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name»."
+                    «outPath»«File.separator»«filename»_«federate.name» &
+                ''')                
             }
         }
         // Launch the RTI in the foreground.
@@ -613,10 +642,13 @@ class CGenerator extends GeneratorBase {
             // The mkdir -p flag below creates intermediate directories if needed.
             pr(distCode, '''
                 cd «path»
-                ssh «target» mkdir -p «path»/src-gen «path»/bin
-                pushd src-gen
-                scp «filename»_RTI.c rti.c rti.h util.h util.c reactor.h «target»:«path»/src-gen
-                popd
+                echo "Making directory «path» and subdirectories src-gen and path on host «target»"
+                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log
+                pushd src-gen > /dev/null
+                echo "Copying source files to host «target»"
+                scp «filename»_RTI.c rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen
+                popd > /dev/null
+                echo "Compiling on host «target» using: gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
                 ssh «target» 'gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
             ''')
 
@@ -635,25 +667,13 @@ class CGenerator extends GeneratorBase {
             // the federate have had time to go out to the RTI through the socket.
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
-                echo "####    Using screen so you can detach, and the process keeps running."
-                echo "####    To detach, do control-a d."
-                echo "####    To reattach, ssh into the remote machine and do:"
-                echo "####       screen -r «filename»_RTI"
-                ssh -t «target» cd «path»; screen -S «filename»_RTI -L bin/«filename»_RTI 2>&1; sleep 2
-                if [ $? -eq 0 ]
-                then
-                    echo "#### screen has exited."
-                else
-                    echo "#### ERROR: ssh failed to start RTI."
-                fi
+                ssh «target» 'cd «path»; \
+                    bin/«filename»_RTI >& log/«filename»_RTI.out; \
+                    echo "------ output from «filename»_RTI on host «target»:"; \
+                    cat log/«filename»_RTI.out; \
+                    echo "------ end of output from «filename»_RTI on host «target»"'
             ''')
         }
-        // Add a trap to kill federates on exit.
-        // FIXME: Terminate remote federates.
-        pr(shCode, '''
-            echo "#### Killing federates."
-            trap 'kill $(jobs -p)' EXIT
-        ''')
 
         // Write the launcher file.
         // Delete file previously produced, if any.
