@@ -76,6 +76,9 @@ class FederateInstance {
      */
     public var Set<String> containedReactorNames = new HashSet<String>
     
+    /** The host, if specified using the 'at' keyword. */
+    public var String host = null
+    
     /** The instantiation of the top-level reactor, or null if there is no federation. */
     public var Instantiation instantiation;
     
@@ -86,12 +89,21 @@ class FederateInstance {
      */
     public var dependsOn = new HashMap<FederateInstance,Set<Value>>()
     
+    /** The directory, if specified using the 'at' keyword. */
+    public var String dir = null
+
+    /** The port, if specified using the 'at' keyword. */
+    public var int port = 0
+    
     /** Map from the federates that this federate sends messages to
      *  to the delays on connections to that federate. The delay set
      *  may be empty, meaning no delay (not even a microstep or 0 delay)
      *  was specified.
      */
     public var sendsTo = new HashMap<FederateInstance,Set<Value>>()
+    
+    /** The user, if specified using the 'at' keyword. */
+    public var String user = null
     
     /** The integer ID of this federate. */
     public var id = 0;

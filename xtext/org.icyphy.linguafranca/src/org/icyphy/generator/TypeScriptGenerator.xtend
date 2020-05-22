@@ -41,7 +41,6 @@ import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
@@ -263,11 +262,14 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
-
+        
+        val reactorName = reactor.name + reactor.typeParms?.join('<', ',', '>', [it.toText])
+        // NOTE: type parameters that are referenced in ports or actions must extend
+        // Present in order for the program to type check.
         if(reactor.isMain()){
-            pr("export class " + reactor.name + " extends App {")
+            pr("export class " + reactorName + " extends App {")
         } else {
-            pr("export class " + reactor.name + " extends Reactor {")
+            pr("export class " + reactorName + " extends Reactor {")
         }
         
         indent()
@@ -310,7 +312,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Next handle child reactors instantiations
         for (childReactor : reactor.instantiations ) {
-            pr(childReactor.getName() + ": " + childReactor.reactorClass.name )
+            pr(childReactor.getName() + ": " + childReactor.reactorClass.name + childReactor.typeParms.join('<', ',', '>', [it | it.toText]))
             
             var childReactorArguments = new StringJoiner(", ");
             childReactorArguments.add("this")
@@ -323,10 +325,9 @@ class TypeScriptGenerator extends GeneratorBase {
                 childReactorArguments.add(parameter.getTargetInitializer(childReactor))
             }
             
-            
             pr(reactorConstructor, "this." + childReactor.getName()
-                + " = new " + childReactor.reactorClass.name + "("
-                + childReactorArguments + ")" )
+                + " = new " + childReactor.reactorClass.name + 
+                "(" + childReactorArguments + ")" )
         }
        
         
@@ -502,23 +503,21 @@ class TypeScriptGenerator extends GeneratorBase {
                 }
                 var trigOrSourcePair = new Pair(trigOrSourceKey, trigOrSourceValue)
                  
-                if (!effectSet.contains(trigOrSourcePair)){
+                if (!effectSet.contains(trigOrSourcePair)) {
+                    var reactSignatureElementType = "";
+                    
+                    if (trigOrSource.variable instanceof Timer) {
+                        reactSignatureElementType = "Tag"
+                    } else if (trigOrSource.variable instanceof Action) {
+                        reactSignatureElementType = getActionType(trigOrSource.variable as Action)
+                    } else if (trigOrSource.variable instanceof Port) {
+                        reactSignatureElementType = getPortType(trigOrSource.variable as Port)
+                    }
+                    
+                    reactSignature.add('''«trigOrSource.generateArg»: Read<«reactSignatureElementType»>''')
+                    reactFunctArgs.add("this." + trigOrSource.generateVarRef)
                     if (trigOrSource.container === null) {
-                        var reactSignatureElementType = "";
-                        
-                        if (trigOrSource.variable instanceof Timer) {
-                            reactSignatureElementType = "Tag"
-                        } else if (trigOrSource.variable instanceof Action) {
-                            reactSignatureElementType = getActionType(trigOrSource.variable as Action)
-                        } else if (trigOrSource.variable instanceof Port) {
-                            reactSignatureElementType = getPortType(trigOrSource.variable as Port)
-                        }
-                        var reactSignatureElement =  "__" + trigOrSource.variable.name
-                            + ": Read<" + reactSignatureElementType + ">"
-                        
-                        pr(reactPrologue, "let " + trigOrSource.variable.name + " = __" + trigOrSource.variable.name + ".get();")
-                        reactSignature.add(reactSignatureElement)
-                        reactFunctArgs.add("this." + trigOrSource.variable.name)
+                        pr(reactPrologue, '''let «trigOrSource.variable.name» = «trigOrSource.generateArg».get();''')
                     } else {
                         var args = containerToArgs.get(trigOrSource.container)
                         if (args === null) {
@@ -533,36 +532,40 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             var schedActionSet = new HashSet<Action>();
             for (effect : reaction.effects) {
-                var functArg = ""
-                if (effect.container === null) {
-                    var reactSignatureElement = "__" + effect.variable.name
-                    if (effect.variable instanceof Timer) {
-                        reportError("A timer cannot be an effect of a reaction")
-                    } else if (effect.variable instanceof Action){
-                        reactSignatureElement += ": Schedule<" + getActionType(effect.variable as Action) + ">"
-                        schedActionSet.add(effect.variable as Action)
-                    } else if (effect.variable instanceof Port){
-                        reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
+                var functArg = ""                
+                var reactSignatureElement = "" + effect.generateArg
+                if (effect.variable instanceof Timer) {
+                    reportError("A timer cannot be an effect of a reaction")
+                } else if (effect.variable instanceof Action){
+                    reactSignatureElement += ": Schedule<" + getActionType(effect.variable as Action) + ">"
+                    schedActionSet.add(effect.variable as Action)
+                } else if (effect.variable instanceof Port){
+                    reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
+                    if (effect.container === null) {
                         pr(reactEpilogue, "if (" + effect.variable.name + " !== undefined) {")
                         reactEpilogue.indent()
                         pr(reactEpilogue,  "__" + effect.variable.name + ".set(" + effect.variable.name + ");")
                         reactEpilogue.unindent()
-                        pr(reactEpilogue, "}")
+                        pr(reactEpilogue, "}")   
                     }
-                    
+                }
+
+                reactSignature.add(reactSignatureElement)
+                
+                functArg = "this." + effect.generateVarRef 
+                if (effect.variable instanceof Action){
+                    reactFunctArgs.add("this.schedulable(" + functArg + ")")
+                } else if (effect.variable instanceof Port) {
+                    reactFunctArgs.add("this.writable(" + functArg + ")")
+                }  
+                
+                if (effect.container === null) {
                     pr(reactPrologue, "let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
-                    reactSignature.add(reactSignatureElement)
-                    
-                    functArg = "this." + effect.variable.name 
-                    if( effect.variable instanceof Action ){
-                        reactFunctArgs.add("this.getSchedulable(" + functArg + ")")
-                    } else if (effect.variable instanceof Port) {
-                        reactFunctArgs.add("this.getWriter(" + functArg + ")")
-                    }  
                 } else {
+                    // Hierarchical references are handled later because there
+                    // could be references to other members of the same reactor.
                     var args = containerToArgs.get(effect.container)
                     if (args === null) {
-                       // Create the HashSet for the container
                        args = new HashSet<Variable>();
                        containerToArgs.put(effect.container, args)
                     }
@@ -607,54 +610,28 @@ class TypeScriptGenerator extends GeneratorBase {
                 pr(reactEpilogue, "}")
             }
             
-            // Write an object as an argument for each container
-            var containers = containerToArgs.keySet()
-            for (container : containers) {
-                var containedArgsObject = new StringJoiner(", ")
-                var containedSigObject = new StringJoiner(", ") 
-                var containedPrologueObject = new StringJoiner(", ")
-                var containedVariables = containerToArgs.get(container)
-                for (containedVariable : containedVariables) {
-                    var functArg = "this." + container.name + "." + containedVariable.name
-                    var containedSigElement = ""
-                    var containedArgElement = ""
-                    var containedPrologueElement = ""
-                    if (containedVariable instanceof Input) {
-                        containedSigElement +=  containedVariable.name + ": ReadWrite<" + containedVariable.type.targetType + ">"
-                        containedArgElement += containedVariable.name + ": " + "this.getWriter(" + functArg + ")"
-                        containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
-                        pr(reactEpilogue, "if (" + container.name + "." + containedVariable.name + " !== undefined) {")
-                        reactEpilogue.indent()
-                        pr(reactEpilogue,  "__" + container.name + "." + containedVariable.name
-                            + ".set(" + container.name + "." + containedVariable.name + ");")
-                        reactEpilogue.unindent()
-                        pr(reactEpilogue, "}")
-                    } else if(containedVariable instanceof Output) {
-                        containedSigElement += containedVariable.name + ": Read<" + containedVariable.type.targetType + ">"
-                        containedArgElement += containedVariable.name + ": " + functArg
-                        containedPrologueElement += containedVariable.name + ": __" + container.name + "." + containedVariable.name + ".get()"
+            // Initialize objects to enable hierarchical references.
+            for (entry : containerToArgs.entrySet) {
+                val initializer = new StringJoiner(", ")
+                for (variable : entry.value) {
+                    initializer.add('''«variable.name»: __«entry.key.name»_«variable.name».get()''')
+                    if (variable instanceof Input) {
+                        pr(reactEpilogue, 
+                        '''if («entry.key.name».«variable.name» !== undefined) {
+                            __«entry.key.name»_«variable.name».set(«entry.key.name».«variable.name»)
+                        }''')    
                     }
-                    containedArgsObject.add(containedArgElement)
-                    containedSigObject.add(containedSigElement)
-                    containedPrologueObject.add(containedPrologueElement) 
+                                     
                 }
-//                pr(reactPrologue, "let " + container.name + "." + containedVariable.name + " = " + container.name + "." + "__" + containedVariable.name + ".get();")
-                var reactFunctArgsElement = "{ " +  containedArgsObject.toString() + " }"
-                var reactSignatureElement = "__" + container.name + ": { " + containedSigObject.toString() + " }"
-                reactFunctArgs.add(reactFunctArgsElement) 
-                reactSignature.add(reactSignatureElement)
-                pr(reactPrologue, "let " + container.name + " = {" + containedPrologueObject + "};")
+                pr(reactPrologue, '''let «entry.key.name» = {«initializer»}''')
             }
             
             // Assemble reaction triggers          
             var reactionTriggers = new StringJoiner(", ") 
             for (trigger : reaction.triggers) {
                 if (trigger instanceof VarRef) {
-                    if (trigger.container === null) {
-                        reactionTriggers.add("this." + trigger.variable.name) 
-                    } else {
-                        reactionTriggers.add("this." + trigger.container.name + "." + trigger.variable.name)
-                    }
+                    reactionTriggers.add("this." + trigger.generateVarRef)
+
                 } else if (trigger.startup) {
                     reactionTriggers.add("this.startup")
                 } else if (trigger.shutdown) {
@@ -726,6 +703,14 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("}")
         pr("// =============== END reactor class " + reactor.name)
         pr("")
+    }
+
+    def generateArg(VarRef v) {
+        if (v.container !== null) {
+            '''__«v.container.name»_«v.variable.name»'''
+        } else {
+            '''__«v.variable.name»'''
+        }
     }
 
     /** Generate the main app instance. This function is only used once
@@ -1190,20 +1175,27 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
 
 '''
         
-    override protected String getTargetTimeType() {
+    override String getTargetTimeType() {
         "TimeValue"
     }
     
-    override protected String getTargetUndefinedType() {
+    override String getTargetUndefinedType() {
         "unknown"
     }
     
-    override protected String getTargetFixedSizeListType(String baseType, Integer size) {
+    override String getTargetFixedSizeListType(String baseType, Integer size) {
         '''Array(«size»)<«baseType»>'''
     }
     
-    override protected String getTargetVariableSizeListType(String baseType) {
+    override String getTargetVariableSizeListType(String baseType) {
         '''Array<«baseType»>'''
     }
+    
+    override supportsGenerics() {
+        true
+    }
+    
+    override String generateDelayGeneric()
+        '''T extends Present'''
 
 }

@@ -4,14 +4,14 @@ target TypeScript {
     fast: false,
     timeout: 3 sec
 };
-reactor foo {
+reactor Foo {
     input x:number;
     output y:number;
     reaction(x) -> y {=
         y = 2 * (x as number);
     =}
 }
-reactor print {
+reactor Print {
     state expected_time:time(10 msec);
     input x:number;
     reaction(x) {=
@@ -26,9 +26,9 @@ reactor print {
         expected_time = expected_time.add(new UnitBasedTimeValue(1, TimeUnit.sec));
     =}
 }
-main reactor top {
-    f = new foo();
-    p = new print();
+main reactor Top {
+    f = new Foo();
+    p = new Print();
     timer t(0, 1 sec);
     reaction(t) -> f.x {=
         f.x = 42;

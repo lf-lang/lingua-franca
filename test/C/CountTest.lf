@@ -26,6 +26,6 @@ reactor Test {
 main reactor CountTest {
     count = new Count();
     test = new Test();
-    count.c -> test.c;
+    count.out -> test.c;
 }
 

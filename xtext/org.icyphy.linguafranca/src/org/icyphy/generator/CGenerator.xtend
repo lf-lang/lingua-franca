@@ -46,6 +46,7 @@ import org.icyphy.InferredType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -157,8 +158,8 @@ class CGenerator extends GeneratorBase {
         // and one that does not.
         if (federates.length > 1) {
             files.addAll("rti.c", "rti.h", "federate.c")
-            createFederateRTI(false)
-            createFederateRTI(true)
+            createFederateRTI()
+            createLauncher()
         }
         
         for (file : files) {
@@ -395,84 +396,24 @@ class CGenerator extends GeneratorBase {
             if (!federate.isSingleton) {
                 fileToCompile = filename + '_' + federate.name
             }
-            
-            // Derive target filename from the .lf filename.
-            val cFilename = fileToCompile + ".c";            
-            val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-            val relativeBinFilename = "bin" + File.separator + fileToCompile;
-            
-            var compileCommand = newArrayList
-            compileCommand.add(targetCompiler)
-            val flags = targetCompilerFlags.split(' ')
-            compileCommand.addAll(flags)
-            compileCommand.add(relativeSrcFilename)
-            if (compileAdditionalSources !== null) {
-                compileCommand.addAll(compileAdditionalSources)
-            }
-            if (compileLibraries !== null) {
-                compileCommand.addAll(compileLibraries)
-            }
-            // Only set the output file name if it hasn't already been set
-            // using a target property or command line flag.
-            if (compileCommand.forall[it.trim != "-o"]) {
-                compileCommand.addAll("-o", relativeBinFilename)    
-            }
-            
-            // If threaded computation is requested, add a -pthread option.
-            if (targetThreads !== 0) {
-                compileCommand.add("-pthread")
-            }
-            // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-            // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-            // Then again, I think this only makes sense when we can do linking.
-            // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-            if (main === null) {
-                compileCommand.add("-c") // FIXME: revisit
-                if (mode === Mode.STANDALONE) {
-                    reportError(
-                        "ERROR: Did not output executable; no main reactor found.")
-                }
-            }
-            executeCommand(compileCommand, directory)
+            executeCommand(compileCommand(fileToCompile), directory)
         }
         // Also compile the RTI files if there is more than one federate.
         if (federates.length > 1) {
-            fileToCompile = filename                
-            var compileCommand = newArrayList
-            compileCommand.addAll("gcc", "-O2", 
-                    "src-gen" + File.separator + fileToCompile + '.c',
-                    "-o", "bin" + File.separator + fileToCompile,
-                    "-pthread")
-            executeCommand(compileCommand, directory)
-
             fileToCompile = filename + '_RTI'
-            compileCommand.clear
-            compileCommand.addAll("gcc", "-O2", 
-                    "src-gen" + File.separator + fileToCompile + '.c',
-                    "-o", "bin" + File.separator + fileToCompile,
-                    "-pthread")
-            executeCommand(compileCommand, directory)
+            executeCommand(compileCommand(fileToCompile), directory)
         }
     }
 
     // //////////////////////////////////////////
     // // Code generators.
         
-    /** Create the runtime infrastructure (RTI) file.
-     *  This can create either of two versions, depending on whether the
-     *  launcher argument is given. If the launcher argument is true,
-     *  then it creates an executable that will launch all the federates.
-     *  Otherwise, it creates an executable that just implements the RTI.
-     *  @param launcher True to create a program that launches the federates.
+    /** Create the runtime infrastructure (RTI) source file.
      */
-    def createFederateRTI(boolean launcher) {
+    def createFederateRTI() {
         // Derive target filename from the .lf filename.
         var cFilename = filename + "_RTI.c"
         
-        // If the RTI is to launch all the federates, omit the '_RTI'.
-        if (launcher) {
-            cFilename = filename + ".c"
-        }
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
 
@@ -578,29 +519,10 @@ class CGenerator extends GeneratorBase {
         pr(rtiCode, '''
             int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
         ''')
-
-        if (launcher) {
-            for (federate : federates) {
-                pr(rtiCode, '''
-                    if (federate_launcher("«outPath»«File.separator»«filename»_«federate.name»") == -1) exit(-1);
-                ''')
-            }
-        }
         
         // Generate code that blocks until the federates resign.
         pr(rtiCode, "wait_for_federates(socket_descriptor);")
         
-        if (launcher) {
-            pr(rtiCode, '''
-                int exit_code = 0;
-                for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                    int subprocess_exit_code;
-                    wait(&subprocess_exit_code);
-                    if (subprocess_exit_code != 0) exit_code = subprocess_exit_code;
-                }
-                exit(exit_code);
-            ''')
-        }
         unindent(rtiCode)
         pr(rtiCode, "}")
         
@@ -608,6 +530,179 @@ class CGenerator extends GeneratorBase {
                 new File(srcGenPath + File.separator + cFilename));
         fOut.write(rtiCode.toString().getBytes())
         fOut.close()
+    }
+    
+    /** Create the launcher shell scripts. This will create one or two file
+     *  in the output path (bin directory). The first has name equal to
+     *  the filename of the source file without the ".lf" extension.
+     *  This will be a shell script that launches the
+     *  RTI and the federates.  If, in addition, either the RTI or any
+     *  federate is mapped to a particular machine (anything other than
+     *  the default "localhost" or "0.0.0.0"), then this will generate
+     *  a shell script in the bin directory with name filename_distribute.sh
+     *  that copies the relevant source files to the remote host and compiles
+     *  them so that they are ready to execute using the launcher.
+     * 
+     *  A precondition for this to work is that the user invoking this
+     *  code generator can log into the remote host without supplying
+     *  a password. Specifically, you have to have installed your
+     *  public key (typically found in ~/.ssh/id_rsa.pub) in
+     *  ~/.ssh/authorized_keys on the remote host. In addition, the
+     *  remote host must be running an ssh service.
+     *  On an Arch Linux system using systemd, for example, this means
+     *  running:
+     * 
+     *      sudo systemctl <start|enable> ssh.service
+     * 
+     *  Enable means to always start the service at startup, whereas
+     *  start means to just start it this once.
+     *  On MacOS, open System Preferences from the Apple menu and 
+     *  click on the "Sharing" preference panel. Select the checkbox
+     *  next to "Remote Login" to enable it.
+     */
+    def createLauncher() {
+        // NOTE: It might be good to use screen when invoking the RTI
+        // or federates remotely so you can detach and the process keeps running.
+        // However, I was unable to get it working properly.
+        // What this means is that the shell that invokes the launcher
+        // needs to remain live for the duration of the federation.
+        // If that shell is killed, the federation will die.
+        // Hence, it is reasonable to launch the federation on a
+        // machine that participates in the federation, for example,
+        // on the machine that runs the RTI.  The command I tried
+        // to get screen to work looks like this:
+        // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
+        
+        var outPath = directory + File.separator + "bin"
+
+        val shCode = new StringBuilder()
+        val distCode = new StringBuilder()
+        pr(shCode, '''
+            #!/bin/bash
+            # Launcher for federated «filename».lf Lingua Franca program.
+            # Uncomment to specify to behave as close as possible to the POSIX standard.
+            # set -o posix
+            # Set a trap to kill all background jobs on error.
+            trap 'echo "#### Killing federates."; kill $(jobs -p)' ERR
+            # Launch the federates:
+        ''')
+        val distHeader = '''
+            #!/bin/bash
+            # Distributor for federated «filename».lf Lingua Franca program.
+            # Uncomment to specify to behave as close as possible to the POSIX standard.
+            # set -o posix
+        '''
+        val host = federationRTIProperties.get('host')
+        var target = host
+
+        var path = federationRTIProperties.get('dir')
+        if(path === null) path = 'LinguaFrancaRemote'
+
+        var user = federationRTIProperties.get('user')
+        if (user !== null) {
+            target = user + '@' + host
+        }
+        for (federate : federates) {
+            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
+                if(distCode.length === 0) pr(distCode, distHeader)
+                pr(distCode, '''
+                    echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
+                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log
+                    pushd src-gen > /dev/null
+                    echo "Copying source files to host «federate.host»"
+                    scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen
+                    popd > /dev/null
+                    echo "Compiling on host «federate.host» using: gcc -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
+                    ssh «federate.host» 'cd «path»; gcc -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
+                ''')
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    ssh «federate.host» '\
+                        cd «path»; bin/«filename»_«federate.name» >& log/«filename»_«federate.name».out; \
+                        echo "****** Output from federate «federate.name» on host «federate.host»:"; \
+                        cat log/«filename»_«federate.name».out; \
+                        echo "****** End of output from federate «federate.name» on host «federate.host»"' &
+                ''')                
+            } else {
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name»."
+                    «outPath»«File.separator»«filename»_«federate.name» &
+                ''')                
+            }
+        }
+        // Launch the RTI in the foreground.
+        if (host == 'localhost' || host == '0.0.0.0') {
+            pr(shCode, '''
+                echo "#### Launching the runtime infrastructure (RTI)."
+                «outPath»«File.separator»«filename»_RTI
+            ''')
+        } else {
+            // Copy the source code onto the remote machine and compile it there.
+            if (distCode.length === 0) pr(distCode, distHeader)
+            // The mkdir -p flag below creates intermediate directories if needed.
+            pr(distCode, '''
+                cd «path»
+                echo "Making directory «path» and subdirectories src-gen and path on host «target»"
+                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log
+                pushd src-gen > /dev/null
+                echo "Copying source files to host «target»"
+                scp «filename»_RTI.c rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen
+                popd > /dev/null
+                echo "Compiling on host «target» using: gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                ssh «target» 'gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+            ''')
+
+            // Launch the RTI on the remote machine using ssh and screen.
+            // The -t argument to ssh creates a virtual terminal, which is needed by screen.
+            // The -S gives the session a name.
+            // The -L option turns on logging. Unfortunately, the -Logfile giving the log file name
+            // is not standardized in screen. Logs go to screenlog.0 (or screenlog.n).
+            // FIXME: Remote errors are not reported back via ssh from screen.
+            // How to get them back to the local machine?
+            // Perhaps use -c and generate a screen command file to control the logfile name,
+            // but screen apparently doesn't write anything to the log file!
+            //
+            // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
+            // The sleep at the end prevents screen from exiting before outgoing messages from
+            // the federate have had time to go out to the RTI through the socket.
+            pr(shCode, '''
+                echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
+                ssh «target» 'cd «path»; \
+                    bin/«filename»_RTI >& log/«filename»_RTI.out; \
+                    echo "------ output from «filename»_RTI on host «target»:"; \
+                    cat log/«filename»_RTI.out; \
+                    echo "------ end of output from «filename»_RTI on host «target»"'
+            ''')
+        }
+
+        // Write the launcher file.
+        // Delete file previously produced, if any.
+        var file = new File(outPath + File.separator + filename)
+        if (file.exists) {
+            file.delete
+        }
+                
+        var fOut = new FileOutputStream(file)
+        fOut.write(shCode.toString().getBytes())
+        fOut.close()
+        if (!file.setExecutable(true, false)) {
+            reportWarning(null, "Unable to make launcher script executable.")
+        }
+        
+        // Write the distributor file.
+        // Delete the file even if it does not get generated.
+        file = new File(outPath + File.separator + filename + '_distribute.sh')
+        if (file.exists) {
+            file.delete
+        }
+        if (distCode.length > 0) {
+            fOut = new FileOutputStream(file)
+            fOut.write(distCode.toString().getBytes())
+            fOut.close()
+            if (!file.setExecutable(true, false)) {
+                reportWarning(null, "Unable to make distributor script executable.")
+            }
+        }
     }
     
     /** Generate a reactor class definition. This version unconditionally
@@ -703,6 +798,7 @@ class CGenerator extends GeneratorBase {
         // Preamble code contains state declarations with static initializers.
         for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
+            prSourceLineNumber(p.code)
             pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
@@ -1062,7 +1158,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         // Code verbatim from 'reaction'
-        prSourceLineNumber(reaction)
+        prSourceLineNumber(reaction.code)
         pr(body)
         unindent()
         pr("}")
@@ -1076,7 +1172,7 @@ class CGenerator extends GeneratorBase {
             indent();
             pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline)
+            prSourceLineNumber(reaction.deadline.code)
             pr(reaction.deadline.code.toText)
             unindent()
             pr("}")
@@ -1722,6 +1818,22 @@ class CGenerator extends GeneratorBase {
         return "OK"
     }
 
+    /** Open an import at the Lingua Franca file at the specified URI
+     *  in the specified resource set and call generateReactor() on
+     *  any non-main reactors given in that file.
+     *  This overrides the base class to first output a #line
+     *  statement so that errors in the imported file can be
+     *  correctly reported.
+     *  @param importStatement The import statement.
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
+     *  @return The imported resource or null if the import fails.
+     */
+    override openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
+        prSourceLineNumber(importStatement)
+        super.openLFImport(importStatement, resourceSet, resolvedURI)
+    }
+
     /** Return the unique name for the "self" struct of the specified
      *  reactor instance from the instance ID.
      *  @param instance The reactor instance.
@@ -2096,7 +2208,7 @@ class CGenerator extends GeneratorBase {
             if («ref»_is_present) {
                 // Put the whole token on the event queue, not just the payload.
                 // This way, the length and element_size are transported.
-                schedule_token(«action.name», 0, «ref»);
+                schedule_token(«action.name», 0, «ref»_token);
             }
             '''
         } else {
@@ -2319,8 +2431,86 @@ class CGenerator extends GeneratorBase {
         reaction.uniqueID
     }
     
-        // //////////////////////////////////////////
+    // Regular expression pattern for compiler error messages with resource
+    // and line number information. The first match will a resource URI in the
+    // form of "file:/path/file.lf". The second match will be a line number.
+    // The third match is a character position within the line.
+    // The fourth match will be the error message.
+    static final Pattern compileErrorPattern = Pattern.compile("^(file:/.*):([0-9]+):([0-9]+):(.*)$");
+    
+    /** Given a line of text from the output of a compiler, return
+     *  an instance of ErrorFileAndLine if the line is recognized as
+     *  the first line of an error message. Otherwise, return null.
+     *  @param line A line of output from a compiler or other external
+     *   tool that might generate errors.
+     *  @return If the line is recognized as the start of an error message,
+     *   then return a class containing the path to the file on which the
+     *   error occurred (or null if there is none), the line number (or the
+     *   string "1" if there is none), the character position (or the string
+     *   "0" if there is none), and the message (or an empty string if there
+     *   is none).
+     */
+    override parseCommandOutput(String line) {
+        val matcher = compileErrorPattern.matcher(line)
+        if (matcher.find()) {
+            val result = new ErrorFileAndLine()
+            result.filepath = matcher.group(1)
+            result.line = matcher.group(2)
+            result.character = matcher.group(3)
+            result.message = matcher.group(4)
+            
+            if (result.message.trim.toLowerCase.startsWith("warning")) {
+                result.isError = false
+            }
+            return result
+        }
+        return null as ErrorFileAndLine
+    }
+        
+    // //////////////////////////////////////////
     // // Private methods.
+    
+    /** Return a command to compile the specified C file.
+     *  @param fileToCompile The C filename without the .c extension.
+     */
+    protected def compileCommand(String fileToCompile) {
+        val cFilename = fileToCompile + ".c";            
+        val relativeSrcFilename = "src-gen" + File.separator + cFilename;
+        val relativeBinFilename = "bin" + File.separator + fileToCompile;
+
+        var compileCommand = newArrayList
+        compileCommand.add(targetCompiler)
+        val flags = targetCompilerFlags.split(' ')
+        compileCommand.addAll(flags)
+        compileCommand.add(relativeSrcFilename)
+        if (compileAdditionalSources !== null) {
+            compileCommand.addAll(compileAdditionalSources)
+        }
+        if (compileLibraries !== null) {
+            compileCommand.addAll(compileLibraries)
+        }
+        // Only set the output file name if it hasn't already been set
+        // using a target property or command line flag.
+        if (compileCommand.forall[it.trim != "-o"]) {
+            compileCommand.addAll("-o", relativeBinFilename)
+        }
+
+        // If threaded computation is requested, add a -pthread option.
+        if (targetThreads !== 0) {
+            compileCommand.add("-pthread")
+        }
+        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
+        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+        // Then again, I think this only makes sense when we can do linking.
+        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
+        if (main === null) {
+            compileCommand.add("-c") // FIXME: revisit
+            if (mode === Mode.STANDALONE) {
+                reportError("ERROR: Did not output executable; no main reactor found.")
+            }
+        }
+        return compileCommand
+    }
     
     /** Perform deferred initializations in initialize_trigger_objects.
      *  @param federate The federate for which we are doing this.
@@ -2853,15 +3043,23 @@ class CGenerator extends GeneratorBase {
         result
     }
 
-    // Print the #line compiler directive with the line number of
-    // the most recently used node.
-
+    /** Print the #line compiler directive with the line number of
+     *  the specified object.
+     *  @param eObject The node.
+     */
     private def prSourceLineNumber(EObject eObject) {
         var node = NodeModelUtils.getNode(eObject)
         if (node !== null) {
-            pr("#line " + node.getStartLine() + ' "' + resource.getURI() + '"')
+            // For code blocks (delimited by {= ... =}, unfortunately,
+            // we have to adjust the offset by the number of newlines before {=.
+            // Unfortunately, this is complicated because the code has been
+            // tokenized.
+            var offset = 0
+            if (eObject instanceof Code) {
+                offset += 1
+            }
+            pr("#line " + (node.getStartLine() + offset) + ' "file:' + sourceFile + '"')
         }
-
     }
 
     /** For each output that has a token type (type* or type[]),
@@ -2935,7 +3133,7 @@ class CGenerator extends GeneratorBase {
     override getTargetFixedSizeListType(String baseType,
         Integer size) '''«baseType»[«size»]'''
         
-    override protected String getTargetVariableSizeListType(
+    override String getTargetVariableSizeListType(
         String baseType) '''«baseType»[]'''
     
     protected def String getInitializer(ParameterInstance p) {
@@ -2946,5 +3144,14 @@ class CGenerator extends GeneratorBase {
             	return p.init.get(0).targetValue
             }
         
-    }    
+    }
+    
+    override supportsGenerics() {
+        return false
+    }
+    
+    override generateDelayGeneric() {
+        throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
 }

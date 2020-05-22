@@ -51,6 +51,10 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import java.util.stream.IntStream
+import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Port
+
 
 /** Generator for C++ target.
  * 
@@ -112,6 +116,10 @@ class CppGenerator extends GeneratorBase {
         r.eResource.toDir + File.separator + r.name + ".hh"
     }
 
+    def headerImplFile(Reactor r) {
+        r.eResource.toDir + File.separator + r.name + "_impl.hh"
+    }
+
     def sourceFile(Reactor r) {
         r.eResource.toDir + File.separator + r.name + ".cc"
     }
@@ -142,7 +150,8 @@ class CppGenerator extends GeneratorBase {
         for (r : reactors) {
             fsa.generateFile(filename + File.separator + r.headerFile,
                 r.generateReactorHeader)
-            fsa.generateFile(filename + File.separator + r.sourceFile,
+            val implFile = r.isGeneric ? r.headerImplFile : r.sourceFile
+            fsa.generateFile(filename + File.separator + implFile,
                 r.generateReactorSource)
         }
 
@@ -201,9 +210,17 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
+    def templateInstance(Instantiation i) '''
+        «i.reactorClass.name»«IF i.reactorClass.isGeneric»<«FOR t : i.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»
+    '''
+
     def declareInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
-            «i.reactorClass.name» «i.name»;
+            «IF i.arraySpec !== null»
+                std::array<«i.templateInstance», «i.arraySpec.length»> «i.name»;
+            «ELSE»
+                «i.templateInstance» «i.name»;
+            «ENDIF»
         «ENDFOR»
     '''
 
@@ -221,10 +238,18 @@ class CppGenerator extends GeneratorBase {
 
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-            reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
+            «IF i.arraySpec !== null»
+                std::array<reactor::Input<«i.targetType»>, «i.arraySpec.length»> «i.name»{{«FOR id : IntStream.range(0, i.arraySpec.length).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
+            «ELSE»
+                reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
+            «ENDIF»
         «ENDFOR»
         «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-            reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
+            «IF o.arraySpec !== null»
+                std::array<reactor::Output<«o.targetType»>, «o.arraySpec.length»> «o.name»{{«FOR id : IntStream.range(0, o.arraySpec.length).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
+            «ELSE»
+                reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
+            «ENDIF»
         «ENDFOR»
     '''
 
@@ -259,7 +284,8 @@ class CppGenerator extends GeneratorBase {
 
     def implementReactionBodies(Reactor r) '''
         «FOR n : r.reactions SEPARATOR '\n'»
-            void «r.name»::«n.name»_body() {
+            «IF r.isGeneric»«r.templateLine»«ENDIF»
+            void «r.templateName»::«n.name»_body() {
               «n.code.toText»
             }
         «ENDFOR»
@@ -267,7 +293,8 @@ class CppGenerator extends GeneratorBase {
 
     def implementReactionDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
-            void «r.name»::«n.name»_deadline_handler() {
+            «IF r.isGeneric»«r.templateLine»«ENDIF»
+            void «r.templateName»::«n.name»_deadline_handler() {
               «n.deadline.code.toText»
             }
         «ENDFOR»
@@ -307,9 +334,26 @@ class CppGenerator extends GeneratorBase {
         '''
     }
 
+    def declareTrigger(Reaction n, TriggerRef t) {
+        if (t instanceof VarRef) {
+        	if (t.variable instanceof Port) {
+                val p = t.variable as Port
+                if (p.arraySpec !== null) {
+                    return '''
+                        for (unsigned i = 0; i < «t.name».size(); i++) {
+                        	«n.name».declare_trigger(&«t.name»[i]);
+                        }
+                    '''
+                }
+            }
+            // FIXME: support other cases
+        }
+        return '''«n.name».declare_trigger(&«t.name»);'''
+    }
+
     def declareTriggers(Reaction n) '''
         «FOR t : n.triggers»
-            «n.name».declare_trigger(&«t.name»);
+            «n.declareTrigger(t)»
         «ENDFOR»
     '''
 
@@ -332,27 +376,45 @@ class CppGenerator extends GeneratorBase {
             }
         }
     }
+    
+    def declareDependency(Reaction n, VarRef v) {
+        val p = v.variable as Port
+        if (p.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «v.name».size(); i++) {
+                    «n.name».declare_dependency(&«v.name»[i]);
+                }
+            '''
+        }
+        // FIXME: support other cases
+        return '''«n.name».declare_dependency(&«v.name»);'''
+    }
 
     def declareDependencies(Reaction n) '''
-        «FOR t : n.sources»
-            «IF t.container !== null»
-                «n.name».declare_dependency(&«t.container.name».«t.variable.name»);
-            «ELSE»
-                «n.name».declare_dependency(&«t.variable.name»);
-            «ENDIF»
+        «FOR v : n.sources»
+            «n.declareDependency(v)»
         «ENDFOR»
     '''
 
+    def declareAntidependency(Reaction n, VarRef v) {
+        val p = v.variable as Port
+        if (p.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «v.name».size(); i++) {
+                    «n.name».declare_antidependency(&«v.name»[i]);
+                }
+            '''
+        }
+        // FIXME: support other cases
+        return '''«n.name».declare_antidependency(&«v.name»);'''
+    }
+
     def declareAntidependencies(Reaction n) '''
-        «FOR t : n.effects»
-            «IF t.variable instanceof Action»
-                «n.name».declare_scheduable_action(&«t.variable.name»);
+        «FOR v : n.effects»
+            «IF v.variable instanceof Action»
+                «n.name».declare_scheduable_action(&«v.variable.name»);
             «ELSE»
-                «IF t.container !== null»
-                    «n.name».declare_antidependency(&«t.container.name».«t.variable.name»);
-                «ELSE»
-                    «n.name».declare_antidependency(&«t.variable.name»);
-                «ENDIF»
+                «n.declareAntidependency(v)»
             «ENDIF»
         «ENDFOR»
     '''
@@ -373,9 +435,12 @@ class CppGenerator extends GeneratorBase {
         }
     }
 
+    def templateName(Reactor r) '''«r.name»«IF r.isGeneric»<«FOR t : r.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»'''
+
     def defineConstructor(Reactor r) '''
+        «IF r.isGeneric»«r.templateLine»«ENDIF»
         «IF r.parameters.length > 0»
-            «r.name»::«r.name»(const std::string& name,
+            «r.templateName»::«r.name»(const std::string& name,
                 «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
                 «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
         «ELSE»
@@ -429,9 +494,21 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
+    def initializerList(Instantiation i) '''
+        {"«i.name»", this«FOR p : i.reactorClass.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
+    '''
+
+    def initializerList(Instantiation i, Integer id) '''
+        {"«i.name»_«id»", this«FOR p : i.reactorClass.parameters», «IF p.name == "id"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
+    '''
+
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            , «i.name»{"«i.name»", this«FOR p : i.reactorClass.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
+            «IF i.arraySpec !== null»
+                , «i.name»{{«FOR id : IntStream.range(0, i.arraySpec.length).toArray SEPARATOR ", "»«i.initializerList(id)»«ENDFOR»}}
+            «ELSE»
+                , «i.name»«i.initializerList»
+            «ENDIF»
         «ENDFOR»
     '''
 
@@ -531,6 +608,7 @@ class CppGenerator extends GeneratorBase {
         «r.includeInstances»
         «r.publicPreamble»
         
+        «IF r.isGeneric»«r.templateLine»«ENDIF»
         class «r.name» : public reactor::Reactor {
          private:
           «r.declareParameters»
@@ -547,33 +625,85 @@ class CppGenerator extends GeneratorBase {
           
           void assemble() override;
         };
+        «IF r.isGeneric»
+        
+        #include "«r.headerImplFile»"
+        «ENDIF»
     '''
+
+    def templateLine(Reactor r) '''
+        template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>
+    '''
+
+    def generate(Connection c) {
+        val leftContainer = c.leftPort.container
+        val rightContainer = c.rightPort.container
+        val leftPort = c.leftPort.variable as Port
+        val rightPort = c.rightPort.variable as Port
+
+        if (leftContainer !== null && leftContainer.arraySpec !== null &&
+            rightContainer !== null && rightContainer.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
+                  «leftContainer.name»[i].«leftPort.name».bind_to(&«rightContainer.name»[i].«rightPort.name»);
+                }
+            '''
+        } else if (leftContainer !== null && leftContainer.arraySpec !== null &&
+            rightPort.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
+                  «leftContainer.name»[i].«leftPort.name».bind_to(&«c.rightPort.name»[i]);
+                }
+            '''
+        } else if (leftPort.arraySpec !== null && rightContainer !== null &&
+            rightContainer.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
+                  «c.leftPort.name»[i].bind_to(&«rightContainer.name»[i].«rightPort.name»);
+                }
+            '''
+        } else if (leftPort.arraySpec !== null) {
+            return '''
+                for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
+                  «c.leftPort.name»[i].bind_to(&«c.rightPort.name»[i]);
+                }
+            '''
+        } else {
+            return '''«c.leftPort.name».bind_to(&«c.rightPort.name»);'''
+        }
+    }
 
     def generateReactorSource(Reactor r) '''
         «r.eResource.header»
-        
-        #include "reactor-cpp/reactor-cpp.hh"
-        
+
+        «IF !r.isGeneric»#include "reactor-cpp/reactor-cpp.hh"«ENDIF»
+
         using namespace std::chrono_literals;
         using namespace reactor::operators;
-        
-        #include "«r.headerFile»"
+
+        «IF !r.isGeneric»#include "«r.headerFile»"«ENDIF»
         #include "lfutil.hh"
-        
+
         «r.privatePreamble»
+
         «r.defineConstructor»
-        
-        void «r.name»::assemble() {
-          «FOR n : r.reactions»
-              «r.assembleReaction(n)»
-          «ENDFOR»
-          «FOR c : r.connections BEFORE "  // connections\n"»
-              «'''  «c.leftPort.name».bind_to(&«c.rightPort.name»);'''»
-          «ENDFOR»
-        }
-        
+
+        «r.defineAssembleMethod»
+
         «r.implementReactionBodies»
         «r.implementReactionDeadlineHandlers»
+    '''
+    
+    def defineAssembleMethod(Reactor r) '''
+        «IF r.isGeneric»«r.templateLine»«ENDIF»
+        void «r.templateName»::assemble() {
+          «FOR n : r.reactions»
+             «r.assembleReaction(n)»
+          «ENDFOR»
+          «FOR c : r.connections BEFORE "  // connections\n"»
+             «c.generate»
+          «ENDFOR»
+        }
     '''
 
     def header(Resource r) '''
@@ -722,7 +852,7 @@ class CppGenerator extends GeneratorBase {
         add_executable(«filename»
           main.cc
           «FOR r : reactors»
-              «r.sourceFile»
+              «IF !r.isGeneric»«r.sourceFile»«ENDIF»
           «ENDFOR»
           «FOR r : importedResources.keySet»
               «r.preambleSourceFile»
@@ -899,4 +1029,12 @@ class CppGenerator extends GeneratorBase {
 
     override getTargetVariableSizeListType(
         String baseType) '''std::vector<«baseType»>'''
+        
+    override supportsGenerics() {
+        true
+    }
+    
+    override String generateDelayGeneric()
+        '''T'''
+    
 }
