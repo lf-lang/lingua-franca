@@ -22,6 +22,7 @@ import de.cau.cs.kieler.klighd.labels.decoration.LabelDecorationConfigurator
 import de.cau.cs.kieler.klighd.labels.decoration.LabelDecorationConfigurator.LayoutMode
 import javax.inject.Inject
 import org.eclipse.elk.core.math.ElkPadding
+import org.eclipse.elk.graph.properties.Property
 import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 
 /**
@@ -31,7 +32,9 @@ import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
  */
 @ViewSynthesisShared
 class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
-
+	
+	static val LABEL_PARENT_BACKGROUND = new Property<Colors>("org.icyphy.linguafranca.diagram.synthesis.styles.label.parent.background", Colors.WHITE)
+	
 	@Inject extension KRenderingExtensions
 	@Inject extension KContainerRenderingExtensions
 	@Inject extension KPolylineExtensions
@@ -185,6 +188,133 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 	            })
 		}
 		_onEdgeDelayLabelConfigurator.applyTo(label)
+	}
+	
+	static var LabelDecorationConfigurator _onEdgePysicalDelayLabelConfigurator; // ONLY for use in applyOnEdgePysicalDelayStyle
+	def applyOnEdgePysicalDelayStyle(KLabel label, Colors parentBackgroundColor) {
+		if (_onEdgePysicalDelayLabelConfigurator === null) {
+	        _onEdgePysicalDelayLabelConfigurator = LabelDecorationConfigurator.create
+	        	.withInlineLabels(true)
+	            .withLabelTextRenderingProvider([ container, klabel | 
+	            	val kText = createKText()
+	            	kText.fontSize = 8
+	            	kText.boldTextSelectionStyle()
+					kText.setProperty(KlighdInternalProperties.MODEL_ELEMEMT, klabel.getProperty(KlighdInternalProperties.MODEL_ELEMEMT))
+	            	
+        			container.children += kText
+        			kText
+	            ])
+	            .addDecoratorRenderingProvider(new IDecoratorRenderingProvider() {
+				    
+					override createDecoratorRendering(KContainerRendering container, KLabel label, LayoutMode layoutMode) {
+	        			val padding = new ElkPadding()
+						padding.left = 8
+						padding.right = 16
+						padding.bottom = Math.max(padding.bottom, 1)
+	
+						container.children += createKPolygon() => [
+							from(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 1, 0.5f)
+							to(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 1, 0.5f)
+							to(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+							background = label.getProperty(LABEL_PARENT_BACKGROUND)
+							foreground = label.getProperty(LABEL_PARENT_BACKGROUND)
+						]
+						container.children += createKSpline() => [
+							from(PositionReferenceX.LEFT, -0.66f, 0, PositionReferenceY.BOTTOM, -0.5f , 0.5f)
+							to(PositionReferenceX.LEFT, 1, 0, PositionReferenceY.BOTTOM, -0.5f , 0.5f)
+							to(PositionReferenceX.LEFT, 3, 0, PositionReferenceY.BOTTOM, 8, 0.5f)
+							to(PositionReferenceX.LEFT, 5, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.LEFT, 5.5f, 0, PositionReferenceY.BOTTOM, -1.5f, 0.5f)
+						]
+						container.children += createKSpline() => [
+							from(PositionReferenceX.RIGHT, 15f, 0, PositionReferenceY.BOTTOM, 3.5f , 0.5f)
+							to(PositionReferenceX.RIGHT, 14f, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.RIGHT, 11, 0, PositionReferenceY.BOTTOM, -8, 0.5f)
+							to(PositionReferenceX.RIGHT, 9, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.RIGHT, 7, 0, PositionReferenceY.BOTTOM, 8, 0.5f)
+							to(PositionReferenceX.RIGHT, 4f, 0, PositionReferenceY.BOTTOM, 2, 0.5f)
+							to(PositionReferenceX.RIGHT, 1.5f, 0, PositionReferenceY.BOTTOM, 0.5f, 0.5f)
+							to(PositionReferenceX.RIGHT, 0.2f, 0, PositionReferenceY.BOTTOM, -0.5f, 0.5f)
+							to(PositionReferenceX.RIGHT, -0.7f, 0, PositionReferenceY.BOTTOM, -0.5f, 0.5f)
+						]
+						container.children += createKPolygon => [
+							from(PositionReferenceX.LEFT, 4, 0, PositionReferenceY.BOTTOM, 0, 0)
+							to(PositionReferenceX.LEFT, 8, 0, PositionReferenceY.TOP, 0, 0)
+							to(PositionReferenceX.RIGHT, 12, 0, PositionReferenceY.TOP, 0, 0)
+							to(PositionReferenceX.RIGHT, 16, 0, PositionReferenceY.BOTTOM, 0, 0)
+							background = Colors.WHITE
+							foreground = Colors.WHITE
+						]
+						container.children += createKPolyline => [
+							from(PositionReferenceX.LEFT, 4, 0, PositionReferenceY.BOTTOM, 0, 0)
+							to(PositionReferenceX.LEFT, 8, 0, PositionReferenceY.TOP, 0, 0)
+						]
+						container.children += createKPolyline => [
+							from(PositionReferenceX.RIGHT, 16, 0, PositionReferenceY.BOTTOM, 0, 0)
+							to(PositionReferenceX.RIGHT, 12, 0, PositionReferenceY.TOP, 0, 0)
+						]
+						return padding
+					}
+	            	
+	            })
+		}
+		label.setProperty(LABEL_PARENT_BACKGROUND, parentBackgroundColor)
+		_onEdgePysicalDelayLabelConfigurator.applyTo(label)
+	}
+	
+	static var LabelDecorationConfigurator _onEdgePysicalLabelConfigurator; // ONLY for use in applyOnEdgePysicalStyle
+	def applyOnEdgePysicalStyle(KLabel label, Colors parentBackgroundColor) {
+		if (_onEdgePysicalLabelConfigurator === null) {
+	        _onEdgePysicalLabelConfigurator = LabelDecorationConfigurator.create
+	        	.withInlineLabels(true)
+	            .withLabelTextRenderingProvider([ container, klabel | 
+	            	val kText = createKText()
+	            	kText.invisible = true
+        			container.children += kText
+        			kText
+	            ])
+	            .addDecoratorRenderingProvider(new IDecoratorRenderingProvider() {
+				    
+					override createDecoratorRendering(KContainerRendering container, KLabel label, LayoutMode layoutMode) {
+	        			val padding = new ElkPadding()
+						padding.left = 3
+						padding.right = 3
+						padding.bottom = Math.max(padding.bottom, 1)
+	
+						container.children += createKPolygon() => [
+							from(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 1, 0.5f)
+							to(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 1, 0.5f)
+							to(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0, 0.5f)
+							background = label.getProperty(LABEL_PARENT_BACKGROUND)
+							foreground = label.getProperty(LABEL_PARENT_BACKGROUND)
+						]
+						container.children += createKSpline() => [
+							from(PositionReferenceX.LEFT, -0.66f, 0, PositionReferenceY.BOTTOM, -0.5f , 0.5f)
+							to(PositionReferenceX.LEFT, 1, 0, PositionReferenceY.BOTTOM, -0.5f , 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.1f, PositionReferenceY.BOTTOM, 8, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.2f, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.3f, PositionReferenceY.BOTTOM, -8, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.4f, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.45f, PositionReferenceY.BOTTOM, 4f, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.BOTTOM, 8, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.55f, PositionReferenceY.BOTTOM, 4f, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.6f, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.65f, PositionReferenceY.BOTTOM, -4, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.7f, PositionReferenceY.BOTTOM, -8, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.8f, PositionReferenceY.BOTTOM, -4, 0.5f)
+							to(PositionReferenceX.LEFT, 0, 0.9f, PositionReferenceY.BOTTOM, 0, 0.5f)
+							to(PositionReferenceX.LEFT, -1, 1, PositionReferenceY.BOTTOM, -0.5f, 0.5f)
+							to(PositionReferenceX.LEFT, 0.66f, 1, PositionReferenceY.BOTTOM, -0.5f, 0.5f)
+						]
+						return padding
+					}
+	            	
+	            })
+		}
+		label.setProperty(LABEL_PARENT_BACKGROUND, parentBackgroundColor)
+		_onEdgePysicalLabelConfigurator.applyTo(label)
 	}
 	
     def KRendering addFixedTailArrowDecorator(KPolyline pl) {
