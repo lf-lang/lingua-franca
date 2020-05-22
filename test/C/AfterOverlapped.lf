@@ -37,5 +37,5 @@ reactor Test {
 main reactor CountTest {
     count = new Count();
     test = new Test();
-    count.c -> test.c after 2 sec;
+    count.out -> test.c after 2 sec;
 }

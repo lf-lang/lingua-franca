@@ -1,10 +1,10 @@
 target C;
 reactor Count {
-    output c:int;
+    output out:int;
     timer t(0, 1 sec);
     state i:int(0);
-    reaction(t) -> c {=
+    reaction(t) -> out {=
         (self->i)++;
-        set(c, self->i);
+        set(out, self->i);
     =}
 }

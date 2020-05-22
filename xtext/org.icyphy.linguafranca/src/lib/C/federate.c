@@ -186,7 +186,7 @@ void connect_to_rti(int id, char* hostname, int port) {
 
         struct hostent *server = gethostbyname(hostname);
         if (server == NULL) {
-            fprintf(stderr,"ERROR, no such host for RTI.\n");
+            fprintf(stderr,"ERROR, no such host for RTI: %s\n", hostname);
             exit(1);
         }
         // Server file descriptor.

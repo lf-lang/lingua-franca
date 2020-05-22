@@ -44,9 +44,11 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		// Determine which target is desired.
+		
+		var GeneratorBase generator
+		
 		for (target : resource.allContents.toIterable.filter(Target)) {
 		    
-		    var GeneratorBase generator
 			val t = Targets.get(target.name)
 			if (t === null) {
 			    System.err.println("Warning: Unrecognized target.")
@@ -63,10 +65,9 @@ class LinguaFrancaGenerator extends AbstractGenerator {
                     generator = new TypeScriptGenerator()
                 }
 			}
-			
-            generator.doGenerate(resource, fsa, context)
-            generatorErrorsOccurred = generator.errorsOccurred()
 		}
+		generator.doGenerate(resource, fsa, context)
+        generatorErrorsOccurred = generator.errorsOccurred()
 	}
 	
 	/** Return true if errors occurred in the last call to doGenerate().

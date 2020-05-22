@@ -28,25 +28,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy
 
 import java.util.HashSet
+import java.util.LinkedList
+import java.util.List
+import java.util.Set
+import org.eclipse.emf.common.util.EList
 import org.eclipse.xtext.nodemodel.ILeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.generator.FederateInstance
 import org.icyphy.generator.GeneratorBase
+import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.Time
-import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Value
-import org.eclipse.emf.common.util.EList
-import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.TypeParm
+import org.eclipse.emf.ecore.resource.Resource
+import java.util.HashMap
+import org.icyphy.linguaFranca.VarRef
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -62,62 +70,253 @@ class ASTUtils {
     public static val factory = LinguaFrancaFactory.eINSTANCE
     
     /**
-     * Take a connection and replace it with an action and two reactions
-     * that implement a delayed transfer between the end points of the 
-     * given connection.
-     * @param connection The connection to replace.
-     * @param delay The delay associated with the connection.
+     * Find connections in the given resource that have a delay associated with them, 
+     * and reroute them via a generated delay reactor.
+     * @param resource The AST.
+     * @param generator A code generator.
      */
-    static def void desugarDelay(Connection connection, GeneratorBase generator) {
-        val type = (connection.rightPort.variable as Port).type.copy
+    static def insertGeneratedDelays(Resource resource, GeneratorBase generator) {
+        // The resulting changes to the AST are performed _after_ iterating 
+        // in order to avoid concurrent modification problems.
+        val oldConnections = new LinkedList<Connection>()
+        val newConnections = new HashMap<Reactor, List<Connection>>()
+        val delayInstances = new HashMap<Reactor, List<Instantiation>>()
+        val delayClasses = new HashSet<Reactor>()
+        
+        // Iterate over the connections in the tree.
+        for (connection : resource.allContents.toIterable.filter(Connection)) {
+            if (connection.delay !== null) {
+                val parent = connection.eContainer as Reactor
+                val type = (connection.rightPort.variable as Port).type
+                val delayClass = getDelayClass(type, delayClasses, generator)
+                val generic = generator.supportsGenerics ? 
+                    InferredType.fromAST(type).toText : ""
+                val delayInstance = getDelayInstance(delayClass,
+                    connection.delay, generic)
+
+                // Stage the new connections for insertion into the tree.
+                var connections = newConnections.get(parent)
+                if (connection !== null) connections = new LinkedList()
+                connections.addAll(connection.rerouteViaDelay(delayInstance))
+                newConnections.put(parent, connections)
+
+                // Stage the original connection for deletion from the tree.
+                oldConnections.add(connection)
+
+                // Stage the newly created delay reactor instance for insertion
+                var instances = (delayInstances.get(parent) ?: emptyList)
+                if (instances !== null) instances = new LinkedList()
+                instances.addAll(delayInstance)
+                delayInstances.put(parent, instances)
+            }
+        }
+        // Remove old connections; insert new ones.
+        oldConnections.forEach [ connection |
+            (connection.eContainer as Reactor).connections.remove(connection)
+        ]
+        newConnections.forEach [ reactor, connections |
+            reactor.connections.addAll(connections)
+        ]
+        // Also add class definitions of the created delay reactor(s).
+        delayClasses.forEach[reactor|resource.contents.add(reactor)]
+        // Finally, insert the instances and, before doing so, assign them a unique name.
+        delayInstances.forEach [ reactor, instantiations |
+            instantiations.forEach [ instantiation |
+                instantiation.name = reactor.getUniqueIdentifier("delay");
+                reactor.instantiations.add(instantiation)
+            ]
+        ]
+    }
+    
+    /**
+     * Take a connection and reroute it via an instance of a generated delay
+     * reactor. This method returns a list to new connections to substitute
+     * the original one.
+     * @param connection The connection to reroute.
+     * @param delayInstance The delay instance to route the connection through.
+     */
+    private static def List<Connection> rerouteViaDelay(Connection connection, 
+            Instantiation delayInstance) {
+        
+        val connections = new LinkedList<Connection>()
+               
+        val upstream = factory.createConnection
+        val downstream = factory.createConnection
+        val input = factory.createVarRef
+        val output = factory.createVarRef
+        
+        val delayClass = delayInstance.reactorClass
+        
+        // Establish references to the involved ports.
+        input.container = delayInstance
+        input.variable = delayClass.inputs.get(0)
+        output.container = delayInstance
+        output.variable = delayClass.outputs.get(0)
+        upstream.leftPort = connection.leftPort
+        upstream.rightPort = input
+        downstream.leftPort = output
+        downstream.rightPort = connection.rightPort
+
+        connections.add(upstream)
+        connections.add(downstream)
+        return connections
+    }
+    
+    /**
+     * Create a new instance delay instances using the given reactor class.
+     * The supplied time value is used to override the default interval (which
+     * is zero).
+     * If the target supports parametric polymorphism, then a single class may
+     * be used for each instantiation, in which case a non-empty string must
+     * be supplied to parameterize the instance.
+     * A default name ("delay") is assigned to the instantiation, but this
+     * name must be overridden at the call site, where checks can be done to
+     * avoid name collisions in the container in which the instantiation is
+     * to be placed. Such checks (or modifications of the AST) are not
+     * performed in this method to avoid causing concurrent modification
+     * exceptions. 
+     * @param delayClass The class to create an instantiation for
+     * @param value A time interval corresponding to the desired delay
+     * @param generic A string that denotes the appropriate type parameter, 
+     * which should be null or empty if the target does not support generics. 
+     */
+    private static def Instantiation getDelayInstance(Reactor delayClass, 
+            Value time, String generic) {
+        val delayInstance = factory.createInstantiation
+        delayInstance.reactorClass = delayClass
+        if (!generic.isNullOrEmpty) {
+            val typeParm = factory.createTypeParm
+            typeParm.literal = generic
+            delayInstance.typeParms.add(typeParm)
+            
+        }
+        val delay = factory.createAssignment
+        delay.lhs = delayClass.parameters.get(0)
+        delay.rhs.add(time.copy)
+        delayInstance.parameters.add(delay)
+        delayInstance.name = "delay" // This has to be overridden.
+        
+        return delayInstance
+                
+    }
+    
+    /**
+     * Return a synthesized AST node that represents the definition of a delay
+     * reactor. Depending on whether the target supports generics, either this
+     * method will synthesize a generic definition and keep returning it upon
+     * subsequent calls, or otherwise, it will synthesize a new definition for 
+     * each new type it hasn't yet created a compatible delay reactor for. All
+     * the classes generated so far are passed as an argument to this method,
+     * and newly created definitions are accumulated as a side effect of
+     * invoking this method. For each invocation, if no existing definition
+     * exists that can handle the given type, a new definition is created, 
+     * it is added to the set generated classes, and it is returned.
+     * @param type The type the delay class must be compatible with.
+     * @param generatedClasses Set of class definitions already generated.
+     * @param generator A code generator.
+     */
+    private static def Reactor getDelayClass(Type type, 
+            Set<Reactor> generatedClasses, GeneratorBase generator) {
+        
+        val className = generator.supportsGenerics ? 
+            GeneratorBase.GEN_DELAY_CLASS_NAME : {
+                val id = Integer.toHexString(
+                    InferredType.fromAST(type).toText.hashCode)
+                '''«GeneratorBase.GEN_DELAY_CLASS_NAME»_«id»'''
+            }
+            
+        // Only add class definition if it is not already there.
+        val classDef = generatedClasses.findFirst[it|it.name.equals(className)]
+        if (classDef !== null) {
+            return classDef
+        }
+        
+        val delayClass = factory.createReactor
+        val delayParameter = factory.createParameter
         val action = factory.createAction
         val triggerRef = factory.createVarRef
         val effectRef = factory.createVarRef
+        val input = factory.createInput
+        val output = factory.createOutput
         val inRef = factory.createVarRef
         val outRef = factory.createVarRef
-        val parent = (connection.eContainer as Reactor)
+            
         val r1 = factory.createReaction
         val r2 = factory.createReaction
-
+        
+        delayParameter.name = "delay"
+        delayParameter.type = factory.createType
+        delayParameter.type.id = generator.targetTimeType
+        val defaultValue = factory.createValue
+        defaultValue.literal = generator.timeInTargetLanguage(
+            new TimeValue(0, TimeUnit.NONE))
+        delayParameter.init.add(defaultValue)
+        
         // Name the newly created action; set its delay and type.
-        action.name = getUniqueIdentifier(parent, "delay")
+        action.name = "act"
         action.minDelay = factory.createValue
-        action.minDelay = connection.delay.copy
-         
-        action.type = type
+        action.minDelay.parameter = delayParameter
         action.origin = ActionOrigin.LOGICAL
-
+                
+        if (generator.supportsGenerics) {
+            action.type = factory.createType
+            action.type.id = "T"
+        } else {
+            action.type = type.copy
+        }
+        
+        input.name = "inp"
+        input.type = action.type.copy
+        
+        output.name = "out"
+        output.type = action.type.copy
+        
+        // Establish references to the involved ports.
+        inRef.variable = input
+        outRef.variable = output
+        
         // Establish references to the action.
         triggerRef.variable = action
         effectRef.variable = action
-
-        // Establish references to the involved ports.
-        inRef.container = connection.leftPort.container
-        inRef.variable = connection.leftPort.variable
-        outRef.container = connection.rightPort.container
-        outRef.variable = connection.rightPort.variable
-
+        
         // Add the action to the reactor.
-        parent.actions.add(action)
+        delayClass.name = className
+        delayClass.actions.add(action)
 
         // Configure the first reaction.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
         r1.code = factory.createCode()
-        r1.code.tokens.add(generator.generateDelayBody(action, inRef))
-
+        r1.code.body = generator.generateDelayBody(action, inRef)
+    
         // Configure the second reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
         r2.code = factory.createCode()
-        r2.code.tokens.add(generator.generateForwardBody(action, outRef))
-
-        // Add the reactions to the parent.
+        r2.code.body = generator.generateForwardBody(action, outRef)    
+    
+        // Add the reactions to the newly created reactor class.
         // These need to go in the opposite order in case
         // a new input arrives at the same time the delayed
         // output is delivered!
-        parent.reactions.add(r2)
-        parent.reactions.add(r1)
+            
+        delayClass.reactions.add(r2)
+        delayClass.reactions.add(r1)
+
+        // Add a type parameter if the target supports it.
+        if (generator.supportsGenerics) {
+            val parm = factory.createTypeParm
+            parm.literal = generator.generateDelayGeneric()
+            delayClass.typeParms.add(parm)
+        }
+        
+        delayClass.inputs.add(input)
+        delayClass.outputs.add(output)
+        delayClass.parameters.add(delayParameter)
+        
+        generatedClasses.add(delayClass)
+        
+        return delayClass
     }
     
     /** 
@@ -188,20 +387,20 @@ class ASTUtils {
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
         r1.code = factory.createCode()
-        r1.code.tokens.add(generator.generateNetworkSenderBody(
+        r1.code.body = generator.generateNetworkSenderBody(
             inRef,
             outRef,
             receivingPortID,
             leftFederate,
             rightFederate,
             action.inferredType
-        ))
+        )
 
         // Configure the receiving reaction.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
         r2.code = factory.createCode()
-        r2.code.tokens.add(generator.generateNetworkReceiverBody(
+        r2.code.body = generator.generateNetworkReceiverBody(
             action,
             inRef,
             outRef,
@@ -209,7 +408,7 @@ class ASTUtils {
             leftFederate,
             rightFederate,
             action.inferredType
-        ))
+        )
 
         // Add the reactions to the parent.
         parent.reactions.add(r1)
@@ -269,10 +468,26 @@ class ASTUtils {
             }
             if (original.code !== null) {
                 clone.code = factory.createCode
-                original.code.tokens.forEach[clone.code.tokens.add(it)]
+                clone.code.body = original.code.body
             }
             return clone
         }
+    }
+    
+    /**
+     * Given a "type" AST node, return a deep copy of that node.
+     * @param original The original to create a deep copy of.
+     * @return A deep copy of the given AST node.
+     */
+    private static def getCopy(TypeParm original) {
+        val clone = factory.createTypeParm
+        if (!original.literal.isNullOrEmpty) {
+            clone.literal = original.literal
+        } else if (original.code !== null) {
+                clone.code = factory.createCode
+                clone.code.body = original.code.body
+        }
+        return clone
     }
     
     /**
@@ -288,7 +503,7 @@ class ASTUtils {
             // Set the type based on the argument type.
             if (original.code !== null) {
                 clone.code = factory.createCode
-                original.code.tokens?.forEach[clone.code.tokens.add(it)]
+                clone.code.body = original.code.body
             } 
             if (original.stars !== null) {
                 original.stars?.forEach[clone.stars.add(it)]
@@ -301,13 +516,13 @@ class ASTUtils {
                 clone.arraySpec.length = original.arraySpec.length
             }
             
-            if (original.parameters !== null) {
-                clone.parameters = original.parameters
-            }
+            original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
             
             return clone
         }
     }
+    
+    
     
     /**
      * Translate the given code into its textual representation.
@@ -324,8 +539,11 @@ class ASTUtils {
                     builder.append(leaf.getText());
                 }
                 var str = builder.toString.trim
-                // remove the code delimiters
-                str = str.substring(2, str.length - 2)
+                // Remove the code delimiters (and any surrounding comments).
+                // This assumes any comment before {= does not include {=.
+                val start = str.indexOf("{=")
+                val end = str.indexOf("=}", start)
+                str = str.substring(start + 2, end)
                 if (str.split('\n').length > 1) {
                     // multi line code
                     return str.trimCodeBlock
@@ -333,25 +551,27 @@ class ASTUtils {
                     // single line code
                     return str.trim
                 }    
-            } else {
+            } else if (code.body !== null) {
                 // Code must have been added as a simple string.
-                val builder = new StringBuilder(Math.max(code.tokens.length, 1))
-                for (token : code.tokens) {
-                    builder.append(token)
-                }
-                return builder.toString
+                return code.body.toString
             }
         }
         return ""
     }
     
+    def static toText(TypeParm t) {
+        if (!t.literal.isNullOrEmpty) {
+            t.literal
+        } else {
+            t.code.toText
+        }
+    }
+    
     /**
      * Intelligently trim the white space in a code block.
 	 * 
-	 * First this removes any lines only containing whitespaces in the beginning
-	 * of the block. It considers the first line containing non-whitespace 
-	 * characters as the first code line. The leading whitespaces of this first
-	 * code line are considered as a common prefix across all code lines. If the
+	 * The leading whitespaces of the first non-empty
+	 * code line is considered as a common prefix across all code lines. If the
 	 * remaining code lines indeed start with this prefix, it removes the prefix
 	 * from the code line.
 	 * 
@@ -370,6 +590,10 @@ class ASTUtils {
      * }
      * }</pre>
      * 
+     * In addition, if the very first line has whitespace only, then
+     * that line is removed. This just means that the {= delimiter
+     * is followed by a newline.
+     * 
      * @param code the code block to be trimmed
      * @return trimmed code block 
      */
@@ -377,9 +601,9 @@ class ASTUtils {
         var codeLines = code.split("\n")
         var String prefix = null
         var buffer = new StringBuilder()
+        var first = true
         for (line : codeLines) {
             if (prefix === null) {
-                // skip any lines that only contain whitespaces
                 if (line.trim.length > 0) {
                     // this is the first code line
                     
@@ -396,8 +620,13 @@ class ASTUtils {
 
                     // extract the whitespace prefix
                     prefix = line.substring(0, firstCharacter)
+                } else if(!first) {
+                    // Do not remove blank lines. They throw off #line directives.
+                    buffer.append(line)
+                    buffer.append('\n')
                 }
             }
+            first = false
 
             // try to remove the prefix from all subsequent lines
             if (prefix !== null) {
@@ -410,8 +639,9 @@ class ASTUtils {
                 }
             }
         }
-        if (buffer.length > 1)
-        	buffer.deleteCharAt(buffer.length - 1) // remove the last newline 
+        if (buffer.length > 1) {
+        	buffer.deleteCharAt(buffer.length - 1) // remove the last newline
+        } 
         buffer.toString
     }
     
@@ -445,6 +675,14 @@ class ASTUtils {
             return v.code.toText
         }
         ""
+    }
+    
+     def static toText(VarRef v) {
+        if (v.container !== null) {
+            '''«v.container.name».«v.variable.name»'''
+        } else {
+            '''«v.variable.name»'''
+        }
     }
     
     /**
@@ -633,22 +871,6 @@ class ASTUtils {
         }
         return true
     }
-
-	/**
-	 * Report whether the given state variable denotes time list, meaning it is a list
-	 * of which all elements are valid times.
-     * @param value AST node to inspect.
-     * @return True if the argument denotes a valid time list, false otherwise.
-     */	
-    def static boolean isValidTimeList(StateVar s) {
-        if (s !== null) {
-            if (s.type !== null && s.type.isTime && s.type.arraySpec !== null) {
-              // FIXME  
-            }
-        }
-        return false
-    }
-
 
     /**
      * Report whether the given parameter has been declared a type or has been
@@ -867,5 +1089,14 @@ class ASTUtils {
             return InferredType.fromAST(p.type)
         }
         return InferredType.undefined
+    }
+
+    /**
+     * Check if the reactor class uses generics
+     * @param r the reactor to check 
+     * @true true if the reactor uses generics
+     */
+    def static isGeneric(Reactor r) {
+        return r.typeParms.length != 0;
     }
 }

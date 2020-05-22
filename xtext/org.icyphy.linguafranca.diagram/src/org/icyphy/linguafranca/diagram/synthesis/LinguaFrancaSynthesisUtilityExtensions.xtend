@@ -10,9 +10,10 @@ import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.icyphy.ASTUtils
+import org.icyphy.linguaFranca.Code
+import org.icyphy.linguaFranca.Host
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Value
-import org.icyphy.linguaFranca.Code
 
 /**
  * Extension class that provides various utility methods for the synthesis.
@@ -44,6 +45,32 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	}
 	
 	/**
+	 * Converts a host value into readable text
+	 */
+	def String toText(Host host) {
+		val sb = new StringBuilder
+		if (host !== null) {
+			if (!host.user.nullOrEmpty) {
+				sb.append(host.user).append("@")
+			}
+			if (!host.addr.nullOrEmpty) {
+				sb.append(host.addr)
+			}
+			if (host.port !== 0) {
+				sb.append(":").append(host.port)
+			}
+		}
+		return sb.toString
+	}
+	
+	/**
+	 * Returns true if the reactor is the primary reactor
+	 */
+	def isPrimary(Reactor reactor) {
+		return reactor.main || reactor.federated
+	}
+	
+	/**
 	 * Returns true if the reactor as has inner reactions or instances
 	 */
 	def hasContent(Reactor reactor) {
@@ -54,7 +81,7 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	 * Trims the hostcode of reactions.
 	 */
 	def trimCode(Code tokenizedCode) {
-		if (tokenizedCode === null || tokenizedCode.tokens.nullOrEmpty) {
+		if (tokenizedCode === null || tokenizedCode.body.nullOrEmpty) {
 			return ""
 		}
 		try {
@@ -108,7 +135,7 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 			return lines.join("\n")
 		} catch(Exception e) {
 			e.printStackTrace
-			return tokenizedCode.tokens.join().replace(";",";\n") // just heuristic
+			return tokenizedCode.body
 		}
 	}
 	
@@ -138,10 +165,8 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 							comments += node.text.substring(2).trim()
 						} else if ("ML_COMMENT".equals(rule.name)) {
 							var block = node.text
-							block = block.substring(2, block.length - 2).trim()
+							block = block.substring(block.startsWith("/**") ? 3 : 2, block.length - 2).trim()
 							val lines = block.split("\n").map[trim()].toList
-							// FIXME: The following results in leading blank lines if
-							// the comment starts with /**
 							comments += lines.map[
 								if (it.startsWith("* ")) {
 									it.substring(2)
