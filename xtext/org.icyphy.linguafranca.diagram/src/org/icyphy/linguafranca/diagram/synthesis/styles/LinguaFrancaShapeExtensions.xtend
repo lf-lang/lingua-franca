@@ -28,6 +28,7 @@ import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY
 import javax.inject.Inject
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.PortSide
+import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
@@ -65,7 +66,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the main reactor frame.
 	 */
-	def addMainReactorFigure(KNode node, String text) {
+	def addMainReactorFigure(KNode node, Reactor reactor, String text) {
 		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
@@ -74,10 +75,36 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			boldLineSelectionStyle
 		]
 		
-		figure.addText(text) => [
+		figure.addRectangle() => [
+			invisible = true
 			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, 4, 0)
-			suppressSelectability
-			underlineSelectionStyle
+			
+			addRectangle() => [ // Centered child container
+				invisible = true
+				setPointPlacementData(LEFT, 0, 0.5f, TOP, 0, 0.5f, H_CENTRAL, V_CENTRAL, 0, 0, 0, 0)
+				val placement = setGridPlacement(1)
+				
+				addText(text) => [
+					suppressSelectability
+					underlineSelectionStyle
+				]
+				
+				if (reactor.federated) {
+					addCloudIcon() => [
+						setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
+					]
+					placement.numColumns = 2
+					
+					if (reactor.host !== null && SHOW_REACTOR_HOST.booleanValue) {
+						addText(reactor.host.toText()) => [
+							suppressSelectability
+							underlineSelectionStyle
+							setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
+						]
+						placement.numColumns = 3
+					}
+				}
+			]
 		]
 		
 		return figure
@@ -86,7 +113,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a reactor node
 	 */
-	def addReactorFigure(KNode node, Reactor reactor, String text) {
+	def addReactorFigure(KNode node, Reactor reactor, Instantiation instance, String text) {
 		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
@@ -99,10 +126,36 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		// minimal node size is necessary if no text will be added
 		node.setMinimalNodeSize(2 * figure.cornerWidth, 2 * figure.cornerHeight)
 
-		figure.addText(text) => [
+		figure.addRectangle() => [
+			invisible = true
 			setGridPlacementData().from(LEFT, padding, 0, TOP, padding, 0).to(RIGHT, padding, 0, BOTTOM, reactor.hasContent ? 4 : padding, 0)
-			suppressSelectability
-			underlineSelectionStyle
+			
+			addRectangle() => [ // Centered child container
+				invisible = true
+				setPointPlacementData(LEFT, 0, 0.5f, TOP, 0, 0.5f, H_CENTRAL, V_CENTRAL, 0, 0, 0, 0)
+				val placement = setGridPlacement(1)
+				
+				addText(text) => [
+					suppressSelectability
+					underlineSelectionStyle
+				]
+				
+				if (instance !== null && instance.host !== null) {
+					addCloudUploadIcon() => [
+						setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
+					]
+					placement.numColumns = 2
+					
+					if (SHOW_REACTOR_HOST.booleanValue) {
+						addText(instance.host.toText()) => [
+							suppressSelectability
+							underlineSelectionStyle
+							setGridPlacementData().from(LEFT, 3, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
+						]
+						placement.numColumns = 3
+					}
+				}
+			]
 		]
 		
 		return figure

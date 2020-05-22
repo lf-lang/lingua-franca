@@ -118,6 +118,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
+	public static val SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ReactorParameterDisplayModes.values, ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE)
@@ -138,6 +139,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_HYPERLINKS,
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
+			SHOW_REACTOR_HOST,
 			SHOW_INSTANCE_NAMES,
 			REACTOR_PARAMETER_MODE,
 			REACTOR_PARAMETER_TABLE_COLS,
@@ -222,7 +224,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		if (reactor === null) {
 			node.addErrorMessage(TEXT_REACTOR_NULL, null)
 		} else if (main) {
-			val figure = node.addMainReactorFigure(label)
+			val figure = node.addMainReactorFigure(reactor, label)
 			
 			if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactor.parameters.empty) {
 				figure.addRectangle() => [
@@ -260,7 +262,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 		} else {
 			// Expanded Rectangle
-			node.addReactorFigure(reactor, label) => [
+			node.addReactorFigure(reactor, instance, label) => [
 				associateWith(reactor)
 				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
 				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
@@ -296,7 +298,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			]
 
 			// Collapse Rectangle
-			node.addReactorFigure(reactor, label) => [
+			node.addReactorFigure(reactor, instance, label) => [
 				associateWith(reactor)
 				setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
 				if (reactor.hasContent && !recursive) {
