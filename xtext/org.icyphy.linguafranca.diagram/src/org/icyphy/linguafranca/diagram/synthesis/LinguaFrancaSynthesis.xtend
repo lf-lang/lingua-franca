@@ -160,7 +160,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		try {
 			// Find main
-			val main = model.reactors.findFirst[main || federated]
+			val main = model.reactors.findFirst[primary]
 			if (main !== null) {
 				rootNode.children += main.createReactorNode(true, true, null, null, null, newHashSet)
 			} else {
@@ -624,8 +624,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			if (connection.delay !== null) {
 				edge.addCenterEdgeLabel(connection.delay.toText) => [
 					associateWith(connection.delay)
-					applyOnEdgeDelayStyle()
+					if (connection.physical) {
+						applyOnEdgePysicalDelayStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
+					} else {
+						applyOnEdgeDelayStyle()
+					}
 				]
+			} else if (connection.physical) {
+				edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
 			}
 			if (source !== null && target !== null) {
 				edge.connect(source, target)

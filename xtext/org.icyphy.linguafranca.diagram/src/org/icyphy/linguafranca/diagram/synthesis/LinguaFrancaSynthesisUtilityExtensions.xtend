@@ -64,6 +64,13 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	}
 	
 	/**
+	 * Returns true if the reactor is the primary reactor
+	 */
+	def isPrimary(Reactor reactor) {
+		return reactor.main || reactor.federated
+	}
+	
+	/**
 	 * Returns true if the reactor as has inner reactions or instances
 	 */
 	def hasContent(Reactor reactor) {
