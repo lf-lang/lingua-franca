@@ -12,6 +12,7 @@ import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
 import de.cau.cs.kieler.klighd.krendering.KText
 import de.cau.cs.kieler.klighd.krendering.Underline
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
+import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KPolylineExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX
@@ -32,6 +33,7 @@ import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 
 	@Inject extension KRenderingExtensions
+	@Inject extension KContainerRenderingExtensions
 	@Inject extension KPolylineExtensions
     extension KRenderingFactory = KRenderingFactory::eINSTANCE
 
@@ -76,6 +78,52 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 			r.foreground.propagateToChildren = true
 			r.lineWidth.propagateToChildren = true
 		}
+	}
+	
+	static val CLOUD_WIDTH = 20
+	def KContainerRendering addCloudIcon(KContainerRendering parent) {
+		return parent.addRectangle() => [
+			invisible = true
+			
+			addRoundedRectangle(CLOUD_WIDTH / 7, CLOUD_WIDTH / 7) => [
+				background = Colors.GRAY
+				foreground = Colors.GRAY
+				setPointPlacementData(LEFT, 2, 0, TOP, 0, 0.5f, H_LEFT, V_TOP, 0, 0, CLOUD_WIDTH, CLOUD_WIDTH / 3)
+			]
+			addEllipse() => [
+				background = Colors.GRAY
+				foreground = Colors.GRAY
+				setPointPlacementData(LEFT, 0, 0f, TOP, 0, 0.38f, H_LEFT, V_TOP, 0, 0, CLOUD_WIDTH / 2.5f, CLOUD_WIDTH / 2.5f)
+			]
+			addEllipse() => [
+				background = Colors.GRAY
+				foreground = Colors.GRAY
+				setPointPlacementData(LEFT, 0, 0.5f, TOP, 0, 0.25f, H_RIGHT, V_TOP, 0, 0, CLOUD_WIDTH / 3f, CLOUD_WIDTH / 3f)
+			]
+			addEllipse() => [
+				background = Colors.GRAY
+				foreground = Colors.GRAY
+				setPointPlacementData(LEFT, 0, 0.4f, TOP, CLOUD_WIDTH / 10, 0, H_LEFT, V_TOP, 0, 0, CLOUD_WIDTH / 2, CLOUD_WIDTH / 2)
+			]
+		]
+	}
+	
+	def KRendering addCloudUploadIcon(KContainerRendering parent) {
+		return parent.addCloudIcon() => [
+			addPolygon() => [
+				background = Colors.WHITE
+				foreground = Colors.WHITE
+				points += #[
+					createKPosition(PositionReferenceX.LEFT, -1.5f, 0.5f, PositionReferenceY.TOP, CLOUD_WIDTH / 3, 0.5f),
+					createKPosition(PositionReferenceX.LEFT, -1.5f, 0.5f, PositionReferenceY.TOP, 0, 0.58f),
+					createKPosition(PositionReferenceX.LEFT, -4, 0.5f, PositionReferenceY.TOP, 0, 0.58f),
+					createKPosition(PositionReferenceX.LEFT, 0, 0.5f, PositionReferenceY.TOP, 0, 0.35f),
+					createKPosition(PositionReferenceX.LEFT, 4, 0.5f, PositionReferenceY.TOP, 0, 0.58f),
+					createKPosition(PositionReferenceX.LEFT, 1.5f, 0.5f, PositionReferenceY.TOP, 0, 0.58f),
+					createKPosition(PositionReferenceX.LEFT, 1.5f, 0.5f, PositionReferenceY.TOP, CLOUD_WIDTH / 3, 0.5f)
+				]
+			]
+		]
 	}
 	
 	static var LabelDecorationConfigurator _onEdgeLabelConfigurator; // ONLY for use in applyOnEdgeStyle

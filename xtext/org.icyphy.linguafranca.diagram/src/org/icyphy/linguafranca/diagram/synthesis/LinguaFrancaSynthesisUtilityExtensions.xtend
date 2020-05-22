@@ -10,9 +10,10 @@ import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.icyphy.ASTUtils
+import org.icyphy.linguaFranca.Code
+import org.icyphy.linguaFranca.Host
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Value
-import org.icyphy.linguaFranca.Code
 
 /**
  * Extension class that provides various utility methods for the synthesis.
@@ -41,6 +42,25 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
             }
 		}
 		return ""
+	}
+	
+	/**
+	 * Converts a host value into readable text
+	 */
+	def String toText(Host host) {
+		val sb = new StringBuilder
+		if (host !== null) {
+			if (!host.user.nullOrEmpty) {
+				sb.append(host.user).append("@")
+			}
+			if (!host.addr.nullOrEmpty) {
+				sb.append(host.addr)
+			}
+			if (host.port !== 0) {
+				sb.append(":").append(host.port)
+			}
+		}
+		return sb.toString
 	}
 	
 	/**
