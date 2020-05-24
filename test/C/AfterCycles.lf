@@ -1,0 +1,37 @@
+// This tests that "after" does not introduce spurious cycles.
+// Success if running without detected a cycle.
+target C;
+
+reactor Source {
+    output out:unsigned;
+    
+    reaction(startup) -> out {=
+        set(out, 1);
+    =}
+}
+
+reactor Work {
+    input in:unsigned;
+    output out:unsigned;
+    
+    reaction(in) -> out {=
+        set(out, in);    
+    =}
+}
+
+main reactor Parallel {
+    s = new Source();
+    w0 = new Work();
+    w1 = new Work();
+    
+    s.out -> w0.in after 10 msec;
+    s.out -> w1.in after 20 msec;
+    
+    reaction(w0.out) {=
+        printf("Received %d from worker 0.\n", w0.out);
+    =}
+    
+    reaction(w1.out) {=
+        printf("Received %d from worker 1.\n", w1.out);
+    =}
+}
