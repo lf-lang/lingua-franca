@@ -1,5 +1,6 @@
 // Test reacting to and reading outputs from a contained
 // reactor in various permutations.
+
 target C;
 reactor Contained {
     output out:int;
@@ -12,14 +13,26 @@ main reactor ReadOutputOfContainedReactor {
     state count:int(0);
     reaction(startup) c.out {=
         printf("Startup reaction reading output of contained reactor: %d.\n", c.out);
+        if (c.out != 42) {
+            fprintf(stderr, "Expected 42!\n");
+            exit(2);
+        }
         self->count++;
     =}
     reaction(c.out) {=
         printf("Reading output of contained reactor: %d.\n", c.out);
+        if (c.out != 42) {
+            fprintf(stderr, "Expected 42!\n");
+            exit(3);
+        }
         self->count++;
     =}
     reaction(startup, c.out) {=
         printf("Alternate triggering reading output of contained reactor: %d.\n", c.out);
+        if (c.out != 42) {
+            fprintf(stderr, "Expected 42!\n");
+            exit(4);
+        }
         self->count++;
     =}
     reaction(shutdown) {=
