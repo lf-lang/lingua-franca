@@ -470,6 +470,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  to be unordered because they do not interact with the state of
      *  the containing reactor. To make a reaction unordered, when
      *  the Reaction instance is created, add that instance to this set.
+     *  @return True if the reaction has been marked unordered.
      */
     def isUnordered(Reaction reaction) {
         if (unorderedReactions !== null) {
@@ -489,6 +490,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  to be unordered because they do not interact with the state of
      *  the containing reactor. To make a reaction unordered, when
      *  the Reaction instance is created, add that instance to this set.
+     *  @param reaction The reaction to make unordered.
      */
     def makeUnordered(Reaction reaction) {
         if (unorderedReactions === null) {
