@@ -341,6 +341,11 @@ class ASTUtils {
         val parent = (connection.eContainer as Reactor)
         val r1 = factory.createReaction
         val r2 = factory.createReaction
+        
+        // These reactions do not require any dependency relationship
+        // to other reactions in the container.
+        generator.makeUnordered(r1)
+        generator.makeUnordered(r2)
 
         // Name the newly created action; set its delay and type.
         action.name = getUniqueIdentifier(parent, "networkMessage")
