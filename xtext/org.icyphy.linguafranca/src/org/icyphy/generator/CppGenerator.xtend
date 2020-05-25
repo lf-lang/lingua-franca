@@ -864,7 +864,7 @@ class CppGenerator extends GeneratorBase {
             "${PROJECT_SOURCE_DIR}"
             "${PROJECT_SOURCE_DIR}/__include__"
         )
-        target_link_libraries(«filename» reactor-cpp)
+        target_link_libraries(«filename» reactor-cpp ${CMAKE_DL_LIBS})
         
         install(TARGETS «filename» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
         
