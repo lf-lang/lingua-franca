@@ -25,7 +25,7 @@ addons:
 # global:  
 #  - DISPLAY=:99.0  
 before_install:
- - sudo apt-get -y install liblttng-ust0  
+ - sudo apt-get -y install liblttng-ust-dev
 # - sh -e /etc/init.d/xvfb start - sleep 10  
 script:    
 # - jdk_switcher use oraclejdk8
