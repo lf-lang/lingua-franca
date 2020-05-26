@@ -826,7 +826,7 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "2907ec89ca67b73c328c6bb7ae40931494b1878f"
+          GIT_TAG "782f74eb301eabd78b10f3094044c9943aa2566b"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
@@ -864,7 +864,7 @@ class CppGenerator extends GeneratorBase {
             "${PROJECT_SOURCE_DIR}"
             "${PROJECT_SOURCE_DIR}/__include__"
         )
-        target_link_libraries(«filename» reactor-cpp ${CMAKE_DL_LIBS})
+        target_link_libraries(«filename» reactor-cpp)
         
         install(TARGETS «filename» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
         
