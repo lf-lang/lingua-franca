@@ -14,6 +14,7 @@ cache:
 # The node_js property doesn't work if the language is java
 before_install:
   - nvm install 10.4.0
+  - sudo apt-get -y install liblttng-ust-dev
 addons:
   apt:
     sources:
@@ -24,8 +25,7 @@ addons:
 #env:  
 # global:  
 #  - DISPLAY=:99.0  
-before_install:
- - sudo apt-get -y install liblttng-ust-dev
+#before_install:
 # - sh -e /etc/init.d/xvfb start - sleep 10  
 script:    
 # - jdk_switcher use oraclejdk8
