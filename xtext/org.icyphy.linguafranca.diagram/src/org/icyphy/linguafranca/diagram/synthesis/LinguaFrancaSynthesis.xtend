@@ -726,10 +726,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			b.append("\u2022 ")
 		}
 		b.append(param.name)
-		if (!ASTUtils.getInferredType(param).toText.nullOrEmpty) {
-			b.append(":").append(param.type)
-		} else if (ASTUtils.isOfTimeType(param)) {
-			b.append(":time")
+		val t = ASTUtils.getInferredType(param).toText
+		if (!t.nullOrEmpty) {
+			b.append(":").append(t)
 		}
 		return b.toString()
 	}

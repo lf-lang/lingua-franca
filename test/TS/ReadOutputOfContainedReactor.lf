@@ -12,14 +12,26 @@ main reactor ReadOutputOfContainedReactor {
     state count:number(0);
     reaction(startup) c.out {=
         console.log("Startup reaction reading output of contained reactor: " + c.out);
+        if (c.out != 42) {
+            console.log("FAILURE: expected 42.");
+            util.failure();
+        }
         count++;
     =}
     reaction(c.out) {=
         console.log("Reading output of contained reactor: " + c.out);
+        if (c.out != 42) {
+            console.log("FAILURE: expected 42.");
+            util.failure();
+        }
         count++;
     =}
     reaction(startup, c.out) {=
         console.log("Alternate triggering reading output of contained reactor: " + c.out);
+        if (c.out != 42) {
+            console.log("FAILURE: expected 42.");
+            util.failure();
+        }
         count++;
     =}
     reaction(shutdown) {=

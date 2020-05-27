@@ -61,6 +61,7 @@ import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Target
@@ -151,6 +152,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var String sourceFile
     
+    /** The set of unordered reactions. An unordered reaction is one
+     *  that does not have any dependency on other reactions in the
+     *  containing reactor, and where no other reaction in the containing
+     *  reactor depends on it. There is currently no way
+     *  in the syntax of LF to make a reaction unordered, deliberately,
+     *  because it can introduce unexpected nondeterminacy. However,
+     *  certain automatically generated reactions are known to be safe
+     *  to be unordered because they do not interact with the state of
+     *  the containing reactor. To make a reaction unordered, when
+     *  the Reaction instance is created, add that instance to this set.
+     */
+    protected var Set<Reaction> unorderedReactions = null
+    
     /** A map of all resources to the set of resource they import */
     protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
@@ -216,6 +230,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /** The threads timeout unit parameter, or the default null if there is none. */
     protected TimeUnit targetTimeoutUnit
+    
+    /** The tracing  target parameter, or false if there is none. */
+    protected boolean targetTracing = false
 
     ////////////////////////////////////////////
     //// Private fields.
@@ -281,6 +298,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         targetTimeout = param.value.time
                         targetTimeoutUnit = param.value.unit
                     }
+                    case "tracing":
+                        if (param.value.literal == 'true') {
+                            targetTracing = true
+                        }
                 }
             }
         }
@@ -353,7 +374,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
-
+        
         analyzeModel(resource, fsa, context)
 
         // First, produce any preamble code that the code generator needs
@@ -446,6 +467,45 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return prefix + reference.variable.name
     }
 
+    /** Return true if the reaction is unordered. An unordered reaction is one
+     *  that does not have any dependency on other reactions in the
+     *  containing reactor, and where no other reaction in the containing
+     *  reactor depends on it. There is currently no way
+     *  in the syntax of LF to make a reaction unordered, deliberately,
+     *  because it can introduce unexpected nondeterminacy. However,
+     *  certain automatically generated reactions are known to be safe
+     *  to be unordered because they do not interact with the state of
+     *  the containing reactor. To make a reaction unordered, when
+     *  the Reaction instance is created, add that instance to this set.
+     *  @return True if the reaction has been marked unordered.
+     */
+    def isUnordered(Reaction reaction) {
+        if (unorderedReactions !== null) {
+            unorderedReactions.contains(reaction)
+        } else {
+            false
+        }
+    }
+    
+    /** Mark the reaction unordered. An unordered reaction is one
+     *  that does not have any dependency on other reactions in the
+     *  containing reactor, and where no other reaction in the containing
+     *  reactor depends on it. There is currently no way
+     *  in the syntax of LF to make a reaction unordered, deliberately,
+     *  because it can introduce unexpected nondeterminacy. However,
+     *  certain automatically generated reactions are known to be safe
+     *  to be unordered because they do not interact with the state of
+     *  the containing reactor. To make a reaction unordered, when
+     *  the Reaction instance is created, add that instance to this set.
+     *  @param reaction The reaction to make unordered.
+     */
+    def makeUnordered(Reaction reaction) {
+        if (unorderedReactions === null) {
+            unorderedReactions = new HashSet<Reaction>()
+        }
+        unorderedReactions.add(reaction)
+    }
+    
     /** Given a representation of time that may possibly include units,
      *  return a string that the target language can recognize as a value.
      *  In this base class, if units are given, e.g. "msec", then

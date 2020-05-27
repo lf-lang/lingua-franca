@@ -826,12 +826,13 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "4b309e200a770a2267aefae3178f34578489d7b2"
+          GIT_TAG "782f74eb301eabd78b10f3094044c9943aa2566b"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
             -DREACTOR_CPP_VALIDATE=«IF targetNoRuntimeValidation»OFF«ELSE»ON«ENDIF»
+            -DREACTOR_CPP_TRACE=«IF targetTracing»ON«ELSE»OFF«ENDIF»
             «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
         )
         
