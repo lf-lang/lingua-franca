@@ -342,8 +342,13 @@ public enum Targets {
         /**
          * Directive to specify the execution timeout.
          */
-        TIMEOUT("timeout", Arrays.asList(Targets.ALL));
-        
+        TIMEOUT("timeout", Arrays.asList(Targets.ALL)),
+
+        /**
+         * Directive to let the runtime produce execution traces.
+         */
+        TRACING("tracing", Arrays.asList(Targets.CPP));
+
         /**
          * List of targets that support this property. If a property is used for
          * a target that does not support it, a warning reported during

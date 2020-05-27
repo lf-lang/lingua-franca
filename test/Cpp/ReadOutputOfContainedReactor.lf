@@ -13,16 +13,28 @@ main reactor ReadOutputOfContainedReactor {
     reaction(startup) c.out {=
         std::cout << "Startup reaction reading output of contained "
                   << "reactor: " << *c.out.get() << std::endl;
+        if (*c.out.get() != 42) {
+            std::cout << "FAILURE: expected 42" << std::endl;
+            exit(2);
+        }
         count++;
     =}
     reaction(c.out) {=
         std::cout << "Reading output of contained reactor: " << *c.out.get()
                   << std::endl;
+        if (*c.out.get() != 42) {
+            std::cout << "FAILURE: expected 42" << std::endl;
+            exit(2);
+        }
         count++;
     =}
     reaction(startup, c.out) {=
         std::cout << "Alternate triggering reading output of contained "
                   << "reactor: " << *c.out.get() << std::endl;
+        if (*c.out.get() != 42) {
+            std::cout << "FAILURE: expected 42" << std::endl;
+            exit(2);
+        }
         count++;
     =}
     reaction(shutdown) {=

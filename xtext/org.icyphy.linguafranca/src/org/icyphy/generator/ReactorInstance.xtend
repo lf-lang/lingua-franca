@@ -697,15 +697,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this,
                     count++)
+                    
+                // If this is not an unordered reaction, then create a dependency
+                // on any previously defined reaction.
+                if (!generator.isUnordered(reaction)) {
 
-                // If there is an earlier reaction in this same reactor, then
-                // create a link in the dependence graph.
-                if (previousReaction !== null) {
-                    previousReaction.dependentReactions.add(reactionInstance)
-                    reactionInstance.dependsOnReactions.add(previousReaction)
+                    // If there is an earlier reaction in this same reactor, then
+                    // create a link in the dependence graph.
+                    if (previousReaction !== null) {
+                        previousReaction.dependentReactions.add(reactionInstance)
+                        reactionInstance.dependsOnReactions.add(previousReaction)
+                    }
+                    previousReaction = reactionInstance;
                 }
-                previousReaction = reactionInstance;
-                
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
                 this.reactions.add(reactionInstance);
