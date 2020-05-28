@@ -1,0 +1,46 @@
+target C {
+    timeout: 2 sec
+};
+
+import Threaded.lf;
+
+reactor Print {
+    input in:int;
+    state count:int(0);
+    state received:int(0);
+    reaction(in) {=
+        self->received++;
+        printf("Received: %d\n", in);
+        if (in != self->count) {
+            printf("ERROR: Expected %d.\n", self->count);
+            exit(1);
+        }
+        self->count++;
+    =}
+    reaction(shutdown) {=
+        if (self->received == 0) {
+            printf("ERROR: Final reactor received no data.\n");
+            exit(3);
+        }
+    =}
+}
+
+main reactor Pipeline {
+    timer t(0, 200 msec);
+    state count:int(0);
+    
+    c1 = new Computation();
+    c2 = new Computation();
+    c3 = new Computation();
+    c4 = new Computation();
+    p = new Print();
+    
+    reaction(t) -> c1.in {=
+        set(c1.in, self->count++);        
+    =}
+    
+    c1.out -> c2.in after 200 msec;
+    c2.out -> c3.in after 200 msec;
+    c3.out -> c4.in after 200 msec;
+    c4.out -> p.in after 200 msec;
+}
