@@ -1,5 +1,6 @@
 target C {
-    timeout: 2 sec
+    timeout: 2 sec,
+    threads: 4
 };
 
 import Threaded.lf;
