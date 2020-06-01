@@ -2162,12 +2162,12 @@ class CGenerator extends GeneratorBase {
                 reactor.definition.reactorClass,
                 reactionInstance.definition
             )) {
-                pr(
-                    reactionStructName(reactionInstance) + ".index = " +
-                        reactionInstance.level + ";")
                 pr(reactionStructName(reactionInstance) + ".chain_id = " +
                     reactionInstance.chainID.toString() + ";")
-
+                pr('''
+                    // index is the OR of level «reactionInstance.level» and 
+                    // deadline «reactionInstance.deadline.toNanoSeconds» shifted left 16 bits.
+                ''')
                 pr(
                     reactionStructName(reactionInstance) + ".index = " +
                         (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).
