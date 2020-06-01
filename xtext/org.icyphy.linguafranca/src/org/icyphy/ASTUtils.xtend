@@ -96,7 +96,7 @@ class ASTUtils {
 
                 // Stage the new connections for insertion into the tree.
                 var connections = newConnections.get(parent)
-                if (connection !== null) connections = new LinkedList()
+                if (connections === null) connections = new LinkedList()
                 connections.addAll(connection.rerouteViaDelay(delayInstance))
                 newConnections.put(parent, connections)
 
@@ -104,8 +104,8 @@ class ASTUtils {
                 oldConnections.add(connection)
 
                 // Stage the newly created delay reactor instance for insertion
-                var instances = (delayInstances.get(parent) ?: emptyList)
-                if (instances !== null) instances = new LinkedList()
+                var instances = delayInstances.get(parent)
+                if (instances === null) instances = new LinkedList()
                 instances.addAll(delayInstance)
                 delayInstances.put(parent, instances)
             }
@@ -173,8 +173,8 @@ class ASTUtils {
      * name must be overridden at the call site, where checks can be done to
      * avoid name collisions in the container in which the instantiation is
      * to be placed. Such checks (or modifications of the AST) are not
-     * performed in this method to avoid causing concurrent modification
-     * exceptions. 
+     * performed in this method in order to avoid causing concurrent
+     * modification exceptions. 
      * @param delayClass The class to create an instantiation for
      * @param value A time interval corresponding to the desired delay
      * @param generic A string that denotes the appropriate type parameter, 
