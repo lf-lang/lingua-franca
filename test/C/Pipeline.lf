@@ -43,5 +43,5 @@ main reactor Pipeline {
     c1.out -> c2.in after 200 msec;
     c2.out -> c3.in after 200 msec;
     c3.out -> c4.in after 200 msec;
-    c4.out -> p.in after 200 msec;
+    c4.out -> p.in;
 }
