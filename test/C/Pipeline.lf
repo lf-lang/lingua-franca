@@ -11,7 +11,7 @@ reactor Print {
     state received:int(0);
     reaction(in) {=
         self->received++;
-        printf("Received: %d\n", in);
+        printf("Received: %d at logical time %lld\n", in, get_elapsed_logical_time());
         if (in != self->count) {
             printf("ERROR: Expected %d.\n", self->count);
             exit(1);
