@@ -61,6 +61,7 @@ MultipleContained.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
+Pipeline.lf
 Preamble.lf
 PreambleFile.lf
 ReadOutputOfContainedReactor.lf
