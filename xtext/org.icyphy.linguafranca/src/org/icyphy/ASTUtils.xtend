@@ -283,13 +283,13 @@ class ASTUtils {
         delayClass.name = className
         delayClass.actions.add(action)
 
-        // Configure the first reaction.
+        // Configure the second reaction, which reads the input.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
         r1.code = factory.createCode()
         r1.code.body = generator.generateDelayBody(action, inRef)
     
-        // Configure the second reaction.
+        // Configure the first reaction, which produces the output.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
         r2.code = factory.createCode()
