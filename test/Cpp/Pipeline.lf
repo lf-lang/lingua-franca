@@ -1,5 +1,6 @@
-target C;
-
+target Cpp {
+    timeout: 2 sec
+};
 import Threaded.lf;
 
 reactor Print {
