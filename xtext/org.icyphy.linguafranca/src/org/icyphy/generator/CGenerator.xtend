@@ -1244,7 +1244,7 @@ class CGenerator extends GeneratorBase {
                     val numberOfTriggerTObjects = destinationPorts.size +
                         destinationReactions.size
 
-                    // Next, create an array trigger_t objects, which are
+                    // Next, create an array of trigger_t objects, which are
                     // the triggers that fire if this output is produced.
                     // Append to the array that records the sizes of the trigger arrays.
                     triggeredSizesContents.add("" + numberOfTriggerTObjects)
@@ -1662,7 +1662,7 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         var count = 0
         // Iterate over triggers (input ports, actions, and timers that trigger reactions).
-        for (triggerInstance : reactorInstance.triggers) {
+        for (triggerInstance : reactorInstance.triggersAndReads) {
             var trigger = triggerInstance.definition
             var numberOfReactionsTriggered = triggerInstance.dependentReactions.
                 length

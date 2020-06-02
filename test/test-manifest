@@ -77,6 +77,7 @@ SimpleDeadline.lf
 SimpleImport.lf
 SlowingClock.lf
 SlowingClockPhysical.lf
+StartupOutFromInside.lf
 Stride.lf
 StructAsState.lf
 StructAsType.lf
