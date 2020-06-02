@@ -359,6 +359,20 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
 
+    /** Return the trigger instances (input ports, timers, and actions
+     *  that trigger reactions) together the ports that the reaction reads
+     *  but that don't trigger it.
+     *  @return The trigger instances belonging to this reactor instance.
+     */
+    def getTriggersAndReads() {
+        var triggers = new HashSet<TriggerInstance<Variable>>
+        for (reaction : this.reactions) {
+            triggers.addAll(reaction.triggers)
+            triggers.addAll(reaction.reads)
+        }
+        return triggers
+    }
+
     /** 
      * Given a port definition, return the port instance
      * corresponding to that definition, or null if there is
