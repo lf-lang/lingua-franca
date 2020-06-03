@@ -106,6 +106,16 @@ class CGenerator extends GeneratorBase {
 
     // Place to collect code to execute at the start of a time step.
     var startTimeStep = new StringBuilder()
+    
+    /** Count of the number of _is_present fields of the self struct that
+     *  need to be reinitialized in __start_time_step().
+     */
+    var startTimeStepIsPresentCount = 0
+    
+    /** Count of the number of token pointers that need to have their
+     *  reference count decremented in __start_time_step().
+     */
+    var startTimeStepTokens = 0
 
     // Place to collect code to initialize timers for all reactors.
     var startTimers = new StringBuilder()
@@ -177,6 +187,8 @@ class CGenerator extends GeneratorBase {
         for (federate : federates) {
             deferredInitialize.clear()
             shutdownActionInstances.clear()
+            startTimeStepIsPresentCount = 0
+            startTimeStepTokens = 0
             
             // Only generate one output if there is no federation.
             if (!federate.isSingleton) {
@@ -240,12 +252,33 @@ class CGenerator extends GeneratorBase {
                 }
                 unindent()
                 pr('}\n')
-
+                
                 // Generate function to initialize the trigger objects for all reactors.
                 pr('void __initialize_trigger_objects() {\n')
                 indent()
+                if (startTimeStepTokens > 0) {
+                    // Allocate the initial (before mutations) array of pointers to tokens.
+                    pr('''
+                        __tokens_with_ref_count_size = «startTimeStepTokens»;
+                        __tokens_with_ref_count = malloc(«startTimeStepTokens» * sizeof(token_present_t));
+                    ''')
+                }
+                if (startTimeStepIsPresentCount > 0) {
+                    // Allocate the initial (before mutations) array of pointers to _is_present fields.
+                    pr('''
+                        __is_present_fields_size = «startTimeStepIsPresentCount»;
+                        __is_present_fields = malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+                    ''')
+                }
                 pr(initializeTriggerObjects.toString)
                 doDeferredInitialize(federate)
+                
+                // Put the code here to set up the tables that drive resetting is_present and
+                // decrementing reference counts between time steps. This code has to appear
+                // in __initialize_trigger_objects() after the code that makes connections
+                // between inputs and outputs.
+                pr(startTimeStep.toString)
+                
                 setReactionPriorities(main, federate)
                 if (federates.length > 1) {
                     if (federate.dependsOn.size > 0) {
@@ -265,13 +298,6 @@ class CGenerator extends GeneratorBase {
                 unindent()
                 pr("}")
 
-                // Generate function to execute at the start of a time step.
-                pr('void __start_time_step() {\n')
-                indent()
-                pr(startTimeStep.toString)
-                unindent()
-                pr('}\n')
-                
                 // Generate a function that will either do nothing
                 // (if there is only one federate) or, if there are
                 // downstream federates, will notify the RTI
@@ -1367,11 +1393,12 @@ class CGenerator extends GeneratorBase {
         pr(result.toString())
     }
 
-    /** Produce the code to decrement reference counts and mark outputs absent
-     *  between time steps.
+    /** Generate code to set up the tables used in __start_time_step to decrement reference
+     *  counts and mark outputs absent between time steps. This function puts the code
+     *  into startTimeStep.
      */
     def generateStartTimeStep(ReactorInstance instance, FederateInstance federate) {
-        // First, decrement reference counts for each token type
+        // First, set up to decrement reference counts for each token type
         // input of a contained reactor that is present.
         for (child : instance.children) {
             if (reactorBelongsToFederate(child, federate)) {
@@ -1379,10 +1406,13 @@ class CGenerator extends GeneratorBase {
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
                         pr(startTimeStep, '''
-                            if (*«nameOfSelfStruct».__«input.name»_is_present) {
-                                __done_using(*«nameOfSelfStruct».__«input.name»);
-                            }
+                            __tokens_with_ref_count[«startTimeStepTokens»].token
+                                    = «nameOfSelfStruct».__«input.name»;
+                            __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                    = «nameOfSelfStruct».__«input.name»_is_present;
+                            __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                         ''')
+                        startTimeStepTokens++
                     }
                 }
             }
@@ -1394,39 +1424,46 @@ class CGenerator extends GeneratorBase {
         for (reaction : instance.reactions) {
             // Include reaction only if it is part of the federate.
             if (federate.containsReaction(instance.definition.reactorClass, reaction.definition)) {
-            for (port : reaction.dependentPorts) {
-                if (port.definition instanceof Input) {
-                    // This reaction is sending to an input. Must be
-                    // the input of a contained reactor in the federate.
-                    if (reactorBelongsToFederate(port.parent, federate)) {
-                        pr(startTimeStep,
-                            containerSelfStructName + '.__' +
-                                port.parent.definition.name + '.' +
-                                port.definition.name + '_is_present = false;'
-                        )
+                for (port : reaction.dependentPorts) {
+                    if (port.definition instanceof Input) {
+                        // This reaction is sending to an input. Must be
+                        // the input of a contained reactor in the federate.
+                        if (reactorBelongsToFederate(port.parent, federate)) {
+                            pr(startTimeStep, '''
+                                __is_present_fields[«startTimeStepIsPresentCount»]
+                                        = &«containerSelfStructName».__«port.parent.definition.name».«port.definition.name»_is_present;
+                            ''')
+                            startTimeStepIsPresentCount++
+                        }
                     }
                 }
-            }
-            for (port : reaction.dependsOnPorts) {
-                if (port.definition instanceof Output) {
-                    // This reaction is receiving data from the port.
-                    if (isTokenType((port.definition as Output).inferredType)) {
-                        pr(startTimeStep, '''
-                            if (*«containerSelfStructName».__«port.parent.name».«port.name»_is_present) {
-                                __done_using(*«containerSelfStructName».__«port.parent.name».«port.name»);
-                            }
-                        ''')
+                for (port : reaction.dependsOnPorts) {
+                    if (port.definition instanceof Output) {
+                        // This reaction is receiving data from the port.
+                        if (isTokenType((port.definition as Output).inferredType)) {
+                            pr(startTimeStep, '''
+                                __tokens_with_ref_count[«startTimeStepTokens»].token
+                                        = «containerSelfStructName».__«port.parent.name».«port.name»;
+                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                        = «containerSelfStructName».__«port.parent.name».«port.name»_is_present;
+                                __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                            ''')
+                            startTimeStepTokens++
+                        }
                     }
                 }
-            }
             }
         }
-        // Next, mark each output of each contained reactor absent.
+        // Next, set up the table to mark each output of each contained reactor absent.
         for (child : instance.children) {
             if (reactorBelongsToFederate(child, federate)) {
                 var nameOfSelfStruct = selfStructName(child)
                 for (output : child.outputs) {
-                    pr(startTimeStep, '''«nameOfSelfStruct».__«output.name»_is_present = false;''')
+                    pr(startTimeStep, '''
+                        __is_present_fields[«startTimeStepIsPresentCount»]
+                                = &«nameOfSelfStruct».__«output.name»_is_present;
+                    ''')
+                    startTimeStepIsPresentCount++
                 }
             }
         }
@@ -2071,15 +2108,17 @@ class CGenerator extends GeneratorBase {
                     «nameOfSelfStruct».__«action.name»->is_present = false;
                     '''
                 )
-                // At the start of each time step, initialize the is_present field
+                // At the start of each time step, we need to initialize the is_present field
                 // of each action's trigger object to false and free a previously
-                // allocated token if appropriate.
-                pr(startTimeStep, '''
-                    if («nameOfSelfStruct».__«action.name»->is_present) {
-                        «nameOfSelfStruct».__«action.name»->is_present = false;
-                        __done_using(«nameOfSelfStruct».__«action.name»->token);
-                    }
+                // allocated token if appropriate. This code sets up the table that does that.
+                pr(initializeTriggerObjects, '''
+                    __tokens_with_ref_count[«startTimeStepTokens»].token
+                            = &«nameOfSelfStruct».__«action.name»->token;
+                    __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                            = &«nameOfSelfStruct».__«action.name»->is_present;
+                    __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
                 ''')
+                startTimeStepTokens++
             }
         }
         // Handle reaction local deadlines.
@@ -2098,7 +2137,9 @@ class CGenerator extends GeneratorBase {
         }
         
         // For this instance, define what must be done at the start of
-        // each time step. Note that this is also run once at the end
+        // each time step. This sets up the tables that are used by the
+        // __start_time_step() function in reactor_common.c.
+        // Note that this function is also run once at the end
         // so that it can deallocate any memory.
         generateStartTimeStep(instance, federate)
 

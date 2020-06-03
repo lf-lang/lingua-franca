@@ -82,6 +82,19 @@ instant_t stop_time = 0LL;
 /** Indicator of whether the keepalive command-line option was given. */
 bool keepalive_specified = false;
 
+// Define the array of pointers to the _is_present fields of all the
+// self structs that need to be reinitialized at the start of each time step.
+// NOTE: This may have to be resized for a mutation.
+bool** __is_present_fields = NULL;
+int __is_present_fields_size = 0;
+
+// Define the array of pointers to the token fields of all the
+// actions and inputs that need to have their reference counts
+// decremented at the start of each time step.
+// NOTE: This may have to be resized for a mutation.
+token_present_t* __tokens_with_ref_count = NULL;
+int __tokens_with_ref_count_size = 0;
+
 /////////////////////////////
 // The following functions are in scope for all reactors:
 
@@ -313,6 +326,24 @@ token_freed __done_using(token_t* token) {
         }
     }
     return result;
+}
+
+/**
+ * Use tables to reset is_present fields to false and decrement reference
+ * counts between time steps and at the end of execution.
+ */
+void __start_time_step() {
+    for(int i = 0; i < __tokens_with_ref_count_size; i++) {
+        if (*(__tokens_with_ref_count[i].is_present)) {
+            if (__tokens_with_ref_count[i].reset_is_present) {
+                *(__tokens_with_ref_count[i].is_present) = false;
+            }
+            __done_using(*(__tokens_with_ref_count[i].token));
+        }
+    }
+    for(int i = 0; i < __is_present_fields_size; i++) {
+        *__is_present_fields[i] = false;
+    }
 }
 
 /**
