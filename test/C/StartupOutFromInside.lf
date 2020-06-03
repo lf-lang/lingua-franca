@@ -1,0 +1,19 @@
+target C;
+
+reactor Bar {
+    output out:int;
+    reaction(startup) -> out {=
+        set(out, 42);
+    =}
+}
+
+main reactor Foo {
+    bar = new Bar();
+    reaction(startup) bar.out {=
+        printf("Output from bar: %d\n", bar.out);
+        if (bar.out != 42) {
+            fprintf(stderr, "Expected 42!\n");
+            exit(1);
+        }
+    =}
+}
