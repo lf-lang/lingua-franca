@@ -244,6 +244,15 @@ typedef struct token_t {
     struct token_t* next_free;
 } token_t;
 
+/** A struct with a pointer to a token_t and an _is_present variable
+ *  for use to initialize actions in start_time_step().
+ */
+typedef struct token_present_t {
+    token_t** token;
+    bool* is_present;
+    bool reset_is_present; // True to set is_present to false after calling done_using().
+} token_present_t;
+
 /** Reaction activation record to push onto the reaction queue. */
 typedef struct reaction_t reaction_t;
 struct reaction_t {
