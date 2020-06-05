@@ -69,6 +69,78 @@ import static extension org.icyphy.ASTUtils.*
 /** 
  * Generator for C target.
  * 
+ * ## Self Struct
+ * 
+ * For each reactor class, this generator defines a "self" struct with fields
+ * for each of the following:
+ * 
+ * * parameter: the field name and type match the parameter.
+ * * state: the field name and type match the state.
+ * * output: the field name prepends the output name with "__".
+ * * output present: boolean indicating whether the output is present.
+ * * output number of destinations: integer indicating how many destinations there are (for reference counting).
+ * * input: a pointer to the source value of this input (in another self struct).
+ * * input present: a pointer to the source's boolean indicating whether the value is present.
+ * 
+ * If, in addition, the reactor contains other reactors and reacts to their outputs,
+ * then there will be a struct within the self struct for each such contained reactor.
+ * The name of that self struct will be the name of the contained reactor prepended with "__".
+ * That inside struct will contain pointers the outputs of the contained reactors
+ * that are read together with pointers to booleans indicating whether those outputs are present.
+ * 
+ * If, in addition, the reactor has a reaction to shutdown, then there will be a pointer to
+ * trigger_t object (see reactor.h) for the shutdown event.
+ * 
+ * ## Reaction Functions
+ * 
+ * For each reaction in a reactor class, this generator will produce a C function
+ * that expects a pointer to an instance of the "self" struct as an argument.
+ * This function will contain verbatim the C code specified in the reaction, but
+ * before that C code, the generator inserts a few lines of code that extract from the
+ * self struct the variables that that code has declared it will use. For example, if
+ * the reaction declares that it is triggered by or uses an input named "x" of type
+ * int, the function will contain code like this:
+ * ```
+ *     bool x_is_present = *(self->__x_is_present);
+ *     int x;
+ *     if (x_is_present) {
+ *         x = *(self->__x);
+ *     }
+ * ```
+ * If the programmer fails to declare that it uses x, then the absence of the
+ * above code will trigger a compile error when the verbatim code attempts to read x.
+ * 
+ * If, in addition, the reactor has a reaction to shutdown, then there will be a pointer to
+ * trigger_t object (see reactor.h) for the shutdown event. This will be used to define the
+ * following variables in the reaction function:
+ * 
+ * * shutdown_is_present: A boolean indicating whether a shutdown is in progress.
+ * * shutdown_has_value: A boolean indicating whether the shutdown action has a value.
+ * * shutdown_token: Poniter to the token_t object containing the shutdown value, if any.
+ *
+ * ## Constructor
+ * 
+ * For each reactor class, this generator will create a constructor function named
+ * new_R, where R is the reactor class name. This function will malloc and return
+ * a pointer to an instance of the "self" struct.
+ * 
+ * ## Runtime Tables
+ * 
+ * This generator creates an populates the following tables used at run time.
+ * These tables may have to be resized and adjusted when mutations occur.
+ * 
+ * * __is_present_fields: An array of pointers to booleans indicating whether an
+ *   event is present. The __start_time_step() function in reactor_common.c uses
+ *   this to mark every event absent at the start of a time step. The size of this
+ *   table is contained in the variable __is_present_fields_size.
+ * 
+ * * __tokens_with_ref_count: An array of pointers to structs that point to token_t
+ *   objects, which carry non-primitive data types between reactors. This is used
+ *   by the __start_time_step() function to decrement reference counts, if necessary,
+ *   at the conclusion of a time step. Then the reference count reaches zero, the
+ *   memory allocated for the token_t object will be freed.  The size of this
+ *   array is stored in the __tokens_with_ref_count_size variable.
+ * 
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
@@ -119,6 +191,7 @@ class CGenerator extends GeneratorBase {
 
     // Place to collect code to initialize timers for all reactors.
     var startTimers = new StringBuilder()
+    var startTimersCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
@@ -253,6 +326,15 @@ class CGenerator extends GeneratorBase {
                 unindent()
                 pr('}\n')
                 
+                // If there are timers, create a table of timers to be initialized.
+                if (startTimersCount > 0) {
+                    pr('''
+                        // Array of pointers to timer triggers to start the timers in __start_timers().
+                        trigger_t* __timer_triggers[«startTimersCount»];
+                        int __timer_triggers_size = «startTimersCount»;
+                    ''')
+                }
+                
                 // Generate function to initialize the trigger objects for all reactors.
                 pr('void __initialize_trigger_objects() {\n')
                 indent()
@@ -295,6 +377,13 @@ class CGenerator extends GeneratorBase {
                 pr("void __start_timers() {")
                 indent()
                 pr(startTimers.toString)
+                if (startTimersCount > 0) {
+                    pr('''
+                       for (int i = 0; i < __timer_triggers_size; i++) {
+                           __schedule(__timer_triggers[i], 0LL, NULL);
+                       }
+                    ''')
+                }
                 unindent()
                 pr("}")
 
@@ -1021,6 +1110,21 @@ class CGenerator extends GeneratorBase {
         // Generate reactions
         generateReactions(reactor, federate)
         generateTransferOutputs(reactor, outputToContainedOutput)
+        
+        // Create a constructor for an instance of this reactor class.
+        // If there is no self struct, then there is no constructor.
+        // FIXME: Is that right?
+        // FIXME: This is just a placeholder for future work.
+        if (!hasEmptySelfStruct(reactor)) {
+            val structType = selfStructType(reactor)
+            pr('''
+                «structType»* new_«reactor.name»() {
+                    «structType»* self = malloc(sizeof(«structType»));
+                    return self;
+                }
+            ''')
+        }
+        
         pr("// =============== END reactor class " + reactor.name)
         pr("")
     }
@@ -1794,11 +1898,11 @@ class CGenerator extends GeneratorBase {
                     triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
                 pr(initializeTriggerObjects,
                     triggerStructName + '.period = ' + timeInTargetLanguage(period) + ';')
-                // Generate a line to go into the __start_timers() function.
-                // Note that the delay, the second argument, is zero because the
-                // offset is already in the trigger struct.
-                pr(startTimers,
-                    "__schedule(&" + triggerStructName + ", 0LL, NULL);")
+                // Add the timer to the table of timers to start.
+                pr(initializeTriggerObjects, '''
+                    __timer_triggers[«startTimersCount»] = &«triggerStructName»;
+                ''')
+                startTimersCount++
             }
             count++
             triggerCount++
@@ -2413,11 +2517,11 @@ class CGenerator extends GeneratorBase {
         if (targetThreads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
-            pr(startTimers, "if (number_of_threads == 0) {")
-            indent(startTimers)
-            pr(startTimers, "number_of_threads = " + targetThreads + ";")
-            unindent(startTimers)
-            pr(startTimers, "}")
+            pr(startTimers, '''
+                if (number_of_threads == 0) {
+                   number_of_threads = «targetThreads»;
+                }
+            ''')
             pr("#include \"reactor_threaded.c\"")
         } else {
             pr("#include \"reactor.c\"")
