@@ -538,7 +538,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     deps.remove(n)
                     // Update level of dependent node.
                     m.level = Math.max(m.level, n.level+1)
-                    if (first) {
+                    if (first === true) {
                         // The first fork inherits the id of its parent.
                         m.chainID = m.chainID.bitwiseOr(n.chainID)
                         first = false
@@ -547,10 +547,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         m.chainID = m.chainID.bitwiseOr(n.chainID).bitwiseOr(1 << (branch % 64))
                         branch++    
                     }
-                }
-                if (deps.size == 0) {
-                    if (m !== n)       // Visit nodes only once.
-                        start.add(m)   // Add new node to the start set.
+                    if (deps.size == 0) {
+                        if (m !== n) {     // Visit nodes only once.
+                            start.add(m)   // Add new node to the start set.
+                        }
+                    }
                 }
             }
             
