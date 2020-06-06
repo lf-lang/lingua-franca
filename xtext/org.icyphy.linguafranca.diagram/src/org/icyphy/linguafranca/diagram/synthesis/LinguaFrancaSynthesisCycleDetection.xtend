@@ -93,7 +93,7 @@ class LinguaFrancaSynthesisCycleDetection extends AbstractSynthesisExtensions {
         if (DEBUG_CYCLE_DETECTION) {
             println("-- DEBUG CYCLE DETECTION --")
             for (n : depGraph.nodes) {
-            	for(d : depGraph.getDependencies(n)) {
+            	for(d : depGraph.getOrigins(n)) {
             		val sN = (n.contents.eContainer?:virtualPorts.inverse.get(n.contents)) as KNode
             		val tN = (d.contents.eContainer?:virtualPorts.inverse.get(d.contents)) as KNode
             		val sO = sN?.getProperty(KlighdInternalProperties.MODEL_ELEMEMT).toString
