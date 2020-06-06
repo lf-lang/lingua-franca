@@ -85,11 +85,11 @@ class DirectedGraph<T> {
      * @param node The node to report the downstream neighbors of.
      */
     def getEffects(T node) {
-        var ret = this.originToEffects.get(node)
-        if (ret === null) {
+        var effects = this.originToEffects.get(node)
+        if (effects === null) {
             return new HashSet()
         } else {
-            return ret
+            return effects
         }
     }
 
@@ -208,7 +208,7 @@ class DirectedGraph<T> {
      */
     def merge(DirectedGraph<T> another) {
         mirror(another.effectToOrigins, this.effectToOrigins)
-        mirror(another.effectToOrigins, this.originToEffects)
+        mirror(another.originToEffects, this.originToEffects)
     }
     
     /**
@@ -218,8 +218,8 @@ class DirectedGraph<T> {
     private def independentNodes(Map<T, Set<T>> adjacencyMap) {
         var independent = new HashSet<T>()
         for (node : this.nodes) {
-            val origins = adjacencyMap.get(node)
-            if (origins === null || origins.size == 0) {
+            val neighbors = adjacencyMap.get(node)
+            if (neighbors === null || neighbors.size == 0) {
                 independent.add(node)
             }
         }
@@ -271,7 +271,8 @@ class DirectedGraph<T> {
      * Return the nodes in this graph.
      */
     def nodes() {
-        val nodes = this.effectToOrigins.keySet
+        val nodes = new HashSet()
+        nodes.addAll(this.effectToOrigins.keySet)
         nodes.addAll(this.originToEffects.keySet)
         return nodes
     }
