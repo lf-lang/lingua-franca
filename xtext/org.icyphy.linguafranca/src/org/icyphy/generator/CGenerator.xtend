@@ -42,6 +42,7 @@ import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.icyphy.ASTUtils
 import org.icyphy.InferredType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
@@ -174,7 +175,30 @@ import static extension org.icyphy.ASTUtils.*
  *   the action, if it has a value.  See reactor.h in the C library for
  *   details.
  * 
- * * FIXME: Additional fields for housing connection information.
+ * * Reactions: Each reaction will have several fields in the self struct.
+ *   Each of these has a name that begins with "___reaction_i", where i is
+ *   the number of the reaction, starting with 0. The fields are:
+ *   * ___reaction_i: The struct that is put onto the reaction queue to
+ *     execute the reaction (see reactor.h in the C library).
+ *   * ___reaction_i_outputs_are_present: An array of pointers to the
+ *     __out_is_present fields of each output "out" that may be set by
+ *     this reaction. This array also includes pointers to the _is_present
+ *     fields of inputs of contained reactors to which this reaction writes.
+ *     This array is set up by the constructor.
+ *   * ___reaction_i_num_outputs: The size of the previous array.
+ *   * ___reaction_i_triggers: This is an array of arrays of pointers
+ *     to trigger_t structs. The first level array has one entry for
+ *     each effect of the reaction that is a port (actions are ignored).
+ *     Each such entry is an array containing pointers to trigger structs for
+ *     downstream inputs.
+ *   * ___reaction_i_triggered_sizes: An array indicating the size of
+ *     each array in ___reaction_i_triggers. The size of this array is
+ *     the number of ports that are effects of this reaction.
+ * 
+ *  * Timers: For each timer t, there is are two fields in the self struct:
+ *    * ___t_trigger: The trigger_t struct for this timer (see reactor.h).
+ *    * ___t_trigger_reactions: An array of reactions (pointers to the
+ *      reaction_t structs on this self struct) sensitive to this timer.
  *
  * ## Connections Between Reactors
  * 
@@ -921,11 +945,15 @@ class CGenerator extends GeneratorBase {
             pr(p.code.toText)
             pr("\n// *********** End of preamble.")
         }
+        
+        // Some of the following methods create lines of code that need to
+        // go into the constructor.  Collect those lines of code here:
+        val constructorCode = new StringBuilder()
 
-        val outputToContainedOutput = generateSelfStruct(reactor, federate)
+        val outputToContainedOutput = generateSelfStruct(reactor, federate, constructorCode)
         generateReactions(reactor, federate)
         generateTransferOutputs(reactor, outputToContainedOutput)
-        generateConstructor(reactor, federate)
+        generateConstructor(reactor, federate, constructorCode)
                 
         pr("// =============== END reactor class " + reactor.name)
         pr("")
@@ -935,8 +963,12 @@ class CGenerator extends GeneratorBase {
      * Generate a constructor for the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
+     * @param constructorCode Lines of code previously generated that need to
+     *  go into the constructor.
      */
-    protected def generateConstructor(Reactor reactor, FederateInstance federate) {
+    protected def generateConstructor(
+        Reactor reactor, FederateInstance federate, StringBuilder constructorCode
+    ) {
         // If there is no self struct, then there is no constructor.
         if(hasEmptySelfStruct(reactor)) return
 
@@ -944,6 +976,7 @@ class CGenerator extends GeneratorBase {
         pr('''
             «structType»* new_«reactor.name»() {
                 «structType»* self = malloc(sizeof(«structType»));
+                «constructorCode.toString»
                 return self;
             }
         ''')
@@ -954,11 +987,14 @@ class CGenerator extends GeneratorBase {
      * in the specified federate.
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
+     * @param constructorCode Place to put lines of code that need to
+     *  go into the constructor.
      * @return A map from output ports that receive data from inside reactors
-     *  to a reference to the output port of the inside reactor.
+     *  to a reference to the output port of the inside reactor. This is
+     *  returned for convenience so that it does not have to recomputed later.
      */
     protected def HashMap<Output, VarRef> generateSelfStruct(
-        Reactor reactor, FederateInstance federate
+        Reactor reactor, FederateInstance federate, StringBuilder constructorCode
     ) {
         // Construct the typedef for the "self" struct.
         // First, create a type name for the self struct.
@@ -1137,7 +1173,40 @@ class CGenerator extends GeneratorBase {
             unindent(body)
             pr(body, "} __" + containedReactor.name + ';')
         }
-
+        
+        // Next, generate the fields needed for each reaction.
+        pr(body, "// FIXME: The following fields are placeholders that will eventually replace the global variables.")
+        var reactionCount = 0;
+        for (reaction : reactor.reactions) {
+            pr(body, '''reaction_t ___reaction_«reactionCount»;''')
+            // Count the output ports and inputs of contained reactors that
+            // may be set by this reactor. This ignores actions in the effects.
+            var outputCount = 0;
+            for (effect : reaction.effects) {
+                if (effect.variable instanceof Port) {
+                    // Create the entry in the _outputs_are_present array for this port.
+                    // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
+                    pr(constructorCode, '''
+                        self->__reaction_«reactionCount»_outputs_are_present[«outputCount»] = &self->__«ASTUtils.toText(effect)»_is_present;
+                    ''')
+                    outputCount++
+                }
+            }
+            pr(constructorCode, '''
+                self->__reaction_«reactionCount»_num_outputs = «outputCount»;
+            ''')
+            pr(body, '''
+                bool* __reaction_«reactionCount»_outputs_are_present[«outputCount»];
+                int __reaction_«reactionCount»_num_outputs;
+                trigger_t** __reaction_«reactionCount»_triggers[«outputCount»];
+                int __reaction_«reactionCount»_triggered_sizes[«outputCount»];
+            ''')
+            reactionCount++
+        }
+        
+        // FIXME: Finally, generate the trigger_t fields needed for each timer, action, and input.
+        // See generateTriggerObjects().
+        
         if (body.length > 0) {
             selfStructType(reactor)
             pr("typedef struct {")
@@ -1877,7 +1946,7 @@ class CGenerator extends GeneratorBase {
     }
 
     /** Generate trigger_t objects, one for
-     *  each input, clock, and action of the reactor instance.
+     *  each input, timer, and action of the reactor instance.
      *  Each trigger_t object is a struct that contains an
      *  array of pointers to reaction_t objects representing
      *  reactions triggered by this trigger. The trigger_t object
