@@ -32,7 +32,6 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
-import org.icyphy.DependencyGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -43,6 +42,7 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.DirectedGraph
 
 /**
  * Representation of a runtime instance of a reactor.
@@ -146,10 +146,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     "Model has no reactions at all. Nothing to do."
                 )
             }
-             
-            // Analyze the dependency graph for reactions and assign
-            // chain identifiers/levels to each reaction.
-            analyzeDependencies()
+            val graph = this.getDependencyGraph()
+            // FIXME: how about instead of copy we create a precedence graph?
+            
+            // Assign a level to each reaction. 
+            // If there are cycles present in the graph, it will be detected here.
+            assignLevels(graph)
+            // Traverse the graph again, now starting from the leaves,
+            // to set the chain IDs.
+            assignChainIDs(graph)                
 
             // Propagate any declared deadline upstream.
             propagateDeadlines()
@@ -482,8 +487,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    protected def DependencyGraph<ReactionInstance> getDependencyGraph() {
-        var graph = new DependencyGraph<ReactionInstance>()
+    protected def DirectedGraph<ReactionInstance> getDependencyGraph() {
+        var graph = new DirectedGraph<ReactionInstance>()
         for (child : this.children) {
             graph.merge(child.dependencyGraph)
         }
@@ -500,8 +505,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Analyze the dependencies between reactions and assign each
-     * reaction instance a chain identifier and level. Each branch
+     * Each branch
      * in the graph introduces a new chain identifier, which is chosen
      * such that the logical and with the chain id of any upstream
      * reactions is always nonzero. All reactions with the same chain
@@ -509,55 +513,74 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * are present in the dependency graph, an exception is thrown.
      * This should be called only on the top-level (main) reactor.
      */
-    protected def analyzeDependencies() {
-        if (independentReactions.isEmpty()) {
+    protected def assignChainIDs(DirectedGraph<ReactionInstance> graph) {
+//        val leafs = graph.leafNodes
+//        var branch = 1
+//        for (node : leafs) {
+//            if (graph.getDependencies(node)) // antidependencies are needed here
+//        }
+//    if (m.chainID != 0 || deps.size != 0) {
+////                        // This is not a real fork but a merge point.
+////                        m.chainID = m.chainID.bitwiseOr(n.chainID)
+////                    } else {
+////                        if (first == true) {
+////                            // The first fork inherits the id of its parent.
+////                            m.chainID = m.chainID.bitwiseOr(n.chainID)
+////                            first = false
+////                        } else {
+////                            // Subsequent forks are assigned a fresh ID.
+////                            m.chainID = m.chainID.bitwiseOr(n.chainID).bitwiseOr(1 << (branch % 64))    
+////                            branch++
+////                        }
+////                           
+////                    }
+
+
+    }
+
+    /**
+     * Analyze the dependencies between reactions and assign each reaction
+     * instance a level.
+     * This procedure is based on Kahn's algorithm for topological sorting.
+     * Rather than establishing a total order, we establish a partial order.
+     * In this order, the level of each reaction is the least upper bound of
+     * the levels of the reactions it depends on.
+     */
+    protected def assignLevels(DirectedGraph<ReactionInstance> dependencies) {       
+        val graph = dependencies.copy
+        var start = new ArrayList(graph.rootNodes)
+        
+        if (start.isEmpty) {
             throw new Exception(
                 "Reactions form a cycle, where every reaction depends on another reaction!")
-        }
-        // This procedure is based on Kahn's algorithm for topological sorting.
-        var graph = this.getDependencyGraph();
-        var start = new ArrayList(independentReactions)
-        
-        for (s : start) {
-            s.level = 0 // All chains start out with zero depth.
-        }
+        } 
 
-        var branch = 0;        
         while (!start.empty) {
-            val n = start.remove(0)
-            var first = true
-            // The start of a chain is assigned a fresh ID.
-            if (independentReactions.contains(n)) {
-                n.chainID = 1 << (branch % 64)
-                branch++
+            val origin = start.remove(0)
+            val toRemove = new HashSet<ReactionInstance>()
+            // Visit effect nodes.
+            for (effect : graph.getEffects(origin)) {
+                // Stage edge between origin and effect for removal.
+                toRemove.add(effect)
+                
+                // Update level of downstream node.
+                effect.level = Math.max(effect.level, origin.level+1)    
             }
-            for (m : graph.nodes) {
-                val deps  = graph.getDependencies(m)
-                if (deps.contains(n)) {
-                    // Remove edge to dependent node.
-                    deps.remove(n)
-                    // Update level of dependent node.
-                    m.level = Math.max(m.level, n.level+1)
-                    if (first === true) {
-                        // The first fork inherits the id of its parent.
-                        m.chainID = m.chainID.bitwiseOr(n.chainID)
-                        first = false
-                    } else {
-                        // Subsequent forks are assigned a fresh ID.
-                        m.chainID = m.chainID.bitwiseOr(n.chainID).bitwiseOr(1 << (branch % 64))
-                        branch++    
-                    }
-                    if (deps.size == 0) {
-                        if (m !== n) {     // Visit nodes only once.
-                            start.add(m)   // Add new node to the start set.
-                        }
-                    }
+            // Remove visited edges.
+            for (effect : toRemove) {
+                graph.removeEdge(effect, origin)
+                // If the effect node has no more incoming edges,
+                // then move it in the start set.
+                if (graph.getOrigins(effect).size == 0) {
+                    start.add(effect)
                 }
             }
             
-            // Remove the current node from the graph.
-            graph.removeNode(n)
+            // Remove visited origin.
+            graph.removeNode(origin)
+            
         }
+        
         if (graph.nodeCount != 0) {
             generator.reportError(generator.mainDef, "Reactions form a cycle!");
             throw new Exception(
@@ -595,23 +618,23 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  part of the cycle.
      *  This should be called only on the top-level (main) reactor.
      */
-    protected def void assignLevels() {
-        if (independentReactions.isEmpty()) {
-            throw new Exception(
-                "Reactions form a cycle, where every reaction depends on another reaction!")
-        }
-        var candidatesForLevel = new LinkedList<ReactionInstance>()
-        var level = 0
-        for (reaction : independentReactions) {
-            reaction.level = level
-            reaction.chainID = 1;
-            candidatesForLevel.addAll(reaction.dependentReactions)
-        }
-        while (!candidatesForLevel.isEmpty) {
-            level++
-            candidatesForLevel = assignLevels(candidatesForLevel, level)
-        }
-    }
+//    protected def void assignLevels() {
+//        if (independentReactions.isEmpty()) {
+//            throw new Exception(
+//                "Reactions form a cycle, where every reaction depends on another reaction!")
+//        }
+//        var candidatesForLevel = new LinkedList<ReactionInstance>()
+//        var level = 0
+//        for (reaction : independentReactions) {
+//            reaction.level = level
+//            reaction.chainID = 1;
+//            candidatesForLevel.addAll(reaction.dependentReactions)
+//        }
+//        while (!candidatesForLevel.isEmpty) {
+//            level++
+//            candidatesForLevel = assignLevels(candidatesForLevel, level)
+//        }
+//    }
 
     /** For each reaction instance in the specified list, assign it the
      *  specified level if every reaction it depends on already has an
