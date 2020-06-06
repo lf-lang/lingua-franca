@@ -848,7 +848,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /** Append the specified text plus a final newline to the current
      *  code buffer.
-     *  @param text The text to append.
+     *  @param format A format string to be used by String.format or
+     *   the text to append if no further arguments are given.
+     *  @param args Additional arguments to pass to the formatter.
      */
     protected def pr(String format, Object... args) {
         pr(code,
