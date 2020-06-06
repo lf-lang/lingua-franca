@@ -307,7 +307,7 @@ class CGenerator extends GeneratorBase {
         
         for (file : files) {
             copyFileFromClassPath(
-                File.separator + "lib" + File.separator + "C" + File.separator + file,
+                "/" + "lib" + "/" + "C" + "/" + file,
                 srcGenPath + File.separator + file
             )
         }
@@ -2714,7 +2714,7 @@ class CGenerator extends GeneratorBase {
      */
     protected def compileCommand(String fileToCompile) {
         val cFilename = fileToCompile + ".c";            
-        val relativeSrcFilename = "src-gen" + File.separator + cFilename;
+        val relativeSrcFilename = "src-gen" + "/" + cFilename;
         val relativeBinFilename = "bin" + File.separator + fileToCompile;
 
         var compileCommand = newArrayList
@@ -3298,7 +3298,7 @@ class CGenerator extends GeneratorBase {
             if (eObject instanceof Code) {
                 offset += 1
             }
-            pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + sourceFile + '"')
+            pr(output, "#line " + (node.getStartLine() + offset) + '"file:' + unixSourceFile + '"')
         }
     }
 
