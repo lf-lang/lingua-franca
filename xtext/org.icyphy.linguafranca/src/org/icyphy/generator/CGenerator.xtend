@@ -891,8 +891,9 @@ class CGenerator extends GeneratorBase {
     
     /** 
      * Generate a reactor class definition for the specified federate.
-     * A class definition has three parts:
+     * A class definition has four parts:
      * 
+     * * Preamble code, if any, specified in the Lingua Franca file.
      * * A "self" struct type definition (see the class documentation above).
      * * A function for each reaction.
      * * A constructor for creating an instance.
@@ -924,23 +925,28 @@ class CGenerator extends GeneratorBase {
         val outputToContainedOutput = generateSelfStruct(reactor, federate)
         generateReactions(reactor, federate)
         generateTransferOutputs(reactor, outputToContainedOutput)
-        
-        // Create a constructor for an instance of this reactor class.
-        // If there is no self struct, then there is no constructor.
-        // FIXME: Is that right?
-        // FIXME: This is just a placeholder for future work.
-        if (!hasEmptySelfStruct(reactor)) {
-            val structType = selfStructType(reactor)
-            pr('''
-                «structType»* new_«reactor.name»() {
-                    «structType»* self = malloc(sizeof(«structType»));
-                    return self;
-                }
-            ''')
-        }
-        
+        generateConstructor(reactor, federate)
+                
         pr("// =============== END reactor class " + reactor.name)
         pr("")
+    }
+    
+    /**
+     * Generate a constructor for the specified reactor in the specified federate.
+     * @param reactor The parsed reactor data structure.
+     * @param federate A federate name, or null to unconditionally generate.
+     */
+    protected def generateConstructor(Reactor reactor, FederateInstance federate) {
+        // If there is no self struct, then there is no constructor.
+        if(hasEmptySelfStruct(reactor)) return
+
+        val structType = selfStructType(reactor)
+        pr('''
+            «structType»* new_«reactor.name»() {
+                «structType»* self = malloc(sizeof(«structType»));
+                return self;
+            }
+        ''')
     }
     
     /**
@@ -948,6 +954,8 @@ class CGenerator extends GeneratorBase {
      * in the specified federate.
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
+     * @return A map from output ports that receive data from inside reactors
+     *  to a reference to the output port of the inside reactor.
      */
     protected def HashMap<Output, VarRef> generateSelfStruct(
         Reactor reactor, FederateInstance federate
