@@ -3298,7 +3298,7 @@ class CGenerator extends GeneratorBase {
             if (eObject instanceof Code) {
                 offset += 1
             }
-            pr(output, "#line " + (node.getStartLine() + offset) + '"file:' + unixSourceFile + '"')
+            pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + unixSourceFile + '"')
         }
     }
 
