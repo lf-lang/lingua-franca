@@ -122,7 +122,63 @@ import static extension org.icyphy.ASTUtils.*
  * 
  * For each reactor class, this generator will create a constructor function named
  * new_R, where R is the reactor class name. This function will malloc and return
- * a pointer to an instance of the "self" struct.
+ * a pointer to an instance of the "self" struct.  This struct initially represents
+ * an unconnected reactor. To establish connections between reactors, additional
+ * information needs to be inserted (see below). The self struct is made visible
+ * to the body of a reaction as a variable named "self".  The self struct contains the
+ * following:
+ * 
+ * * Parameters: For each parameter p of the reactor, there will be a field p
+ *   with the type and value of the parameter. So C code in the body of a reaction
+ *   can access parameter values as self->p.
+ * 
+ * * State variables: For each state variable s of the reactor, there will be a field s
+ *   with the type and value of the state variable. So C code in the body of a reaction
+ *   can access state variables as as self->s.
+ * 
+ * The self struct also contains various fields that the user is not intended to
+ * use. The names of these fields begin with at least two underscores. They are:
+ * 
+ * * Outputs: For each output named "out", there will be a field "__out" whose
+ *   type matches that of the output. The output value is stored here. There is
+ *   also a field "__out_is_present" that is a boolean indicating whether the
+ *   output has been set. This field is reset to false at the start of every time
+ *   step. There is also a field "__out_num_destinations" whose value matches the
+ *   number of downstream reactions that use this variable. This field must be
+ *   set when connections are made or changed. It is used to initialize
+ *   reference counts for dynamically allocated message payloads.
+ * 
+ * * Inputs: For each input named "in" of type T, there is a field named "__in"
+ *   of type T*. This field contains a pointer to the source of data for this
+ *   input. There is also a field "__in_is_present" of type bool* that points
+ *   to a boolean that indicates whether the input is present.
+ * 
+ * * Outputs of contained reactors: If a reactor reacts to outputs of a
+ *   contained reactor R, then the self struct will contain a nested struct
+ *   named "__R" that has fields pointing to those outputs. For example,
+ *   if R has an output "out" of type T, then there will be field in __R
+ *   named "__out" of type T* and a field named "__out_is_present" of type
+ *   bool*.
+ * 
+ * * Inputs of contained reactors: If a reactor sends to inputs of a
+ *   contained reactor R, then the self struct will contain a nested struct
+ *   named "__R" that has fields for storing the values provided to those
+ *   inputs. For example, if R has an input "in" of type T, then there will
+ *   be field in __R named "__in" of type T and a field named "__in_is_present"
+ *   of type bool.
+ * 
+ * * Actions: If the reactor has an action a (logical or physical), then there
+ *   will be a field in the self struct named "__a" of type trigger_t.
+ *   That struct contains various things, including an array of reactions
+ *   sensitive to this trigger and a token_t struct containing the value of
+ *   the action, if it has a value.  See reactor.h in the C library for
+ *   details.
+ * 
+ * * FIXME: Additional fields for housing connection information.
+ *
+ * ## Connections Between Reactors
+ * 
+ * FIXME
  * 
  * ## Runtime Tables
  * 
@@ -140,6 +196,10 @@ import static extension org.icyphy.ASTUtils.*
  *   at the conclusion of a time step. Then the reference count reaches zero, the
  *   memory allocated for the token_t object will be freed.  The size of this
  *   array is stored in the __tokens_with_ref_count_size variable.
+ * 
+ * * __timer_triggers: An array of pointers to trigger_t structs for timers that
+ *   need to be started when the program runs. The length of this table is in the
+ *   __timer_triggers_size variable.
  * 
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -829,87 +889,30 @@ class CGenerator extends GeneratorBase {
         generateReactorFederated(reactor, null)
     }
     
-    /** Generate a reactor class definition for the specified
-     *  federate. If the reactor is the main reactor, then
-     *  the generated code may be customized. Specifically,
-     *  if the main reactor has reactions, these reactions
-     *  will not be generated if are triggered by or send
-     *  data to contained reactors that are in the federate.
-     *  @param reactor The parsed reactor data structure.
-     *  @param federate A federate name, or null
-     *   to unconditionally generate.
+    /** 
+     * Generate a reactor class definition for the specified federate.
+     * A class definition has three parts:
+     * 
+     * * A "self" struct type definition (see the class documentation above).
+     * * A function for each reaction.
+     * * A constructor for creating an instance.
+     * 
+     * If the reactor is the main reactor, then
+     * the generated code may be customized. Specifically,
+     * if the main reactor has reactions, these reactions
+     * will not be generated if they are triggered by or send
+     * data to contained reactors that are not in the federate.
+     * @param reactor The parsed reactor data structure.
+     * @param federate A federate name, or null to unconditionally generate.
      */
     def generateReactorFederated(Reactor reactor, FederateInstance federate) {
         super.generateReactor(reactor)
 
-        // Special Timer and Action for startup and shutdown, if they occur.
-        // Only one of each of these should be created even if multiple
-        // reactions are triggered by them.
-        var Timer timer = null
-        var Action action = null
-        var factory = LinguaFrancaFactory.eINSTANCE
-        if (reactor.reactions !== null) {
-            for (Reaction reaction : reactor.reactions) {
-                // If the reaction triggers include 'startup' or 'shutdown',
-                // then create Timer and TimerInstance objects named 'startup'
-                // or Action and ActionInstance objects named 'shutdown'.
-                // Using a Timer for startup means that the target-specific
-                // code generator doesn't have to do anything special to support this.
-                // However, for 'shutdown', the target-specific code generator
-                // needs to check all reaction instances for a shutdownActionInstance
-                // and schedule that action before shutting down the program.
-                // These get inserted into both the ECore model and the
-                // instance model.
-                var TriggerRef startupTrigger = null;
-                var TriggerRef shutdownTrigger = null;
-                for (trigger : reaction.triggers) {
-                    if (trigger.isStartup) {
-                        startupTrigger = trigger
-                        if (timer === null) {
-                            timer = factory.createTimer
-                            timer.name = LinguaFrancaPackage.Literals.
-                                TRIGGER_REF__STARTUP.name
-                            timer.offset = factory.createValue
-                            timer.offset.literal = "0"
-                            timer.period = factory.createValue
-                            timer.period.literal = "0"
-                            reactor.timers.add(timer)
-                        }
-                    } else if (trigger.isShutdown) {
-                        shutdownTrigger = trigger
-                        if (action === null) {
-                            action = factory.createAction
-                            action.name = LinguaFrancaPackage.Literals.
-                                TRIGGER_REF__SHUTDOWN.name
-                            action.origin = ActionOrigin.LOGICAL
-                            action.minDelay = factory.createValue
-                            action.minDelay.literal = "0"
-                            reactor.actions.add(action)
-                        }
-                    }
-                }
-                // If appropriate, add a VarRef to the triggers list of this
-                // reaction for the startup timer or shutdown action.
-                if (startupTrigger !== null) {
-                    reaction.triggers.remove(startupTrigger)
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.
-                        createVarRef()
-                    variableReference.setVariable(timer)
-                    reaction.triggers.add(variableReference)
-                }
-                if (shutdownTrigger !== null) {
-                    reaction.triggers.remove(shutdownTrigger)
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.
-                        createVarRef()
-                    variableReference.setVariable(action)
-                    reaction.triggers.add(variableReference)
-                }
-            }
-        }
+        // Create Timer and Action for startup and shutdown, if they occur.
+        handleStartupAndShutdown(reactor)
 
         pr("// =============== START reactor class " + reactor.name)
 
-        // Scan reactions.
         // Preamble code contains state declarations with static initializers.
         for (p : reactor.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
@@ -918,31 +921,60 @@ class CGenerator extends GeneratorBase {
             pr("\n// *********** End of preamble.")
         }
 
-        // Put parameters into a struct and construct the code to go
-        // into the preamble of any reaction function to extract the
-        // parameters from the struct.
-        val argType = reactor.name.toLowerCase + "_self_t"
+        val outputToContainedOutput = generateSelfStruct(reactor, federate)
+        generateReactions(reactor, federate)
+        generateTransferOutputs(reactor, outputToContainedOutput)
+        
+        // Create a constructor for an instance of this reactor class.
+        // If there is no self struct, then there is no constructor.
+        // FIXME: Is that right?
+        // FIXME: This is just a placeholder for future work.
+        if (!hasEmptySelfStruct(reactor)) {
+            val structType = selfStructType(reactor)
+            pr('''
+                «structType»* new_«reactor.name»() {
+                    «structType»* self = malloc(sizeof(«structType»));
+                    return self;
+                }
+            ''')
+        }
+        
+        pr("// =============== END reactor class " + reactor.name)
+        pr("")
+    }
+    
+    /**
+     * Generate the self struct type definition for the specified reactor
+     * in the specified federate.
+     * @param reactor The parsed reactor data structure.
+     * @param federate A federate name, or null to unconditionally generate.
+     */
+    protected def HashMap<Output, VarRef> generateSelfStruct(
+        Reactor reactor, FederateInstance federate
+    ) {
         // Construct the typedef for the "self" struct.
+        // First, create a type name for the self struct.
+        val selfType = selfStructType(reactor)
         var body = new StringBuilder()
         // Start with parameters.
         for (parameter : reactor.parameters) {
-            prSourceLineNumber(parameter)
+            prSourceLineNumber(body, parameter)
             pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
         }
         // Next handle states.
         for (stateVar : reactor.stateVars) {
-            prSourceLineNumber(stateVar)
+            prSourceLineNumber(body, stateVar)
             pr(body, getStateType(stateVar) + ' ' + stateVar.name + ';');
         }
         // Next handle actions.
         for (a : reactor.actions) {
-            prSourceLineNumber(a)
+            prSourceLineNumber(body, a)
             // NOTE: Slightly obfuscate output name to help prevent accidental use.
             pr(body, "trigger_t* __" + a.name + ";")
         }
-       // Next handle inputs.
+        // Next handle inputs.
         for (input : reactor.inputs) {
-            prSourceLineNumber(input)
+            prSourceLineNumber(body, input)
             if (input.type === null) {
                 reportError(input,
                     "Input is required to have a type: " + input.name)
@@ -988,7 +1020,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle outputs.
         for (output : reactor.outputs) {
-            prSourceLineNumber(output)
+            prSourceLineNumber(body, output)
             if (output.type === null) {
                 reportError(output,
                     "Output is required to have a type: " + output.name)
@@ -1104,29 +1136,83 @@ class CGenerator extends GeneratorBase {
             indent()
             pr(body.toString)
             unindent()
-            pr("} " + argType + ";")
+            pr("} " + selfType + ";")
         }
-
-        // Generate reactions
-        generateReactions(reactor, federate)
-        generateTransferOutputs(reactor, outputToContainedOutput)
-        
-        // Create a constructor for an instance of this reactor class.
-        // If there is no self struct, then there is no constructor.
-        // FIXME: Is that right?
-        // FIXME: This is just a placeholder for future work.
-        if (!hasEmptySelfStruct(reactor)) {
-            val structType = selfStructType(reactor)
-            pr('''
-                «structType»* new_«reactor.name»() {
-                    «structType»* self = malloc(sizeof(«structType»));
-                    return self;
+        outputToContainedOutput
+    }
+    
+    /**
+     * If any reaction in the specified reactor is triggered by startup,
+     * then create a Timer to trigger that reaction. If any reaction
+     * is triggered by shutdown, then create an action to trigger
+     * that reaction. Only one timer or action will be created, even
+     * if multiple reactions are triggered.
+     * @param reactor The reactor.
+     */
+    protected def void handleStartupAndShutdown(Reactor reactor) {
+        // Only one of each of these should be created even if multiple
+        // reactions are triggered by them.
+        var Timer timer = null
+        var Action action = null
+        var factory = LinguaFrancaFactory.eINSTANCE
+        if (reactor.reactions !== null) {
+            for (Reaction reaction : reactor.reactions) {
+                // If the reaction triggers include 'startup' or 'shutdown',
+                // then create Timer and TimerInstance objects named 'startup'
+                // or Action and ActionInstance objects named 'shutdown'.
+                // Using a Timer for startup means that the target-specific
+                // code generator doesn't have to do anything special to support this.
+                // However, for 'shutdown', the target-specific code generator
+                // needs to check all reaction instances for a shutdownActionInstance
+                // and schedule that action before shutting down the program.
+                // These get inserted into both the ECore model and the
+                // instance model.
+                var TriggerRef startupTrigger = null;
+                var TriggerRef shutdownTrigger = null;
+                for (trigger : reaction.triggers) {
+                    if (trigger.isStartup) {
+                        startupTrigger = trigger
+                        if (timer === null) {
+                            timer = factory.createTimer
+                            timer.name = LinguaFrancaPackage.Literals.
+                                TRIGGER_REF__STARTUP.name
+                            timer.offset = factory.createValue
+                            timer.offset.literal = "0"
+                            timer.period = factory.createValue
+                            timer.period.literal = "0"
+                            reactor.timers.add(timer)
+                        }
+                    } else if (trigger.isShutdown) {
+                        shutdownTrigger = trigger
+                        if (action === null) {
+                            action = factory.createAction
+                            action.name = LinguaFrancaPackage.Literals.
+                                TRIGGER_REF__SHUTDOWN.name
+                            action.origin = ActionOrigin.LOGICAL
+                            action.minDelay = factory.createValue
+                            action.minDelay.literal = "0"
+                            reactor.actions.add(action)
+                        }
+                    }
                 }
-            ''')
+                // If appropriate, add a VarRef to the triggers list of this
+                // reaction for the startup timer or shutdown action.
+                if (startupTrigger !== null) {
+                    reaction.triggers.remove(startupTrigger)
+                    var variableReference = LinguaFrancaFactory.eINSTANCE.
+                        createVarRef()
+                    variableReference.setVariable(timer)
+                    reaction.triggers.add(variableReference)
+                }
+                if (shutdownTrigger !== null) {
+                    reaction.triggers.remove(shutdownTrigger)
+                    var variableReference = LinguaFrancaFactory.eINSTANCE.
+                        createVarRef()
+                    variableReference.setVariable(action)
+                    reaction.triggers.add(variableReference)
+                }
+            }
         }
-        
-        pr("// =============== END reactor class " + reactor.name)
-        pr("")
     }
 
     /** Generate reaction functions definition for a reactor.
@@ -3190,9 +3276,10 @@ class CGenerator extends GeneratorBase {
 
     /** Print the #line compiler directive with the line number of
      *  the specified object.
+     *  @param output Where to put the output.
      *  @param eObject The node.
      */
-    private def prSourceLineNumber(EObject eObject) {
+    private def prSourceLineNumber(StringBuilder output, EObject eObject) {
         var node = NodeModelUtils.getNode(eObject)
         if (node !== null) {
             // For code blocks (delimited by {= ... =}, unfortunately,
@@ -3203,8 +3290,16 @@ class CGenerator extends GeneratorBase {
             if (eObject instanceof Code) {
                 offset += 1
             }
-            pr("#line " + (node.getStartLine() + offset) + ' "file:' + sourceFile + '"')
+            pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + sourceFile + '"')
         }
+    }
+
+    /** Print the #line compiler directive with the line number of
+     *  the specified object.
+     *  @param eObject The node.
+     */
+    private def prSourceLineNumber(EObject eObject) {
+        prSourceLineNumber(code, eObject)
     }
 
     /** For each output that has a token type (type* or type[]),
