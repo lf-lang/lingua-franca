@@ -253,21 +253,29 @@ typedef struct token_present_t {
     bool reset_is_present; // True to set is_present to false after calling done_using().
 } token_present_t;
 
-/** Reaction activation record to push onto the reaction queue. */
+/**
+ * Reaction activation record to push onto the reaction queue.
+ * Some of the information in this struct is common among all instances
+ * of the reactor, and some is specific to each particular instance.
+ * These are marked below COMMON or INSTANCE accordingly.
+ * The COMMON information is set in the constructor.
+ * The fields marked RUNTIME have values that change
+ * during execution.
+ */
 typedef struct reaction_t reaction_t;
 struct reaction_t {
-    reaction_function_t function;
-    void* self;    // Pointer to a struct with the reactor's state.
-    index_t index; // Inverse priority determined by dependency analysis.
-    unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph.
-    size_t pos;    // Current position in the priority queue.
-    int num_outputs;  // Number of outputs that may possibly be produced by this function.
-    bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced.
-    int* triggered_sizes;     // Pointer to array of ints with number of triggers per output.
-    trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output.
-    bool running;             // Indicator that this reaction has already started executing.
-    interval_t local_deadline;// Local deadline relative to the time stamp for invocation of the reaction.
-    reaction_function_t deadline_violation_handler; // Local deadline violation handler.
+    reaction_function_t function; // The reaction function. COMMON.
+    void* self;    // Pointer to a struct with the reactor's state. INSTANCE.
+    index_t index; // Inverse priority determined by dependency analysis. INSTANCE.
+    unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph. INSTANCE.
+    size_t pos;       // Current position in the priority queue. RUNTIME.
+    int num_outputs;  // Number of outputs that may possibly be produced by this function. COMMON.
+    bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced. COMMON.
+    int* triggered_sizes;     // Pointer to array of ints with number of triggers per output. INSTANCE.
+    trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
+    bool running;             // Indicator that this reaction has already started executing. RUNTIME.
+    interval_t local_deadline;// Local deadline relative to the time stamp for invocation of the reaction. INSTANCE.
+    reaction_function_t deadline_violation_handler; // Local deadline violation handler. COMMON.
 };
 
 /** Trigger struct representing an output, timer, action, or input. */
