@@ -56,6 +56,8 @@ import org.icyphy.DirectedGraph
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
 
+    private int branchCount = 1
+
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
@@ -505,37 +507,111 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Each branch
-     * in the graph introduces a new chain identifier, which is chosen
-     * such that the logical and with the chain id of any upstream
-     * reactions is always nonzero. All reactions with the same chain
-     * id are totally ordered according to their level. If any cycles
-     * are present in the dependency graph, an exception is thrown.
-     * This should be called only on the top-level (main) reactor.
+     * If there are downstream neighbors with uninitialized chain IDs relative
+     * to the current node, pick one of those neighbors, set its chainID, and
+     * propagate down further. The recursion ends when the current node has no
+     * downstream neighbors with uninitialized chain IDs. Since the graph is
+     * acyclic, all chains must come to an end, and so must this recursion.
+     * This propagation reduces the number of bits that need to be allocated
+     * to properly label all chains.
+     * @param current The current node that is being visited.
+     * @param graph The graph that encodes the dependencies between reactions.
+     * @param chainID The current chain ID.
+     */
+    private def void propagateDown(ReactionInstance current, 
+            DirectedGraph<ReactionInstance> graph, long chainID) {
+        val effects = graph.getEffects(current)
+        val uninitialized = effects.findFirst[it | it.chainID == -1]
+        if (uninitialized !== null) {
+            uninitialized.chainID = chainID
+            propagateDown(uninitialized, graph, chainID)
+        }
+    }
+
+    /**
+     * Propagate the given chain ID up one chain and propagate fresh IDs to
+     * other upstream neighbors. The result of propagation is that each node is
+     * assign a chain ID that overlaps with the chain IDs of its immediate 
+     * upstream and downstream neighbors.
+     * @param current The current node that is being visited.
+     * @param graph The graph that encodes the dependencies between reactions.
+     * @param chainID The current chain ID.
+     * @param fresh True if there is no downstream neighbor with an overlapping
+     * chain ID. This is the case when the downstream node freshly created the
+     * chain ID that is propagated.
+     */
+    private def long propagateUp(ReactionInstance current,
+        DirectedGraph<ReactionInstance> graph, long chainID, boolean fresh) {
+        val origins = graph.getOrigins(current)
+        val effects = graph.getEffects(current)
+        var ret = chainID
+
+        if (current.chainID == -1) {
+            // This is the first time the current node is visited.
+            // Propagate the chain ID upstream.
+            var first = true
+            current.chainID = chainID
+            for (upstream : origins) {
+                if (first) {
+                    // Stay on the same chain.
+                    current.chainID = propagateUp(upstream, graph, chainID,
+                        false)
+                    first = false
+                } else {
+                    // Create a new chain.
+                    current.chainID = current.chainID.bitwiseOr(
+                        propagateUp(upstream, graph,
+                            1 << (this.branchCount++ % 64), true))
+                }
+            }
+
+            if (fresh) {
+                val uninitialized = effects.findFirst[it|it.chainID == -1]
+                if (uninitialized !== null) {
+                    uninitialized.chainID = chainID
+                    propagateDown(uninitialized, graph, chainID)
+                }
+            }
+
+            if (origins.size > 1) {
+                ret = current.chainID
+            }
+        } else {
+            // This node was already visited. No need to recurse; only update the ID.
+            current.chainID = current.chainID.bitwiseOr(chainID)
+        }
+
+        return ret
+    }
+
+    /**
+     * Analyze the dependencies between reactions and assign each reaction
+     * instance a chain identifier. The assigned IDs are such that the
+     * bitwise conjunction between two chain IDs is always nonzero if they
+     * are part of overlapping chains. This facilitates a runtime check
+     * to determine whether a reaction is ready to execute or has to wait
+     * for an upstream reaction to complete. All reactions with the same
+     * chain id are totally ordered according to their level.
      */
     protected def assignChainIDs(DirectedGraph<ReactionInstance> graph) {
-//        val leafs = graph.leafNodes
-//        var branch = 1
-//        for (node : leafs) {
-//            if (graph.getDependencies(node)) // antidependencies are needed here
-//        }
-//    if (m.chainID != 0 || deps.size != 0) {
-////                        // This is not a real fork but a merge point.
-////                        m.chainID = m.chainID.bitwiseOr(n.chainID)
-////                    } else {
-////                        if (first == true) {
-////                            // The first fork inherits the id of its parent.
-////                            m.chainID = m.chainID.bitwiseOr(n.chainID)
-////                            first = false
-////                        } else {
-////                            // Subsequent forks are assigned a fresh ID.
-////                            m.chainID = m.chainID.bitwiseOr(n.chainID).bitwiseOr(1 << (branch % 64))    
-////                            branch++
-////                        }
-////                           
-////                    }
-
-
+        val leafs = graph.leafNodes
+        this.branchCount = 0
+        for (node : leafs) {
+            // If the leaf hasn't visited, set it to zero.
+            if (node.chainID == -1) {
+                node.chainID = 0
+            }
+            // Note that if this node has no upstream neighbors, it stays zero.
+            for (upstream : graph.getOrigins(node)) {
+                if (upstream.chainID == -1) {
+                    node.chainID = node.chainID.bitwiseOr(
+                        this.propagateUp(upstream, graph,
+                            1 << (this.branchCount++ % 64), node.chainID != 0))
+                } else {
+                    node.chainID = node.chainID.bitwiseOr(upstream.chainID)
+                }
+            }
+        }
     }
 
     /**
@@ -545,12 +621,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * Rather than establishing a total order, we establish a partial order.
      * In this order, the level of each reaction is the least upper bound of
      * the levels of the reactions it depends on.
+     * If any cycles are present in the dependency graph, an exception is
+     * thrown. This method should be called only on the top-level (main) reactor.
      */
     protected def assignLevels(DirectedGraph<ReactionInstance> dependencies) {       
         val graph = dependencies.copy
         var start = new ArrayList(graph.rootNodes)
         
-        if (start.isEmpty) {
+        // All root nodes start with level 0.
+        for (origin : start) {
+            origin.level = 0
+        }
+        
+        if (main.independentReactions.isEmpty) {
             throw new Exception(
                 "Reactions form a cycle, where every reaction depends on another reaction!")
         } 
@@ -636,40 +719,40 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 //        }
 //    }
 
-    /** For each reaction instance in the specified list, assign it the
-     *  specified level if every reaction it depends on already has an
-     *  assigned level less than the specified level. Otherwise, add it
-     *  to a new list that is returned. For each reaction that is assigned
-     *  a level, also add all its dependent reactions to the returned list.
-     *  @param candidatesForLevel Candidate reactions for the specified level.
-     *  @param level The specified level.
-     *  @return Candidates for the next level.
-     */
-    protected def assignLevels(
-        LinkedList<ReactionInstance> candidatesForLevel,
-        int level
-    ) {
-        var newCandidatesForLevel = new LinkedList<ReactionInstance>()
-        for (reaction : candidatesForLevel) {
-            var ready = true
-            for (dependsOnReaction : reaction.dependsOnReactions) {
-                if (dependsOnReaction.level < 0 // Not assigned.
-                || dependsOnReaction.level >= level // Should not occur.
-                ) {
-                    // Would be nice to break here, but xtend can't do that.
-                    ready = false
-                }
-            }
-            if (ready) {
-                reaction.level = level
-                reaction.chainID = 1;
-                newCandidatesForLevel.addAll(reaction.dependentReactions)
-            } else {
-                newCandidatesForLevel.add(reaction)
-            }
-        }
-        newCandidatesForLevel
-    }
+//    /** For each reaction instance in the specified list, assign it the
+//     *  specified level if every reaction it depends on already has an
+//     *  assigned level less than the specified level. Otherwise, add it
+//     *  to a new list that is returned. For each reaction that is assigned
+//     *  a level, also add all its dependent reactions to the returned list.
+//     *  @param candidatesForLevel Candidate reactions for the specified level.
+//     *  @param level The specified level.
+//     *  @return Candidates for the next level.
+//     */
+//    protected def assignLevels(
+//        LinkedList<ReactionInstance> candidatesForLevel,
+//        int level
+//    ) {
+//        var newCandidatesForLevel = new LinkedList<ReactionInstance>()
+//        for (reaction : candidatesForLevel) {
+//            var ready = true
+//            for (dependsOnReaction : reaction.dependsOnReactions) {
+//                if (dependsOnReaction.level < 0 // Not assigned.
+//                || dependsOnReaction.level >= level // Should not occur.
+//                ) {
+//                    // Would be nice to break here, but xtend can't do that.
+//                    ready = false
+//                }
+//            }
+//            if (ready) {
+//                reaction.level = level
+//                reaction.chainID = 1;
+//                newCandidatesForLevel.addAll(reaction.dependentReactions)
+//            } else {
+//                newCandidatesForLevel.add(reaction)
+//            }
+//        }
+//        newCandidatesForLevel
+//    }
 
     /** Add to the dependsOnReactions and dependentReactions all the
      *  reactions defined by the specified reactor that that
