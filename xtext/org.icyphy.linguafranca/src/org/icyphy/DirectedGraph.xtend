@@ -99,8 +99,12 @@ class DirectedGraph<T> {
      * @param node The node to add to the graph.
      */
     def addNode(T node) {
-        this.effectToOrigins.put(node, new HashSet<T>())
-        this.originToEffects.put(node, new HashSet<T>())
+        if (!effectToOrigins.containsKey(node)) {
+            this.effectToOrigins.put(node, new HashSet<T>())    
+        }
+        if (!originToEffects.containsKey(node)) {
+            this.originToEffects.put(node, new HashSet<T>())
+        }
     }
     
     /**
@@ -170,9 +174,13 @@ class DirectedGraph<T> {
      * the adjacency maps.
      */
     def copy() {
-        val graph = new DirectedGraph()
-        graph.effectToOrigins = new HashMap(this.effectToOrigins)
-        graph.originToEffects = new HashMap(this.originToEffects)
+        val graph = new DirectedGraph<T>()
+        for (entry : this.effectToOrigins.entrySet) {
+            graph.effectToOrigins.put(entry.key, new HashSet(entry.value))    
+        }
+        for (entry : this.originToEffects.entrySet) {
+            graph.originToEffects.put(entry.key, new HashSet(entry.value))    
+        }
         return graph
     }
     

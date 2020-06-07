@@ -261,7 +261,7 @@ class CGenerator extends GeneratorBase {
         super()
         // set defaults
         this.targetCompiler = "gcc"
-        this.targetCompilerFlags = "-O2"
+        this.targetCompilerFlags = "-O2"// -Wall -Wconversion"
     }
 
     ////////////////////////////////////////////
