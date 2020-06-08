@@ -152,6 +152,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var String sourceFile
     
+    /** The UNIX full path (needed to access internal Java resources on all platforms */
+    protected var String unixSourceFile
+    
     /** The set of unordered reactions. An unordered reaction is one
      *  that does not have any dependency on other reactions in the
      *  containing reactor, and where no other reaction in the containing
@@ -1667,6 +1670,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  directory, filename, mode, sourceFile.
      */
     private def analyzeResource(Resource resource) {
+    	unixSourceFile = resource.getURI().toString();
         sourceFile = resource.toPath;
         
         // Strip the filename of the extension.
