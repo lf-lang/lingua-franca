@@ -507,12 +507,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Find a reusable ID downstream. If a node can be found downstream that
-     * is reachable from the current node via nodes with uninitialized IDs,
-     * check whether its ID overlaps with any of its upstream neighbors. If
-     * there is no overlap, then the ID is reusable and the node is returned.
-     * @return A node that has an initialized an reusable ID, or null if none
-     * can be found.
+     * FIXME
      */
     private def ReactionInstance findReusableID(ReactionInstance current,
         DirectedGraph<ReactionInstance> graph) {
@@ -534,7 +529,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return a new ID. If no reusable ID can be found, return a fresh ID.
+     * FIXME
      */
     private def long getID(ReactionInstance current,
         DirectedGraph<ReactionInstance> graph) {
@@ -549,9 +544,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * Propagate the given chain IDs. The result of propagation is that each
-     * node gets assigned a chain ID such that it overlaps with any upstream
-     * reactions it could potentially be ready to execute earlier than but
-     * should wait for due to a dependency.
+     * node gets assigned a chain ID FIXME
      * @param current The current node that is being visited.
      * @param graph The graph that encodes the dependencies between reactions.
      * @param chainID The current chain ID.
