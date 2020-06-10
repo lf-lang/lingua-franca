@@ -56,7 +56,7 @@ import org.icyphy.DirectedGraph
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
 
-    private int branchCount = 1
+    int branchCount = 1
 
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
@@ -507,81 +507,79 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * If there are downstream neighbors with uninitialized chain IDs relative
-     * to the current node, pick one of those neighbors, set its chainID, and
-     * propagate down further. The recursion ends when the current node has no
-     * downstream neighbors with uninitialized chain IDs. Since the graph is
-     * acyclic, all chains must come to an end, and so must this recursion.
-     * This propagation reduces the number of bits that need to be allocated
-     * to properly label all chains.
-     * @param current The current node that is being visited.
-     * @param graph The graph that encodes the dependencies between reactions.
-     * @param chainID The current chain ID.
+     * FIXME
      */
-    private def void propagateDown(ReactionInstance current, 
-            DirectedGraph<ReactionInstance> graph, long chainID) {
-        val effects = graph.getEffects(current)
-        val uninitialized = effects.findFirst[it | it.chainID == -1]
-        if (uninitialized !== null) {
-            uninitialized.chainID = chainID
-            propagateDown(uninitialized, graph, chainID)
+    private def ReactionInstance findReusableID(ReactionInstance current,
+        DirectedGraph<ReactionInstance> graph) {
+
+        if (current.chainID == -1) {
+            for (node : graph.getEffects(current)) {
+                val found = findReusableID(node, graph)
+                if (found !== null) {
+                    return found
+                }
+            }
+        } else {
+            if (graph.getOrigins(current).forall [ it |
+                it.chainID == -1 || it.chainID.bitwiseAnd(current.chainID) == 0
+            ]) {
+                return current
+            }
         }
     }
 
     /**
-     * Propagate the given chain ID up one chain and propagate fresh IDs to
-     * other upstream neighbors. The result of propagation is that each node is
-     * assign a chain ID that overlaps with the chain IDs of its immediate 
-     * upstream and downstream neighbors.
+     * FIXME
+     */
+    private def long getID(ReactionInstance current,
+        DirectedGraph<ReactionInstance> graph) {
+
+        val found = findReusableID(current, graph)
+        if (found !== null) {
+            return found.chainID
+        } else {
+            return 1 << (this.branchCount++ % 64)
+        }
+    }
+
+    /**
+     * Propagate the given chain IDs. The result of propagation is that each
+     * node gets assigned a chain ID FIXME
      * @param current The current node that is being visited.
      * @param graph The graph that encodes the dependencies between reactions.
      * @param chainID The current chain ID.
-     * @param fresh True if there is no downstream neighbor with an overlapping
-     * chain ID. This is the case when the downstream node freshly created the
-     * chain ID that is propagated.
      */
-    private def long propagateUp(ReactionInstance current,
-        DirectedGraph<ReactionInstance> graph, long chainID, boolean fresh) {
+    private def void propagateDown(ReactionInstance current,
+        DirectedGraph<ReactionInstance> graph, long chainID) {
         val origins = graph.getOrigins(current)
         val effects = graph.getEffects(current)
-        var ret = chainID
 
         if (current.chainID == -1) {
-            // This is the first time the current node is visited.
-            // Propagate the chain ID upstream.
-            var first = true
-            current.chainID = chainID
-            for (upstream : origins) {
-                if (first) {
-                    // Stay on the same chain.
-                    current.chainID = propagateUp(upstream, graph, chainID,
-                        false)
-                    first = false
-                } else {
-                    // Create a new chain.
-                    current.chainID = current.chainID.bitwiseOr(
-                        propagateUp(upstream, graph,
-                            1 << (this.branchCount++ % 64), true))
-                }
-            }
+            current.chainID = 0
+        }
 
-            if (fresh) {
-                val uninitialized = effects.findFirst[it|it.chainID == -1]
-                if (uninitialized !== null) {
-                    uninitialized.chainID = chainID
-                    propagateDown(uninitialized, graph, chainID)
-                }
-            }
-
-            if (origins.size > 1) {
-                ret = current.chainID
-            }
-        } else {
-            // This node was already visited. No need to recurse; only update the ID.
+        if (origins.size > 1 || current.chainID == 0) {
             current.chainID = current.chainID.bitwiseOr(chainID)
         }
 
-        return ret
+        // It is preferred continue the chain along a node that does not have
+        // any uninitialized origins. Nodes is uninitialized origins are best
+        // assigned a fresh id, because it can be reused in another chain.
+        var continuation = effects.findFirst [ it |
+            !graph.getOrigins(it).exists[it|it.chainID == -1]
+        ]
+        if (continuation === null && effects.size > 0) {
+            continuation = effects.get(0)
+        }
+        for (downstream : effects) {
+            if (downstream === continuation) {
+                // Stay on the same chain.
+                propagateDown(downstream, graph, chainID)
+            } else {
+                // Create a new chain.
+                propagateDown(downstream, graph, getID(downstream, graph))
+            }
+        }
     }
 
     /**
@@ -594,23 +592,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * chain id are totally ordered according to their level.
      */
     protected def assignChainIDs(DirectedGraph<ReactionInstance> graph) {
-        val leafs = graph.leafNodes
+        val sources = graph.rootNodes
         this.branchCount = 0
-        for (node : leafs) {
-            // If the leaf hasn't visited, set it to zero.
-            if (node.chainID == -1) {
-                node.chainID = 0
-            }
-            // Note that if this node has no upstream neighbors, it stays zero.
-            for (upstream : graph.getOrigins(node)) {
-                if (upstream.chainID == -1) {
-                    node.chainID = node.chainID.bitwiseOr(
-                        this.propagateUp(upstream, graph,
-                            1 << (this.branchCount++ % 64), node.chainID != 0))
-                } else {
-                    node.chainID = node.chainID.bitwiseOr(upstream.chainID)
-                }
-            }
+        for (node : sources) {
+            this.propagateDown(node, graph, getID(node, graph))
         }
     }
 
