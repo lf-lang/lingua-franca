@@ -507,110 +507,56 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * If there are downstream neighbors with uninitialized chain IDs relative
-     * to the current node, pick one of those neighbors, set its chainID, and
-     * propagate down further. The recursion ends when the current node has no
-     * downstream neighbors with uninitialized chain IDs. Since the graph is
-     * acyclic, all chains must come to an end, and so must this recursion.
-     * This propagation reduces the number of bits that need to be allocated
-     * to properly label all chains.
-     * @param current The current node that is being visited.
-     * @param graph The graph that encodes the dependencies between reactions.
-     * @param chainID The current chain ID.
-     */
-    private def void propagateDown(ReactionInstance current, 
-            DirectedGraph<ReactionInstance> graph, long chainID) {
-        val effects = graph.getEffects(current)
-        val uninitialized = effects.findFirst[it | it.chainID == -1]
-        if (uninitialized !== null) {
-            uninitialized.chainID = chainID
-            propagateDown(uninitialized, graph, chainID)
-        }
-    }
-
-    /**
      * Propagate the given chain ID up one chain and propagate fresh IDs to
-     * other upstream neighbors. The result of propagation is that each node is
-     * assign a chain ID that overlaps with the chain IDs of its immediate 
-     * upstream and downstream neighbors.
+     * other upstream neighbors. The result of propagation is that each merge
+     * point (i.e. a node with multiple upstream neighbors) has an ID that
+     * overlaps with all upstream nodes that can reach it. This guarantees
+     * that every reaction, once it is triggered, is blocked by any upstream
+     * reactions that is needs to wait for to complete.
      * @param current The current node that is being visited.
      * @param graph The graph that encodes the dependencies between reactions.
      * @param chainID The current chain ID.
-     * @param fresh True if there is no downstream neighbor with an overlapping
-     * chain ID. This is the case when the downstream node freshly created the
-     * chain ID that is propagated.
      */
     private def long propagateUp(ReactionInstance current,
-        DirectedGraph<ReactionInstance> graph, long chainID, boolean fresh) {
+        DirectedGraph<ReactionInstance> graph, long chainID) {
         val origins = graph.getOrigins(current)
-        val effects = graph.getEffects(current)
-        var ret = chainID
-
-        if (current.chainID == -1) {
-            // This is the first time the current node is visited.
-            // Propagate the chain ID upstream.
+        
+        if (origins.size == 0) {
+            current.chainID = current.chainID.bitwiseOr(chainID)
+        } else {
             var first = true
-            current.chainID = chainID
-            for (upstream : origins) {
+            var id = chainID
+            
+            for (upstream : origins.sortBy[-chainID]) {
                 if (first) {
                     // Stay on the same chain.
-                    current.chainID = propagateUp(upstream, graph, chainID,
-                        false)
                     first = false
                 } else {
                     // Create a new chain.
-                    current.chainID = current.chainID.bitwiseOr(
-                        propagateUp(upstream, graph,
-                            1 << (this.branchCount++ % 64), true))
+                    id = 1 << (this.branchCount++ % 64)
                 }
-            }
-
-            if (fresh) {
-                val uninitialized = effects.findFirst[it|it.chainID == -1]
-                if (uninitialized !== null) {
-                    uninitialized.chainID = chainID
-                    propagateDown(uninitialized, graph, chainID)
-                }
-            }
-
-            if (origins.size > 1) {
-                ret = current.chainID
-            }
-        } else {
-            // This node was already visited. No need to recurse; only update the ID.
-            current.chainID = current.chainID.bitwiseOr(chainID)
+                
+                current.chainID = current.chainID.bitwiseOr(
+                        propagateUp(upstream, graph, id))
+            }    
         }
 
-        return ret
+        return current.chainID
     }
 
     /**
      * Analyze the dependencies between reactions and assign each reaction
      * instance a chain identifier. The assigned IDs are such that the
-     * bitwise conjunction between two chain IDs is always nonzero if they
-     * are part of overlapping chains. This facilitates a runtime check
+     * bitwise conjunction between two chain IDs is always nonzero if there
+     * exists a dependency between them. This facilitates a runtime check
      * to determine whether a reaction is ready to execute or has to wait
-     * for an upstream reaction to complete. All reactions with the same
-     * chain id are totally ordered according to their level.
+     * for an upstream reaction to complete.
      */
     protected def assignChainIDs(DirectedGraph<ReactionInstance> graph) {
         val leafs = graph.leafNodes
         this.branchCount = 0
-        for (node : leafs) {
-            // If the leaf hasn't visited, set it to zero.
-            if (node.chainID == -1) {
-                node.chainID = 0
-            }
-            // Note that if this node has no upstream neighbors, it stays zero.
-            for (upstream : graph.getOrigins(node)) {
-                if (upstream.chainID == -1) {
-                    node.chainID = node.chainID.bitwiseOr(
-                        this.propagateUp(upstream, graph,
-                            1 << (this.branchCount++ % 64), node.chainID != 0))
-                } else {
-                    node.chainID = node.chainID.bitwiseOr(upstream.chainID)
-                }
-            }
+        for (node : leafs.sortBy[-chainID]) {
+            this.propagateUp(node, graph, 1 << (this.branchCount++ % 64))
         }
     }
 
