@@ -507,12 +507,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Propagate the given chain ID up one chain and propagate fresh IDs to
-     * other upstream neighbors. The result of propagation is that each merge
-     * point (i.e. a node with multiple upstream neighbors) has an ID that
-     * overlaps with all upstream nodes that can reach it. This guarantees
-     * that every reaction, once it is triggered, is blocked by any upstream
-     * reactions that is needs to wait for to complete.
+     * Propagate the given chain ID up one chain, propagate fresh IDs to
+     * other upstream neighbors, and return a mask that overlaps with all the
+     * chain IDs that were set upstream as a result of this method invocation.
+     * The result of propagation is that each node has an ID that overlaps with
+     * all upstream nodes that can reach it. This means that if a node has a
+     * lower level than another node, but the two nodes do not have overlapping
+     * chain IDs, the nodes are nonetheless independent from one another.
      * @param current The current node that is being visited.
      * @param graph The graph that encodes the dependencies between reactions.
      * @param chainID The current chain ID.
@@ -520,41 +521,47 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     private def long propagateUp(ReactionInstance current,
         DirectedGraph<ReactionInstance> graph, long chainID) {
         val origins = graph.getOrigins(current)
-        
-        if (origins.size == 0) {
-            current.chainID = current.chainID.bitwiseOr(chainID)
-        } else {
+        var mask = chainID
+        if (origins.size > 0) {
             var first = true
             var id = chainID
-            
+            // Iterate over the upstream neighbors by level from high to low.
             for (upstream : origins.sortBy[-chainID]) {
                 if (first) {
-                    // Stay on the same chain.
+                    // Stay on the same chain the first time.
                     first = false
                 } else {
-                    // Create a new chain.
+                    // Create a new chain ID.
                     id = 1 << (this.branchCount++ % 64)
                 }
-                
-                current.chainID = current.chainID.bitwiseOr(
+                // Propagate the ID upstream and add all returned bits
+                // to the mask.
+                mask = mask.bitwiseOr(
                         propagateUp(upstream, graph, id))
             }    
         }
-
-        return current.chainID
+        
+        // Apply the mask to the current chain ID.
+        // If there were no upstream neighbors, the mask will
+        // just be the chainID that was passed as an argument.
+        current.chainID = current.chainID.bitwiseOr(mask)
+        
+        return mask
     }
 
     /**
      * Analyze the dependencies between reactions and assign each reaction
      * instance a chain identifier. The assigned IDs are such that the
      * bitwise conjunction between two chain IDs is always nonzero if there
-     * exists a dependency between them. This facilitates a runtime check
+     * exists a dependency between them. This facilitates runtime checks
      * to determine whether a reaction is ready to execute or has to wait
      * for an upstream reaction to complete.
      */
     protected def assignChainIDs(DirectedGraph<ReactionInstance> graph) {
         val leafs = graph.leafNodes
         this.branchCount = 0
+        // Start propagation from the leaf nodes,
+        // ordered by level from high to low.
         for (node : leafs.sortBy[-chainID]) {
             this.propagateUp(node, graph, 1 << (this.branchCount++ % 64))
         }
