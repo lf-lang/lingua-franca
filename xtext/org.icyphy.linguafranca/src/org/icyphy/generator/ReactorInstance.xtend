@@ -557,24 +557,22 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         DirectedGraph<ReactionInstance> graph, long chainID) {
         val origins = graph.getOrigins(current)
         var mask = chainID
-        if (origins.size > 0) {
-            var first = true
-            var id = chainID
-            // Iterate over the upstream neighbors by level from high to low.
-            for (upstream : origins.sortBy[-chainID]) {
-                if (first) {
-                    // Stay on the same chain the first time.
-                    first = false
-                } else {
-                    // Create a new chain ID.
-                    id = 1 << (this.branchCount++ % 64)
-                }
-                // Propagate the ID upstream and add all returned bits
-                // to the mask.
-                mask = mask.bitwiseOr(
-                        propagateUp(upstream, graph, id))
-            }    
-        }
+        var first = true
+        var id = chainID
+        // Iterate over the upstream neighbors by level from high to low.
+        for (upstream : origins.sortBy[-level]) {
+            if (first) {
+                // Stay on the same chain the first time.
+                first = false
+            } else {
+                // Create a new chain ID.
+                id = 1 << (this.branchCount++ % 64)
+            }
+            // Propagate the ID upstream and add all returned bits
+            // to the mask.
+            mask = mask.bitwiseOr(
+                    propagateUp(upstream, graph, id))
+        }    
         
         // Apply the mask to the current chain ID.
         // If there were no upstream neighbors, the mask will
@@ -597,7 +595,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         this.branchCount = 0
         // Start propagation from the leaf nodes,
         // ordered by level from high to low.
-        for (node : leafs.sortBy[-chainID]) {
+        for (node : leafs.sortBy[-level]) {
             this.propagateUp(node, graph, 1 << (this.branchCount++ % 64))
         }
     }
