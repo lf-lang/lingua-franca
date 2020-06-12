@@ -1009,7 +1009,7 @@ class CGenerator extends GeneratorBase {
         val structType = selfStructType(reactor)
         pr('''
             «structType»* new_«reactor.name»() {
-                «structType»* self = malloc(sizeof(«structType»));
+                «structType»* self = calloc(1, sizeof(«structType»));
                 «constructorCode.toString»
                 return self;
             }
@@ -1061,6 +1061,7 @@ class CGenerator extends GeneratorBase {
                     // NOTE: Slightly obfuscate input name to help prevent accidental use.
                     pr(body, inputType + '* __' + input.name + ';');
                 }
+                prSourceLineNumber(body, input)
                 pr(body, 'bool* __' + input.name + '_is_present;');
             }
         }
@@ -1108,6 +1109,7 @@ class CGenerator extends GeneratorBase {
                     pr(body, matcher.group(1) + ' __' + output.name + matcher.group(2) + ';')
                     if (containedSource !== null) {
                         // This uses the same pattern as an input.
+                        prSourceLineNumber(body, output)
                         pr(body, matcher.group(1) + '(* __' + output.name + '_inside)' + matcher.group(2) + ';')
                     }
                 } else {
@@ -1117,14 +1119,18 @@ class CGenerator extends GeneratorBase {
                     // If there are contained reactors that send data via this output,
                     // then create a place to put the pointers to the sources of that data.
                     if (containedSource !== null) {
+                        prSourceLineNumber(body, output)
                         pr(body, outputType + '* __' + output.name + '_inside;')
                     }
                 }
                 // _is_present variables are the same for both cases.
+                prSourceLineNumber(body, output)
                 pr(body, 'bool __' + output.name + '_is_present;')
                 if (containedSource !== null) {
+                    prSourceLineNumber(body, output)
                     pr(body, 'bool* __' + output.name + '_inside_is_present;')
                 }
+                prSourceLineNumber(body, output)
                 pr(body, 'int __' + output.name + '_num_destinations;')
             }
         }
@@ -1198,13 +1204,15 @@ class CGenerator extends GeneratorBase {
             indent(body)
             for (variable : structs.get(containedReactor)) {
                 if (variable instanceof Input) {
-                    pr(body, lfTypeToTokenType(variable.inferredType) + ' ' + variable.name + ';')
-                    pr(body, 'bool ' + variable.name + '_is_present;')
+                    pr(variable, body, '''
+                        «lfTypeToTokenType(variable.inferredType)» «variable.name»;
+                        bool «variable.name»_is_present;
+                    ''')
                 } else {
                     // Must be an output entry.
                     val port = variable as Output
                     // Outputs are pointers to the source of data.
-                    pr(body, '''
+                    pr(variable, body, '''
                         «lfTypeToTokenType(port.inferredType)»* «port.name»;
                         bool* «port.name»_is_present;
                         trigger_t «port.name»_trigger;
@@ -1212,32 +1220,32 @@ class CGenerator extends GeneratorBase {
                     val triggered = reactionsTriggered.get(variable)
                     val triggeredSize = (triggered === null) ? 0 : triggered.size
                     if (triggeredSize > 0) {
-                        pr(body, '''
+                        pr(variable, body, '''
                             reaction_t* «port.name»_reactions[«triggeredSize»];
                         ''')
                         var triggeredCount = 0
                         for (index : triggered) {
-                            pr(constructorCode, '''
+                            pr(variable, constructorCode, '''
                                 self->__«containedReactor.name».«port.name»_reactions[«triggeredCount++»] = &self->___reaction_«index»;
                             ''')
                         }
-                        pr(constructorCode, '''
+                        pr(variable, constructorCode, '''
                             self->__«containedReactor.name».«port.name»_trigger.reactions = self->__«containedReactor.name».«port.name»_reactions;
                         ''')
                     } else {
-                        pr(constructorCode, '''
-                            self->__«containedReactor.name».«port.name»_trigger.reactions = NULL;
-                        ''')
+                        // Since the self struct is created using calloc, there is no need to set
+                        // self->__«containedReactor.name».«port.name»_trigger.reactions = NULL
                     }
-                    pr(constructorCode, '''
-                        self->__«containedReactor.name».«port.name»_trigger.token = NULL;
+                    // Since the self struct is created using calloc, there is no need to set
+                    // self->__«containedReactor.name».«port.name»_trigger.token = NULL;
+                    // self->__«containedReactor.name».«port.name»_trigger.is_present = false;
+                    // self->__«containedReactor.name».«port.name»_trigger.is_timer = false;
+                    // self->__«containedReactor.name».«port.name»_trigger.is_physical = false;
+                    // self->__«containedReactor.name».«port.name»_trigger.drop = false;
+                    // self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
+                    pr(variable, constructorCode, '''
                         self->__«containedReactor.name».«port.name»_trigger.scheduled = NEVER;
-                        self->__«containedReactor.name».«port.name»_trigger.is_present = false;
                         self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggeredSize»;
-                        self->__«containedReactor.name».«port.name»_trigger.is_timer = false;
-                        self->__«containedReactor.name».«port.name»_trigger.is_physical = false;
-                        self->__«containedReactor.name».«port.name»_trigger.drop = false;
-                        self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
                     ''')
                 }
             }
@@ -1349,18 +1357,19 @@ class CGenerator extends GeneratorBase {
                 }
 
                 // Set the defaults of the reaction_t struct in the constructor.
+                // Since the self struct is allocated using calloc, there is no need to set:
+                // self->___reaction_«reactionCount».index = 0;
+                // self->___reaction_«reactionCount».chain_id = 0;
+                // self->___reaction_«reactionCount».pos = 0;
+                // self->___reaction_«reactionCount».running = false;
+                // self->___reaction_«reactionCount».local_deadline = 0LL;
                 pr(reaction, constructorCode, '''
                     self->___reaction_«reactionCount».function = «reactionFunctionName(reactor, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
-                    self->___reaction_«reactionCount».index = 0;
-                    self->___reaction_«reactionCount».chain_id = 0;
-                    self->___reaction_«reactionCount».pos = 0;
                     self->___reaction_«reactionCount».num_outputs = «outputCount»;
                     self->___reaction_«reactionCount».output_produced = self->__reaction_«reactionCount»_outputs_are_present;
                     self->___reaction_«reactionCount».triggered_sizes = self->__reaction_«reactionCount»_triggered_sizes;
                     self->___reaction_«reactionCount».triggers = self->__reaction_«reactionCount»_triggers;
-                    self->___reaction_«reactionCount».running = false;
-                    self->___reaction_«reactionCount».local_deadline = 0LL;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
                 ''')
 
@@ -1372,11 +1381,12 @@ class CGenerator extends GeneratorBase {
         // Start with the timers.
         for (timer : reactor.timers) {
             createTriggerT(body, timer, triggerMap, constructorCode)
+            // Since the self struct is allocated using calloc, there is no need to set:
+            // self->___«timer.name».is_physical = false;
+            // self->___«timer.name».drop = false;
+            // self->___«timer.name».element_size = 0;
             pr(constructorCode, '''
                 self->___«timer.name».is_timer = true;
-                self->___«timer.name».is_physical = false;
-                self->___«timer.name».drop = false;
-                self->___«timer.name».element_size = 0;
             ''')
         }
 
@@ -1390,8 +1400,9 @@ class CGenerator extends GeneratorBase {
             var elementSize = "0"
             if (action.type !== null) elementSize = '''sizeof(«action.targetType.rootType»)'''
 
+            // Since the self struct is allocated using calloc, there is no need to set:
+            // self->___«action.name».is_timer = false;
             pr(constructorCode, '''
-                self->___«action.name».is_timer = false;
                 self->___«action.name».is_physical = «isPhysical»;
                 self->___«action.name».drop = «action.drop»;
                 self->___«action.name».element_size = «elementSize»;
@@ -1402,17 +1413,16 @@ class CGenerator extends GeneratorBase {
         for (input : reactor.inputs) {
             createTriggerT(body, input, triggerMap, constructorCode)
             val rootType = input.targetType.rootType
+            // Since the self struct is allocated using calloc, there is no need to set:
+            // self->___«input.name».is_timer = false;
+            // self->___«input.name».offset = 0LL;
+            // self->___«input.name».period = 0LL;
+            // self->___«input.name».is_physical = false;
+            // self->___«input.name».drop = false;
             pr(constructorCode, '''
-                self->___«input.name».is_timer = false;
-                self->___«input.name».offset = 0LL;
-                self->___«input.name».period = 0LL;
-                self->___«input.name».is_physical = false;
-                self->___«input.name».drop = false;
                 self->___«input.name».element_size = sizeof(«rootType»);
             ''')
         }
-        
-        // FIXME: Outputs from contained reactors.
     }
     
     /**
@@ -1437,10 +1447,11 @@ class CGenerator extends GeneratorBase {
         // self struct.
         pr(body, "trigger_t ___" + variable.name + ";")
         // Set generic defaults for the trigger_t struct.
-        pr(constructorCode, '''
-            self->___«variable.name».token = NULL;
+        // Since the self struct is allocated using calloc, there is no need to set:
+        // self->___«variable.name».token = NULL;
+        // self->___«variable.name».is_present = false;
+        pr(variable, constructorCode, '''
             self->___«variable.name».scheduled = NEVER;
-            self->___«variable.name».is_present = false;
         ''')
         // Generate the reactions triggered table.
         val reactionsTriggered = triggerMap.get(variable)
@@ -3287,7 +3298,8 @@ class CGenerator extends GeneratorBase {
 
     /**
      * Version of pr() that prints a source line number using a #line
-     * prior to each line of the output.
+     * prior to each line of the output. Use this when multiple lines of
+     * output code are all due to the same source line in the .lf file.
      * @param eObject The AST node that this source line is based on.
      * @param builder The code buffer.
      * @param text The text to append.
@@ -3295,7 +3307,7 @@ class CGenerator extends GeneratorBase {
     protected def pr(EObject eObject, StringBuilder builder, Object text) {
         var split = text.toString.split("\n")
         for (line : split) {
-            prSourceLineNumber(eObject)
+            prSourceLineNumber(builder, eObject)
             pr(builder, line)
         }
     }
