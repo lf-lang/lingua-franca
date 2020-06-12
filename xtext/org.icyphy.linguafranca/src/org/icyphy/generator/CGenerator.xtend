@@ -117,7 +117,7 @@ import static extension org.icyphy.ASTUtils.*
  * 
  * * shutdown_is_present: A boolean indicating whether a shutdown is in progress.
  * * shutdown_has_value: A boolean indicating whether the shutdown action has a value.
- * * shutdown_token: Poniter to the token_t object containing the shutdown value, if any.
+ * * shutdown_token: Pointer to the token_t object containing the shutdown value, if any.
  *
  * ## Constructor
  * 
@@ -200,9 +200,31 @@ import static extension org.icyphy.ASTUtils.*
  *    * ___t_trigger_reactions: An array of reactions (pointers to the
  *      reaction_t structs on this self struct) sensitive to this timer.
  *
+ * * Triggers: For each Timer, Action, Input, and Output of a contained
+ *   reactor that triggers reactions, there will be a trigger_t struct
+ *   on the self struct with name "___t", where t is the name of the trigger.
+ * 
  * ## Connections Between Reactors
  * 
- * FIXME
+ * Establishing connections between reactors involves two steps.
+ * First, each destination (e.g. an input port) must have pointers to
+ * the source (the output port). As explained above, for an input named
+ * "in", the field "__in" is a pointer to the output data being read.
+ * In addition, "__in_is_present" is a pointer to the corresponding
+ * out_is_present field of the output reactor's self struct.
+ *  
+ * In addition reaction_i struct on the self struct has a triggers
+ * field that records all the trigger_t structs for ports and reactions
+ * that are triggered by the i-th reaction. The triggers field is
+ * an array of arrays of pointers to trigger_t structs.
+ * The length of the outer array is the number of output ports the
+ * reaction effects plus the number of input ports of contained
+ * reactors that it effects. Each inner array has a length equal to the
+ * number final destinations of that output port or input port.
+ * The reaction_i struct has an array triggered_sizes that indicates
+ * the sizes of these inner arrays. The num_outputs field of the
+ * reaction_i struct gives the length of the triggered_sizes and
+ * (outer) triggers arrays.
  * 
  * ## Runtime Tables
  * 
@@ -225,6 +247,9 @@ import static extension org.icyphy.ASTUtils.*
  *   need to be started when the program runs. The length of this table is in the
  *   __timer_triggers_size variable.
  * 
+ * * __action_table: For a federated execution, each federate will have this table
+ *   that maps port IDs to the corresponding trigger_t struct.
+ * 
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
@@ -246,10 +271,14 @@ class CGenerator extends GeneratorBase {
     var compileLibraries = null as ArrayList<String>
 
     // List of deferred assignments to perform in initialize_trigger_objects.
+    // FIXME: Remove this and InitializeRemoteTriggersTable
     var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
     
-    // Place to collect code to initialize the trigger objects for all reactors.
+    // Place to collect code to initialize the trigger objects for all reactor instances.
     var initializeTriggerObjects = new StringBuilder()
+
+    // Place to collect code to go at the end of the __initialize_trigger_objects() function..
+    var initializeTriggerObjectsEnd = new StringBuilder()
 
     /** The main (top-level) reactor instance. */
     protected ReactorInstance main
@@ -353,6 +382,8 @@ class CGenerator extends GeneratorBase {
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
+                initializeTriggerObjectsEnd = new StringBuilder()
+                
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
@@ -419,9 +450,50 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 
+                // Generate function to return a pointer to the action trigger_t
+                // that handles incoming network messages destined to the specified
+                // port. This will only be used if there are federates.
+                if (federate.networkMessageActions.size > 0) {
+                    pr('''trigger_t* __action_table[«federate.networkMessageActions.size»];''')
+                }
+                pr('trigger_t* __action_for_port(int port_id) {\n')
+                indent()
+                if (federate.networkMessageActions.size > 0) {
+                    // Create a static array of trigger_t pointers.
+                    // networkMessageActions is a list of Actions, but we
+                    // need a list of trigger struct names for ActionInstances.
+                    // There should be exactly one ActionInstance in the
+                    // main reactor for each Action.
+                    val triggers = new LinkedList<String>()
+                    for (action : federate.networkMessageActions) {
+                        // Find the corresponding ActionInstance.
+                        val actionInstance = main.getActionInstance(action)
+                        triggers.add(triggerStructName(actionInstance))
+                    }
+                    var actionTableCount = 0
+                    for (trigger : triggers) {
+                        pr(initializeTriggerObjects, '''
+                            __action_table[«actionTableCount++»] = &«trigger»;
+                        ''')
+                    }
+                    pr('''
+                        if (port_id < «federate.networkMessageActions.size») {
+                            return __action_table[port_id];
+                        } else {
+                            return NULL;
+                        }
+                    ''')
+                } else {
+                    pr('return NULL;')
+                }
+                unindent()
+                pr('}\n')
+                
                 // Generate function to initialize the trigger objects for all reactors.
                 pr('void __initialize_trigger_objects() {\n')
                 indent()
+                
+                // Create the table used to decrement reference counts between time steps.
                 if (startTimeStepTokens > 0) {
                     // Allocate the initial (before mutations) array of pointers to tokens.
                     pr('''
@@ -429,6 +501,7 @@ class CGenerator extends GeneratorBase {
                         __tokens_with_ref_count = malloc(«startTimeStepTokens» * sizeof(token_present_t));
                     ''')
                 }
+                // Create the table to initialize _is_present fields to false between time steps.
                 if (startTimeStepIsPresentCount > 0) {
                     // Allocate the initial (before mutations) array of pointers to _is_present fields.
                     pr('''
@@ -437,6 +510,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 pr(initializeTriggerObjects.toString)
+                pr(initializeTriggerObjectsEnd.toString)
                 doDeferredInitialize(federate)
                 
                 // Put the code here to set up the tables that drive resetting is_present and
@@ -495,46 +569,7 @@ class CGenerator extends GeneratorBase {
                         «ENDIF»
                     }
                 ''')
-                if (federates.length > 1) {
-                    
-                } else {
-                    
-                }
                 
-
-                // Generate function to return a pointer to the action trigger_t
-                // that handles incoming network messages destined to the specified
-                // port. This will only be used if there are federates.
-                pr('trigger_t* __action_for_port(int port_id) {\n')
-                indent()
-                if (federate.networkMessageActions.size > 0) {
-                    // Create a static array of trigger_t pointers.
-                    // networkMessageActions is a list of Actions, but we
-                    // need a list of trigger struct names for ActionInstances.
-                    // There should be exactly one ActionInstance in the
-                    // main reactor for each Action.
-                    val triggers = new LinkedList<String>()
-                    for (action : federate.networkMessageActions) {
-                        // Find the corresponding ActionInstance.
-                        val actionInstance = main.getActionInstance(action)
-                        triggers.add(triggerStructName(actionInstance))
-                    }
-                    pr('''
-                    static trigger_t* action_table[] = {
-                        &«triggers.join(', &')»
-                    };
-                    if (port_id < «federate.networkMessageActions.size») {
-                        return action_table[port_id];
-                    } else {
-                        return NULL;
-                    }
-                    ''')
-                } else {
-                    pr('return NULL;')
-                }
-                unindent()
-                pr('}\n')
-
                 // Generate function to schedule shutdown actions if any
                 // reactors have reactions to shutdown.
                 pr('bool __wrapup() {\n')
@@ -935,6 +970,9 @@ class CGenerator extends GeneratorBase {
 
         // Create Timer and Action for startup and shutdown, if they occur.
         handleStartupAndShutdown(reactor)
+        
+        // Create reactions to transfer data up the hierarchy.
+        generateTransferOutputs(reactor)
 
         pr("// =============== START reactor class " + reactor.name)
 
@@ -950,9 +988,8 @@ class CGenerator extends GeneratorBase {
         // go into the constructor.  Collect those lines of code here:
         val constructorCode = new StringBuilder()
 
-        val outputToContainedOutput = generateSelfStruct(reactor, federate, constructorCode)
+        generateSelfStruct(reactor, federate, constructorCode)
         generateReactions(reactor, federate)
-        generateTransferOutputs(reactor, outputToContainedOutput)
         generateConstructor(reactor, federate, constructorCode)
                 
         pr("// =============== END reactor class " + reactor.name)
@@ -969,9 +1006,6 @@ class CGenerator extends GeneratorBase {
     protected def generateConstructor(
         Reactor reactor, FederateInstance federate, StringBuilder constructorCode
     ) {
-        // If there is no self struct, then there is no constructor.
-        if(hasEmptySelfStruct(reactor)) return
-
         val structType = selfStructType(reactor)
         pr('''
             «structType»* new_«reactor.name»() {
@@ -989,11 +1023,8 @@ class CGenerator extends GeneratorBase {
      * @param federate A federate name, or null to unconditionally generate.
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
-     * @return A map from output ports that receive data from inside reactors
-     *  to a reference to the output port of the inside reactor. This is
-     *  returned for convenience so that it does not have to recomputed later.
      */
-    protected def HashMap<Output, VarRef> generateSelfStruct(
+    protected def generateSelfStruct(
         Reactor reactor, FederateInstance federate, StringBuilder constructorCode
     ) {
         // Construct the typedef for the "self" struct.
@@ -1009,12 +1040,6 @@ class CGenerator extends GeneratorBase {
         for (stateVar : reactor.stateVars) {
             prSourceLineNumber(body, stateVar)
             pr(body, getStateType(stateVar) + ' ' + stateVar.name + ';');
-        }
-        // Next handle actions.
-        for (a : reactor.actions) {
-            prSourceLineNumber(body, a)
-            // NOTE: Slightly obfuscate output name to help prevent accidental use.
-            pr(body, "trigger_t* __" + a.name + ";")
         }
         // Next handle inputs.
         for (input : reactor.inputs) {
@@ -1114,7 +1139,12 @@ class CGenerator extends GeneratorBase {
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
         val structs = new HashMap<Instantiation,HashSet<Variable>>
+        // For each variable so collected, if the variable is an output
+        // of a contained reactor, then collect the indices of the reactions
+        // that are triggered by it.
+        val reactionsTriggered = new HashMap<Variable,HashSet<Integer>>
         
+        var reactionCount = 0
         for (reaction : reactor.reactions) {
             // First, handle reactions that produce outputs sent to inputs
             // of contained reactors.
@@ -1139,6 +1169,13 @@ class CGenerator extends GeneratorBase {
                             structs.put(trigger.container, struct)
                         }
                         struct.add(trigger.variable)
+                        
+                        var triggered = reactionsTriggered.get(trigger.variable)
+                        if (triggered === null) {
+                            triggered = new HashSet<Integer>
+                            reactionsTriggered.put(trigger.variable, triggered)
+                        }
+                        triggered.add(reactionCount)
                     }
                 }
             }
@@ -1154,6 +1191,7 @@ class CGenerator extends GeneratorBase {
                     struct.add(source.variable)
                 }
             }
+            reactionCount++
         }
         for (containedReactor : structs.keySet) {
             pr(body, "struct {")
@@ -1166,8 +1204,41 @@ class CGenerator extends GeneratorBase {
                     // Must be an output entry.
                     val port = variable as Output
                     // Outputs are pointers to the source of data.
-                    pr(body, lfTypeToTokenType(port.inferredType) + '* ' + port.name + ';')
-                    pr(body, 'bool* ' + port.name + '_is_present;')
+                    pr(body, '''
+                        «lfTypeToTokenType(port.inferredType)»* «port.name»;
+                        bool* «port.name»_is_present;
+                        trigger_t «port.name»_trigger;
+                    ''')
+                    val triggered = reactionsTriggered.get(variable)
+                    val triggeredSize = (triggered === null) ? 0 : triggered.size
+                    if (triggeredSize > 0) {
+                        pr(body, '''
+                            reaction_t* «port.name»_reactions[«triggeredSize»];
+                        ''')
+                        var triggeredCount = 0
+                        for (index : triggered) {
+                            pr(constructorCode, '''
+                                self->__«containedReactor.name».«port.name»_reactions[«triggeredCount++»] = &self->___reaction_«index»;
+                            ''')
+                        }
+                        pr(constructorCode, '''
+                            self->__«containedReactor.name».«port.name»_trigger.reactions = self->__«containedReactor.name».«port.name»_reactions;
+                        ''')
+                    } else {
+                        pr(constructorCode, '''
+                            self->__«containedReactor.name».«port.name»_trigger.reactions = NULL;
+                        ''')
+                    }
+                    pr(constructorCode, '''
+                        self->__«containedReactor.name».«port.name»_trigger.token = NULL;
+                        self->__«containedReactor.name».«port.name»_trigger.scheduled = NEVER;
+                        self->__«containedReactor.name».«port.name»_trigger.is_present = false;
+                        self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggeredSize»;
+                        self->__«containedReactor.name».«port.name»_trigger.is_timer = false;
+                        self->__«containedReactor.name».«port.name»_trigger.is_physical = false;
+                        self->__«containedReactor.name».«port.name»_trigger.drop = false;
+                        self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
+                    ''')
                 }
             }
             unindent(body)
@@ -1175,48 +1246,223 @@ class CGenerator extends GeneratorBase {
         }
         
         // Next, generate the fields needed for each reaction.
-        pr(body, "// FIXME: The following fields are placeholders that will eventually replace the global variables.")
-        var reactionCount = 0;
-        for (reaction : reactor.reactions) {
-            pr(body, '''reaction_t ___reaction_«reactionCount»;''')
-            // Count the output ports and inputs of contained reactors that
-            // may be set by this reactor. This ignores actions in the effects.
-            var outputCount = 0;
-            for (effect : reaction.effects) {
-                if (effect.variable instanceof Port) {
-                    // Create the entry in the _outputs_are_present array for this port.
-                    // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
-                    pr(constructorCode, '''
-                        self->__reaction_«reactionCount»_outputs_are_present[«outputCount»] = &self->__«ASTUtils.toText(effect)»_is_present;
-                    ''')
-                    outputCount++
-                }
-            }
-            pr(constructorCode, '''
-                self->__reaction_«reactionCount»_num_outputs = «outputCount»;
-            ''')
-            pr(body, '''
-                bool* __reaction_«reactionCount»_outputs_are_present[«outputCount»];
-                int __reaction_«reactionCount»_num_outputs;
-                trigger_t** __reaction_«reactionCount»_triggers[«outputCount»];
-                int __reaction_«reactionCount»_triggered_sizes[«outputCount»];
-            ''')
-            reactionCount++
-        }
-        
-        // FIXME: Finally, generate the trigger_t fields needed for each timer, action, and input.
-        // See generateTriggerObjects().
+        generateReactionAndTriggerStructs(body, reactor, constructorCode, federate)
         
         if (body.length > 0) {
-            selfStructType(reactor)
-            pr("typedef struct {")
-            indent()
-            pr(body.toString)
-            unindent()
-            pr("} " + selfType + ";")
+            pr('''
+                typedef struct {
+                    «body.toString»
+                } «selfType»;
+            ''')
+        } else {
+            // There are no fields for the self struct.
+            // C compilers complain about empty structs, so we generate a placeholder.
+            pr('''
+                typedef struct {
+                    bool hasContents;
+                } «selfType»;
+            ''')
         }
-        outputToContainedOutput
     }
+    
+    /**
+     * Generate the fields of the self struct and statements for the constructor
+     * to create an initialize a reaction_t struct for each reaction in the
+     * specified reactor and a trigger_t struct for each trigger (input, action,
+     * timer, or output of a contained reactor).
+     * @param body The place to put the code for the self struct.
+     * @param reactor The reactor.
+     * @param constructorCode The place to put the constructor code.
+     * @param federate The federate instance, or null if there is no federation.
+     */
+    protected def void generateReactionAndTriggerStructs(
+        StringBuilder body, Reactor reactor, StringBuilder constructorCode, FederateInstance federate
+    ) {
+        var reactionCount = 0;
+        // Iterate over reactions and create initialize the reaction_t struct
+        // on the self struct. Also, collect a map from triggers to the reactions
+        // that are triggered by that trigger. Also, collect a set of sources
+        // that are read by reactions but do not trigger reactions.
+        // Finally, collect a set of triggers and sources that are outputs
+        // of contained reactors. 
+        val triggerMap = new HashMap<Variable,LinkedList<Integer>>()
+        val sourceSet = new HashSet<Variable>()
+        val outputsOfContainedReactors = new HashMap<Variable,Instantiation>
+        for (reaction : reactor.reactions) {
+            if (federate === null || federate.containsReaction(reactor, reaction)) {
+                // Create the reaction_t struct.
+                pr(reaction, body, '''reaction_t ___reaction_«reactionCount»;''')
+
+                // Count the output ports and inputs of contained reactors that
+                // may be set by this reactor. This ignores actions in the effects.
+                // Also generate the constructor code to initialize the
+                // _outputs_are_present array for the reaction.
+                var outputCount = 0;
+                for (effect : reaction.effects) {
+                    if (effect.variable instanceof Port) {
+                        // Create the entry in the _outputs_are_present array for this port.
+                        // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
+                        pr(constructorCode, '''
+                            self->__reaction_«reactionCount»_outputs_are_present[«outputCount»] = &self->__«ASTUtils.toText(effect)»_is_present;
+                        ''')
+                        outputCount++
+                    }
+                }
+                // Create the map of triggers to reactions.
+                for (trigger : reaction.triggers) {
+                    // trigger may not be a VarRef (it could be "startup" or "shutdown").
+                    if (trigger instanceof VarRef) {
+                        var reactionList = triggerMap.get(trigger.variable)
+                        if (reactionList === null) {
+                            reactionList = new LinkedList<Integer>()
+                            triggerMap.put(trigger.variable, reactionList)
+                        }
+                        reactionList.add(reactionCount)
+                        if (trigger.container !== null) {
+                            outputsOfContainedReactors.put(trigger.variable, trigger.container)
+                        }
+                    }
+                }
+                // Create the set of sources read but not triggering.
+                for (source : reaction.sources) {
+                    sourceSet.add(source.variable)
+                    if (source.container !== null) {
+                        outputsOfContainedReactors.put(source.variable, source.container)
+                    }
+                }
+
+                pr(constructorCode, '''
+                    self->__reaction_«reactionCount»_num_outputs = «outputCount»;
+                ''')
+                pr(body, '''
+                    bool* __reaction_«reactionCount»_outputs_are_present[«outputCount»];
+                    int __reaction_«reactionCount»_num_outputs;
+                    trigger_t** __reaction_«reactionCount»_triggers[«outputCount»];
+                    int __reaction_«reactionCount»_triggered_sizes[«outputCount»];
+                ''')
+
+                var deadlineFunctionPointer = "NULL"
+                if (reaction.deadline !== null) {
+                    // The following has to match the name chosen in generateReactions
+                    val deadlineFunctionName = reactor.name.toLowerCase + '_deadline_function' + reactionCount
+                    deadlineFunctionPointer = "&" + deadlineFunctionName
+                }
+
+                // Set the defaults of the reaction_t struct in the constructor.
+                pr(reaction, constructorCode, '''
+                    self->___reaction_«reactionCount».function = «reactionFunctionName(reactor, reactionCount)»;
+                    self->___reaction_«reactionCount».self = self;
+                    self->___reaction_«reactionCount».index = 0;
+                    self->___reaction_«reactionCount».chain_id = 0;
+                    self->___reaction_«reactionCount».pos = 0;
+                    self->___reaction_«reactionCount».num_outputs = «outputCount»;
+                    self->___reaction_«reactionCount».output_produced = self->__reaction_«reactionCount»_outputs_are_present;
+                    self->___reaction_«reactionCount».triggered_sizes = self->__reaction_«reactionCount»_triggered_sizes;
+                    self->___reaction_«reactionCount».triggers = self->__reaction_«reactionCount»_triggers;
+                    self->___reaction_«reactionCount».running = false;
+                    self->___reaction_«reactionCount».local_deadline = 0LL;
+                    self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
+                ''')
+
+                reactionCount++
+            }
+        }
+        
+        // Next, create and initialize the trigger_t objects.
+        // Start with the timers.
+        for (timer : reactor.timers) {
+            createTriggerT(body, timer, triggerMap, constructorCode)
+            pr(constructorCode, '''
+                self->___«timer.name».is_timer = true;
+                self->___«timer.name».is_physical = false;
+                self->___«timer.name».drop = false;
+                self->___«timer.name».element_size = 0;
+            ''')
+        }
+
+        // Next handle actions.
+        for (action : reactor.actions) {
+            createTriggerT(body, action, triggerMap, constructorCode)
+            var isPhysical = "true";
+            if (action.origin == ActionOrigin.LOGICAL) {
+                isPhysical = "false";
+            }
+            var elementSize = "0"
+            if (action.type !== null) elementSize = '''sizeof(«action.targetType.rootType»)'''
+
+            pr(constructorCode, '''
+                self->___«action.name».is_timer = false;
+                self->___«action.name».is_physical = «isPhysical»;
+                self->___«action.name».drop = «action.drop»;
+                self->___«action.name».element_size = «elementSize»;
+            ''')
+        }
+
+        // Next handle inputs.
+        for (input : reactor.inputs) {
+            createTriggerT(body, input, triggerMap, constructorCode)
+            val rootType = input.targetType.rootType
+            pr(constructorCode, '''
+                self->___«input.name».is_timer = false;
+                self->___«input.name».offset = 0LL;
+                self->___«input.name».period = 0LL;
+                self->___«input.name».is_physical = false;
+                self->___«input.name».drop = false;
+                self->___«input.name».element_size = sizeof(«rootType»);
+            ''')
+        }
+        
+        // FIXME: Outputs from contained reactors.
+    }
+    
+    /**
+     * Define the trigger_t object on the self struct, and array of
+     * reaction_t pointers pointing to reactions triggered by this variable,
+     * and initialize the pointers in the array in the constructor.
+     * @param body The place to write the self struct entries.
+     * @param variable The trigger variable (Timer, Action, or Port).
+     * @param triggerMap A map from Variables to a list of the reaction indices
+     *  triggered by the variable.
+     * @param constructorCode The place to write the constructor code.
+     */
+    private def void createTriggerT(
+        StringBuilder body, 
+        Variable variable,
+        HashMap<Variable, LinkedList<Integer>> triggerMap,
+        StringBuilder constructorCode
+    ) {
+        prSourceLineNumber(body, variable)
+        // NOTE: This used to be a pointer to a static global variable, but
+        // to better support mutations, the trigger_t struct is now part of the
+        // self struct.
+        pr(body, "trigger_t ___" + variable.name + ";")
+        // Set generic defaults for the trigger_t struct.
+        pr(constructorCode, '''
+            self->___«variable.name».token = NULL;
+            self->___«variable.name».scheduled = NEVER;
+            self->___«variable.name».is_present = false;
+        ''')
+        // Generate the reactions triggered table.
+        val reactionsTriggered = triggerMap.get(variable)
+        if (reactionsTriggered !== null) {
+            prSourceLineNumber(body, variable)
+            pr(body, '''reaction_t* ___«variable.name»_reactions[«reactionsTriggered.size»];''')
+            var count = 0
+            for (reactionTriggered: reactionsTriggered) {
+                prSourceLineNumber(constructorCode, variable)
+                pr(constructorCode, '''
+                    self->___«variable.name»_reactions[«count»] = &self->___reaction_«reactionTriggered»;
+                ''')
+                count++
+            }
+            // Set up the trigger_t struct's pointer to the reactions.
+            pr(constructorCode, '''
+                self->___«variable.name».reactions = self->___«variable.name»_reactions;
+                self->___«variable.name».number_of_reactions = «count»;
+            ''')
+        }
+    }
+    
     
     /**
      * If any reaction in the specified reactor is triggered by startup,
@@ -1307,8 +1553,8 @@ class CGenerator extends GeneratorBase {
         for (reaction : reactions) {
             if (federate === null || federate.containsReaction(reactor, reaction)) {
                 generateReaction(reaction, reactor, reactionIndex)
+                reactionIndex++
             }
-            reactionIndex++
         }
     }
     
@@ -1322,19 +1568,17 @@ class CGenerator extends GeneratorBase {
      */
     def generateReaction(Reaction reaction, Reactor reactor, int reactionIndex) {
         // Create a unique function name for each reaction.
-        val functionName = reactor.name.toLowerCase + "_rfunc_" + reactionIndex
+        val functionName = reactionFunctionName(reactor, reactionIndex)
 
         // Construct the reactionInitialization code to go into
         // the body of the function before the verbatim code.
         var StringBuilder reactionInitialization = new StringBuilder()
 
         // Define the "self" struct.
-        if (!hasEmptySelfStruct(reactor)) {
-            var structType = selfStructType(reactor)
-            // A null structType means there are no inputs, state,
-            // or anything else. No need to declare it.
-            pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
-        }
+        var structType = selfStructType(reactor)
+        // A null structType means there are no inputs, state,
+        // or anything else. No need to declare it.
+        pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
 
         // A reaction may send to or receive from multiple ports of
         // a contained reactor. The variables for these ports need to
@@ -1402,7 +1646,7 @@ class CGenerator extends GeneratorBase {
                     // If it has already appeared as trigger, do not redefine it.
                     if (!actionsAsTriggers.contains(effect.variable.name)) {
                         pr(reactionInitialization,
-                            "trigger_t* " + effect.variable.name + ' = self->__' + effect.variable.name + ';');
+                            "trigger_t* " + effect.variable.name + ' = &self->___' + effect.variable.name + ';');
                     }
                 } else {
                     if (effect.variable instanceof Output) {
@@ -1442,13 +1686,7 @@ class CGenerator extends GeneratorBase {
             // Next generate all the collected setup code.
             pr(reactionInitialization.toString)
         } else {
-            // Define the "self" struct.
-            if (!hasEmptySelfStruct(reactor)) {
-                var structType = selfStructType(reactor)
-                // A null structType means there are no inputs, state,
-                // or anything else. No need to declare it.
-                pr(structType + "* self = (" + structType + "*)instance_args;")
-            }
+            pr(structType + "* self = (" + structType + "*)instance_args;")
         }
         // Code verbatim from 'reaction'
         prSourceLineNumber(reaction.code)
@@ -1458,7 +1696,7 @@ class CGenerator extends GeneratorBase {
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
-            // The following name has to match the choice in generateReactionStructs
+            // The following name has to match the choice in generateReactionInstances
             val deadlineFunctionName = reactor.name.toLowerCase + '_deadline_function' + reactionIndex
 
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
@@ -1472,41 +1710,49 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** Generate reaction_t structs, one for each reaction in the
-     *  specified reactor instance. The name of the struct will be
-     *  uniqueID of the reaction instance.
+    /** Generate code to create the trigger table for each reaction of the
+     *  specified reactor.  Each table lists the triggers that the reaction's
+     *  execution may trigger. Each table is an array of arrays
+     *  of pointers to the trigger_t structs representing the downstream inputs
+     *  (or outputs of the container reactor) that are triggered by the reaction.
+     *  Each trigger table goes into the reaction's reaction_t triggers field.
+     *  That reaction_t struct is assumed to be on the self struct of the reactor
+     *  instance with name "___reaction_i", where i is the index of the reaction.
+     *  The generated code will also set the values of the triggered_sizes array
+     *  on the reaction_t struct to indicate the size of each array of trigger_t
+     *  pointers. The generated code will malloc each of these arrays, and the
+     *  destructor for the reactor instance will free them.
+     *  The generated code goes into the __initialize_trigger_objects() function.
      *  @param reactorIntance The reactor instance.
      *  @param federate The federate name or null if no federation.
      */
-    def generateReactionStructs(ReactorInstance reactorInstance, FederateInstance federate) {
-        val result = new StringBuilder()
+    def generateRemoteTriggerTable(ReactorInstance reactorInstance, FederateInstance federate) {
+        val selfStruct = selfStructName(reactorInstance)
+        var reactionCount = 0
         for (reaction : reactorInstance.reactions) {
             if (federate === null || federate.containsReaction(
                     reactorInstance.definition.reactorClass,
                     reaction.definition)) {
-                val reactionInstanceName = reaction.uniqueID
 
-                var presentPredicates = new LinkedList<String>()
-                var triggeredSizesContents = new LinkedList<String>()
-                var triggersContents = new LinkedList<String>()
                 var Collection<PortInstance> destinationPorts = null
 
-                // Generate entries for the reaction_t struct that specify how
-                // to handle outputs.
+                var portCount = 0
                 for (port : reaction.dependentPorts) {
-                    // Place to collect reactions up the hierarchy triggered by this port.
-                    var destinationReactions = new LinkedList<ReactionInstance>()
+                    // The port to which the reaction writes may have dependent
+                    // reactions in the container. If so, we list that port here.
+                    var portsWithDependentReactions = new LinkedList<PortInstance>()
 
+                    // The size of the array to be inserted into the triggers array of
+                    // the reaction is the sum of the number of destination ports and
+                    // the number of destination reactions (reactions of the container
+                    // sensitive to this port.
+                    var numberOfTriggerTObjects = 0
+                    
                     // Collect the destinations for each output port.
                     if (port.definition instanceof Output) {
-                        // Reaction sends to an output.
-                        // First create the array of pointers to booleans indicating
-                        // whether an output is produced.
-                        presentPredicates.add(
-                            '&' + selfStructName(reactorInstance) + '.__' +
-                                port.name + '_is_present')
-
                         // For each output, obtain the destinations from the parent.
+                        // Pointers to the destination trigger_t objects will be collected into
+                        // an array, which will become the 
                         var parent = reactorInstance.parent
                         if (parent !== null) {
                             destinationPorts = parent.transitiveClosure(port)
@@ -1515,149 +1761,73 @@ class CGenerator extends GeneratorBase {
                             // for an output port.
                             destinationPorts = new LinkedList<PortInstance>()
                         }
-
+                        
                         // The port may also have dependent reactions, which are
                         // reactions in the container of this port's container.
-                        for (dependentReactions : port.dependentReactions) {
-                            destinationReactions.add(dependentReactions)
+                        if (port.dependentReactions.size > 0) {
+                            portsWithDependentReactions.add(port)
+                            numberOfTriggerTObjects += port.dependentReactions.size
                         }
                     } else {
-                        // The reaction is sending data to the input of a contained reactor.
-                        // First create the array of pointers to booleans indicating whether
-                        // an output is produced.
-                        presentPredicates.add(
-                            '&' + selfStructName(reactorInstance) + '.__' +
-                                port.parent.name + '.' + port.name + '_is_present')
-
-                        // Since the port is the input port of a contained reactor,
+                        // The port is the input port of a contained reactor,
                         // use that reactor instance to compute the transitive closure.
                         destinationPorts = port.parent.transitiveClosure(port)
                     }
 
-                    val numberOfTriggerTObjects = destinationPorts.size +
-                        destinationReactions.size
-
-                    // Next, create an array of trigger_t objects, which are
-                    // the triggers that fire if this output is produced.
-                    // Append to the array that records the sizes of the trigger arrays.
-                    triggeredSizesContents.add("" + numberOfTriggerTObjects)
-
-                    // Then, for each destination connected to this output,
-                    // create an array of pointers to its trigger_t structs,
-                    // and collect pointers to each of these arrays.
-                    if (numberOfTriggerTObjects === 0) {
-                        triggersContents.add("NULL")
-                    } else {
-                        // FIXME: This ID may exceed some maximum length.
-                        var remoteTriggersArrayName = reactionInstanceName + '_' +
-                            presentPredicates.size + '_remote_triggers'
-                        var inputCount = 0;
+                    numberOfTriggerTObjects += destinationPorts.size
+                        
+                    // Record this array size in reaction's reaction_t triggered_sizes array.
+                    pr(initializeTriggerObjects, '''
+                        «selfStruct»->___reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
+                    ''')
+                    if (numberOfTriggerTObjects > 0) {
+                        // Next, malloc the memory for the array and record its location.
+                        // NOTE: Need a unique name for the pointer to the malloc'd array because some of the
+                        // initialization has to occur at the end of __initialize_trigger_objects(), after
+                        // all reactor instances have been created.
+                        val triggerArray = '''«reactorInstance.uniqueID»_«reaction.reactionIndex»_«portCount»'''
+                        pr(initializeTriggerObjects, '''
+                            trigger_t** «triggerArray» = malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
+                            «selfStruct»->___reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
+                        ''')
+                        
+                        // Next, initialize the newly created array.
+                        var destinationCount = 0;
                         for (destination : destinationPorts) {
-                            deferredInitialize.add(
-                                new InitializeRemoteTriggersTable(
-                                    reactorInstance,
-                                    remoteTriggersArrayName,
-                                    (inputCount++),
-                                    destination,
-                                    null
-                                )
-                            )
+                            // If the destination of a connection is an input
+                            // port of a reactor that has no reactions to that input,
+                            // then this trigger struct will not have been created.
+                            // In that case, we want NULL.
+                            // If the destination is an output port, however, then
+                            // the dependentReactions.size will be zero, but we nevertheless
+                            // want to set up the trigger.  FIXME. Why????
+                            if (destination.dependentReactions.size === 0
+                                // && !destination.isOutput
+                            ) {
+                                pr(initializeTriggerObjectsEnd, '''
+                                    «triggerArray»[«destinationCount++»] = NULL;
+                                ''')
+                            } else {
+                                pr(initializeTriggerObjectsEnd, '''
+                                    «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
+                                ''')
+                            }
                         }
-                        for (destinationReaction : destinationReactions) {
-                            deferredInitialize.add(
-                                new InitializeRemoteTriggersTable(
-                                    reactorInstance,
-                                    remoteTriggersArrayName,
-                                    (inputCount++),
-                                    port,
-                                    destinationReaction
-                                )
-                            )
-                        }
-                        pr(
-                            result,
-                            'trigger_t* ' + remoteTriggersArrayName + '[' +
-                                inputCount + '];'
-                        )
-                        triggersContents.add('&' + remoteTriggersArrayName + '[0]')
+                        for (portWithDependentReactions : portsWithDependentReactions) {
+                            for (destinationReaction : portWithDependentReactions.dependentReactions) {
+                                if (reactorBelongsToFederate(destinationReaction.parent, federate)) {
+                                    pr(initializeTriggerObjectsEnd, '''
+                                        «triggerArray»[«destinationCount++»] = &«triggerStructName(portWithDependentReactions, destinationReaction)»;
+                                    ''')
+                                }
+                            }
+                        }                        
                     }
+                    portCount++
                 }
-                var outputProducedArray = "NULL"
-                var triggeredSizesArray = "NULL"
-                var triggersArray = "NULL"
-                val outputCount = presentPredicates.size
-                if (outputCount > 0) {
-                    outputProducedArray = reactionInstanceName +
-                        '_outputs_are_present'
-                    // Create a array with booleans indicating whether an output has been produced.
-                    pr(
-                        result,
-                        'bool* ' + reactionInstanceName + '_outputs_are_present[]' +
-                                ' = {' + presentPredicates.join(", ") + '};'
-                    )
-                    // Create a array with ints indicating these
-                    // numbers and assign it to triggered_reactions_sizes
-                    // field of the reaction_t object.
-                    triggeredSizesArray = '&' + reactionInstanceName +
-                        '_triggered_sizes[0]'
-                    pr(
-                        result,
-                        'int ' + reactionInstanceName + '_triggered_sizes' +
-                                '[] = {' + triggeredSizesContents.join(", ") + '};'
-                    )
-                    // Create an array with pointers to arrays of pointers to trigger_t
-                    // structs for each input triggered by an output.
-                    triggersArray = '&' + reactionInstanceName + '_triggers[0]'
-                    pr(
-                        result,
-                        'trigger_t** ' + reactionInstanceName + '_triggers' +
-                                '[] = {' + triggersContents.join(', ') + '};'
-                    )
-                }
-                // Finally, produce the reaction_t struct.          
-                // The argument specifying the self struct may be NULL if there
-                // is no self struct.
-                var selfStructArgument = ", &" + selfStructName(reactorInstance)
-                var reactorClass = reactorInstance.definition.reactorClass
-                if (hasEmptySelfStruct(reactorClass)) {
-                    selfStructArgument = ", NULL"
-                }
-                var deadlineFunctionPointer = ", NULL"
-                if (reaction.definition.deadline !== null) {
-                    // The following has to match the name chosen in generateReactions
-                    val deadlineFunctionName = reactorInstance.definition.
-                        reactorClass.name.toLowerCase + '_deadline_function' +
-                        reaction.reactionIndex
-
-                    deadlineFunctionPointer = ", &" + deadlineFunctionName
-                }
-
-                // Use the same function name as in generateReactions.
-                // FIXME: Fragile!  Find a better way to get agreement on function name.
-                val functionName = reactorClass.name.toLowerCase + "_rfunc_" +
-                    reaction.reactionIndex
-
-                // First 0 is an index that specifies priorities based on precedences.
-                // It will be set later.
-                pr(
-                    result,
-                    "reaction_t " + reactionInstanceName + " = {&" + functionName +
-                        selfStructArgument + ", 0" // index: index from the topological sort.
-                        + ", 0" // chain_id: binary encoding of the branches that this reaction has upstream in the dependency graph.
-                        + ", 0" // pos: position used by the pqueue implementation for sorting.
-                        + ", " + outputCount // num_outputs: number of outputs produced by this reaction.
-                        + ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
-                        + ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
-                        + ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-                        + ", false" // Indicator that the reaction is not running.
-                        + ", 0LL" // Local deadline.
-                        + deadlineFunctionPointer // deadline_violation_handler: Pointer to local handler function.
-                        + "};"
-                )
+                reactionCount++
             }
         }
-        // This goes directly out to the generated code.
-        pr(result.toString())
     }
 
     /** Generate code to set up the tables used in __start_time_step to decrement reference
@@ -1674,9 +1844,9 @@ class CGenerator extends GeneratorBase {
                     if (isTokenType((input.definition as Input).inferredType)) {
                         pr(startTimeStep, '''
                             __tokens_with_ref_count[«startTimeStepTokens»].token
-                                    = «nameOfSelfStruct».__«input.name»;
+                                    = «nameOfSelfStruct»->__«input.name»;
                             __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                    = «nameOfSelfStruct».__«input.name»_is_present;
+                                    = «nameOfSelfStruct»->__«input.name»_is_present;
                             __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                         ''')
                         startTimeStepTokens++
@@ -1697,8 +1867,7 @@ class CGenerator extends GeneratorBase {
                         // the input of a contained reactor in the federate.
                         if (reactorBelongsToFederate(port.parent, federate)) {
                             pr(startTimeStep, '''
-                                __is_present_fields[«startTimeStepIsPresentCount»]
-                                        = &«containerSelfStructName».__«port.parent.definition.name».«port.definition.name»_is_present;
+                                __is_present_fields[«startTimeStepIsPresentCount»] = &«containerSelfStructName»->__«port.parent.definition.name».«port.definition.name»_is_present;
                             ''')
                             startTimeStepIsPresentCount++
                         }
@@ -1710,9 +1879,9 @@ class CGenerator extends GeneratorBase {
                         if (isTokenType((port.definition as Output).inferredType)) {
                             pr(startTimeStep, '''
                                 __tokens_with_ref_count[«startTimeStepTokens»].token
-                                        = «containerSelfStructName».__«port.parent.name».«port.name»;
+                                        = «containerSelfStructName»->__«port.parent.name».«port.name»;
                                 __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                        = «containerSelfStructName».__«port.parent.name».«port.name»_is_present;
+                                        = «containerSelfStructName»->__«port.parent.name».«port.name»_is_present;
                                 __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                             ''')
                             startTimeStepTokens++
@@ -1727,8 +1896,7 @@ class CGenerator extends GeneratorBase {
                 var nameOfSelfStruct = selfStructName(child)
                 for (output : child.outputs) {
                     pr(startTimeStep, '''
-                        __is_present_fields[«startTimeStepIsPresentCount»]
-                                = &«nameOfSelfStruct».__«output.name»_is_present;
+                        __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name»_is_present;
                     ''')
                     startTimeStepIsPresentCount++
                 }
@@ -1744,334 +1912,97 @@ class CGenerator extends GeneratorBase {
      *  There needs to be one reaction function
      *  for each such output because these reaction functions have to be
      *  individually invoked after each contained reactor produces an
-     *  output that must be relayed.
+     *  output that must be relayed. These reactions are set up to not
+     *  be required to be invoked in any particular order.
      *  @param reactor The reactor.
-     *  @param outputToContainedOutput A map of output ports of this
-     *   reactor to output ports of contained reactors that they receive
-     *   data from.
      */
-    def generateTransferOutputs(Reactor reactor,
-        HashMap<Output, VarRef> outputToContainedOutput) {
-        for (output : outputToContainedOutput.keySet()) {
-            // The following function name will be unique, assuming that
-            // reactor class names are unique and within each reactor class,
-            // output names are unique.
-            // This has to match what's in generateTriggerForTransferOutputs
-            val functionName = reactor.name.toLowerCase + "_xfer_outs_" + "_" +
-                output.name
-
-            pr('void ' + functionName + '(void* instance_args) {')
-            indent()
-
-            // Define the "self" struct. First get its name. Note that this
-            // must not be null because there is at least one output.
-            var structType = selfStructType(reactor)
-            pr(structType + "* self = (" + structType + "*)instance_args;")
-
-            // Transfer the output value from the inside value.
-            pr("self->__" + output.name + " = *(self->__" + output.name +
-                "_inside);")
-            // Transfer the presence flag from the inside value.
-            pr(
-                "self->__" + output.name + "_is_present = *(self->__" +
-                    output.name + "_inside_is_present);")
-            unindent()
-            pr("}")
-        }
-    }
-
-    /** Generate trigger_t objects for transferring outputs from inside a composite
-     *  to the outside.  Each trigger_t object is a struct that contains an
-     *  array of pointers to reaction_t objects representing
-     *  the transfer output.
-     *  This also creates the reaction_t object for each transfer outputs.
-     *  This object has a pointer to the function to invoke for that
-     *  reaction.
-     *  @param reactorInstance The instance for which we are generating trigger objects.
-     */
-    def generateTriggerForTransferOutputs(ReactorInstance reactorInstance) {
-        var outputCount = 0
-        val result = new StringBuilder()
-        var triggersContents = new LinkedList<String>()
-        var triggeredSizesContents = new LinkedList<String>()
-        var nameOfSelfStruct = selfStructName(reactorInstance)
-
-        for (output : reactorInstance.outputs) {
-            if (output.dependsOnPort !== null) {
-                // The output is connected on the inside.
-                // Create the reaction and trigger structs for this port.
-                // The function name for the transfer outputs function:
-                // This has to match what's in generateTransferOutputs
-                val functionName = output.parent.definition.reactorClass.name.
-                    toLowerCase + "_xfer_outs_" + "_" + output.name
-
-                pr(result,
-                    "// --- Reaction and trigger objects for transfer outputs for " +
-                        output.getFullName
-                )
-
-                // Figure out how many inputs are connected to the output.
-                // This is obtained via the container.
-                var parent = reactorInstance.parent
-                var Collection<PortInstance> destinations = null
-                if (parent !== null) {
-                    destinations = parent.transitiveClosure(output)
-                } else {
-                    // At the top level, where there cannot be any destinations.
-                    destinations = new LinkedList<PortInstance>()
-                }
-
-                // Place to collect reactions up the hierarchy triggered by this port.
-                var destinationReactions = new LinkedList<ReactionInstance>()
-
-                // The port may also have dependent reactions, which are
-                // reactions in the container of this port's container.
-                for (dependentReactions : output.dependentReactions) {
-                    destinationReactions.add(dependentReactions)
-                }
-
-                val numberOfTriggerTObjects = destinations.size +
-                    destinationReactions.size
-
-                // Append to the array that records the length of each trigger_t array.            
-                triggeredSizesContents.add("" + numberOfTriggerTObjects)
-
-                val structName = triggerStructName(output)
-
-                // Then, for each input connected to this output,
-                // find its trigger_t struct. Create an array of pointers
-                // to these trigger_t structs, and collect pointers to
-                // each of these arrays.
-                if (destinations.size === 0) {
-                    triggersContents.add("NULL")
-                } else {
-                    var inputCount = 0;
-                    for (destination : destinations) {
-                        deferredInitialize.add(
-                            new InitializeRemoteTriggersTable(
-                                parent,
-                                output.uniqueID + '_remote_triggers',
-                                (inputCount++),
-                                destination,
-                                null
-                            )
-                        )
+    def generateTransferOutputs(Reactor reactor) {
+        // FIXME: Is this really necessary? Couldn't the transitive closure function
+        // of ReactorInstance traverse the hierarchy?
+        for (connection : reactor.connections) {
+            // If the connection has the form c.x -> y, then it's what we are looking for.
+            if (connection.rightPort.container === null &&
+                    connection.leftPort.container !== null) {
+                if (connection.rightPort.variable instanceof Output) {
+                    val reaction = ASTUtils.factory.createReaction()
+                    reaction.makeUnordered()
+                    val leftPort = ASTUtils.factory.createVarRef()
+                    leftPort.container = connection.leftPort.container
+                    leftPort.variable = connection.leftPort.variable
+                    val rightPort = ASTUtils.factory.createVarRef()
+                    rightPort.variable = connection.rightPort.variable
+                    reaction.triggers.add(leftPort)
+                    reaction.effects.add(rightPort)
+                    reaction.code = factory.createCode()
+                    if ((rightPort.variable as Port).inferredType.isTokenType) {
+                        reaction.code.body = '''
+                            «DISABLE_REACTION_INITIALIZATION_MARKER»
+                            self->__«rightPort.variable.name» = self->__«leftPort.container.name».«leftPort.variable.name»;
+                            self->__«rightPort.variable.name»_is_present = true;
+                        '''
+                    } else {
+                        reaction.code.body = '''
+                            set(«rightPort.variable.name», «leftPort.container.name».«leftPort.variable.name»);
+                        '''
                     }
-                    for (destinationReaction : destinationReactions) {
-                        deferredInitialize.add(
-                            new InitializeRemoteTriggersTable(
-                                parent,
-                                output.uniqueID + '_remote_triggers',
-                                (inputCount++),
-                                output,
-                                destinationReaction
-                            )
-                        )
-                    }
-                    pr(
-                        result,
-                        'trigger_t* ' + output.uniqueID + '_remote_triggers[' +
-                            inputCount + '];'
+                    reactor.reactions.add(reaction)
+                } else {
+                    reportError(
+                        connection,
+                        "Expected an output port but got " +
+                            connection.rightPort.variable.name
                     )
-                    triggersContents.add('&' + output.uniqueID +
-                        '_remote_triggers[0]')
                 }
-                // Next generate the array of booleans which indicates whether outputs are present.
-                var outputProducedArray = output.uniqueID +
-                    '_outputs_are_present'
-                pr(
-                    result,
-                    'bool* ' + outputProducedArray + '[]' + ' = {' + '&' +
-                        nameOfSelfStruct + '.__' + output.name + '_is_present' +
-                        '};'
-                )
-                // Create a array with ints indicating these
-                // numbers and assign it to triggered_reactions_sizes
-                // field of the reaction_t object.
-                var triggeredSizesArray = '&' + output.uniqueID +
-                    '_triggered_sizes[0]'
-                pr(
-                    result,
-                    'int ' + output.uniqueID + '_triggered_sizes' + '[] = {' +
-                        triggeredSizesContents.join(', ') + '};'
-                )
-                // Create an array with pointers to arrays of pointers to trigger_t
-                // structs for each input triggered by an output.
-                var triggersArray = '&' + output.uniqueID + '_triggers[0]'
-                pr(
-                    result,
-                    'trigger_t** ' + output.uniqueID + '_triggers' + '[] = {' +
-                        triggersContents.join(', ') + '};'
-                )
-                // First 0 is an index that specifies priorities based on precedences.
-                // It will be set later.
-                var reactionInstanceName = output.uniqueID + "_reaction"
-                pr(
-                    result,
-                    "reaction_t " + reactionInstanceName + " = {&" +
-                        functionName + ", &" + nameOfSelfStruct // Function
-                        + ", 0" // index: index from the topological sort.
-                        + ", 0"
-                        + ", 0" // pos: position used by the pqueue implementation for sorting.
-                        + ", 1" // num_outputs: number of outputs produced by this reaction. This is just one.
-                        + ", " + outputProducedArray // output_produced: array of pointers to booleans indicating whether output is produced.
-                        + ", " + triggeredSizesArray // triggered_sizes: array of ints indicating number of triggers per output.
-                        + ", " + triggersArray // triggered: array of pointers to arrays of triggers.
-                        + ", false" // Indicator that the reaction is not running.
-                        + ", 0LL" // Local deadline.
-                        + ", NULL" // Pointer to local deadline_violation_handler.
-                        + "};"
-                )
-                pr(result,
-                    'reaction_t* ' + structName + '_reactions[1] = {&' +
-                        reactionInstanceName + '};')
-
-                val rootType = (output.definition as Port).targetType.rootType
-                pr(result, '''
-                    trigger_t «structName» = {
-                        «structName»_reactions, 1, false, 0LL, 0LL, NULL, false, NEVER, false, sizeof(«rootType»)
-                    };
-                ''')
-                
-                triggerCount++
             }
-            outputCount++
-        }
-        // This goes directly out to the generated code.
-        if (result.length > 0) {
-            pr("// *********** Transfer outputs structures for " +
-                reactorInstance.definition.name)
-            pr(result.toString())
         }
     }
 
-    /** Generate trigger_t objects, one for
-     *  each input, timer, and action of the reactor instance.
-     *  Each trigger_t object is a struct that contains an
-     *  array of pointers to reaction_t objects representing
-     *  reactions triggered by this trigger. The trigger_t object
-     *  also provides the length of the array, and if the trigger
-     *  is a timer or an action, the offset,
-     *  and the period. (The offset and period are zero if the trigger
-     *  is not an action or a timer. The period is zero for an action).
+    /**
+     * For each timer and action in the specified reactor instance, generate
+     * initialization code for the offset and period fields. This code goes into
+     * __initialize_trigger_objects(). This has to be done separately for each
+     * instance, rather than by the constructor, because the values of the offset
+     * and period may be given by parameters, so the values are potentially
+     * different for each instance.
      * 
-     *  This also creates the reaction_t object for each reaction.
-     *  This object has a pointer to the function to invoke for that
-     *  reaction.
-     *  @param reactorInstance The instance for which we are generating trigger objects.
-     *  @param federate The federate or null if no federation.
-     *  @return A map of trigger names to the name of the trigger struct.
+     * This method will also populate the global __timer_triggers array, which is
+     * used to start all timers at the start of execution.
+     * 
+     * @param reactorInstance The instance for which we are generating trigger objects.
+     * @return A map of trigger names to the name of the trigger struct.
      */
-    def generateTriggerObjects(ReactorInstance reactorInstance, FederateInstance federate) {
-        val result = new StringBuilder()
+    def generateOffsetAndPeriodInitializations(ReactorInstance reactorInstance) {
         var count = 0
         // Iterate over triggers (input ports, actions, and timers that trigger reactions).
         for (triggerInstance : reactorInstance.triggersAndReads) {
             var trigger = triggerInstance.definition
-            var numberOfReactionsTriggered = triggerInstance.dependentReactions.
-                length
-
-            // Collect names of the reaction_t objects that are triggered together.
-            var reactionTNames = new LinkedList<String>();
-
-            // Generate reaction_t struct.
-            // Along the way, we need to generate its contents, including trigger_t structs.
-            for (reactionInstance : triggerInstance.dependentReactions) {
-                pr(
-                    result,
-                    '// --- Reaction and trigger objects for reaction to trigger ' +
-                        trigger.name + ' of instance ' +
-                        reactorInstance.fullName
-                )
-                if (federate === null || federate.containsReaction(
-                    reactionInstance.parent.definition.reactorClass,
-                    reactionInstance.definition
-                )) {                    
-                    val reactionInstanceName = reactionInstance.uniqueID
-
-                    // Collect the reaction instance names to initialize the
-                    // reaction pointer array for the trigger.
-                    reactionTNames.add('&' + reactionInstanceName)
-                }
-            }
-            // Trigger could be a Timer, Action, or Input
             var triggerStructName = triggerStructName(triggerInstance)
-
-            pr(result,
-                'reaction_t* ' + triggerStructName + '_reactions[' +
-                    numberOfReactionsTriggered + '] = {' +
-                    reactionTNames.join(", ") + '};')
-            // Declare a variable with the name of the trigger whose
-            // value is a struct.
-            pr(result, 'trigger_t ' + triggerStructName + ' = {')
-            indent(result)
             if (trigger instanceof Timer) {
-                pr(result, '''
-                    «triggerStructName»_reactions, «numberOfReactionsTriggered», true, 0LL, 0LL, NULL, false, NEVER, false, 0
+                val offset = timeInTargetLanguage((triggerInstance as TimerInstance).offset)
+                val period = timeInTargetLanguage((triggerInstance as TimerInstance).period)
+                pr(initializeTriggerObjects, '''
+                    «triggerStructName».offset = «offset»;
+                    «triggerStructName».period = «period»;
+                    __timer_triggers[«startTimersCount»] = &«triggerStructName»;
                 ''')
-            } else if (triggerInstance instanceof PortInstance) {
-                val rootType = (triggerInstance.definition as Port).targetType.rootType
-                pr(result, '''
-                    «triggerStructName»_reactions, «numberOfReactionsTriggered», false, 0LL, 0LL, NULL, false, NEVER, false, sizeof(«rootType»)
-                ''')
+                startTimersCount++
             } else if (trigger instanceof Action) {
-                var isPhysical = "true";
                 var minDelay = (triggerInstance as ActionInstance).minDelay
                 var minInterArrival = (triggerInstance as ActionInstance).minInterArrival
-                
-                if (trigger.origin == ActionOrigin.LOGICAL) {
-                    isPhysical = "false";
-                }
-                var element_size = "0"
-                if (trigger.type !== null) element_size = '''sizeof(«trigger.targetType.rootType»)'''
-                pr(result, '''
-                    «triggerStructName»_reactions,
-                    «numberOfReactionsTriggered»,
-                    false,
-                    «timeInTargetLanguage(minDelay)»,
-                    «timeInTargetLanguage(minInterArrival)»,
-                    NULL,
-                    «isPhysical»,
-                    NEVER,
-                    «trigger.drop»,
-                    «element_size»
-                ''')
-                // If this is a shutdown action, add it to the list of shutdown actions.
-                if ((triggerInstance as ActionInstance).isShutdown) {
-                    shutdownActionInstances.add(
-                        triggerInstance as ActionInstance)
-                }
-
+                pr(initializeTriggerObjects, '''
+                    «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
+                    «triggerStructName».period = «timeInTargetLanguage(minInterArrival)»;
+                ''')               
+            } else if (triggerInstance instanceof PortInstance) {
+                // Nothing to do in initialize_trigger_objects
             } else {
                 reportError(trigger,
                     "Internal error: Seems to not be a port, timer, or action: " +
                         trigger.name)
             }
-            unindent(result)
-            pr(result, '};')
-            
-            // Assignment of the offset and period have to occur after creating
-            // the struct because the value assigned may not be a compile-time constant.
-            if (trigger instanceof Timer) {
-
-                val offset = (triggerInstance as TimerInstance).offset
-                val period = (triggerInstance as TimerInstance).period
-
-                pr(initializeTriggerObjects,
-                    triggerStructName + '.offset = ' + timeInTargetLanguage(offset) + ';')
-                pr(initializeTriggerObjects,
-                    triggerStructName + '.period = ' + timeInTargetLanguage(period) + ';')
-                // Add the timer to the table of timers to start.
-                pr(initializeTriggerObjects, '''
-                    __timer_triggers[«startTimersCount»] = &«triggerStructName»;
-                ''')
-                startTimersCount++
-            }
             count++
             triggerCount++
         }
-        // This goes directly out to the generated code.
-        pr(result.toString())
     }
 
     /** Open a non-Lingua Franca import file at the specified URI
@@ -2155,47 +2086,38 @@ class CGenerator extends GeneratorBase {
     def selfStructType(Reactor reactor) {
         return reactor.name.toLowerCase + "_self_t"
     }
+    
+    /** Return the function name for specified reaction of the
+     *  specified reactor.
+     *  @param reactor The reactor
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    def reactionFunctionName(Reactor reactor, int reactionIndex) {
+          reactor.name.toLowerCase + "reaction_function_" + reactionIndex
+    }
 
-    /** Return the unique name for the trigger_t struct of the specified
-     *  trigger instance (input port or action).
+    /** Return a reference to the trigger_t struct of the specified
+     *  trigger instance (input port or action). This trigger_t struct
+     *  is on the self struct.
      *  @param instance The port or action instance.
      *  @return The name of the trigger struct.
      */
     static def triggerStructName(TriggerInstance<Variable> instance) {
-        return instance.uniqueID + "_trigger"
+        return selfStructName(instance.parent) 
+                + '->___'
+                + instance.name
     }
-
-    /** Return true of the given reactor has an empty self struct, false otherwise.
-     *  @param reactor A reactor class
+    
+    /** Return a reference to the trigger_t struct for the specified output
+     *  port of a contained reactor that triggers the specified reaction.
+     *  @param port The output port of a contained reactor.
+     *  @param reaction The reaction triggered by this port.
+     *  @return The name of the trigger struct, which is in the self struct
+     *   of the container of the reaction.
      */
-    def hasEmptySelfStruct(Reactor reactor) {
-        if (!reactor.parameters.isEmpty || !reactor.stateVars.isEmpty ||
-            !reactor.actions.isEmpty || !reactor.inputs.isEmpty ||
-            !reactor.outputs.isEmpty) {
-            return false
-        }
-        for (reaction : reactor.reactions ?: emptyList) {
-            for (effect : reaction.effects ?: emptyList) {
-                // Sending to input of contained reactor
-                if (effect.variable instanceof Input) {
-                    return false
-                }
-            }
-            for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-                if (trigger instanceof VarRef &&
-                    (trigger as VarRef).variable instanceof Output) {
-                    // Triggered by the output of a contained reactor.
-                    return false
-                }
-            }
-            for (reading : reaction.sources ?: emptyList) {
-                if (reading.variable instanceof Output) {
-                    // Reading the output of a contained reactor.
-                    return false
-                }
-            }
-        }
-        return true
+    static def triggerStructName(PortInstance port, ReactionInstance reaction) {
+        return '''«selfStructName(reaction.parent)»->__«port.parent.name».«port.name»_trigger;'''
     }
 
     /** Traverse the runtime hierarchy of reaction instances and generate code.
@@ -2210,17 +2132,16 @@ class CGenerator extends GeneratorBase {
         }
         var reactorClass = instance.definition.reactorClass
         var fullName = instance.fullName
-        pr('// ************* Instance ' + fullName + ' of class ' +
+        pr(initializeTriggerObjects, '// ************* Instance ' + fullName + ' of class ' +
             reactorClass.name)
 
         // Generate the instance struct containing parameters, state variables,
         // and outputs (the "self" struct).
         var nameOfSelfStruct = selfStructName(instance)
         var structType = selfStructType(reactorClass)
-        if (!hasEmptySelfStruct(reactorClass)) {
-            pr('// --- "self" struct for instance ' + fullName)
-            pr(structType + " " + nameOfSelfStruct + ";")
-        }
+        pr(initializeTriggerObjects, '''
+            «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
+        ''')
 
         // Generate code to initialize the "self" struct in the
         // __initialize_trigger_objects function.
@@ -2235,17 +2156,19 @@ class CGenerator extends GeneratorBase {
             // Array type parameters have to be handled specially.
             val matcher = arrayPatternVariable.matcher(parameter.type.targetType)
             if (matcher.find()) {
+                // Use an intermediate temporary variable so that parameter dependencies
+                // are resolved correctly.
                 val temporaryVariableName = parameter.uniqueID
                 pr(initializeTriggerObjects,
                     "static " + matcher.group(1) + " " +
                     temporaryVariableName + "[] = " + parameter.getInitializer + ";"
                 )
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "." + parameter.name + " = " + temporaryVariableName + ";"
+                    nameOfSelfStruct + "->" + parameter.name + " = " + temporaryVariableName + ";"
                 )
             } else {
                 pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "." + parameter.name + " = " +
+                    nameOfSelfStruct + "->" + parameter.name + " = " +
                         parameter.getInitializer + ";" 
                 )
             }
@@ -2260,7 +2183,7 @@ class CGenerator extends GeneratorBase {
             if (stateVar.initialized) {
 	          	if (stateVar.isOfTimeType) {
 	                pr(initializeTriggerObjects,
-	                    nameOfSelfStruct + "." + stateVar.name + " = " +
+	                    nameOfSelfStruct + "->" + stateVar.name + " = " +
 	                        initializer + ";")
 	            } else {
 	                // If the state is initialized with a parameter, then do not use
@@ -2270,7 +2193,7 @@ class CGenerator extends GeneratorBase {
 	                // is a struct.
 	                if (stateVar.isParameterized && stateVar.init.size > 0) {
 	                    pr(initializeTriggerObjects,
-	                        nameOfSelfStruct + "." + stateVar.name + " = " + initializer + ";")
+	                        nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
 	                } else {
 	                   val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
 	                    var type = stateVar.targetType
@@ -2290,7 +2213,7 @@ class CGenerator extends GeneratorBase {
 	                        )
 	                    }
 	                    pr(initializeTriggerObjects,
-	                        nameOfSelfStruct + "." + stateVar.name + " = " + temporaryVariableName + ";"
+	                        nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
 	                    ) 
 	                }
 	            }	
@@ -2298,28 +2221,11 @@ class CGenerator extends GeneratorBase {
         }
 
         // Generate reaction structs for the instance.
-        generateReactionStructs(instance, federate)
+        generateRemoteTriggerTable(instance, federate)
 
         // Generate trigger objects for the instance.
-        generateTriggerObjects(instance, federate)
+        generateOffsetAndPeriodInitializations(instance)
 
-        // Generate trigger objects for transferring outputs of a composite.
-        generateTriggerForTransferOutputs(instance)
-
-        // Next, initialize the struct with actions.
-        val triggersInUse = instance.triggers
-        for (action : instance.actions) {
-            var triggerStruct = '&' + triggerStructName(action)
-            // If the action doesn't actually trigger anything, then
-            // no trigger struct was defined.
-            if (!triggersInUse.contains(action)) {
-                triggerStruct = 'NULL'
-            }
-            pr(
-                initializeTriggerObjects,
-                nameOfSelfStruct + '.__' + action.name + ' = ' + triggerStruct + ';'
-            )
-        }
         // Next, set the number of destinations,
         // which is used to initialize reference counts.
         // Reference counts are decremented by each destination reactor
@@ -2342,12 +2248,14 @@ class CGenerator extends GeneratorBase {
             }
             var numDestinations = destinationReactors.size
             pr(initializeTriggerObjects, '''
-                «nameOfSelfStruct».__«output.name»_num_destinations = «numDestinations»;
+                «nameOfSelfStruct»->__«output.name»_num_destinations = «numDestinations»;
             ''')
         }
         
         // Next, initialize actions by creating a token_t in the self struct.
         // This has the information required to allocate memory for the action payload.
+        // Skip any action that is not actually used as a trigger.
+        val triggersInUse = instance.triggers
         for (action : instance.actions) {
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action)) {
@@ -2371,8 +2279,8 @@ class CGenerator extends GeneratorBase {
                 // always has a reference token.
                 pr(initializeTriggerObjects,
                     '''
-                    «nameOfSelfStruct».__«action.name»->token = __create_token(«payloadSize»);
-                    «nameOfSelfStruct».__«action.name»->is_present = false;
+                    «nameOfSelfStruct»->___«action.name».token = __create_token(«payloadSize»);
+                    «nameOfSelfStruct»->___«action.name».is_present = false;
                     '''
                 )
                 // At the start of each time step, we need to initialize the is_present field
@@ -2380,21 +2288,27 @@ class CGenerator extends GeneratorBase {
                 // allocated token if appropriate. This code sets up the table that does that.
                 pr(initializeTriggerObjects, '''
                     __tokens_with_ref_count[«startTimeStepTokens»].token
-                            = &«nameOfSelfStruct».__«action.name»->token;
+                            = &«nameOfSelfStruct»->___«action.name».token;
                     __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                            = &«nameOfSelfStruct».__«action.name»->is_present;
+                            = &«nameOfSelfStruct»->___«action.name».is_present;
                     __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
                 ''')
                 startTimeStepTokens++
             }
         }
         // Handle reaction local deadlines.
+        var reactionCount = 0
         for (reaction : instance.reactions) {
-            if (reaction.declaredDeadline !== null) {
+            if (reaction.declaredDeadline !== null &&
+                (federate === null || federate.containsReaction(
+                instance.definition.reactorClass,
+                reaction.definition))
+            ) {
                 var deadline = reaction.declaredDeadline.maxDelay
-                pr(initializeTriggerObjects,
-                    reactionStructName(reaction) + '.local_deadline = ' +
-                        timeInTargetLanguage(deadline) + ';')
+                val reactionStructName = '''«selfStructName(reaction.parent)»->___reaction_«reactionCount»'''
+                pr(initializeTriggerObjects, '''
+                    «reactionStructName».local_deadline = «timeInTargetLanguage(deadline)»;
+                ''')
             }
         }
         for (child : instance.children) {
@@ -2419,7 +2333,7 @@ class CGenerator extends GeneratorBase {
 
         for (i : state?.init) {
             if (i.parameter !== null) {
-                list.add(parent.selfStructName + "." + i.parameter.name)
+                list.add(parent.selfStructName + "->" + i.parameter.name)
             } else if (state.isOfTimeType) {
                 list.add(i.targetTime)
             } else {
@@ -2464,22 +2378,23 @@ class CGenerator extends GeneratorBase {
     def void setReactionPriorities(ReactorInstance reactor, FederateInstance federate) {
         // Use "reactionToReactionTName" property of reactionInstance
         // to set the levels.
+        var reactionCount = 0
         for (reactionInstance : reactor.reactions) {
 
             if (federate === null || federate.containsReaction(
                 reactor.definition.reactorClass,
                 reactionInstance.definition
             )) {
-                pr(reactionStructName(reactionInstance) + ".chain_id = " +
-                    reactionInstance.chainID.toString() + ";")
+                val reactionStructName = '''«selfStructName(reactionInstance.parent)»->___reaction_«reactionCount»'''
+                val reactionIndex = (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).
+                     or(new BigInteger(reactionInstance.level.toString)) + "LL"
                 pr('''
+                    «reactionStructName».chain_id = «reactionInstance.chainID.toString»;
                     // index is the OR of level «reactionInstance.level» and 
                     // deadline «reactionInstance.deadline.toNanoSeconds» shifted left 16 bits.
+                    «reactionStructName».index = «reactionIndex»;
                 ''')
-                pr(
-                    reactionStructName(reactionInstance) + ".index = " +
-                        (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).
-                            or(new BigInteger(reactionInstance.level.toString)) + "LL;")
+                reactionCount++;
             }
         }
         for (child : reactor.children) {
@@ -2542,8 +2457,8 @@ class CGenerator extends GeneratorBase {
             // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->__«outputName» = (token_t*)self->__«action.name»->token;
-            ((token_t*)self->__«action.name»->token)->ref_count++;
+            self->__«outputName» = (token_t*)self->___«action.name».token;
+            ((token_t*)self->___«action.name».token)->ref_count++;
             self->__«outputName»_is_present = true;
             '''
         } else {
@@ -2730,15 +2645,6 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** Return a unique name for the reaction_t struct for the
-     *  specified reaction instance.
-     *  @param reaction The reaction instance.
-     *  @return A name for the reaction_t struct.
-     */
-    protected def reactionStructName(ReactionInstance reaction) {
-        reaction.uniqueID
-    }
-    
     // Regular expression pattern for compiler error messages with resource
     // and line number information. The first match will a resource URI in the
     // form of "file:/path/file.lf". The second match will be a line number.
@@ -2918,13 +2824,13 @@ class CGenerator extends GeneratorBase {
 
                         if (destination.isInput) {
                             pr(
-                                destStruct + '.__' + destination.name + ' = &' +
-                                    sourceStruct + '.__' +
+                                destStruct + '->__' + destination.name + ' = &' +
+                                    sourceStruct + '->__' +
                                     eventualSource.name + ';'
                             )
                             pr(
-                                destStruct + '.__' + destination.name +
-                                    '_is_present = &' + sourceStruct + '.__' +
+                                destStruct + '->__' + destination.name +
+                                    '_is_present = &' + sourceStruct + '->__' +
                                     eventualSource.name + '_is_present;'
                             )
                         } else {
@@ -2932,16 +2838,16 @@ class CGenerator extends GeneratorBase {
                             var containerSelfStructName = selfStructName(
                                 destination.parent)
                             pr(
-                                containerSelfStructName + '.__' +
+                                containerSelfStructName + '->__' +
                                     destination.name + '_inside = &' +
-                                    sourceStruct + '.__' + eventualSource.name +
+                                    sourceStruct + '->__' + eventualSource.name +
                                     ';'
                             )
                             pr(
-                                containerSelfStructName + '.__' +
+                                containerSelfStructName + '->__' +
                                     destination.name +
                                     '_inside_is_present = &' +
-                                    sourceStruct + '.__' + eventualSource.name +
+                                    sourceStruct + '->__' + eventualSource.name +
                                     '_is_present;'
                             )
                         }
@@ -2968,15 +2874,15 @@ class CGenerator extends GeneratorBase {
                     if (reactorBelongsToFederate(port.parent, federate)) {
                         var inputSelfStructName = selfStructName(port.parent)
                         pr(
-                            inputSelfStructName + '.__' + port.definition.name +
-                                ' = &' + containerSelfStructName + '.__' +
+                            inputSelfStructName + '->__' + port.definition.name +
+                                ' = &' + containerSelfStructName + '->__' +
                                 port.parent.definition.name + '.' +
                                 port.definition.name + ';'
                         )
                         pr(
-                            inputSelfStructName + '.__' + port.definition.name +
+                            inputSelfStructName + '->__' + port.definition.name +
                                 '_is_present = &' + containerSelfStructName +
-                                '.__' + port.parent.definition.name + '.' +
+                                '->__' + port.parent.definition.name + '.' +
                                 port.definition.name + '_is_present;'
                         )
                     }
@@ -2990,17 +2896,17 @@ class CGenerator extends GeneratorBase {
                     if (reactorBelongsToFederate(port.parent, federate)) {
                         var outputSelfStructName = selfStructName(port.parent)
                         pr(
-                            containerSelfStructName + '.__' +
+                            containerSelfStructName + '->__' +
                                 port.parent.definition.name + '.' +
                                 port.definition.name + ' = &' +
-                                outputSelfStructName + '.__' +
+                                outputSelfStructName + '->__' +
                                 port.definition.name + ';'
                         )
                         pr(
-                            containerSelfStructName + '.__' +
+                            containerSelfStructName + '->__' +
                                 port.parent.definition.name + '.' +
                                 port.definition.name + '_is_present' + ' = &' +
-                                outputSelfStructName + '.__' +
+                                outputSelfStructName + '->__' +
                                 port.definition.name + '_is_present;'
                         )
                     }
@@ -3017,11 +2923,11 @@ class CGenerator extends GeneratorBase {
         // If the action has a type, create variables for accessing the value.
         val type = action.inferredType
         // Pointer to the token_t sent as the payload in the trigger.
-        val tokenPointer = '''(self->__«action.name»->token)'''
+        val tokenPointer = '''(self->___«action.name».token)'''
         // Create the _has_value variable.
         pr(builder,
             '''
-            bool «action.name»_is_present = self->__«action.name»->is_present;
+            bool «action.name»_is_present = self->___«action.name».is_present;
             bool «action.name»_has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
             token_t* «action.name»_token = «tokenPointer»;
             ''')
@@ -3356,7 +3262,7 @@ class CGenerator extends GeneratorBase {
      *  @param output Where to put the output.
      *  @param eObject The node.
      */
-    private def prSourceLineNumber(StringBuilder output, EObject eObject) {
+    protected def prSourceLineNumber(StringBuilder output, EObject eObject) {
         var node = NodeModelUtils.getNode(eObject)
         if (node !== null) {
             // For code blocks (delimited by {= ... =}, unfortunately,
@@ -3375,8 +3281,23 @@ class CGenerator extends GeneratorBase {
      *  the specified object.
      *  @param eObject The node.
      */
-    private def prSourceLineNumber(EObject eObject) {
+    protected def prSourceLineNumber(EObject eObject) {
         prSourceLineNumber(code, eObject)
+    }
+
+    /**
+     * Version of pr() that prints a source line number using a #line
+     * prior to each line of the output.
+     * @param eObject The AST node that this source line is based on.
+     * @param builder The code buffer.
+     * @param text The text to append.
+     */
+    protected def pr(EObject eObject, StringBuilder builder, Object text) {
+        var split = text.toString.split("\n")
+        for (line : split) {
+            prSourceLineNumber(eObject)
+            pr(builder, line)
+        }
     }
 
     /** For each output that has a token type (type* or type[]),
@@ -3396,7 +3317,7 @@ class CGenerator extends GeneratorBase {
                         // Its reference count is zero, enabling it to be used immediately.
                         var rootType = type.targetType.rootType
                         pr('''
-                            «nameOfSelfStruct».__«output.name» = __create_token(sizeof(«rootType»));
+                            «nameOfSelfStruct»->__«output.name» = __create_token(sizeof(«rootType»));
                         ''')
                     }
                 }
@@ -3420,14 +3341,14 @@ class CGenerator extends GeneratorBase {
             if (reactorBelongsToFederate(containedReactor, federate)) {
                 var selfStructName = selfStructName(containedReactor)
                 for (input : containedReactor.inputs) {
-                    pr('''«selfStructName».__«input.definition.name»_is_present = &False;''')
+                    pr('''«selfStructName»->__«input.definition.name»_is_present = &False;''')
                 }
                 // In case this is a composite, handle its assignments.
                 setInputsAbsentByDefault(containedReactor, federate)
             }
         }
     }
-    
+        
     // Regular expression pattern for array types with specified length.
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
