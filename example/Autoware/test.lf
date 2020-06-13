@@ -1,0 +1,82 @@
+target C;
+
+// Send a periodic image out
+reactor Camera(offset:time(0), period:time(1 sec)) {
+    output image:string;
+	timer t(offset, period);
+
+    reaction(t) -> image {=
+        set(image, "kitty");
+    =}
+}
+
+// Send a periodic LIDAR pointcloud out
+reactor LIDAR(offset:time(0), period:time(1 sec)) {
+    output pointcloud:string;
+    timer t(offset, period);
+
+    reaction(t) -> pointcloud {=
+        set(pointcloud, "INTERSECTION");
+    =}
+}
+
+reactor  test {
+	input trigger1:string;
+	input trigger2:string;
+	output out:string;
+	
+	state dummy:string;
+	state dummyTag:time;
+	physical action read(0);
+	reaction(trigger1, trigger2) -> read
+	{=
+		if(trigger1_is_present)
+		{
+			self->dummy = trigger1;
+			self->dummyTag = get_logical_time();
+        	printf("Storing dummy at:\t ( %llu , %llu ).\n", get_physical_time(), get_logical_time());
+		}
+		else
+		{
+			schedule(read, get_logical_time() - self->dummyTag);
+        	printf("Scheduling dummy read at:( %llu , %llu ).\n", get_physical_time(), get_logical_time());
+			if((get_logical_time() - self->dummyTag) > (long)30000000)
+			{
+				printf("**********************Stale data**********************\n");
+			}
+		}
+	=}
+	reaction(read) -> out
+	{=
+        printf("Reading dummy at:\t ( %llu , %llu ).\n", get_physical_time(), get_logical_time());
+		set(out, self->dummy);
+	=}
+}
+
+reactor Actuator(threshold:time(33 msec)){
+    input actuation:string;
+
+    reaction(actuation) {=
+        // Do nothing;
+        printf("Actuator scheduled at:\t ( %llu , %llu ).\n", get_physical_time(), get_logical_time());
+       // printf("Actuator: %llu\n", get_physical_time());
+    =} deadline(threshold) {=
+        printf("Deadline violation detected in Actuator.\n");
+    =}
+}
+
+main reactor multiTrigger{
+
+	c = new Camera(offset = 0 msec, period = 33 msec); // Camera has a phase (startup time) of 3 msec and a period of 33 msec
+    l = new LIDAR(offset = 0 msec, period = 10 msec); // Lidar has a phase (spooling up time) of 10 msec and a period of 10 msec
+	
+	t= new test();
+	c.image -> t.trigger1;
+	l.pointcloud -> t.trigger2;
+	
+	a = new Actuator(threshold = 30 msec);
+	t.out -> a.actuation;
+	
+
+	
+}
