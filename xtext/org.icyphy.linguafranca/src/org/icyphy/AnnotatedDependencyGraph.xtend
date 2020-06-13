@@ -37,7 +37,7 @@ import java.util.HashSet
  * for annotations 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class AnnotatedDependencyGraph<T> extends DependencyGraph<AnnotatedNode<T>> {
+class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> {
 
     var index = 0
     var Stack<AnnotatedNode<T>> stack = new Stack()
@@ -76,7 +76,7 @@ class AnnotatedDependencyGraph<T> extends DependencyGraph<AnnotatedNode<T>> {
         node.onStack = true
         this.index++
         this.stack.push(node)
-        for (dep : this.getDependencies(node)) {
+        for (dep : this.getOrigins(node)) {
             
             if (dep.onStack) {
                 node.lowLink = Math.min(node.lowLink, dep.index)

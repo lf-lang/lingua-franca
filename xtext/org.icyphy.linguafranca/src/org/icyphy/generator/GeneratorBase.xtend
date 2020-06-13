@@ -196,7 +196,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected val federationRTIProperties = newLinkedHashMap(
         'host' -> 'localhost',
         'port' -> 15045
-    ) 
+    )
+    
+    /** For the top-level reactor (main), a list of reactions in each federate.
+     *  This will be null if there is only one federate.
+     */
+    protected var HashMap<FederateInstance,LinkedList<Reaction>> reactionsInFederate = null
 
     /** The build-type target parameter, or null if there is none. */
     protected String targetBuildType
@@ -1034,6 +1039,25 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return null as ErrorFileAndLine
     }
     
+    /** Return a list of Reaction containing every reaction of the specified
+     *  reactor that should be included in code generated for the specified
+     *  federate. If the reaction is triggered by or sends data to a contained
+     *  reactor that is not in the federate, then that reaction will not be
+     *  included in the returned list.  This method assumes that analyzeFederates
+     *  has been called.
+     *  @param reactor The reactor
+     *  @param federate The federate or null to include all reactions.
+     */
+    protected def List<Reaction> reactionsInFederate(Reactor reactor, FederateInstance federate) {
+        if (!reactor.federated || federate === null || reactionsInFederate === null) reactor.reactions
+        else {
+            // reactionsInFederate is a Map<FederateInstance,List<Reaction>>
+            var result = reactionsInFederate.get(federate)
+            if (result === null) reactor.reactions
+            else result
+        }
+    }
+    
     /** Parse the specified string for command errors that can be reported
      *  using marks in the Eclipse IDE. In this class, we attempt to parse
      *  the messages to look for file and line information, thereby generating
@@ -1511,6 +1535,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 */
             }
             
+            // Create the cached list of reactions in federates.
+            reactionsInFederate = new HashMap<FederateInstance,LinkedList<Reaction>>()
+            
             // Create a FederateInstance for each top-level reactor.
             for (instantiation : mainDef.reactorClass.instantiations) {
                 // Assign an integer ID to the federate.
@@ -1554,62 +1581,70 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // For each connection between federates, replace it in the
             // AST with an action (which inherits the delay) and two reactions.
             // The action will be physical.
-            if (mainDef !== null) {
-                var connectionsToRemove = new LinkedList<Connection>()
-                for (connection : mainDef.reactorClass.connections) {
-                    var leftFederate = federateByReactor.get(connection.leftPort.container.name)
-                    var rightFederate = federateByReactor.get(connection.rightPort.container.name)
-                    if (leftFederate !== rightFederate) {
-                        // Connection spans federates.
-                        // First, update the dependencies in the FederateInstances.
-                        // Exclude physical connections because these do not create real dependencies.
-                        if (leftFederate !== rightFederate && !connection.physical) {
-                            var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                            if (dependsOn === null) {
-                                dependsOn = new HashSet<Value>()
-                                rightFederate.dependsOn.put(leftFederate, dependsOn)
-                            }
-                            if (connection.delay !== null) {
-                                dependsOn.add(connection.delay)
-                            }
-                            var sendsTo = leftFederate.sendsTo.get(rightFederate)
-                            if (sendsTo === null) {
-                                sendsTo = new HashSet<Value>()
-                                leftFederate.sendsTo.put(rightFederate, sendsTo)
-                            }
-                            if (connection.delay !== null) {
-                                sendsTo.add(connection.delay)
-                            }
-                            // Check for causality loops between federates.
-                            // FIXME: This does not detect cycles involving more than one federate.
-                            var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                            if (reverseDependency !== null) {
-                                // Check that at least one direction has a delay.
-                                if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                    // Found a causality loop.
-                                    val message = "Causality loop found between federates "
-                                            + leftFederate.name + " and " + rightFederate.name
-                                    reportError(connection, message)
-                                    // This is a fatal error, so throw an exception.
-                                    throw new Exception(message)
-                                }
+            var connectionsToRemove = new LinkedList<Connection>()
+            for (connection : mainDef.reactorClass.connections) {
+                var leftFederate = federateByReactor.get(connection.leftPort.container.name)
+                var rightFederate = federateByReactor.get(connection.rightPort.container.name)
+                if (leftFederate !== rightFederate) {
+                    // Connection spans federates.
+                    // First, update the dependencies in the FederateInstances.
+                    // Exclude physical connections because these do not create real dependencies.
+                    if (leftFederate !== rightFederate && !connection.physical) {
+                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                        if (dependsOn === null) {
+                            dependsOn = new HashSet<Value>()
+                            rightFederate.dependsOn.put(leftFederate, dependsOn)
+                        }
+                        if (connection.delay !== null) {
+                            dependsOn.add(connection.delay)
+                        }
+                        var sendsTo = leftFederate.sendsTo.get(rightFederate)
+                        if (sendsTo === null) {
+                            sendsTo = new HashSet<Value>()
+                            leftFederate.sendsTo.put(rightFederate, sendsTo)
+                        }
+                        if (connection.delay !== null) {
+                            sendsTo.add(connection.delay)
+                        }
+                        // Check for causality loops between federates.
+                        // FIXME: This does not detect cycles involving more than one federate.
+                        var reverseDependency = leftFederate.dependsOn.get(rightFederate)
+                        if (reverseDependency !== null) {
+                            // Check that at least one direction has a delay.
+                            if (reverseDependency.size === 0 && dependsOn.size === 0) {
+                                // Found a causality loop.
+                                val message = "Causality loop found between federates " + leftFederate.name + " and " +
+                                    rightFederate.name
+                                reportError(connection, message)
+                                // This is a fatal error, so throw an exception.
+                                throw new Exception(message)
                             }
                         }
-                        
-                        // Next, replace the connection in the AST with an action
-                        // (which inherits the delay) and two reactions.
-                        // The action will be physical if the connection physical and
-                        // otherwise will be logical.
-                        connection.makeCommunication(leftFederate, rightFederate, this)
-                        
-                        // To avoid concurrent modification exception, collect a list
-                        // of connections to remove.
-                        connectionsToRemove.add(connection)
                     }
+
+                    // Next, replace the connection in the AST with an action
+                    // (which inherits the delay) and two reactions.
+                    // The action will be physical if the connection physical and
+                    // otherwise will be logical.
+                    connection.makeCommunication(leftFederate, rightFederate, this)
+
+                    // To avoid concurrent modification exception, collect a list
+                    // of connections to remove.
+                    connectionsToRemove.add(connection)
                 }
-                for (connection : connectionsToRemove) {
-                    // Remove the original connection for the parent.
-                    mainDef.reactorClass.connections.remove(connection)
+            }
+            for (connection : connectionsToRemove) {
+                // Remove the original connection for the parent.
+                mainDef.reactorClass.connections.remove(connection)
+            }
+            // Construct the cached list of reactions in federates.
+            for (federate : federates) {
+                val reactions = new LinkedList<Reaction>()
+                reactionsInFederate.put(federate, reactions)
+                for (reaction : mainDef.reactorClass.reactions) {
+                    if (federate.containsReaction(mainDef.reactorClass, reaction)) {
+                        reactions.add(reaction)
+                    }
                 }
             }
         }
