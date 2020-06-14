@@ -274,7 +274,7 @@ struct reaction_t {
     int* triggered_sizes;     // Pointer to array of ints with number of triggers per output. INSTANCE.
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
-    interval_t local_deadline;// Local deadline relative to the time stamp for invocation of the reaction. INSTANCE.
+    interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
     reaction_function_t deadline_violation_handler; // Local deadline violation handler. COMMON.
 };
 
