@@ -174,17 +174,8 @@ bool __first_invocation = true;
  * physical time matches or exceeds the time of the least tag on the event
  * queue; pop the next event(s) from the event queue that all have the same tag;
  * extract from those events the reactions that are to be invoked at this
- * logical time and insert them into the reaction queue. The reaction queue is
- * sorted by index, the upper 48 bits of which consist of a deadline and the
- * lower 16 bits denote a level that must be greater than the levels of all
- * reactions that precede it in the precedence graph. Also, all reactions
- * that precede a reaction r in the precedence graph are required to have a
- * deadline, and that deadline must be no greater than that of r (it can be
- * an earlier deadline). FIXME: Where is this enforced?
- *
- * Before executing a
- * reaction, each worker verifies that no reactions with a lower level and
- * matching chain id are executing concurrently.
+ * logical time and insert them into the reaction queue. The event queue is
+ * sorted by time tag.
  *
  * If there is no event in the queue and the keepalive command-line option was
  * not given, set stop_requested to true and return.
@@ -400,6 +391,37 @@ bool is_blocked(reaction_t* reaction) {
 /**
  * Return the first ready (i.e., unblocked) reaction in the reaction queue if
  * there is one. Return `NULL` if all pending reactions are blocked.
+ *
+ * The reaction queue is sorted by index, where a lower index appears
+ * earlier in the queue. The first reaction in the reaction queue is
+ * ready to execute if it is not blocked by any reaction that is currently
+ * executing in another thread. If that first reaction is blocked, then
+ * the second reaction is ready to execute if it is not blocked by any
+ * reaction that is currently executing (if it is blocked by the first
+ * reaction, then it is also blocked by a currently executing reaction because
+ * the first reaction is blocked).
+ *
+ * The upper 48 bits of the index are the deadline and the
+ * lower 16 bits denote a level in the precedence graph.  Reactions that
+ * do not depend on any upstream reactions have level 0, and greater values
+ * indicate the length of the longest upstream path to a reaction with level 0.
+ * If a reaction has no specified deadline and is not upstream of any reaction
+ * with a specified deadline, then its deadline is the largest 48 bit number.
+ *
+ * FIXME: Where is this set? CGenerator sets the default deadline to 0LL, which
+ * cannot be used to sort events because it will result in reactions with no
+ * deadline always having priority over reactions with no deadline, the opposite
+ * of EDF.
+ *
+ * Also, all reactions that precede a reaction r that has a deadline D
+ * are required to have a deadline D' <= D. FIXME: Where is this enforced?
+ *
+ * A reaction r is blocked by an executing reaction e if e
+ * has a lower level and the chain ID of e overlaps
+ * (shares at least one bit) with the chain ID of r.
+ * If the two chain IDs share no bits, then we are assured that e is not
+ * upstream of r and hence cannot block r.
+ *
  * @return the first-ranked reaction that is ready to execute, NULL if there is
  * none.
  */ 
