@@ -24,9 +24,10 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-/** Runtime infrastructure for the C target of Lingua Franca.
- *  This file contains resources that are shared by the threaded and
- *  non-threaded versions of the C runtime.
+/**
+ * Runtime infrastructure for the C target of Lingua Franca.
+ * This file contains resources that are shared by the threaded and
+ * non-threaded versions of the C runtime.
  *  
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -123,11 +124,12 @@ instant_t get_elapsed_physical_time() {
     return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
 }
 
-/** Print a non-negative time value in nanoseconds with commas separating thousands
- *  followed by a carriage return. Ideally, this would use the locale to
- *  use periods if appropriate, but I haven't found a sufficiently portable
- *  way to do that.
- *  @param time A time value.
+/**
+ * Print a non-negative time value in nanoseconds with commas separating thousands
+ * followed by a carriage return. Ideally, this would use the locale to
+ * use periods if appropriate, but I haven't found a sufficiently portable
+ * way to do that.
+ * @param time A time value.
  */
 void print_time(instant_t time) {
     if (time < 1000LL || time < 0LL) {
@@ -144,7 +146,6 @@ void print_time(instant_t time) {
 
 /** Priority queues. */
 pqueue_t* event_q;     // For sorting by time.
-// pqueue_t* blocked_q;   // To store reactions that are blocked by other reactions.
 
 pqueue_t* reaction_q;  // For sorting by deadline.
 pqueue_t* recycle_q;   // For recycling malloc'd events.
@@ -661,7 +662,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  */
 void schedule_output_reactions(reaction_t* reaction) {
     // If the reaction produced outputs, put the resulting triggered
-    // reactions into the blocking queue.
+    // reactions into the reaction queue.
     for(int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
             trigger_t** triggerArray = (reaction->triggers)[i];

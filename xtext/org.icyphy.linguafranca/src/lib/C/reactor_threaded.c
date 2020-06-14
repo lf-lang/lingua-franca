@@ -385,12 +385,18 @@ bool is_blocked(reaction_t* reaction) {
             return true;
         }
     }
+<<<<<<< HEAD
     // Note that there is no need to check the transfer_q, which contains
     // reactions popped from the reaction_q that have previously been
     // determined to be blocked by executing reactions. The reason that
     // we don't have to check the transfer_q is that if there is a reaction
     // on that queue blocking this one, then there must also be a reaction
     // on the executing queue blocking this one. Blocking is transitive.
+=======
+
+    // printf("Not blocking for reaction with chainID %llu and level %llu\n", reaction->chain_id, reaction->index);
+    // pqueue_dump(executing_q, stdout, executing_q->prt);
+>>>>>>> e3ff1094... Comments only.
     return false;
 }
 
@@ -505,16 +511,16 @@ void* worker(void* arg) {
                 have_been_busy = true;
             }
 
+            // Push the reaction on the executing queue in order to prevent any
+            // reactions that may depend on it from executing before this reaction is finished.
+            pqueue_insert(executing_q, reaction);
+
             // If there are additional reactions on the reaction_q, notify one other
             // idle thread, if there is one, so that it can attempt to execute
             // that reaction.
             if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
                 pthread_cond_signal(&reaction_q_changed);
             }
-
-            // Push the reaction on the executing queue in order to prevent any
-            // reactions that may depend on it from executing before this reaction is finished.
-            pqueue_insert(executing_q, reaction);
         
             // If the reaction has a deadline, compare to current physical time
             // and invoke the deadline violation reaction instead of the reaction function
@@ -594,7 +600,7 @@ void* worker(void* arg) {
 
 void print_snapshot() {
     printf(">>> START Snapshot\n");
-    printf("Ready:\n");
+    printf("Pending:\n");
     pqueue_dump(reaction_q, stdout, reaction_q->prt);
     printf("Executing:\n");
     pqueue_dump(executing_q, stdout, executing_q->prt);    
