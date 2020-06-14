@@ -452,9 +452,13 @@ void* worker(void* arg) {
                 have_been_busy = false;
             }
 
-            // If there are also no reactions in progress, then advance time,
+            // If there are no reactions in progress and no reactions on
+            // the reaction queue, then advance time,
             // unless some other worker thread is already advancing time.
-            if (pqueue_size(executing_q) == 0 && !__advancing_time) {
+            if (pqueue_size(reaction_q) == 0
+                    && pqueue_size(executing_q) == 0
+                    && !__advancing_time)
+            {
                 if (!__first_invocation) {
                     logical_time_complete(current_time);
                 }
