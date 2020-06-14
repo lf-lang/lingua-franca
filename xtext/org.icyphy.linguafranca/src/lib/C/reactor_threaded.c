@@ -484,17 +484,17 @@ void* worker(void* arg) {
             // Got a reaction that is ready to run.
             // printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->local_deadline);
 
+            // This thread will no longer be idle.
+            if (!have_been_busy) {
+                number_of_idle_threads--;
+                have_been_busy = true;
+            }
+
             // If there are additional reactions on the reaction_q, notify one other
             // idle thread, if there is one, so that it can attempt to execute
             // that reaction.
             if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
                 pthread_cond_signal(&reaction_q_changed);
-            }
-
-            // This thread will no longer be idle.
-            if (!have_been_busy) {
-                number_of_idle_threads--;
-                have_been_busy = true;
             }
 
             // Push the reaction on the executing queue in order to prevent any
