@@ -208,7 +208,7 @@ int next() {
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         reaction_t* reaction = pqueue_pop(reaction_q);
-        // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->local_deadline);
+        // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
         // printf("DEBUG: Address of reaction: %p\n", reaction);
 
         // If the reaction has a deadline, compare to current physical time
@@ -218,7 +218,7 @@ int next() {
         // same reaction at the current time value, even if at a future superdense time,
         // then the reaction will be invoked and the violation reaction will not be invoked again.
         bool violation = false;
-        if (reaction->local_deadline > 0LL) {
+        if (reaction->deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;
             clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -232,7 +232,7 @@ int next() {
             // container deadlines are defined in the container.
             // They can have different deadlines, so we have to check both.
             // Handle the local deadline first.
-            if (reaction->local_deadline > 0LL && physical_time > current_time + reaction->local_deadline) {
+            if (reaction->deadline > 0LL && physical_time > current_time + reaction->deadline) {
                 printf("Deadline violation.\n");
                 // Deadline violation has occurred.
                 violation = true;

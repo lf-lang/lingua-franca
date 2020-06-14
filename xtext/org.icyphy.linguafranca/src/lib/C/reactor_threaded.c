@@ -497,7 +497,7 @@ void* worker(void* arg) {
             }
         } else {
             // Got a reaction that is ready to run.
-            // printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->local_deadline);
+            // printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->deadline);
 
             // This thread will no longer be idle.
             if (!have_been_busy) {
@@ -523,7 +523,7 @@ void* worker(void* arg) {
             // same reaction at the current time value, even if at a future superdense time,
             // then the reaction will be invoked and the violation reaction will not be invoked again.
             bool violation = false;
-            if (reaction->local_deadline > 0LL) {
+            if (reaction->deadline > 0LL) {
                 // Get the current physical time.
                 struct timespec current_physical_time;
                 clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -532,12 +532,7 @@ void* worker(void* arg) {
                         current_physical_time.tv_sec * BILLION
                         + current_physical_time.tv_nsec;
                 // Check for deadline violation.
-                // There are currently two distinct deadline mechanisms:
-                // local deadlines are defined with the reaction;
-                // container deadlines are defined in the container.
-                // They can have different deadlines, so we have to check both.
-                // Handle the local deadline first.
-                if (reaction->local_deadline > 0LL && physical_time > current_time + reaction->local_deadline) {
+                if (reaction->deadline > 0LL && physical_time > current_time + reaction->deadline) {
                     // Deadline violation has occurred.
                     violation = true;
                     // Invoke the local handler, if there is one.

@@ -1361,7 +1361,7 @@ class CGenerator extends GeneratorBase {
             // self->___reaction_«reactionCount».chain_id = 0;
             // self->___reaction_«reactionCount».pos = 0;
             // self->___reaction_«reactionCount».running = false;
-            // self->___reaction_«reactionCount».local_deadline = 0LL;
+            // self->___reaction_«reactionCount».deadline = 0LL;
             pr(reaction, constructorCode, '''
                 self->___reaction_«reactionCount».function = «reactionFunctionName(reactor, reactionCount)»;
                 self->___reaction_«reactionCount».self = self;
@@ -2300,7 +2300,7 @@ class CGenerator extends GeneratorBase {
                 var deadline = reaction.declaredDeadline.maxDelay
                 val reactionStructName = '''«selfStructName(reaction.parent)»->___reaction_«reactionCount»'''
                 pr(initializeTriggerObjects, '''
-                    «reactionStructName».local_deadline = «timeInTargetLanguage(deadline)»;
+                    «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
                 ''')
             }
         }
