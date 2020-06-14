@@ -177,7 +177,12 @@ bool __first_invocation = true;
  * logical time and insert them into the reaction queue. The reaction queue is
  * sorted by index, the upper 48 bits of which consist of a deadline and the
  * lower 16 bits denote a level that must be greater than the levels of all
- * reactions that precede it in the precedence graph. Before executing a
+ * reactions that precede it in the precedence graph. Also, all reactions
+ * that precede a reaction r in the precedence graph are required to have a
+ * deadline, and that deadline must be no greater than that of r (it can be
+ * an earlier deadline). FIXME: Where is this enforced?
+ *
+ * Before executing a
  * reaction, each worker verifies that no reactions with a lower level and
  * matching chain id are executing concurrently.
  *
@@ -364,18 +369,28 @@ void stop() {
 }
 
 /**
- * Return `true` if there is currently another reaction blocking the given
- * reaction.
+ * Return `true` if there is currently another reaction on either
+ * the executing queue or the transfer queue that is blocking the given
+ * reaction. A reaction blocks the specified reaction if it has a
+ * level less than that of the specified reaction and it also has
+ * an overlapping chain ID, meaning that it is (possibly) upstream
+ * of the specified reaction.
  * @return true if this reaction is blocked, false otherwise.
  */
 bool is_blocked(reaction_t* reaction) {
     for (int i = 1; i < executing_q->size; i++) {
         reaction_t* running = executing_q->d[i];
-        if (OVERLAPPING(reaction->chain_id, running->chain_id) 
-                && LEVEL(reaction->index) > LEVEL(running->index)) {
+        if (LEVEL(running->index) < LEVEL(reaction->index)
+                && OVERLAPPING(reaction->chain_id, running->chain_id)) {
             return true;
         }
     }
+    // Note that there is no need to check the transfer_q, which contains
+    // reactions popped from the reaction_q that have previously been
+    // determined to be blocked by executing reactions. The reason that
+    // we don't have to check the transfer_q is that if there is a reaction
+    // on that queue blocking this one, then there must also be a reaction
+    // on the executing queue blocking this one. Blocking is transitive.
     return false;
 }
 
