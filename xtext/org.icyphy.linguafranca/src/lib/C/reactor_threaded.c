@@ -385,18 +385,15 @@ bool is_blocked(reaction_t* reaction) {
             return true;
         }
     }
-<<<<<<< HEAD
     // Note that there is no need to check the transfer_q, which contains
     // reactions popped from the reaction_q that have previously been
     // determined to be blocked by executing reactions. The reason that
     // we don't have to check the transfer_q is that if there is a reaction
     // on that queue blocking this one, then there must also be a reaction
     // on the executing queue blocking this one. Blocking is transitive.
-=======
 
     // printf("Not blocking for reaction with chainID %llu and level %llu\n", reaction->chain_id, reaction->index);
     // pqueue_dump(executing_q, stdout, executing_q->prt);
->>>>>>> e3ff1094... Comments only.
     return false;
 }
 
