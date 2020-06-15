@@ -35,9 +35,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "reactor.h"
 
-/** Global constants. */
-bool False = false;
-bool True = true;
+/** Indicator for the absence of values for ports that remain disconnected. */
+bool Absent = false;
 
 /** 
  * Indicator of whether to wait for physical time to match logical time.

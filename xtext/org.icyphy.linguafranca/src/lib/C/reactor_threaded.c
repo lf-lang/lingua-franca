@@ -191,12 +191,12 @@ bool __first_invocation = true;
  *  @return false if the program should be terminated, true otherwise.
  */
 bool __next() {
-     // Previous logical time is complete.
+    // Previous logical time is complete.
     if (stop_requested) {
         return false;
     }
 
-     // Peek at the earliest event in the event queue.
+    // Peek at the earliest event in the event queue.
     event_t* event = pqueue_peek(event_q);
     instant_t next_time = FOREVER;
     if (event != NULL) {
