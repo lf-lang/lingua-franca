@@ -185,20 +185,29 @@ do { \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
+/** Macro for extracting the deadline from the index of a reaction. */
+#define DEADLINE(index) (index & 0x7FFFFFFFFFFF0000)
+
+/** Macro for extracting the level from the index of a reaction. */
 #define LEVEL(index) (index & 0xFFFF)
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
+/** Macro for determining whether two reaction reactions are in the
+ *  same chain (one depends on the other). This is conservative.
+ *  If it returns false, then they are surely not in the same chain,
+ *  but if it returns true, they may be in the same chain.
+ */
 #define OVERLAPPING(chain1, chain2) ((chain1 & chain2) != 0)
-
-#define DEADLINE(index) (index & 0x7FFFFFFFFFFF0000)
 
 //  ======== Type definitions ========  //
 
 /** Booleans. */
+#ifndef bool
 typedef enum {false, true} bool;
+#endif
 
 /** Handles for scheduled triggers. */
 typedef int handle_t;
@@ -211,7 +220,11 @@ typedef long long instant_t;
 /** Intervals of time. */
 typedef long long interval_t;
 
-/** String type so that we don't have use {= char* =}. */
+/** String type so that we don't have to use {= char* =}.
+ *  Use this for strings that are not dynamically allocated.
+ *  For dynamically allocated strings that have to be freed after
+ *  being consumed downstream, use type char*.
+ */
 #ifndef string
 typedef char* string;
 #endif
@@ -305,7 +318,7 @@ typedef struct event_t {
 //  ======== Function Declarations ========  //
 
 /**
- * Return the elpased logical time in nanoseconds
+ * Return the elapsed logical time in nanoseconds
  * since the start of execution.
  * @return a time interval
  */
@@ -481,7 +494,7 @@ handle_t schedule_value(trigger_t* action, interval_t extra_delay, void* value, 
  * Schedule an action to occur with the specified value and time offset
  * with a copy of the specified value. If the value is non-null,
  * then it will be copied into newly allocated memory under the assumption
- * that its size given in the trigger's token object's element_size field
+ * that its size is given in the trigger's token object's element_size field
  * multiplied by the specified length.
  * See schedule_token(), which this uses, for details.
  * @param trigger Pointer to a trigger object (typically an action on a self struct).
