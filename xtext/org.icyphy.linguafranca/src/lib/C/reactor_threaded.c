@@ -745,18 +745,27 @@ int main(int argc, char* argv[]) {
         __start_timers();
         start_threads();
         // printf("DEBUG: pthread_mutex_unlock main\n");
-         pthread_mutex_unlock(&mutex);
-         // printf("DEBUG: Waiting for worker threads to exit.\n");
+        pthread_mutex_unlock(&mutex);
+        // printf("DEBUG: Waiting for worker threads to exit.\n");
 
-         // Wait for the worker threads to exit.
-         void* worker_thread_exit_status;
-         for (int i = 0; i < number_of_threads; i++) {
-             pthread_join(__thread_ids[i], &worker_thread_exit_status);
-             printf("Worker thread exited.\n");
-         }
-         free(__thread_ids);
+        // Wait for the worker threads to exit.
+        void* worker_thread_exit_status;
+        // printf("DEBUG: number of threads: %d\n", number_of_threads);
+        
+        int ret = 0;
+        for (int i = 0; i < number_of_threads; i++) {
+            ret = MAX(pthread_join(__thread_ids[i], &worker_thread_exit_status), ret);
+        }
 
-         wrapup();
+        if (ret == 0) {
+            printf("All worker threads exited successfully.\n");
+        } else {
+            printf("Unable to successfully join worker threads: %s", strerror(ret));
+        }
+        
+        free(__thread_ids);
+
+        wrapup();
         termination();
         return 0;
     } else {
