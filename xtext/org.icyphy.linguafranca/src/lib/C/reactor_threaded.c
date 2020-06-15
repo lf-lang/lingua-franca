@@ -407,19 +407,12 @@ bool is_blocked(reaction_t* reaction) {
  * indicate the length of the longest upstream path to a reaction with level 0.
  * If a reaction has no specified deadline and is not upstream of any reaction
  * with a specified deadline, then its deadline is the largest 48 bit number.
- *
- * FIXME: Where is this set? CGenerator sets the default deadline to 0LL, which
- * cannot be used to sort events because it will result in reactions with no
- * deadline always having priority over reactions with no deadline, the opposite
- * of EDF.
- *
  * Also, all reactions that precede a reaction r that has a deadline D
- * are required to have a deadline D' <= D. FIXME: Where is this enforced?
+ * are are assigned a deadline D' <= D.
  *
- * A reaction r is blocked by an executing reaction e if e
- * has a lower level and the chain ID of e overlaps
- * (shares at least one bit) with the chain ID of r.
- * If the two chain IDs share no bits, then we are assured that e is not
+ * A reaction r is blocked by an executing reaction e if e has a lower level
+ * and the chain ID of e overlaps (shares at least one bit) with the chain ID
+ * of r. If the two chain IDs share no bits, then we are assured that e is not
  * upstream of r and hence cannot block r.
  *
  * @return the first-ranked reaction that is ready to execute, NULL if there is
