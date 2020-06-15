@@ -160,7 +160,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             assignLevels(graph)
             // Traverse the graph again, now starting from the leaves,
             // to set the chain IDs.
-            assignChainIDs(graph, false) // FIXME: Temporarily disabled this.
+            assignChainIDs(graph, true) // FIXME: Temporarily disabled this.
 
             // Propagate any declared deadline upstream.
             propagateDeadlines()
@@ -517,6 +517,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
             for (dependent: r.dependentReactions) {
                 graph.addEdge(dependent, r)
+            }
+        }
+        // Also add the independent nodes to the graph.
+        if (this === main) {
+            for (node : independentReactions) {
+                graph.addNode(node)
             }
         }
         

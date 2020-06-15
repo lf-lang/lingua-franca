@@ -472,7 +472,7 @@ void* worker(void* arg) {
     // printf("DEBUG: pthread_mutex_locked\n");
     // Iterate until stop is requested and the reaction_q is empty (signaling
     // that the current time instant is done).
-    while (!stop_requested || pqueue_size(reaction_q) > 0) {
+    while (!stop_requested || pqueue_size(reaction_q) > 0 || pqueue_size(executing_q) > 0) {
         // Obtain a reaction from the reaction_q that is ready to execute
         // (i.e., it is not blocked by concurrently executing reactions
         // that it depends on).
