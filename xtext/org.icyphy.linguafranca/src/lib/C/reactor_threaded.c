@@ -34,7 +34,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 
 // Number of idle worker threads.
-int number_of_idle_threads = 0;
+volatile int number_of_idle_threads = 0;
 
 // Queue of currently executing reactions.
 pqueue_t* executing_q;  // Sorted by index (precedence sort)
@@ -458,7 +458,7 @@ reaction_t* first_ready_reaction() {
  *  value to this variable, it should wait for events to appear
  *  on the reaction queue rather than advance time.
  */
-bool __advancing_time = false;
+volatile bool __advancing_time = false;
 
 /**
  * Worker thread for the thread pool.
@@ -597,7 +597,7 @@ void* worker(void* arg) {
                  // printf("DEBUG: worker: Done invoking reaction.\n");
             }
         }
-    }
+    } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
     number_of_threads--;
 
