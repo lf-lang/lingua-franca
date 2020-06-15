@@ -154,40 +154,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 )
             }
             val graph = this.getDependencyGraph()
-            // FIXME: how about instead of copy we create a precedence graph?
             
             // Assign a level to each reaction. 
             // If there are cycles present in the graph, it will be detected here.
             assignLevels(graph)
             // Traverse the graph again, now starting from the leaves,
             // to set the chain IDs.
-            assignChainIDs(graph)                
+            assignChainIDs(graph, false) // FIXME: Temporarily disabled this.
 
             // Propagate any declared deadline upstream.
             propagateDeadlines()
 
             // FIXME: also record number of reactions.
             // We can use this to set the sizes of the queues.
-            
-// NOTE: retaining this code for benchmarking purposes!            
-//            assignLevels()
-//            // If there are reaction instances that have not been assigned
-//            // a level, throw an exception. There are cyclic dependencies.
-//            var reactionsInCycle = new LinkedList<ReactionInstance>()
-//            reactionsWithoutLevels(this, reactionsInCycle)
-//            if (!reactionsInCycle.isEmpty) {
-//                // There are cycles. Construct an error message.
-//                var inCycle = new LinkedList<String>
-//                for (reaction : reactionsInCycle) {
-//                    inCycle.add(
-//                        "reaction " + reaction.reactionIndex + " in " +
-//                            reaction.parent.getFullName
-//                    )
-//                }
-//                throw new Exception(
-//                    "Found cycles including: " + inCycle.join(", ")
-//                )
-//            }
         }
     }
 
@@ -195,9 +174,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     // // Public fields.
     /** The action instances belonging to this reactor instance. */
     public var actions = new LinkedList<ActionInstance>
-
-    /** The number of bits required to store the chain identifiers. */
-    public var chainIDWidth = 0
     
     /** The contained instances, indexed by name. */
     public var LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
@@ -524,6 +500,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
+    /**
+     * Extract a precedence graph from this reactor instance.
+     * FIXME: this is somewhat redundant; it's probably better build the graph immediately.
+     * At the very least we could just replace dependsOnReactions and dependentReactions
+     * with a DirectedGraph<ReactionInstance>. 
+     */
     protected def DirectedGraph<ReactionInstance> getDependencyGraph() {
         var graph = new DirectedGraph<ReactionInstance>()
         for (child : this.children) {
@@ -589,14 +571,24 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * exists a dependency between them. This facilitates runtime checks
      * to determine whether a reaction is ready to execute or has to wait
      * for an upstream reaction to complete.
+     * @param graph The dependency graph.
+     * @param optimize Whether or not make assignments that maximize the
+     * amount of parallelism. If false, just assign 1 to every node.
      */
-    protected def assignChainIDs(DirectedGraph<ReactionInstance> graph) {
+    protected def assignChainIDs(DirectedGraph<ReactionInstance> graph,
+            boolean optimize) {
         val leafs = graph.leafNodes
         this.branchCount = 0
-        // Start propagation from the leaf nodes,
-        // ordered by level from high to low.
-        for (node : leafs.sortBy[-level]) {
-            this.propagateUp(node, graph, 1 << (this.branchCount++ % 64))
+        if (optimize) {
+            // Start propagation from the leaf nodes,
+            // ordered by level from high to low.
+            for (node : leafs.sortBy[-level]) {
+                this.propagateUp(node, graph, 1 << (this.branchCount++ % 64))
+            }    
+        } else {
+            for (node: graph.nodes) {
+            node.chainID = 1
+            }    
         }
     }
 
@@ -657,88 +649,43 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
+    /**
+     * Iterate over all reactions that have a declared deadline, update their
+     * inferred deadline, as well as the inferred deadlines of any reactions
+     * upstream.
+     */
     def propagateDeadlines() {
         // Assume the graph is acyclic.
         for (r : reactionsWithDeadline) {
             if (r.declaredDeadline !== null &&
                 r.declaredDeadline.maxDelay !== null) {
-                r.deadline = r.declaredDeadline.maxDelay
+                // Only lower the inferred deadline (which is set to the max by default),
+                // if the declared deadline is earlier than the inferred one (based on
+                // some other downstream deadline).
+                if (r.deadline.isEarlierThan(r.declaredDeadline.maxDelay)) {
+                    r.deadline = r.declaredDeadline.maxDelay
+                }
             }
             propagateDeadline(r)
         }
     }
     
-    def void propagateDeadline(ReactionInstance upstream) {
-        for (r : upstream.dependsOnReactions) {
-            if (upstream.deadline.isEarlierThan(r.deadline)) {
-                r.deadline = upstream.deadline
-            }
-            propagateDeadline(r)
-        }
-    }
-    
-    /** Analyze the dependencies between reactions and assign levels.
-     *  A reaction has level 0 if it has no dependence on any other reaction,
-     *  i.e. it is the first reaction in a reactor and it is triggered by
-     *  by an action or a timer, not a port. It has level 1 if it depends
-     *  only on level 0 reactions. Etc.
-     *  Throw an exception if there are cyclic dependencies and
-     *  report the reactions that cannot be assigned levels and hence are
-     *  part of the cycle.
-     *  This should be called only on the top-level (main) reactor.
+    /**
+     * Given a reaction instance, propagate its inferred deadline upstream.
+     * @param downstream Reaction instance with an inferred deadline that
+     * is to be propagated upstream.
      */
-//    protected def void assignLevels() {
-//        if (independentReactions.isEmpty()) {
-//            throw new Exception(
-//                "Reactions form a cycle, where every reaction depends on another reaction!")
-//        }
-//        var candidatesForLevel = new LinkedList<ReactionInstance>()
-//        var level = 0
-//        for (reaction : independentReactions) {
-//            reaction.level = level
-//            reaction.chainID = 1;
-//            candidatesForLevel.addAll(reaction.dependentReactions)
-//        }
-//        while (!candidatesForLevel.isEmpty) {
-//            level++
-//            candidatesForLevel = assignLevels(candidatesForLevel, level)
-//        }
-//    }
-
-//    /** For each reaction instance in the specified list, assign it the
-//     *  specified level if every reaction it depends on already has an
-//     *  assigned level less than the specified level. Otherwise, add it
-//     *  to a new list that is returned. For each reaction that is assigned
-//     *  a level, also add all its dependent reactions to the returned list.
-//     *  @param candidatesForLevel Candidate reactions for the specified level.
-//     *  @param level The specified level.
-//     *  @return Candidates for the next level.
-//     */
-//    protected def assignLevels(
-//        LinkedList<ReactionInstance> candidatesForLevel,
-//        int level
-//    ) {
-//        var newCandidatesForLevel = new LinkedList<ReactionInstance>()
-//        for (reaction : candidatesForLevel) {
-//            var ready = true
-//            for (dependsOnReaction : reaction.dependsOnReactions) {
-//                if (dependsOnReaction.level < 0 // Not assigned.
-//                || dependsOnReaction.level >= level // Should not occur.
-//                ) {
-//                    // Would be nice to break here, but xtend can't do that.
-//                    ready = false
-//                }
-//            }
-//            if (ready) {
-//                reaction.level = level
-//                reaction.chainID = 1;
-//                newCandidatesForLevel.addAll(reaction.dependentReactions)
-//            } else {
-//                newCandidatesForLevel.add(reaction)
-//            }
-//        }
-//        newCandidatesForLevel
-//    }
+    def void propagateDeadline(ReactionInstance downstream) {
+        for (upstream : downstream.dependsOnReactions) {
+            // Only lower the inferred deadline (which is set to the max by default),
+            // if downstream deadline is earlier than the inferred one (based on
+            // some other downstream deadline).
+            if (downstream.deadline.isEarlierThan(upstream.deadline)) {
+                upstream.deadline = downstream.deadline
+            }
+            propagateDeadline(upstream)
+        }
+    }
 
     /** Add to the dependsOnReactions and dependentReactions all the
      *  reactions defined by the specified reactor that that
