@@ -401,10 +401,6 @@ void __termination();
  */
 bool __wrapup();
 
-/** Global constants. */
-bool False;
-bool True;
-
 /** By default, execution is not threaded and this variable will have value 0. */
 int number_of_threads;
 

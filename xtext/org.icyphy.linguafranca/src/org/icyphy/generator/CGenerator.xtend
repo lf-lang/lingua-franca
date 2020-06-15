@@ -3329,7 +3329,7 @@ class CGenerator extends GeneratorBase {
             if (reactorBelongsToFederate(containedReactor, federate)) {
                 var selfStructName = selfStructName(containedReactor)
                 for (input : containedReactor.inputs) {
-                    pr('''«selfStructName»->__«input.definition.name»_is_present = &False;''')
+                    pr('''«selfStructName»->__«input.definition.name»_is_present = &Absent;''')
                 }
                 // In case this is a composite, handle its assignments.
                 setInputsAbsentByDefault(containedReactor, federate)
