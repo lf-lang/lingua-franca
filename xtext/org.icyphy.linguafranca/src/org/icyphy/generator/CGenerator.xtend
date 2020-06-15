@@ -2374,8 +2374,8 @@ class CGenerator extends GeneratorBase {
         var reactionCount = 0
         for (reactionInstance : reactor.reactionsInFederate(federate)) {
             val reactionStructName = '''«selfStructName(reactionInstance.parent)»->___reaction_«reactionCount»'''
-            val reactionIndex = (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).or(
-                new BigInteger(reactionInstance.level.toString)) + "LL"
+            val reactionIndex = "0x" + (reactionInstance.deadline.toNanoSeconds.shiftLeft(16)).or(
+                new BigInteger(reactionInstance.level.toString)).toString(16) + "LL"
             pr('''
                 «reactionStructName».chain_id = «reactionInstance.chainID.toString»;
                 // index is the OR of level «reactionInstance.level» and 
