@@ -720,7 +720,7 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
     int element_size = trigger->token->element_size;
     void* container = malloc(element_size * length);
     __count_payload_allocations++;
-    // printf("DEBUG: __schedule_with_copy_impl: Allocating memory for payload (token value): %p\n", container);
+    // printf("DEBUG: __schedule_copy: Allocating memory for payload (token value): %p\n", container);
     memcpy(container, value, element_size * length);
     // Initialize token with an array size of length and a reference count of 0.
     token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
