@@ -712,103 +712,13 @@ handle_t schedule(trigger_t* trigger, interval_t offset) {
 }
 
 /**
- * Schedule an action to occur with the specified value and time offset
- * with a copy of the specified value. If the value is non-null,
- * then it will be copied into newly allocated memory under the assumption
- * that its size given in the trigger's token object's element_size field
- * multiplied by the specified length.
- * See schedule_token(), which this uses, for details.
- * @param trigger Pointer to a trigger object (typically an action on a self struct).
- * @param offset The time offset over and above that in the action.
- * @param value A pointer to the value to copy.
- * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
- */
-handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
-    if (value == NULL) {
-        return schedule_token(trigger, offset, NULL);
-    }
-    if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
-        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
-        return -1;
-    }
-    int element_size = trigger->token->element_size;
-    void* container = malloc(element_size * length);
-    __count_payload_allocations++;
-    // printf("DEBUG: __schedule_copy: Allocating memory for payload (token value): %p\n", container);
-    memcpy(container, value, element_size * length);
-    // Initialize token with an array size of length and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
-    // The schedule function will increment the reference count.
-    return schedule_token(trigger, offset, token);
-}
-
-/**
- * Schedule the specified action at a later logical time that depends
- * on whether the action is logical or physical and what its parameter
- * values are.
- *
- * logical action: A logical action has an offset (default is zero)
- * and a minimum interarrival time (MIT), which also defaults to zero.
- * The logical time at which this scheduled event will trigger is
- * the current time plus the offset plus the delay argument given to
- * this function. If, however, that time is not greater than a prior
- * triggering of this logical action by at least the MIT, then the
- * one of two things can happen depending on the policy specified
- * for the action. If the action's policy is DROP (default), then the
- * action is simply dropped and the memory pointed to by value argument
- * is freed. If the policy is DEFER, then the time will be increased
- * to equal the time of the most recent triggering plus the MIT.
- *
- * For the above, "current time" means the logical time of the
- * reaction that is calling this function, or if this function is
- * being called from outside a reaction (asynchronously), then the
- * most recent logical time relevant to the reactor that owns the
- * action.
- *
- * physical action: A physical action has all the same parameters
- * as a logical action, but instead of "current time" being a logical
- * time, current time is defined as the larger of the current logical
- * time (as above) and the time of the physical clock on the currently
- * executing platform.
- *
- * The value is required to be either NULL or a pointer to
- * memory dynamically allocated using malloc (it will be freed when
- * its reference count decrements to zero).
- *
- * There are three conditions under which this function will not
- * actually put an event on the event queue and decrement the reference count
- * of the token (if there is one), which could result in the payload being
- * freed. In all three cases, this function returns 0. Otherwise,
- * it returns a handle to the scheduled trigger, which is an integer
- * greater than 0.
- *
- * The first condition is that a stop has been requested and the time offset
- * of this event is greater than zero.
- * The second condition is that the logical time of the event
- * is greater that the requested stop time (timeout).
- * The third condition is that the trigger argument is null.
- *
- * @param action The action or timer to be triggered.
- * @param extra_delay Extra offset of the event release.
- * @param value Dynamically allocated memory containing the value to send.
- * @param length The length of the array, if it is an array, or 1 for a
- *  scalar and 0 for no payload.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
- */
-handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
-    token_t* token = create_token(trigger->element_size);
-    token->value = value;
-    token->length = length;
-    return schedule_token(trigger, extra_delay, token);
-}
-
-/**
- * Schedule the specified action with an integer value at a later logical
- * time that depends on whether the action is logical or physical and
- * what its parameter values are. See schedule_value().
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
  */
 handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
+    // NOTE: This doesn't acquire the mutex lock in the multithreaded version
+    // until schedule_value is called. This should be OK because the element_size
+    // does not change dynamically.
     if (trigger->element_size != sizeof(int)) {
         fprintf(stderr, "Action type is not an integer.");
         return -1;
@@ -829,7 +739,6 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
  */
 void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
     // First, initialize the token, reusing the one given if possible.
-    // FIXME: This token gets lost!!!!
     token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
     // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
     // Count allocations to issue a warning if this is never freed.
