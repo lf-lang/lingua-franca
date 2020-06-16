@@ -35,8 +35,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "reactor.h"
 
-/** Indicator for the absence of values for ports that remain disconnected. */
-bool Absent = false;
+/**
+ * Indicator for the absence of values for ports that remain disconnected.
+ **/
+bool absent = false;
 
 /** 
  * Indicator of whether to wait for physical time to match logical time.
@@ -45,8 +47,10 @@ bool Absent = false;
  */ 
 bool fast = false;
 
-/** By default, execution is not threaded. */
-int number_of_threads = 0; // FIXME: should be unsigned
+/**
+ * By default, execution is not threaded.
+ **/
+unsigned int number_of_threads = 0;
 
 /**
  * Current time in nanoseconds since January 1, 1970.
@@ -54,11 +58,22 @@ int number_of_threads = 0; // FIXME: should be unsigned
  */
 instant_t current_time = 0LL;
 
-/** Logical time at the start of execution. */
-interval_t start_time = 0LL;
+/** 
+ * The logical time to elapse during execution, or -1 if no timeout time has
+ * been given. When the logical equal to start_time + duration has been
+ * reached, execution will terminate.
+ */
+instant_t duration = -1LL;
 
-/** Physical time at the start of the execution. */
+/**
+ * Physical time at the start of the execution.
+ */
 instant_t physical_start_time = 0LL;
+
+/**
+ * Logical time at the start of execution.
+ */
+interval_t start_time = 0LL;
 
 /**
  * Indicator that the execution should stop after the completion of the
@@ -66,13 +81,6 @@ instant_t physical_start_time = 0LL;
  * function in a reaction.
  */
 bool stop_requested = false;
-
-/** 
- * The logical time to elapse during execution, or -1 if no timeout time has
- * been given. When the logical equal to start_time + duration has been
- * reached, execution will terminate.
- */
-instant_t duration = -1LL;
 
 /**
  * Stop time (start_time + duration), or 0 if no timeout time has been given.
@@ -98,25 +106,33 @@ int __tokens_with_ref_count_size = 0;
 /////////////////////////////
 // The following functions are in scope for all reactors:
 
-/** Return the elapsed logical time in nanoseconds since the start of execution. */
+/**
+ * Return the elapsed logical time in nanoseconds since the start of execution.
+ */
 interval_t get_elapsed_logical_time() {
     return current_time - start_time;
 }
 
-/** Return the current logical time in nanoseconds since January 1, 1970. */
+/**
+ * Return the current logical time in nanoseconds since January 1, 1970.
+ */
 instant_t get_logical_time() {
     // FIXME: Does this need acquire the mutex?
     return current_time;
 }
 
-/** Return the current physical time in nanoseconds since January 1, 1970. */
+/** 
+ * Return the current physical time in nanoseconds since January 1, 1970.
+ */
 instant_t get_physical_time() {
     struct timespec physicalTime;
     clock_gettime(CLOCK_REALTIME, &physicalTime);
     return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec;
 }
 
-/** Return the elapsed physical time in nanoseconds. */
+/** 
+ * Return the elapsed physical time in nanoseconds.
+ */
 instant_t get_elapsed_physical_time() {
     struct timespec physicalTime;
     clock_gettime(CLOCK_REALTIME, &physicalTime);

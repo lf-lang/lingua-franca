@@ -758,7 +758,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (ret == 0) {
-            printf("All worker threads exited successfully.\n");
+            printf("---- All worker threads exited successfully.\n");
         } else {
             printf("Unable to successfully join worker threads: %s", strerror(ret));
         }
