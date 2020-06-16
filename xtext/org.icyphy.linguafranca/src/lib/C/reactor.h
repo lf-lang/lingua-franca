@@ -401,8 +401,15 @@ void __termination();
  */
 bool __wrapup();
 
-/** By default, execution is not threaded and this variable will have value 0. */
-int number_of_threads;
+/**
+ * Indicator for the absence of values for ports that remain disconnected.
+ **/
+bool absent;
+
+/**
+ * By default, execution is not threaded and this variable will have value 0.
+ **/
+unsigned int number_of_threads;
 
 /**
  * Create a new token and initialize it.
