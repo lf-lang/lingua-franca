@@ -6,32 +6,46 @@
  * @author Mehrdad Niknami (mniknami@berkeley.edu)
  *
  * @section LICENSE
-Copyright (c) 2019, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+ * Copyright (c) 2019, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  * @section DESCRIPTION
- * Runtime infrastructure for the C target of Lingua Franca.
+ *
+ * Header file for the infrastructure for the C target of Lingua Franca.
  * This file contains header information used by both the threaded and
- * non-threaded versions of the C runtime.
+ * non-threaded versions of the C runtime. A generated C program will have
+ * either #include reactor.c or #include reactor_threaded.c. Those two files
+ * #include this header file.
+ *
+ * This header file defines the functions and macros that programmers use
+ * in the body of reactions for reading and writing inputs and outputs and
+ * scheduling future events. The LF compiler does not parse that C code.
+ * This fact strongly affects the design.
+ *
+ * The intent of the C target for Lingua Franca not to provide a safe
+ * programming environment (The C++ and TypeScript targets are better
+ * choices for that), but rather to find the lowest possible overhead
+ * implementation of Lingua Franca. The API herein can easily be misused,
+ * leading to memory leaks, nondeterminism, or program crashes.
  */
 
 #ifndef REACTOR_H
@@ -47,8 +61,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //  ======== Macros ========  //
 
-#define NEVER -9223372036854775807LL
+// Commonly used time values.
+#define NEVER -0xFFFFFFFFFFFFFFFFLL
 #define FOREVER 0x7FFFFFFFFFFFFFFFLL
+
+// Convenience for converting times
 #define BILLION 1000000000LL
 
 // FIXME: May want these to application dependent, hence code generated.
@@ -73,26 +90,28 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WEEK(t)  (t * 604800000000000LL)
 #define WEEKS(t) (t * 604800000000000LL)
 
+////////////////////////////////////////////////////////////
+//// Functions for producing outputs.
+
 // NOTE: According to the "Swallowing the Semicolon" section on this page:
 //    https://gcc.gnu.org/onlinedocs/gcc-3.0.1/cpp_3.html
 // the following macros should use an odd do-while construct to avoid
 // problems with if ... else statements that do not use braces around the
 // two branches.
 
-////////////////////////////////////////////////////////////
-//// Functions for producing outputs.
-
-/** Set the specified output (or input of a contained reactor)
- *  to the specified value.
- *  This version is used for primitive type such as int,
- *  double, etc. as well as the built-in types bool and string.
- *  The value is copied and therefore the variable carrying the
- *  value can be subsequently modified without changing the output.
- *  This can also be used for structs with a type defined by a typedef
- *  so that the type designating string does not end in '*'.
- *  @param port The output port (by name) or input of a contained
- *   reactor in form input_name.port_name.
- *  @param value The value to insert into the self struct.
+/**
+ * Set the specified output (or input of a contained reactor)
+ * to the specified value.
+ *
+ * This version is used for primitive types such as int,
+ * double, etc. as well as the built-in types bool and string.
+ * The value is copied and therefore the variable carrying the
+ * value can be subsequently modified without changing the output.
+ * This can also be used for structs with a type defined by a typedef
+ * so that the type designating string does not end in '*'.
+ * @param out The output port (by name) or input of a contained
+ *  reactor in form input_name.port_name.
+ * @param value The value to insert into the self struct.
  */
 #define set(out, value) \
 do { \
@@ -101,32 +120,39 @@ do { \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
-/** Version of set for output types given as 'type[]' where you
- *  want to send a previously dynamically allocated array.
- *  The deallocation is delegated to downstream reactors, which
- *  automatically deallocate when the reference count drops to zero.
- *  It also sets the corresponding _is_present variable in the self
- *  struct to true (which causes the object message to be sent).
- *  @param out The output port (by name).
- *  @param val The array to send (a pointer to the first element).
- *  @param length The length of the array to send.
+/**
+ * Version of set for output types given as 'type[]' where you
+ * want to send a previously dynamically allocated array.
+ *
+ * The deallocation is delegated to downstream reactors, which
+ * automatically deallocate when the reference count drops to zero.
+ * It also sets the corresponding _is_present variable in the self
+ * struct to true (which causes the object message to be sent).
+ * @param out The output port (by name).
+ * @param value The array to send (a pointer to the first element).
+ * @param length The length of the array to send.
+ * @see token_t
  */
-#define set_array(out, val, len) \
+#define set_array(out, value, length) \
 do { \
     out ## _is_present = true; \
-    __initialize_token(self->__ ## out, val, self->__ ## out->element_size, len, self->__ ## out ## _num_destinations); \
+    __initialize_token(self->__ ## out, value, self->__ ## out->element_size, length, self->__ ## out ## _num_destinations); \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
-/** Version of set() for output types given as 'type*' that
- *  allocates a new object of the type of the specified output port.
- *  It also sets the corresponding _is_present variable in the self
- *  struct to true (which causes the object message to be sent),
- *  and sets the variable named by the argument to the newly allocated
- *  object so that the user code can then populate it.
- *  The freeing of the dynamically allocated object will be handled automatically
- *  when the last downstream reader of the message has finished.
- *  @param out The output port (by name).
+/**
+ * Version of set() for output types given as 'type*' that
+ * allocates a new object of the type of the specified output port.
+ *
+ * This macro dynamically allocates enough memory to contain one
+ * instance of the output datatype and sets the variable named
+ * by the argument to point to the newly allocated memory.
+ * The user code can then populate it with whatever value it
+ * wishes to send.
+ *
+ * This macro also sets the corresponding _is_present variable in the self
+ * struct to true (which causes the object message to be sent),
+ * @param out The output port (by name).
  */
 #define set_new(out) \
 do { \
@@ -137,16 +163,18 @@ do { \
     self->__ ## out = token; \
 } while(0)
 
-/** Version of set() for output types given as 'type[]'.
- *  This allocates a new array of the specified length,
- *  sets the corresponding _is_present variable in the self struct to true
- *  (which causes the array message to be sent), and sets the variable
- *  given by the first argument to point to the new array so that the
- *  user code can populate the array. The freeing of the dynamically
- *  allocated array will be handled automatically
- *  when the last downstream reader of the message has finished.
- *  @param out The output port (by name).
- *  @param length The length of the array to be sent.
+/**
+ * Version of set() for output types given as 'type[]'.
+ *
+ * This allocates a new array of the specified length,
+ * sets the corresponding _is_present variable in the self struct to true
+ * (which causes the array message to be sent), and sets the variable
+ * given by the first argument to point to the new array so that the
+ * user code can populate the array. The freeing of the dynamically
+ * allocated array will be handled automatically
+ * when the last downstream reader of the message has finished.
+ * @param out The output port (by name).
+ * @param length The length of the array to be sent.
  */
 #define set_new_array(out, length) \
 do { \
@@ -157,12 +185,14 @@ do { \
     self->__ ## out = token; \
 } while(0)
 
-/** Version of set() for output types given as 'type[number]'.
- *  This sets the _is_present variable corresponding to the specified output
- *  to true (which causes the array message to be sent). The values in the 
- *  output are normally written directly to the array or struct before or
- *  after this is called.
- *  @param out The output port (by name).
+/**
+ * Version of set() for output types given as 'type[number]'.
+ *
+ * This sets the _is_present variable corresponding to the specified output
+ * to true (which causes the array message to be sent). The values in the
+ * output are normally written directly to the array or struct before or
+ * after this is called.
+ * @param out The output port (by name).
  */
 #define set_present(out) \
 do { \
@@ -170,12 +200,14 @@ do { \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
-/** Version of set() for output types given as 'type*' or 'type[]'where you want
- *  to forward an input or action without copying it.
- *  The deallocation of memory is delegated to downstream reactors, which
- *  automatically deallocate when the reference count drops to zero.
- *  @param out The output port (by name).
- *  @param token A pointer to token obtained from an input or action.
+/**
+ * Version of set() for output types given as 'type*' or 'type[]' where you want
+ * to forward an input or action without copying it.
+ *
+ * The deallocation of memory is delegated to downstream reactors, which
+ * automatically deallocate when the reference count drops to zero.
+ * @param out The output port (by name).
+ * @param token A pointer to token obtained from an input or action.
  */
 #define set_token(out, token) \
 do { \
@@ -185,20 +217,39 @@ do { \
     self->__ ## out ## _is_present = true; \
 } while(0)
 
-/** Macro for extracting the deadline from the index of a reaction. */
+/**
+ * Macro for extracting the deadline from the index of a reaction.
+ * The reaction queue is sorted according to this index, and the
+ * use of the deadline here results in an earliest deadline first
+ * (EDF) scheduling poicy.
+ */
 #define DEADLINE(index) (index & 0x7FFFFFFFFFFF0000)
 
-/** Macro for extracting the level from the index of a reaction. */
+/**
+ * Macro for extracting the level from the index of a reaction.
+ * A reaction that has no upstream reactions has level 0.
+ * Other reactions have a level that is the length of the longest
+ * upstream chain to a reaction with level 0 (inclusive).
+ * This is used, along with the deadline, to sort reactions
+ * in the reaction queue. It ensures that reactions that are
+ * upstream in the dependence graph execute before reactions
+ * that are downstream.
+ */
 #define LEVEL(index) (index & 0xFFFF)
 
+/** Utility for finding the maximum of two values. */
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
+/** Utility for finding the minimum of two values. */
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
-/** Macro for determining whether two reaction reactions are in the
- *  same chain (one depends on the other). This is conservative.
- *  If it returns false, then they are surely not in the same chain,
- *  but if it returns true, they may be in the same chain.
+/**
+ * Macro for determining whether two reactions are in the
+ * same chain (one depends on the other). This is conservative.
+ * If it returns false, then they are surely not in the same chain,
+ * but if it returns true, they may be in the same chain.
+ * This is in reactor_threaded.c to execute reactions in parallel
+ * on multiple cores even if their levels are different.
  */
 #define OVERLAPPING(chain1, chain2) ((chain1 & chain2) != 0)
 
@@ -209,24 +260,36 @@ do { \
 typedef enum {false, true} bool;
 #endif
 
-/** Handles for scheduled triggers. */
+/**
+ * Handles for scheduled triggers. These handles are returned
+ * by schedule() functions. The intent is that the handle can be
+ * used to cancel a future scheduled event, but this is not
+ * implemented yet.
+ */
 typedef int handle_t;
 
-/** Time instants.
-    WARNING: If this code is used after about the year 2262,
-    then representing time as a long long will be insufficient. */
+/**
+ * Time instants. Both physical and logical times are represented
+ * using this typedef. FIXME: Perhaps distinct typedefs should
+ * be used.
+ * WARNING: If this code is used after about the year 2262,
+ * then representing time as a long long will be insufficient.
+ */
 typedef long long instant_t;
 
 /** Intervals of time. */
 typedef long long interval_t;
 
-/** String type so that we don't have to use {= char* =}.
- *  Use this for strings that are not dynamically allocated.
- *  For dynamically allocated strings that have to be freed after
- *  being consumed downstream, use type char*.
+/**
+ * String type so that we don't have to use {= char* =}.
+ * Use this for strings that are not dynamically allocated.
+ * For dynamically allocated strings that have to be freed after
+ * being consumed downstream, use type char*.
  */
 #ifndef string
 typedef char* string;
+#else
+#warning "string typedef has been previously given."
 #endif
 
 /** Topological order index for reactions. */
@@ -238,9 +301,26 @@ typedef void(*reaction_function_t)(void*);
 /** Trigger struct representing an output, timer, action, or input. */
 typedef struct trigger_t trigger_t;
 
-/** Token type for dynamically allocated arrays and structs sent as messages. */
+/**
+ * Token type for dynamically allocated arrays and structs sent as messages.
+ *
+ * In the C LF target, a type for an output that ends in '*' is
+ * treated specially. The value carried by the output is assumed
+ * to be in dynamically allocated memory, and, using reference
+ * counting, after the last downstream reader of the value has
+ * finished, the memory will be freed.  To prevent this freeing
+ * from occurring, the output type can be specified using the
+ * syntax {= type* =}; this will not be treated as dynamically
+ * allocated memory. Alternatively, the programmer can give a typedef
+ * in the preamble that masks the trailing *.
+ *
+ * This struct is the wrapper around the dynamically allocated memory
+ * that carries the message.  The message can be an array of values,
+ * where the size of each value is element_size (in bytes). If it is
+ * not an array, the length == 1.
+ */
 typedef struct token_t {
-    /** Pointer to a struct or array to be sent as a message. Must be first. */
+    /** Pointer to dynamically allocated memory containing a message. */
     void* value;
     /** Size of the struct or array element. */
     size_t element_size;
@@ -248,9 +328,10 @@ typedef struct token_t {
     int length;
     /** The number of input ports that have not already reacted to the message. */
     int ref_count;
-    /** Indicator of whether this token is expected to be freed.
-     *  Tokens that are created at the start of execution and associated with output
-     *  ports or actions are not expected to be freed. They can be reused instead.
+    /**
+     * Indicator of whether this token is expected to be freed.
+     * Tokens that are created at the start of execution and associated with output
+     * ports or actions are not expected to be freed. They can be reused instead.
      */
     bool ok_to_free;
     /** For recycling, a pointer to the next token in the recycling bin. */
