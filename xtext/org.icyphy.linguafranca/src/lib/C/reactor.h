@@ -504,7 +504,14 @@ token_t* create_token(size_t element_size);
 /**
  * Schedule the specified action with an integer value at a later logical
  * time that depends on whether the action is logical or physical and
- * what its parameter values are. See schedule_value().
+ * what its parameter values are. This wraps a copy of the integer value
+ * in a token. See schedule_token() for more details.
+ * @param action The action to be triggered.
+ * @param extra_delay Extra offset of the event release above that in the action.
+ * @param value Dynamically allocated memory containing the value to send.
+ * @param length The length of the array, if it is an array, or 1 for a
+ *  scalar and 0 for no payload.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value);
 

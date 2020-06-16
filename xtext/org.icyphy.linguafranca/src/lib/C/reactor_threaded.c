@@ -51,36 +51,8 @@ pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
 
 /**
  * Schedule the specified trigger at current_time plus the offset of the
- * specified trigger plus the delay. If the offset of the trigger and
- * the extra_delay are both zero, then the event will occur one
- * microstep later in superdense time (it gets put on the event queue,
- * which will not be examined until all events on the reaction queue
- * have been processed).
- *
- * The value is required to be either
- * NULL or a pointer to a token wrapping the payload. The token carries
- * a reference count, and when the reference count decrements to 0,
- * the will be freed. Hence, it is essential that the payload be in
- * memory allocated using malloc.
- *
- * There are three conditions under which this function will not
- * actually put an event on the event queue and decrement the reference count
- * of the token (if there is one), which could result in the payload being
- * freed. In all three cases, this function returns 0. Otherwise,
- * it returns a handle to the scheduled trigger, which is an integer
- * greater than 0.
- *
- * The first condition is that a stop has been requested and the trigger
- * offset plus the extra delay is greater than zero.
- * The second condition is that the trigger offset plus the extra delay
- * is greater that the requested stop time (timeout).
- * The third condition is that the trigger argument is null.
- *
- * @param trigger The trigger to be invoked at a later logical time.
- * @param extra_delay The logical time delay, which gets added to the
- *  trigger's minimum delay, if it has one.
- * @param token The token wrapping the payload.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ * specified trigger plus the delay.
+ * See reactor.h for documentation.
  */
 handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token) {
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
@@ -91,7 +63,58 @@ handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* tok
     pthread_cond_signal(&event_q_changed);
     // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
     pthread_mutex_unlock(&mutex);
-     return return_value;
+    return return_value;
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
+    if (value == NULL) {
+        return schedule_token(trigger, offset, NULL);
+    }
+    if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
+        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
+        return -1;
+    }
+    // printf("DEBUG: pthread_mutex_lock schedule_token\n");
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: pthread_mutex_locked\n");
+    int element_size = trigger->token->element_size;
+    void* container = malloc(element_size * length);
+    __count_payload_allocations++;
+    // printf("DEBUG: __schedule_copy: Allocating memory for payload (token value): %p\n", container);
+    memcpy(container, value, element_size * length);
+    // Initialize token with an array size of length and a reference count of 0.
+    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
+    // The schedule function will increment the reference count.
+    handle_t result = __schedule(trigger, offset, token);
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    pthread_cond_signal(&event_q_changed);
+    // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
+    pthread_mutex_unlock(&mutex);
+    return result;
+}
+
+/**
+ * Variant of schedule_token that creates a token to carry the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+    // printf("DEBUG: pthread_mutex_lock schedule_token\n");
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: pthread_mutex_locked\n");
+    token_t* token = create_token(trigger->element_size);
+    token->value = value;
+    token->length = length;
+    int return_value = __schedule(trigger, extra_delay, token);
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    pthread_cond_signal(&event_q_changed);
+    // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
+    pthread_mutex_unlock(&mutex);
+    return return_value;
 }
 
 /** Placeholder for code-generated function that will, in a federated
