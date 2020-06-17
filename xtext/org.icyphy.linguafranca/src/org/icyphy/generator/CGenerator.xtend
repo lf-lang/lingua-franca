@@ -3260,7 +3260,11 @@ class CGenerator extends GeneratorBase {
             if (eObject instanceof Code) {
                 offset += 1
             }
-            pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + unixSourceFile + '"')
+            if (System.getProperty("os.name").toLowerCase.contains("windows")) {
+                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + unixSourceFile + '"')
+            } else {
+                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + sourceFile + '"')
+            }
         }
     }
 
