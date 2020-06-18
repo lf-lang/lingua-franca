@@ -27,11 +27,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy
 
+import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.ILeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.generator.FederateInstance
@@ -50,11 +52,10 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.TypeParm
-import org.eclipse.emf.ecore.resource.Resource
-import java.util.HashMap
+import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Variable
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -527,6 +528,63 @@ class ASTUtils {
         }
     }
     
+    //// Utility functions supporting multiports.
+    
+    /**
+     * Return the string '[N]', '[]', or ''.
+     * The first is returned if the variable is a multiport with fixed width;
+     * N is the width of the multiport.
+     * The second is returned if the variable is a multiport of variable width.
+     * The third is returned in all other cases.
+     * @param port The port.
+     * @return The array specification for a multiport.
+     */
+    def static String multiportArraySpec(Variable variable) {
+        if (variable instanceof Port) {
+            if (variable.arraySpec !== null) {
+                if (variable.arraySpec.ofVariableLength) {
+                    return '[]'
+                } else {
+                    return '[' + variable.arraySpec.length + ']'
+                }
+            } else {
+                return ''
+            }
+        }
+        return ''
+    }
+    
+    /**
+     * If the argument is a multiport, return its width.
+     * Return -1 if it is variable width multiport.
+     * If the argument is a port but not a multiport, return -2.
+     * In all other cases, return 0.
+     * @param port The port.
+     * @return The width of a multiport, or -1 if it is variable width.
+     */
+    def static int multiportWidth(Variable variable) {
+        if (variable instanceof Port) {
+            if (variable.arraySpec !== null) {
+                if (variable.arraySpec.ofVariableLength) {
+                    return -1
+                } else {
+                    return variable.arraySpec.length
+                }
+            } else {
+                return -2
+            }
+        }
+        return 0
+    }
+    
+    /**
+     * Return true if the specified port is a multiport.
+     * @param port The port.
+     * @return True if the port is a multiport.
+     */
+    def static boolean isMultiport(Port port) {
+        port.arraySpec !== null
+    }
     
     
     /**

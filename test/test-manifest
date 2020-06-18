@@ -87,6 +87,7 @@ StructPrint.lf
 StructScale.lf
 TestForPreviousOutput.lf
 Threaded.lf
+ThreadedMultiportIn.lf
 ThreadedThreaded.lf
 TimeLimit.lf
 TimeLimitThreaded.lf

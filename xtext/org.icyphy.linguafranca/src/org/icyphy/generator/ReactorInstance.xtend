@@ -67,9 +67,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent, or null for the main rector.
+     *  @param generator The generator (for error reporting).
      */
-    new(Instantiation definition, ReactorInstance parent,
-        GeneratorBase generator) {
+    new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         super(definition, parent)
         this.generator = generator
 
@@ -86,7 +86,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Instantiate inputs for this reactor instance
         for (inputDecl : definition.reactorClass.inputs) {
-            this.inputs.add(new PortInstance(inputDecl, this))
+            if (inputDecl.arraySpec === null) {
+                this.inputs.add(new PortInstance(inputDecl, this))
+            } else {
+                this.inputs.add(new MultiportInstance(inputDecl, this, generator))
+            }
         }
 
         // Instantiate outputs for this reactor instance
@@ -111,11 +115,32 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         for (connection : definition.reactorClass.connections) {
             var srcInstance = this.getPortInstance(connection.leftPort)
             var dstInstance = this.getPortInstance(connection.rightPort)
+            
+            // If the right side of the connection has the form port[i],
+            // then use the specific port, not the multiport.
+            if (connection.rightPort.variableArraySpec !== null) {
+                val width = (dstInstance as MultiportInstance).instances.size
+                val index = connection.rightPort.variableArraySpec.length
+                if (index >= width) {
+                    generator.reportError(connection.rightPort, "Index out of range.")
+                }
+                dstInstance = (dstInstance as MultiportInstance).instances.get(index)
+            }
+            // If the left side of the connection has the form port[i],
+            // then use the specific port, not the multiport.
+            if (connection.leftPort.variableArraySpec !== null) {
+                val width = (dstInstance as MultiportInstance).instances.size
+                val index = connection.leftPort.variableArraySpec.length
+                if (index >= width) {
+                    generator.reportError(connection.leftPort, "Index out of range.")
+                }
+                dstInstance = (dstInstance as MultiportInstance).instances.get(index)
+            }
+            
             srcInstance.dependentPorts.add(dstInstance)
             if (dstInstance.dependsOnPort !== null &&
                 dstInstance.dependsOnPort !== srcInstance) {
-                // FIXME: Is this the right way to handle the error?
-                throw new Exception(
+                generator.reportError(connection,
                     "Destination port " + dstInstance.getFullName +
                         " is already connected to " +
                         dstInstance.dependsOnPort.getFullName

@@ -44,13 +44,26 @@ class PortInstance extends TriggerInstance<Variable> {
      *  @param parent The parent.
      */
     new(Port definition, ReactorInstance parent) {
+        this(definition, parent, -1)
+    }
+    
+    /** Create a runtime instance from the specified definition
+     *  and with the specified parent that instantiated it and
+     *  the specified index in a multiport array.
+     *  @param instance The Instance statement in the AST.
+     *  @param parent The parent.
+     *  @param index The index, or -1 to specify that this is not
+     *   in a multiport.
+     */
+    new(Port definition, ReactorInstance parent, int index) {
         super(definition, parent)
         
         if (parent === null) {
             throw new Exception('Cannot create a PortInstance with no parent.')
         }
+        this.index = index
     }
-        
+     
     /////////////////////////////////////////////
     //// Public Fields
 
@@ -59,9 +72,18 @@ class PortInstance extends TriggerInstance<Variable> {
         
     /** Port that sends messages to this port, if there is one. */
     public PortInstance dependsOnPort = null;
-    
+        
     /////////////////////////////////////////////
     //// Public Methods
+    
+    /**
+     * Return the index of this port in a multiport array or -1 if
+     * this port is not in a multiport array. 
+     * @return The index in a multiport array.
+     */
+    def multiportIndex() {
+        return this.index
+    }
     
     /** Return true if the port is an input. */
     def isInput() {
@@ -72,9 +94,18 @@ class PortInstance extends TriggerInstance<Variable> {
     def isOutput() {
         definition instanceof Output
     }
-
+    
     /** Return a descriptive string. */
     override toString() {
         "PortInstance " + getFullName
     }
+
+    /////////////////////////////////////////////
+    //// Protected Fields
+
+    /** 
+     * The index in a multiport array or -1 if this port is not in
+     * a multiport array.
+     */
+    protected int index
 }
