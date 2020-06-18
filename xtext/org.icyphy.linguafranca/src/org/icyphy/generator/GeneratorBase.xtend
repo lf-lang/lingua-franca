@@ -1050,11 +1050,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  @param federate The federate or null to include all reactions.
      */
     protected def List<Reaction> reactionsInFederate(Reactor reactor, FederateInstance federate) {
-        if (!reactor.federated || federate === null || reactionsInFederate === null) reactor.reactions
-        else {
+        if (!reactor.federated || federate === null || reactionsInFederate === null) {
+            reactor.allReactions
+        } else {
             // reactionsInFederate is a Map<FederateInstance,List<Reaction>>
             var result = reactionsInFederate.get(federate)
-            if (result === null) reactor.reactions
+            if (result === null) reactor.allReactions
             else result
         }
     }
@@ -1642,7 +1643,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             for (federate : federates) {
                 val reactions = new LinkedList<Reaction>()
                 reactionsInFederate.put(federate, reactions)
-                for (reaction : mainDef.reactorClass.reactions) {
+                for (reaction : mainDef.reactorClass.allReactions) {
                     if (federate.containsReaction(mainDef.reactorClass, reaction)) {
                         reactions.add(reaction)
                     }

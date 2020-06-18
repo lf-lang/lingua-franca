@@ -5,12 +5,12 @@ target C {
     timeout: 10 sec
 };
 reactor Source(period:time(2 sec)) {
+    input foo:int;
 	output y:int;
-	timer t(1 sec, period);
+	timer t(1 sec, 2 sec);
 	state count:int(0);
 	reaction(t) -> y {=
-		(self->count)++;
-		printf("Source sending %d.\n", self->count);
+		printf("Hello World. My count is: %d.\n", self->count);
 		set(y, self->count);
 	=}
 }
@@ -21,7 +21,7 @@ reactor SourceExtended extends Source {
 	reaction(t2) -> y2 {=
 		(self->count)++;
 		printf("Source sending %d.\n", self->count);
-		set(y, self->count);
+		set(y2, self->count);
 	=}
 }
 
