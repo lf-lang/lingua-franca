@@ -43,14 +43,18 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
@@ -586,7 +590,82 @@ class ASTUtils {
         port.arraySpec !== null
     }
     
+    ////////////////////////////////
+    //// Utility functions for supporting inheritance
     
+    /**
+     * Given a reactor class, return a list of all its inputs,
+     * which includes inputs of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Input> allInputs(Reactor definition) {
+        val result = new LinkedList<Input>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allInputs)
+        }
+        result.addAll(definition.inputs)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its outputs,
+     * which includes outputs of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Output> allOutputs(Reactor definition) {
+        val result = new LinkedList<Output>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allOutputs)
+        }
+        result.addAll(definition.outputs)
+        return result
+    }
+
+    /**
+     * Given a reactor class, return a list of all its state variables,
+     * which includes state variables of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<StateVar> allStateVars(Reactor definition) {
+        val result = new LinkedList<StateVar>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allStateVars)
+        }
+        result.addAll(definition.stateVars)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its reactions,
+     * which includes reactions of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Reaction> allReactions(Reactor definition) {
+        val result = new LinkedList<Reaction>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allReactions)
+        }
+        result.addAll(definition.reactions)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its timers,
+     * which includes timers of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Timer> allTimers(Reactor definition) {
+        val result = new LinkedList<Timer>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allTimers)
+        }
+        result.addAll(definition.timers)
+        return result
+    }
+
+    ////////////////////////////////
+    //// Utility functions for translating AST nodes into text
+
     /**
      * Translate the given code into its textual representation.
      * @param code AST node to render as string.

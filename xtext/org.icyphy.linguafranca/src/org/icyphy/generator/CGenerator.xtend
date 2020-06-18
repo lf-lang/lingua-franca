@@ -1037,12 +1037,12 @@ class CGenerator extends GeneratorBase {
             pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
         }
         // Next handle states.
-        for (stateVar : reactor.stateVars) {
+        for (stateVar : reactor.allStateVars) {
             prSourceLineNumber(body, stateVar)
             pr(body, getStateType(stateVar) + ' ' + stateVar.name + ';');
         }
         // Next handle inputs.
-        for (input : reactor.inputs) {
+        for (input : reactor.allInputs) {
             prSourceLineNumber(body, input)
             
             // If the port is a multiport, create an array.
@@ -1095,7 +1095,7 @@ class CGenerator extends GeneratorBase {
         }
 
         // Next handle outputs.
-        for (output : reactor.outputs) {
+        for (output : reactor.allOutputs) {
             prSourceLineNumber(body, output)
             // If the port is a multiport, create an array.
             var arraySpec = output.multiportArraySpec
@@ -1159,7 +1159,7 @@ class CGenerator extends GeneratorBase {
         val reactionsTriggered = new HashMap<Variable,HashSet<Integer>>
         
         var reactionCount = 0
-        for (reaction : reactor.reactions) {
+        for (reaction : reactor.allReactions) {
             // First, handle reactions that produce outputs sent to inputs
             // of contained reactors.
             for (effect : reaction.effects ?: emptyList) {
@@ -1385,7 +1385,7 @@ class CGenerator extends GeneratorBase {
         
         // Next, create and initialize the trigger_t objects.
         // Start with the timers.
-        for (timer : reactor.timers) {
+        for (timer : reactor.allTimers) {
             createTriggerT(body, timer, triggerMap, constructorCode)
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->___«timer.name».is_physical = false;

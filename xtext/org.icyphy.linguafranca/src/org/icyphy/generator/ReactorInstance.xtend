@@ -47,6 +47,8 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
+import static extension org.icyphy.ASTUtils.*
+
 /**
  * Representation of a runtime instance of a reactor.
  * For the main reactor, which has no parent, once constructed,
@@ -85,7 +87,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate inputs for this reactor instance
-        for (inputDecl : definition.reactorClass.inputs) {
+        for (inputDecl : definition.reactorClass.allInputs) {
             if (inputDecl.arraySpec === null) {
                 this.inputs.add(new PortInstance(inputDecl, this))
             } else {
@@ -94,12 +96,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate outputs for this reactor instance
-        for (outputDecl : definition.reactorClass.outputs) {
+        for (outputDecl : definition.reactorClass.allOutputs) {
             this.outputs.add(new PortInstance(outputDecl, this))
         }
 
         // Instantiate timers for this reactor instance
-        for (timerDecl : definition.reactorClass.timers) {
+        for (timerDecl : definition.reactorClass.allTimers) {
             this.timers.add(new TimerInstance(timerDecl, this))
         }
 
@@ -772,7 +774,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  that follows from the order in which they are defined.
      */
     protected def createReactionInstances() {
-        var reactions = this.definition.reactorClass.reactions
+        var reactions = this.definition.reactorClass.allReactions
         if (this.definition.reactorClass.reactions !== null) {
             var ReactionInstance previousReaction = null
             var count = 0
