@@ -60,8 +60,8 @@ class TriggerInstance<T extends Variable> extends NamedInstance<Variable> {
     /////////////////////////////////////////////
     //// Public Methods
 
-    /** Return the name of this timer. 
-     *  @return The name of this timer.
+    /** Return the name of this trigger. 
+     *  @return The name of this trigger.
      */
     override getName() {
         this.definition.name

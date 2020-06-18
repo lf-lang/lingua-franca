@@ -56,6 +56,7 @@ import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.NamedHost
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
@@ -231,6 +232,24 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkConnection(Connection connection) {
         var reactor = connection.eContainer as Reactor
+        
+        // Make sure that if either side of the connection has an arraySpec
+        // (has the form port[i]), then the port is defined as a multiport.
+        if (connection.rightPort.variableArraySpec !== null &&
+                (connection.rightPort.variable as Port).arraySpec === null) {
+            error("Port is not a multiport: " + connection.rightPort.toText,
+                Literals.CONNECTION__RIGHT_PORT
+            )
+        }
+        if (connection.leftPort.variableArraySpec !== null &&
+                (connection.leftPort.variable as Port).arraySpec === null) {
+            error("Port is not a multiport: " + connection.leftPort.toText,
+                Literals.CONNECTION__RIGHT_PORT
+            )
+        }
+        
+        // Make sure the right port is not already an effect of a reaction.
+        // FIXME: support multiports.
         for (reaction : reactor.reactions) {
             for (effect : reaction.effects) {
                 if (connection.rightPort.container === effect.container &&
@@ -243,10 +262,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
 
+        // Check that the right port does not already have some other
+        // upstream connection (unless it is a multiport).
         for (c : reactor.connections) {
             if (c !== connection &&
                 connection.rightPort.container === c.rightPort.container &&
-                connection.rightPort.variable === c.rightPort.variable) {
+                connection.rightPort.variable === c.rightPort.variable &&
+                (c.rightPort.variable as Port).arraySpec === null) {
                 error(
                     "Cannot connect: Port named '" + c.rightPort.variable.name +
                         "' may only be connected to a single upstream port.",
