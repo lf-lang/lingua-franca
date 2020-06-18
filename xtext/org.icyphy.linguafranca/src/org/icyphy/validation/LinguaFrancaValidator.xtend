@@ -26,12 +26,15 @@
  ***************/
 package org.icyphy.validation
 
+import java.util.ArrayList
 import java.util.Arrays
-import org.eclipse.emf.ecore.EStructuralFeature
+import java.util.HashSet
+import java.util.List
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
+import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.AnnotatedNode
 import org.icyphy.ModelInfo
@@ -66,9 +69,12 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import org.eclipse.emf.common.util.EList
+import org.icyphy.linguaFranca.TypedVariable
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -322,7 +328,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.add(input.name)
         if (target.requiresTypes) {
             if (input.type === null) {
-                error("Input must have a type.", Literals.PORT__TYPE)
+                error("Input must have a type.", Literals.TYPED_VARIABLE__TYPE)
             }
         }
         
@@ -521,7 +527,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         allNames.add(output.name)
         if (this.target.requiresTypes) {
             if (output.type === null) {
-                error("Output must have a type.", Literals.PORT__TYPE)
+                error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE)
             }
         }
     }
@@ -661,6 +667,88 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
         // (essentially all the classes that are imported by default).
+
+        var variables = new ArrayList()
+        variables.addAll(reactor.inputs)
+        variables.addAll(reactor.outputs)
+        variables.addAll(reactor.actions)
+        variables.addAll(reactor.timers)
+                
+        // Perform checks on super classes.
+        for (superClass : reactor.superClasses ?: emptyList) {
+            var conflicts = new HashSet()
+            
+            // Detect input conflicts
+            checkConflict(superClass.inputs, reactor.inputs, variables, conflicts)
+            // Detect output conflicts
+            checkConflict(superClass.outputs, reactor.outputs, variables, conflicts)
+            // Detect output conflicts
+            checkConflict(superClass.actions, reactor.actions, variables, conflicts)
+            // Detect conflicts
+            for (timer : superClass.timers) {
+                if (timer.hasNameConflict(variables.filter[it | !reactor.timers.contains(it)])) {
+                    conflicts.add(timer)
+                } else {
+                    variables.add(timer)
+                }
+            }
+            
+            // Report conflicts.
+            if (conflicts.size > 0) {
+                val names = new ArrayList();
+                conflicts.forEach[it | names.add(it.name)]
+                error(
+                '''Cannot extend «superClass.name» due to the following conflicts: «names.join(',')».''',
+                Literals.REACTOR__SUPER_CLASSES
+                )    
+            }
+            
+            
+            // FIXME: other things to check:
+            // - 
+        }
+        
+    }
+    /** 
+     * For each input, report a conflict if:
+     *   1) the input exists and the type doesn't match; or
+     *   2) the input has a name clash with variable that is not an input.
+     * @param superVars List of typed variables of a particular kind (i.e.,
+     * inputs, outputs, or actions), found in a super class.
+     * @param sameKind Typed variables of the same kind, found in the subclass.
+     * @param allOwn Accumulator of non-conflicting variables incorporated in the
+     * subclass.
+     * @param conflicts Set of variables that are in conflict, to be used by this
+     * function to report conflicts.
+     */
+    def <T extends TypedVariable> checkConflict (EList<T> superVars,
+        EList<T> sameKind, List<Variable> allOwn,
+        HashSet<Variable> conflicts) {
+        for (superVar : superVars) {
+                val match = sameKind.findFirst [ it |
+                it.name.equals(superVar.name)
+            ]
+            val rest = allOwn.filter[it|!sameKind.contains(it)]
+            if ((match !== null && superVar.type !== match.type) || superVar.hasNameConflict(rest)) {
+                conflicts.add(superVar)
+            } else {
+                allOwn.add(superVar)
+            }
+        }
+    }
+
+    /**
+     * Report whether the name of the given element matches any variable in
+     * the ones to check against.
+     * @param element The element to compare against all variables in the given iterable.
+     * @param toCheckAgainst Iterable variables to compare the given element against.
+     */
+    def boolean hasNameConflict(Variable element,
+        Iterable<Variable> toCheckAgainst) {
+        if (toCheckAgainst.filter[it|it.name.equals(element.name)].size > 0) {
+            return true
+        }
+        return false
     }
 
     @Check(FAST)

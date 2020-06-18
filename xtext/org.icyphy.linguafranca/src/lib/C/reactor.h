@@ -61,6 +61,10 @@
 
 //  ======== Macros ========  //
 
+#define constructor(classname) (new_ ## classname)
+#define self_struct_t(classname) (classname ## _self_t)
+
+
 // Commonly used time values.
 #define NEVER -0xFFFFFFFFFFFFFFFFLL
 #define FOREVER 0x7FFFFFFFFFFFFFFFLL
