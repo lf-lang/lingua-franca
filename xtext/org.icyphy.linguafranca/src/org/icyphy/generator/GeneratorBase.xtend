@@ -352,12 +352,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Also create a list of federate names or a list with a single
         // empty name if there are no federates specified.
         // This must be done before desugaring delays below.
-        resource.analyzeFederates
-
-        // Replace connections annotated with the "after" keyword by ones
-        // that go through a delay reactor. 
-        resource.insertGeneratedDelays()
-            
+        resource.analyzeFederates            
     }
     
     /**
@@ -396,6 +391,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Next process all the imports and call generateReactor on any
         // reactors defined in the imports.
         processImports(resource)
+        
+        // Replace connections annotated with the "after" keyword by ones
+        // that go through a delay reactor. This has to be done after
+        // processing imports so that delays in the imported files get
+        // transformed as well.
+        resource.insertGeneratedDelays()
         
         // Abort compilation if a dependency cycle was detected while 
         // processing imports. If compilation would continue, dependency
