@@ -91,7 +91,7 @@ class LinguaFrancaSynthesisCycleDetection extends AbstractSynthesisExtensions {
         depGraph.detectCycles()
         
         if (DEBUG_CYCLE_DETECTION) {
-            println("-- DEBUG CYCLE DETECTION --")
+            println("-- DEBUG CYCLE DETECTION: Graph --")
             for (n : depGraph.nodes) {
             	for(d : depGraph.getOrigins(n)) {
             		val sN = (n.contents.eContainer?:virtualPorts.inverse.get(n.contents)) as KNode
@@ -116,12 +116,24 @@ class LinguaFrancaSynthesisCycleDetection extends AbstractSynthesisExtensions {
             			virtualPorts.inverse.get(it)
             		}
             	].filterNull.toSet
+            	
+            	if (DEBUG_CYCLE_DETECTION) {
+		            println("-- DEBUG CYCLE DETECTION: Cycle --")
+		            for (n : cycle) {
+	            		val sN = (n.contents.eContainer?:virtualPorts.inverse.get(n.contents)) as KNode
+	            		val sO = sN?.getProperty(KlighdInternalProperties.MODEL_ELEMEMT).toString
+	            		val sP = n.contents.eContainer === null ? "virtual" : n.contents.getProperty(CoreOptions.PORT_SIDE).toString
+	            		println("%s[%s]".format(sO, sP))
+		            }
+				}
+            	
             	for (cycleNode : cycleNodes) {
             		cycleNode.setProperty(DEPENDENCY_CYCLE, true)
             		highlighter.accept(cycleNode)
             		for (cycleEgde : cycleNode.outgoingEdges.filter[
             			cycleNodes.contains(target) &&
-            			sourcePort === null ? true : cyclePorts.contains(sourcePort)
+            			(sourcePort === null ? true : cyclePorts.contains(sourcePort)) &&
+            			(targetPort === null ? true : cyclePorts.contains(targetPort))
             		]) {
             			cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
             			highlighter.accept(cycleEgde)
