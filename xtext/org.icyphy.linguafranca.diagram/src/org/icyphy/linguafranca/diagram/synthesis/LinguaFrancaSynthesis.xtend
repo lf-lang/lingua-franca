@@ -400,7 +400,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		try {
 			val result = node.detectAndHighlightCycles[
 				if (it instanceof KNode) {
-					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
+					it.data.filter(typeof(KRendering)).filter[getProperty(KlighdProperties.COLLAPSED_RENDERING)].forEach[errorStyle()]
 				} else if (it instanceof KEdge) {
 					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
         			// TODO initiallyHide does not work with incremental (https://github.com/kieler/KLighD/issues/37)
@@ -408,7 +408,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					it.KRendering.invisible = false
 				} else if (it instanceof KPort) {
 					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
-					it.reverseTrianglePort()
+					//it.reverseTrianglePort()
 				}
 			]
             
@@ -783,8 +783,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				lineStyle = LineStyle.DOT
 				foreground = Colors.CHOCOLATE_1
 				boldLineSelectionStyle()
-				// Arrow head on tail because edge must not be reversed because the direction is used in cycle detection!
-				addFixedTailArrowDecorator() // Fix for bug: https://github.com/kieler/KLighD/issues/38
+				//addFixedTailArrowDecorator() // Fix for bug: https://github.com/kieler/KLighD/issues/38
+				//addHeadArrowDecorator()
 			]
 		]
 	}
