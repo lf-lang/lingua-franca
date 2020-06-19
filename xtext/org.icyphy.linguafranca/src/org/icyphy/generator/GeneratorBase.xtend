@@ -1541,7 +1541,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             reactionsInFederate = new HashMap<FederateInstance,LinkedList<Reaction>>()
             
             // Create a FederateInstance for each top-level reactor.
-            for (instantiation : mainDef.reactorClass.instantiations) {
+            for (instantiation : mainDef.reactorClass.allInstantiations) {
                 // Assign an integer ID to the federate.
                 var federateID = federates.length
                 // Add the federate name to the list of names.

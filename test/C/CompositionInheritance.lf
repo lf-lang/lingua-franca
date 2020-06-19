@@ -7,7 +7,7 @@ target C {
 reactor Source(period:time(2 sec)) {
     input foo:int;
 	output y:int;
-	timer t(1 sec, 2 sec);
+	timer t(1 sec, period);
 	state count:int(0);
 	reaction(t) -> y {=
 		printf("Hello World. My count is: %d.\n", self->count);
