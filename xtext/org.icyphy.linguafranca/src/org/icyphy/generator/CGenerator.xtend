@@ -277,7 +277,7 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to initialize the trigger objects for all reactor instances.
     var initializeTriggerObjects = new StringBuilder()
 
-    // Place to collect code to go at the end of the __initialize_trigger_objects() function..
+    // Place to collect code to go at the end of the __initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
 
     /** The main (top-level) reactor instance. */
@@ -510,6 +510,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 pr(initializeTriggerObjects.toString)
+                pr('// Populate arrays of trigger pointers.')
                 pr(initializeTriggerObjectsEnd.toString)
                 doDeferredInitialize(federate)
                 
@@ -1834,16 +1835,16 @@ class CGenerator extends GeneratorBase {
                         // then this trigger struct will not have been created.
                         // In that case, we want NULL.
                         // If the destination is an output port, however, then
-                        // the dependentReactions.size will be zero, but we nevertheless
-                        // want to set up the trigger.  FIXME. Why????
-                        if (destination.dependentReactions.size === 0// && !destination.isOutput
+                        // the dependentReactions.size reflects the number of downstream
+                        // reactions. But we want only one trigger (for transfer outputs).
+                        if (destination.dependentReactions.size === 0 || destination.isOutput
                         ) {
                             pr(initializeTriggerObjectsEnd, '''
                                 «triggerArray»[«destinationCount++»] = NULL;
                             ''')
                         } else {
                             pr(initializeTriggerObjectsEnd, '''
-                                «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
+                                «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»; // FIXME
                             ''')
                         }
                     }
