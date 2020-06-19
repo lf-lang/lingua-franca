@@ -76,12 +76,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         this.generator = generator
 
         // Apply overrides and instantiate parameters for this reactor instance.
-        for (parameter : definition.reactorClass.parameters) {
+        for (parameter : definition.reactorClass.allParameters) {
             this.parameters.add(new ParameterInstance(parameter, this))
         }
 
         // Instantiate children for this reactor instance
-        for (child : definition.reactorClass.instantiations) {
+        for (child : definition.reactorClass.allInstantiations) {
             var childInstance = new ReactorInstance(child, this, generator)
             this.children.add(childInstance)
         }
@@ -106,7 +106,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate actions for this reactor instance
-        for (actionDecl : definition.reactorClass.actions) {
+        for (actionDecl : definition.reactorClass.allActions) {
             this.actions.add(new ActionInstance(actionDecl, this))
         }
 
@@ -114,7 +114,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // in the port instances.
         // Note that this can only happen _after_ the children and 
         // port instances have been created.
-        for (connection : definition.reactorClass.connections) {
+        for (connection : definition.reactorClass.allConnections) {
             var srcInstance = this.getPortInstance(connection.leftPort)
             var dstInstance = this.getPortInstance(connection.rightPort)
             

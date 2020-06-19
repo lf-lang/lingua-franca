@@ -434,13 +434,13 @@ class ASTUtils {
      */
     static def getUniqueIdentifier(Reactor reactor, String name) {
         val vars = new HashSet<String>();
-        reactor.actions.forEach[it | vars.add(it.name)]
-        reactor.timers.forEach[it | vars.add(it.name)]
-        reactor.parameters.forEach[it | vars.add(it.name)]
-        reactor.inputs.forEach[it | vars.add(it.name)]
-        reactor.outputs.forEach[it | vars.add(it.name)]
-        reactor.stateVars.forEach[it | vars.add(it.name)]
-        reactor.instantiations.forEach[it | vars.add(it.name)]
+        reactor.allActions.forEach[it | vars.add(it.name)]
+        reactor.allTimers.forEach[it | vars.add(it.name)]
+        reactor.allParameters.forEach[it | vars.add(it.name)]
+        reactor.allInputs.forEach[it | vars.add(it.name)]
+        reactor.allOutputs.forEach[it | vars.add(it.name)]
+        reactor.allStateVars.forEach[it | vars.add(it.name)]
+        reactor.allInstantiations.forEach[it | vars.add(it.name)]
         
         var index = 0;
         var suffix = ""
@@ -594,6 +594,34 @@ class ASTUtils {
     //// Utility functions for supporting inheritance
     
     /**
+     * Given a reactor class, return a list of all its actions,
+     * which includes actions of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Action> allActions(Reactor definition) {
+        val result = new LinkedList<Action>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allActions)
+        }
+        result.addAll(definition.actions)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its connections,
+     * which includes connections of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Connection> allConnections(Reactor definition) {
+        val result = new LinkedList<Connection>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allConnections)
+        }
+        result.addAll(definition.connections)
+        return result
+    }
+    
+    /**
      * Given a reactor class, return a list of all its inputs,
      * which includes inputs of base classes that it extends.
      * @param definition Reactor class definition.
@@ -604,6 +632,20 @@ class ASTUtils {
             result.addAll(base.allInputs)
         }
         result.addAll(definition.inputs)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its instantiations,
+     * which includes instantiations of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Instantiation> allInstantiations(Reactor definition) {
+        val result = new LinkedList<Instantiation>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allInstantiations)
+        }
+        result.addAll(definition.instantiations)
         return result
     }
     
@@ -622,16 +664,16 @@ class ASTUtils {
     }
 
     /**
-     * Given a reactor class, return a list of all its state variables,
-     * which includes state variables of base classes that it extends.
+     * Given a reactor class, return a list of all its parameters,
+     * which includes parameters of base classes that it extends.
      * @param definition Reactor class definition.
      */
-    def static List<StateVar> allStateVars(Reactor definition) {
-        val result = new LinkedList<StateVar>()
+    def static List<Parameter> allParameters(Reactor definition) {
+        val result = new LinkedList<Parameter>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allStateVars)
+            result.addAll(base.allParameters)
         }
-        result.addAll(definition.stateVars)
+        result.addAll(definition.parameters)
         return result
     }
     
@@ -646,6 +688,20 @@ class ASTUtils {
             result.addAll(base.allReactions)
         }
         result.addAll(definition.reactions)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its state variables,
+     * which includes state variables of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<StateVar> allStateVars(Reactor definition) {
+        val result = new LinkedList<StateVar>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allStateVars)
+        }
+        result.addAll(definition.stateVars)
         return result
     }
     

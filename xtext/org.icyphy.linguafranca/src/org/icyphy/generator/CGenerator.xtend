@@ -1032,7 +1032,7 @@ class CGenerator extends GeneratorBase {
         val selfType = selfStructType(reactor)
         var body = new StringBuilder()
         // Start with parameters.
-        for (parameter : reactor.parameters) {
+        for (parameter : reactor.allParameters) {
             prSourceLineNumber(body, parameter)
             pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
         }
@@ -1397,7 +1397,7 @@ class CGenerator extends GeneratorBase {
         }
 
         // Next handle actions.
-        for (action : reactor.actions) {
+        for (action : reactor.allActions) {
             createTriggerT(body, action, triggerMap, constructorCode)
             var isPhysical = "true";
             if (action.origin == ActionOrigin.LOGICAL) {
@@ -1519,8 +1519,8 @@ class CGenerator extends GeneratorBase {
         var Timer timer = null
         var Action action = null
         var factory = LinguaFrancaFactory.eINSTANCE
-        if (reactor.reactions !== null) {
-            for (Reaction reaction : reactor.reactions) {
+        if (reactor.allReactions !== null) {
+            for (Reaction reaction : reactor.allReactions) {
                 // If the reaction triggers include 'startup' or 'shutdown',
                 // then create Timer and TimerInstance objects named 'startup'
                 // or Action and ActionInstance objects named 'shutdown'.
