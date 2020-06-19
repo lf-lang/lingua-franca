@@ -1,0 +1,19 @@
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target C;
+reactor Gain {
+    input x:int;
+    output y:int;
+    reaction(x) -> y {=
+        set(y, x * 2);
+    =}
+}
+reactor ImportedComposition {
+    input x:int;
+    output y:int;
+    g1 = new Gain();
+    g2 = new Gain();
+    x -> g1.x after 10 msec;
+    g1.y -> g2.x after 30 msec;
+    g2.y -> y after 15 msec;
+}
