@@ -1,7 +1,7 @@
 /* Generator base class for shared code between code generators. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2020, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -13,15 +13,16 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 package org.icyphy.generator
@@ -74,12 +75,13 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
 
-/** Generator base class for shared code between code generators.
+/**
+ * Generator base class for shared code between code generators.
  * 
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Chris Gill, <cdgill@wustl.edu>}
- *  @author{Christian Menard <christian.menard@tu-dresden.de}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Chris Gill, <cdgill@wustl.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresden.de}
  */
 abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
@@ -108,163 +110,226 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     ////////////////////////////////////////////
     //// Protected fields.
         
-    /** All code goes into this string buffer. */
+    /**
+     * All code goes into this string buffer.
+     */
     protected var code = new StringBuilder
 
-    /** Path to the directory containing the .lf file. */
+    /**
+     * Path to the directory containing the .lf file.
+     */
     protected var String directory
     
-    /** The root filename for the main file containing the source code,
-     *  without the .lf extension.
+    /**
+     * The root filename for the main file containing the source code,
+     * without the .lf extension.
      */
     protected var String filename
 
-    /** Indicator of whether generator errors occurred. */
+    /**
+     * Indicator of whether generator errors occurred.
+     */
     protected var generatorErrorsOccurred = false
     
-    /** If running in an Eclipse IDE, the iResource refers to the
-     *  IFile representing the Lingua Franca program.
+    /**
+     * If running in an Eclipse IDE, the iResource refers to the
+     * IFile representing the Lingua Franca program.
      */
     protected var iResource = null as IResource
     
-    /** Definition of the main (top-level) reactor */
+    /**
+     * Definition of the main (top-level) reactor
+     */
     protected Instantiation mainDef
     
-    /** Mode.STANDALONE if the code generator is being called
-     *  from the command line, Mode.INTEGRATED if it is being called
-     *  from the Eclipse IDE, and Mode.UNDEFINED otherwise.
+    /**
+     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
+     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
+     * if it is being called from the Eclipse IDE, and 
+     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
      */
     protected var mode = Mode.UNDEFINED
     
-    /** A list of Reactor definitions in the main
-     *  resource, including non-main reactors defined
-     *  in imported resources.
+    /**
+     * A list of Reactor definitions in the main resource, including non-main 
+     * reactors defined in imported resources.
      */
     protected var List<Reactor> reactors
     
-    /** The file containing the main source code. */
+    /**
+     * The file containing the main source code.
+     */
     protected var Resource resource
     
-    /** The full path to the file containing the .lf file including the
-     *  full filename with the .lf extension. This starts out as the
-     *  main .lf file, but while a file is being imported, it temporarily
-     *  changes to the full path of the imported file.
+    /**
+     * The full path to the file containing the .lf file including the
+     * full filename with the .lf extension. This starts out as the
+     * main .lf file, but while a file is being imported, it temporarily
+     * changes to the full path of the imported file.
      */
     protected var String sourceFile
     
-    /** The UNIX full path (needed to access internal Java resources on all platforms */
+    /**
+     * Variant of {@link #GeneratorBase.sourceFile GeneratorBase.sourceFile}
+     * used on the Windows platform.
+     */
     protected var String windowsSourceFile
     
-    /** The set of unordered reactions. An unordered reaction is one
-     *  that does not have any dependency on other reactions in the
-     *  containing reactor, and where no other reaction in the containing
-     *  reactor depends on it. There is currently no way
-     *  in the syntax of LF to make a reaction unordered, deliberately,
-     *  because it can introduce unexpected nondeterminacy. However,
-     *  certain automatically generated reactions are known to be safe
-     *  to be unordered because they do not interact with the state of
-     *  the containing reactor. To make a reaction unordered, when
-     *  the Reaction instance is created, add that instance to this set.
+    /**
+     * The set of unordered reactions. An unordered reaction is one that does
+     * not have any dependency on other reactions in the containing reactor, 
+     * and where no other reaction in the containing reactor depends on it.
+     * There is currently no way in the syntax of LF to make a reaction
+     * unordered, deliberately, because it can introduce unexpected
+     * nondeterminacy. However, certain automatically generated reactions are
+     * known to be safe to be unordered because they do not interact with the
+     * state of the containing reactor. To make a reaction unordered, when
+     * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
     
-    /** A map of all resources to the set of resource they import */
+    /**
+     * A map of all resources to the set of resource they import
+     */
     protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
     
-    /** A list of federate instances or a list with a single empty string
-     *  if there are no federates specified.
+    /**
+     * A list of federate instances or a list with a single empty string
+     * if there are no federates specified.
      */
     protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
     
-    /** A map from federate names to federate instances. */
+    /**
+     * A map from federate names to federate instances.
+     */
     protected var Map<String,FederateInstance> federateByName
             = new HashMap<String,FederateInstance>()
 
-    /** A map from federate IDs to federate instances. */
+    /**
+     * A map from federate IDs to federate instances.
+     */
     protected var Map<Integer,FederateInstance> federateByID
             = new HashMap<Integer,FederateInstance>()
 
-    /** A map from reactor names to the federate instance that contains the reactor. */
+    /**
+     * A map from reactor names to the federate instance that contains the
+     * reactor.
+     */
     protected var Map<String,FederateInstance> federateByReactor
 
-    /** The federation RTI properties, which defaults to
-     *  localhost: 15045
+    /**
+     * The federation RTI properties, which defaults to 'localhost: 15045'.
      */
     protected val federationRTIProperties = newLinkedHashMap(
         'host' -> 'localhost',
         'port' -> 15045
     )
     
-    /** For the top-level reactor (main), a list of reactions in each federate.
-     *  This will be null if there is only one federate.
+    /**
+     * For the top-level reactor (main), a list of reactions in each federate.
+     *This will be null if there is only one federate.
      */
     protected var HashMap<FederateInstance,LinkedList<Reaction>> reactionsInFederate = null
 
-    /** The build-type target parameter, or null if there is none. */
+    /**
+     * The build-type target parameter, or null if there is none.
+     */
     protected String targetBuildType
 
-    /** The cmake-include target parameter, or null if there is none. */
+    /**
+     * The cmake-include target parameter, or null if there is none.
+     */
     protected String targetCmakeInclude
     
-    /** The compiler target parameter, or null if there is none. */
+    /**
+     * The compiler target parameter, or null if there is none.
+     */
     protected String targetCompiler
 
-    /** The compiler flags target parameter, or null if there is none. */
+    /**
+     * The compiler flags target parameter, or null if there is none.
+     */
     protected String targetCompilerFlags
 
-    /** The compiler target no-compile parameter, or false if there is none. */
+    /**
+     * The compiler target no-compile parameter, or false if there is none.
+     */
     protected boolean targetNoCompile = false
     
-    /** The compiler target no-runtime-validation parameter, or false if there is none. */
+    /**
+     * The compiler target no-runtime-validation parameter, or false if there is none.
+     */
     protected boolean targetNoRuntimeValidation = false
         
-    /** The fast target parameter, or false if there is none. */
+    /**
+     * The fast target parameter, or false if there is none.
+     */
     protected boolean targetFast = false
     
-    /** The value of the keepalive target parameter, or false if there is none. */
+    /**
+     * The value of the keepalive target parameter, or false if there is none.
+     */
     protected boolean targetKeepalive
     
-    /** The level of logging or null if not given. */
+    /**
+     * The level of logging or null if not given.
+     */
     protected String targetLoggingLevel
 
-    /** The threads target parameter, or the default 0 if there is none. */
+    /**
+     * The threads target parameter, or the default 0 if there is none.
+     */
     protected int targetThreads = 0
 
-    /** The timeout parameter, or the default -1 if there is none. */
+    /**
+     * The timeout parameter, or the default -1 if there is none.
+     */
     protected int targetTimeout = -1
 
-    /** The threads timeout unit parameter, or the default null if there is none. */
+    /**
+     * The threads timeout unit parameter, or the default null if there is none.
+     */
     protected TimeUnit targetTimeoutUnit
     
-    /** The tracing  target parameter, or false if there is none. */
+    /**
+     * The tracing target parameter, or false if there is none.
+     */
     protected boolean targetTracing = false
 
     ////////////////////////////////////////////
     //// Private fields.
 
-    /** Map from builder to its current indentation. */
+    /**
+     * Map from builder to its current indentation.
+     */
     var indentation = new HashMap<StringBuilder, String>()
     
-    /** Recursion stack used to detect cycles in imports */
+    /**
+     * Recursion stack used to detect cycles in imports.
+     */
     var importRecursionStack = new HashSet<Resource>();
     
-    /** A flag indicating whether a cycle was found while processing imports */
+    /**
+     * A flag indicating whether a cycle was found while processing imports.
+     */
     var cyclicImports = false;
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
     
-    /** Analyze the model, setting target variables, filenames,
-     *  working directory, and federates. This also performs any
-     *  transformations that are needed on the AST of the model,
-     *  including handling delays on connections and communication
-     *  between federates.
-     *  @param resource The resource containing the source code.
-     *  @param fsa The file system access (used to write the result).
-     *  @param context FIXME: What is this?
+    /**
+     * Analyze the model, setting target variables, filenames,
+     * working directory, and federates. This also performs any
+     * transformations that are needed on the AST of the model,
+     * including handling delays on connections and communication
+     * between federates.
+     * @param resource The resource containing the source code.
+     * @param fsa The file system access (used to write the result).
+     * @param context Context relating to invocation of the code generator.
+     * In stand alone mode, this object is also used to relay CLI arguments.
      */
     def void analyzeModel(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
@@ -374,7 +439,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * generation, then a subsequent call to errorsOccurred() will return true.
      * @param resource The resource containing the source code.
      * @param fsa The file system access (used to write the result).
-     * @param context Context relating a specific invocation of the code generator. 
+     * @param context Context relating to invocation of the code generator.
+     * In stand alone mode, this object is also used to relay CLI arguments.
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
@@ -420,9 +486,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
     
-    /** Return true if errors occurred in the last call to doGenerate().
-     *  This will return true if any of the reportError methods was called.
-     *  @return True if errors occurred.
+    /**
+     * Return true if errors occurred in the last call to doGenerate().
+     * This will return true if any of the reportError methods was called.
+     * @return True if errors occurred.
      */
     def errorsOccurred() {
         return generatorErrorsOccurred;
@@ -462,17 +529,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return prefix + reference.variable.name
     }
 
-    /** Return true if the reaction is unordered. An unordered reaction is one
-     *  that does not have any dependency on other reactions in the
-     *  containing reactor, and where no other reaction in the containing
-     *  reactor depends on it. There is currently no way
-     *  in the syntax of LF to make a reaction unordered, deliberately,
-     *  because it can introduce unexpected nondeterminacy. However,
-     *  certain automatically generated reactions are known to be safe
-     *  to be unordered because they do not interact with the state of
-     *  the containing reactor. To make a reaction unordered, when
-     *  the Reaction instance is created, add that instance to this set.
-     *  @return True if the reaction has been marked unordered.
+    /**
+     * Return true if the reaction is unordered. An unordered reaction is one
+     * that does not have any dependency on other reactions in the containing
+     * reactor, and where no other reaction in the containing reactor depends
+     * on it. There is currently no way in the syntax of LF to make a reaction
+     * unordered, deliberately, because it can introduce unexpected 
+     * nondeterminacy. However, certain automatically generated reactions are
+     * known to be safe to be unordered because they do not interact with the
+     * state of the containing reactor. To make a reaction unordered, when
+     * the Reaction instance is created, add that instance to this set.
+     * @return True if the reaction has been marked unordered.
      */
     def isUnordered(Reaction reaction) {
         if (unorderedReactions !== null) {
@@ -482,17 +549,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
     
-    /** Mark the reaction unordered. An unordered reaction is one
-     *  that does not have any dependency on other reactions in the
-     *  containing reactor, and where no other reaction in the containing
-     *  reactor depends on it. There is currently no way
-     *  in the syntax of LF to make a reaction unordered, deliberately,
-     *  because it can introduce unexpected nondeterminacy. However,
-     *  certain automatically generated reactions are known to be safe
-     *  to be unordered because they do not interact with the state of
-     *  the containing reactor. To make a reaction unordered, when
-     *  the Reaction instance is created, add that instance to this set.
-     *  @param reaction The reaction to make unordered.
+    /**
+     * Mark the reaction unordered. An unordered reaction is one that does not
+     * have any dependency on other reactions in the containing reactor, and
+     * where no other reaction in the containing reactor depends on it. There
+     * is currently no way in the syntax of LF to make a reaction unordered,
+     * deliberately, because it can introduce unexpected nondeterminacy. 
+     * However, certain automatically generated reactions are known to be safe
+     * to be unordered because they do not interact with the state of the 
+     * containing reactor. To make a reaction unordered, when the Reaction
+     * instance is created, add that instance to this set.
+     * @param reaction The reaction to make unordered.
      */
     def makeUnordered(Reaction reaction) {
         if (unorderedReactions === null) {
@@ -501,16 +568,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         unorderedReactions.add(reaction)
     }
     
-    /** Given a representation of time that may possibly include units,
-     *  return a string that the target language can recognize as a value.
-     *  In this base class, if units are given, e.g. "msec", then
-     *  we convert the units to upper case and return an expression
-     *  of the form "MSEC(value)". Particular target generators will need
-     *  to either define functions or macros for each possible time unit
-     *  or override this method to return something acceptable to the
-     *  target language.
-     *  @param time A TimeValue that represents a time.
-     *  @return A string, such as "MSEC(100)" for 100 milliseconds.
+    /**
+     * Given a representation of time that may possibly include units, return
+     * a string that the target language can recognize as a value. In this base
+     * class, if units are given, e.g. "msec", then we convert the units to upper
+     * case and return an expression of the form "MSEC(value)". Particular target
+     * generators will need to either define functions or macros for each possible
+     * time unit or override this method to return something acceptable to the
+     * target language.
+     * @param time A TimeValue that represents a time.
+     * @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
     def String timeInTargetLanguage(TimeValue time) {
         if (time !== null) {
@@ -523,7 +590,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return "0" // FIXME: do this or throw exception?
     }
 
-    /** Remove quotation marks surrounding the specified string.
+    /**
+     * Remove quotation marks surrounding the specified string.
      */
     def withoutQuotes(String s) {
         var result = s
@@ -536,38 +604,41 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         result
     }
 
-    // //////////////////////////////////////////
-    // // Protected methods.
+    ////////////////////////////////////////////
+    //// Protected methods.
 
-    /** Return a set of targets that are acceptable to this generator.
-     *  Imported files that are Lingua Franca files must specify targets
-     *  in this set or an error message will be reported and the import
-     *  will be ignored. The returned set is a set of case-insensitive
-     *  strings specifying target names. If any target is acceptable,
-     *  return null.
-     * 
+    /**
+     * Return a set of targets that are acceptable to this generator.
+     * Imported files that are Lingua Franca files must specify targets in this
+     * set or an error message will be reported and the import will be ignored.
+     * The returned set is a set of case-insensitive strings specifying target
+     * names. If any target is acceptable, return null.
      */
     protected abstract def Set<String> acceptableTargets()
     
-    /** Clear the buffer of generated code.
+    /**
+     * Clear the buffer of generated code.
      */
     protected def clearCode() {
         code = new StringBuilder
     }
     
-    /** Clear markers in the IDE if running in integrated mode.
-     *  This has the side effect of setting the iResource variable
-     *  to point to the IFile for the Lingua Franca program.
+    /**
+     * Clear markers in the IDE if running in integrated mode.
+     * This has the side effect of setting the iResource variable to point to
+     * the IFile for the Lingua Franca program.
      */
     protected def clearMarkers() {
         if (mode == Mode.INTEGRATED) {
             val uri = resource.getURI()
             val platformResourceString = uri.toPlatformString(true);
-            iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(platformResourceString))
+            iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(
+                new Path(platformResourceString))
             try {
                 // First argument can be null to delete all markers.
                 // But will that delete xtext markers too?
-                iResource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
+                iResource.deleteMarkers(IMarker.PROBLEM, true,
+                    IResource.DEPTH_INFINITE);
             } catch (Exception e) {
                 // Ignore, but print a warning.
                 println("Warning: Deleting markers in the IDE failed: " + e)
@@ -669,7 +740,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
     
-    /** Return the target. */
+    /**
+     * Return the target.
+     */
     def findTarget(Resource resource) {
         var target = null as Target
         for (t : resource.allContents.toIterable.filter(Target)) {
