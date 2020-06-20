@@ -392,10 +392,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // reactors defined in the imports.
         processImports(resource)
         
-        // Replace connections annotated with the "after" keyword by ones
-        // that go through a delay reactor. This has to be done after
-        // processing imports so that delays in the imported files get
-        // transformed as well.
+        // Replace connections in this resources that are annotated with the 
+        // "after" keyword by ones that go through a delay reactor. 
         resource.insertGeneratedDelays()
         
         // Abort compilation if a dependency cycle was detected while 
@@ -435,9 +433,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  super.generateReactor(reactor).
      *  @param reactor The parsed reactor AST data structure.
      */
-    def void generateReactor(Reactor reactor) {
+    def void generateReactor(Reactor reactor) { // FIXME: rename this
         reactors.add(reactor)
-
+        // FIXME: perform AST transformation here.
+        
         // Reset indentation, in case it has gotten messed up.
         indentation.put(code, "")
     }
@@ -972,6 +971,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         if (importedResources.keySet.contains(resource)) {
             return
         }
+        
+        // Replace connections in this resources that are annotated with the 
+        // "after" keyword by ones that go through a delay reactor. 
+        resource.insertGeneratedDelays()
         
         // add resource to imported resources and to the recoursion stack
         importedResources.put(resource, new HashSet<Resource>())        
