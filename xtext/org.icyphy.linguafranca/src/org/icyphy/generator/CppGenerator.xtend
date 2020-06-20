@@ -133,7 +133,7 @@ class CppGenerator extends GeneratorBase {
             // No main reactor. Nothing to do.
             return
         } else {
-            generateReactor(mainReactor)
+            reactors.add(mainReactor)
         }
 
         fsa.generateFile(filename + File.separator + "main.cc",

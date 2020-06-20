@@ -364,16 +364,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         resource.insertGeneratedDelays(this)
     }
     
-    /** Generate code from the Lingua Franca model contained by the
-     *  specified resource. This is the main entry point for code
-     *  generation. This base class invokes generateReactor()
-     *  for each contained reactor, including any reactors defined
-     *  in imported .lf files (except any main reactors in those
-     *  imported files). If errors occur during generation,
-     *  then a subsequent call to errorsOccurred() will return true.
-     *  @param resource The resource containing the source code.
-     *  @param fsa The file system access (used to write the result).
-     *  @param context Context relating a specific invocation of the code generator. 
+    /**
+     * Generate code from the Lingua Franca model contained by the specified resource.
+     * 
+     * This is the main entry point for code generation. This base class finds all
+     * reactor class definitions, including any reactors defined in imported .lf files
+     * (except any main reactors in those imported files), and adds them to the 
+     * {@link #GeneratorBase.reactors reactors} list. If errors occur during
+     * generation, then a subsequent call to errorsOccurred() will return true.
+     * @param resource The resource containing the source code.
+     * @param fsa The file system access (used to write the result).
+     * @param context Context relating a specific invocation of the code generator. 
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
@@ -388,8 +389,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // reactors defined in imported resources.
         reactors = newLinkedList
         
-        // Next process all the imports and call generateReactor on any
-        // reactors defined in the imports.
+        // Next process all the imports to find reactors defined in the imports.
         processImports(resource)
         
         // Replace connections in this resources that are annotated with the 
@@ -415,7 +415,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // compiler will remove it anyway as dead code.
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
             if (!reactor.isMain && !reactor.isFederated) {
-                generateReactor(reactor)
+                reactors.add(reactor)
             }
         }
     }
@@ -426,19 +426,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def errorsOccurred() {
         return generatorErrorsOccurred;
-    }
-    
-    /** Collect data in a reactor or composite definition.
-     *  Subclasses should override this and be sure to call
-     *  super.generateReactor(reactor).
-     *  @param reactor The parsed reactor AST data structure.
-     */
-    def void generateReactor(Reactor reactor) { // FIXME: rename this
-        reactors.add(reactor)
-        // FIXME: perform AST transformation here.
-        
-        // Reset indentation, in case it has gotten messed up.
-        indentation.put(code, "")
     }
 
     /**
@@ -797,9 +784,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         )
     }
     
-    /** Open an import at the Lingua Franca file at the specified URI
-     *  in the specified resource set and call generateReactor() on
-     *  any non-main reactors given in that file.
+    /**
+     * Open an import at the Lingua Franca file at the specified URI in the
+     * specified resource, find all non-main reactors, and add them to the
+     * {@link #GeneratorBase.reactors reactors}.
      *  @param importStatement The import statement.
      *  @param resourceSet The resource set in which to find the file.
      *  @param resolvedURI The URI to import.
@@ -838,12 +826,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 try {
                     // Process any imports that the import has.
                     processImports(importResource)
-                    // Call generateReactor for each reactor contained by the import
-                    // that is not a main reactor.
+                    // Add each reactor contained by the import to the list of reactors,
+                    // unless it is a main reactor.
                     for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
                         if (!reactor.isMain && !reactor.isFederated) {
                             println("Including imported reactor: " + reactor.name)
-                            generateReactor(reactor)
+                            reactors.add(reactor)
                         }
                     }
                 } finally {
@@ -950,15 +938,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         pr(code, '// ' + comment);
     }
 
-    /** Process any imports included in the resource defined by the
-     *  specified resource. This will open the import, check for
-     *  compatibility, and call generateReactor on any reactors the
-     *  import defines that are not main reactors.
-     *  If the target is not acceptable to this
-     *  generator, as reported by acceptableTargets, report an error,
-     *  ignore the import, and continue.
-     *  @param resource The resource (file) that may contain import
-     *   statements.
+    /**
+     * Process any imports included in the resource defined by the specified
+     * resource. This will open the import, check for compatibility, and find
+     * and any reactors the import defines that are not main reactors. If the
+     * target is not acceptable to this generator, as reported by
+     * acceptableTargets, report an error, ignore the import and continue.
+     * @param resource The resource (file) that may contain import statements.
      */
     protected def void processImports(Resource resource) {
         // if the resource is in the recursion stack, then there is a cycle in the imports
