@@ -813,8 +813,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *   of its children.
      *  @param destinations The set of destinations to populate.
      */
-    protected def void transitiveClosure(PortInstance source,
-        LinkedHashSet<PortInstance> destinations) {
+    protected def void transitiveClosure(
+            PortInstance source,
+            LinkedHashSet<PortInstance> destinations
+    ) {
         // Check that the specified port belongs to this reactor or one of its children.
         // The following assumes that the main reactor has no ports, or else
         // a NPE will occur.
