@@ -510,6 +510,7 @@ class CGenerator extends GeneratorBase {
                 if (startTimeStepIsPresentCount > 0) {
                     // Allocate the initial (before mutations) array of pointers to _is_present fields.
                     pr('''
+                        // Create the array that will contain pointers to _is_present fields to reset on each step.
                         __is_present_fields_size = «startTimeStepIsPresentCount»;
                         __is_present_fields = malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
                     ''')
@@ -1808,6 +1809,7 @@ class CGenerator extends GeneratorBase {
 
                 // Record this array size in reaction's reaction_t triggered_sizes array.
                 pr(initializeTriggerObjects, '''
+                    // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects» downstream reactions through port «port.getFullName».
                     «selfStruct»->___reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
                 ''')
                 if (numberOfTriggerTObjects > 0) {
@@ -1817,7 +1819,8 @@ class CGenerator extends GeneratorBase {
                     // all reactor instances have been created.
                     val triggerArray = '''«reactorInstance.uniqueID»_«reaction.reactionIndex»_«portCount»'''
                     pr(initializeTriggerObjects, '''
-                        // Allocate an array of trigger pointers for downstream inputs or actions.
+                        // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
+                        // array of trigger pointers for downstream reactions through port «port.getFullName»
                         trigger_t** «triggerArray» = malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
                         «selfStruct»->___reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
                     ''')
@@ -1835,11 +1838,13 @@ class CGenerator extends GeneratorBase {
                         if (destination.dependentReactions.size === 0 || destination.isOutput
                         ) {
                             pr(initializeTriggerObjectsEnd, '''
+                                // Destination port «destination.getFullName» itself has no reactions.
                                 «triggerArray»[«destinationCount++»] = NULL;
                             ''')
                         } else {
                             pr(initializeTriggerObjectsEnd, '''
-                                «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»; // FIXME
+                                // Point to destination port «destination.getFullName»'s trigger struct.
+                                «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
                             ''')
                         }
                     }
@@ -1847,6 +1852,8 @@ class CGenerator extends GeneratorBase {
                         for (destinationReaction : portWithDependentReactions.dependentReactions) {
                             if (reactorBelongsToFederate(destinationReaction.parent, federate)) {
                                 pr(initializeTriggerObjectsEnd, '''
+                                    // Port «port.getFullName» has reactions in its parent's parent.
+                                    // Point to the trigger struct for those reactions.
                                     «triggerArray»[«destinationCount++»] = &«triggerStructName(portWithDependentReactions, destinationReaction)»;
                                 ''')
                             }
@@ -1892,9 +1899,12 @@ class CGenerator extends GeneratorBase {
                 if (port.definition instanceof Input) {
                     // This reaction is sending to an input. Must be
                     // the input of a contained reactor in the federate.
-                    if (reactorBelongsToFederate(port.parent, federate)) {
+                    val sourcePort = sourcePort(port)
+                    if (reactorBelongsToFederate(sourcePort.parent, federate)) {
                         pr(startTimeStep, '''
-                            __is_present_fields[«startTimeStepIsPresentCount»] = &«containerSelfStructName»->__«port.parent.definition.name».«port.definition.name»_is_present;
+                            // Add port «sourcePort.getFullName» to array of _is_present fields.
+                            __is_present_fields[«startTimeStepIsPresentCount»] 
+                                    = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»_is_present;
                         ''')
                         startTimeStepIsPresentCount++
                     }
@@ -1922,6 +1932,7 @@ class CGenerator extends GeneratorBase {
                 var nameOfSelfStruct = selfStructName(child)
                 for (output : child.outputs) {
                     pr(startTimeStep, '''
+                        // Add port «output.getFullName» to array of _is_present fields.
                         __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name»_is_present;
                     ''')
                     startTimeStepIsPresentCount++
@@ -1951,6 +1962,8 @@ class CGenerator extends GeneratorBase {
                     connection.leftPort.container !== null) {
                 if (connection.rightPort.variable instanceof Output) {
                     val reaction = ASTUtils.factory.createReaction()
+                    // Mark this unordered relative to other reactions in the container.
+                    // It will still be ordered by dependencies to the source.
                     reaction.makeUnordered()
                     val leftPort = ASTUtils.factory.createVarRef()
                     leftPort.container = connection.leftPort.container
@@ -1963,12 +1976,14 @@ class CGenerator extends GeneratorBase {
                     if ((rightPort.variable as Port).inferredType.isTokenType) {
                         reaction.code.body = '''
                             «DISABLE_REACTION_INITIALIZATION_MARKER»
-                            self->__«rightPort.variable.name» = self->__«leftPort.container.name».«leftPort.variable.name»;
-                            self->__«rightPort.variable.name»_is_present = true;
+                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
+                            self->__«rightPort.toText» = self->__«leftPort.toText»;
+                            self->__«rightPort.toText»_is_present = true;
                         '''
                     } else {
                         reaction.code.body = '''
-                            set(«rightPort.variable.name», «leftPort.container.name».«leftPort.variable.name»);
+                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
+                            set(«rightPort.toText», «leftPort.toText»);
                         '''
                     }
                     reactor.reactions.add(reaction)
@@ -2809,62 +2824,74 @@ class CGenerator extends GeneratorBase {
      *   if there is no federation.
      */
     private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
-        pr('// Connect inputs and outputs.')
+        pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
         for (source : instance.destinations.keySet) {
-            var eventualSource = source
             // If the source is an input port, find the ultimate source,
-            // which has to be an output port. Or it may be a dangling
-            // connection, in which case the result will still be an
-            // input port.
-            while (eventualSource.isInput &&
-                eventualSource.dependsOnPort !== null) {
-                eventualSource = eventualSource.dependsOnPort
-            }
-            
-            var sourceIndexSpec = ''
-            if (eventualSource.multiportIndex >= 0) {
-                sourceIndexSpec = '[' + eventualSource.multiportIndex + ']'
-            }
+            // which could be the input port if it is written to by a reaction
+            // or it could be an upstream output port. 
+            var eventualSource = sourcePort(source)
             
             // If the eventual source is still an input, then this is a dangling
-            // connection and we don't need to do anything. We also don't need
+            // connection or it is written to by a reaction. In either case,
+            // we don't need to do anything. We also don't need
             // to do anything if the reactor does not belong to the federate.
             // We assume here that all connections across federates have been
             // broken and replaced by reactions handling the communication.
-            if (eventualSource.isOutput 
-                && reactorBelongsToFederate(eventualSource.parent, federate)
-            ) {
+            if (reactorBelongsToFederate(eventualSource.parent, federate)) {
                 var sourceStruct = selfStructName(eventualSource.parent)
+
+                // If it is in a multiport, find its index.          
+                var sourceIndexSpec = ''
+                if (eventualSource.multiportIndex >= 0) {
+                    sourceIndexSpec = '[' + eventualSource.multiportIndex + ']'
+                }
+
                 // Use the source, not the eventualSource here to find the destinations.
                 // If .parent.parent is null, then the source is an input port belonging
                 // the top-level reactor, in which case, it cannot receive any inputs
                 // and there is nothing to do.
                 // NOTE: If the source is an input, we want to use just parent!
-                val destinations = if (source.isInput) {
-                        source.parent.destinations.get(source)
-                    } else if (source.parent.parent !== null) {
-                        source.parent.parent.destinations.get(source)
-                    }
-                if (destinations !== null) {
-                    for (destination : destinations) {
-                        var destStruct = selfStructName(destination.parent)
-                        var destinationIndexSpec = ''
-                        if (destination.multiportIndex >= 0) {
-                            destinationIndexSpec = '[' + destination.multiportIndex + ']'
-                        }
+                val destinations = instance.destinations.get(source)
+                for (destination : destinations) {
+                    var destStruct = selfStructName(destination.parent)
 
+                    // If the destination is in a multiport, find its index.
+                    var destinationIndexSpec = ''
+                    if (destination.multiportIndex >= 0) {
+                        destinationIndexSpec = '[' + destination.multiportIndex + ']'
+                    }
+
+                    // Four cases here, depending on whether the source or the destination is input or output.
+                    if (eventualSource.isOutput) {
                         if (destination.isInput) {
                             pr('''
+                                // Connect «eventualSource.getFullName» to input port «destination.getFullName»
                                 «destStruct»->__«destination.name»«destinationIndexSpec» = &«sourceStruct»->__«eventualSource.name»«sourceIndexSpec»;
                                 «destStruct»->__«destination.name»_is_present«destinationIndexSpec» = &«sourceStruct»->__«eventualSource.name»_is_present«sourceIndexSpec»;
                             ''')
                         } else {
-                            // Destination is an output.
-                            var containerSelfStructName = selfStructName(destination.parent)
                             pr('''
-                                «containerSelfStructName»->__«destination.name»_inside«destinationIndexSpec» = &«sourceStruct»->__«eventualSource.name»«sourceIndexSpec»;
-                                «containerSelfStructName»->__«destination.name»_inside_is_present«destinationIndexSpec» 
+                                // Connect «eventualSource.getFullName» to the inside of output port «destination.getFullName»
+                                «destStruct»->__«destination.name»_inside«destinationIndexSpec» = &«sourceStruct»->__«eventualSource.name»«sourceIndexSpec»;
+                                «destStruct»->__«destination.name»_inside_is_present«destinationIndexSpec» 
                                         = &«sourceStruct»->__«eventualSource.name»_is_present«sourceIndexSpec»;
+                            ''')
+                        }
+                    } else {
+                        // Eventual source is an input.
+                        val eventualSourceReference = '''«selfStructName(eventualSource.parent.parent)»->__«eventualSource.parent.name».«eventualSource.name»'''
+                        if (destination.isInput) {
+                            pr('''
+                                // Connect «eventualSource.getFullName» to input port «destination.getFullName»
+                                «destStruct»->__«destination.name»«destinationIndexSpec» = &«eventualSourceReference»«sourceIndexSpec»;
+                                «destStruct»->__«destination.name»_is_present«destinationIndexSpec» = &«eventualSourceReference»_is_present«sourceIndexSpec»;
+                            ''')
+                        } else {
+                            pr('''
+                                // Connect «eventualSource.getFullName» to the inside of output port «destination.getFullName»
+                                «destStruct»->__«destination.name»_inside«destinationIndexSpec» = &«eventualSourceReference»«sourceIndexSpec»;
+                                «destStruct»->__«destination.name»_inside_is_present«destinationIndexSpec» 
+                                        = &«eventualSourceReference»_is_present«sourceIndexSpec»;;
                             ''')
                         }
                     }
@@ -2886,21 +2913,21 @@ class CGenerator extends GeneratorBase {
             for (port : reaction.dependentPorts) {
                 if (port.definition instanceof Input) {
                     // This reaction is sending to an input. Must be
-                    // the input of a contained reactor in the federate.
-                    if (reactorBelongsToFederate(port.parent, federate)) {
-                        var inputSelfStructName = selfStructName(port.parent)
-                        pr(
-                            inputSelfStructName + '->__' + port.definition.name +
-                                ' = &' + containerSelfStructName + '->__' +
-                                port.parent.definition.name + '.' +
-                                port.definition.name + ';'
-                        )
-                        pr(
-                            inputSelfStructName + '->__' + port.definition.name +
-                                '_is_present = &' + containerSelfStructName +
-                                '->__' + port.parent.definition.name + '.' +
-                                port.definition.name + '_is_present;'
-                        )
+                    // the input of a contained reactor.
+                    // It may be deeply contained, however, in which case
+                    // we have to trace back to where the data and is_present
+                    // variables are.
+                    var sourcePort = sourcePort(port)
+                    if (reactorBelongsToFederate(sourcePort.parent, federate)) {
+                        val inputSelfStructName = selfStructName(port.parent)
+                        pr('''
+                            // Connect «sourcePort», which gets data from reaction «reaction.reactionIndex»
+                            // of «instance.getFullName», to «port.getFullName».
+                            «inputSelfStructName»->__«port.definition.name»
+                                    = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»;
+                            «inputSelfStructName»->__«port.definition.name»_is_present
+                                    = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»_is_present;
+                        ''')
                     }
                 }
             }
@@ -2911,24 +2938,40 @@ class CGenerator extends GeneratorBase {
                     // not in the federate, then we don't do anything here.
                     if (reactorBelongsToFederate(port.parent, federate)) {
                         var outputSelfStructName = selfStructName(port.parent)
-                        pr(
-                            containerSelfStructName + '->__' +
-                                port.parent.definition.name + '.' +
-                                port.definition.name + ' = &' +
-                                outputSelfStructName + '->__' +
-                                port.definition.name + ';'
-                        )
-                        pr(
-                            containerSelfStructName + '->__' +
-                                port.parent.definition.name + '.' +
-                                port.definition.name + '_is_present' + ' = &' +
-                                outputSelfStructName + '->__' +
-                                port.definition.name + '_is_present;'
-                        )
+                        pr('''
+                            // Record output «port.getFullName», which triggers reaction «reaction.reactionIndex»
+                            // of «instance.getFullName», on its self struct.
+                            «containerSelfStructName»->__«port.parent.definition.name».«port.definition.name»
+                                    = &«outputSelfStructName»->__«port.definition.name»;
+                            «containerSelfStructName»->__«port.parent.definition.name».«port.definition.name»_is_present
+                                    = &«outputSelfStructName»->__«port.definition.name»_is_present;
+                        ''')
                     }
                 }
             }
         }
+        pr('''// END Connect inputs and outputs for reactor «instance.getFullName».''')
+    }
+    
+    /**
+     * Given an input port instance, if it receives its data from a reaction somewhere up
+     * in the hierarchy, return the port to which the reaction actually writes.
+     * The returned port will be this same port if the parent's parent's reaction
+     * writes directly to this port, but if this port is deeper in the hierarchy,
+     * then this will be a port belonging to highest parent of this port where
+     * the parent is contained by the same reactor whose reaction writes to this
+     * port.  This method is useful to find the name of the items on the self
+     * struct of the reaction's parent that contain the value being sent
+     * and its is_present variable.
+     * @param port The input port instance.
+     */
+    private def PortInstance sourcePort(PortInstance port) {
+        // If the port depends on reactions, then this is the port we are looking for.
+        if (port.dependsOnReactions.size > 0) return port
+        if (port.dependsOnPort === null) return port
+        // If we get here, then this port is fed data from another port.
+        // Find the source for that port.
+        return sourcePort(port.dependsOnPort)
     }
 
     /** Generate action variables for a reaction.
