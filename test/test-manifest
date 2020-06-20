@@ -15,6 +15,7 @@ ArrayPrint.lf
 ArrayScale.lf
 Composition.lf
 CompositionAfter.lf
+CompositionGain.lf
 CompositionThreaded.lf
 CountTest.lf
 DanglingOutput.lf
