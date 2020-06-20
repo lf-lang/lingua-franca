@@ -2107,6 +2107,131 @@ class CGenerator extends GeneratorBase {
         prSourceLineNumber(importStatement)
         super.openLFImport(importStatement, resourceSet, resolvedURI)
     }
+    
+    /**
+     * Return a string for referencing the data or is_present value of
+     * the specified port. This is used for establishing the destination of
+     * data for a connection between ports.
+     * This will have one of the following forms:
+     * 
+     * * selfStruct->__portName
+     * * selfStruct->__portName_inside
+     * * selfStruct->__portName[i]
+     * * selfStruct->__portName_inside[i]
+     * 
+     * The '_inside' is inserted if the port is an output, and the [i]
+     * is appended if it is a multiport, where i is the index of the
+     * port within the multiport.
+     * 
+     * @param port An instance of a destination port.
+     * @param isPresent If true, return a reference to the is_present
+     *  variable rather than the value.
+     */
+    static def destinationReference(PortInstance port, boolean isPresent) {
+         var destStruct = selfStructName(port.parent)
+
+        // If the destination is in a multiport, find its index.
+        var destinationIndexSpec = ''
+        if (port.multiportIndex >= 0) {
+            destinationIndexSpec = '[' + port.multiportIndex + ']'
+        }
+        
+        val isPresentSpec = isPresent? '_is_present' : ''
+        
+        if (port.isInput) {
+            return '''«destStruct»->__«port.name»«isPresentSpec»«destinationIndexSpec»'''
+        } else {
+            return '''«destStruct»->__«port.name»_inside«isPresentSpec»«destinationIndexSpec»'''
+        }        
+    }
+ 
+    /**
+     * Return a string for referencing the data or is_present value in
+     * a self struct that received data from the specified output port
+     * to be used by a reaction. The output port is contained by a
+     * This will have one of the following forms:
+     * 
+     * * selfStruct->__reactorName.portName
+     * * selfStruct->__reactorName.portName_is_present
+     * * selfStruct->__reactorName.portName[i]
+     * * selfStruct->__reactorName.portName_is_present[i]
+     * 
+     * The selfStruct is that of the container of reactor that
+     * contains the port. If the port is in a multiport, then i is
+     * the index of the port within the multiport.
+     * 
+     * @param port An instance of a destination port.
+     * @param isPresent If true, return a reference to the is_present
+     *  variable rather than the value.
+     */
+    static def reactionReference(PortInstance port, boolean isPresent) {
+         var destStruct = selfStructName(port.parent.parent)
+
+        // If the destination is in a multiport, find its index.
+        var destinationIndexSpec = ''
+        if (port.multiportIndex >= 0) {
+            destinationIndexSpec = '[' + port.multiportIndex + ']'
+        }
+        
+        val isPresentSpec = isPresent? '_is_present' : ''
+        
+        if (port.isOutput) {
+            return '''«destStruct»->__«port.parent.name».«port.name»«isPresentSpec»«destinationIndexSpec»'''
+        } else {
+            return '// Nothing to do. Port is an input.'
+        }
+    }
+ 
+    /**
+     * Return a string for referencing the data or is_present value of
+     * the specified port. This is used for establishing the source of
+     * data for a connection between ports.
+     * This will have one of the following forms:
+     * 
+     * * selfStruct->__portName
+     * * selfStruct->__parentName.portName
+     * * selfStruct->__portName[i]
+     * * selfStruct->__parentName.portName[i]
+     * 
+     * If the port depends on another port, then this will reference
+     * the eventual upstream port where the data is store. W.g., it is an input that
+     * connected to upstream output, then portName will be the name
+     * of the upstream output and the selfStruct will be that of the
+     * upstream reactor. If the port is an input port that is written to
+     * by a reaction of the parent of the port's parent, then the selfStruct
+     * will be that of the parent of the port's parent, and parentName
+     * will the name of the port's parent.
+     * If the port is an output, then selfStruct will be the parent's
+     * selfStruct and the portName will be the name of the port.
+     * If the port is a multiport, then one of the last two forms will
+     * be used, where i is the index of the multiport.
+     * 
+     * @param port An instance of the port to be referenced.
+     * @param isPresent If true, return a reference to the is_present
+     *  variable rather than the value.
+     */
+    static def sourceReference(PortInstance port, boolean isPresent) {
+        // If the port depends on another port, find the ultimate source port,
+        // which could be the input port if it is written to by a reaction
+        // or it could be an upstream output port. 
+        var eventualSource = sourcePort(port)
+        
+        // If it is in a multiport, find its index.          
+        var sourceIndexSpec = ''
+        if (eventualSource.multiportIndex >= 0) {
+            sourceIndexSpec = '[' + eventualSource.multiportIndex + ']'
+        }
+        
+        val isPresentSpec = isPresent? '_is_present' : ''
+        
+        if (eventualSource.isOutput) {
+            val sourceStruct = selfStructName(eventualSource.parent)
+            return '''«sourceStruct»->__«eventualSource.name»«isPresentSpec»«sourceIndexSpec»'''
+        } else {
+            val sourceStruct = selfStructName(eventualSource.parent.parent)
+            return '''«sourceStruct»->__«eventualSource.parent.name».«eventualSource.name»«isPresentSpec»«sourceIndexSpec»'''
+        }
+    }
 
     /** Return the unique name for the "self" struct of the specified
      *  reactor instance from the instance ID.
@@ -2831,70 +2956,20 @@ class CGenerator extends GeneratorBase {
             // or it could be an upstream output port. 
             var eventualSource = sourcePort(source)
             
-            // If the eventual source is still an input, then this is a dangling
-            // connection or it is written to by a reaction. In either case,
-            // we don't need to do anything. We also don't need
-            // to do anything if the reactor does not belong to the federate.
             // We assume here that all connections across federates have been
             // broken and replaced by reactions handling the communication.
             if (reactorBelongsToFederate(eventualSource.parent, federate)) {
-                var sourceStruct = selfStructName(eventualSource.parent)
-
-                // If it is in a multiport, find its index.          
-                var sourceIndexSpec = ''
-                if (eventualSource.multiportIndex >= 0) {
-                    sourceIndexSpec = '[' + eventualSource.multiportIndex + ']'
-                }
-
-                // Use the source, not the eventualSource here to find the destinations.
-                // If .parent.parent is null, then the source is an input port belonging
-                // the top-level reactor, in which case, it cannot receive any inputs
-                // and there is nothing to do.
-                // NOTE: If the source is an input, we want to use just parent!
                 val destinations = instance.destinations.get(source)
                 for (destination : destinations) {
-                    var destStruct = selfStructName(destination.parent)
-
-                    // If the destination is in a multiport, find its index.
-                    var destinationIndexSpec = ''
-                    if (destination.multiportIndex >= 0) {
-                        destinationIndexSpec = '[' + destination.multiportIndex + ']'
+                    var comment = ''
+                    if (source !== eventualSource) {
+                        comment = ''' (eventual source is «eventualSource.getFullName»)'''
                     }
-
-                    // Four cases here, depending on whether the source or the destination is input or output.
-                    if (eventualSource.isOutput) {
-                        if (destination.isInput) {
-                            pr('''
-                                // Connect «eventualSource.getFullName» to input port «destination.getFullName»
-                                «destStruct»->__«destination.name»«destinationIndexSpec» = &«sourceStruct»->__«eventualSource.name»«sourceIndexSpec»;
-                                «destStruct»->__«destination.name»_is_present«destinationIndexSpec» = &«sourceStruct»->__«eventualSource.name»_is_present«sourceIndexSpec»;
-                            ''')
-                        } else {
-                            pr('''
-                                // Connect «eventualSource.getFullName» to the inside of output port «destination.getFullName»
-                                «destStruct»->__«destination.name»_inside«destinationIndexSpec» = &«sourceStruct»->__«eventualSource.name»«sourceIndexSpec»;
-                                «destStruct»->__«destination.name»_inside_is_present«destinationIndexSpec» 
-                                        = &«sourceStruct»->__«eventualSource.name»_is_present«sourceIndexSpec»;
-                            ''')
-                        }
-                    } else {
-                        // Eventual source is an input.
-                        val eventualSourceReference = '''«selfStructName(eventualSource.parent.parent)»->__«eventualSource.parent.name».«eventualSource.name»'''
-                        if (destination.isInput) {
-                            pr('''
-                                // Connect «eventualSource.getFullName» to input port «destination.getFullName»
-                                «destStruct»->__«destination.name»«destinationIndexSpec» = &«eventualSourceReference»«sourceIndexSpec»;
-                                «destStruct»->__«destination.name»_is_present«destinationIndexSpec» = &«eventualSourceReference»_is_present«sourceIndexSpec»;
-                            ''')
-                        } else {
-                            pr('''
-                                // Connect «eventualSource.getFullName» to the inside of output port «destination.getFullName»
-                                «destStruct»->__«destination.name»_inside«destinationIndexSpec» = &«eventualSourceReference»«sourceIndexSpec»;
-                                «destStruct»->__«destination.name»_inside_is_present«destinationIndexSpec» 
-                                        = &«eventualSourceReference»_is_present«sourceIndexSpec»;;
-                            ''')
-                        }
-                    }
+                    pr('''
+                        // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                        «destinationReference(destination, false)» = &«sourceReference(eventualSource, false)»;
+                        «destinationReference(destination, true)» = &«sourceReference(eventualSource, true)»;
+                    ''')
                 }
             }
         }
@@ -2919,14 +2994,11 @@ class CGenerator extends GeneratorBase {
                     // variables are.
                     var sourcePort = sourcePort(port)
                     if (reactorBelongsToFederate(sourcePort.parent, federate)) {
-                        val inputSelfStructName = selfStructName(port.parent)
                         pr('''
                             // Connect «sourcePort», which gets data from reaction «reaction.reactionIndex»
                             // of «instance.getFullName», to «port.getFullName».
-                            «inputSelfStructName»->__«port.definition.name»
-                                    = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»;
-                            «inputSelfStructName»->__«port.definition.name»_is_present
-                                    = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»_is_present;
+                            «destinationReference(port, false)» = &«sourceReference(sourcePort, false)»;
+                            «destinationReference(port, true)»  = &«sourceReference(sourcePort, true)»;
                         ''')
                     }
                 }
@@ -2937,14 +3009,11 @@ class CGenerator extends GeneratorBase {
                     // of a contained reactor. If the contained reactor is
                     // not in the federate, then we don't do anything here.
                     if (reactorBelongsToFederate(port.parent, federate)) {
-                        var outputSelfStructName = selfStructName(port.parent)
                         pr('''
                             // Record output «port.getFullName», which triggers reaction «reaction.reactionIndex»
                             // of «instance.getFullName», on its self struct.
-                            «containerSelfStructName»->__«port.parent.definition.name».«port.definition.name»
-                                    = &«outputSelfStructName»->__«port.definition.name»;
-                            «containerSelfStructName»->__«port.parent.definition.name».«port.definition.name»_is_present
-                                    = &«outputSelfStructName»->__«port.definition.name»_is_present;
+                            «reactionReference(port, false)» = &«sourceReference(port, false)»;
+                            «reactionReference(port, true)» = &«sourceReference(port, true)»;
                         ''')
                     }
                 }
@@ -2965,7 +3034,7 @@ class CGenerator extends GeneratorBase {
      * and its is_present variable.
      * @param port The input port instance.
      */
-    private def PortInstance sourcePort(PortInstance port) {
+    private static def PortInstance sourcePort(PortInstance port) {
         // If the port depends on reactions, then this is the port we are looking for.
         if (port.dependsOnReactions.size > 0) return port
         if (port.dependsOnPort === null) return port
