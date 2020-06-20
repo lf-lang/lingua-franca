@@ -875,7 +875,12 @@ class ASTUtils {
         ""
     }
     
-     def static toText(VarRef v) {
+    /**
+     * Return a string of the form either "name" or "container.name" depending
+     * on in which form the variable reference was given.
+     * @param v The variable reference.
+     */
+    def static toText(VarRef v) {
         if (v.container !== null) {
             '''«v.container.name».«v.variable.name»'''
         } else {
