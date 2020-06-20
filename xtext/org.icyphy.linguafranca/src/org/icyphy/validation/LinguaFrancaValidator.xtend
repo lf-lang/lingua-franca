@@ -296,18 +296,20 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     @Check(NORMAL)
     def checkBuild(Model model) {
-        if (model.eResource?.URI?.isPlatform) {
+        val uri = model.eResource?.URI
+        if (uri !== null && uri.isPlatform) {
             // Running in INTEGRATED mode. Clear marks.
             // This has to be done here rather than in doGenerate()
             // of GeneratorBase because, apparently, doGenerate() is
             // not called at all if there are marks.
-            val uri = model.eResource.URI
-            val platformResourceString = uri.toPlatformString(true);
-            val iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(platformResourceString))
+            //val uri = model.eResource.URI
+            val iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(
+                new Path(uri.toPlatformString(true)))
             try {
                 // First argument can be null to delete all markers.
                 // But will that delete xtext markers too?
-                iResource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
+                iResource.deleteMarkers(IMarker.PROBLEM, true,
+                    IResource.DEPTH_INFINITE);
             } catch (Exception e) {
                 // Ignore, but print a warning.
                 println("Warning: Deleting markers in the IDE failed: " + e)
