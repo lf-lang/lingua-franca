@@ -333,6 +333,11 @@ class CGenerator extends GeneratorBase {
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
         
+        // Generate code for each reactor. 
+        for (r : reactors) {
+            r.generateReactorFederated(null)
+        }
+        
         // Create the output directories if they don't yet exist.
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
@@ -940,15 +945,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Generate a reactor class definition. This version unconditionally
-     *  generates the reactor class definition, regardless of the
-     *  federate structure.
-     *  @param reactor The parsed reactor data structure.
-     */
-    override generateReactor(Reactor reactor) {
-        generateReactorFederated(reactor, null)
-    }
-    
     /** 
      * Generate a reactor class definition for the specified federate.
      * A class definition has four parts:
@@ -967,7 +963,6 @@ class CGenerator extends GeneratorBase {
      * @param federate A federate name, or null to unconditionally generate.
      */
     def generateReactorFederated(Reactor reactor, FederateInstance federate) {
-        super.generateReactor(reactor)
 
         // Create Timer and Action for startup and shutdown, if they occur.
         handleStartupAndShutdown(reactor)
@@ -1701,7 +1696,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         reportError(
                             reaction,
-                            "In generateReactor(): " + effect.variable.name + " is neither an input nor an output."
+                            "In generateReaction(): " + effect.variable.name + " is neither an input nor an output."
                         )
                     }
                 }
@@ -2084,16 +2079,14 @@ class CGenerator extends GeneratorBase {
         return "OK"
     }
 
-    /** Open an import at the Lingua Franca file at the specified URI
-     *  in the specified resource set and call generateReactor() on
-     *  any non-main reactors given in that file.
-     *  This overrides the base class to first output a #line
-     *  statement so that errors in the imported file can be
-     *  correctly reported.
-     *  @param importStatement The import statement.
-     *  @param resourceSet The resource set in which to find the file.
-     *  @param resolvedURI The URI to import.
-     *  @return The imported resource or null if the import fails.
+    /**
+     * Open an import at the Lingua Franca file at the specified URI in the
+     * specified resource, find all non-main reactors, and add them to the
+     * {@link #GeneratorBase.reactors reactors}.
+     * @param importStatement The import statement.
+     * @param resourceSet The resource set in which to find the file.
+     * @param resolvedURI The URI to import.
+     * @return The imported resource or null if the import fails.
      */
     override openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
         prSourceLineNumber(importStatement)
