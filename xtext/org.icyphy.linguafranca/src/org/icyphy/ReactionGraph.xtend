@@ -6,6 +6,7 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Instantiation
 
 /**
  * A graph with vertices that are ports or reactions and edges that denote
@@ -66,5 +67,20 @@ class ReactionGraph extends AnnotatedDependencyGraph<EObject> {
             }
         }
         this.detectCycles()
+    }
+}
+
+class InstantiatedNode extends AnnotatedNode<EObject> {
+    Instantiation instantiation
+    new(EObject node, Instantiation instantiation) {
+        super(node)
+        this.instantiation = instantiation
+    }
+    
+    override equals(Object obj) {
+        if (obj instanceof InstantiatedNode) {
+            return super.equals(obj) && instantiation.equals(obj.instantiation);
+        }
+        return false
     }
 }

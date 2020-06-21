@@ -239,14 +239,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         var reactor = connection.eContainer as Reactor
 
         // Report if connection is part of a cycle.
-        for (cycle : this.info.reactionGraph.cycles) {
-            if (cycle.contains(connection.rightPort.variable)) {
-                error(
-                    "Connection is part of a cycle.",
-                    Literals.CONNECTION__RIGHT_PORT
-                )
-            }
-        }
+//        for (cycle : this.info.reactionGraph.cycles) {
+//            if (cycle.contains(connection.rightPort.variable)) {
+//                error(
+//                    "Connection is part of a cycle.",
+//                    Literals.CONNECTION__RIGHT_PORT
+//                )
+//            }
+//        }
         
         
         // Make sure that if either side of the connection has an arraySpec
@@ -647,14 +647,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		}
 		
 		// Report error if this reaction is part of a cycle.
-        for (cycle : this.info.reactionGraph.cycles) {
-            if (cycle.contains(reaction)) {
-                error(
-                    "Reaction is part of a cycle.",
-                    Literals.REACTION__EFFECTS
-                )
-            }
-        }
+//        for (cycle : this.info.reactionGraph.cycles) {
+//            if (cycle.contains(reaction)) {
+//                error(
+//                    "Reaction is part of a cycle.",
+//                    Literals.REACTION__EFFECTS
+//                )
+//            }
+//        }
 	}
 
     @Check(FAST)
