@@ -2979,8 +2979,6 @@ class CGenerator extends GeneratorBase {
             connectInputsToOutputs(child, federate)
         }
 
-        var containerSelfStructName = selfStructName(instance)
-
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
