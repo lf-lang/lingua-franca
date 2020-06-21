@@ -34,6 +34,7 @@ import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
+import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
@@ -67,13 +68,12 @@ import org.icyphy.linguaFranca.Target
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Type
+import org.icyphy.linguaFranca.TypedVariable
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
-import org.eclipse.emf.common.util.EList
-import org.icyphy.linguaFranca.TypedVariable
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -236,18 +236,35 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkConnection(Connection connection) {
-        var reactor = connection.eContainer as Reactor
 
         // Report if connection is part of a cycle.
-//        for (cycle : this.info.reactionGraph.cycles) {
-//            if (cycle.contains(connection.rightPort.variable)) {
-//                error(
-//                    "Connection is part of a cycle.",
-//                    Literals.CONNECTION__RIGHT_PORT
-//                )
-//            }
-//        }
-        
+        for (cycle : this.info.reactionGraph.cycles) {
+            
+            var leftInCycle = false
+            
+            if ((connection.leftPort.container === null && cycle.exists [ it |
+                it.node === connection.leftPort.variable
+            ]) || cycle.exists [ it |
+                (it.node === connection.leftPort.variable &&
+                    it.instantiation === connection.leftPort.container)
+            ]) {
+                leftInCycle = true
+            }
+
+            if ((connection.rightPort.container === null && cycle.exists [ it |
+                it.node === connection.rightPort.variable
+            ]) || cycle.exists [ it |
+                (it.node === connection.rightPort.variable &&
+                    it.instantiation === connection.rightPort.container)
+            ]) {
+                if (leftInCycle) {
+                    error(
+                    "Connection creates cyclic dependency.",
+                    Literals.CONNECTION__DELAY
+                    )
+                }
+            }
+        }        
         
         // Make sure that if either side of the connection has an arraySpec
         // (has the form port[i]), then the port is defined as a multiport.
@@ -263,6 +280,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.CONNECTION__RIGHT_PORT
             )
         }
+        
+        val reactor = connection.eContainer as Reactor
         
         // Make sure the right port is not already an effect of a reaction.
         // FIXME: support multiports.
@@ -373,6 +392,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         
         // Report error if this instantiation is part of a cycle.
+        // FIXME: improve error message.
         if (this.info.instantiationGraph.cycles.size > 0) {
             for (cycle : this.info.instantiationGraph.cycles) {
                 if (cycle.contains(instantiation.eContainer as Reactor) && cycle.contains(instantiation.reactorClass)) {
@@ -647,14 +667,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		}
 		
 		// Report error if this reaction is part of a cycle.
-//        for (cycle : this.info.reactionGraph.cycles) {
-//            if (cycle.contains(reaction)) {
-//                error(
-//                    "Reaction is part of a cycle.",
-//                    Literals.REACTION__EFFECTS
-//                )
-//            }
-//        }
+        for (cycle : this.info.reactionGraph.cycles) {
+            if (cycle.exists[it.node === reaction]) {
+                error(
+                    "Reaction creates cyclic dependency.",
+                    Literals.REACTION__CODE
+                )
+            }
+        }
+        // FIXME: improve error message. 
 	}
 
     @Check(FAST)
