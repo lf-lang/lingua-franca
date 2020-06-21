@@ -1593,12 +1593,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             federates.add(federateInstance)
             federateByName.put("", federateInstance)
             federateByID.put(0, federateInstance)
-        } else {
-            // In a federated execution, we need keepalive to be true,
-            // otherwise a federate could exit simply because it hasn't received
-            // any messages.
-            targetKeepalive = true
-            
+        } else {            
             if (mainDef.reactorClass.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
@@ -1652,6 +1647,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 for (reactorName : federateInstance.containedReactorNames) {
                     federateByReactor.put(reactorName, federateInstance)
                 }
+            }
+            
+            // In a federated execution, we need keepalive to be true,
+            // otherwise a federate could exit simply because it hasn't received
+            // any messages.
+            if (federates.size > 1) {
+                targetKeepalive = true
             }
             
             // Analyze the connection topology of federates.
