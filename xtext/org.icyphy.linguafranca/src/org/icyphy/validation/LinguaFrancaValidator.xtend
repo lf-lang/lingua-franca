@@ -75,6 +75,7 @@ import org.icyphy.linguaFranca.Visibility
 import static extension org.icyphy.ASTUtils.*
 import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.TypedVariable
+import java.util.LinkedList
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -238,6 +239,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkConnection(Connection connection) {
         var reactor = connection.eContainer as Reactor
+
+        // Report if connection is part of a cycle.
+        for (cycle : this.info.reactionGraph.cycles) {
+            if (cycle.exists[it | it.contents === connection.rightPort.variable]) {
+                error(
+                    "Connection is part of a cycle.",
+                    Literals.CONNECTION__RIGHT_PORT
+                )
+            }
+        }
+        
         
         // Make sure that if either side of the connection has an arraySpec
         // (has the form port[i]), then the port is defined as a multiport.
@@ -634,9 +646,20 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
 	@Check(FAST)
 	def checkReaction(Reaction reaction) {
-		if (reaction.triggers === null || reaction.triggers.size == 0){
+		
+		if (reaction.triggers === null || reaction.triggers.size == 0) {
 			warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS)
 		}
+		
+		// Report error if this reaction is part of a cycle.
+        for (cycle : this.info.reactionGraph.cycles) {
+            if (cycle.exists[it | it.contents === reaction]) {
+                error(
+                    "Reaction is part of a cycle.",
+                    Literals.REACTION__EFFECTS
+                )
+            }
+        }
 	}
 
     @Check(FAST)
