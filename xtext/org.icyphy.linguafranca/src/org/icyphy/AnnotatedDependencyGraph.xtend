@@ -33,7 +33,7 @@ import java.util.Set
 import java.util.HashSet
 
 /** 
- * Elaboration of `DependencyGraph` that stores nodes in a wrapper used
+ * Elaboration of `DirectedGraph` that stores nodes in a wrapper used
  * for annotations 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
