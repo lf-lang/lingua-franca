@@ -1294,6 +1294,10 @@ class ASTUtils {
         return InferredType.undefined
     }
 
+    def static Instantiation getBinding(VarRef ref, Instantiation local) {
+        return (ref.container === null) ? local : ref.container;
+    }
+
     /**
      * Check if the reactor class uses generics
      * @param r the reactor to check 
