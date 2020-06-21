@@ -39,10 +39,6 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Reaction
-import org.eclipse.emf.ecore.EObject
-import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Port
 
 /**
  * A helper class for analyzing the AST.
@@ -59,7 +55,7 @@ class ModelInfo {
     /**
      * Data structure for tracking dependencies between reactions.
      */
-    public AnnotatedDependencyGraph<EObject> reactionGraph
+    public ReactionGraph reactionGraph
 
     /**
      * A mapping from reactors to the sites of their instantiation.
@@ -100,8 +96,8 @@ class ModelInfo {
         
         // Perform generic traversals.
         this.refreshInstantiationMap() // FIXME: carry this out in the same loop
-        this.refreshInstantiationGraph()
-        this.refreshReactionGraph()
+        this.refreshInstantiationGraph() // FIXME: wrap these two in a separate class
+        this.reactionGraph = new ReactionGraph(this.model)
         
         // Find the target. A target must exist because the grammar requires it.
         var Targets target
@@ -143,56 +139,6 @@ class ModelInfo {
                 new AnnotatedNode(instantiation.reactorClass))
         }
         this.instantiationGraph.detectCycles()
-    }
-
-    private def refreshReactionGraph() {
-        this.reactionGraph = new AnnotatedDependencyGraph()
-        for (reactor : this.model.eAllContents.toIterable.filter(Reactor)) {
-            
-            // Add edges implied by connections.
-            if (reactor.connections !== null) {
-                for (c : reactor.connections) {
-                    // Ignore connections with delays because delays break cycles.
-                    if (c.delay === null) {
-                        this.reactionGraph.addEdge(new AnnotatedNode(c.rightPort.variable), new AnnotatedNode(c.leftPort.variable))
-                    }
-                }    
-            }
-            
-            if (reactor.reactions !== null) {
-                var Reaction prev = null
-                // Iterate over the reactions.
-                for (r : reactor.reactions) {
-                    
-                    // Add edges implied by reactions.
-                    val reaction = new AnnotatedNode(r as EObject)
-                    for (trigger : r.triggers.filter(VarRef)) {
-                        if (trigger.variable instanceof Port) {
-                            this.reactionGraph.addEdge(reaction,
-                            new AnnotatedNode(trigger.variable))
-                        }
-                    }
-                    for (source : r.sources.filter[it | it.variable instanceof Port]) {
-                        this.reactionGraph.addEdge(reaction,
-                        new AnnotatedNode(source.variable))
-                    }
-                    for (effect : r.effects.filter[it | it.variable instanceof Port]) {
-                        this.reactionGraph.addEdge(new AnnotatedNode(effect.variable),
-                            reaction)
-                    }
-                    
-                    // Add edges implied by ordering of reactions within a reactor.
-                    if (prev !== null) {
-                        this.reactionGraph.addEdge(
-                            reaction,
-                            new AnnotatedNode(prev)
-                        )
-                    }
-                    prev = r
-                }    
-            }
-        }
-        this.reactionGraph.detectCycles()
     }
 
     /**
