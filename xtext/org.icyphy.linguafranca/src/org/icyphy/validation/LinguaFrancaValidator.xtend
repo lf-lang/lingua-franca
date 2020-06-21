@@ -36,7 +36,6 @@ import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
-import org.icyphy.AnnotatedNode
 import org.icyphy.ModelInfo
 import org.icyphy.Targets
 import org.icyphy.Targets.BuildTypes
@@ -75,7 +74,6 @@ import org.icyphy.linguaFranca.Visibility
 import static extension org.icyphy.ASTUtils.*
 import org.eclipse.emf.common.util.EList
 import org.icyphy.linguaFranca.TypedVariable
-import java.util.LinkedList
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -242,7 +240,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
         // Report if connection is part of a cycle.
         for (cycle : this.info.reactionGraph.cycles) {
-            if (cycle.exists[it | it.contents === connection.rightPort.variable]) {
+            if (cycle.contains(connection.rightPort.variable)) {
                 error(
                     "Connection is part of a cycle.",
                     Literals.CONNECTION__RIGHT_PORT
@@ -377,10 +375,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // Report error if this instantiation is part of a cycle.
         if (this.info.instantiationGraph.cycles.size > 0) {
             for (cycle : this.info.instantiationGraph.cycles) {
-                val instance = new AnnotatedNode(instantiation.reactorClass)
-                val reactor = new AnnotatedNode(
-                    instantiation.eContainer as Reactor)
-                if (cycle.contains(reactor) && cycle.contains(instance)) {
+                if (cycle.contains(instantiation.eContainer as Reactor) && cycle.contains(instantiation.reactorClass)) {
                     error(
                         "Instantiation is part of a cycle: " +
                             instantiation.reactorClass.name,
@@ -653,7 +648,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		
 		// Report error if this reaction is part of a cycle.
         for (cycle : this.info.reactionGraph.cycles) {
-            if (cycle.exists[it | it.contents === reaction]) {
+            if (cycle.contains(reaction)) {
                 error(
                     "Reaction is part of a cycle.",
                     Literals.REACTION__EFFECTS
