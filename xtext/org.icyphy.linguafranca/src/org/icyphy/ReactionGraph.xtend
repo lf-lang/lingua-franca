@@ -78,11 +78,12 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
             for (c : reactor.connections) {
                 // Ignore connections with delays because delays break cycles.
                 if (c.delay === null) {
-                this.addEdge(new AnnotatedNode(
-                    new InstanceBinding(c.rightPort.variable,
-                        c.rightPort, instantiation)),
-                    new AnnotatedNode(new InstanceBinding(c.leftPort.variable,
-                        c.leftPort, instantiation)))
+                    this.addEdge(new AnnotatedNode(
+                        new InstanceBinding(c.rightPort.variable,
+                            c.rightPort.container, instantiation)),
+                        new AnnotatedNode(
+                            new InstanceBinding(c.leftPort.variable,
+                                c.leftPort.container, instantiation)))
                 }
             }
         }
@@ -99,7 +100,7 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
                         this.addEdge(reaction,
                             new AnnotatedNode(
                                 new InstanceBinding(trigger.variable,
-                                    trigger, instantiation)))
+                                    trigger.container, instantiation)))
                     }
                 }
                 for (source : r.sources.
@@ -107,14 +108,14 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
                     this.addEdge(reaction,
                         new AnnotatedNode(
                             new InstanceBinding(source.variable,
-                                source, instantiation)))
+                                source.container, instantiation)))
                 }
                 for (effect : r.effects.
                     filter[it.variable instanceof Port]) {
                     this.addEdge(
                         new AnnotatedNode(
                             new InstanceBinding(effect.variable,
-                                effect, instantiation)),
+                                effect.container, instantiation)),
                         reaction)
                 }
 
@@ -152,11 +153,11 @@ class InstanceBinding {
      * reactor instantiation.
      * 
      * @param node An arbitrary AST node.
-     * @param inst An AST node that denotes reactor instantiation. 
+     * @param inst The reactor instantiation to bind the node to. 
      */
     new(EObject node, Instantiation inst) {
         this.node = node
-        this.instantiation = instantiation
+        this.instantiation = inst
     }
     
     /**
@@ -168,12 +169,12 @@ class InstanceBinding {
      * in as the third argument.
      * 
      * @param node An arbitrary AST node.
-     * @param ref A reference to variable (e.g, a port).
-     * @param inst An AST node that denotes reactor instantiation. 
+     * @param container Container associated with the node, if there is one.
+     * @param alternative Alternative reactor instantiation to bind to. 
      */
-    new(EObject node, VarRef ref, Instantiation inst) {
+    new(EObject node, Instantiation container, Instantiation alternative) {
         this.node = node
-        this.instantiation = (ref.container === null) ? inst : ref.container
+        this.instantiation = (container === null) ? alternative : container
     }
     
     /**
