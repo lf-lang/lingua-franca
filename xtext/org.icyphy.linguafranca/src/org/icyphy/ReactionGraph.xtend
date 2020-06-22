@@ -67,6 +67,12 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
      * @param instantiation The instantiation to bind the graph nodes to.
      */
     def collectNodesFrom(Reactor reactor, Instantiation instantiation) {
+        
+        // Nothing to do.
+        if (reactor === null) {
+            return   
+        }
+        
         // Add edges implied by connections.
         if (reactor.connections !== null) {
             for (c : reactor.connections) {
