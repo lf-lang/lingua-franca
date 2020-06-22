@@ -74,6 +74,8 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import java.util.LinkedList
+import org.icyphy.linguaFranca.VarRef
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -239,28 +241,29 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
         // Report if connection is part of a cycle.
         for (cycle : this.info.reactionGraph.cycles) {
-            
+            val lp = connection.leftPort
+            val rp = connection.rightPort
             var leftInCycle = false
+            val reactorName = (connection.eContainer as Reactor).name
             
-            if ((connection.leftPort.container === null && cycle.exists [ it |
-                it.node === connection.leftPort.variable
-            ]) || cycle.exists [ it |
-                (it.node === connection.leftPort.variable &&
-                    it.instantiation === connection.leftPort.container)
+            if ((lp.container === null && cycle.exists [
+                it.node === lp.variable
+            ]) || cycle.exists [
+                (it.node === lp.variable && it.instantiation === lp.container)
             ]) {
                 leftInCycle = true
             }
 
-            if ((connection.rightPort.container === null && cycle.exists [ it |
-                it.node === connection.rightPort.variable
-            ]) || cycle.exists [ it |
-                (it.node === connection.rightPort.variable &&
-                    it.instantiation === connection.rightPort.container)
+            if ((rp.container === null && cycle.exists [
+                it.node === rp.variable
+            ]) || cycle.exists [
+                (it.node === rp.variable && it.instantiation === rp.container)
             ]) {
                 if (leftInCycle) {
-                    error(
-                    "Connection creates cyclic dependency.",
-                    Literals.CONNECTION__DELAY
+                    // Only report of _both_ referenced ports are in the cycle.
+                    error('''Connection in reactor «reactorName» creates ''' + 
+                    '''a cyclic dependency between «lp.toText» and ''' +
+                    '''«rp.toText».''', Literals.CONNECTION__DELAY
                     )
                 }
             }
@@ -668,11 +671,55 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		
 		// Report error if this reaction is part of a cycle.
         for (cycle : this.info.reactionGraph.cycles) {
+            val reactorName = (reaction.eContainer as Reactor).name
             if (cycle.exists[it.node === reaction]) {
-                error(
-                    "Reaction creates cyclic dependency.",
+                // Report involved triggers.
+                val trigs = new LinkedList()
+                reaction.triggers.forEach [ t |
+                    (t instanceof VarRef && cycle.exists [ c |
+                        c.node === (t as VarRef).variable
+                    ]) ? trigs.add((t as VarRef).toText) : {}
+                ]
+                if (trigs.size > 0) {
+                    error('''Reaction triggers involved in cyclic dependency in reactor «reactorName»: «trigs.join(', ')».''',
+                        Literals.REACTION__TRIGGERS)
+                }
+                
+                // Report involved sources.
+                val sources = new LinkedList()
+                reaction.sources.forEach [ t |
+                    (cycle.exists [ c | c.node === t.variable]) ? 
+                        sources.add(t.toText): {}
+                ]
+                if (sources.size > 0) {
+                    error('''Reaction sources involved in cyclic dependency in reactor «reactorName»: «sources.join(', ')».''',
+                        Literals.REACTION__SOURCES)
+                }
+                
+                // Report involved effects.
+                val effects = new LinkedList()
+                reaction.effects.forEach [ t |
+                    (cycle.exists [ c | c.node === t.variable]) ? 
+                        effects.add(t.toText): {}
+                ]
+                if (effects.size > 0) {
+                    error('''Reaction effects involved in cyclic dependency in reactor «reactorName»: «effects.join(', ')».''',
+                        Literals.REACTION__EFFECTS)
+                }
+                
+                if (trigs.size + sources.size == 0) {
+                    error(
+                    '''Cyclic dependency due to preceding reaction. Consider reordering reactions within reactor «reactorName» to avoid causality loop.''',
                     Literals.REACTION__CODE
-                )
+                    )    
+                } else if (effects.size == 0) {
+                    error(
+                    '''Cyclic dependency due to succeeding reaction. Consider reordering reactions within reactor «reactorName» to avoid causality loop.''',
+                    Literals.REACTION__CODE
+                    )    
+                }
+                // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
+                // Moving them won't help solve the problem.
             }
         }
         // FIXME: improve error message. 
