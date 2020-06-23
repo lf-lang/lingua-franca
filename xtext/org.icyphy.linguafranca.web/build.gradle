@@ -2,14 +2,14 @@ plugins {
 	id 'war'
 }
 dependencies {
-	compile project(':org.icyphy.linguafranca')
-	compile project(':org.icyphy.linguafranca.ide')
-	compile "org.eclipse.xtext:org.eclipse.xtext.xbase.web:${xtextVersion}"
-	compile "org.eclipse.xtext:org.eclipse.xtext.web.servlet:${xtextVersion}"
-	compile "org.eclipse.xtend:org.eclipse.xtend.lib:${xtextVersion}"
-	compile "org.webjars:requirejs:2.3.6"
-	compile "org.webjars:jquery:3.3.1-1"
-	compile "org.webjars:ace:1.3.3"
+	implementation project(':org.icyphy.linguafranca')
+	implementation project(':org.icyphy.linguafranca.ide')
+	implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.web:${xtextVersion}"
+	implementation "org.eclipse.xtext:org.eclipse.xtext.web.servlet:${xtextVersion}"
+	implementation "org.eclipse.xtend:org.eclipse.xtend.lib:${xtextVersion}"
+	implementation "org.webjars:requirejs:2.3.6"
+	implementation "org.webjars:jquery:3.3.1-1"
+	implementation "org.webjars:ace:1.3.3"
 	providedCompile "org.eclipse.jetty:jetty-annotations:9.4.14.v20181114"
 	providedCompile "org.slf4j:slf4j-simple:1.7.21"
 }
