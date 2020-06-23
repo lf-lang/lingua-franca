@@ -51,8 +51,8 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-
-// FIXME: This still has a bunch of copied code from CGenerator that should be removed.
+import org.icyphy.InferredType
+import org.icyphy.linguaFranca.Reaction
 
 /** Generator for TypeScript target.
  *
@@ -62,6 +62,17 @@ import static extension org.icyphy.ASTUtils.*
  *  @author {Christian Menard <christian.menard@tu-dresden.de> 
  */
 class TypeScriptGenerator extends GeneratorBase {
+
+
+    ////////////////////////////////////////////
+    //// Private variables
+
+    new () {
+        super()
+        // set defaults for federate compilation
+        this.targetCompiler = "gcc"
+        this.targetCompilerFlags = "-O2"
+    }
 
     // Set of acceptable import targets includes only TypeScript.
     val acceptableTargetSet = newHashSet('TypeScript')
@@ -99,6 +110,8 @@ class TypeScriptGenerator extends GeneratorBase {
     ) {        
         super.doGenerate(resource, fsa, context)
         
+        // FIXME: These important files are defined above in two places
+        
         // Important files and directories
         tsFilename = filename + ".ts"
         jsFilename = filename + ".js"
@@ -107,17 +120,18 @@ class TypeScriptGenerator extends GeneratorBase {
             "TS" + File.separator + "reactor-ts"
         srcGenPath = projectPath + File.separator + "src"
         outPath = projectPath + File.separator + "dist"
+        
+        // FIXME: The CGenerator expects these paths to be
+        // relative to the directory, not the project folder
+        // so for now I just left it that way. A different
+        // directory structure for RTI and TS code may be
+        // preferable.
+        var cSrcGenPath = directory + File.separator + "src-gen"
+        var cOutPath = directory + File.separator + "bin"
         reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
             + "core" + File.separator
         tscPath = directory + File.separator + "node_modules" +  File.separator 
         + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
-        
-        // Generate main instance, if there is one.
-        if (this.mainDef !== null) {
-            generateReactor(this.mainDef.reactorClass)
-            generateReactorInstance(this.mainDef)
-            generateRuntimeStart(this.mainDef)
-        }
         
         // Create output directories if they don't yet exist
         var dir = new File(projectPath)
@@ -127,23 +141,55 @@ class TypeScriptGenerator extends GeneratorBase {
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
 
-        // Delete source previously output the LF compiler
-        var file = new File(srcGenPath + File.separator + tsFilename)
-        if (file.exists) {
-            file.delete
-        }
+        // Perform distinct code generation into distinct files for each federate.
+        val baseFilename = filename
+        var commonCode = code
+        var String federateFilename
 
-        // Delete .js previously output by TypeScript compiler
-        file = new File(outPath + File.separator + jsFilename)
-        if (file.exists) {
-            file.delete
-        }
-
-        // Write the generated code to the srcGen directory.
-        var fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + tsFilename));
-        fOut.write(getCode().getBytes())
+        // Every top-level reactor (contained
+        // directly by the main reactor) is a federate
+        for (federate : federates) {
+            
+            // Only generate one output if there is no federation.
+            if (!federate.isSingleton) {
+                federateFilename = baseFilename + '_' + federate.name
+                // Clear out previously generated code,
+                // but keep the reactor class definitions
+                // and the preamble.
+                code = new StringBuilder(commonCode)
+            }
         
+            // Build the instantiation tree if a main reactor is present.
+            if (this.mainDef !== null) {
+                // Generate main instance, if there is one.
+                generateReactorFederated(this.mainDef.reactorClass, federate)
+                generateReactorInstance(this.mainDef)
+                generateRuntimeStart(this.mainDef) 
+            }
+        
+            // Derive target filename from the .lf filename.
+            val tsFilename = federateFilename + ".ts";
+            val jsFilename = federateFilename + ".js";
+
+            // Delete source previously produced by the LF compiler.
+            var file = new File(srcGenPath + File.separator + tsFilename)
+            if (file.exists) {
+                file.delete
+            }
+
+            // Delete .js previously output by TypeScript compiler
+            file = new File(outPath + File.separator + jsFilename)
+            if (file.exists) {
+                file.delete
+            }
+
+            // Write the generated code to the output file.
+            var fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + tsFilename));
+            fOut.write(getCode().getBytes())
+            fOut.close()
+        }
+
         // Copy the required library files into the src directory
         // so they may be compiled as part of the TypeScript project.
         // This requires that the TypeScript submodule has been installed.
@@ -157,7 +203,7 @@ class TypeScriptGenerator extends GeneratorBase {
         copyReactorTSCoreFile(srcGenPath, "ulog.d.ts")
         copyReactorTSCoreFile(srcGenPath, "util.ts")
         
-        // Only run npm install if we had to copy over the defaul package.json.
+        // Only run npm install if we had to copy over the default package.json.
         var boolean runNpmInstall
         var File packageJSONFile = new File(directory + File.separator + "package.json")
         if (packageJSONFile.exists()) {
@@ -196,8 +242,6 @@ class TypeScriptGenerator extends GeneratorBase {
         refreshProject()
 
         // Invoke the compiler on the generated code.
-//        val relativeSrcFilename = "src-gen" + File.separator + tsFilename;
-//        val relativeTSFilename = "ts" + File.separator + filename + '.js';
         
         // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
         // Must compile to ES2015 or later and include the dom library.
@@ -231,6 +275,36 @@ class TypeScriptGenerator extends GeneratorBase {
                 println("SUCCESS (compiling generated TypeScript code)")
             }
         }
+        
+        
+        // If this is a federated execution, generate the C RTI
+        
+        // FIXME: DO THE COMMENT BELOW
+        // Also, create two RTI C files, one that launches the federates
+        // and one that does not.
+        
+        if (federates.length > 1) {
+            
+            // Create C output directories (if they don't exist)            
+            dir = new File(cSrcGenPath)
+            if (!dir.exists()) dir.mkdirs()
+            dir = new File(cOutPath)
+            if (!dir.exists()) dir.mkdirs()
+            
+            generateFederateRTI()
+
+            // Copy the required library files into the target file system.
+            // This will overwrite previous versions.
+            var files = newArrayList("rti.c", "rti.h", "federate.c", "reactor_threaded.c", "reactor.c", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
+
+            for (file : files) {
+                copyFileFromClassPath(
+                    File.separator + "lib" + File.separator + "C" + File.separator + file,
+                    cSrcGenPath + File.separator + file
+                )
+            }
+            compileRTI()
+        }
     }
     
     override generateDelayBody(Action action, VarRef port) {
@@ -247,10 +321,9 @@ class TypeScriptGenerator extends GeneratorBase {
  
     // //////////////////////////////////////////
     // // Code generators.
-    /** Generate a reactor class definition.
-     *  @param reactor The parsed reactor data structure.
-     */
-    override generateReactor(Reactor reactor) {
+    
+    
+     def generateReactorFederated(Reactor reactor, FederateInstance federate) {
         super.generateReactor(reactor)   
         
         var reactorConstructor = new StringBuilder()
@@ -266,8 +339,10 @@ class TypeScriptGenerator extends GeneratorBase {
         val reactorName = reactor.name + reactor.typeParms?.join('<', ',', '>', [it.toText])
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
-        if(reactor.isMain()){
+        if (reactor.isMain()) {
             pr("export class " + reactorName + " extends App {")
+        } else if (reactor.isFederated()) {
+            pr("export class " + reactorName + " extends FederatedApp {")
         } else {
             pr("export class " + reactorName + " extends Reactor {")
         }
@@ -275,13 +350,12 @@ class TypeScriptGenerator extends GeneratorBase {
         indent()
         
         var arguments = new LinkedList()
-        if (reactor.isMain()) {
-            //arguments.add("name: string")
+        if (reactor.isMain() || reactor.isFederated()) {
             arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
         } else {
-            arguments.add("parent:Reactor")
+            arguments.add("parent: Reactor")
         }
         
         // For TS, parameters are arguments of the class constructor.
@@ -289,8 +363,7 @@ class TypeScriptGenerator extends GeneratorBase {
             arguments.add(parameter.initializeParameter)
         }
         
-        if (reactor.isMain()) {
-            
+        if (reactor.isMain() || reactor.isFederated()) {
             arguments.add("success?: () => void")
             arguments.add("fail?: () => void")
             pr(reactorConstructor, "constructor (")
@@ -299,7 +372,7 @@ class TypeScriptGenerator extends GeneratorBase {
             reactorConstructor.unindent
             pr(reactorConstructor, ") {")
             reactorConstructor.indent
-            pr(reactorConstructor, "super(timeout, keepAlive, fast, success, fail);");
+            
         } else {
             pr(reactorConstructor, "constructor (")
             reactorConstructor.indent
@@ -307,33 +380,55 @@ class TypeScriptGenerator extends GeneratorBase {
             reactorConstructor.unindent
             pr(reactorConstructor, ") {")
             reactorConstructor.indent()
-            pr(reactorConstructor, "super(parent);");
         }
         
-        // Next handle child reactors instantiations
-        for (childReactor : reactor.instantiations ) {
-            pr(childReactor.getName() + ": " + childReactor.reactorClass.name + childReactor.typeParms.join('<', ',', '>', [it | it.toText]))
-            
-            var childReactorArguments = new StringJoiner(", ");
-            childReactorArguments.add("this")
-        
-            // Iterate through parameters in the order they appear in the
-            // reactor class, find the matching parameter assignments in
-            // the reactor instance, and write the corresponding parameter
-            // value as an argument for the TypeScript constructor
-            for (parameter : childReactor.reactorClass.parameters) {
-                childReactorArguments.add(parameter.getTargetInitializer(childReactor))
-            }
-            
-            pr(reactorConstructor, "this." + childReactor.getName()
-                + " = new " + childReactor.reactorClass.name + 
-                "(" + childReactorArguments + ")" )
+        var String superCall
+        if (reactor.isMain()) {
+            superCall = "super(timeout, keepAlive, fast, success, fail);"
+        } else if (reactor.isFederated()) {
+            superCall = '''
+            super(«federate.id», «federationRTIProperties.get('port')», «
+                »"«federationRTIProperties.get('host')»", «
+                »timeout, keepAlive, fast, success, fail);
+            '''
+        } else {
+            superCall = "super(parent);"
         }
-       
+        pr(reactorConstructor, superCall)
+        
+        // Next handle child reactors instantiations.
+        // If the app isn't federated, instantiate all
+        // the child reactors. If the app is federated
+        
+        var List<Instantiation> childReactors;
+        if (!reactor.isFederated()) {
+            childReactors = reactor.instantiations;
+        } else {
+            childReactors = new LinkedList<Instantiation>();
+            childReactors.add(federate.instantiation)
+        }
+        
+        for (childReactor : childReactors ) {
+        pr(childReactor.getName() + ": " + childReactor.reactorClass.name + childReactor.typeParms.join('<', ',', '>', [it | it.toText]))
+        
+        var childReactorArguments = new StringJoiner(", ");
+        childReactorArguments.add("this")
+    
+        // Iterate through parameters in the order they appear in the
+        // reactor class, find the matching parameter assignments in
+        // the reactor instance, and write the corresponding parameter
+        // value as an argument for the TypeScript constructor
+        for (parameter : childReactor.reactorClass.parameters) {
+            childReactorArguments.add(parameter.getTargetInitializer(childReactor))
+        }
+        
+        pr(reactorConstructor, "this." + childReactor.getName()
+            + " = new " + childReactor.reactorClass.name + 
+            "(" + childReactorArguments + ")" )
+        }
         
         // Next handle timers.
-        for (timer : reactor.timers) {
-            
+        for (timer : reactor.timers) {   
             var String timerPeriod
             if (timer.period === null) {
                 timerPeriod = "0";
@@ -369,7 +464,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
                     "new State(" + stateVar.targetInitializer + ');');
             } else {
-            	pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
+                pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
                     "new State(undefined);");
             }
         }
@@ -433,9 +528,38 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(reactorConstructor, "this._connect(this." + leftPortName + ", this." + rightPortName + ");")
         }
         
+        // If the app is federated, register its
+        // networkMessageActions with the RTIClient
+        if (reactor.isFederated()) {
+            // The ID of the receiving port is simply 
+            // the position of the action in the networkMessageActions list.
+            var fedPortID = 0;
+            for (nAction : federate.networkMessageActions) {
+                var registration = '''
+                this.registerFederatePortAction(«fedPortID», this.«nAction.name»);
+                '''
+                pr(reactorConstructor, registration)
+                fedPortID++
+            }
+        }
         
-        // Next handle reaction instances
-        for (reaction : reactor.reactions) {
+        // Next handle reaction instances.
+        // If the app is federated, only generate
+        // reactions that are contained by that federate
+        var List<Reaction> generatedReactions
+        if (reactor.isFederated()) {
+            generatedReactions = new LinkedList<Reaction>()
+            for (reaction : reactor.reactions) {
+                if (federate.containsReaction(reactor, reaction)) {
+                    generatedReactions.add(reaction)
+                }
+            }
+        } else {
+            generatedReactions = reactor.reactions
+        }
+        
+        
+        for (reaction : generatedReactions) {
             
             // Determine signature of the react function
             var reactSignature = new StringJoiner(", ")
@@ -554,9 +678,9 @@ class TypeScriptGenerator extends GeneratorBase {
                 
                 functArg = "this." + effect.generateVarRef 
                 if (effect.variable instanceof Action){
-                    reactFunctArgs.add("this.schedulable(" + functArg + ")")
+                    reactFunctArgs.add("this.getSchedulable(" + functArg + ")")
                 } else if (effect.variable instanceof Port) {
-                    reactFunctArgs.add("this.writable(" + functArg + ")")
+                    reactFunctArgs.add("this.getWriter(" + functArg + ")")
                 }  
                 
                 if (effect.container === null) {
@@ -621,13 +745,12 @@ class TypeScriptGenerator extends GeneratorBase {
                             __«entry.key.name»_«variable.name».set(«entry.key.name».«variable.name»)
                         }''')    
                     }
-                                     
                 }
                 pr(reactPrologue, '''let «entry.key.name» = {«initializer»}''')
             }
             
             // Assemble reaction triggers          
-            var reactionTriggers = new StringJoiner(", ") 
+            var reactionTriggers = new StringJoiner(",\n") 
             for (trigger : reaction.triggers) {
                 if (trigger instanceof VarRef) {
                     reactionTriggers.add("this." + trigger.generateVarRef)
@@ -703,6 +826,16 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("}")
         pr("// =============== END reactor class " + reactor.name)
         pr("")
+        
+     }
+    
+    /** Generate a reactor class definition. This version unconditionally
+     *  generates the reactor class definition, regardless of the
+     *  federate structure.
+     *  @param reactor The parsed reactor data structure.
+     */
+    override generateReactor(Reactor reactor) {
+        generateReactorFederated(reactor, null)
     }
 
     def generateArg(VarRef v) {
@@ -754,13 +887,12 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @param instance A reactor instance.
      */
     def void generateRuntimeStart(Instantiation defn) {
-        pr('// ************* Starting Runtime for ' + defn.name + ' of class ' +
-            defn.reactorClass.name)
-        pr("if (!__noStart && __app) {")
-        indent()
-        pr("__app._start();")
-        unindent()
-        pr("}")
+        pr(
+        '''// ************* Starting Runtime for «defn.name» + of class «defn.reactorClass.name».
+           if (!__noStart && __app) {
+               __app._start();
+           }
+        ''');
     }
 
 
@@ -777,6 +909,68 @@ class TypeScriptGenerator extends GeneratorBase {
         acceptableTargetSet
     }
     
+    
+    /**
+     * Generate code for the body of a reaction that handles input from the network
+     * that is handled by the specified action. This base class throws an exception.
+     * @param action The action that has been created to handle incoming messages.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @throws UnsupportedOperationException If the target does not support this operation.
+     */
+    override String generateNetworkReceiverBody(
+        Action action,
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        InferredType type
+    ) {
+        return '''
+            // FIXME: For now assume the data is a string, but this is not checked.
+            // Replace with ProtoBufs or MessagePack.
+            if («action.name» !== undefined) {
+                «receivingPort.container.name».«receivingPort.variable.name» = «
+                    »«action.name».toString(); // defaults to utf8 encoding
+            }
+        '''
+    }
+    
+    
+    /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network. This base class throws an exception.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @throws UnsupportedOperationException If the target does not support this operation.
+     */
+    override String generateNetworkSenderBody(
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        InferredType type
+    ) {
+        return '''
+            // FIXME: For now assume the data is a string, but this is not checked.
+            // Replace with ProtoBufs or MessagePack.
+            if («sendingPort.container.name».«sendingPort.variable.name» !== undefined) {
+                let buf = Buffer.from(«sendingPort.container.name».«sendingPort.variable.name»)
+                this.util.sendRTITimedMessage(buf, «receivingFed.id», «receivingPortID»);
+            }
+        '''
+    }
+       
 
     /** Generate preamble code that appears in the code generated
      *  file before anything else.
@@ -791,7 +985,7 @@ class TypeScriptGenerator extends GeneratorBase {
         var Reactor mainReactor
         
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            if (reactor.isMain) {
+            if (reactor.isMain || reactor.isFederated) {
                 mainReactor = reactor
             }
         }
@@ -1142,7 +1336,7 @@ class TypeScriptGenerator extends GeneratorBase {
     }
 
 	def initializeParameter(Parameter p) 
-		'''«p.name»:«p.targetType» = «p.getTargetInitializer()»'''
+		'''«p.name»: «p.targetType» = «p.getTargetInitializer()»'''
     
     override getTargetType(StateVar s) {
         val type = super.getTargetType(s)
@@ -1168,7 +1362,7 @@ class TypeScriptGenerator extends GeneratorBase {
     static val preamble = 
 '''import commandLineArgs from 'command-line-args'
 import commandLineUsage from 'command-line-usage'
-import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App} from '«reactorLibPath»'
+import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App, FederatedApp} from '«reactorLibPath»'
 import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin} from '«timeLibPath»'
 import {Log} from '«utilLibPath»'
 import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType} from '«cliLibPath»'
