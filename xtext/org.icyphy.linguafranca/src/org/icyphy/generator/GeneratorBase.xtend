@@ -669,6 +669,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * 
      * But asking users to do that is not ideal. Hence, we try a more hack-y
      * approach of just trying to execute using a bash shell.
+     * Also note that while ProcessBuilder can configured to use custom
+     * environment variables, these variables do not affect the command that is
+     * to be executed but merely the environment in which the command executes.
      * 
      * @param command The command.
      * @param directory The directory in which to execute the command.
@@ -704,17 +707,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             return returnCode
         } catch (Exception ex) {
-            
-            // FIXME: Let's not rely on Bash. I propose the following:
-            // Check the OS, and depending on the OS, add to the PATH
-            // those directories that are likely to contain the target
-            // compiler executable.
-            // This can be done using: 
-            // Map<String, String> env = blastProcessBuilder.environment();
-            // blastEnv.put("Path", env.get("Path") + ";C:\\X\\Y\\Z\\bin");
-            // If the compiler still cannot be found, print a message explaining
-            // where we are looking, suggesting to the user to place the binary
-            // there or establish a symbolic link.
             
             println("--- Exception: " + ex)
             // Try running with bash.
