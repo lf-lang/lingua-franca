@@ -1,0 +1,63 @@
+/**
+ * Distributed LF program where a MessageGenerator creates a string
+ * message that is sent via the RTI (runtime infrastructure) to a
+ * receiver that prints the message.
+ * 
+ * The after value on the connection gives the logical time offset
+ * between the sender and the receiver. The connection is a physical one,
+ * indicated with ~>. The RTI ensures a deterministic execution for
+ * federates with logical connections by controlling the advancement
+ * of logical time.
+ * 
+ * To run this:
+ * 
+ * The code generator produces three executable files
+ * bin/Distributed_RTI, Distributed/dist/Distributed_dsp.js,
+ * and Distributed/dist/Distributed_msg.js. 
+ * You can start each of these three programs in
+ * any order. They will synchronize the start time and run for 10 seconds.
+ * 
+ * @author Matt Weber, Edward A. Lee
+ */
+target TypeScript {
+    timeout: 10 secs
+};
+
+/**
+ * Reactor that generates a sequence of messages, one per second.
+ * The message will be a string consisting of a root string followed
+ * by a count.
+ * @param root The root string.
+ * @output message The message.
+ */
+reactor MessageGenerator(root:string("")) {
+    output message:string;
+    state count:number(1);
+    // Send first message after 1 sec so that the startup reactions
+    // do not factor into the transport time measurement on the first message.
+    timer t(1 sec, 1 sec);
+    reaction(t) -> message {=
+        message = count.toString();    
+        console.log(`At time ${util.getElapsedLogicalTime()}, send message: ${count++}`);
+        console.log(`PrintMessage: Physical time is ${util.getElapsedPhysicalTime()}`);
+    =}
+}
+
+/**
+ * Reactor that prints an incoming string.
+ * @param prefix A prefix for the message.
+ * @input message The message.
+ */
+reactor PrintMessage {
+    input message:string;
+    reaction(message) {=
+        console.log(`PrintMessage: At (elapsed) logical time ${util.getElapsedLogicalTime()}, receiver receives: ${message}`);
+        console.log(`PrintMessage: Physical time is ${util.getElapsedPhysicalTime()}`);
+    =}
+}
+
+federated reactor Distributed at localhost:15044 {
+    msg = new MessageGenerator(root = "Hello World");
+    dsp = new PrintMessage();
+    msg.message -> dsp.message after 10 msec;
+}
