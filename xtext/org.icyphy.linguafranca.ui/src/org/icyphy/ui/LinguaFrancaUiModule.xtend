@@ -58,6 +58,23 @@ class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
             // acceptor.accept(new CompoundLFMultiLineTerminalsEditStrategy("[", "]"), IDocument.DEFAULT_CONTENT_TYPE);
             acceptor.accept(new CompoundLFMultiLineTerminalsEditStrategy("{=", "=}"), IDocument.DEFAULT_CONTENT_TYPE);
         }
+        
+        /**
+         * For the given document, return the indentation of the line at
+         * the specified offset. If the indentation is accomplished with
+         * tabs, count each tab as four spaces.
+         * @param document The document.
+         * @param offset The offset.
+         */
+        static def indentationAt(IDocument document, int offset) {
+            val lineNumber = document.getLineOfOffset(offset) // Line number.
+            val lineStart = document.getLineOffset(lineNumber) // Offset of start of line.
+            val lineLength = document.getLineLength(lineNumber) // Length of the line.
+            var line = document.get(lineStart, lineLength)
+            line = line.replaceAll("\t", "    ")
+            // Replace all tabs with four spaces.
+            return line.indexOf(line.trim())
+        }
                 
         /**
          * When encountering {= append =}.
@@ -96,6 +113,7 @@ class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
                 IDocument.DEFAULT_CONTENT_TYPE
             );
         }
+        
         /**
          * When hitting Return with a code block, move the =} to a newline properly indented.
          */
@@ -133,39 +151,50 @@ class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
                 }
                 newC.isChange = true;
                 newC.offset = command.offset;
-                newC.text += command.text.trim;
                 // Insert the Return character into the new command.
                 newC.text += "\n"
+                newC.text += command.text.trim;
                 newC.cursorOffset = command.offset + newC.text.length();
                 if (stopTerminal === null && atEndOfLineInput(document, command.offset)) {
                     newC.text += command.text + getRightTerminal();
                 }
-                if (stopTerminal !== null && stopTerminal.getOffset() >= command.offset
-                        && util.isSameLine(document, stopTerminal.getOffset(), command.offset)) {
-                    // Get the string between the delimiters, trimed of whitespace
-                    val string = document.get(
-                        command.offset,
-                        stopTerminal.getOffset() - command.offset
-                    ).trim;
-                    // Find the indentation needed.
-                    val lineNumber = document.getLineOfOffset(command.offset) // Line number.
-                    val lineStart = document.getLineOffset(lineNumber) // Offset of start of line.
-                    val lineLength = document.getLineLength(lineNumber) // Length of the line.
-                    val line = document.get(lineStart, lineLength)
-                    // This assumes any existing indentation is spaces, not tabs.
-                    val indentation = line.indexOf(line.trim())
-                    // Indent by at least 4 spaces.
-                    for (var i = 0; i < indentation / 4 + 1; i++) {
-                        newC.text += "    "
-                        newC.cursorOffset += 4
+                if (stopTerminal !== null && stopTerminal.getOffset() >= command.offset) {
+                    // If the right delimitter is on the same line as the left,
+                    // collect the text between them and indent to the right place.
+                    if (util.isSameLine(document, stopTerminal.getOffset(), command.offset)) {
+                        // Get the string between the delimiters, trimed of whitespace
+                        val string = document.get(
+                            command.offset,
+                            stopTerminal.getOffset() - command.offset
+                        ).trim;
+                        val indentation = document.indentationAt(command.offset)
+                        // Indent by at least 4 spaces.
+                        for (var i = 0; i < indentation / 4 + 1; i++) {
+                            newC.text += "    "
+                            newC.cursorOffset += 4
+                        }
+                        newC.text += string;
+                        newC.text += command.text.trim;
+                        newC.text += "\n"
+                        for (var i = 0; i < indentation / 4; i++) {
+                            newC.text += "    "
+                        }
+                        newC.length += string.length();
+                    } else {
+                        // Creating a new first line within a pre-existing block.
+                        val indentation = document.indentationAt(command.offset)
+                        var length = 0
+                        for (var i = 0; i < indentation / 4 + 1; i++) {
+                            newC.text += "    "
+                            newC.cursorOffset += 4
+                            length += 4
+                        }
+                        // The length field is, as usual for xtext, undocumented.
+                        // It is not the length of the new command, but seems to be
+                        // the number of characters of the original document that are
+                        // to be replaced.
+                        newC.length = 0
                     }
-                    newC.text += string;
-                    newC.text += command.text.trim;
-                    newC.text += "\n"
-                    for (var i = 0; i < indentation / 4; i++) {
-                        newC.text += "    "
-                    }
-                    newC.length += string.length();
                 }
                 return newC;
             }
@@ -178,7 +207,6 @@ class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
                 super.findStartTerminal(document, offset)
             }
             override internalCustomizeDocumentCommand(IDocument document, DocumentCommand command) {
-                // FIXME: Throws NPE!!
                 super.internalCustomizeDocumentCommand(document, command)
             }
         }
