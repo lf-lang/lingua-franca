@@ -3,20 +3,29 @@
  */
 package org.icyphy.ui
 
+import java.util.LinkedList
+import java.util.List
 import org.eclipse.jface.text.BadLocationException
 import org.eclipse.jface.text.DocumentCommand
 import org.eclipse.jface.text.IDocument
 import org.eclipse.jface.text.IRegion
+import org.eclipse.jface.text.TextUtilities
 import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
 import org.eclipse.xtext.ui.editor.autoedit.AbstractEditStrategyProvider.IEditStrategyAcceptor
+import org.eclipse.xtext.ui.editor.autoedit.AbstractTerminalsEditStrategy
 import org.eclipse.xtext.ui.editor.autoedit.CommandInfo
-import org.eclipse.xtext.ui.editor.autoedit.CompoundMultiLineTerminalsEditStrategy
 import org.eclipse.xtext.ui.editor.autoedit.DefaultAutoEditStrategyProvider
 import org.eclipse.xtext.ui.editor.autoedit.MultiLineTerminalsEditStrategy
 import org.eclipse.xtext.ui.editor.autoedit.SingleLineTerminalsStrategy
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
+ * 
+ * This subclass provides an astonishingly opaque and complex override of
+ * the default editor behavior to properly handle the code body delimiters
+ * {= ... =} of Lingua Franca.  It is disheartening how difficult this was
+ * to accomplish.  The design of xtext does not seem to lend itself to
+ * subclassing, and the code has no comments in it at all.
  */
 @FinalFieldsConstructor
 class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
@@ -30,17 +39,24 @@ class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
         // xtext code, the following seems to provide auto completion for codeblock
         // delimiters for Lingua Franca.
         
-        // Following needs to be a 
-        protected CompoundLFMultiLineTerminalsEditStrategy.Factory compoundLFMultiLineTerminals;
-
-        // The following from the base class completely messes up with codeblocks.
-        // So we replace it below.
+        /**
+         * Handle combinations of nested braces.
+         * The following from the base class completely messes up with codeblocks.
+         * So we replace it below. Unfortunately, the base class CompoundMultiLineTerminalsEditStrategy
+         * is not written in a way that can be overridden, so we have to completely
+         * reimplement it.
+         */
         override void configureCompoundBracesBlocks(IEditStrategyAcceptor acceptor) {
+            // Base class has the following, which uses a factory:
             // acceptor.accept(compoundMultiLineTerminals.newInstanceFor("{", "}").and("[", "]").and("(", ")"), IDocument.DEFAULT_CONTENT_TYPE);
-            acceptor.accept(compoundLFMultiLineTerminals.newInstanceFor("{=", "=}")
-                .and("{", "}")
-                .and("(", ")")
-                .and("[", "]"), IDocument.DEFAULT_CONTENT_TYPE);
+            // We can't use that here because the factory creates instances of
+            // CompoundLFMultiLineTerminalsEditStrategy and we need CompoundMultiLineTerminalsEditStrategy.
+            // It is not clear to me why only one of the following is needed.
+            // It doesn't seem to matter which one.
+            // acceptor.accept(new CompoundLFMultiLineTerminalsEditStrategy("{", "}"), IDocument.DEFAULT_CONTENT_TYPE);
+            // acceptor.accept(new CompoundLFMultiLineTerminalsEditStrategy("(", ")"), IDocument.DEFAULT_CONTENT_TYPE);
+            // acceptor.accept(new CompoundLFMultiLineTerminalsEditStrategy("[", "]"), IDocument.DEFAULT_CONTENT_TYPE);
+            acceptor.accept(new CompoundLFMultiLineTerminalsEditStrategy("{=", "=}"), IDocument.DEFAULT_CONTENT_TYPE);
         }
                 
         /**
@@ -99,7 +115,7 @@ class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
         
         static class LFMultiLineTerminalsEditStrategy extends MultiLineTerminalsEditStrategy {
             new(String leftTerminal, String rightTerminal, boolean nested) {
-                super(leftTerminal, null, rightTerminal, nested)
+                super(leftTerminal, "", rightTerminal, nested)
             }
 
             override CommandInfo handleCursorInFirstLine(
@@ -117,19 +133,20 @@ class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
                 }
                 newC.isChange = true;
                 newC.offset = command.offset;
+                newC.text += command.text.trim;
                 // Insert the Return character into the new command.
-                newC.text += command.text;
+                newC.text += "\n"
                 newC.cursorOffset = command.offset + newC.text.length();
                 if (stopTerminal === null && atEndOfLineInput(document, command.offset)) {
                     newC.text += command.text + getRightTerminal();
                 }
                 if (stopTerminal !== null && stopTerminal.getOffset() >= command.offset
                         && util.isSameLine(document, stopTerminal.getOffset(), command.offset)) {
-                    // Get the string between the delimiters
+                    // Get the string between the delimiters, trimed of whitespace
                     val string = document.get(
                         command.offset,
                         stopTerminal.getOffset() - command.offset
-                    );
+                    ).trim;
                     // Find the indentation needed.
                     val lineNumber = document.getLineOfOffset(command.offset) // Line number.
                     val lineStart = document.getLineOffset(lineNumber) // Offset of start of line.
@@ -142,19 +159,73 @@ class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
                         newC.text += "    "
                         newC.cursorOffset += 4
                     }
-                    newC.text += string.trim();
-                    newC.text += command.text;
+                    newC.text += string;
+                    newC.text += command.text.trim;
+                    newC.text += "\n"
                     for (var i = 0; i < indentation / 4; i++) {
                         newC.text += "    "
                     }
-                    newC.length += string.trim().length();
+                    newC.length += string.length();
                 }
                 return newC;
             }
+            
+            // Expose base class protected methods within this package.
+            override findStopTerminal(IDocument document, int offset) throws BadLocationException {
+                super.findStopTerminal(document, offset)
+            }
+            override findStartTerminal(IDocument document, int offset) throws BadLocationException {
+                super.findStartTerminal(document, offset)
+            }
+            override internalCustomizeDocumentCommand(IDocument document, DocumentCommand command) {
+                // FIXME: Throws NPE!!
+                super.internalCustomizeDocumentCommand(document, command)
+            }
         }
         
-        static class CompoundLFMultiLineTerminalsEditStrategy extends CompoundMultiLineTerminalsEditStrategy {
-            // FIXME: Do Something here!
+        /**
+         * Strategy for handling combinations of nested braces of different types.
+         * This is based on CompoundMultiLineTerminalsEditStrategy by Sebastian Zarnekow,
+         * but unfortunately, that class is not written in a way that can be overridden,
+         * so this is a reimplementation.
+         */
+        static class CompoundLFMultiLineTerminalsEditStrategy extends AbstractTerminalsEditStrategy {
+
+            /** Strategies used to handle combinations of nested braces. */
+            List<LFMultiLineTerminalsEditStrategy> strategies = new LinkedList<LFMultiLineTerminalsEditStrategy>();
+
+            new(String leftTerminal, String rightTerminal) {
+                super(leftTerminal, rightTerminal)
+                strategies.add(new LFMultiLineTerminalsEditStrategy("(", ")", true))
+                strategies.add(new LFMultiLineTerminalsEditStrategy("{", "}", true))
+                strategies.add(new LFMultiLineTerminalsEditStrategy("[", "]", true))
+                strategies.add(new LFMultiLineTerminalsEditStrategy("{=", "=}", true))
+            }
+
+            override void internalCustomizeDocumentCommand(
+                IDocument document,
+                DocumentCommand command
+            ) throws BadLocationException {
+                if(command.length != 0) return;
+                val lineDelimiters = document.getLegalLineDelimiters();
+                val delimiterIndex = TextUtilities.startsWith(lineDelimiters, command.text);
+                if (delimiterIndex != -1) {
+                    var bestStrategy = null as LFMultiLineTerminalsEditStrategy;
+                    var bestStart = null as IRegion;
+                    for (LFMultiLineTerminalsEditStrategy strategy : strategies) {
+                        var candidate = strategy.findStartTerminal(document, command.offset);
+                        if (candidate !== null) {
+                            if (bestStart === null || bestStart.getOffset() < candidate.getOffset()) {
+                                bestStrategy = strategy;
+                                bestStart = candidate;
+                            }
+                        }
+                    }
+                    if (bestStrategy !== null) {
+                        bestStrategy.internalCustomizeDocumentCommand(document, command);
+                    }
+                }
+            }
         }
     }
 }
