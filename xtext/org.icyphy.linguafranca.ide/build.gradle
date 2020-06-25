@@ -1,8 +1,8 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 dependencies {
-    compile project(':org.icyphy.linguafranca')
-    compile "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
-    compile "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
+    implementation project(':org.icyphy.linguafranca')
+    implementation "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
+    implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
 }
     
 apply plugin: 'application'
@@ -11,9 +11,9 @@ apply plugin: 'com.github.johnrengelman.shadow'
 task generateLSPJar {
 	description 'Creates a jar file that implements a language server.'	
 	dependencies {
-		compile project(':org.icyphy.linguafranca')
-		compile "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
-		compile "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
+		implementation project(':org.icyphy.linguafranca')
+		implementation "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
+		implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
 	}
 	
 	apply plugin: 'application'

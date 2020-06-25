@@ -95,13 +95,11 @@ class ReactionInstance extends NamedInstance<Reaction> {
         }
         // Next handle the ports that this reaction reads.
         for (source : definition.sources) {
-            if (source instanceof VarRef) {
-                if (source.variable instanceof Port) {
-                    var portInstance = parent.getPortInstance(source)
-                    this.dependsOnPorts.add(portInstance)
-                    this.reads.add(portInstance)
-                    portInstance.dependentReactions.add(this)
-                }
+            if (source.variable instanceof Port) {
+                var portInstance = parent.getPortInstance(source)
+                this.dependsOnPorts.add(portInstance)
+                this.reads.add(portInstance)
+                portInstance.dependentReactions.add(this)
             }
         }
 
