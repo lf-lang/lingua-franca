@@ -24,9 +24,10 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-/** Runtime infrastructure for the C target of Lingua Franca.
- *  This file contains resources that are shared by the threaded and
- *  non-threaded versions of the C runtime.
+/**
+ * Runtime infrastructure for the C target of Lingua Franca.
+ * This file contains resources that are shared by the threaded and
+ * non-threaded versions of the C runtime.
  *  
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
@@ -34,9 +35,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "reactor.h"
 
-/** Global constants. */
-bool False = false;
-bool True = true;
+/**
+ * Indicator for the absence of values for ports that remain disconnected.
+ **/
+bool absent = false;
 
 /** 
  * Indicator of whether to wait for physical time to match logical time.
@@ -45,27 +47,16 @@ bool True = true;
  */ 
 bool fast = false;
 
-/** By default, execution is not threaded. */
-int number_of_threads = 0; // FIXME: should be unsigned
+/**
+ * By default, execution is not threaded.
+ **/
+unsigned int number_of_threads = 0;
 
 /**
  * Current time in nanoseconds since January 1, 1970.
  * This is not in scope for reactors.
  */
 instant_t current_time = 0LL;
-
-/** Logical time at the start of execution. */
-interval_t start_time = 0LL;
-
-/** Physical time at the start of the execution. */
-instant_t physical_start_time = 0LL;
-
-/**
- * Indicator that the execution should stop after the completion of the
- * current logical time. This can be set to true by calling the `stop()`
- * function in a reaction.
- */
-bool stop_requested = false;
 
 /** 
  * The logical time to elapse during execution, or -1 if no timeout time has
@@ -75,6 +66,23 @@ bool stop_requested = false;
 instant_t duration = -1LL;
 
 /**
+ * Physical time at the start of the execution.
+ */
+instant_t physical_start_time = 0LL;
+
+/**
+ * Logical time at the start of execution.
+ */
+interval_t start_time = 0LL;
+
+/**
+ * Indicator that the execution should stop after the completion of the
+ * current logical time. This can be set to true by calling the `stop()`
+ * function in a reaction.
+ */
+bool stop_requested = false;
+
+/**
  * Stop time (start_time + duration), or 0 if no timeout time has been given.
  */
 instant_t stop_time = 0LL;
@@ -82,39 +90,61 @@ instant_t stop_time = 0LL;
 /** Indicator of whether the keepalive command-line option was given. */
 bool keepalive_specified = false;
 
+// Define the array of pointers to the _is_present fields of all the
+// self structs that need to be reinitialized at the start of each time step.
+// NOTE: This may have to be resized for a mutation.
+bool** __is_present_fields = NULL;
+int __is_present_fields_size = 0;
+
+// Define the array of pointers to the token fields of all the
+// actions and inputs that need to have their reference counts
+// decremented at the start of each time step.
+// NOTE: This may have to be resized for a mutation.
+token_present_t* __tokens_with_ref_count = NULL;
+int __tokens_with_ref_count_size = 0;
+
 /////////////////////////////
 // The following functions are in scope for all reactors:
 
-/** Return the elapsed logical time in nanoseconds since the start of execution. */
+/**
+ * Return the elapsed logical time in nanoseconds since the start of execution.
+ */
 interval_t get_elapsed_logical_time() {
     return current_time - start_time;
 }
 
-/** Return the current logical time in nanoseconds since January 1, 1970. */
+/**
+ * Return the current logical time in nanoseconds since January 1, 1970.
+ */
 instant_t get_logical_time() {
     // FIXME: Does this need acquire the mutex?
     return current_time;
 }
 
-/** Return the current physical time in nanoseconds since January 1, 1970. */
+/** 
+ * Return the current physical time in nanoseconds since January 1, 1970.
+ */
 instant_t get_physical_time() {
     struct timespec physicalTime;
     clock_gettime(CLOCK_REALTIME, &physicalTime);
     return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec;
 }
 
-/** Return the elapsed physical time in nanoseconds. */
+/** 
+ * Return the elapsed physical time in nanoseconds.
+ */
 instant_t get_elapsed_physical_time() {
     struct timespec physicalTime;
     clock_gettime(CLOCK_REALTIME, &physicalTime);
     return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
 }
 
-/** Print a non-negative time value in nanoseconds with commas separating thousands
- *  followed by a carriage return. Ideally, this would use the locale to
- *  use periods if appropriate, but I haven't found a sufficiently portable
- *  way to do that.
- *  @param time A time value.
+/**
+ * Print a non-negative time value in nanoseconds with commas separating thousands
+ * followed by a carriage return. Ideally, this would use the locale to
+ * use periods if appropriate, but I haven't found a sufficiently portable
+ * way to do that.
+ * @param time A time value.
  */
 void print_time(instant_t time) {
     if (time < 1000LL || time < 0LL) {
@@ -131,7 +161,6 @@ void print_time(instant_t time) {
 
 /** Priority queues. */
 pqueue_t* event_q;     // For sorting by time.
-// pqueue_t* blocked_q;   // To store reactions that are blocked by other reactions.
 
 pqueue_t* reaction_q;  // For sorting by deadline.
 pqueue_t* recycle_q;   // For recycling malloc'd events.
@@ -313,6 +342,24 @@ token_freed __done_using(token_t* token) {
         }
     }
     return result;
+}
+
+/**
+ * Use tables to reset is_present fields to false and decrement reference
+ * counts between time steps and at the end of execution.
+ */
+void __start_time_step() {
+    for(int i = 0; i < __tokens_with_ref_count_size; i++) {
+        if (*(__tokens_with_ref_count[i].is_present)) {
+            if (__tokens_with_ref_count[i].reset_is_present) {
+                *(__tokens_with_ref_count[i].is_present) = false;
+            }
+            __done_using(*(__tokens_with_ref_count[i].token));
+        }
+    }
+    for(int i = 0; i < __is_present_fields_size; i++) {
+        *__is_present_fields[i] = false;
+    }
 }
 
 /**
@@ -630,7 +677,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  */
 void schedule_output_reactions(reaction_t* reaction) {
     // If the reaction produced outputs, put the resulting triggered
-    // reactions into the blocking queue.
+    // reactions into the reaction queue.
     for(int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
             trigger_t** triggerArray = (reaction->triggers)[i];
@@ -665,103 +712,13 @@ handle_t schedule(trigger_t* trigger, interval_t offset) {
 }
 
 /**
- * Schedule an action to occur with the specified value and time offset
- * with a copy of the specified value. If the value is non-null,
- * then it will be copied into newly allocated memory under the assumption
- * that its size given in the trigger's token object's element_size field
- * multiplied by the specified length.
- * See schedule_token(), which this uses, for details.
- * @param trigger Pointer to a trigger object (typically an action on a self struct).
- * @param offset The time offset over and above that in the action.
- * @param value A pointer to the value to copy.
- * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
- */
-handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
-    if (value == NULL) {
-        return schedule_token(trigger, offset, NULL);
-    }
-    if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
-        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
-        return -1;
-    }
-    int element_size = trigger->token->element_size;
-    void* container = malloc(element_size * length);
-    __count_payload_allocations++;
-    // printf("DEBUG: __schedule_with_copy_impl: Allocating memory for payload (token value): %p\n", container);
-    memcpy(container, value, element_size * length);
-    // Initialize token with an array size of length and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
-    // The schedule function will increment the reference count.
-    return schedule_token(trigger, offset, token);
-}
-
-/**
- * Schedule the specified action at a later logical time that depends
- * on whether the action is logical or physical and what its parameter
- * values are.
- *
- * logical action: A logical action has an offset (default is zero)
- * and a minimum interarrival time (MIT), which also defaults to zero.
- * The logical time at which this scheduled event will trigger is
- * the current time plus the offset plus the delay argument given to
- * this function. If, however, that time is not greater than a prior
- * triggering of this logical action by at least the MIT, then the
- * one of two things can happen depending on the policy specified
- * for the action. If the action's policy is DROP (default), then the
- * action is simply dropped and the memory pointed to by value argument
- * is freed. If the policy is DEFER, then the time will be increased
- * to equal the time of the most recent triggering plus the MIT.
- *
- * For the above, "current time" means the logical time of the
- * reaction that is calling this function, or if this function is
- * being called from outside a reaction (asynchronously), then the
- * most recent logical time relevant to the reactor that owns the
- * action.
- *
- * physical action: A physical action has all the same parameters
- * as a logical action, but instead of "current time" being a logical
- * time, current time is defined as the larger of the current logical
- * time (as above) and the time of the physical clock on the currently
- * executing platform.
- *
- * The value is required to be either NULL or a pointer to
- * memory dynamically allocated using malloc (it will be freed when
- * its reference count decrements to zero).
- *
- * There are three conditions under which this function will not
- * actually put an event on the event queue and decrement the reference count
- * of the token (if there is one), which could result in the payload being
- * freed. In all three cases, this function returns 0. Otherwise,
- * it returns a handle to the scheduled trigger, which is an integer
- * greater than 0.
- *
- * The first condition is that a stop has been requested and the time offset
- * of this event is greater than zero.
- * The second condition is that the logical time of the event
- * is greater that the requested stop time (timeout).
- * The third condition is that the trigger argument is null.
- *
- * @param action The action or timer to be triggered.
- * @param extra_delay Extra offset of the event release.
- * @param value Dynamically allocated memory containing the value to send.
- * @param length The length of the array, if it is an array, or 1 for a
- *  scalar and 0 for no payload.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
- */
-handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
-    token_t* token = create_token(trigger->element_size);
-    token->value = value;
-    token->length = length;
-    return schedule_token(trigger, extra_delay, token);
-}
-
-/**
- * Schedule the specified action with an integer value at a later logical
- * time that depends on whether the action is logical or physical and
- * what its parameter values are. See schedule_value().
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
  */
 handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
+    // NOTE: This doesn't acquire the mutex lock in the multithreaded version
+    // until schedule_value is called. This should be OK because the element_size
+    // does not change dynamically.
     if (trigger->element_size != sizeof(int)) {
         fprintf(stderr, "Action type is not an integer.");
         return -1;
@@ -782,7 +739,6 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
  */
 void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
     // First, initialize the token, reusing the one given if possible.
-    // FIXME: This token gets lost!!!!
     token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
     // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
     // Count allocations to issue a warning if this is never freed.

@@ -5,13 +5,23 @@ target C {
     timeout: 10 sec
 };
 reactor Source(period:time(2 sec)) {
+    input foo:int;
 	output y:int;
 	timer t(1 sec, period);
 	state count:int(0);
 	reaction(t) -> y {=
+		printf("Hello World. My count is: %d.\n", self->count);
+		set(y, self->count);
+	=}
+}
+
+reactor SourceExtended extends Source {
+	output y2: int;
+	timer t2(1 sec, 3 sec);
+	reaction(t2) -> y2 {=
 		(self->count)++;
 		printf("Source sending %d.\n", self->count);
-		set(y, self->count);
+		set(y2, self->count);
 	=}
 }
 
@@ -33,8 +43,8 @@ reactor Test {
 	=}
 }
 main reactor Composition {
-	s = new Source();
+	s = new SourceExtended();
 	
 	d = new Test();
-	s.y -> d.x;
+	s.y2 -> d.x;
 }

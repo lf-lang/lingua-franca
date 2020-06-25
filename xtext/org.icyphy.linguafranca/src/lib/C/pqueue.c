@@ -90,6 +90,12 @@ void* find_equal_same_priority(pqueue_t *q, void *e, int pos) {
         else
             return find_equal_same_priority(q, e, right(pos));   
     }
+
+    // for (int i=1; i < q->size; i++) {
+    //     if (q->d[i] == e) {
+    //         return q->d[i];
+    //     }
+    // }
     return NULL;
 }
 
@@ -195,8 +201,15 @@ int pqueue_insert(pqueue_t *q, void *d) {
 
     if (!q) return 1;
 
-    //printf("==Before insert==\n");
-    //pqueue_dump(q, stdout, q->prt);
+    // printf("==Before insert==\n");
+    // pqueue_dump(q, stdout, q->prt);
+
+    // for(int i=1; i < q->size; i++) {
+    //     if (d == q->d[i]) {
+    //         printf("Duplicate found!\n");
+    //         exit(1);
+    //     }
+    // }
 
     /* allocate more memory if necessary */
     if (q->size >= q->avail) {
@@ -206,11 +219,15 @@ int pqueue_insert(pqueue_t *q, void *d) {
         q->d = tmp;
         q->avail = newsize;
     }
-    /* insert item and remove potential duplicate */
+    /* insert item and organize the tree */
     i = q->size++;
     q->d[i] = d;
     bubble_up(q, i);
-    
+
+    // printf("==After insert==\n");
+    // pqueue_dump(q, stdout, q->prt);
+
+
     // NOTE: Only use this for debugging!
     // if (!pqueue_is_valid(q)) {
     //     pqueue_dump(q, stdout, q->prt);

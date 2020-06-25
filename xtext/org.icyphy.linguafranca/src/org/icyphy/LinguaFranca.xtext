@@ -64,6 +64,7 @@ Reactor:
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
+    ('extends' (superClasses+=[Reactor] (',' superClasses+=[Reactor])*))?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -209,9 +210,13 @@ Element:
     | (time=INT unit=TimeUnit) 
     | id=ID;
 
-/////////// Pieces
+///////// Pieces
+TypedVariable:
+    Port | Action
+;
+
 Variable:
-    Port | Action | Timer;
+    TypedVariable | Timer;
 
 Trigger:
     Action | Input;

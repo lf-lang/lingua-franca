@@ -1,0 +1,109 @@
+/**
+ * This program is a concept demonstration showing how higher-order
+ * combinators could be defined in the C target. This example has
+ * a ScatterGather reactor that, upon receiving an input array,
+ * creates as many instances of a Worker reactor as there are elements
+ * in the array, distributes the elements of the array to those workers,
+ * and puts onto the reaction queue all reactions in the workers that are
+ * sensitive to those inputs.  When the workers are finished executing,
+ * a second reaction in ScatterGather will execute. That second reaction
+ * collects all the results of the workers into an array and sends the
+ * result to the output.
+ */
+target C { 
+    threads: 4
+};
+reactor Source {
+    output out:int[];
+    reaction(startup) -> out {=
+        set_new_array(out, 4);
+        for (int i=0; i < 4; i++) {
+            out[i] = i;
+        }
+    =}
+}
+reactor Worker(id:int(2)) {
+    input worker_in:int;
+    output worker_out:int;
+    reaction(worker_in) -> worker_out {=
+        printf("Worker received in first reaction%d\n", worker_in);
+        set(worker_out, worker_in * self->id);
+    =}
+    reaction(worker_in) {=
+        printf("Worker received second %d\n", worker_in);
+    =}
+}
+reactor ScatterGather {
+    input in:int[];
+    output out:int[];
+    
+    // Create a state variable to pass the workers created in
+    // the first reaction to the second reaction. This is an array
+    // of pointers to the self struct of the worker.
+    // The type of a self struct is the reactor class name, converted to
+    // lower case, followed by _self_t.
+    state workers:worker_self_t**({=NULL=});
+    // Create a template worker, which ensures that downstream
+    // levels are correct. The template worker could have any
+    // number of reactions sensitive to the input we will provide.
+    template_worker = new Worker();
+    reaction(in) -> template_worker.worker_in {=
+        set(template_worker.worker_in, in[0]);
+        // SCATTER(in, worker_in, Worker, self->workers, id);
+        self->workers = malloc(in_length * sizeof(worker_self_t*));
+        bool is_present = true;
+        pthread_mutex_lock(&mutex);
+        for (int i=1; i < in_length; i++) {
+            self->workers[i] = new_Worker();
+            self->workers[i]->id = i;
+            self->workers[i]->__worker_in_is_present = &is_present;
+            self->workers[i]->__worker_in = &(in[i]);
+            trigger_t worker_trigger = self->workers[i]->___worker_in;
+            for(int j = 0; j < worker_trigger.number_of_reactions; j++) {
+                worker_trigger.reactions[j]->index = self->___reaction_0.index + j + 1;
+                // The chain_id is the same for each worker, which ensures that the
+                // second reaction below will not be invoked before all the workers
+                // have finished.  The second reaction below has a larger level than
+                // the workers, and since the chain_id overlaps, the workers must
+                // finish before the reaction will execute.
+                worker_trigger.reactions[j]->chain_id = self->___reaction_0.chain_id;
+                pqueue_insert(reaction_q, worker_trigger.reactions[j]);
+            }
+        }
+        // Signal all the worker threads.
+        pthread_cond_broadcast(&reaction_q_changed);
+        pthread_mutex_unlock(&mutex);
+    =}
+    reaction(in, template_worker.worker_out) -> out {=
+        set_new_array(out, in_length);
+        // FIXME: We should be checking template_worker.worker_out_is_present.
+        // But what do we do if it is not present?
+        out[0] = template_worker.worker_out;
+        for (int i=1; i < in_length; i++) {
+            printf("Gather received %d at index %d.\n", self->workers[i]->__worker_out, i);
+            out[i] = self->workers[i]->__worker_out;
+        }
+        // FIXME: Invoke the destructor for each of the workers, once
+        // they have a destructor.
+    =}
+}
+reactor Print {
+    input in:int[];
+    reaction(in) {=
+        printf("[");
+        for(int i = 0; i < in_length; i++) {
+            printf("%d", in[i]);
+            if (i < in_length - 1) {
+                printf(", ");
+            }
+        }
+        printf("]\n");
+    =}
+}
+main reactor Main {
+    s = new Source();
+    g = new ScatterGather();
+    p = new Print();
+    s.out -> g.in;
+    g.out -> p.in;
+}

@@ -109,7 +109,12 @@ class TypeScriptGenerator extends GeneratorBase {
         IGeneratorContext context
     ) {        
         super.doGenerate(resource, fsa, context)
-        
+           
+        // Generate code for each reactor. 
+        for (r : reactors) {
+           r.generateReactor()
+        }
+
         // FIXME: These important files are defined above in two places
         
         // Important files and directories
@@ -322,10 +327,7 @@ class TypeScriptGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Code generators.
     
-    
      def generateReactorFederated(Reactor reactor, FederateInstance federate) {
-        super.generateReactor(reactor)   
-        
         var reactorConstructor = new StringBuilder()
 
         pr("// =============== START reactor class " + reactor.name)
@@ -678,10 +680,10 @@ class TypeScriptGenerator extends GeneratorBase {
                 
                 functArg = "this." + effect.generateVarRef 
                 if (effect.variable instanceof Action){
-                    reactFunctArgs.add("this.getSchedulable(" + functArg + ")")
+                    reactFunctArgs.add("this.schedulable(" + functArg + ")")
                 } else if (effect.variable instanceof Port) {
-                    reactFunctArgs.add("this.getWriter(" + functArg + ")")
-                }  
+                    reactFunctArgs.add("this.writable(" + functArg + ")")
+                }
                 
                 if (effect.container === null) {
                     pr(reactPrologue, "let " + effect.variable.name + " = __" + effect.variable.name + ".get();")
@@ -834,7 +836,7 @@ class TypeScriptGenerator extends GeneratorBase {
      *  federate structure.
      *  @param reactor The parsed reactor data structure.
      */
-    override generateReactor(Reactor reactor) {
+    def generateReactor(Reactor reactor) {
         generateReactorFederated(reactor, null)
     }
 
