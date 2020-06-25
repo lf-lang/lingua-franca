@@ -99,6 +99,11 @@ class TypeScriptGenerator extends GeneratorBase {
     ) {        
         super.doGenerate(resource, fsa, context)
         
+        // Generate code for each reactor. 
+        for (r : reactors) {
+            r.generateReactor()
+        }
+        
         // Important files and directories
         tsFilename = filename + ".ts"
         jsFilename = filename + ".js"
@@ -250,9 +255,8 @@ class TypeScriptGenerator extends GeneratorBase {
     /** Generate a reactor class definition.
      *  @param reactor The parsed reactor data structure.
      */
-    override generateReactor(Reactor reactor) {
-        super.generateReactor(reactor)   
-        
+    def generateReactor(Reactor reactor) {
+
         var reactorConstructor = new StringBuilder()
 
         pr("// =============== START reactor class " + reactor.name)

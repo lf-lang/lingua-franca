@@ -108,8 +108,8 @@ class LinguaFrancaSynthesisCycleDetection extends AbstractSynthesisExtensions {
         if (!depGraph.cycles.empty && highlighter !== null) {
 			// Highlight cycles
             for (cycle : depGraph.cycles) {
-            	val cyclePorts = cycle.map[contents].toSet
-            	val cycleNodes = cycle.map[contents].map[
+            	val cyclePorts = cycle.toSet
+            	val cycleNodes = cycle.map[
             		if (it.node !== null) {
             			it.node
             		} else {

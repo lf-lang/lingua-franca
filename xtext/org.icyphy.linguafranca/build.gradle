@@ -1,14 +1,16 @@
 dependencies {
-	compile "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
-	compile "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextVersion}"
-	// https://mvnrepository.com/artifact/org.eclipse.core/org.eclipse.core.runtime
-	compile group: 'org.eclipse.core', name: 'org.eclipse.core.runtime', version: '3.7.0'
-	// https://mvnrepository.com/artifact/org.eclipse.core/resources/3.3.0-v20070604
-	compile group: 'org.eclipse.core', name: 'resources', version: '3.3.0-v20070604'
+	implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
+	implementation "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextVersion}"
+	// https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.runtime
+    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.runtime', version: '3.18.0'
+    // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.resources
+    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.resources', version: '3.13.700'
+    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe2.launch', version: '2.11.3'
 }
 configurations {
 	mwe2 {
-		extendsFrom compile
+		extendsFrom implementation
 	}
 }
 
@@ -16,7 +18,6 @@ dependencies {
 	mwe2 'org.eclipse.emf:org.eclipse.emf.mwe2.launch'
 	mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:${xtextVersion}"
 	mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${xtextVersion}"
-	mwe2 'org.eclipse.xtext:xtext-antlr-generator'
 }
 
 task generateXtextLanguage(type: JavaExec) {
@@ -39,17 +40,19 @@ task generateStandaloneCompiler() {
 	apply plugin: 'application'
 	apply plugin: 'com.github.johnrengelman.shadow'
 	mainClassName = 'org.icyphy.generator.Main'
-	shadowJar {
-		exclude 'test/*'
-		minimize() {
-			exclude(dependency('log4j:log4j:.*'))
-			exclude(dependency('com.google.inject:guice:.*'))
-		}
- 		transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
- 			resource = 'plugin.properties'
- 		}
-	}
-        compileJava {
+	
+    shadowJar {
+        exclude 'test/*'
+        minimize() {
+            exclude(dependency('log4j:log4j:.*'))
+            exclude(dependency('com.google.inject:guice:.*'))
+        }
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+            resource = 'plugin.properties'
+        }
+    }
+    
+    compileJava {
                 options.compilerArgs << '-Xlint:unchecked'
 	}
 }

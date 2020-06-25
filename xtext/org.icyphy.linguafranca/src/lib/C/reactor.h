@@ -61,6 +61,10 @@
 
 //  ======== Macros ========  //
 
+#define constructor(classname) (new_ ## classname)
+#define self_struct_t(classname) (classname ## _self_t)
+
+
 // Commonly used time values.
 #define NEVER -0xFFFFFFFFFFFFFFFFLL
 #define FOREVER 0x7FFFFFFFFFFFFFFFLL
@@ -269,7 +273,7 @@ typedef enum {false, true} bool;
 typedef int handle_t;
 
 /**
- * Time instants. Both physical and logical times are represented
+ * Time instant. Both physical and logical times are represented
  * using this typedef. FIXME: Perhaps distinct typedefs should
  * be used.
  * WARNING: If this code is used after about the year 2262,
@@ -277,7 +281,7 @@ typedef int handle_t;
  */
 typedef long long instant_t;
 
-/** Intervals of time. */
+/** Interval of time. */
 typedef long long interval_t;
 
 /**
@@ -295,10 +299,14 @@ typedef char* string;
 /** Topological order index for reactions. */
 typedef pqueue_pri_t index_t;
 
-/** Reaction function type. */
+/**
+ * Reaction function type. The argument passed to one of
+ * these reaction functions is a pointer to the self struct
+ * for the reactor.
+ */
 typedef void(*reaction_function_t)(void*);
 
-/** Trigger struct representing an output, timer, action, or input. */
+/** Trigger struct representing an output, timer, action, or input. See below. */
 typedef struct trigger_t trigger_t;
 
 /**
@@ -355,6 +363,7 @@ typedef struct token_present_t {
  * The COMMON information is set in the constructor.
  * The fields marked RUNTIME have values that change
  * during execution.
+ * Instances of this struct are put onto the reaction queue (reaction_q).
  */
 typedef struct reaction_t reaction_t;
 struct reaction_t {
@@ -369,18 +378,21 @@ struct reaction_t {
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
     interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
-    reaction_function_t deadline_violation_handler; // Local deadline violation handler. COMMON.
+    reaction_function_t deadline_violation_handler; // Deadline violation handler. COMMON.
 };
 
-/** Trigger struct representing an output, timer, action, or input. */
+/**
+ * Trigger struct representing an output, timer, action, or input.
+ * Instances of this struct are put onto the event queue (event_q).
+ */
 struct trigger_t {
-    reaction_t** reactions;   // Reactions sensitive to this trigger.
+    reaction_t** reactions;   // Array of pointers to reactions sensitive to this trigger.
     int number_of_reactions;  // Number of reactions sensitive to this trigger.
-	bool is_timer;            // True if this is a timer (a special kind of action), false otherwise.
+    bool is_timer;            // True if this is a timer (a special kind of action), false otherwise.
     interval_t offset;        // Minimum delay of an action. For a timer, this is also the maximum delay.
-	interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
+    interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
     token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
-    bool is_physical;         // Indicator that this denotes a physical action (i.e., to be scheduled relative to physical time).
+    bool is_physical;         // Indicator that this denotes a physical action.
     instant_t scheduled;      // Tag of the last event that was scheduled for this action.
     bool drop;                // Whether or not to drop events if they succeed one another more quickly than the minimum interarrival time allows.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
@@ -393,7 +405,7 @@ typedef struct event_t {
     instant_t time;           // Time of release.
     trigger_t* trigger;       // Associated trigger.
     size_t pos;               // Position in the priority queue.
-    token_t* token;           // Pointer to the token wrapping the value or a template token for a trigger.
+    token_t* token;           // Pointer to the token wrapping the value.
 } event_t;
 
 //  ======== Function Declarations ========  //
@@ -401,26 +413,29 @@ typedef struct event_t {
 /**
  * Return the elapsed logical time in nanoseconds
  * since the start of execution.
- * @return a time interval
+ * @return A time interval.
  */
 interval_t get_elapsed_logical_time();
 
 /**
- * Return the current logical time in nanoseconds
- * since January 1, 1970.
- * @return a time instant
+ * Return the current logical time in nanoseconds.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
+ * @return A time instant.
  */
 instant_t get_logical_time();
 
 /**
- * Return the current physical time in nanoseconds
- * since January 1, 1970.
- * @return a time instant
+ * Return the current physical time in nanoseconds.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
+ * @return A time instant.
  */
 instant_t get_physical_time();
 
 /**
- * Print a snapshot of the priority queues used during execution.
+ * Print a snapshot of the priority queues used during execution
+ * (for debugging).
  */
 void print_snapshot();
 
@@ -484,12 +499,13 @@ bool __wrapup();
 
 /**
  * Indicator for the absence of values for ports that remain disconnected.
- **/
+ */
 bool absent;
 
 /**
+ * The number of worker threads for threaded execution.
  * By default, execution is not threaded and this variable will have value 0.
- **/
+ */
 unsigned int number_of_threads;
 
 /**
@@ -497,7 +513,7 @@ unsigned int number_of_threads;
  * The value pointer will be NULL and the length will be 0.
  * @param element_size The size of an element carried in the payload or
  *  0 if there is no payload.
- * @return A new or recycled token_t struct.
+ * @return A pointer to a new or recycled token_t struct.
  */
 token_t* create_token(size_t element_size);
 
@@ -508,12 +524,10 @@ token_t* create_token(size_t element_size);
  * in a token. See schedule_token() for more details.
  * @param action The action to be triggered.
  * @param extra_delay Extra offset of the event release above that in the action.
- * @param value Dynamically allocated memory containing the value to send.
- * @param length The length of the array, if it is an array, or 1 for a
- *  scalar and 0 for no payload.
+ * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value);
+handle_t schedule_int(trigger_t* action, interval_t extra_delay, int value);
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -534,10 +548,9 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value);
  * to equal the time of the most recent triggering plus the MIT.
  *
  * For the above, "current time" means the logical time of the
- * reaction that is calling this function, or if this function is
- * being called from outside a reaction (asynchronously), then the
- * most recent logical time relevant to the reactor that owns the
- * action.
+ * reaction that is calling this function. Logical actions should
+ * always be scheduled within a reaction invocation, never asynchronously
+ * from the outside. FIXME: This needs to be checked.
  *
  * physical action: A physical action has all the same parameters
  * as a logical action, but its timestamp will be the larger of the
@@ -554,10 +567,11 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value);
  * it returns a handle to the scheduled trigger, which is an integer
  * greater than 0.
  *
- * The first condition is that a stop has been requested and the time offset
+ * The first condition is that stop() has been called and the time offset
  * of this event is greater than zero.
  * The second condition is that the logical time of the event
- * is greater that the requested stop time (timeout).
+ * is greater that the stop time (timeout) that is specified in the target
+ * properties or on the command line.
  * The third condition is that the trigger argument is null.
  *
  * @param action The action to be triggered.

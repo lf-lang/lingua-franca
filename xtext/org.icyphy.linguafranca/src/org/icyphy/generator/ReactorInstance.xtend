@@ -47,6 +47,8 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
+import static extension org.icyphy.ASTUtils.*
+
 /**
  * Representation of a runtime instance of a reactor.
  * For the main reactor, which has no parent, once constructed,
@@ -67,40 +69,44 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent, or null for the main rector.
+     *  @param generator The generator (for error reporting).
      */
-    new(Instantiation definition, ReactorInstance parent,
-        GeneratorBase generator) {
+    new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         super(definition, parent)
         this.generator = generator
 
         // Apply overrides and instantiate parameters for this reactor instance.
-        for (parameter : definition.reactorClass.parameters) {
+        for (parameter : definition.reactorClass.allParameters) {
             this.parameters.add(new ParameterInstance(parameter, this))
         }
 
         // Instantiate children for this reactor instance
-        for (child : definition.reactorClass.instantiations) {
+        for (child : definition.reactorClass.allInstantiations) {
             var childInstance = new ReactorInstance(child, this, generator)
             this.children.add(childInstance)
         }
 
         // Instantiate inputs for this reactor instance
-        for (inputDecl : definition.reactorClass.inputs) {
-            this.inputs.add(new PortInstance(inputDecl, this))
+        for (inputDecl : definition.reactorClass.allInputs) {
+            if (inputDecl.arraySpec === null) {
+                this.inputs.add(new PortInstance(inputDecl, this))
+            } else {
+                this.inputs.add(new MultiportInstance(inputDecl, this, generator))
+            }
         }
 
         // Instantiate outputs for this reactor instance
-        for (outputDecl : definition.reactorClass.outputs) {
+        for (outputDecl : definition.reactorClass.allOutputs) {
             this.outputs.add(new PortInstance(outputDecl, this))
         }
 
         // Instantiate timers for this reactor instance
-        for (timerDecl : definition.reactorClass.timers) {
+        for (timerDecl : definition.reactorClass.allTimers) {
             this.timers.add(new TimerInstance(timerDecl, this))
         }
 
         // Instantiate actions for this reactor instance
-        for (actionDecl : definition.reactorClass.actions) {
+        for (actionDecl : definition.reactorClass.allActions) {
             this.actions.add(new ActionInstance(actionDecl, this))
         }
 
@@ -108,14 +114,35 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // in the port instances.
         // Note that this can only happen _after_ the children and 
         // port instances have been created.
-        for (connection : definition.reactorClass.connections) {
+        for (connection : definition.reactorClass.allConnections) {
             var srcInstance = this.getPortInstance(connection.leftPort)
             var dstInstance = this.getPortInstance(connection.rightPort)
+            
+            // If the right side of the connection has the form port[i],
+            // then use the specific port, not the multiport.
+            if (connection.rightPort.variableArraySpec !== null) {
+                val width = (dstInstance as MultiportInstance).instances.size
+                val index = connection.rightPort.variableArraySpec.length
+                if (index >= width) {
+                    generator.reportError(connection.rightPort, "Index out of range.")
+                }
+                dstInstance = (dstInstance as MultiportInstance).instances.get(index)
+            }
+            // If the left side of the connection has the form port[i],
+            // then use the specific port, not the multiport.
+            if (connection.leftPort.variableArraySpec !== null) {
+                val width = (dstInstance as MultiportInstance).instances.size
+                val index = connection.leftPort.variableArraySpec.length
+                if (index >= width) {
+                    generator.reportError(connection.leftPort, "Index out of range.")
+                }
+                dstInstance = (dstInstance as MultiportInstance).instances.get(index)
+            }
+            
             srcInstance.dependentPorts.add(dstInstance)
             if (dstInstance.dependsOnPort !== null &&
                 dstInstance.dependsOnPort !== srcInstance) {
-                // FIXME: Is this the right way to handle the error?
-                throw new Exception(
+                generator.reportError(connection,
                     "Destination port " + dstInstance.getFullName +
                         " is already connected to " +
                         dstInstance.dependsOnPort.getFullName
@@ -747,7 +774,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  that follows from the order in which they are defined.
      */
     protected def createReactionInstances() {
-        var reactions = this.definition.reactorClass.reactions
+        var reactions = this.definition.reactorClass.allReactions
         if (this.definition.reactorClass.reactions !== null) {
             var ReactionInstance previousReaction = null
             var count = 0
@@ -786,8 +813,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *   of its children.
      *  @param destinations The set of destinations to populate.
      */
-    protected def void transitiveClosure(PortInstance source,
-        LinkedHashSet<PortInstance> destinations) {
+    protected def void transitiveClosure(
+            PortInstance source,
+            LinkedHashSet<PortInstance> destinations
+    ) {
         // Check that the specified port belongs to this reactor or one of its children.
         // The following assumes that the main reactor has no ports, or else
         // a NPE will occur.

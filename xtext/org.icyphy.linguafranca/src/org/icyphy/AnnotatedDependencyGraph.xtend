@@ -33,7 +33,7 @@ import java.util.Set
 import java.util.HashSet
 
 /** 
- * Elaboration of `DependencyGraph` that stores nodes in a wrapper used
+ * Elaboration of `DirectedGraph` that stores nodes in a wrapper used
  * for annotations 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
@@ -41,7 +41,7 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> {
 
     var index = 0
     var Stack<AnnotatedNode<T>> stack = new Stack()
-    public var List<Set<AnnotatedNode<T>>> cycles = new LinkedList()
+    public var List<Set<T>> cycles = new LinkedList()
 
     /**
      * Construct a new dependency graph.
@@ -95,7 +95,7 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> {
             do {
                 dep = this.stack.pop()
                 dep.onStack = false
-                scc.add(dep)
+                scc.add(dep.contents)
             } while(!node.equals(dep))
             // Only report self loops or cycles with two or more nodes.
             if (scc.size > 1 || node.selfLoop)
