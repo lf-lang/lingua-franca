@@ -1039,37 +1039,3 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
 }
 #endif
 // ********** End Windows Support
-
-// Patmos does not have an epoch, so it does not have clock_gettime
-// clock() looks like not working, use the hardware counter of Patmos
-#ifdef __PATMOS__
-int clock_gettime(clockid_t clk_id, struct timespec *tp) {
-    // TODO: use all 64 bits of the timer
-    int timestamp = TIMER_US_LOW;
-// printf("Time %d\n", timestamp);
-    tp->tv_sec = timestamp/1000000;
-    tp->tv_nsec = (timestamp%1000000) * 1000;
-// printf("clock_gettime: %lld %ld\n", tp->tv_sec, tp->tv_nsec);
-    return 0;
-}
-
-int nanosleep(const struct timespec *req, struct timespec *rem) {
-
-    // We could use our deadline device here
-    int timestamp = TIMER_US_LOW;
-// printf("nanosleep: %lld %ld\n", req->tv_sec, req->tv_nsec);
-    
-    timestamp += req->tv_sec * 1000000 + req->tv_nsec / 1000;
-// printf("sleep to %d\n", timestamp);
-    while (timestamp - TIMER_US_LOW > 0) {
-        ;
-// printf("time %d\n", TIMER_US_LOW);
-    }
-    if (rem != 0) {
-        rem->tv_sec = 0;
-        rem->tv_nsec = 0;
-
-    }
-    return 0;
-}
-#endif
