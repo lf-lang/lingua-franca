@@ -17,6 +17,7 @@ import org.eclipse.xtend.lib.annotations.Data
 import org.icyphy.AnnotatedDependencyGraph
 import org.icyphy.AnnotatedNode
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.Connection
 
 import static extension de.cau.cs.kieler.klighd.kgraph.util.KGraphIterators.*
 import static extension java.lang.String.*
@@ -69,10 +70,14 @@ class LinguaFrancaSynthesisCycleDetection extends AbstractSynthesisExtensions {
             	} else {
             		// If node has port prefer dependencies on ports
             		for (edge : childNode.outgoingEdges.filter[!target.outgoingEdges.empty]) { // also simplify dependency graph
-            			depGraph.addEdge(
-	                		new AnnotatedNode(edge.sourcePort?:vPort),
-	                		new AnnotatedNode(edge.targetPort?:virtualPorts.getOrInit(edge.target)[createPort()])
-            			)
+            			// check if after breaks cycle
+            			val source = edge.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)
+            			if (!(source instanceof Connection) || (source as Connection).delay === null) {
+	            			depGraph.addEdge(
+		                		new AnnotatedNode(edge.sourcePort?:vPort),
+		                		new AnnotatedNode(edge.targetPort?:virtualPorts.getOrInit(edge.target)[createPort()])
+	            			)
+            			}
             		}
             		// If node breaks cycles or has children -> do not introduce dependencies from input to output
 	            	if (!breaksCylce && childNode.children.empty) {
@@ -120,9 +125,9 @@ class LinguaFrancaSynthesisCycleDetection extends AbstractSynthesisExtensions {
             	if (DEBUG_CYCLE_DETECTION) {
 		            println("-- DEBUG CYCLE DETECTION: Cycle --")
 		            for (n : cycle) {
-	            		val sN = (n.contents.eContainer?:virtualPorts.inverse.get(n.contents)) as KNode
+	            		val sN = (n.eContainer?:virtualPorts.inverse.get(n)) as KNode
 	            		val sO = sN?.getProperty(KlighdInternalProperties.MODEL_ELEMEMT).toString
-	            		val sP = n.contents.eContainer === null ? "virtual" : n.contents.getProperty(CoreOptions.PORT_SIDE).toString
+	            		val sP = n.eContainer === null ? "virtual" : n.getProperty(CoreOptions.PORT_SIDE).toString
 	            		println("%s[%s]".format(sO, sP))
 		            }
 				}
