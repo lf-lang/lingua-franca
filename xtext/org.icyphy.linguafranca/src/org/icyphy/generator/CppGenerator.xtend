@@ -131,6 +131,7 @@ class CppGenerator extends GeneratorBase {
 
         if (mainReactor === null) {
             // No main reactor. Nothing to do.
+            println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         } else {
             reactors.add(mainReactor)
