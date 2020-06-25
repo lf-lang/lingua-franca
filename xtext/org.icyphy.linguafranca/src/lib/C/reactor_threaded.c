@@ -34,7 +34,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 
 // Number of idle worker threads.
-int number_of_idle_threads = 0;
+volatile int number_of_idle_threads = 0;
 
 // Queue of currently executing reactions.
 pqueue_t* executing_q;  // Sorted by index (precedence sort)
@@ -51,36 +51,8 @@ pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
 
 /**
  * Schedule the specified trigger at current_time plus the offset of the
- * specified trigger plus the delay. If the offset of the trigger and
- * the extra_delay are both zero, then the event will occur one
- * microstep later in superdense time (it gets put on the event queue,
- * which will not be examined until all events on the reaction queue
- * have been processed).
- *
- * The value is required to be either
- * NULL or a pointer to a token wrapping the payload. The token carries
- * a reference count, and when the reference count decrements to 0,
- * the will be freed. Hence, it is essential that the payload be in
- * memory allocated using malloc.
- *
- * There are three conditions under which this function will not
- * actually put an event on the event queue and decrement the reference count
- * of the token (if there is one), which could result in the payload being
- * freed. In all three cases, this function returns 0. Otherwise,
- * it returns a handle to the scheduled trigger, which is an integer
- * greater than 0.
- *
- * The first condition is that a stop has been requested and the trigger
- * offset plus the extra delay is greater than zero.
- * The second condition is that the trigger offset plus the extra delay
- * is greater that the requested stop time (timeout).
- * The third condition is that the trigger argument is null.
- *
- * @param trigger The trigger to be invoked at a later logical time.
- * @param extra_delay The logical time delay, which gets added to the
- *  trigger's minimum delay, if it has one.
- * @param token The token wrapping the payload.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ * specified trigger plus the delay.
+ * See reactor.h for documentation.
  */
 handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token) {
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
@@ -91,7 +63,58 @@ handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* tok
     pthread_cond_signal(&event_q_changed);
     // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
     pthread_mutex_unlock(&mutex);
-     return return_value;
+    return return_value;
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
+    if (value == NULL) {
+        return schedule_token(trigger, offset, NULL);
+    }
+    if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
+        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
+        return -1;
+    }
+    // printf("DEBUG: pthread_mutex_lock schedule_token\n");
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: pthread_mutex_locked\n");
+    int element_size = trigger->token->element_size;
+    void* container = malloc(element_size * length);
+    __count_payload_allocations++;
+    // printf("DEBUG: __schedule_copy: Allocating memory for payload (token value): %p\n", container);
+    memcpy(container, value, element_size * length);
+    // Initialize token with an array size of length and a reference count of 0.
+    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
+    // The schedule function will increment the reference count.
+    handle_t result = __schedule(trigger, offset, token);
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    pthread_cond_signal(&event_q_changed);
+    // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
+    pthread_mutex_unlock(&mutex);
+    return result;
+}
+
+/**
+ * Variant of schedule_token that creates a token to carry the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+    // printf("DEBUG: pthread_mutex_lock schedule_token\n");
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: pthread_mutex_locked\n");
+    token_t* token = create_token(trigger->element_size);
+    token->value = value;
+    token->length = length;
+    int return_value = __schedule(trigger, extra_delay, token);
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    pthread_cond_signal(&event_q_changed);
+    // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
+    pthread_mutex_unlock(&mutex);
+    return return_value;
 }
 
 /** Placeholder for code-generated function that will, in a federated
@@ -174,12 +197,8 @@ bool __first_invocation = true;
  * physical time matches or exceeds the time of the least tag on the event
  * queue; pop the next event(s) from the event queue that all have the same tag;
  * extract from those events the reactions that are to be invoked at this
- * logical time and insert them into the reaction queue. The reaction queue is
- * sorted by index, the upper 48 bits of which consist of a deadline and the
- * lower 16 bits denote a level that must be greater than the levels of all
- * reactions that precede it in the precedence graph. Before executing a
- * reaction, each worker verifies that no reactions with a lower level and
- * matching chain id are executing concurrently.
+ * logical time and insert them into the reaction queue. The event queue is
+ * sorted by time tag.
  *
  * If there is no event in the queue and the keepalive command-line option was
  * not given, set stop_requested to true and return.
@@ -195,12 +214,12 @@ bool __first_invocation = true;
  *  @return false if the program should be terminated, true otherwise.
  */
 bool __next() {
-     // Previous logical time is complete.
+    // Previous logical time is complete.
     if (stop_requested) {
         return false;
     }
 
-     // Peek at the earliest event in the event queue.
+    // Peek at the earliest event in the event queue.
     event_t* event = pqueue_peek(event_q);
     instant_t next_time = FOREVER;
     if (event != NULL) {
@@ -364,24 +383,61 @@ void stop() {
 }
 
 /**
- * Return `true` if there is currently another reaction blocking the given
- * reaction.
+ * Return `true` if there is currently another reaction on either
+ * the executing queue or the transfer queue that is blocking the given
+ * reaction. A reaction blocks the specified reaction if it has a
+ * level less than that of the specified reaction and it also has
+ * an overlapping chain ID, meaning that it is (possibly) upstream
+ * of the specified reaction.
  * @return true if this reaction is blocked, false otherwise.
  */
 bool is_blocked(reaction_t* reaction) {
     for (int i = 1; i < executing_q->size; i++) {
         reaction_t* running = executing_q->d[i];
-        if (OVERLAPPING(reaction->chain_id, running->chain_id) 
-                && LEVEL(reaction->index) > LEVEL(running->index)) {
+        if (LEVEL(running->index) < LEVEL(reaction->index)
+                && OVERLAPPING(reaction->chain_id, running->chain_id)) {
             return true;
         }
     }
+    // Note that there is no need to check the transfer_q, which contains
+    // reactions popped from the reaction_q that have previously been
+    // determined to be blocked by executing reactions. The reason that
+    // we don't have to check the transfer_q is that if there is a reaction
+    // on that queue blocking this one, then there must also be a reaction
+    // on the executing queue blocking this one. Blocking is transitive.
+
+    // printf("Not blocking for reaction with chainID %llu and level %llu\n", reaction->chain_id, reaction->index);
+    // pqueue_dump(executing_q, stdout, executing_q->prt);
     return false;
 }
 
 /**
  * Return the first ready (i.e., unblocked) reaction in the reaction queue if
  * there is one. Return `NULL` if all pending reactions are blocked.
+ *
+ * The reaction queue is sorted by index, where a lower index appears
+ * earlier in the queue. The first reaction in the reaction queue is
+ * ready to execute if it is not blocked by any reaction that is currently
+ * executing in another thread. If that first reaction is blocked, then
+ * the second reaction is ready to execute if it is not blocked by any
+ * reaction that is currently executing (if it is blocked by the first
+ * reaction, then it is also blocked by a currently executing reaction because
+ * the first reaction is blocked).
+ *
+ * The upper 48 bits of the index are the deadline and the
+ * lower 16 bits denote a level in the precedence graph.  Reactions that
+ * do not depend on any upstream reactions have level 0, and greater values
+ * indicate the length of the longest upstream path to a reaction with level 0.
+ * If a reaction has no specified deadline and is not upstream of any reaction
+ * with a specified deadline, then its deadline is the largest 48 bit number.
+ * Also, all reactions that precede a reaction r that has a deadline D
+ * are are assigned a deadline D' <= D.
+ *
+ * A reaction r is blocked by an executing reaction e if e has a lower level
+ * and the chain ID of e overlaps (shares at least one bit) with the chain ID
+ * of r. If the two chain IDs share no bits, then we are assured that e is not
+ * upstream of r and hence cannot block r.
+ *
  * @return the first-ranked reaction that is ready to execute, NULL if there is
  * none.
  */ 
@@ -425,7 +481,7 @@ reaction_t* first_ready_reaction() {
  *  value to this variable, it should wait for events to appear
  *  on the reaction queue rather than advance time.
  */
-bool __advancing_time = false;
+volatile bool __advancing_time = false;
 
 /**
  * Worker thread for the thread pool.
@@ -452,9 +508,13 @@ void* worker(void* arg) {
                 have_been_busy = false;
             }
 
-            // If there are also no reactions in progress, then advance time,
+            // If there are no reactions in progress and no reactions on
+            // the reaction queue, then advance time,
             // unless some other worker thread is already advancing time.
-            if (pqueue_size(executing_q) == 0 && !__advancing_time) {
+            if (pqueue_size(reaction_q) == 0
+                    && pqueue_size(executing_q) == 0
+                    && !__advancing_time)
+            {
                 if (!__first_invocation) {
                     logical_time_complete(current_time);
                 }
@@ -478,14 +538,7 @@ void* worker(void* arg) {
             }
         } else {
             // Got a reaction that is ready to run.
-            // printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->local_deadline);
-
-            // If there are additional reactions on the reaction_q, notify one other
-            // idle thread, if there is one, so that it can attempt to execute
-            // that reaction.
-            if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
-                pthread_cond_signal(&reaction_q_changed);
-            }
+            // printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->deadline);
 
             // This thread will no longer be idle.
             if (!have_been_busy) {
@@ -496,6 +549,13 @@ void* worker(void* arg) {
             // Push the reaction on the executing queue in order to prevent any
             // reactions that may depend on it from executing before this reaction is finished.
             pqueue_insert(executing_q, reaction);
+
+            // If there are additional reactions on the reaction_q, notify one other
+            // idle thread, if there is one, so that it can attempt to execute
+            // that reaction.
+            if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
+                pthread_cond_signal(&reaction_q_changed);
+            }
         
             // If the reaction has a deadline, compare to current physical time
             // and invoke the deadline violation reaction instead of the reaction function
@@ -504,7 +564,7 @@ void* worker(void* arg) {
             // same reaction at the current time value, even if at a future superdense time,
             // then the reaction will be invoked and the violation reaction will not be invoked again.
             bool violation = false;
-            if (reaction->local_deadline > 0LL) {
+            if (reaction->deadline > 0LL) {
                 // Get the current physical time.
                 struct timespec current_physical_time;
                 clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -513,12 +573,7 @@ void* worker(void* arg) {
                         current_physical_time.tv_sec * BILLION
                         + current_physical_time.tv_nsec;
                 // Check for deadline violation.
-                // There are currently two distinct deadline mechanisms:
-                // local deadlines are defined with the reaction;
-                // container deadlines are defined in the container.
-                // They can have different deadlines, so we have to check both.
-                // Handle the local deadline first.
-                if (reaction->local_deadline > 0LL && physical_time > current_time + reaction->local_deadline) {
+                if (reaction->deadline > 0LL && physical_time > current_time + reaction->deadline) {
                     // Deadline violation has occurred.
                     violation = true;
                     // Invoke the local handler, if there is one.
@@ -565,7 +620,7 @@ void* worker(void* arg) {
                  // printf("DEBUG: worker: Done invoking reaction.\n");
             }
         }
-    }
+    } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
     number_of_threads--;
 
@@ -580,7 +635,7 @@ void* worker(void* arg) {
 
 void print_snapshot() {
     printf(">>> START Snapshot\n");
-    printf("Ready:\n");
+    printf("Pending:\n");
     pqueue_dump(reaction_q, stdout, reaction_q->prt);
     printf("Executing:\n");
     pqueue_dump(executing_q, stdout, executing_q->prt);    
@@ -713,18 +768,27 @@ int main(int argc, char* argv[]) {
         __start_timers();
         start_threads();
         // printf("DEBUG: pthread_mutex_unlock main\n");
-         pthread_mutex_unlock(&mutex);
-         // printf("DEBUG: Waiting for worker threads to exit.\n");
+        pthread_mutex_unlock(&mutex);
+        // printf("DEBUG: Waiting for worker threads to exit.\n");
 
-         // Wait for the worker threads to exit.
-         void* worker_thread_exit_status;
-         for (int i = 0; i < number_of_threads; i++) {
-             pthread_join(__thread_ids[i], &worker_thread_exit_status);
-             printf("Worker thread exited.\n");
-         }
-         free(__thread_ids);
+        // Wait for the worker threads to exit.
+        void* worker_thread_exit_status;
+        // printf("DEBUG: number of threads: %d\n", number_of_threads);
+        
+        int ret = 0;
+        for (int i = 0; i < number_of_threads; i++) {
+            ret = MAX(pthread_join(__thread_ids[i], &worker_thread_exit_status), ret);
+        }
 
-         wrapup();
+        if (ret == 0) {
+            printf("---- All worker threads exited successfully.\n");
+        } else {
+            printf("Unable to successfully join worker threads: %s", strerror(ret));
+        }
+        
+        free(__thread_ids);
+
+        wrapup();
         termination();
         return 0;
     } else {

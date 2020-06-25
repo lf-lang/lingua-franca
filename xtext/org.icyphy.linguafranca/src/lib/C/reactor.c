@@ -36,45 +36,46 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * Schedule the specified trigger at current_time plus the offset of the
- * specified trigger plus the delay. If the offset of the trigger and
- * the extra_delay are both zero, then the event will occur one
- * microstep later in superdense time (it gets put on the event queue,
- * which will not be examined until all events on the reaction queue
- * have been processed).
- *
- * The value is required to be either
- * NULL or a pointer to a token wrapping the payload. The token carries
- * a reference count, and when the reference count decrements to 0,
- * the will be freed. Hence, it is essential that the payload be in
- * memory allocated using malloc.
- *
- * There are three conditions under which this function will not
- * actually put an event on the event queue and decrement the reference count
- * of the token (if there is one), which could result in the payload being
- * freed. In all three cases, this function returns 0. Otherwise,
- * it returns a handle to the scheduled trigger, which is an integer
- * greater than 0.
- *
- * The first condition is that a stop has been requested and the trigger
- * offset plus the extra delay is greater than zero.
- * The second condition is that the trigger offset plus the extra delay
- * is greater that the requested stop time (timeout).
- * The third condition is that the trigger argument is null.
- *
- * NOTE: There is no multithreading support in this implementation, so
- * asynchronous calls to this function should not be made. The calls
- * should only be made within reactions.
- * If you need asynchronous calls, then use reactor_threaded.c.
- *
- * @param trigger The trigger to be invoked at a later logical time.
- * @param extra_delay The logical time delay, which gets added to the
- *  trigger's minimum delay, if it has one.
- * @param token The token wrapping the payload.
- * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ * specified trigger plus the delay.
+ * See reactor.h for documentation.
  */
-
 handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token) {
     return __schedule(trigger, extra_delay, token);
+}
+
+/**
+ * Variant of schedule_token that creates a token to carry the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+    token_t* token = create_token(trigger->element_size);
+    token->value = value;
+    token->length = length;
+    return schedule_token(trigger, extra_delay, token);
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
+    if (value == NULL) {
+        return schedule_token(trigger, offset, NULL);
+    }
+    if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
+        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
+        return -1;
+    }
+    int element_size = trigger->token->element_size;
+    void* container = malloc(element_size * length);
+    __count_payload_allocations++;
+    // printf("DEBUG: __schedule_copy: Allocating memory for payload (token value): %p\n", container);
+    memcpy(container, value, element_size * length);
+    // Initialize token with an array size of length and a reference count of 0.
+    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
+    // The schedule function will increment the reference count.
+    return schedule_token(trigger, offset, token);
 }
 
 // Advance logical time to the lesser of the specified time or the
@@ -208,7 +209,7 @@ int next() {
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         reaction_t* reaction = pqueue_pop(reaction_q);
-        // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->local_deadline);
+        // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
         // printf("DEBUG: Address of reaction: %p\n", reaction);
 
         // If the reaction has a deadline, compare to current physical time
@@ -218,7 +219,7 @@ int next() {
         // same reaction at the current time value, even if at a future superdense time,
         // then the reaction will be invoked and the violation reaction will not be invoked again.
         bool violation = false;
-        if (reaction->local_deadline > 0LL) {
+        if (reaction->deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;
             clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -232,7 +233,7 @@ int next() {
             // container deadlines are defined in the container.
             // They can have different deadlines, so we have to check both.
             // Handle the local deadline first.
-            if (reaction->local_deadline > 0LL && physical_time > current_time + reaction->local_deadline) {
+            if (reaction->deadline > 0LL && physical_time > current_time + reaction->deadline) {
                 printf("Deadline violation.\n");
                 // Deadline violation has occurred.
                 violation = true;

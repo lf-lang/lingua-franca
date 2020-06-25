@@ -27,11 +27,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy
 
+import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.ILeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.generator.FederateInstance
@@ -41,20 +43,23 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.TypeParm
-import org.eclipse.emf.ecore.resource.Resource
-import java.util.HashMap
+import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Variable
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -96,7 +101,7 @@ class ASTUtils {
 
                 // Stage the new connections for insertion into the tree.
                 var connections = newConnections.get(parent)
-                if (connection !== null) connections = new LinkedList()
+                if (connections === null) connections = new LinkedList()
                 connections.addAll(connection.rerouteViaDelay(delayInstance))
                 newConnections.put(parent, connections)
 
@@ -104,8 +109,8 @@ class ASTUtils {
                 oldConnections.add(connection)
 
                 // Stage the newly created delay reactor instance for insertion
-                var instances = (delayInstances.get(parent) ?: emptyList)
-                if (instances !== null) instances = new LinkedList()
+                var instances = delayInstances.get(parent)
+                if (instances === null) instances = new LinkedList()
                 instances.addAll(delayInstance)
                 delayInstances.put(parent, instances)
             }
@@ -173,8 +178,8 @@ class ASTUtils {
      * name must be overridden at the call site, where checks can be done to
      * avoid name collisions in the container in which the instantiation is
      * to be placed. Such checks (or modifications of the AST) are not
-     * performed in this method to avoid causing concurrent modification
-     * exceptions. 
+     * performed in this method in order to avoid causing concurrent
+     * modification exceptions. 
      * @param delayClass The class to create an instantiation for
      * @param value A time interval corresponding to the desired delay
      * @param generic A string that denotes the appropriate type parameter, 
@@ -283,13 +288,13 @@ class ASTUtils {
         delayClass.name = className
         delayClass.actions.add(action)
 
-        // Configure the first reaction.
+        // Configure the second reaction, which reads the input.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
         r1.code = factory.createCode()
         r1.code.body = generator.generateDelayBody(action, inRef)
     
-        // Configure the second reaction.
+        // Configure the first reaction, which produces the output.
         r2.triggers.add(triggerRef)
         r2.effects.add(outRef)
         r2.code = factory.createCode()
@@ -429,13 +434,13 @@ class ASTUtils {
      */
     static def getUniqueIdentifier(Reactor reactor, String name) {
         val vars = new HashSet<String>();
-        reactor.actions.forEach[it | vars.add(it.name)]
-        reactor.timers.forEach[it | vars.add(it.name)]
-        reactor.parameters.forEach[it | vars.add(it.name)]
-        reactor.inputs.forEach[it | vars.add(it.name)]
-        reactor.outputs.forEach[it | vars.add(it.name)]
-        reactor.stateVars.forEach[it | vars.add(it.name)]
-        reactor.instantiations.forEach[it | vars.add(it.name)]
+        reactor.allActions.forEach[it | vars.add(it.name)]
+        reactor.allTimers.forEach[it | vars.add(it.name)]
+        reactor.allParameters.forEach[it | vars.add(it.name)]
+        reactor.allInputs.forEach[it | vars.add(it.name)]
+        reactor.allOutputs.forEach[it | vars.add(it.name)]
+        reactor.allStateVars.forEach[it | vars.add(it.name)]
+        reactor.allInstantiations.forEach[it | vars.add(it.name)]
         
         var index = 0;
         var suffix = ""
@@ -527,8 +532,196 @@ class ASTUtils {
         }
     }
     
+    //// Utility functions supporting multiports.
     
+    /**
+     * Return the string '[N]', '[]', or ''.
+     * The first is returned if the variable is a multiport with fixed width;
+     * N is the width of the multiport.
+     * The second is returned if the variable is a multiport of variable width.
+     * The third is returned in all other cases.
+     * @param port The port.
+     * @return The array specification for a multiport.
+     */
+    def static String multiportArraySpec(Variable variable) {
+        if (variable instanceof Port) {
+            if (variable.arraySpec !== null) {
+                if (variable.arraySpec.ofVariableLength) {
+                    return '[]'
+                } else {
+                    return '[' + variable.arraySpec.length + ']'
+                }
+            } else {
+                return ''
+            }
+        }
+        return ''
+    }
     
+    /**
+     * If the argument is a multiport, return its width.
+     * Return -1 if it is variable width multiport.
+     * If the argument is a port but not a multiport, return -2.
+     * In all other cases, return 0.
+     * @param port The port.
+     * @return The width of a multiport, or -1 if it is variable width.
+     */
+    def static int multiportWidth(Variable variable) {
+        if (variable instanceof Port) {
+            if (variable.arraySpec !== null) {
+                if (variable.arraySpec.ofVariableLength) {
+                    return -1
+                } else {
+                    return variable.arraySpec.length
+                }
+            } else {
+                return -2
+            }
+        }
+        return 0
+    }
+    
+    /**
+     * Return true if the specified port is a multiport.
+     * @param port The port.
+     * @return True if the port is a multiport.
+     */
+    def static boolean isMultiport(Port port) {
+        port.arraySpec !== null
+    }
+    
+    ////////////////////////////////
+    //// Utility functions for supporting inheritance
+    
+    /**
+     * Given a reactor class, return a list of all its actions,
+     * which includes actions of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Action> allActions(Reactor definition) {
+        val result = new LinkedList<Action>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allActions)
+        }
+        result.addAll(definition.actions)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its connections,
+     * which includes connections of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Connection> allConnections(Reactor definition) {
+        val result = new LinkedList<Connection>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allConnections)
+        }
+        result.addAll(definition.connections)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its inputs,
+     * which includes inputs of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Input> allInputs(Reactor definition) {
+        val result = new LinkedList<Input>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allInputs)
+        }
+        result.addAll(definition.inputs)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its instantiations,
+     * which includes instantiations of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Instantiation> allInstantiations(Reactor definition) {
+        val result = new LinkedList<Instantiation>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allInstantiations)
+        }
+        result.addAll(definition.instantiations)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its outputs,
+     * which includes outputs of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Output> allOutputs(Reactor definition) {
+        val result = new LinkedList<Output>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allOutputs)
+        }
+        result.addAll(definition.outputs)
+        return result
+    }
+
+    /**
+     * Given a reactor class, return a list of all its parameters,
+     * which includes parameters of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Parameter> allParameters(Reactor definition) {
+        val result = new LinkedList<Parameter>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allParameters)
+        }
+        result.addAll(definition.parameters)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its reactions,
+     * which includes reactions of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Reaction> allReactions(Reactor definition) {
+        val result = new LinkedList<Reaction>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allReactions)
+        }
+        result.addAll(definition.reactions)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its state variables,
+     * which includes state variables of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<StateVar> allStateVars(Reactor definition) {
+        val result = new LinkedList<StateVar>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allStateVars)
+        }
+        result.addAll(definition.stateVars)
+        return result
+    }
+    
+    /**
+     * Given a reactor class, return a list of all its timers,
+     * which includes timers of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    def static List<Timer> allTimers(Reactor definition) {
+        val result = new LinkedList<Timer>()
+        for (base : definition.superClasses?:emptyList) {
+            result.addAll(base.allTimers)
+        }
+        result.addAll(definition.timers)
+        return result
+    }
+
+    ////////////////////////////////
+    //// Utility functions for translating AST nodes into text
+
     /**
      * Translate the given code into its textual representation.
      * @param code AST node to render as string.
@@ -682,7 +875,12 @@ class ASTUtils {
         ""
     }
     
-     def static toText(VarRef v) {
+    /**
+     * Return a string of the form either "name" or "container.name" depending
+     * on in which form the variable reference was given.
+     * @param v The variable reference.
+     */
+    def static toText(VarRef v) {
         if (v.container !== null) {
             '''«v.container.name».«v.variable.name»'''
         } else {
