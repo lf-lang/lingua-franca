@@ -162,6 +162,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 // but keep the reactor class definitions
                 // and the preamble.
                 code = new StringBuilder(commonCode)
+            } else {
+                federateFilename = baseFilename
             }
         
             // Build the instantiation tree if a main reactor is present.
@@ -819,7 +821,6 @@ class TypeScriptGenerator extends GeneratorBase {
             }
             reactorConstructor.unindent()
             pr(reactorConstructor, ");")
-            
         }
         reactorConstructor.unindent()
         pr(reactorConstructor, "}")
