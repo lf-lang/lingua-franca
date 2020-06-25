@@ -932,11 +932,11 @@ class TypeScriptGenerator extends GeneratorBase {
         InferredType type
     ) {
         return '''
-            // FIXME: For now assume the data is a string, but this is not checked.
+            // FIXME: For now assume the data is a Buffer, but this is not checked.
             // Replace with ProtoBufs or MessagePack.
             if («action.name» !== undefined) {
                 «receivingPort.container.name».«receivingPort.variable.name» = «
-                    »«action.name».toString(); // defaults to utf8 encoding
+                    »«action.name»; // defaults to utf8 encoding
             }
         '''
     }
@@ -962,7 +962,7 @@ class TypeScriptGenerator extends GeneratorBase {
         InferredType type
     ) {
         return '''
-            // FIXME: For now assume the data is a string, but this is not checked.
+            // FIXME: For now assume the data is a Buffer, but this is not checked.
             // Replace with ProtoBufs or MessagePack.
             if («sendingPort.container.name».«sendingPort.variable.name» !== undefined) {
                 let buf = Buffer.from(«sendingPort.container.name».«sendingPort.variable.name»)
