@@ -125,6 +125,20 @@ do { \
 } while(0)
 
 /**
+ * Version of set() for use with multiplex output ports.
+ * @param out The output port (by name) or input of a contained
+ *  reactor in form input_name.port_name.
+ * @param index The index of the particular channel to write to.
+ * @param value The value to insert into the self struct.
+ */
+#define set_i(out, index, value) \
+do { \
+    out ## _is_present[index] = true; \
+    self->__ ## out[index] = value; \
+    self->__ ## out ## _is_present[index] = true; \
+} while(0)
+
+/**
  * Version of set for output types given as 'type[]' where you
  * want to send a previously dynamically allocated array.
  *
