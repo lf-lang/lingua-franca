@@ -34,6 +34,10 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
+import java.util.HashSet
+import java.util.Set
+
+import static extension org.icyphy.ASTUtils.*
 
 /**
  * A graph with vertices that are ports or reactions and edges that denote
@@ -49,20 +53,21 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
      * @param model The AST.
      */
     new (Model model) {
-        // Treat the main reactor separately because it doesn't have an instantiation.
-        collectNodesFrom(model.eAllContents.filter(Reactor).findFirst[it.main], new BreadCrumbTrail("", null, ""))
-        // Collect nodes from all instantiations
+        // Find the main reactors and traverse the AST depth-first.
+        collectNodesFrom(model.eAllContents.filter(Reactor).findFirst[it.main],
+            new BreadCrumbTrail("", null, ""), new HashSet())
         this.detectCycles()
     }
 
     /**
      * Traverse the subtree that is a reactor definition and create graph nodes
-     * for all of its components in relation to a particular instantiation.
+     * for all of its components in relation to a particular instantiation that
+     * is kept track of using a bread crumb trail.
      * 
      * @param reactor A reactor class definition.
      * @param instantiation The instantiation to bind the graph nodes to.
      */
-    def void collectNodesFrom(Reactor reactor, BreadCrumbTrail<Instantiation> path) {
+    def void collectNodesFrom(Reactor reactor, BreadCrumbTrail<Instantiation> path, Set<String> visited) {
                 
         // Nothing to do.
         if (reactor === null) {
@@ -70,7 +75,7 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
         }
         
         // Add edges implied by connections.
-        if (reactor.connections !== null) {
+        if (reactor.allConnections !== null) {
             for (c : reactor.connections) {
                 // Ignore connections with delays because delays break cycles.
                 if (c.delay === null) {
@@ -84,14 +89,13 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
             }
         }
 
-        if (reactor.reactions !== null) {
+        if (reactor.allReactions !== null) {
             var Reaction prev = null
             // Iterate over the reactions.
             for (r : reactor.reactions) {
                 // Add edges implied by reactions.
                 val reaction = new AnnotatedNode(
                     new InstanceBinding(r as EObject, path))
-                    // If the container is empty, then simply reuse the _same path_ (no need to create a new crumb!)
                 for (trigger : r.triggers.filter(VarRef)) {
                     if (trigger.variable instanceof Port) {
                         this.addEdge(reaction,
@@ -127,9 +131,15 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
             }
         }
         
-        if (reactor.instantiations !== null) {
+        if (reactor.allInstantiations !== null) {
             for (inst : reactor.instantiations) {
-                this.collectNodesFrom(inst.reactorClass, path.append(inst, inst.name))    
+                val breadCrumb = path.append(inst, inst.name)
+                val breadCrumbStr = breadCrumb.toString
+                // Do not visited nodes twice.
+                if (!visited.contains(breadCrumbStr)) {
+                    visited.add(breadCrumbStr)
+                    this.collectNodesFrom(inst.reactorClass, breadCrumb, visited)
+                }
             }
         }
     }
@@ -141,7 +151,8 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
 class InstanceBinding {
     
     /**
-     * An AST node that denotes reactor instantiation.
+     * Object to distinguish between different paths from the root of the tree
+     * to the current node, and access the instantiation to bind to.
      */
     public BreadCrumbTrail<Instantiation> path
     
@@ -155,7 +166,7 @@ class InstanceBinding {
      * reactor instantiation.
      * 
      * @param node An arbitrary AST node.
-     * @param inst The reactor instantiation to bind the node to. 
+     * @param path Path from the root of the AST to the given node. 
      */
     new(EObject node, BreadCrumbTrail<Instantiation> path) {
         this.node = node
@@ -172,7 +183,8 @@ class InstanceBinding {
     override equals(Object obj) {
         if (obj instanceof InstanceBinding) {
             return ((this.path === null && obj.path === null) ||
-                (this.path !== null && this.path.equals(obj.path)) && this.node === obj.node)
+                (this.path !== null && this.path.equals(obj.path)) &&
+                    this.node === obj.node)
         }
         return false
     }
@@ -193,15 +205,23 @@ class InstanceBinding {
         return result;
     }
     
+    /**
+     * Return the instantiation that the node was bound to.
+     */
     def getInstantiation() {
         return this.path.crumb
     }
     
+    /**
+     * Return a string representation of this binding consisting of
+     * a path identifier combined with the name of the node.
+     */
     override toString() {
         var String name = ""
         var prefix = this.path.toString
         try {
-            name = this.node?.getClass.getDeclaredMethod("getName").invoke(this.node) as String
+            name = this.node?.getClass.getDeclaredMethod("getName").invoke(
+                this.node) as String
         } catch (Exception e) {
             name = this.node?.toString
         }
@@ -209,18 +229,55 @@ class InstanceBinding {
     }
 }
 
+/**
+ * Class that serves to identify paths through the AST.
+ * 
+ * It assumed that the supplied identifiers uniquely identify each crumb when
+ * combined with the identifiers that preceded it in a depth-first traversal
+ * starting from the root of the tree. 
+ */
 class BreadCrumbTrail<T> {
     
+    /**
+     * An identifier built incrementally each time a new crumb is appended.
+     */
     String trail
+    
+    /**
+     * The last crumb that was appended. Together with the trail it identifies
+     * a path through the AST.
+     */
     T crumb
+    
+    /**
+     * The next identifier to be appended to the trail.
+     */
     String id
-        
+    
+    /**
+     * Create a new bread crumb trail.
+     * 
+     * @param trail A string prefix necessary to identify the crumb.
+     * @param crumb The current crumb.
+     * @param id Identifier associated with the current crumb. It will be
+     * joined with trail string upon the next invocation of
+     * {@link #BreadCrumbTrail.append append}.
+     */    
     new(String trail, T crumb, String id) {
         this.trail = trail
         this.crumb = crumb
         this.id = id
     }
     
+    /**
+     * Append a new crumb to the trail.
+     * 
+     * If the crumb is null, just return the current object, otherwise return
+     * a new bread crumb trail that has as a prefix the current trail.
+     * @param The crumb to the added to the trail.
+     * @param A string that identifies the crumb in combination with the trail
+     * that has been constructed so far.
+     */
     def BreadCrumbTrail<T> append(T crumb, String id) {
         if (crumb === null) {
             return this
@@ -229,6 +286,12 @@ class BreadCrumbTrail<T> {
         }
     }
     
+    /**
+     * Report whether or not this object is equal to the given argument.
+     * 
+     * Two trails are equal if their string representations are equal.
+     * @param obj The object to compare against.
+     */
     override equals(Object obj) {
         if (obj instanceof BreadCrumbTrail) {
             return this.toString.equals(obj.toString)
@@ -236,18 +299,33 @@ class BreadCrumbTrail<T> {
         return false
     }
     
-    override hashCode() {
-        return this.toString.hashCode;
-    }
-    
+    /**
+     * Return the current trail which uniquely identifies the path from the
+     * current crumb to the root of the tree. 
+     */
     def getTrail() {
         return this.trail
     }
     
+    /**
+     * Return the current crumb.
+     */
     def getCrumb() {
         return this.crumb
     }
     
+    
+    /**
+     * Return a has code based on the string representation of this object.
+     */
+    override hashCode() {
+        return this.toString.hashCode;
+    }
+    
+    /**
+     * Return the bread crumb trail including the trailing identifier
+     * corresponding to the last crumb.
+     */    
     override toString() {
         return '''«IF trail !== null && !trail.isEmpty»«this.trail».«ENDIF»«this.id»'''
     }
