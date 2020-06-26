@@ -97,6 +97,9 @@ class ModelInfo {
         // Perform generic traversals.
         this.refreshInstantiationMap() // FIXME: carry this out in the same loop
         this.refreshInstantiationGraph() // FIXME: wrap these two in a separate class
+        // 1. Assume that the instantiation graph is acyclic.
+        // 2. Check for data dependencies.
+        // FIXME: only do this if there are no cyclic instantiations.
         this.reactionGraph = new ReactionGraph(this.model)
         
         // Find the target. A target must exist because the grammar requires it.

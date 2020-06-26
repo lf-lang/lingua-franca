@@ -87,4 +87,11 @@ class AnnotatedNode<T> {
     override hashCode() {
         return contents.hashCode
     }
+
+    /**
+     * Return the string representation of the node's contents.
+     */    
+    override toString() {
+        return contents.toString
+    }
 }
