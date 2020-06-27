@@ -393,7 +393,7 @@ void stop() {
  */
 bool is_blocked(reaction_t* reaction) {
     for (int i = 1; i < executing_q->size; i++) {
-        reaction_t* running = executing_q->d[i];
+        reaction_t* running = (reaction_t*) executing_q->d[i];
         if (LEVEL(running->index) < LEVEL(reaction->index)
                 && OVERLAPPING(reaction->chain_id, running->chain_id)) {
             return true;
@@ -648,7 +648,7 @@ pthread_t* __thread_ids;
 // Start threads in the thread pool.
 void start_threads() {
     // printf("DEBUG: Starting %d worker threads.\n", number_of_threads);
-    __thread_ids = malloc(number_of_threads * sizeof(pthread_t));
+    __thread_ids = (pthread_t*)malloc(number_of_threads * sizeof(pthread_t));
     number_of_idle_threads = number_of_threads;
     for (int i = 0; i < number_of_threads; i++) {
         pthread_create(&__thread_ids[i], NULL, worker, NULL);
