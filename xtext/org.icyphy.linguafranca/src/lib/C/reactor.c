@@ -164,7 +164,7 @@ void print_snapshot() {
 // the keepalive command-line option has not been given.
 // Otherwise, return 1.
 int next() {
-    event_t* event = pqueue_peek(event_q);
+    event_t* event = (event_t*)pqueue_peek(event_q);
     // If there is no next event and -keepalive has been specified
     // on the command line, then we will wait the maximum time possible.
     instant_t next_time = LLONG_MAX;
@@ -182,7 +182,7 @@ int next() {
         // Sleep was interrupted or the timeout time has been reached.
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
-        event_t* new_event = pqueue_peek(event_q);
+        event_t* new_event = (event_t*)pqueue_peek(event_q);
         if (new_event == event) {
             // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
@@ -208,7 +208,7 @@ int next() {
     
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
-        reaction_t* reaction = pqueue_pop(reaction_q);
+        reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
         // printf("DEBUG: Address of reaction: %p\n", reaction);
 

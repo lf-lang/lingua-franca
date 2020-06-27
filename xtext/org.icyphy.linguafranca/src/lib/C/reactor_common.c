@@ -48,9 +48,11 @@ bool absent = false;
 bool fast = false;
 
 /**
- * By default, execution is not threaded.
- **/
-unsigned int number_of_threads = 0;
+ * The number of worker threads for threaded execution.
+ * By default, execution is not threaded and this variable will have value 0,
+ * meaning that the execution is not threaded.
+ */
+unsigned int number_of_threads;
 
 /**
  * Current time in nanoseconds since January 1, 1970.
@@ -172,8 +174,8 @@ handle_t __handle = 1;
 /**
  * Return whether the first and second argument are given in reverse order.
  */
-static int in_reverse_order(pqueue_pri_t this, pqueue_pri_t that) {
-    return (this > that);
+static int in_reverse_order(pqueue_pri_t thiz, pqueue_pri_t that) {
+    return (thiz > that);
 }
 
 /**
@@ -240,7 +242,7 @@ static void set_reaction_position(void *a, size_t pos) {
  * Print some information about the given reaction.
  */
 static void print_reaction(FILE *out, void *reaction) {
-	reaction_t *r = reaction;
+	reaction_t *r = (reaction_t*)reaction;
     fprintf(out, "chain_id:%llu, index: %llu, reaction: %p\n", 
         r->chain_id, r->index, r);
 }
@@ -249,7 +251,7 @@ static void print_reaction(FILE *out, void *reaction) {
  * Print some information about the given event.
  */
 static void print_event(FILE *out, void *event) {
-	event_t *e = event;
+	event_t *e = (event_t*)event;
     fprintf(out, "time: %lld, trigger: %p, token: %p\n",
 			e->time, e->trigger, e->token);
 }
@@ -450,7 +452,7 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
 void __pop_events() {
     event_t* event;
     do {
-        event = pqueue_pop(event_q);
+        event = (event_t*)pqueue_pop(event_q);
 
         token_t* token = event->token;
 
@@ -497,7 +499,7 @@ void __pop_events() {
         pqueue_insert(recycle_q, event);
 
         // Peek at the next event in the event queue.
-        event = pqueue_peek(event_q);
+        event = (event_t*)pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
 }
@@ -564,7 +566,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
     // Get an event_t struct to put on the event queue.
     // Recycle event_t structs, if possible.    
-    event_t* e = pqueue_pop(recycle_q);
+    event_t* e = (event_t*)pqueue_pop(recycle_q);
     if (e == NULL) {
         e = malloc(sizeof(struct event_t));
     }
@@ -723,7 +725,7 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
         fprintf(stderr, "Action type is not an integer.");
         return -1;
     }
-    int* container = malloc(sizeof(int));
+    int* container = (int*)malloc(sizeof(int));
     *container = value;
     return schedule_value(trigger, extra_delay, container, 1);
 }
@@ -961,7 +963,7 @@ void termination() {
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {
         printf("---- There are %zu unprocessed future events on the event queue.\n", pqueue_size(event_q));
-        event_t* event = pqueue_peek(event_q);
+        event_t* event = (event_t*)pqueue_peek(event_q);
         interval_t event_time = event->time - start_time;
         printf("---- The first future event has timestamp %lld after start time.\n", event_time);
     }

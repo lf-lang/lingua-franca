@@ -108,11 +108,11 @@ pqueue_t * pqueue_init(size_t n,
                        pqueue_print_entry_f prt) {
     pqueue_t *q;
 
-    if (!(q = malloc(sizeof(pqueue_t))))
+    if (!(q = (pqueue_t*)malloc(sizeof(pqueue_t))))
         return NULL;
 
     /* Need to allocate n+1 elements since element 0 isn't used. */
-    if (!(q->d = malloc((n + 1) * sizeof(void *)))) {
+    if (!(q->d = (void**)malloc((n + 1) * sizeof(void *)))) {
         free(q);
         return NULL;
     }
@@ -195,7 +195,7 @@ void* pqueue_find_equal(pqueue_t *q, void *e, pqueue_pri_t max) {
 }
 
 int pqueue_insert(pqueue_t *q, void *d) {
-    void *tmp;
+    void **tmp;
     size_t i;
     size_t newsize;
 
@@ -214,7 +214,7 @@ int pqueue_insert(pqueue_t *q, void *d) {
     /* allocate more memory if necessary */
     if (q->size >= q->avail) {
         newsize = q->size + q->step;
-        if (!(tmp = realloc(q->d, sizeof(void *) * newsize)))
+        if (!(tmp = (void*)realloc(q->d, sizeof(void *) * newsize)))
             return 1;
         q->d = tmp;
         q->avail = newsize;
