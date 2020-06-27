@@ -517,12 +517,6 @@ bool __wrapup();
 bool absent;
 
 /**
- * The number of worker threads for threaded execution.
- * By default, execution is not threaded and this variable will have value 0.
- */
-unsigned int number_of_threads;
-
-/**
  * Create a new token and initialize it.
  * The value pointer will be NULL and the length will be 0.
  * @param element_size The size of an element carried in the payload or

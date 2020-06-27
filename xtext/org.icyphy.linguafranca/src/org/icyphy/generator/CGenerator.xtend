@@ -503,7 +503,7 @@ class CGenerator extends GeneratorBase {
                     // Allocate the initial (before mutations) array of pointers to tokens.
                     pr('''
                         __tokens_with_ref_count_size = «startTimeStepTokens»;
-                        __tokens_with_ref_count = malloc(«startTimeStepTokens» * sizeof(token_present_t));
+                        __tokens_with_ref_count = (token_present_t*)malloc(«startTimeStepTokens» * sizeof(token_present_t));
                     ''')
                 }
                 // Create the table to initialize _is_present fields to false between time steps.
@@ -512,7 +512,7 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         // Create the array that will contain pointers to _is_present fields to reset on each step.
                         __is_present_fields_size = «startTimeStepIsPresentCount»;
-                        __is_present_fields = malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
+                        __is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
                     ''')
                 }
                 pr(initializeTriggerObjects.toString)
@@ -700,8 +700,8 @@ class CGenerator extends GeneratorBase {
                 val numUpstream = federate.dependsOn.keySet.size
                 // Allocate memory for the arrays storing the connectivity information.
                 pr(rtiCode, '''
-                    federates[«federate.id»].upstream = malloc(sizeof(federate_t*) * «numUpstream»);
-                    federates[«federate.id»].upstream_delay = malloc(sizeof(interval_t*) * «numUpstream»);
+                    federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
+                    federates[«federate.id»].upstream_delay = (interval_t*)malloc(sizeof(interval_t*) * «numUpstream»);
                     federates[«federate.id»].num_upstream = «numUpstream»;
                 ''')
                 // Next, populate these arrays.
@@ -738,7 +738,7 @@ class CGenerator extends GeneratorBase {
                 val numDownstream = federate.sendsTo.keySet.size
                 // Allocate memory for the array.
                 pr(rtiCode, '''
-                    federates[«federate.id»].downstream = malloc(sizeof(federate_t*) * «numDownstream»);
+                    federates[«federate.id»].downstream = (int*)malloc(sizeof(federate_t*) * «numDownstream»);
                     federates[«federate.id»].num_downstream = «numDownstream»;
                 ''')
                 // Next, populate the array.
@@ -853,8 +853,8 @@ class CGenerator extends GeneratorBase {
                     echo "Copying source files to host «federate.host»"
                     scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen
                     popd > /dev/null
-                    echo "Compiling on host «federate.host» using: gcc -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
-                    ssh «federate.host» 'cd «path»; gcc -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
+                    echo "Compiling on host «federate.host» using: «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
+                    ssh «federate.host» 'cd «path»; «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
                 ''')
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
@@ -889,8 +889,8 @@ class CGenerator extends GeneratorBase {
                 echo "Copying source files to host «target»"
                 scp «filename»_RTI.c rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen
                 popd > /dev/null
-                echo "Compiling on host «target» using: gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
-                ssh «target» 'gcc -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+                echo "Compiling on host «target» using: «this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                ssh «target» '«this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
             ''')
 
             // Launch the RTI on the remote machine using ssh and screen.
@@ -1006,7 +1006,7 @@ class CGenerator extends GeneratorBase {
         val structType = selfStructType(reactor)
         pr('''
             «structType»* new_«reactor.name»() {
-                «structType»* self = calloc(1, sizeof(«structType»));
+                «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
                 «constructorCode.toString»
                 return self;
             }
@@ -1821,7 +1821,7 @@ class CGenerator extends GeneratorBase {
                     pr(initializeTriggerObjects, '''
                         // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
                         // array of trigger pointers for downstream reactions through port «port.getFullName»
-                        trigger_t** «triggerArray» = malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
+                        trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
                         «selfStruct»->___reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
                     ''')
 
