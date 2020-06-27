@@ -568,7 +568,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // Recycle event_t structs, if possible.    
     event_t* e = (event_t*)pqueue_pop(recycle_q);
     if (e == NULL) {
-        e = malloc(sizeof(struct event_t));
+        e = (event_t*)malloc(sizeof(struct event_t));
     }
     
     // Set the payload.
@@ -640,7 +640,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // Handle duplicate events for logical actions (events with the same tag).
     // This replaces the previous payload with the new one.
     if (!trigger->is_physical) {
-        event_t* existing = pqueue_find_equal_same_priority(event_q, e);
+        event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
             // Free the previous payload.
             if (existing->token != token) __done_using(existing->token);

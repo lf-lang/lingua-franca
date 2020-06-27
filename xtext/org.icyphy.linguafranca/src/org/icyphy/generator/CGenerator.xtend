@@ -2746,8 +2746,8 @@ class CGenerator extends GeneratorBase {
         super.generatePreamble()
         
         pr('#include "pqueue.c"')
-        pr('#define NUMBER_OF_FEDERATES ' + federates.length);        
-                
+        pr('#define NUMBER_OF_FEDERATES ' + federates.length);
+                        
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
         if (targetThreads === 0 && federates.length > 1) {

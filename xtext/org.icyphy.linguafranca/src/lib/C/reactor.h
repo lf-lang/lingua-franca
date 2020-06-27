@@ -273,8 +273,11 @@ do { \
 
 //  ======== Type definitions ========  //
 
-/** Booleans. */
-#ifndef bool
+/**
+ * Booleans. This needs to be defined only if the target language
+ * is C and the compiler is not a C++ compiler.
+ */
+#ifndef __cplusplus
 typedef enum {false, true} bool;
 #endif
 
@@ -510,11 +513,6 @@ void __termination();
  * by shutdown.
  */
 bool __wrapup();
-
-/**
- * Indicator for the absence of values for ports that remain disconnected.
- */
-bool absent;
 
 /**
  * Create a new token and initialize it.
