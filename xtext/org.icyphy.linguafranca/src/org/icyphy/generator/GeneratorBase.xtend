@@ -275,6 +275,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected boolean targetKeepalive
     
     /**
+     * The target name.
+     */
+    protected String targetName
+    
+    /**
      * The level of logging or null if not given.
      */
     protected String targetLoggingLevel
@@ -336,6 +341,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         generatorErrorsOccurred = false
         
         var target = resource.findTarget
+        targetName = target.name
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
                 switch param.name {
