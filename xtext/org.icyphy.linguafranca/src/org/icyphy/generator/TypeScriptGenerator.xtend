@@ -201,6 +201,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // so they may be compiled as part of the TypeScript project.
         // This requires that the TypeScript submodule has been installed.
         copyReactorTSCoreFile(srcGenPath, "reactor.ts")
+        copyReactorTSCoreFile(srcGenPath, "federation.ts")
         copyReactorTSCoreFile(srcGenPath, "cli.ts")
         copyReactorTSCoreFile(srcGenPath, "command-line-args.d.ts")
         copyReactorTSCoreFile(srcGenPath, "command-line-usage.d.ts")
@@ -1359,13 +1360,15 @@ class TypeScriptGenerator extends GeneratorBase {
     }
 
     static val reactorLibPath = "." + File.separator + "reactor"
+    static val federationLibPath = "." + File.separator + "federation"
     static val timeLibPath =  "." + File.separator + "time"
     static val utilLibPath =  "." + File.separator + "util"
     static val cliLibPath =  "." + File.separator + "cli"
     static val preamble = 
 '''import commandLineArgs from 'command-line-args'
 import commandLineUsage from 'command-line-usage'
-import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App, FederatedApp} from '«reactorLibPath»'
+import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App} from '«reactorLibPath»'
+import {FederatedApp} from '«federationLibPath»'
 import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin} from '«timeLibPath»'
 import {Log} from '«utilLibPath»'
 import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType} from '«cliLibPath»'
