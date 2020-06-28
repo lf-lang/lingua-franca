@@ -737,9 +737,15 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
  * @param token The token to use as a template (or if it is free, to use).
  * @param length The length of the array.
  * @param num_destinations The number of destinations (for initializing the reference count).
- * @return A pointer to the new or reused token.
+ * @return A pointer to the new or reused token or null if the template token
+ *  is incompatible with this usage.
  */
 token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) {
+    // If the template token cannot carry a payload, then it is incompatible.
+    if (token->element_size == 0) {
+        fprintf(stderr, "ERROR: set_new_array: specified token cannot carry an array. It has zero element_size.\n");
+        return NULL;
+    }
     // First, initialize the token, reusing the one given if possible.
     token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
     // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
@@ -752,6 +758,7 @@ token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) 
  * Return a writable copy of the specified token.
  * If the reference count is 1, this returns the original token rather than a copy.
  * The reference count will still be 1.
+ * If the size of the token payload is zero, this also returns the original token.
  * Otherwise, this returns a new token with a reference count of 0.
  * To ensure that the allocated memory is not leaked, this new token must be
  * either passed to an output using set_token() or scheduled with a action
@@ -765,6 +772,9 @@ token_t* writable_copy(token_t* token) {
    } else {
         // printf("DEBUG: writable_copy: Copying array because reference count is greater than 1. It is %d.\n", token->ref_count);
         size_t size = token->element_size * token->length;
+        if (size == 0) {
+            return token;
+        }
         void* copy = malloc(size);
         // printf("DEBUG: Allocating memory for writable copy %p.\n", copy);
         memcpy(copy, token->value, size);
