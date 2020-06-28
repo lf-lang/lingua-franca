@@ -40,6 +40,8 @@ import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 
+import static extension org.icyphy.ASTUtils.*
+
 /** Instance of a federate, or marker that no federation has been defined
  *  (if isSingleton() returns true). Every top-level reactor (contained
  *  directly by the main reactor) is a federate, so there will be one
@@ -147,7 +149,7 @@ class FederateInstance {
         excludeReactions = new HashSet<Reaction>
         
         // Construct the set of excluded reactions for this federate.
-        for (react : reactor.reactions) {
+        for (react : reactor.allReactions) {
             // If the reaction is triggered by an output of a contained
             // reactor that is not in the federate, or the reaction
             // sends to an input of a contained reactor that is not
@@ -202,12 +204,12 @@ class FederateInstance {
         this.instantiation?.name
     }
     
-    /** Return true if this is singleton, meaning that no federation
-     *  has been defined.
+    /** Return true if this is singleton, meaning either that no federation
+     *  has been defined or that there is only one federate.
      *  @return True if no federation has been defined.
      */
      def isSingleton() {
-         return (instantiation === null)
+         return ((instantiation === null) || (generator.federates.size <= 1))
      }
 
     /////////////////////////////////////////////

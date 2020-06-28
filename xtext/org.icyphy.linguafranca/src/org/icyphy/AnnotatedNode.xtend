@@ -27,9 +27,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy
 
 /**
- * Node to be used in `AnnotatedDependencyGraph`.
+ * Node to be used in
+ * {@link #AnnotatedDependencyGraph AnnotatedDependencyGraph}.
+ * 
  * In particular, this is a helper class for its implementation
  * of Tarjan's algorithm for finding strongly connected components.
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class AnnotatedNode<T> {
     
@@ -83,5 +86,12 @@ class AnnotatedNode<T> {
      */
     override hashCode() {
         return contents.hashCode
+    }
+
+    /**
+     * Return the string representation of the node's contents.
+     */    
+    override toString() {
+        return contents.toString
     }
 }

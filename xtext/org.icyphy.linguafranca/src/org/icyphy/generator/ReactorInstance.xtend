@@ -47,6 +47,8 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
+import static extension org.icyphy.ASTUtils.*
+
 /**
  * Representation of a runtime instance of a reactor.
  * For the main reactor, which has no parent, once constructed,
@@ -67,40 +69,44 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent, or null for the main rector.
+     *  @param generator The generator (for error reporting).
      */
-    new(Instantiation definition, ReactorInstance parent,
-        GeneratorBase generator) {
+    new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         super(definition, parent)
         this.generator = generator
 
         // Apply overrides and instantiate parameters for this reactor instance.
-        for (parameter : definition.reactorClass.parameters) {
+        for (parameter : definition.reactorClass.allParameters) {
             this.parameters.add(new ParameterInstance(parameter, this))
         }
 
         // Instantiate children for this reactor instance
-        for (child : definition.reactorClass.instantiations) {
+        for (child : definition.reactorClass.allInstantiations) {
             var childInstance = new ReactorInstance(child, this, generator)
             this.children.add(childInstance)
         }
 
         // Instantiate inputs for this reactor instance
-        for (inputDecl : definition.reactorClass.inputs) {
-            this.inputs.add(new PortInstance(inputDecl, this))
+        for (inputDecl : definition.reactorClass.allInputs) {
+            if (inputDecl.arraySpec === null) {
+                this.inputs.add(new PortInstance(inputDecl, this))
+            } else {
+                this.inputs.add(new MultiportInstance(inputDecl, this, generator))
+            }
         }
 
         // Instantiate outputs for this reactor instance
-        for (outputDecl : definition.reactorClass.outputs) {
+        for (outputDecl : definition.reactorClass.allOutputs) {
             this.outputs.add(new PortInstance(outputDecl, this))
         }
 
         // Instantiate timers for this reactor instance
-        for (timerDecl : definition.reactorClass.timers) {
+        for (timerDecl : definition.reactorClass.allTimers) {
             this.timers.add(new TimerInstance(timerDecl, this))
         }
 
         // Instantiate actions for this reactor instance
-        for (actionDecl : definition.reactorClass.actions) {
+        for (actionDecl : definition.reactorClass.allActions) {
             this.actions.add(new ActionInstance(actionDecl, this))
         }
 
@@ -108,14 +114,35 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // in the port instances.
         // Note that this can only happen _after_ the children and 
         // port instances have been created.
-        for (connection : definition.reactorClass.connections) {
+        for (connection : definition.reactorClass.allConnections) {
             var srcInstance = this.getPortInstance(connection.leftPort)
             var dstInstance = this.getPortInstance(connection.rightPort)
+            
+            // If the right side of the connection has the form port[i],
+            // then use the specific port, not the multiport.
+            if (connection.rightPort.variableArraySpec !== null) {
+                val width = (dstInstance as MultiportInstance).instances.size
+                val index = connection.rightPort.variableArraySpec.length
+                if (index >= width) {
+                    generator.reportError(connection.rightPort, "Index out of range.")
+                }
+                dstInstance = (dstInstance as MultiportInstance).instances.get(index)
+            }
+            // If the left side of the connection has the form port[i],
+            // then use the specific port, not the multiport.
+            if (connection.leftPort.variableArraySpec !== null) {
+                val width = (dstInstance as MultiportInstance).instances.size
+                val index = connection.leftPort.variableArraySpec.length
+                if (index >= width) {
+                    generator.reportError(connection.leftPort, "Index out of range.")
+                }
+                dstInstance = (dstInstance as MultiportInstance).instances.get(index)
+            }
+            
             srcInstance.dependentPorts.add(dstInstance)
             if (dstInstance.dependsOnPort !== null &&
                 dstInstance.dependsOnPort !== srcInstance) {
-                // FIXME: Is this the right way to handle the error?
-                throw new Exception(
+                generator.reportError(connection,
                     "Destination port " + dstInstance.getFullName +
                         " is already connected to " +
                         dstInstance.dependsOnPort.getFullName
@@ -154,40 +181,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 )
             }
             val graph = this.getDependencyGraph()
-            // FIXME: how about instead of copy we create a precedence graph?
             
             // Assign a level to each reaction. 
             // If there are cycles present in the graph, it will be detected here.
             assignLevels(graph)
             // Traverse the graph again, now starting from the leaves,
             // to set the chain IDs.
-            assignChainIDs(graph)                
+            assignChainIDs(graph, false) // FIXME: Temporarily disabled this.
 
             // Propagate any declared deadline upstream.
             propagateDeadlines()
 
             // FIXME: also record number of reactions.
             // We can use this to set the sizes of the queues.
-            
-// NOTE: retaining this code for benchmarking purposes!            
-//            assignLevels()
-//            // If there are reaction instances that have not been assigned
-//            // a level, throw an exception. There are cyclic dependencies.
-//            var reactionsInCycle = new LinkedList<ReactionInstance>()
-//            reactionsWithoutLevels(this, reactionsInCycle)
-//            if (!reactionsInCycle.isEmpty) {
-//                // There are cycles. Construct an error message.
-//                var inCycle = new LinkedList<String>
-//                for (reaction : reactionsInCycle) {
-//                    inCycle.add(
-//                        "reaction " + reaction.reactionIndex + " in " +
-//                            reaction.parent.getFullName
-//                    )
-//                }
-//                throw new Exception(
-//                    "Found cycles including: " + inCycle.join(", ")
-//                )
-//            }
         }
     }
 
@@ -195,9 +201,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     // // Public fields.
     /** The action instances belonging to this reactor instance. */
     public var actions = new LinkedList<ActionInstance>
-
-    /** The number of bits required to store the chain identifiers. */
-    public var chainIDWidth = 0
     
     /** The contained instances, indexed by name. */
     public var LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
@@ -524,6 +527,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
+    /**
+     * Extract a precedence graph from this reactor instance.
+     * FIXME: this is somewhat redundant; it's probably better build the graph immediately.
+     * At the very least we could just replace dependsOnReactions and dependentReactions
+     * with a DirectedGraph<ReactionInstance>. 
+     */
     protected def DirectedGraph<ReactionInstance> getDependencyGraph() {
         var graph = new DirectedGraph<ReactionInstance>()
         for (child : this.children) {
@@ -535,6 +544,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
             for (dependent: r.dependentReactions) {
                 graph.addEdge(dependent, r)
+            }
+        }
+        // Also add the independent nodes to the graph.
+        if (this === main) {
+            for (node : independentReactions) {
+                graph.addNode(node)
             }
         }
         
@@ -589,14 +604,24 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * exists a dependency between them. This facilitates runtime checks
      * to determine whether a reaction is ready to execute or has to wait
      * for an upstream reaction to complete.
+     * @param graph The dependency graph.
+     * @param optimize Whether or not make assignments that maximize the
+     * amount of parallelism. If false, just assign 1 to every node.
      */
-    protected def assignChainIDs(DirectedGraph<ReactionInstance> graph) {
+    protected def assignChainIDs(DirectedGraph<ReactionInstance> graph,
+            boolean optimize) {
         val leafs = graph.leafNodes
         this.branchCount = 0
-        // Start propagation from the leaf nodes,
-        // ordered by level from high to low.
-        for (node : leafs.sortBy[-level]) {
-            this.propagateUp(node, graph, 1 << (this.branchCount++ % 64))
+        if (optimize) {
+            // Start propagation from the leaf nodes,
+            // ordered by level from high to low.
+            for (node : leafs.sortBy[-level]) {
+                this.propagateUp(node, graph, 1 << (this.branchCount++ % 64))
+            }    
+        } else {
+            for (node: graph.nodes) {
+            node.chainID = 1
+            }    
         }
     }
 
@@ -657,88 +682,43 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
+    /**
+     * Iterate over all reactions that have a declared deadline, update their
+     * inferred deadline, as well as the inferred deadlines of any reactions
+     * upstream.
+     */
     def propagateDeadlines() {
         // Assume the graph is acyclic.
         for (r : reactionsWithDeadline) {
             if (r.declaredDeadline !== null &&
                 r.declaredDeadline.maxDelay !== null) {
-                r.deadline = r.declaredDeadline.maxDelay
+                // Only lower the inferred deadline (which is set to the max by default),
+                // if the declared deadline is earlier than the inferred one (based on
+                // some other downstream deadline).
+                if (r.deadline.isEarlierThan(r.declaredDeadline.maxDelay)) {
+                    r.deadline = r.declaredDeadline.maxDelay
+                }
             }
             propagateDeadline(r)
         }
     }
     
-    def void propagateDeadline(ReactionInstance upstream) {
-        for (r : upstream.dependsOnReactions) {
-            if (upstream.deadline.isEarlierThan(r.deadline)) {
-                r.deadline = upstream.deadline
-            }
-            propagateDeadline(r)
-        }
-    }
-    
-    /** Analyze the dependencies between reactions and assign levels.
-     *  A reaction has level 0 if it has no dependence on any other reaction,
-     *  i.e. it is the first reaction in a reactor and it is triggered by
-     *  by an action or a timer, not a port. It has level 1 if it depends
-     *  only on level 0 reactions. Etc.
-     *  Throw an exception if there are cyclic dependencies and
-     *  report the reactions that cannot be assigned levels and hence are
-     *  part of the cycle.
-     *  This should be called only on the top-level (main) reactor.
+    /**
+     * Given a reaction instance, propagate its inferred deadline upstream.
+     * @param downstream Reaction instance with an inferred deadline that
+     * is to be propagated upstream.
      */
-//    protected def void assignLevels() {
-//        if (independentReactions.isEmpty()) {
-//            throw new Exception(
-//                "Reactions form a cycle, where every reaction depends on another reaction!")
-//        }
-//        var candidatesForLevel = new LinkedList<ReactionInstance>()
-//        var level = 0
-//        for (reaction : independentReactions) {
-//            reaction.level = level
-//            reaction.chainID = 1;
-//            candidatesForLevel.addAll(reaction.dependentReactions)
-//        }
-//        while (!candidatesForLevel.isEmpty) {
-//            level++
-//            candidatesForLevel = assignLevels(candidatesForLevel, level)
-//        }
-//    }
-
-//    /** For each reaction instance in the specified list, assign it the
-//     *  specified level if every reaction it depends on already has an
-//     *  assigned level less than the specified level. Otherwise, add it
-//     *  to a new list that is returned. For each reaction that is assigned
-//     *  a level, also add all its dependent reactions to the returned list.
-//     *  @param candidatesForLevel Candidate reactions for the specified level.
-//     *  @param level The specified level.
-//     *  @return Candidates for the next level.
-//     */
-//    protected def assignLevels(
-//        LinkedList<ReactionInstance> candidatesForLevel,
-//        int level
-//    ) {
-//        var newCandidatesForLevel = new LinkedList<ReactionInstance>()
-//        for (reaction : candidatesForLevel) {
-//            var ready = true
-//            for (dependsOnReaction : reaction.dependsOnReactions) {
-//                if (dependsOnReaction.level < 0 // Not assigned.
-//                || dependsOnReaction.level >= level // Should not occur.
-//                ) {
-//                    // Would be nice to break here, but xtend can't do that.
-//                    ready = false
-//                }
-//            }
-//            if (ready) {
-//                reaction.level = level
-//                reaction.chainID = 1;
-//                newCandidatesForLevel.addAll(reaction.dependentReactions)
-//            } else {
-//                newCandidatesForLevel.add(reaction)
-//            }
-//        }
-//        newCandidatesForLevel
-//    }
+    def void propagateDeadline(ReactionInstance downstream) {
+        for (upstream : downstream.dependsOnReactions) {
+            // Only lower the inferred deadline (which is set to the max by default),
+            // if downstream deadline is earlier than the inferred one (based on
+            // some other downstream deadline).
+            if (downstream.deadline.isEarlierThan(upstream.deadline)) {
+                upstream.deadline = downstream.deadline
+            }
+            propagateDeadline(upstream)
+        }
+    }
 
     /** Add to the dependsOnReactions and dependentReactions all the
      *  reactions defined by the specified reactor that that
@@ -794,7 +774,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  that follows from the order in which they are defined.
      */
     protected def createReactionInstances() {
-        var reactions = this.definition.reactorClass.reactions
+        var reactions = this.definition.reactorClass.allReactions
         if (this.definition.reactorClass.reactions !== null) {
             var ReactionInstance previousReaction = null
             var count = 0
@@ -833,8 +813,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *   of its children.
      *  @param destinations The set of destinations to populate.
      */
-    protected def void transitiveClosure(PortInstance source,
-        LinkedHashSet<PortInstance> destinations) {
+    protected def void transitiveClosure(
+            PortInstance source,
+            LinkedHashSet<PortInstance> destinations
+    ) {
         // Check that the specified port belongs to this reactor or one of its children.
         // The following assumes that the main reactor has no ports, or else
         // a NPE will occur.

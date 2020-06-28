@@ -5,15 +5,15 @@ reactor DelayPointer(delay:time(100 msec)) {
     input in:void*;
     output out:void*;
     logical action a:void*;
-    reaction(in) -> a {=
-        // Schedule the actual token from the input rather than
-        // a new token with a copy of the input value.
-        schedule_token(a, self->delay, in_token);
-    =}
     reaction(a) -> out {=
         // Using set_token delegates responsibility for
         // freeing the allocated memory downstream.
         set_token(out, a_token);
+    =}
+    reaction(in) -> a {=
+        // Schedule the actual token from the input rather than
+        // a new token with a copy of the input value.
+        schedule_token(a, self->delay, in_token);
     =}
 }
 reactor Source {
