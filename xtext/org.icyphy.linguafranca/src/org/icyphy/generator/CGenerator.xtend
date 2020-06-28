@@ -313,7 +313,7 @@ class CGenerator extends GeneratorBase {
     new () {
         super()
         // set defaults
-        this.targetCompiler = "g++"
+        this.targetCompiler = "gcc"
         this.targetCompilerFlags = "-O2"// -Wall -Wconversion"
     }
 
