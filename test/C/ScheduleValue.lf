@@ -5,7 +5,7 @@ target C {
 main reactor ScheduleValue {
     logical action a:char*;
     reaction(startup) -> a {=
-        char* value = malloc(6);
+        char* value = (char*)malloc(6);
         strcpy(value, "Hello");
         schedule_value(a, 0, value, 6);
     =}
