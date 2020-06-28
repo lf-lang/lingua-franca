@@ -175,8 +175,8 @@ do { \
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
-    out = token->value; \
+    token_t* token = (token_t*)__set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
+    out = static_cast<decltype(out)>(token->value); \
     self->__ ## out ## _is_present = true; \
     self->__ ## out = token; \
 } while(0)
@@ -197,8 +197,8 @@ do { \
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
-    out = token->value; \
+    token_t* token = (token_t*)__set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
+    out = static_cast<decltype(out)>(token->value); \
     self->__ ## out ## _is_present = true; \
     self->__ ## out = token; \
 } while(0)
@@ -273,10 +273,7 @@ do { \
 
 //  ======== Type definitions ========  //
 
-/**
- * Booleans. This needs to be defined only if the target language
- * is C and the compiler is not a C++ compiler.
- */
+/** Booleans. */
 #ifndef __cplusplus
 typedef enum {false, true} bool;
 #endif
@@ -513,6 +510,11 @@ void __termination();
  * by shutdown.
  */
 bool __wrapup();
+
+/**
+ * Indicator for the absence of values for ports that remain disconnected.
+ */
+extern bool absent;
 
 /**
  * Create a new token and initialize it.
