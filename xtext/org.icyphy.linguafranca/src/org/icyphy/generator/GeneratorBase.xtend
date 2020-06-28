@@ -1185,8 +1185,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     resource = files.get(0)
                 }
             } else {
+                // No line designator.
                 if (message.length > 0) {
                     message.append("\n")
+                } else {
+                    if (line.toLowerCase.contains('warning:')) {
+                        severity = IMarker.SEVERITY_WARNING
+                    }
                 }
                 message.append(line)
             }
