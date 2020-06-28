@@ -739,7 +739,7 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
  * @param num_destinations The number of destinations (for initializing the reference count).
  * @return A pointer to the new or reused token.
  */
-void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
+token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) {
     // First, initialize the token, reusing the one given if possible.
     token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
     // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);

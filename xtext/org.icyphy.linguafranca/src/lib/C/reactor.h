@@ -172,6 +172,7 @@ do { \
  * struct to true (which causes the object message to be sent),
  * @param out The output port (by name).
  */
+#ifndef __cplusplus
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
@@ -180,6 +181,15 @@ do { \
     self->__ ## out ## _is_present = true; \
     self->__ ## out = token; \
 } while(0)
+#else
+do { \
+    out ## _is_present = true; \
+    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
+    out = static_cast<decltype(out)>(token->value); \
+    self->__ ## out ## _is_present = true; \
+    self->__ ## out = token; \
+} while(0)
+#endif
 
 /**
  * Version of set() for output types given as 'type[]'.
@@ -194,6 +204,7 @@ do { \
  * @param out The output port (by name).
  * @param length The length of the array to be sent.
  */
+#ifndef __cplusplus
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
@@ -202,6 +213,16 @@ do { \
     self->__ ## out ## _is_present = true; \
     self->__ ## out = token; \
 } while(0)
+#else
+#define set_new_array(out, length) \
+do { \
+    out ## _is_present = true; \
+    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
+    out = static_cast<decltype(out)>(token->value); \
+    self->__ ## out ## _is_present = true; \
+    self->__ ## out = token; \
+} while(0)
+#endif
 
 /**
  * Version of set() for output types given as 'type[number]'.
@@ -513,6 +534,11 @@ void __termination();
  * by shutdown.
  */
 bool __wrapup();
+
+/**
+ * Indicator for the absence of values for ports that remain disconnected.
+ */
+extern bool absent;
 
 /**
  * Create a new token and initialize it.
