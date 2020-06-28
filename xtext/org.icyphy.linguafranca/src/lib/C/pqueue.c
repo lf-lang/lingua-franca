@@ -90,6 +90,12 @@ void* find_equal_same_priority(pqueue_t *q, void *e, int pos) {
         else
             return find_equal_same_priority(q, e, right(pos));   
     }
+
+    // for (int i=1; i < q->size; i++) {
+    //     if (q->d[i] == e) {
+    //         return q->d[i];
+    //     }
+    // }
     return NULL;
 }
 
@@ -102,11 +108,11 @@ pqueue_t * pqueue_init(size_t n,
                        pqueue_print_entry_f prt) {
     pqueue_t *q;
 
-    if (!(q = malloc(sizeof(pqueue_t))))
+    if (!(q = (pqueue_t*)malloc(sizeof(pqueue_t))))
         return NULL;
 
     /* Need to allocate n+1 elements since element 0 isn't used. */
-    if (!(q->d = malloc((n + 1) * sizeof(void *)))) {
+    if (!(q->d = (void**)malloc((n + 1) * sizeof(void *)))) {
         free(q);
         return NULL;
     }
@@ -189,28 +195,39 @@ void* pqueue_find_equal(pqueue_t *q, void *e, pqueue_pri_t max) {
 }
 
 int pqueue_insert(pqueue_t *q, void *d) {
-    void *tmp;
+    void **tmp;
     size_t i;
     size_t newsize;
 
     if (!q) return 1;
 
-    //printf("==Before insert==\n");
-    //pqueue_dump(q, stdout, q->prt);
+    // printf("==Before insert==\n");
+    // pqueue_dump(q, stdout, q->prt);
+
+    // for(int i=1; i < q->size; i++) {
+    //     if (d == q->d[i]) {
+    //         printf("Duplicate found!\n");
+    //         exit(1);
+    //     }
+    // }
 
     /* allocate more memory if necessary */
     if (q->size >= q->avail) {
         newsize = q->size + q->step;
-        if (!(tmp = realloc(q->d, sizeof(void *) * newsize)))
+        if (!(tmp = (void**)realloc(q->d, sizeof(void *) * newsize)))
             return 1;
         q->d = tmp;
         q->avail = newsize;
     }
-    /* insert item and remove potential duplicate */
+    /* insert item and organize the tree */
     i = q->size++;
     q->d[i] = d;
     bubble_up(q, i);
-    
+
+    // printf("==After insert==\n");
+    // pqueue_dump(q, stdout, q->prt);
+
+
     // NOTE: Only use this for debugging!
     // if (!pqueue_is_valid(q)) {
     //     pqueue_dump(q, stdout, q->prt);

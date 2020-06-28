@@ -51,6 +51,11 @@ class ModelInfo {
      * instantiation of class A inside of class B implies that B depends on A.
      */
     public AnnotatedDependencyGraph<Reactor> instantiationGraph
+    
+    /**
+     * Data structure for tracking dependencies between reactions.
+     */
+    public ReactionGraph reactionGraph
 
     /**
      * A mapping from reactors to the sites of their instantiation.
@@ -90,8 +95,12 @@ class ModelInfo {
         this.model = model
         
         // Perform generic traversals.
-        this.refreshInstantiationMap()
-        this.refreshInstantiationGraph()
+        this.refreshInstantiationMap() // FIXME: carry this out in the same loop
+        this.refreshInstantiationGraph() // FIXME: wrap these two in a separate class
+        // 1. Assume that the instantiation graph is acyclic.
+        // 2. Check for data dependencies.
+        // FIXME: only do this if there are no cyclic instantiations.
+        this.reactionGraph = new ReactionGraph(this.model)
         
         // Find the target. A target must exist because the grammar requires it.
         var Targets target
