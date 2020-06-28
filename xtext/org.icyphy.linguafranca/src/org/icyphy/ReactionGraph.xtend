@@ -34,8 +34,6 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
-import java.util.HashSet
-import java.util.Set
 
 import static extension org.icyphy.ASTUtils.*
 
@@ -48,14 +46,16 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
 
     /**
      * Construct a reaction graph based on the given AST and run Tarjan's
-     * algorithm to detect cycles.
-     * 
+     * algorithm to detect cyclic dependencies between reactions. It is
+     * assumed that no instantiation cycles are present in the program.
+     * Checks for instantiation cycles thus must be carried out prior to  
+     * constructing the reaction graph.
      * @param model The AST.
      */
     new (Model model) {
         // Find the main reactors and traverse the AST depth-first.
         collectNodesFrom(model.eAllContents.filter(Reactor).findFirst[it.main],
-            new BreadCrumbTrail("", null, ""), new HashSet())
+            new BreadCrumbTrail("", null, ""))
         this.detectCycles()
     }
 
@@ -67,7 +67,7 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
      * @param reactor A reactor class definition.
      * @param instantiation The instantiation to bind the graph nodes to.
      */
-    def void collectNodesFrom(Reactor reactor, BreadCrumbTrail<Instantiation> path, Set<String> visited) {
+    def void collectNodesFrom(Reactor reactor, BreadCrumbTrail<Instantiation> path) {
                 
         // Nothing to do.
         if (reactor === null) {
@@ -133,13 +133,7 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
         
         if (reactor.allInstantiations !== null) {
             for (inst : reactor.instantiations) {
-                val breadCrumb = path.append(inst, inst.name)
-                val breadCrumbStr = breadCrumb.toString
-                // Do not visited nodes twice.
-                if (!visited.contains(breadCrumbStr)) {
-                    visited.add(breadCrumbStr)
-                    this.collectNodesFrom(inst.reactorClass, breadCrumb, visited)
-                }
+                this.collectNodesFrom(inst.reactorClass, path.append(inst, inst.name))
             }
         }
     }
