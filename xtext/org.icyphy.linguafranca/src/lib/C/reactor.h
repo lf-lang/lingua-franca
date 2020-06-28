@@ -182,6 +182,7 @@ do { \
     self->__ ## out = token; \
 } while(0)
 #else
+#define set_new(out) \
 do { \
     out ## _is_present = true; \
     token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \

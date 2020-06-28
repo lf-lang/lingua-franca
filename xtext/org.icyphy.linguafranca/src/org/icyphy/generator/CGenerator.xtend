@@ -1401,7 +1401,11 @@ class CGenerator extends GeneratorBase {
                 isPhysical = "false";
             }
             var elementSize = "0"
-            if (action.type !== null) elementSize = '''sizeof(«action.targetType.rootType»)'''
+            // If the action type is 'void', we need to avoid generating the code
+            // 'sizeof(void)', which some compilers reject.
+            if (action.type !== null && action.targetType.rootType != 'void') {
+                elementSize = '''sizeof(«action.targetType.rootType»)'''
+            }
 
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->___«action.name».is_timer = false;
@@ -1491,8 +1495,11 @@ class CGenerator extends GeneratorBase {
             // self->___«input.name».period = 0LL;
             // self->___«input.name».is_physical = false;
             // self->___«input.name».drop = false;
+            // If the input type is 'void', we need to avoid generating the code
+            // 'sizeof(void)', which some compilers reject.
+            val size = (rootType == 'void')? '0' : '''sizeof(«rootType»)'''
             pr(constructorCode, '''
-                self->___«variable.name»«indexSpec».element_size = sizeof(«rootType»);
+                self->___«variable.name»«indexSpec».element_size = «size»;
             ''')
         }
         if (arraySpec != '') {
@@ -2440,7 +2447,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         typeStr = type.targetType
                     }
-                    if (typeStr !== null && !typeStr.equals("")) {
+                    if (typeStr !== null && !typeStr.equals("") && !typeStr.equals("void")) {
                         payloadSize = '''sizeof(«typeStr»)'''
                     }    
                 }
@@ -2721,8 +2728,11 @@ class CGenerator extends GeneratorBase {
         } else {
             // Handle native types.
             // string types need to be dealt with specially because they are hidden pointers.
+            // void type is odd, but it avoids generating non-standard expression sizeof(void),
+            // which some compilers reject.
             var lengthExpression = switch(type.targetType) {
                 case 'string': '''strlen(«sendRef») + 1'''
+                case 'void': '0'
                 default: '''sizeof(«type.targetType»)'''
             }
             var pointerExpression = switch(type.targetType) {
@@ -3493,8 +3503,11 @@ class CGenerator extends GeneratorBase {
                         // Create the template token that goes in the trigger struct.
                         // Its reference count is zero, enabling it to be used immediately.
                         var rootType = type.targetType.rootType
+                        // If the rootType is 'void', we need to avoid generating the code
+                        // 'sizeof(void)', which some compilers reject.
+                        val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
                         pr('''
-                            «nameOfSelfStruct»->__«output.name» = __create_token(sizeof(«rootType»));
+                            «nameOfSelfStruct»->__«output.name» = __create_token(«size»);
                         ''')
                     }
                 }
