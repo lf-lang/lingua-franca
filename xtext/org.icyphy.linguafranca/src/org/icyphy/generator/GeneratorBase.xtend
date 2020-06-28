@@ -229,12 +229,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     )
     
     /**
-     * For the top-level reactor (main), a list of reactions in each federate.
-     *This will be null if there is only one federate.
-     */
-    protected var HashMap<FederateInstance,LinkedList<Reaction>> reactionsInFederate = null
-
-    /**
      * The build-type target parameter, or null if there is none.
      */
     protected String targetBuildType
@@ -1122,27 +1116,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def parseCommandOutput(String line) {
         return null as ErrorFileAndLine
     }
-    
-    /** Return a list of Reaction containing every reaction of the specified
-     *  reactor that should be included in code generated for the specified
-     *  federate. If the reaction is triggered by or sends data to a contained
-     *  reactor that is not in the federate, then that reaction will not be
-     *  included in the returned list.  This method assumes that analyzeFederates
-     *  has been called.
-     *  @param reactor The reactor
-     *  @param federate The federate or null to include all reactions.
-     */
-    protected def List<Reaction> reactionsInFederate(Reactor reactor, FederateInstance federate) {
-        if (!reactor.federated || federate === null || reactionsInFederate === null) {
-            reactor.allReactions
-        } else {
-            // reactionsInFederate is a Map<FederateInstance,List<Reaction>>
-            var result = reactionsInFederate.get(federate)
-            if (result === null) reactor.allReactions
-            else result
-        }
-    }
-    
+        
     /** Parse the specified string for command errors that can be reported
      *  using marks in the Eclipse IDE. In this class, we attempt to parse
      *  the messages to look for file and line information, thereby generating
@@ -1615,9 +1589,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 */
             }
             
-            // Create the cached list of reactions in federates.
-            reactionsInFederate = new HashMap<FederateInstance,LinkedList<Reaction>>()
-            
             // Create a FederateInstance for each top-level reactor.
             for (instantiation : mainDef.reactorClass.allInstantiations) {
                 // Assign an integer ID to the federate.
@@ -1723,16 +1694,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             for (connection : connectionsToRemove) {
                 // Remove the original connection for the parent.
                 mainDef.reactorClass.connections.remove(connection)
-            }
-            // Construct the cached list of reactions in federates.
-            for (federate : federates) {
-                val reactions = new LinkedList<Reaction>()
-                reactionsInFederate.put(federate, reactions)
-                for (reaction : mainDef.reactorClass.allReactions) {
-                    if (federate.containsReaction(mainDef.reactorClass, reaction)) {
-                        reactions.add(reaction)
-                    }
-                }
             }
         }
     }
