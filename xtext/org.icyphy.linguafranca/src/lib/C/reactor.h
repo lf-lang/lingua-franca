@@ -169,8 +169,10 @@ do { \
  * wishes to send.
  *
  * This macro also sets the corresponding _is_present variable in the self
- * struct to true (which causes the object message to be sent),
+ * struct to true (which causes the object message to be sent).
+ *
  * @param out The output port (by name).
+ * The C/C++ target version has explisit static_cast for out
  */
 
 #ifdef __cplusplus
@@ -203,6 +205,7 @@ do { \
  * allocated array will be handled automatically
  * when the last downstream reader of the message has finished.
  * @param out The output port (by name).
+ * The C/C++ target version has explisit static_cast for out
  * @param length The length of the array to be sent.
  */
 #ifdef __cplusplus
@@ -294,7 +297,10 @@ do { \
 
 //  ======== Type definitions ========  //
 
-/** Booleans. */
+/**
+ * Booleans. This needs to be defined only if the target language
+ * is C and the compiler is not a C++ compiler.
+ */
 #ifndef __cplusplus
 typedef enum {false, true} bool;
 #endif
@@ -532,10 +538,6 @@ void __termination();
  */
 bool __wrapup();
 
-/**
- * Indicator for the absence of values for ports that remain disconnected.
- */
-extern bool absent;
 
 /**
  * Create a new token and initialize it.
