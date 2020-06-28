@@ -2882,7 +2882,7 @@ class CGenerator extends GeneratorBase {
             result.character = matcher.group(3)
             result.message = matcher.group(4)
             
-            if (result.message.trim.toLowerCase.startsWith("warning")) {
+            if (result.message.toLowerCase.contains("warning:")) {
                 result.isError = false
             }
             return result
