@@ -28,7 +28,7 @@ reactor Destination(timeout:time(1 sec)) {
     input x:int;
     state count:int(0);
     reaction(x) {=
-        printf("Destination receives: %d\n", x);
+        printf("Destination receives: %d\n", x->value);
         if (2 * (self->count / 2) != self->count) {
             // The count variable is odd, so the deadline should have been violated.
             printf("ERROR: Failed to detect deadline.\n");
@@ -36,7 +36,7 @@ reactor Destination(timeout:time(1 sec)) {
         }
         (self->count)++;
     =} deadline(timeout) {=
-        printf("Destination deadline handler receives: %d\n", x);
+        printf("Destination deadline handler receives: %d\n", x->value);
         if (2 * (self->count / 2) == self->count) {
             // The count variable is even, so the deadline should not have been violated.
             printf("ERROR: Deadline miss handler invoked without deadline violation.\n");
