@@ -4,9 +4,9 @@ target C;
 reactor Source {
     output out:int[3];
     reaction(startup) -> out {=
-        out[0] = 0;
-        out[1] = 1;
-        out[2] = 2;
+        out->value[0] = 0;
+        out->value[1] = 1;
+        out->value[2] = 2;
         set_present(out);
     =}
 }
@@ -19,9 +19,9 @@ reactor Print(scale:int(1)) {
         printf("Received: [");
         for (int i = 0; i < 3; i++) {
             if (i > 0) printf(", ");
-            printf("%d", in[i]);
+            printf("%d", in->value[i]);
             // For testing, check whether values match expectation.
-            if (in[i] != self->scale * count) {
+            if (in->value[i] != self->scale * count) {
                 failed = true;
             }
             count++;         // For testing.
