@@ -2378,23 +2378,21 @@ class CGenerator extends GeneratorBase {
             // memory allocations.
             
             // Array type parameters have to be handled specially.
-            val matcher = arrayPatternVariable.matcher(parameter.type.targetType)
+            // Use the superclass getTargetType to avoid replacing the [] with *.
+            val targetType = super.getTargetType(parameter.type)
+            val matcher = arrayPatternVariable.matcher(targetType)
             if (matcher.find()) {
                 // Use an intermediate temporary variable so that parameter dependencies
                 // are resolved correctly.
                 val temporaryVariableName = parameter.uniqueID
-                pr(initializeTriggerObjects,
-                    "static " + matcher.group(1) + " " +
-                    temporaryVariableName + "[] = " + parameter.getInitializer + ";"
-                )
-                pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "->" + parameter.name + " = " + temporaryVariableName + ";"
-                )
+                pr(initializeTriggerObjects, '''
+                    static «matcher.group(1)» «temporaryVariableName»[] = «parameter.getInitializer»;
+                    «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
+                ''')
             } else {
-                pr(initializeTriggerObjects,
-                    nameOfSelfStruct + "->" + parameter.name + " = " +
-                        parameter.getInitializer + ";" 
-                )
+                pr(initializeTriggerObjects, '''
+                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
+                ''')
             }
         }
 
@@ -3300,44 +3298,6 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 «outputStructType»*«arraySpec» «output.name» = &self->__«output.name»;
             ''')
-            /*
-            FIXME
-            val outputType = lfTypeToTokenType(output.inferredType)
-            // Define a variable of type 'type*' with name matching the output name.
-            // If the output type has the form type[number],
-            // then the variable is set equal to the pointer in the self struct
-            // to the output value. Otherwise, if the output type has the form
-            // type[], or type*, the variable is set to NULL.
-            // Otherwise, it is set to the _address_ of the
-            // entry in the self struct corresponding to the output.  
-            val matcher = arrayPatternFixed.matcher(outputType)
-            if (matcher.find()) {
-                pr(
-                    builder,
-                    rootType(output.targetType) + '* ' + output.name +
-                        ' = self->__' + output.name + ';'
-                )
-            } else if (isTokenType(output.inferredType)) {
-                pr(
-                    builder,
-                    rootType(output.targetType) + '* ' + output.name + ' = NULL;'
-                )
-            } else {
-                pr(
-                    builder,
-                    outputType + '* ' + output.name +
-                        ' = &(self->__' + output.name + ');'
-                )
-            }
-            // Also define a boolean variable name_is_present with value
-            // equal to the current value of the corresponding is_present field
-            // in the self struct. This can be used to test whether a previous
-            // reaction has already set an output value at the current logical time.
-            pr(builder, 'bool ' + output.name + '_is_present = self->__'
-                + output.name + '_is_present;'
-            )
-            * 
-            */
         }
     }
 

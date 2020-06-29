@@ -20,8 +20,8 @@ reactor Print {
     state received:int(0);
     reaction(in) {=
         self->received++;
-        printf("Received: %d\n", in);
-        if (in != self->count) {
+        printf("Received: %d\n", in->value);
+        if (in->value != self->count) {
             printf("ERROR: Expected %d.\n", self->count);
             exit(1);
         }
