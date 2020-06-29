@@ -3294,12 +3294,12 @@ class CGenerator extends GeneratorBase {
             // First define the struct containing the output value and indicator
             // of its presence.
             pr(structBuilder, '''
-                «portStructType» «portName»;
+                «portStructType»* «portName»;
             ''')
 
             // Next, initialize the struct with the current values.
             pr(builder, '''
-                «reactorName».«portName» = &(self->__«reactorName».«portName»);
+                «reactorName».«portName» = self->__«reactorName».«portName»;
             ''')
         }
     }
@@ -3386,16 +3386,14 @@ class CGenerator extends GeneratorBase {
             structBuilder = new StringBuilder
             structs.put(definition, structBuilder)
         }
-        pr(structBuilder, lfTypeToTokenType(input.inferredType) + '* ' + input.name + ';')
-        pr(structBuilder, ' bool ' + input.name + '_is_present;')        
+        val inputStructType = variableStructType(input, definition.reactorClass)
+        pr(structBuilder, '''
+            «inputStructType»* «input.name»;
+        ''')
         
-        pr(builder,
-            definition.name + '.' + input.name + ' = &(self->__' +
-            definition.name + '.' + input.name + ');'
-        )
-        pr(builder,
-            definition.name + '.' + input.name + '_is_present = self->__' +
-            definition.name + '.' + input.name + '_is_present;'
+        pr(builder, '''
+            «definition.name».«input.name» = &(self->__«definition.name».«input.name»);
+        '''
         )
     }
 
