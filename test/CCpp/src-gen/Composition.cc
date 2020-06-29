@@ -10,8 +10,9 @@ public:
 	interval_t period;
 	int count;
 	Port<int> __y;
-	bool __y_is_present;
-	int __y_num_destinations;
+	//bool __y_is_present;
+    
+    int __y_num_destinations;
 	reaction_t ___reaction_0;
 	bool* __reaction_0_outputs_are_present[1];
 	int __reaction_0_num_outputs;
@@ -25,13 +26,13 @@ public:
         // auto y = this->__y;
         // bool y_is_present = this->__y.is_present();
         self->count++;
-        std::cout << "Source sending" << self->count << "." << std::endl;
+        std::cout << "Source sending " << self->count << "." << std::endl;
         self->__y.set(self->count);
 
     }
 
 	source_self_t() {
-		this->__reaction_0_outputs_are_present[0] = &this->__y_is_present;
+		this->__reaction_0_outputs_are_present[0] = &this->__y._is_present;
 		this->__reaction_0_num_outputs = 1;
 		this->___reaction_0.function = reaction_function_0;
 		this->___reaction_0.self = this; // Doesn't seem to break anything in this example
@@ -53,8 +54,8 @@ public:
 class test_self_t {
 public:
 	int count;
-	Port<int*> __x;
-	bool* __x_is_present;
+	Port<int>* __x;
+	//bool* __x_is_present;
 	reaction_t ___reaction_0;
 	bool* __reaction_0_outputs_are_present[0];
 	int __reaction_0_num_outputs;
@@ -72,10 +73,10 @@ public:
 //public:
     static void reaction_function_0(void* instance_args) {
         test_self_t* self = (test_self_t*)instance_args;
-        bool x_is_present = self->__x.is_present();
+        bool x_is_present = self->__x->is_present();
         int x;
         if (x_is_present) {
-            x = *self->__x.get();
+            x = self->__x->get();
         }
         self->count++; // local variables declared here that are not state variables should be strongly discouraged
         std::cout << "Received " << x << std::endl; // Or x->get()
@@ -196,18 +197,18 @@ void __initialize_trigger_objects() {
 	// Point to destination port Composition.d.x's trigger struct.
 	composition_s_0_0[0] = &composition_d_self->___x;
 	// doDeferredInitialize
-	composition_d_self->__x_is_present = &absent;
+	// composition_d_self->__x->_is_present = &absent; // I don't understand why this is set immidiately before re-initialization
 	// Connect inputs and outputs for reactor Composition.
 	// Connect Composition.s.y to input port Composition.d.x
-	composition_d_self->__x.set(composition_s_self->__y.get_pointer());
-	composition_d_self->__x_is_present = &composition_s_self->__y._is_present;
+	composition_d_self->__x = composition_s_self->__y.get_pointer();
+	composition_d_self->__x->_is_present = composition_s_self->__y._is_present;
 	// Connect inputs and outputs for reactor Composition.s.
 	// END Connect inputs and outputs for reactor Composition.s.
 	// Connect inputs and outputs for reactor Composition.d.
 	// END Connect inputs and outputs for reactor Composition.d.
 	// END Connect inputs and outputs for reactor Composition.
 	// Add port Composition.s.y to array of _is_present fields.
-	__is_present_fields[0] = &composition_s_self->__y_is_present;
+	__is_present_fields[0] = &composition_s_self->__y._is_present;
 	composition_s_self->___reaction_0.chain_id = 1;
 	// index is the OR of level 0 and 
 	// deadline 140737488355327 shifted left 16 bits.
