@@ -3189,9 +3189,23 @@ class CGenerator extends GeneratorBase {
     ) {
         val arraySpec = input.multiportArraySpec
         val structType = variableStructType(input, reactor)
-        pr(builder, '''
-            «structType»* «input.name»«arraySpec» = self->__«input.name»;
-        ''')
+        // Create the local variable whose name matches the input name.
+        // If the input has not been declared mutable, then this is a pointer
+        // to the upstream output. Otherwise, it is a copy of the upstream output,
+        // which nevertheless points to the same token and value (hence, as done
+        // below, we have to use writable_copy().
+        // FIXME: I doubt this is going to work as is with multiports!  
+        if (input.isMutable) {
+            pr(builder, '''
+                // Mutable input, so copy the input struct into a temporary variable.
+                «structType» __tmp_«input.name»«arraySpec» = *(self->__«input.name»);
+                «structType»* «input.name»«arraySpec» = &__tmp_«input.name»;
+            ''')
+        } else {
+            pr(builder, '''
+                «structType»* «input.name»«arraySpec» = self->__«input.name»;
+            ''')
+        }
         if (input.inferredType.isTokenType) {
             val rootType = input.targetType.rootType
             // Set the length field of the input and copy the token if
