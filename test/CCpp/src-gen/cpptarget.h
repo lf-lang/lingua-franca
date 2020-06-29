@@ -11,9 +11,9 @@ public:
 	T value;
 	bool _is_present;
 	T get() { return value;}
-	void set_value(T value) { this->value = value; }
+	void set(T _value) { this->value = _value; this->_is_present=true; }
 	bool is_present () { return _is_present;}
-	T* get_pointer() { return &this->value; }
+	Port<T>* get_pointer() { return this; }
 };
 
 #endif // CPP_TARGET_H
