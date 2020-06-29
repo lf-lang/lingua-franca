@@ -160,20 +160,18 @@ do { \
 #ifndef __cplusplus
 #define set_new(out) \
 do { \
-    out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
-    out = token->value; \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
+    out->is_present = true; \
+    token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    out->value = token->value; \
+    out->token = token; \
 } while(0)
 #else
 #define set_new(out) \
 do { \
-    out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
-    out = static_cast<decltype(out)>(token->value); \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
+    out->is_present = true; \
+    token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    out->value = static_cast<decltype(out)>token->value; \
+    out->token = token; \
 } while(0)
 #endif
 
@@ -234,12 +232,13 @@ do { \
  * @param out The output port (by name).
  * @param token A pointer to token obtained from an input or action.
  */
-#define set_token(out, token) \
+#define set_token(out, newtoken) \
 do { \
-    out ## _is_present = true; \
-    self->__ ## out = token; \
-    token->ref_count += self->__ ## out ## _num_destinations; \
-    self->__ ## out ## _is_present = true; \
+    out->is_present = true; \
+    out->value = newtoken->value; \
+    out->token = newtoken; \
+    newtoken->ref_count += out->num_destinations; \
+    out->is_present = true; \
 } while(0)
 
 /**
