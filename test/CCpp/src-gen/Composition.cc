@@ -5,8 +5,6 @@
 #include "cpptarget.h"
 
 // =============== START reactor class Source
-void sourcereaction_function_0(void* instance_args);
-
 class source_self_t {
 public:
 	interval_t period;
@@ -22,12 +20,21 @@ public:
 	trigger_t ___t;
 	reaction_t* ___t_reactions[1];
 //public:
+    static void reaction_function_0(void* instance_args) {
+        source_self_t* self = (source_self_t*)instance_args;
+        // auto y = this->__y;
+        // bool y_is_present = this->__y.is_present();
+        self->count++;
+        std::cout << "Source sending" << self->count << "." << std::endl;
+        self->__y.set(self->count);
+
+    }
 
 	source_self_t() {
 		this->__reaction_0_outputs_are_present[0] = &this->__y_is_present;
 		this->__reaction_0_num_outputs = 1;
-		this->___reaction_0.function = sourcereaction_function_0;
-		this->___reaction_0.self = this;
+		this->___reaction_0.function = reaction_function_0;
+		this->___reaction_0.self = this; // Doesn't seem to break anything in this example
 		this->___reaction_0.num_outputs = 1;
 		this->___reaction_0.output_produced = this->__reaction_0_outputs_are_present;
 		this->___reaction_0.triggered_sizes = this->__reaction_0_triggered_sizes;
@@ -41,21 +48,8 @@ public:
 	}
 };
 // =============== END reactor class Source
-void sourcereaction_function_0(void* instance_args) {
-    source_self_t* self = (source_self_t*)instance_args;
-    // auto y = this->__y;
-    // bool y_is_present = this->__y.is_present();
-    self->count++;
-    std::cout << "Source sending" << self->count << "." << std::endl;
-    self->__y.set(self->count);
-
-}
-
 
 // =============== START reactor class Test
-void testreaction_function_0(void* instance_args);
-void testreaction_function_1(void* instance_args);
-
 class test_self_t {
 public:
 	int count;
@@ -76,65 +70,64 @@ public:
 	trigger_t ___x;
 	reaction_t* ___x_reactions[1];
 //public:
+    static void reaction_function_0(void* instance_args) {
+        test_self_t* self = (test_self_t*)instance_args;
+        bool x_is_present = self->__x.is_present();
+        int x;
+        if (x_is_present) {
+            x = *self->__x.get();
+        }
+        self->count++; // local variables declared here that are not state variables should be strongly discouraged
+        std::cout << "Received " << x << std::endl; // Or x->get()
+        if (x != self->count) { // Or x->get()
+            std::cerr << "FAILURE: Expected " <<  self->count << std::endl; // could be this->count as well
+            exit(1); 
+        }
+
+    }
+    static void reaction_function_1(void* instance_args) {
+        test_self_t* self = (test_self_t*)instance_args;
+        bool shutdown_is_present = self->___shutdown.is_present;
+        bool shutdown_has_value = ((self->___shutdown.token) != NULL && (self->___shutdown.token)->value != NULL);
+        token_t* shutdown_token = (self->___shutdown.token);
+        if (self->count == 0) {
+            std::cerr << "FAILURE: No data received." << std::endl;
+        }
+
+    }
 	test_self_t() {
-		test_self_t* self = (test_self_t*)calloc(1, sizeof(test_self_t));
-		self->__reaction_0_num_outputs = 0;
-		self->___reaction_0.function = testreaction_function_0;
-		self->___reaction_0.self = self;
-		self->___reaction_0.num_outputs = 0;
-		self->___reaction_0.output_produced = self->__reaction_0_outputs_are_present;
-		self->___reaction_0.triggered_sizes = self->__reaction_0_triggered_sizes;
-		self->___reaction_0.triggers = self->__reaction_0_triggers;
-		self->___reaction_0.deadline_violation_handler = NULL;
-		self->__reaction_1_num_outputs = 0;
-		//self->___reaction_1.function = testreaction_function_1;
-		self->___reaction_1.self = self;
-		self->___reaction_1.num_outputs = 0;
-		self->___reaction_1.output_produced = self->__reaction_1_outputs_are_present;
-		self->___reaction_1.triggered_sizes = self->__reaction_1_triggered_sizes;
-		self->___reaction_1.triggers = self->__reaction_1_triggers;
-		self->___reaction_1.deadline_violation_handler = NULL;
-		self->___shutdown.scheduled = NEVER;
-		self->___shutdown_reactions[0] = &self->___reaction_1;
-		self->___shutdown.reactions = &self->___shutdown_reactions[0];
-		self->___shutdown.number_of_reactions = 1;
-		self->___shutdown.is_physical = false;
-		self->___shutdown.drop = false;
-		self->___shutdown.element_size = 0;
-		self->___x.scheduled = NEVER;
-		self->___x_reactions[0] = &self->___reaction_0;
-		self->___x.reactions = &self->___x_reactions[0];
-		self->___x.number_of_reactions = 1;
-		self->___x.element_size = sizeof(int);
+		this->__reaction_0_num_outputs = 0;
+		this->___reaction_0.function = reaction_function_0;
+		this->___reaction_0.self = this; // Doesn't seem to break anything in this example.
+		this->___reaction_0.num_outputs = 0;
+		this->___reaction_0.output_produced = this->__reaction_0_outputs_are_present;
+		this->___reaction_0.triggered_sizes = this->__reaction_0_triggered_sizes;
+		this->___reaction_0.triggers = this->__reaction_0_triggers;
+		this->___reaction_0.deadline_violation_handler = NULL;
+		this->__reaction_1_num_outputs = 0;
+		this->___reaction_1.function = reaction_function_1;
+		this->___reaction_1.self = this; // Doesn't seem to break anything in this example.
+		this->___reaction_1.num_outputs = 0;
+		this->___reaction_1.output_produced = this->__reaction_1_outputs_are_present;
+		this->___reaction_1.triggered_sizes = this->__reaction_1_triggered_sizes;
+		this->___reaction_1.triggers = this->__reaction_1_triggers;
+		this->___reaction_1.deadline_violation_handler = NULL;
+		this->___shutdown.scheduled = NEVER;
+		this->___shutdown_reactions[0] = &this->___reaction_1;
+		this->___shutdown.reactions = &this->___shutdown_reactions[0];
+		this->___shutdown.number_of_reactions = 1;
+		this->___shutdown.is_physical = false;
+		this->___shutdown.drop = false;
+		this->___shutdown.element_size = 0;
+		this->___x.scheduled = NEVER;
+		this->___x_reactions[0] = &this->___reaction_0;
+		this->___x.reactions = &this->___x_reactions[0];
+		this->___x.number_of_reactions = 1;
+		this->___x.element_size = sizeof(int);
 	}
 };
 // =============== END reactor class Test
-void testreaction_function_0(void* instance_args) {
-    test_self_t* self = (test_self_t*)instance_args;
-    bool x_is_present = self->__x.is_present();
-    int x;
-    if (x_is_present) {
-        x = *self->__x.get();
-    }
-    self->count++; // local variables declared here that are not state variables should be strongly discouraged
-    std::cout << "Received " << x << std::endl; // Or x->get()
-    if (x != self->count) { // Or x->get()
-        std::cerr << "FAILURE: Expected " <<  self->count << std::endl; // could be this->count as well
-        exit(1); 
-    }
 
-}
-
-void testreaction_function_1(void* instance_args) {
-    test_self_t* self = (test_self_t*)instance_args;
-    bool shutdown_is_present = self->___shutdown.is_present;
-    bool shutdown_has_value = ((self->___shutdown.token) != NULL && (self->___shutdown.token)->value != NULL);
-    token_t* shutdown_token = (self->___shutdown.token);
-    if (self->count == 0) {
-        std::cerr << "FAILURE: No data received." << std::endl;
-    }
-
-}
 
 // =============== START reactor class Composition
 class composition_self_t {
