@@ -191,20 +191,18 @@ do { \
 #ifndef __cplusplus
 #define set_new_array(out, length) \
 do { \
-    out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
-    out = token->value; \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
+    out->is_present = true; \
+    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
+    out->value = token->value; \
+    out->token = token; \
 } while(0)
 #else
 #define set_new_array(out, length) \
 do { \
-    out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
-    out = static_cast<decltype(out)>(token->value); \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
+    out->is_present = true; \
+    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
+    out->value = static_cast<decltype(out)>(token->value); \
+    out->token = token; \
 } while(0)
 #endif
 

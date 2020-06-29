@@ -60,11 +60,11 @@ reactor PrintMessage {
     reaction(message) {=
         printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",
             get_elapsed_logical_time(),
-            message
+            message->value
         );
         // Check the trailing number only of the message.
         self->count++;
-        int trailing_number = atoi(&message[12]);
+        int trailing_number = atoi(&message->value[12]);
         if (trailing_number != self->count) {
             printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
             exit(1);

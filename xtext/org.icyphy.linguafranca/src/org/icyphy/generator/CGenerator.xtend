@@ -54,7 +54,6 @@ import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
@@ -1029,7 +1028,13 @@ class CGenerator extends GeneratorBase {
     ) {
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            val token = (input.inferredType.isTokenType) ? 'token_t* token;' : ''
+            var token = ''
+            if (input.inferredType.isTokenType) {
+                 token = '''
+                    token_t* token;
+                    int length;
+                 '''
+            }
             pr(input, code, '''
                 typedef struct {
                     «input.valueDeclaration»
@@ -1040,7 +1045,13 @@ class CGenerator extends GeneratorBase {
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            val token = (output.inferredType.isTokenType) ? 'token_t* token;' : ''
+            var token = ''
+            if (output.inferredType.isTokenType) {
+                 token = '''
+                    token_t* token;
+                    int length;
+                 '''
+            }
             pr(output, code, '''
                 typedef struct {
                     «output.valueDeclaration»
@@ -1103,7 +1114,7 @@ class CGenerator extends GeneratorBase {
         // Start with parameters.
         for (parameter : reactor.allParameters) {
             prSourceLineNumber(body, parameter)
-            pr(body, getParameterType(parameter) + ' ' + parameter.name + ';');
+            pr(body, parameter.targetType + ' ' + parameter.name + ';');
         }
         // Next handle states.
         for (stateVar : reactor.allStateVars) {
@@ -3183,27 +3194,21 @@ class CGenerator extends GeneratorBase {
         pr(builder, '''
             «structType»* «input.name»«arraySpec» = self->__«input.name»;
         ''')
-        /* FIXME
         if (input.inferredType.isTokenType) {
             val rootType = input.targetType.rootType
-            // Create the name_token variable.
-            // If the input is declared mutable, create a writable copy.
-            // Note that this will not copy if the reference count is exactly one.
-            pr(builder, '''
-                «structType»* «input.name»«arraySpec»;
-            ''')
+            // Set the length field of the input and copy the token if
+            // necessary for mutable inputs. This has to be done differently
+            // for multiports, which have to iterate.
             if (arraySpec == '') {
                 pr(builder, '''
-                    int «input.name»_length = 0;
-                    token_t* «input.name»_token = *(self->__«input.name»);
-                    if («input.name»_is_present) {
-                        «input.name»_length = (*(self->__«input.name»))->length;
+                    if («input.name»->is_present) {
+                        «input.name»->length = «input.name»->token->length;
                         «IF input.isMutable»
-                            «input.name»_token = writable_copy(*(self->__«input.name»));
-                            «input.name» = («rootType»*)(«input.name»_token->value);
-                        «ELSE»
-                            «input.name» = («rootType»*)((*(self->__«input.name»))->value);
+                            «input.name»->token = writable_copy(«input.name»->token);
                         «ENDIF»
+                        «input.name»->value = «input.name»->token->value;
+                    } else {
+                        «input.name»->length = 0;
                     }
                 ''')
             } else {
@@ -3211,55 +3216,21 @@ class CGenerator extends GeneratorBase {
                 // which means it cannot be parameterized. Perhaps the width should be
                 // a field on the self struct.
                 pr(builder, '''
-                    int «input.name»_length«arraySpec»;
-                    token_t* «input.name»_token«arraySpec»;
-                    // FIXME: Here the multiport width is a property of the class definition,
-                    // which means it cannot be parameterized. Perhaps the width should be
-                    // a field on the self struct.
                     for (int i = 0; i < «input.multiportWidth»; i++) {
-                        «input.name»_length[i] = 0
-                        «input.name»_token[i] = *(self->__«input.name»[i]);
-                        if («input.name»_is_present[i]) {
-                            «input.name»_length[i] = (*(self->__«input.name»[i]))->length;
+                        if («input.name»[i]->is_present) {
+                            «input.name»[i]->length = «input.name»[i]->token->length;
                             «IF input.isMutable»
-                                «input.name»_token[i] = writable_copy(*(self->__«input.name»[i]));
-                                «input.name»[i] = («rootType»*)(«input.name»_token[i]->value);
-                            «ELSE»
-                                «input.name»[i] = («rootType»*)((*(self->__«input.name»[i]))->value);
+                                «input.name»[i]->token = writable_copy(«input.name»[i]->token);
                             «ENDIF»
+                        } else {
+                            «input.name»[i]->length = 0;
                         }
-                    }
-                    int «input.name»_width = «input.multiportWidth»;
-                ''')
-            }
-        } else if (input.type !== null) {
-            // Look for array type of form type[number].
-            val matcher = arrayPatternFixed.matcher(input.type.targetType)
-            if (matcher.find) {
-                pr(builder, '''«matcher.group(1)»* «input.name»«arraySpec»;''')
-            } else {
-                pr(builder, '''«input.type.targetType» «input.name»«arraySpec»;''')
-            }
-            if (arraySpec == '') {
-                pr(builder, '''
-                    if («input.name»_is_present) {
-            	       «input.name» = *(self->__«input.name»);
-                    }
-                ''')
-            } else {
-                pr(builder, '''
-                    for (int i = 0; i < «input.multiportWidth»; i++) {
-                        «input.name»_is_present[i] = *(self->__«input.name»_is_present[i]);
-                        if («input.name»_is_present[i]) {
-                            «input.name»[i] = *(self->__«input.name»[i]);
-                        }
+                        «input.name»[i]->value = «input.name»[i]->token->value;
                     }
                     int «input.name»_width = «input.multiportWidth»;
                 ''')
             }
         }
-        * 
-        */
     }
     
     /** Generate into the specified string builder the code to
@@ -3401,21 +3372,17 @@ class CGenerator extends GeneratorBase {
         )
     }
 
-    /** Return a C type for the type of the specified parameter.
-     *  If there are code delimiters around it, those are removed.
-     *  If the type is "time", then it is converted to "interval_t".
-     *  If the type is of the form "type[]", then this is converted
-     *  to "type*".
-     *  @param parameter The parameter.
-     *  @return The C type.
-     */
-    private def getParameterType(Parameter parameter) {
-        var type = parameter.targetType
-        val matcher = arrayPatternVariable.matcher(type)
+    /**
+     * Override the base class to replace a type of form type[] with type*.
+     * @param type The type.
+     */ 
+    override String getTargetType(InferredType type) {
+        var result = super.getTargetType(type)
+        val matcher = arrayPatternVariable.matcher(result)
         if (matcher.find()) {
             return matcher.group(1) + '*'
         }
-        type
+        return result
     }
     
     /** Return a C type for the type of the specified state variable.
