@@ -169,26 +169,14 @@ do { \
  * wishes to send.
  *
  * This macro also sets the corresponding _is_present variable in the self
- * struct to true (which causes the object message to be sent).
- *
+ * struct to true (which causes the object message to be sent),
  * @param out The output port (by name).
- * The C/C++ target version has explisit static_cast for out
  */
-
 #ifndef __cplusplus
 #define set_new(out) \
 do { \
     out ## _is_present = true; \
-    token_t* token = (token_t*)__set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
-    out = static_cast<decltype(out)>(token->value); \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
-} while(0)
-#else
-#define set_new(out) \
-do { \
-    out ## _is_present = true; \
-    token_t* token = (token_t*)__set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
+    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
     out = token->value; \
     self->__ ## out ## _is_present = true; \
     self->__ ## out = token; \
@@ -204,7 +192,6 @@ do { \
 } while(0)
 #endif
 
-
 /**
  * Version of set() for output types given as 'type[]'.
  *
@@ -216,23 +203,13 @@ do { \
  * allocated array will be handled automatically
  * when the last downstream reader of the message has finished.
  * @param out The output port (by name).
- * The C/C++ target version has explisit static_cast for out
  * @param length The length of the array to be sent.
  */
 #ifndef __cplusplus
 #define set_new_array(out, length) \
 do { \
     out ## _is_present = true; \
-    token_t* token = (token_t*)__set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
-    out = static_cast<decltype(out)>(token->value); \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
-} while(0)
-#else
-#define set_new_array(out, length) \
-do { \
-    out ## _is_present = true; \
-    token_t* token = (token_t*)__set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
+    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
     out = token->value; \
     self->__ ## out ## _is_present = true; \
     self->__ ## out = token; \
@@ -247,7 +224,6 @@ do { \
     self->__ ## out = token; \
 } while(0)
 #endif
-
 
 /**
  * Version of set() for output types given as 'type[number]'.
@@ -559,7 +535,6 @@ void __termination();
  * by shutdown.
  */
 bool __wrapup();
-
 
 /**
  * Indicator for the absence of values for ports that remain disconnected.
