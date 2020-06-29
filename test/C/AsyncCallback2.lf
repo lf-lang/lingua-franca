@@ -10,7 +10,6 @@ main reactor AsyncCallback2 {
     
     preamble {=
         #include <pthread.h>
-                
         void callback(trigger_t* a) {
             // Schedule twice. If the action is not physical, these should
             // get consolidated into a single action triggering. If it is,

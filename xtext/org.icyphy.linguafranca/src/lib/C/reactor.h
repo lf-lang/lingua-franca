@@ -217,8 +217,7 @@ do { \
  */
 #define set_present(out) \
 do { \
-    out ## _is_present = true; \
-    self->__ ## out ## _is_present = true; \
+    out ->is_present = true; \
 } while(0)
 
 /**
