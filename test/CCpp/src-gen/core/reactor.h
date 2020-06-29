@@ -117,12 +117,14 @@
  *  reactor in form input_name.port_name.
  * @param value The value to insert into the self struct.
  */
+#ifndef __cplusplus
 #define set(out, value) \
 do { \
     out ## _is_present = true; \
     self->__ ## out = value; \
     self->__ ## out ## _is_present = true; \
 } while(0)
+#endif
 
 /**
  * Version of set() for use with multiplex output ports.
