@@ -9,48 +9,31 @@ void sourcereaction_function_0(void* instance_args);
 
 class source_self_t {
 public:
-#line 7 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	interval_t period;
-#line 10 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	int count;
-#line 8 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	Port<int> __y;
-#line 8 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	bool __y_is_present;
-#line 8 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	int __y_num_destinations;
-#line 11 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	reaction_t ___reaction_0;
 	bool* __reaction_0_outputs_are_present[1];
 	int __reaction_0_num_outputs;
 	trigger_t** __reaction_0_triggers[1];
 	int __reaction_0_triggered_sizes[1];
-#line 9 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	trigger_t ___t;
-#line 9 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	reaction_t* ___t_reactions[1];
 //public:
 
 	source_self_t() {
 		this->__reaction_0_outputs_are_present[0] = &this->__y_is_present;
 		this->__reaction_0_num_outputs = 1;
-#line 11 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___reaction_0.function = sourcereaction_function_0;
-#line 11 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___reaction_0.self = this;
-#line 11 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___reaction_0.num_outputs = 1;
-#line 11 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___reaction_0.output_produced = this->__reaction_0_outputs_are_present;
-#line 11 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___reaction_0.triggered_sizes = this->__reaction_0_triggered_sizes;
-#line 11 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___reaction_0.triggers = this->__reaction_0_triggers;
-#line 11 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___reaction_0.deadline_violation_handler = NULL;
-#line 9 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___t.scheduled = NEVER;
-#line 9 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		this->___t_reactions[0] = &this->___reaction_0;
 		this->___t.reactions = &this->___t_reactions[0];
 		this->___t.number_of_reactions = 1;
@@ -62,32 +45,27 @@ void sourcereaction_function_0(void* instance_args) {
     source_self_t* self = (source_self_t*)instance_args;
     // auto y = this->__y;
     // bool y_is_present = this->__y.is_present();
-#line 12 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
     self->count++;
     std::cout << "Source sending" << self->count << "." << std::endl;
-    self->__y.set_value(self->count);
+    self->__y.set(self->count);
 
 }
 
 
 // =============== START reactor class Test
 void testreaction_function_0(void* instance_args);
+void testreaction_function_1(void* instance_args);
 
 class test_self_t {
 public:
-#line 20 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	int count;
-#line 19 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	Port<int*> __x;
-#line 19 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	bool* __x_is_present;
-#line 21 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	reaction_t ___reaction_0;
 	bool* __reaction_0_outputs_are_present[0];
 	int __reaction_0_num_outputs;
 	trigger_t** __reaction_0_triggers[0];
 	int __reaction_0_triggered_sizes[0];
-#line 29 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	reaction_t ___reaction_1;
 	bool* __reaction_1_outputs_are_present[0];
 	int __reaction_1_num_outputs;
@@ -95,53 +73,26 @@ public:
 	int __reaction_1_triggered_sizes[0];
 	trigger_t ___shutdown;
 	reaction_t* ___shutdown_reactions[1];
-#line 19 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	trigger_t ___x;
-#line 19 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 	reaction_t* ___x_reactions[1];
 //public:
-	void reaction_function_1(void* instance_args) {
-		test_self_t* self = (test_self_t*)instance_args;
-		bool shutdown_is_present = self->___shutdown.is_present;
-		bool shutdown_has_value = ((self->___shutdown.token) != NULL && (self->___shutdown.token)->value != NULL);
-		token_t* shutdown_token = (self->___shutdown.token);
-#line 30 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
-		if (count == 0) {
-			std::cerr << "FAILURE: No data received." << std::endl;
-		}
-
-	}
 	test_self_t() {
 		test_self_t* self = (test_self_t*)calloc(1, sizeof(test_self_t));
 		self->__reaction_0_num_outputs = 0;
-#line 21 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_0.function = testreaction_function_0;
-#line 21 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_0.self = self;
-#line 21 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_0.num_outputs = 0;
-#line 21 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_0.output_produced = self->__reaction_0_outputs_are_present;
-#line 21 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_0.triggered_sizes = self->__reaction_0_triggered_sizes;
-#line 21 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_0.triggers = self->__reaction_0_triggers;
-#line 21 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_0.deadline_violation_handler = NULL;
 		self->__reaction_1_num_outputs = 0;
-#line 29 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		//self->___reaction_1.function = testreaction_function_1;
-#line 29 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_1.self = self;
-#line 29 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_1.num_outputs = 0;
-#line 29 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_1.output_produced = self->__reaction_1_outputs_are_present;
-#line 29 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_1.triggered_sizes = self->__reaction_1_triggered_sizes;
-#line 29 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_1.triggers = self->__reaction_1_triggers;
-#line 29 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___reaction_1.deadline_violation_handler = NULL;
 		self->___shutdown.scheduled = NEVER;
 		self->___shutdown_reactions[0] = &self->___reaction_1;
@@ -150,9 +101,7 @@ public:
 		self->___shutdown.is_physical = false;
 		self->___shutdown.drop = false;
 		self->___shutdown.element_size = 0;
-#line 19 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___x.scheduled = NEVER;
-#line 19 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
 		self->___x_reactions[0] = &self->___reaction_0;
 		self->___x.reactions = &self->___x_reactions[0];
 		self->___x.number_of_reactions = 1;
@@ -167,12 +116,22 @@ void testreaction_function_0(void* instance_args) {
     if (x_is_present) {
         x = *self->__x.get();
     }
-#line 22 "file:/home/soroosh/lingua-franca/test/CCpp/Composition.lf"
     self->count++; // local variables declared here that are not state variables should be strongly discouraged
     std::cout << "Received " << x << std::endl; // Or x->get()
     if (x != self->count) { // Or x->get()
         std::cerr << "FAILURE: Expected " <<  self->count << std::endl; // could be this->count as well
         exit(1); 
+    }
+
+}
+
+void testreaction_function_1(void* instance_args) {
+    test_self_t* self = (test_self_t*)instance_args;
+    bool shutdown_is_present = self->___shutdown.is_present;
+    bool shutdown_has_value = ((self->___shutdown.token) != NULL && (self->___shutdown.token)->value != NULL);
+    token_t* shutdown_token = (self->___shutdown.token);
+    if (self->count == 0) {
+        std::cerr << "FAILURE: No data received." << std::endl;
     }
 
 }
@@ -247,7 +206,7 @@ void __initialize_trigger_objects() {
 	composition_d_self->__x_is_present = &absent;
 	// Connect inputs and outputs for reactor Composition.
 	// Connect Composition.s.y to input port Composition.d.x
-	composition_d_self->__x.set_value(composition_s_self->__y.get_pointer());
+	composition_d_self->__x.set(composition_s_self->__y.get_pointer());
 	composition_d_self->__x_is_present = &composition_s_self->__y._is_present;
 	// Connect inputs and outputs for reactor Composition.s.
 	// END Connect inputs and outputs for reactor Composition.s.
