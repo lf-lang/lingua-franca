@@ -393,7 +393,7 @@ void stop() {
  */
 bool is_blocked(reaction_t* reaction) {
     for (int i = 1; i < executing_q->size; i++) {
-        reaction_t* running = (reaction_t*) executing_q->d[i];
+        reaction_t* running = (reaction_t*)executing_q->d[i];
         if (LEVEL(running->index) < LEVEL(reaction->index)
                 && OVERLAPPING(reaction->chain_id, running->chain_id)) {
             return true;

@@ -20,7 +20,7 @@ main reactor AsyncCallback {
 		    // equal time stamps. The minimum time between these is determined
 		    // by the argument in the physical action definition.
 			schedule(a, 0LL);
-            schedule(a, 0LL);
+      schedule(a, 0LL);
 		}
 		// Simulate time passing before a callback occurs.
 		void* take_time(void* a) {
