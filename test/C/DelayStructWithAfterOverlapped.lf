@@ -7,7 +7,7 @@ reactor Source {
     preamble {=
         typedef struct hello_t {
             char* name;
-            int value;
+            int quant;
         } hello_t;
     =}
     output out:hello_t*;
@@ -19,8 +19,8 @@ reactor Source {
         set_new(out);
         
         // Above allocates a struct, which then must be populated.
-        out->name = "Earth";
-        out->value = 42 * self->s;
+        out->value->name = "Earth";
+        out->value->quant = 42 * self->s;
     =}
 }
 // expected parameter is for testing.
@@ -29,9 +29,9 @@ reactor Print {
     state s:int(0);
     reaction(in) {=
         self->s++;
-        printf("Received: name = %s, value = %d\n", in->name, in->value);
-        if (in->value != 42 * self->s) {
-            printf("ERROR: Expected value to be %d.\n", 42 * self->s);
+        printf("Received: name = %s, quant = %d\n", in->value->name, in->value->quant);
+        if (in->value->quant != 42 * self->s) {
+            printf("ERROR: Expected quant to be %d.\n", 42 * self->s);
             exit(1);
         }
     =}

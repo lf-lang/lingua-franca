@@ -1066,7 +1066,10 @@ class CGenerator extends GeneratorBase {
             reportError(port, "Port is required to have a type: " + port.name)
             return ''
         }
-        val portType = lfTypeToTokenType(port.inferredType)
+        // Do not convert to token_t* using lfTypeToTokenType because there
+        // will be a separate field pointing to the token.
+        // val portType = lfTypeToTokenType(port.inferredType)
+        val portType = port.inferredType.targetType
         // If the input type has the form type[number], then treat it specially
         // to get a valid C type.
         val matcher = arrayPatternFixed.matcher(portType)
@@ -1921,9 +1924,9 @@ class CGenerator extends GeneratorBase {
                     if (isTokenType((input.definition as Input).inferredType)) {
                         pr(startTimeStep, '''
                             __tokens_with_ref_count[«startTimeStepTokens»].token
-                                    = «nameOfSelfStruct»->__«input.name»;
+                                    = &«nameOfSelfStruct»->__«input.name»->token;
                             __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                    = «nameOfSelfStruct»->__«input.name».is_present;
+                                    = &«nameOfSelfStruct»->__«input.name»->is_present;
                             __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                         ''')
                         startTimeStepTokens++
@@ -1961,9 +1964,9 @@ class CGenerator extends GeneratorBase {
                         if (isTokenType((port.definition as Output).inferredType)) {
                             pr(startTimeStep, '''
                                 __tokens_with_ref_count[«startTimeStepTokens»].token
-                                        = «containerSelfStructName»->__«port.parent.name».«port.name»;
+                                        = &«containerSelfStructName»->__«port.parent.name».«port.name»->token;
                                 __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                        = «containerSelfStructName»->__«port.parent.name».«port.name».is_present;
+                                        = &«containerSelfStructName»->__«port.parent.name».«port.name»->is_present;
                                 __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                             ''')
                             startTimeStepTokens++
@@ -2671,7 +2674,8 @@ class CGenerator extends GeneratorBase {
             // by both the action handling code and the input handling code.
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->__«outputName».value = (token_t*)self->___«action.name».token;
+            self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
+            self->__«outputName».token = (token_t*)self->___«action.name».token;
             ((token_t*)self->___«action.name».token)->ref_count++;
             self->__«outputName».is_present = true;
             '''
@@ -2782,8 +2786,8 @@ class CGenerator extends GeneratorBase {
                 default: '''sizeof(«type.targetType»)'''
             }
             var pointerExpression = switch(type.targetType) {
-                case 'string': '''(unsigned char*) «sendRef»'''
-                default: '''(unsigned char*)&«sendRef»'''
+                case 'string': '''(unsigned char*) «sendRef»->value'''
+                default: '''(unsigned char*)&«sendRef»->value'''
             }
             result.append('''
             size_t message_length = «lengthExpression»;
@@ -3572,7 +3576,7 @@ class CGenerator extends GeneratorBase {
                         // 'sizeof(void)', which some compilers reject.
                         val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
                         pr('''
-                            «nameOfSelfStruct»->__«output.name» = __create_token(«size»);
+                            «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
                         ''')
                     }
                 }
