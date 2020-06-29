@@ -1872,6 +1872,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     abstract def String getTargetVariableSizeListType(String baseType);
     
+    /**
+     * Return a string representing the specified type in the target language.
+     * @param type The type.
+     */ 
     def String getTargetType(InferredType type) {
         if (type.isUndefined) {
             return targetUndefinedType
