@@ -572,6 +572,9 @@ class CppGenerator extends GeneratorBase {
         
         #pragma once
         
+        #include <vector>
+        #include <array>
+
         #include "reactor-cpp/reactor-cpp.hh"
         «FOR i : importedResources.get(r) BEFORE "// include the preambles from imported resource \n"»
             #include "«i.preambleHeaderFile»"
