@@ -244,6 +244,10 @@ import static extension org.icyphy.ASTUtils.*
  *   memory allocated for the token_t object will be freed.  The size of this
  *   array is stored in the __tokens_with_ref_count_size variable.
  * 
+ * * __shutdown_triggers: An array of pointers to trigger_t structs for shutdown
+ *   reactions. The length of this table is in the __shutdown_triggers_size
+ *   variable.
+ * 
  * * __timer_triggers: An array of pointers to trigger_t structs for timers that
  *   need to be started when the program runs. The length of this table is in the
  *   __timer_triggers_size variable.
@@ -452,9 +456,25 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         // Array of pointers to timer triggers to start the timers in __start_timers().
                         trigger_t* __timer_triggers[«startTimersCount»];
-                        int __timer_triggers_size = «startTimersCount»;
                     ''')
                 }
+                pr('''
+                    int __timer_triggers_size = «startTimersCount»;
+                ''')
+                if (shutdownActionInstances.size > 0) {
+                    pr('''
+                        // Array of pointers to shutdown triggers.
+                        trigger_t* __shutdown_triggers[«shutdownActionInstances.size»];
+                    ''')
+                } else {
+                    pr('''
+                        // Array of pointers to shutdown triggers.
+                        trigger_t* __shutdown_triggers = NULL;
+                    ''')
+                }
+                pr('''
+                    int __shutdown_triggers_size = «shutdownActionInstances.size»;
+                ''')
                 
                 // Generate function to return a pointer to the action trigger_t
                 // that handles incoming network messages destined to the specified
@@ -580,19 +600,16 @@ class CGenerator extends GeneratorBase {
                 
                 // Generate function to schedule shutdown actions if any
                 // reactors have reactions to shutdown.
-                pr('bool __wrapup() {\n')
-                indent()
-                pr('__start_time_step();   // To free memory allocated for actions.')
-                for (instance : shutdownActionInstances) {
-                    pr('__schedule(&' + triggerStructName(instance) + ', 0LL, NULL);')
-                }
-                if (shutdownActionInstances.length === 0) {
-                    pr('return false;')
-                } else {
-                    pr('return true;')
-                }
-                unindent()
-                pr('}\n')
+                pr('''
+                    bool __wrapup() {
+                        __start_time_step();  // To free memory allocated for actions.
+                        for (int i = 0; i < __shutdown_triggers_size; i++) {
+                            __schedule(__shutdown_triggers[i], 0LL, NULL);
+                        }
+                        // Return true if there are shutdown actions.
+                        return (__shutdown_triggers_size > 0);
+                    }
+                ''')
                 
                 // Generate the termination function.
                 // If there are federates, this will resign from the federation.
@@ -986,7 +1003,7 @@ class CGenerator extends GeneratorBase {
         // go into the constructor.  Collect those lines of code here:
         val constructorCode = new StringBuilder()
 
-        generateAuxiliaryStructs(reactor, federate, constructorCode)
+        generateAuxiliaryStructs(reactor, federate)
         generateSelfStruct(reactor, federate, constructorCode)
         generateReactions(reactor, federate)
         generateConstructor(reactor, federate, constructorCode)
@@ -1020,11 +1037,9 @@ class CGenerator extends GeneratorBase {
      * actions of the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
-     * @param constructorCode Place to put lines of code that need to
-     *  go into the constructor.
      */
     protected def generateAuxiliaryStructs(
-        Reactor reactor, FederateInstance federate, StringBuilder constructorCode
+        Reactor reactor, FederateInstance federate
     ) {
         // First, handle inputs.
         for (input : reactor.allInputs) {
@@ -1039,6 +1054,7 @@ class CGenerator extends GeneratorBase {
                 typedef struct {
                     «input.valueDeclaration»
                     bool is_present;
+                    int num_destinations;
                     «token»
                 } «variableStructType(input, reactor)»;
             ''')
@@ -2474,11 +2490,42 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
+        // Do the same for inputs of contained reactors that are sent data by reactions
+        // of this reactor.
+        for (reaction : instance.reactions) {
+            if (federate === null || federate.containsReaction(
+                instance.definition.reactorClass,
+                reaction.definition
+            )) {
+                // Handle reactions that produce outputs sent to inputs
+                // of contained reactors.  An input port can have only
+                // one source, so we can immediately generate the initialization.
+                for (port : reaction.dependentPorts) {
+                    if (port.isInput) {
+                        var numDestinations = 0
+                        if(!port.dependentReactions.isEmpty) numDestinations = 1
+                        numDestinations += port.dependentPorts.size
+                        pr(initializeTriggerObjects, '''
+                            «nameOfSelfStruct»->__«port.parent.name».«port.name».num_destinations = «numDestinations»;
+                        ''')
+                    }
+                }
+            }
+        }
+
         // Next, initialize actions by creating a token_t in the self struct.
         // This has the information required to allocate memory for the action payload.
         // Skip any action that is not actually used as a trigger.
         val triggersInUse = instance.triggers
         for (action : instance.actions) {
+            // If the action is a shutdown action, add it to the list of
+            // shutdown actions.
+            if (action.isShutdown) {
+                pr(initializeTriggerObjects, '''
+                    __shutdown_triggers[«shutdownActionInstances.size»] = &«nameOfSelfStruct»->___«action.name»;
+                ''')
+                shutdownActionInstances.add(action)
+            }
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action)) {
                 var type = (action.definition as Action).inferredType
@@ -2737,7 +2784,7 @@ class CGenerator extends GeneratorBase {
         ''')
         if (isTokenType(type)) {
             result.append('''
-                set(«receiveRef», «action.name»_token);
+                set_token(«receiveRef», «action.name»_token);
                 «action.name»_token->ref_count++;
             ''')
         } else {
@@ -2779,10 +2826,10 @@ class CGenerator extends GeneratorBase {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
-                size_t message_length = «sendRef»->length * «sendRef»->element_size;
-                «sendRef»->ref_count++;
+                size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
+                «sendRef»->token->ref_count++;
                 send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
-                __done_using(«sendRef»);
+                __done_using(«sendRef»->token);
             ''')
         } else {
             // Handle native types.
@@ -3207,7 +3254,6 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         if (input.inferredType.isTokenType) {
-            val rootType = input.targetType.rootType
             // Set the length field of the input and copy the token if
             // necessary for mutable inputs. This has to be done differently
             // for multiports, which have to iterate.
