@@ -27,7 +27,7 @@ reactor Computation {
 		struct timespec sleep_time = {(time_t) 0, (long)200000000};
 		struct timespec remaining_time;
 		nanosleep(&sleep_time, &remaining_time);
-		set(out, in);
+		set(out, in->value);
 	=}
 }
 reactor Destination {
@@ -37,7 +37,7 @@ reactor Destination {
 	input in3:int;
 	input in4:int;
 	reaction(in1, in2, in3, in4) {=
-		int sum = in1 + in2 + in3 + in4;
+		int sum = in1->value + in2->value + in3->value + in4->value;
 		printf("Sum of received: %d.\n", sum);
 		if (sum != self->s) {
 			printf("ERROR: Expected %d.\n", self->s);

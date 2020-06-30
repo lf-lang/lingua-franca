@@ -14,8 +14,8 @@ reactor Source {
 reactor Print(expected:int(42)) {
     input in:int*;
     reaction(in) {=
-        printf("Received %d\n", *in);
-        if (*in != 42) {
+        printf("Received %d\n", *(in->value));
+        if (*(in->value) != 42) {
             printf("ERROR: Expected value to be 42.\n");
             exit(1);
         }

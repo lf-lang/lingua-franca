@@ -469,7 +469,7 @@ class CGenerator extends GeneratorBase {
                 } else {
                     pr('''
                         // Array of pointers to shutdown triggers.
-                        trigger_t* __shutdown_triggers = NULL;
+                        trigger_t** __shutdown_triggers = NULL;
                     ''')
                 }
                 pr('''

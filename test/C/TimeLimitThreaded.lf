@@ -21,9 +21,9 @@ reactor Destination {
     input x:int;
     state s:int(1);
     reaction(x) {=
-        // printf("%d\n", x);
-        if (x != self->s) {
-            printf("Error: Expected %d and got %d.\n", self->s, x);
+        // printf("%d\n", x->value);
+        if (x->value != self->s) {
+            printf("Error: Expected %d and got %d.\n", self->s, x->value);
             exit(1);
         }
         self->s++;
