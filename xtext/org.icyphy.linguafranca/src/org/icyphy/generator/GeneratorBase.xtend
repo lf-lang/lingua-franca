@@ -1,7 +1,7 @@
 /* Generator base class for shared code between code generators. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2020, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -13,15 +13,16 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 package org.icyphy.generator
@@ -74,12 +75,13 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
 
-/** Generator base class for shared code between code generators.
+/**
+ * Generator base class for shared code between code generators.
  * 
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Chris Gill, <cdgill@wustl.edu>}
- *  @author{Christian Menard <christian.menard@tu-dresden.de}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Chris Gill, <cdgill@wustl.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresden.de}
  */
 abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
@@ -108,161 +110,232 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     ////////////////////////////////////////////
     //// Protected fields.
         
-    /** All code goes into this string buffer. */
+    /**
+     * All code goes into this string buffer.
+     */
     protected var code = new StringBuilder
 
-    /** Path to the directory containing the .lf file. */
+    /**
+     * Path to the directory containing the .lf file.
+     */
     protected var String directory
     
-    /** The root filename for the main file containing the source code,
-     *  without the .lf extension.
+    /**
+     * The root filename for the main file containing the source code,
+     * without the .lf extension.
      */
     protected var String filename
 
-    /** Indicator of whether generator errors occurred. */
+    /**
+     * Indicator of whether generator errors occurred.
+     */
     protected var generatorErrorsOccurred = false
     
-    /** If running in an Eclipse IDE, the iResource refers to the
-     *  IFile representing the Lingua Franca program.
+    /**
+     * If running in an Eclipse IDE, the iResource refers to the
+     * IFile representing the Lingua Franca program.
      */
     protected var iResource = null as IResource
     
-    /** Definition of the main (top-level) reactor */
+    /**
+     * Definition of the main (top-level) reactor
+     */
     protected Instantiation mainDef
     
-    /** Mode.STANDALONE if the code generator is being called
-     *  from the command line, Mode.INTEGRATED if it is being called
-     *  from the Eclipse IDE, and Mode.UNDEFINED otherwise.
+    /**
+     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
+     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
+     * if it is being called from the Eclipse IDE, and 
+     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
      */
     protected var mode = Mode.UNDEFINED
     
-    /** A list of Reactor definitions in the main
-     *  resource, including non-main reactors defined
-     *  in imported resources.
+    /**
+     * A list of Reactor definitions in the main resource, including non-main 
+     * reactors defined in imported resources.
      */
     protected var List<Reactor> reactors
     
-    /** The file containing the main source code. */
+    /**
+     * The file containing the main source code.
+     */
     protected var Resource resource
     
-    /** The full path to the file containing the .lf file including the
-     *  full filename with the .lf extension. This starts out as the
-     *  main .lf file, but while a file is being imported, it temporarily
-     *  changes to the full path of the imported file.
+    /**
+     * The full path to the file containing the .lf file including the
+     * full filename with the .lf extension. This starts out as the
+     * main .lf file, but while a file is being imported, it temporarily
+     * changes to the full path of the imported file.
      */
     protected var String sourceFile
     
-    /** The set of unordered reactions. An unordered reaction is one
-     *  that does not have any dependency on other reactions in the
-     *  containing reactor, and where no other reaction in the containing
-     *  reactor depends on it. There is currently no way
-     *  in the syntax of LF to make a reaction unordered, deliberately,
-     *  because it can introduce unexpected nondeterminacy. However,
-     *  certain automatically generated reactions are known to be safe
-     *  to be unordered because they do not interact with the state of
-     *  the containing reactor. To make a reaction unordered, when
-     *  the Reaction instance is created, add that instance to this set.
+    /**
+     * Variant of {@link #GeneratorBase.sourceFile GeneratorBase.sourceFile}
+     * used on the Windows platform.
+     */
+    protected var String windowsSourceFile
+    
+    /**
+     * The set of unordered reactions. An unordered reaction is one that does
+     * not have any dependency on other reactions in the containing reactor, 
+     * and where no other reaction in the containing reactor depends on it.
+     * There is currently no way in the syntax of LF to make a reaction
+     * unordered, deliberately, because it can introduce unexpected
+     * nondeterminacy. However, certain automatically generated reactions are
+     * known to be safe to be unordered because they do not interact with the
+     * state of the containing reactor. To make a reaction unordered, when
+     * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
     
-    /** A map of all resources to the set of resource they import */
+    /**
+     * A map of all resources to the set of resource they import
+     */
     protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
     
-    /** A list of federate instances or a list with a single empty string
-     *  if there are no federates specified.
+    /**
+     * A list of federate instances or a list with a single empty string
+     * if there are no federates specified.
      */
     protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
     
-    /** A map from federate names to federate instances. */
+    /**
+     * A map from federate names to federate instances.
+     */
     protected var Map<String,FederateInstance> federateByName
             = new HashMap<String,FederateInstance>()
 
-    /** A map from federate IDs to federate instances. */
+    /**
+     * A map from federate IDs to federate instances.
+     */
     protected var Map<Integer,FederateInstance> federateByID
             = new HashMap<Integer,FederateInstance>()
 
-    /** A map from reactor names to the federate instance that contains the reactor. */
+    /**
+     * A map from reactor names to the federate instance that contains the
+     * reactor.
+     */
     protected var Map<String,FederateInstance> federateByReactor
 
-    /** The federation RTI properties, which defaults to
-     *  localhost: 15045
+    /**
+     * The federation RTI properties, which defaults to 'localhost: 15045'.
      */
     protected val federationRTIProperties = newLinkedHashMap(
         'host' -> 'localhost',
         'port' -> 15045
-    ) 
-
-    /** The build-type target parameter, or null if there is none. */
+    )
+    
+    /**
+     * The build-type target parameter, or null if there is none.
+     */
     protected String targetBuildType
 
-    /** The cmake-include target parameter, or null if there is none. */
+    /**
+     * The cmake-include target parameter, or null if there is none.
+     */
     protected String targetCmakeInclude
     
-    /** The compiler target parameter, or null if there is none. */
+    /**
+     * The compiler target parameter, or null if there is none.
+     */
     protected String targetCompiler
 
-    /** The compiler flags target parameter, or null if there is none. */
+    /**
+     * The compiler flags target parameter, or null if there is none.
+     */
     protected String targetCompilerFlags
 
-    /** The compiler target no-compile parameter, or false if there is none. */
+    /**
+     * The compiler target no-compile parameter, or false if there is none.
+     */
     protected boolean targetNoCompile = false
     
-    /** The compiler target no-runtime-validation parameter, or false if there is none. */
+    /**
+     * The compiler target no-runtime-validation parameter, or false if there is none.
+     */
     protected boolean targetNoRuntimeValidation = false
         
-    /** The fast target parameter, or false if there is none. */
+    /**
+     * The fast target parameter, or false if there is none.
+     */
     protected boolean targetFast = false
     
-    /** The value of the keepalive target parameter, or false if there is none. */
+    /**
+     * The value of the keepalive target parameter, or false if there is none.
+     */
     protected boolean targetKeepalive
     
-    /** The level of logging or null if not given. */
+    /**
+     * The target name.
+     */
+    protected String targetName
+    
+    /**
+     * The level of logging or null if not given.
+     */
     protected String targetLoggingLevel
 
-    /** The threads target parameter, or the default 0 if there is none. */
+    /**
+     * The threads target parameter, or the default 0 if there is none.
+     */
     protected int targetThreads = 0
 
-    /** The timeout parameter, or the default -1 if there is none. */
+    /**
+     * The timeout parameter, or the default -1 if there is none.
+     */
     protected int targetTimeout = -1
 
-    /** The threads timeout unit parameter, or the default null if there is none. */
+    /**
+     * The threads timeout unit parameter, or the default null if there is none.
+     */
     protected TimeUnit targetTimeoutUnit
     
-    /** The tracing  target parameter, or false if there is none. */
+    /**
+     * The tracing target parameter, or false if there is none.
+     */
     protected boolean targetTracing = false
 
     ////////////////////////////////////////////
     //// Private fields.
 
-    /** Map from builder to its current indentation. */
+    /**
+     * Map from builder to its current indentation.
+     */
     var indentation = new HashMap<StringBuilder, String>()
     
-    /** Recursion stack used to detect cycles in imports */
+    /**
+     * Recursion stack used to detect cycles in imports.
+     */
     var importRecursionStack = new HashSet<Resource>();
     
-    /** A flag indicating whether a cycle was found while processing imports */
+    /**
+     * A flag indicating whether a cycle was found while processing imports.
+     */
     var cyclicImports = false;
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
     
-    /** Analyze the model, setting target variables, filenames,
-     *  working directory, and federates. This also performs any
-     *  transformations that are needed on the AST of the model,
-     *  including handling delays on connections and communication
-     *  between federates.
-     *  @param resource The resource containing the source code.
-     *  @param fsa The file system access (used to write the result).
-     *  @param context FIXME: What is this?
+    /**
+     * Analyze the model, setting target variables, filenames,
+     * working directory, and federates. This also performs any
+     * transformations that are needed on the AST of the model,
+     * including handling delays on connections and communication
+     * between federates.
+     * @param resource The resource containing the source code.
+     * @param fsa The file system access (used to write the result).
+     * @param context Context relating to invocation of the code generator.
+     * In stand alone mode, this object is also used to relay CLI arguments.
      */
     def void analyzeModel(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         generatorErrorsOccurred = false
         
         var target = resource.findTarget
+        targetName = target.name
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
                 switch param.name {
@@ -344,12 +417,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Also create a list of federate names or a list with a single
         // empty name if there are no federates specified.
         // This must be done before desugaring delays below.
-        resource.analyzeFederates
-
-        // Replace connections annotated with the "after" keyword by ones
-        // that go through a delay reactor. 
-        resource.insertGeneratedDelays()
-            
+        resource.analyzeFederates            
     }
     
     /**
@@ -361,16 +429,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         resource.insertGeneratedDelays(this)
     }
     
-    /** Generate code from the Lingua Franca model contained by the
-     *  specified resource. This is the main entry point for code
-     *  generation. This base class invokes generateReactor()
-     *  for each contained reactor, including any reactors defined
-     *  in imported .lf files (except any main reactors in those
-     *  imported files). If errors occur during generation,
-     *  then a subsequent call to errorsOccurred() will return true.
-     *  @param resource The resource containing the source code.
-     *  @param fsa The file system access (used to write the result).
-     *  @param context Context relating a specific invocation of the code generator. 
+    /**
+     * Generate code from the Lingua Franca model contained by the specified resource.
+     * 
+     * This is the main entry point for code generation. This base class finds all
+     * reactor class definitions, including any reactors defined in imported .lf files
+     * (except any main reactors in those imported files), and adds them to the 
+     * {@link #GeneratorBase.reactors reactors} list. If errors occur during
+     * generation, then a subsequent call to errorsOccurred() will return true.
+     * @param resource The resource containing the source code.
+     * @param fsa The file system access (used to write the result).
+     * @param context Context relating to invocation of the code generator.
+     * In stand alone mode, this object is also used to relay CLI arguments.
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
@@ -385,9 +455,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // reactors defined in imported resources.
         reactors = newLinkedList
         
-        // Next process all the imports and call generateReactor on any
-        // reactors defined in the imports.
+        // Next process all the imports to find reactors defined in the imports.
         processImports(resource)
+        
+        // Replace connections in this resources that are annotated with the 
+        // "after" keyword by ones that go through a delay reactor. 
+        resource.insertGeneratedDelays()
         
         // Abort compilation if a dependency cycle was detected while 
         // processing imports. If compilation would continue, dependency
@@ -408,29 +481,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // compiler will remove it anyway as dead code.
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
             if (!reactor.isMain && !reactor.isFederated) {
-                generateReactor(reactor)
+                reactors.add(reactor)
             }
         }
     }
     
-    /** Return true if errors occurred in the last call to doGenerate().
-     *  This will return true if any of the reportError methods was called.
-     *  @return True if errors occurred.
+    /**
+     * Return true if errors occurred in the last call to doGenerate().
+     * This will return true if any of the reportError methods was called.
+     * @return True if errors occurred.
      */
     def errorsOccurred() {
         return generatorErrorsOccurred;
-    }
-    
-    /** Collect data in a reactor or composite definition.
-     *  Subclasses should override this and be sure to call
-     *  super.generateReactor(reactor).
-     *  @param reactor The parsed reactor AST data structure.
-     */
-    def void generateReactor(Reactor reactor) {
-        reactors.add(reactor)
-
-        // Reset indentation, in case it has gotten messed up.
-        indentation.put(code, "")
     }
 
     /**
@@ -467,17 +529,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return prefix + reference.variable.name
     }
 
-    /** Return true if the reaction is unordered. An unordered reaction is one
-     *  that does not have any dependency on other reactions in the
-     *  containing reactor, and where no other reaction in the containing
-     *  reactor depends on it. There is currently no way
-     *  in the syntax of LF to make a reaction unordered, deliberately,
-     *  because it can introduce unexpected nondeterminacy. However,
-     *  certain automatically generated reactions are known to be safe
-     *  to be unordered because they do not interact with the state of
-     *  the containing reactor. To make a reaction unordered, when
-     *  the Reaction instance is created, add that instance to this set.
-     *  @return True if the reaction has been marked unordered.
+    /**
+     * Return true if the reaction is unordered. An unordered reaction is one
+     * that does not have any dependency on other reactions in the containing
+     * reactor, and where no other reaction in the containing reactor depends
+     * on it. There is currently no way in the syntax of LF to make a reaction
+     * unordered, deliberately, because it can introduce unexpected 
+     * nondeterminacy. However, certain automatically generated reactions are
+     * known to be safe to be unordered because they do not interact with the
+     * state of the containing reactor. To make a reaction unordered, when
+     * the Reaction instance is created, add that instance to this set.
+     * @return True if the reaction has been marked unordered.
      */
     def isUnordered(Reaction reaction) {
         if (unorderedReactions !== null) {
@@ -487,17 +549,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
     
-    /** Mark the reaction unordered. An unordered reaction is one
-     *  that does not have any dependency on other reactions in the
-     *  containing reactor, and where no other reaction in the containing
-     *  reactor depends on it. There is currently no way
-     *  in the syntax of LF to make a reaction unordered, deliberately,
-     *  because it can introduce unexpected nondeterminacy. However,
-     *  certain automatically generated reactions are known to be safe
-     *  to be unordered because they do not interact with the state of
-     *  the containing reactor. To make a reaction unordered, when
-     *  the Reaction instance is created, add that instance to this set.
-     *  @param reaction The reaction to make unordered.
+    /**
+     * Mark the reaction unordered. An unordered reaction is one that does not
+     * have any dependency on other reactions in the containing reactor, and
+     * where no other reaction in the containing reactor depends on it. There
+     * is currently no way in the syntax of LF to make a reaction unordered,
+     * deliberately, because it can introduce unexpected nondeterminacy. 
+     * However, certain automatically generated reactions are known to be safe
+     * to be unordered because they do not interact with the state of the 
+     * containing reactor. To make a reaction unordered, when the Reaction
+     * instance is created, add that instance to this set.
+     * @param reaction The reaction to make unordered.
      */
     def makeUnordered(Reaction reaction) {
         if (unorderedReactions === null) {
@@ -506,16 +568,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         unorderedReactions.add(reaction)
     }
     
-    /** Given a representation of time that may possibly include units,
-     *  return a string that the target language can recognize as a value.
-     *  In this base class, if units are given, e.g. "msec", then
-     *  we convert the units to upper case and return an expression
-     *  of the form "MSEC(value)". Particular target generators will need
-     *  to either define functions or macros for each possible time unit
-     *  or override this method to return something acceptable to the
-     *  target language.
-     *  @param time A TimeValue that represents a time.
-     *  @return A string, such as "MSEC(100)" for 100 milliseconds.
+    /**
+     * Given a representation of time that may possibly include units, return
+     * a string that the target language can recognize as a value. In this base
+     * class, if units are given, e.g. "msec", then we convert the units to upper
+     * case and return an expression of the form "MSEC(value)". Particular target
+     * generators will need to either define functions or macros for each possible
+     * time unit or override this method to return something acceptable to the
+     * target language.
+     * @param time A TimeValue that represents a time.
+     * @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
     def String timeInTargetLanguage(TimeValue time) {
         if (time !== null) {
@@ -528,7 +590,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return "0" // FIXME: do this or throw exception?
     }
 
-    /** Remove quotation marks surrounding the specified string.
+    /**
+     * Remove quotation marks surrounding the specified string.
      */
     def withoutQuotes(String s) {
         var result = s
@@ -541,38 +604,41 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         result
     }
 
-    // //////////////////////////////////////////
-    // // Protected methods.
+    ////////////////////////////////////////////
+    //// Protected methods.
 
-    /** Return a set of targets that are acceptable to this generator.
-     *  Imported files that are Lingua Franca files must specify targets
-     *  in this set or an error message will be reported and the import
-     *  will be ignored. The returned set is a set of case-insensitive
-     *  strings specifying target names. If any target is acceptable,
-     *  return null.
-     * 
+    /**
+     * Return a set of targets that are acceptable to this generator.
+     * Imported files that are Lingua Franca files must specify targets in this
+     * set or an error message will be reported and the import will be ignored.
+     * The returned set is a set of case-insensitive strings specifying target
+     * names. If any target is acceptable, return null.
      */
     protected abstract def Set<String> acceptableTargets()
     
-    /** Clear the buffer of generated code.
+    /**
+     * Clear the buffer of generated code.
      */
     protected def clearCode() {
         code = new StringBuilder
     }
     
-    /** Clear markers in the IDE if running in integrated mode.
-     *  This has the side effect of setting the iResource variable
-     *  to point to the IFile for the Lingua Franca program.
+    /**
+     * Clear markers in the IDE if running in integrated mode.
+     * This has the side effect of setting the iResource variable to point to
+     * the IFile for the Lingua Franca program.
      */
     protected def clearMarkers() {
         if (mode == Mode.INTEGRATED) {
             val uri = resource.getURI()
             val platformResourceString = uri.toPlatformString(true);
-            iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(new Path(platformResourceString))
+            iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(
+                new Path(platformResourceString))
             try {
                 // First argument can be null to delete all markers.
                 // But will that delete xtext markers too?
-                iResource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
+                iResource.deleteMarkers(IMarker.PROBLEM, true,
+                    IResource.DEPTH_INFINITE);
             } catch (Exception e) {
                 // Ignore, but print a warning.
                 println("Warning: Deleting markers in the IDE failed: " + e)
@@ -580,34 +646,36 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     } 
     
-    /** Execute the command given by the specified list of strings,
-     *  print the command, its return code, and its output to
-     *  stderr and stdout, and return the return code, which is 0
-     *  if the command succeeds.
+    /**
+     * Execute the command given by the specified list of strings, print the
+     * command, its return code, and its output to stderr and stdout, and
+     * return the return code, which is 0 if the command succeeds.
      * 
-     *  If the command fails to execute, then a second attempt is
-     *  made using a bash shell with the --login option, which sources
-     *  the user's ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
-     *  is first found) before running the command. This helps to ensure
-     *  that the user's PATH variable is set according to their usual
-     *  environment, assuming that they use a bash shell.
+     * If the command fails to execute, then a second attempt is made using a
+     * Bash shell with the --login option, which sources the user's 
+     * ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
+     * is first found) before running the command. This helps to ensure that
+     * the user's PATH variable is set according to their usual environment,
+     * assuming that they use a bash shell.
      * 
-     *  More information: Unfortunately, at least on a Mac,
-     *  if you are running within Eclipse, the PATH variable
-     *  is extremely limited; supposedly, it is given by the default
-     *  provided in /etc/paths, but at least on my machine,
-     *  it does not even include directories in that file for some reason.
-     *  One way to add a directory like
-     *  /usr/local/bin to the path once-and-for-all is this:
+     * More information: Unfortunately, at least on a Mac if you are running
+     * within Eclipse, the PATH variable is extremely limited; supposedly, it
+     * is given by the default provided in /etc/paths, but at least on my machine,
+     * it does not even include directories in that file for some reason.
+     * One way to add a directory like
+     * /usr/local/bin to the path once-and-for-all is this:
      * 
-     *     sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+     * sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
      * 
-     *  But asking users to do that is not ideal. Hence, we try a more
-     *  hack-y approach of just trying to execute using a bash shell.
+     * But asking users to do that is not ideal. Hence, we try a more hack-y
+     * approach of just trying to execute using a bash shell.
+     * Also note that while ProcessBuilder can configured to use custom
+     * environment variables, these variables do not affect the command that is
+     * to be executed but merely the environment in which the command executes.
      * 
-     *  @param command The command.
-     *  @param directory The directory in which to execute the command.
-     *  @return 0 if the command succeeds, otherwise, an error code.
+     * @param command The command.
+     * @param directory The directory in which to execute the command.
+     * @return 0 if the command succeeds, otherwise, an error code.
      */
     protected def executeCommand(ArrayList<String> command, String directory) {
         println("In directory: " + directory)
@@ -639,6 +707,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             return returnCode
         } catch (Exception ex) {
+            
             println("--- Exception: " + ex)
             // Try running with bash.
             // The --login option forces bash to look for and load the first of
@@ -674,7 +743,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
     
-    /** Return the target. */
+    /**
+     * Return the target.
+     */
     def findTarget(Resource resource) {
         var target = null as Target
         for (t : resource.allContents.toIterable.filter(Target)) {
@@ -735,30 +806,34 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
     
-    /** Generate any preamble code that appears in the code generated
-     *  file before anything else.
+    /**
+     * Generate any preamble code that appears in the code generated
+     * file before anything else.
      */
     protected def generatePreamble() {
         prComment("Code generated by the Lingua Franca compiler from file:")
         prComment(sourceFile)
     }
 
-    /** Get the code produced so far.
-     *  @return The code produced so far as a String.
+    /**
+     * Get the code produced so far.
+     * @return The code produced so far as a String.
      */
     protected def getCode() {
         code.toString()
     }
         
-    /** Increase the indentation of the output code produced.
+    /**
+     * Increase the indentation of the output code produced.
      */
     protected def indent() {
         indent(code)
     }
 
-    /** Increase the indentation of the output code produced
-     *  on the specified builder.
-     *  @param The builder to indent.
+    /**
+     * Increase the indentation of the output code produced
+     * on the specified builder.
+     * @param The builder to indent.
      */
     protected def indent(StringBuilder builder) {
         var prefix = indentation.get(builder)
@@ -772,14 +847,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         indentation.put(builder, buffer.toString)
     }
 
-    /** Open a non-Lingua Franca import file at the specified URI
-     *  in the specified resource set. Throw an exception if the
-     *  file import is not supported. This base class always throws
-     *  an exception because the only supported imports, by default,
-     *  are Lingua Franca files.
-     *  @param importStatement The original import statement (used for error reporting).
-     *  @param resourceSet The resource set in which to find the file.
-     *  @param resolvedURI The URI to import.
+    /**
+     * Open a non-Lingua Franca import file at the specified URI
+     * in the specified resource set. Throw an exception if the
+     * file import is not supported. This base class always throws
+     * an exception because the only supported imports, by default,
+     * are Lingua Franca files.
+     * @param importStatement The original import statement (used for error reporting).
+     * @param resourceSet The resource set in which to find the file.
+     * @param resolvedURI The URI to import.
      */
     protected def openForeignImport(
         Import importStatement, ResourceSet resourceSet, URI resolvedURI
@@ -789,9 +865,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         )
     }
     
-    /** Open an import at the Lingua Franca file at the specified URI
-     *  in the specified resource set and call generateReactor() on
-     *  any non-main reactors given in that file.
+    /**
+     * Open an import at the Lingua Franca file at the specified URI in the
+     * specified resource, find all non-main reactors, and add them to the
+     * {@link #GeneratorBase.reactors reactors}.
      *  @param importStatement The import statement.
      *  @param resourceSet The resource set in which to find the file.
      *  @param resolvedURI The URI to import.
@@ -830,12 +907,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 try {
                     // Process any imports that the import has.
                     processImports(importResource)
-                    // Call generateReactor for each reactor contained by the import
-                    // that is not a main reactor.
+                    // Add each reactor contained by the import to the list of reactors,
+                    // unless it is a main reactor.
                     for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
                         if (!reactor.isMain && !reactor.isFederated) {
                             println("Including imported reactor: " + reactor.name)
-                            generateReactor(reactor)
+                            reactors.add(reactor)
                         }
                     }
                 } finally {
@@ -846,9 +923,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return importResource
     }
 
-    /** Append the specified text plus a final newline to the current
-     *  code buffer.
-     *  @param text The text to append.
+    /**
+     * Append the specified text plus a final newline to the current
+     * code buffer.
+     * @param format A format string to be used by String.format or
+     * the text to append if no further arguments are given.
+     * @param args Additional arguments to pass to the formatter.
      */
     protected def pr(String format, Object... args) {
         pr(code,
@@ -856,10 +936,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 args) else format)
     }
 
-    /** Append the specified text plus a final newline to the specified
-     *  code buffer.
-     *  @param builder The code buffer.
-     *  @param text The text to append.
+    /**
+     * Append the specified text plus a final newline to the specified
+     * code buffer.
+     * @param builder The code buffer.
+     * @param text The text to append.
      */
     protected def pr(StringBuilder builder, Object text) {
         // Handle multi-line text.
@@ -908,12 +989,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
 
-    /** Prints an indented block of text with the given begin and end markers,
-     *  but only if the actions print any text at all.
-     *  This is helpful to avoid the production of empty blocks.
-     *  @param begin The prolog of the block.
-     *  @param end The epilog of the block.
-     *  @param actions Actions that print the interior of the block. 
+    /**
+     * Prints an indented block of text with the given begin and end markers,
+     * but only if the actions print any text at all.
+     * This is helpful to avoid the production of empty blocks.
+     * @param begin The prologue of the block.
+     * @param end The epilogue of the block.
+     * @param actions Actions that print the interior of the block. 
      */
     protected def prBlock(String begin, String end, Runnable... actions) {
         val i = code.length
@@ -931,24 +1013,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
 
-    /** Print a comment to the generated file.
-     *  Particular targets will need to override this if comments
-     *  start with something other than '//'.
-     *  @param comment The comment.
+    /**
+     * Print a comment to the generated file.
+     * Particular targets will need to override this if comments
+     * start with something other than '//'.
+     * @param comment The comment.
      */
     protected def prComment(String comment) {
         pr(code, '// ' + comment);
     }
 
-    /** Process any imports included in the resource defined by the
-     *  specified resource. This will open the import, check for
-     *  compatibility, and call generateReactor on any reactors the
-     *  import defines that are not main reactors.
-     *  If the target is not acceptable to this
-     *  generator, as reported by acceptableTargets, report an error,
-     *  ignore the import, and continue.
-     *  @param resource The resource (file) that may contain import
-     *   statements.
+    /**
+     * Process any imports included in the resource defined by the specified
+     * resource. This will open the import, check for compatibility, and find
+     * and any reactors the import defines that are not main reactors. If the
+     * target is not acceptable to this generator, as reported by
+     * acceptableTargets, report an error, ignore the import and continue.
+     * @param resource The resource (file) that may contain import statements.
      */
     protected def void processImports(Resource resource) {
         // if the resource is in the recursion stack, then there is a cycle in the imports
@@ -961,6 +1042,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         if (importedResources.keySet.contains(resource)) {
             return
         }
+        
+        // Replace connections in this resources that are annotated with the 
+        // "after" keyword by ones that go through a delay reactor. 
+        resource.insertGeneratedDelays()
         
         // add resource to imported resources and to the recoursion stack
         importedResources.put(resource, new HashSet<Resource>())        
@@ -1003,7 +1088,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         importRecursionStack.remove(resource);
     }
         
-    /** Parsed error message from a compiler is returned here. */
+    /**
+     * Parsed error message from a compiler is returned here.
+     */
     protected static class ErrorFileAndLine {
         public var filepath = null as String
         public var line = "1"
@@ -1012,8 +1099,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         public var isError = true // false for a warning.
     }
     
-    /** Given a line of text from the output of a compiler, return
-     *  an instance of ErrorFileAndLine if the line is recognized as
+    /**
+     * Given a line of text from the output of a compiler, return
+     * an instance of ErrorFileAndLine if the line is recognized as
      *  the first line of an error message. Otherwise, return null.
      *  This base class simply returns null.
      *  @param line A line of output from a compiler or other external
@@ -1028,7 +1116,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def parseCommandOutput(String line) {
         return null as ErrorFileAndLine
     }
-    
+        
     /** Parse the specified string for command errors that can be reported
      *  using marks in the Eclipse IDE. In this class, we attempt to parse
      *  the messages to look for file and line information, thereby generating
@@ -1097,8 +1185,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     resource = files.get(0)
                 }
             } else {
+                // No line designator.
                 if (message.length > 0) {
                     message.append("\n")
+                } else {
+                    if (line.toLowerCase.contains('warning:')) {
+                        severity = IMarker.SEVERITY_WARNING
+                    }
                 }
                 message.append(line)
             }
@@ -1477,12 +1570,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             federates.add(federateInstance)
             federateByName.put("", federateInstance)
             federateByID.put(0, federateInstance)
-        } else {
-            // In a federated execution, we need keepalive to be true,
-            // otherwise a federate could exit simply because it hasn't received
-            // any messages.
-            targetKeepalive = true
-            
+        } else {            
             if (mainDef.reactorClass.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
@@ -1507,7 +1595,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             
             // Create a FederateInstance for each top-level reactor.
-            for (instantiation : mainDef.reactorClass.instantiations) {
+            for (instantiation : mainDef.reactorClass.allInstantiations) {
                 // Assign an integer ID to the federate.
                 var federateID = federates.length
                 // Add the federate name to the list of names.
@@ -1535,6 +1623,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 }
             }
             
+            // In a federated execution, we need keepalive to be true,
+            // otherwise a federate could exit simply because it hasn't received
+            // any messages.
+            if (federates.size > 1) {
+                targetKeepalive = true
+            }
+            
             // Analyze the connection topology of federates.
             // First, find all the connections between federates.
             // Those that are labeled "physical" create no dependency.
@@ -1549,63 +1644,61 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // For each connection between federates, replace it in the
             // AST with an action (which inherits the delay) and two reactions.
             // The action will be physical.
-            if (mainDef !== null) {
-                var connectionsToRemove = new LinkedList<Connection>()
-                for (connection : mainDef.reactorClass.connections) {
-                    var leftFederate = federateByReactor.get(connection.leftPort.container.name)
-                    var rightFederate = federateByReactor.get(connection.rightPort.container.name)
-                    if (leftFederate !== rightFederate) {
-                        // Connection spans federates.
-                        // First, update the dependencies in the FederateInstances.
-                        // Exclude physical connections because these do not create real dependencies.
-                        if (leftFederate !== rightFederate && !connection.physical) {
-                            var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                            if (dependsOn === null) {
-                                dependsOn = new HashSet<Value>()
-                                rightFederate.dependsOn.put(leftFederate, dependsOn)
-                            }
-                            if (connection.delay !== null) {
-                                dependsOn.add(connection.delay)
-                            }
-                            var sendsTo = leftFederate.sendsTo.get(rightFederate)
-                            if (sendsTo === null) {
-                                sendsTo = new HashSet<Value>()
-                                leftFederate.sendsTo.put(rightFederate, sendsTo)
-                            }
-                            if (connection.delay !== null) {
-                                sendsTo.add(connection.delay)
-                            }
-                            // Check for causality loops between federates.
-                            // FIXME: This does not detect cycles involving more than one federate.
-                            var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                            if (reverseDependency !== null) {
-                                // Check that at least one direction has a delay.
-                                if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                    // Found a causality loop.
-                                    val message = "Causality loop found between federates "
-                                            + leftFederate.name + " and " + rightFederate.name
-                                    reportError(connection, message)
-                                    // This is a fatal error, so throw an exception.
-                                    throw new Exception(message)
-                                }
+            var connectionsToRemove = new LinkedList<Connection>()
+            for (connection : mainDef.reactorClass.connections) {
+                var leftFederate = federateByReactor.get(connection.leftPort.container.name)
+                var rightFederate = federateByReactor.get(connection.rightPort.container.name)
+                if (leftFederate !== rightFederate) {
+                    // Connection spans federates.
+                    // First, update the dependencies in the FederateInstances.
+                    // Exclude physical connections because these do not create real dependencies.
+                    if (leftFederate !== rightFederate && !connection.physical) {
+                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                        if (dependsOn === null) {
+                            dependsOn = new HashSet<Value>()
+                            rightFederate.dependsOn.put(leftFederate, dependsOn)
+                        }
+                        if (connection.delay !== null) {
+                            dependsOn.add(connection.delay)
+                        }
+                        var sendsTo = leftFederate.sendsTo.get(rightFederate)
+                        if (sendsTo === null) {
+                            sendsTo = new HashSet<Value>()
+                            leftFederate.sendsTo.put(rightFederate, sendsTo)
+                        }
+                        if (connection.delay !== null) {
+                            sendsTo.add(connection.delay)
+                        }
+                        // Check for causality loops between federates.
+                        // FIXME: This does not detect cycles involving more than one federate.
+                        var reverseDependency = leftFederate.dependsOn.get(rightFederate)
+                        if (reverseDependency !== null) {
+                            // Check that at least one direction has a delay.
+                            if (reverseDependency.size === 0 && dependsOn.size === 0) {
+                                // Found a causality loop.
+                                val message = "Causality loop found between federates " + leftFederate.name + " and " +
+                                    rightFederate.name
+                                reportError(connection, message)
+                                // This is a fatal error, so throw an exception.
+                                throw new Exception(message)
                             }
                         }
-                        
-                        // Next, replace the connection in the AST with an action
-                        // (which inherits the delay) and two reactions.
-                        // The action will be physical if the connection physical and
-                        // otherwise will be logical.
-                        connection.makeCommunication(leftFederate, rightFederate, this)
-                        
-                        // To avoid concurrent modification exception, collect a list
-                        // of connections to remove.
-                        connectionsToRemove.add(connection)
                     }
+
+                    // Next, replace the connection in the AST with an action
+                    // (which inherits the delay) and two reactions.
+                    // The action will be physical if the connection physical and
+                    // otherwise will be logical.
+                    connection.makeCommunication(leftFederate, rightFederate, this)
+
+                    // To avoid concurrent modification exception, collect a list
+                    // of connections to remove.
+                    connectionsToRemove.add(connection)
                 }
-                for (connection : connectionsToRemove) {
-                    // Remove the original connection for the parent.
-                    mainDef.reactorClass.connections.remove(connection)
-                }
+            }
+            for (connection : connectionsToRemove) {
+                // Remove the original connection for the parent.
+                mainDef.reactorClass.connections.remove(connection)
             }
         }
     }
@@ -1641,8 +1734,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return fsa.getURI(file).toPath
     }
     
-    /** Extract the name of a file from a path represented as a string.
-     *  If the file ends with '.lf', the extension is removed.
+    /**
+     * Extract the name of a file from a path represented as a string.
+     * If the file ends with '.lf', the extension is removed.
      */
     protected def getFilename(String path) {
         var File f = new File(path)
@@ -1653,19 +1747,22 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return name
     }
     
-    /** Extract the directory from a path represented as a string.
+    /**
+     * Extract the directory from a path represented as a string.
      */
     protected def getDirectory(String path) {
         var File f = new File(path)
         f.getParent()
     }
     
-    /** Analyze the resource (the .lf file) that is being parsed
-     *  to generate code to set the following variables:
-     *  directory, filename, mode, sourceFile.
+    /**
+     * Analyze the resource (the .lf file) that is being parsed
+     * to generate code to set the following variables:
+     * directory, filename, mode, sourceFile.
      */
     private def analyzeResource(Resource resource) {
         sourceFile = resource.toPath;
+        windowsSourceFile = sourceFile.replace("\\","\\\\");
         
         // Strip the filename of the extension.
         var File f = new File(sourceFile);
@@ -1692,32 +1789,34 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         println('******** mode: ' + mode)
     }
     
-    /** Execute a process while forwarding output and error to system streams.
+    /**
+     * Execute a process while forwarding output and error to system streams.
      *
-     *  Executing a process directly with `processBuiler.start()` could
-     *  lead to a deadlock as the subprocess blocks when output or error
-     *  buffers are full. This method ensures that output and error messages
-     *  are continuously read and forwards them to the system's output and
-     *  error streams.
+     * Executing a process directly with `processBuiler.start()` could
+     * lead to a deadlock as the subprocess blocks when output or error
+     * buffers are full. This method ensures that output and error messages
+     * are continuously read and forwards them to the system's output and
+     * error streams.
      *
-     *  @param processBuilder The process to be executed.
-     *  @author{Christian Menard <christian.menard@tu-dresden.de}
+     * @param processBuilder The process to be executed.
+     * @author{Christian Menard <christian.menard@tu-dresden.de}
      */
     protected def runSubprocess(ProcessBuilder processBuilder) {
         return runSubprocess(processBuilder, System.out, System.err);
     }
 
-    /** Execute a process while forwarding output and error streams.
+    /**
+     * Execute a process while forwarding output and error streams.
      *
-     *  Executing a process directly with `processBuiler.start()` could
-     *  lead to a deadlock as the subprocess blocks when output or error
-     *  buffers are full. This method ensures that output and error messages
-     *  are continuously read and forwards them to the given streams.
+     * Executing a process directly with `processBuiler.start()` could
+     * lead to a deadlock as the subprocess blocks when output or error
+     * buffers are full. This method ensures that output and error messages
+     * are continuously read and forwards them to the given streams.
      *
-     *  @param processBuilder The process to be executed.
-     *  @param outStream The stream to forward the process' output to.
-     *  @param errStream The stream to forward the process' error messages to.
-     *  @author{Christian Menard <christian.menard@tu-dresden.de}
+     * @param processBuilder The process to be executed.
+     * @param outStream The stream to forward the process' output to.
+     * @param errStream The stream to forward the process' error messages to.
+     * @author{Christian Menard <christian.menard@tu-dresden.de}
      */
     protected def runSubprocess(ProcessBuilder processBuilder,
                                 OutputStream outStream,

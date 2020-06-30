@@ -4,12 +4,12 @@ reactor Delay(delay:time(100 msec)) {
     input in:int;
     output out:int;
     logical action a:int;
+    reaction(a) -> out {=
+        if (a_has_value && a_is_present) set(out, a_value);
+    =}
     reaction(in) -> a {=
         // Use specialized form of schedule for integer payloads.
         schedule_int(a, self->delay, in);
-    =}
-    reaction(a) -> out {=
-        if (a_has_value && a_is_present) set(out, a_value);
     =}
 }
 reactor Test {

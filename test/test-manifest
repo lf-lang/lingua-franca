@@ -15,6 +15,7 @@ ArrayPrint.lf
 ArrayScale.lf
 Composition.lf
 CompositionAfter.lf
+CompositionGain.lf
 CompositionThreaded.lf
 CountTest.lf
 DanglingOutput.lf
@@ -52,6 +53,7 @@ HelloWorld.lf
 Hierarchy.lf
 Hierarchy2.lf
 Import.lf
+ImportComposition.lf
 ImportThreaded.lf
 Microsteps.lf
 Minimal.lf
@@ -61,6 +63,8 @@ MultipleContained.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
+PingPongDistributed.lf
+Pipeline.lf
 Preamble.lf
 PreambleFile.lf
 ReadOutputOfContainedReactor.lf
@@ -76,6 +80,7 @@ SimpleDeadline.lf
 SimpleImport.lf
 SlowingClock.lf
 SlowingClockPhysical.lf
+StartupOutFromInside.lf
 Stride.lf
 StructAsState.lf
 StructAsType.lf
@@ -85,6 +90,7 @@ StructPrint.lf
 StructScale.lf
 TestForPreviousOutput.lf
 Threaded.lf
+ThreadedMultiportIn.lf
 ThreadedThreaded.lf
 TimeLimit.lf
 TimeLimitThreaded.lf

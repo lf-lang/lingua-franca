@@ -309,7 +309,7 @@ void handle_message(unsigned char* buffer) {
 
     // Read the payload.
     // Allocate memory for the message contents.
-    unsigned char* message_contents = malloc(length);
+    unsigned char* message_contents = (unsigned char*)malloc(length);
     read_from_socket(rti_socket, length, message_contents);
     // printf("DEBUG: Message received by federate: %s.\n", message_contents);
 
@@ -361,7 +361,7 @@ void handle_timed_message(unsigned char* buffer) {
 
     // Read the payload.
     // Allocate memory for the message contents.
-    unsigned char* message_contents = malloc(length);
+    unsigned char* message_contents = (unsigned char*)malloc(length);
     read_from_socket(rti_socket, length, message_contents);
     // printf("DEBUG: Message received by federate: %s.\n", message_contents);
 
@@ -613,7 +613,7 @@ void __logical_time_complete(instant_t time) {
              // interrupted by activity on the event queue.
              // If there is now an earlier event on the event queue,
              // then we should return with the time of that event.
-             event_t* head_event = pqueue_peek(event_q);
+             event_t* head_event = (event_t*)pqueue_peek(event_q);
              if (head_event != NULL && head_event->time < time) {
                  return head_event->time;
              }

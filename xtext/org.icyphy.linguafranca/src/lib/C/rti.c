@@ -64,6 +64,9 @@ pthread_mutex_t rti_mutex = PTHREAD_MUTEX_INITIALIZER;
 // Condition variable used to signal receipt of all proposed start times.
 pthread_cond_t received_start_times = PTHREAD_COND_INITIALIZER;
 
+// Condition variable used to signal that a start time has been sent to a federate.
+pthread_cond_t sent_start_time = PTHREAD_COND_INITIALIZER;
+
 // The federates.
 federate_t federates[NUMBER_OF_FEDERATES];
 
@@ -174,6 +177,12 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
     int destination_socket = federates[federate_id].socket;
 
     // printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
+    // Need to make sure that the destination federate's thread has already
+    // sent the starting TIMESTAMP message.
+    while (federates[federate_id].state == NOT_CONNECTED) {
+        // Need to wait here.
+        pthread_cond_wait(&sent_start_time, &rti_mutex);
+    }
     write_to_socket(destination_socket, bytes_read, buffer);
 
     // The message length may be longer than the buffer,
@@ -439,7 +448,6 @@ void* federate(void* fed) {
             pthread_cond_wait(&received_start_times, &rti_mutex);
         }
     }
-    pthread_mutex_unlock(&rti_mutex);
 
     // Send back to the federate the maximum time plus an offset.
     // Start by sending a timestamp marker.
@@ -451,6 +459,13 @@ void* federate(void* fed) {
     start_time = max_start_time + DELAY_START;
     long long message = swap_bytes_if_big_endian_ll(start_time);
     write_to_socket(my_fed->socket, sizeof(long long), (unsigned char*)(&message));
+
+    // Update state for the federate to indicate that the TIMESTAMP
+    // message has been sent. That TIMESTAMP message grants time advance to
+    // the federate to the start time.
+    my_fed->state = GRANTED;
+    pthread_cond_broadcast(&sent_start_time);
+    pthread_mutex_unlock(&rti_mutex);
 
     // Listen for messages from the federate.
     while (1) {
@@ -542,8 +557,6 @@ void connect_to_federates(int socket_descriptor) {
             // FIXME: Rather harsh error handling here.
             exit(1);
         }
-        // Default state is as if an NET has been granted for the start time.
-        federates[fed_id].state = GRANTED;
         federates[fed_id].socket = socket_id;
 
         // Create a thread to communicate with the federate.
