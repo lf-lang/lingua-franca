@@ -3231,8 +3231,8 @@ class CGenerator extends GeneratorBase {
         Input input,
         Reactor reactor
     ) {
-        val arraySpec = input.multiportArraySpec
         val structType = variableStructType(input, reactor)
+        val inputType = input.inferredType
         // Create the local variable whose name matches the input name.
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
@@ -3240,6 +3240,53 @@ class CGenerator extends GeneratorBase {
         // below, we have to use writable_copy()). There are 8 cases,
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
+        // Easy case first.
+        if (!input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
+            // Non-mutable, non-multiport, primitive type.
+            pr(builder, '''
+                «structType»* «input.name» = self->__«input.name»;
+            ''')
+        } else if (input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
+            // Mutable, non-multiport, primitive type.
+            pr(builder, '''
+                // Mutable input, so copy the input struct into a temporary variable.
+                // Primitive type, so the input value on the struct is a copy.
+                «structType» __tmp_«input.name» = *(self->__«input.name»);
+                «structType»* «input.name» = &__tmp_«input.name»;
+            ''')
+        } else if (!input.isMutable && inputType.isTokenType && input.multiportWidth <= 0) {
+            // Non-mutable, non-multiport, token type.
+            pr(builder, '''
+                «structType»* «input.name» = self->__«input.name»;
+                if («input.name»->is_present) {
+                    «input.name»->length = «input.name»->token->length;
+                    «input.name»->value = «input.name»->token->value;
+                } else {
+                    «input.name»->length = 0;
+                }
+            ''')
+        } else if (input.isMutable && inputType.isTokenType && input.multiportWidth <= 0) {
+            // Mutable, non-multiport, token type.
+            pr(builder, '''
+                // Mutable input, so copy the input struct into a temporary variable.
+                «structType» __tmp_«input.name» = *(self->__«input.name»);
+                «structType»* «input.name» = &__tmp_«input.name»;
+                if («input.name»->is_present) {
+                    «input.name»->length = «input.name»->token->length;
+                    «input.name»->token = writable_copy(«input.name»->token);
+                    «input.name»->value = «input.name»->token->value;
+                } else {
+                    «input.name»->length = 0;
+                }
+            ''')
+        }
+        // Set the _width variable for all cases. This will be -1
+        // for a variable-width multiport, which is not currently supported.
+        // It will be -2 if it is not multiport.
+        pr(builder, '''
+            int «input.name»_width = «input.multiportWidth»;
+        ''')
+        /* FIXME: OLD VERSION:
         if (input.isMutable) {
             pr(builder, '''
                 // FIXME: I doubt this is going to work as is with multiports!  
@@ -3293,6 +3340,8 @@ class CGenerator extends GeneratorBase {
                 int «input.name»_width = «input.multiportWidth»;
             ''')
         }
+        * 
+        */
     }
     
     /** Generate into the specified string builder the code to
