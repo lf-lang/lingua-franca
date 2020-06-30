@@ -26,18 +26,19 @@ target TypeScript {
 /**
  * Reactor that generates a sequence of messages, one per second.
  * The message will be a string consisting of a root string followed
- * by a count.
+ * by a count. Note that the type of the output port used for communication
+ * to the other federate must be "Buffer".
  * @param root The root string.
  * @output message The message.
  */
 reactor MessageGenerator(root:string("")) {
-    output message:string;
+    output message:Buffer;
     state count:number(1);
     // Send first message after 1 sec so that the startup reactions
     // do not factor into the transport time measurement on the first message.
     timer t(1 sec, 1 sec);
     reaction(t) -> message {=
-        message = count.toString();    
+        message = Buffer.from(count.toString());    
         console.log(`At time ${util.getElapsedLogicalTime()}, send message: ${count++}`);
         console.log(`PrintMessage: Physical time is ${util.getElapsedPhysicalTime()}`);
     =}
@@ -45,14 +46,18 @@ reactor MessageGenerator(root:string("")) {
 
 /**
  * Reactor that prints an incoming string.
+ * Note that the type of the input port used for communication
+ * with the other federate must be "Buffer".
  * @param prefix A prefix for the message.
  * @input message The message.
  */
 reactor PrintMessage {
-    input message:string;
+    input message:Buffer;
     reaction(message) {=
-        console.log(`PrintMessage: At (elapsed) logical time ${util.getElapsedLogicalTime()}, receiver receives: ${message}`);
-        console.log(`PrintMessage: Physical time is ${util.getElapsedPhysicalTime()}`);
+        if (message) {
+            console.log(`PrintMessage: At (elapsed) logical time ${util.getElapsedLogicalTime()}, receiver receives: ${message.toString()}`);
+            console.log(`PrintMessage: Physical time is ${util.getElapsedPhysicalTime()}`);
+        }
     =}
 }
 
