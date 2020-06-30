@@ -3,7 +3,8 @@
 // four inputs and produces that as output.  The source is a counting
 // sequence.
 target TypeScript {
-    timeout: 1 sec
+    timeout: 1 sec,
+    fast: true
 };
 reactor Source {
     output out:number;
