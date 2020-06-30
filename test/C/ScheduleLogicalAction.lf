@@ -9,7 +9,7 @@ reactor foo {
     output y:int;
     logical action a:int*;
     reaction(x) -> y, a {=
-        set(y, 2*x);
+        set(y, 2*x->value);
         // The following uses physical time, incorrectly.
         schedule(a, MSEC(500));
     =}
@@ -22,7 +22,7 @@ reactor print {
     input x:int;
     reaction(x) {=
         interval_t elapsed_time = get_elapsed_logical_time();
-        printf("Result is %d\n", x);
+        printf("Result is %d\n", x->value);
         printf("Current logical time is: %lld\n", elapsed_time);
         printf("Current physical time is: %lld\n", get_elapsed_physical_time());
         if (elapsed_time != self->expected_time) {

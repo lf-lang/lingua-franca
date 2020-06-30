@@ -25,8 +25,8 @@ reactor Add {
     output out:int;
     reaction(in1, in2) -> out {=
         int result = 0;
-        if (in1_is_present) result += in1;
-        if (in2_is_present) result += in2;
+        if (in1->is_present) result += in1->value;
+        if (in2->is_present) result += in2->value;
         set(out, result);
     =}
 }
@@ -34,8 +34,8 @@ reactor Print {
     input in:int;
     state expected:int(2);
     reaction(in) {=
-        printf("Received: %d.\n", in);
-        if (in != self->expected) {
+        printf("Received: %d.\n", in->value);
+        if (in->value != self->expected) {
             printf("Expected %d.\n", self->expected);
             exit(1);
         }

@@ -20,7 +20,7 @@ reactor Computation {
 		struct timespec sleep_time = {(time_t) 0, (long)200000000};
 		struct timespec remaining_time;
 		nanosleep(&sleep_time, &remaining_time);
-		set(out, in);
+		set(out, in->value);
 	=}
 }
 reactor Destination {
@@ -29,7 +29,7 @@ reactor Destination {
 	reaction(in) {=
 		int sum = 0;
 		for (int i = 0; i < in_width; i++) {
-		    sum += in[i];
+		    sum += in[i]->value;
         }
 		printf("Sum of received: %d.\n", sum);
 		if (sum != self->s) {
