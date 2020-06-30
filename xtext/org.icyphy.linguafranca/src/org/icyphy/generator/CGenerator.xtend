@@ -1130,12 +1130,12 @@ class CGenerator extends GeneratorBase {
         // Start with parameters.
         for (parameter : reactor.allParameters) {
             prSourceLineNumber(body, parameter)
-            pr(body, parameter.targetType + ' ' + parameter.name + ';');
+            pr(body, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
         }
         // Next handle states.
         for (stateVar : reactor.allStateVars) {
             prSourceLineNumber(body, stateVar)
-            pr(body, getStateType(stateVar) + ' ' + stateVar.name + ';');
+            pr(body, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
         }
         // Next handle inputs.
         for (input : reactor.allInputs) {
@@ -2433,8 +2433,11 @@ class CGenerator extends GeneratorBase {
 	                    pr(initializeTriggerObjects,
 	                        nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
 	                } else {
-	                   val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
-	                    var type = stateVar.targetType
+	                    val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+	                    // Array type has to be handled specially because C doesn't accept
+	                    // type[] as a type designator.
+	                    // Use the superclass to avoid [] being replaced by *.
+	                    var type = super.getTargetType(stateVar.inferredType)
 	                    val matcher = arrayPatternVariable.matcher(type)
 	                    if (matcher.find()) {
 	                        // If the state type ends in [], then we have to move the []
@@ -2837,7 +2840,7 @@ class CGenerator extends GeneratorBase {
             // void type is odd, but it avoids generating non-standard expression sizeof(void),
             // which some compilers reject.
             var lengthExpression = switch(type.targetType) {
-                case 'string': '''strlen(«sendRef») + 1'''
+                case 'string': '''strlen(«sendRef»->value) + 1'''
                 case 'void': '0'
                 default: '''sizeof(«type.targetType»)'''
             }
@@ -3191,13 +3194,7 @@ class CGenerator extends GeneratorBase {
                 // will equal the maximum number of actions that are simultaneously in
                 // the event queue.
                 
-                // If this is an array type, the type cannot be used verbatim; the trailing `[]`
-                // should be replaced by a `*`
                 var cType = type.targetType
-                val matcher = arrayPatternVariable.matcher(cType)
-                if (matcher.find()) {
-                    cType = matcher.group(1) + '*'
-                }
                 pr(builder, '''
                     «cType» «action.name»_value;
                     if («action.name»_has_value) {
@@ -3240,10 +3237,12 @@ class CGenerator extends GeneratorBase {
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
         // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy().
-        // FIXME: I doubt this is going to work as is with multiports!  
+        // below, we have to use writable_copy()). There are 8 cases,
+        // depending on whether the input is mutable, whether it is a multiport,
+        // and whether it is a token type.
         if (input.isMutable) {
             pr(builder, '''
+                // FIXME: I doubt this is going to work as is with multiports!  
                 // Mutable input, so copy the input struct into a temporary variable.
                 «structType» __tmp_«input.name»«arraySpec» = *(self->__«input.name»);
                 «structType»* «input.name»«arraySpec» = &__tmp_«input.name»;
@@ -3270,9 +3269,6 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')
             } else {
-                // FIXME: Here the multiport width is a property of the class definition,
-                // which means it cannot be parameterized. Perhaps the width should be
-                // a field on the self struct.
                 pr(builder, '''
                     for (int i = 0; i < «input.multiportWidth»; i++) {
                         if («input.name»[i]->is_present) {
@@ -3285,9 +3281,17 @@ class CGenerator extends GeneratorBase {
                         }
                         «input.name»[i]->value = «input.name»[i]->token->value;
                     }
-                    int «input.name»_width = «input.multiportWidth»;
                 ''')
             }
+        }
+        // Generate the name_width variable for a multiport.
+        // FIXME: Here the multiport width is a property of the class definition,
+        // which means it cannot be parameterized. Perhaps the width should be
+        // a field on the self struct.
+        if (arraySpec != '') {
+            pr(builder, '''
+                int «input.name»_width = «input.multiportWidth»;
+            ''')
         }
     }
     
@@ -3404,50 +3408,7 @@ class CGenerator extends GeneratorBase {
         }
         return result
     }
-    
-    /** Return a C type for the type of the specified state variable.
-     *  If there are code delimiters around it, those are removed.
-     *  If the type is "time", then it is converted to "interval_t".
-     *  If the type is of the form "type[]", then this is converted
-     *  to "type*".
-     *  @param state The state variable.
-     *  @return The C type.
-     */
-    private def getStateType(StateVar state) {
-        // A state variable may directly refer to its initializing parameter,
-        // in which case, it inherits the type from the parameter.
-//        if (state.init !== null && state.init.size == 1) {
-//            val parm = state.init.get(0).parameter
-//            if (parm !== null)
-//                return parm.type.toText
-//        }
-//        if (state.ofTimeType) {
-//            return timeTypeInTargetLanguage
-//        }
-//        if (state.type === null || state.type.toText.equals("")) {
-//            reportError(state,
-//                "State is required to have a type: " + state.name)
-//            return "(ERROR: NO TYPE)"
-//        }
-//        var type = state.type.toText
-//        if (state.isOfTimeType) {
-//            type = 'interval_t'
-//        } else {
-//            val matcher = arrayPatternVariable.matcher(type)
-//            if (matcher.find()) {
-//                return matcher.group(1) + '*'
-//            }
-//        }
-//        type
-
-        var type = state.getInferredType.targetType
-        val matcher = arrayPatternVariable.matcher(type)
-        if (matcher.find()) {
-            return matcher.group(1) + '*'
-        }
-        type
-    }
-    
+       
     /** Given a type for an input or output, return true if it should be
      *  carried by a token_t struct rather than the type itself.
      *  It should be carried by such a struct if the type ends with *
@@ -3480,19 +3441,6 @@ class CGenerator extends GeneratorBase {
         } else {
             type.trim
         }
-    }
-
-    /** Convert a type specification of the form type[], type[num]
-     *  or type* to token_t*. Otherwise, remove the code delimiter,
-     *  if there is one, and otherwise just return the argument
-     *  unmodified.
-     */
-    private def lfTypeToTokenType(InferredType type) {
-        var result = type.targetType
-        if (isTokenType(type)) {
-            result = 'token_t*'
-        }
-        result
     }
 
     /** Print the #line compiler directive with the line number of
