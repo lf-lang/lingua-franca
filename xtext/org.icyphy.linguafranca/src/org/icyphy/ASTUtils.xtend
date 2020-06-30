@@ -123,7 +123,13 @@ class ASTUtils {
             reactor.connections.addAll(connections)
         ]
         // Also add class definitions of the created delay reactor(s).
-        delayClasses.forEach[reactor|resource.contents.add(reactor)]
+        // Put this at the beginning of the list of reactors in the resource
+        // because contained reactors need to be declared before container
+        // reactors. This is because input and output data types are typedefed,
+        // and if a delay connection crosses levels of the hierarchy
+        // (connection like in -> x.in after 10 msec), then there will be
+        // reference to this type in the container reactor class definition.
+        delayClasses.forEach[reactor|resource.contents.add(0, reactor)]
         // Finally, insert the instances and, before doing so, assign them a unique name.
         delayInstances.forEach [ reactor, instantiations |
             instantiations.forEach [ instantiation |

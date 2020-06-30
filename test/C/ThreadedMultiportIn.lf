@@ -30,7 +30,7 @@ reactor Destination {
 		int sum = 0;
 		for (int i = 0; i < in_width; i++) {
 		    sum += in[i]->value;
-        }
+        } 
 		printf("Sum of received: %d.\n", sum);
 		if (sum != self->s) {
 			printf("ERROR: Expected %d.\n", self->s);

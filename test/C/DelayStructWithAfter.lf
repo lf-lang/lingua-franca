@@ -13,8 +13,8 @@ reactor Source {
         set_new(out);
         
         // Above allocates a struct, which then must be populated.
-        out->name = "Earth";
-        out->value = 42;
+        out->value->name = "Earth";
+        out->value->value = 42;
     =}
 }
 // expected parameter is for testing.
