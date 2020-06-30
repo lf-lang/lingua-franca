@@ -10,8 +10,8 @@ reactor Source {
     =}
     output out:hello_t;
     reaction(startup) -> out {=
-        out->name = "Earth";
-        out->value = 42;
+        out->value.name = "Earth";
+        out->value.value = 42;
         set_present(out);
     =}
 }
@@ -19,8 +19,8 @@ reactor Source {
 reactor Print(expected:int(42)) {
     input in:hello_t;
     reaction(in) {=
-        printf("Received: name = %s, value = %d\n", in.name, in.value);
-        if (in.value != self->expected) {
+        printf("Received: name = %s, value = %d\n", in->value.name, in->value.value);
+        if (in->value.value != self->expected) {
             printf("ERROR: Expected value to be %d.\n", self->expected);
             exit(1);
         }
