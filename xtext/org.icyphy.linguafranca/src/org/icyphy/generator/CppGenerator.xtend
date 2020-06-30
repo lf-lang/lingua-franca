@@ -131,9 +131,10 @@ class CppGenerator extends GeneratorBase {
 
         if (mainReactor === null) {
             // No main reactor. Nothing to do.
+            println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
         } else {
-            generateReactor(mainReactor)
+            reactors.add(mainReactor)
         }
 
         fsa.generateFile(filename + File.separator + "main.cc",
@@ -571,6 +572,9 @@ class CppGenerator extends GeneratorBase {
         
         #pragma once
         
+        #include <vector>
+        #include <array>
+
         #include "reactor-cpp/reactor-cpp.hh"
         «FOR i : importedResources.get(r) BEFORE "// include the preambles from imported resource \n"»
             #include "«i.preambleHeaderFile»"

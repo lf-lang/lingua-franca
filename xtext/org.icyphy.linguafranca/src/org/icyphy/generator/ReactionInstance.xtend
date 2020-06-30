@@ -95,12 +95,11 @@ class ReactionInstance extends NamedInstance<Reaction> {
         }
         // Next handle the ports that this reaction reads.
         for (source : definition.sources) {
-            if (source instanceof VarRef) {
-                if (source.variable instanceof Port) {
-                    var portInstance = parent.getPortInstance(source)
-                    this.dependsOnPorts.add(portInstance)
-                    portInstance.dependentReactions.add(this)
-                }
+            if (source.variable instanceof Port) {
+                var portInstance = parent.getPortInstance(source)
+                this.dependsOnPorts.add(portInstance)
+                this.reads.add(portInstance)
+                portInstance.dependentReactions.add(this)
             }
         }
 
@@ -171,6 +170,11 @@ class ReactionInstance extends NamedInstance<Reaction> {
      * The first reaction has index 0, the second index 1, etc.
      */
     public int reactionIndex = -1;
+
+    /**
+     * The ports that this reaction reads but that do not trigger it.
+     */
+    public var reads = new HashSet<TriggerInstance<Variable>>
 
     /**
      * The trigger instances (input ports, timers, and actions

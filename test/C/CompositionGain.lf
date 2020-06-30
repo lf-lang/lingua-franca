@@ -1,0 +1,30 @@
+// This tests send data through a contained reactor.
+target C;
+reactor Gain {
+    input gainin:int;
+    output y:int;
+    reaction(gainin) -> y {=
+        printf("Gain received %d\n", gainin);
+        set(y, gainin * 2);
+    =}
+}
+reactor Wrapper {
+    input x:int;
+    output y:int;
+    gain = new Gain();
+    x -> gain.gainin;
+    gain.y -> y;
+}
+main reactor ImportComposition {
+    wrapper = new Wrapper();
+    reaction(startup) -> wrapper.x {=
+        set(wrapper.x, 42); 
+    =}
+    reaction(wrapper.y) {=
+        printf("Received %d\n", wrapper.y);
+        if (wrapper.y != 42 * 2) {
+            fprintf(stderr, "ERROR: Received value should have been %d.\n", 42 * 2);
+            exit(2);
+        }
+    =}
+}
