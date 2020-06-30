@@ -13,7 +13,7 @@ reactor DelayPointer(delay:time(100 msec)) {
     reaction(in) -> a {=
         // Schedule the actual token from the input rather than
         // a new token with a copy of the input value.
-        schedule_token(a, self->delay, in_token);
+        schedule_token(a, self->delay, in->token);
     =}
 }
 reactor Source {
@@ -29,16 +29,16 @@ reactor Source {
         set_new(out);
         
         // Above allocates a struct, which then must be populated.
-        out->name = "Earth";
-        out->value = 42;
+        out->value->name = "Earth";
+        out->value->value = 42;
     =}
 }
 // expected parameter is for testing.
 reactor Print(expected:int(42)) {
     input in:hello_t*;
     reaction(in) {=
-        printf("Received: name = %s, value = %d\n", in->name, in->value);
-        if (in->value != self->expected) {
+        printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
+        if (in->value->value != self->expected) {
             printf("ERROR: Expected value to be %d.\n", self->expected);
             exit(1);
         }
