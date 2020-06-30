@@ -11,15 +11,15 @@ reactor Gain {
     input in:int;
     output out:int;
     reaction(in) -> out {=
-        printf("Gain received %d.\n", in);
-        set(out, in * 2);
+        printf("Gain received %d.\n", in->value);
+        set(out, in->value * 2);
     =}
 }
 reactor Print {
     input in:int;
     reaction(in) {=
-        printf("Received: %d.\n", in);
-        if (in != 2) {
+        printf("Received: %d.\n", in->value);
+        if (in->value != 2) {
             printf("Expected 2.\n");
             exit(1);
         }
