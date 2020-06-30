@@ -77,10 +77,11 @@ import static extension org.icyphy.ASTUtils.*
 
 /**
  * Generator base class for shared code between code generators.
+ * This extends AbstractLinguaFrancaValidator so that errors can be highlighted
+ * in the XText-based IDE.
  * 
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Chris Gill, <cdgill@wustl.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  */
 abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
@@ -104,9 +105,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
     
     public static var GEN_DELAY_CLASS_NAME = "__GenDelay"
-    
-    static protected CharSequence listItemSeparator = ', '
-    
+        
     ////////////////////////////////////////////
     //// Protected fields.
         
@@ -128,17 +127,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /**
      * Indicator of whether generator errors occurred.
+     * This is set to true by the report() method and returned by the
+     * errorsOccurred() method.
      */
-    protected var generatorErrorsOccurred = false
+    var generatorErrorsOccurred = false
     
     /**
      * If running in an Eclipse IDE, the iResource refers to the
      * IFile representing the Lingua Franca program.
+     * This is the XText view of the file, which is distinct
+     * from the Eclipse eCore view of the file and the OS view of the file.
      */
     protected var iResource = null as IResource
     
     /**
-     * Definition of the main (top-level) reactor
+     * Definition of the main (top-level) reactor.
+     * This is an automatically generated AST node for the top-level
+     * reactor.
      */
     protected Instantiation mainDef
     
@@ -158,6 +163,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     
     /**
      * The file containing the main source code.
+     * This is the Eclipse eCore view of the file, which is distinct
+     * from the XText view of the file and the OS view of the file.
      */
     protected var Resource resource
     
@@ -189,7 +196,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var Set<Reaction> unorderedReactions = null
     
     /**
-     * A map of all resources to the set of resource they import
+     * A map of all resources to the set of resource they import.
+     * These are Eclipse eCore views of the files.
      */
     protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
