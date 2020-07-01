@@ -39,6 +39,9 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Import
+import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.emf.common.util.URI
 
 /**
  * A helper class for analyzing the AST.
@@ -52,11 +55,6 @@ class ModelInfo {
      */
     public AnnotatedDependencyGraph<Reactor> instantiationGraph
     
-    /**
-     * Data structure for tracking dependencies between reactions.
-     */
-    public ReactionGraph reactionGraph
-
     /**
      * A mapping from reactors to the sites of their instantiation.
      */
@@ -88,16 +86,27 @@ class ModelInfo {
     public Set<Parameter> overflowingParameters
 
     /**
+     * Data structure for tracking dependencies between reactions.
+     */
+    public ReactionGraph reactionGraph
+
+    
+    // FIXME: Potentially also move the name uniqueness checks here to ensure global uniqueness.
+    // FIXME: If a there is a cyclic instantiation somewhere inside an imported file, report an error
+    // on the import statement; establish a mapping for this.
+
+    /**
      * Redo all analysis based on the given model.
      * @param model the model to analyze.
      */
     def update(Model model) {
         this.model = model
         
-        // Perform generic traversals.
-        this.refreshInstantiationMap() // FIXME: carry this out in the same loop
-        this.refreshInstantiationGraph() // FIXME: wrap these two in a separate class
-        this.reactionGraph = new ReactionGraph(this.model)
+        this.analyzeInstantiations()        
+        
+        if (this.instantiationGraph.cycles.size == 0) {
+            this.reactionGraph = new ReactionGraph(this.model)    
+        }
         
         // Find the target. A target must exist because the grammar requires it.
         var Targets target
@@ -112,33 +121,47 @@ class ModelInfo {
                 
     }
     
-    /**
-     * Update the instantiation map, which is used in subsequent AST traversals.
-     */
-    private def refreshInstantiationMap() {
-        this.instantiationMap = new HashMap()
-        for (instantiation : model.eAllContents.toIterable.filter(
-            Instantiation)) {
-            var set = this.instantiationMap.get(instantiation.reactorClass)
-            if (set === null)
-                set = new HashSet<Instantiation>()
-            set.add(instantiation)
-            this.instantiationMap.put(instantiation.reactorClass, set)
+    private def void collectImports(Resource resource, Set<Resource> visited) {
+        for (import : resource.allContents.toIterable.filter(Import)) {
+            // Resolve the import as a URI relative to the current resource's URI.
+            val URI currentURI = resource?.getURI;
+            val URI importedURI = URI?.createFileURI(import.importURI);
+            val URI resolvedURI = importedURI?.resolve(currentURI);
+            val importResource = resource.resourceSet?.getResource(resolvedURI, true);
+            
+            // Continue recursion if not already visited.
+            if (!visited.contains(importResource)) {
+                visited.add(importResource)
+                collectImports(importResource, visited)
+            }
         }
     }
-
+    
     /**
-     * Update the instantiation graph and detect cycles in it.
+     * Update the instantiation map, which is used in subsequent AST traversals,
+     * create a new instantiation graph, and report cycles if it has any.
      */
-    private def refreshInstantiationGraph() {
+    private def analyzeInstantiations() {
+        this.instantiationMap = new HashMap()
         this.instantiationGraph = new AnnotatedDependencyGraph()
-        for (instantiation : this.model.eAllContents.toIterable.filter(
-            Instantiation)) {
-            this.instantiationGraph.addEdge(
-                new AnnotatedNode(instantiation.eContainer as Reactor),
-                new AnnotatedNode(instantiation.reactorClass))
+        
+        val resources = new HashSet<Resource>()
+        resources.add(model.eResource)
+        collectImports(model.eResource, resources)
+        
+        for (resource : resources) {
+            for (instantiation : resource.allContents.toIterable.filter(Instantiation)) {
+                var set = this.instantiationMap.get(instantiation.reactorClass)
+                if (set === null)
+                    set = new HashSet<Instantiation>()
+                set.add(instantiation)
+                this.instantiationMap.put(instantiation.reactorClass, set)
+                this.instantiationGraph.addEdge(
+                    new AnnotatedNode(instantiation.eContainer as Reactor),
+                    new AnnotatedNode(instantiation.reactorClass))
+            }
         }
-        this.instantiationGraph.detectCycles()
+        this.instantiationGraph.detectCycles()    
     }
 
     /**
