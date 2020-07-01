@@ -10,7 +10,7 @@ reactor DelayPointer(delay:time(100 msec)) {
         schedule_token(a, self->delay, in->token);
     =}
     reaction(a) -> out {=
-        set_token(out, a_token);
+        set_token(out, a->token);
     =}
 }
 reactor Source {

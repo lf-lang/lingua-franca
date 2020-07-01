@@ -8,7 +8,7 @@ reactor DelayPointer(delay:time(100 msec)) {
     reaction(a) -> out {=
         // Using set_token delegates responsibility for
         // freeing the allocated memory downstream.
-        set_token(out, a_token);
+        set_token(out, a->token);
     =}
     reaction(in) -> a {=
         // Schedule the actual token from the input rather than

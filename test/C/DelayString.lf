@@ -6,7 +6,7 @@ reactor Delay(delay:time(100 msec)) {
     output out:string;
     logical action a:string;
     reaction(a) -> out {=
-        set(out, a_value);
+        set(out, a->value);
     =}
     reaction(in) -> a {=
         // The following copies the char*, not the string.

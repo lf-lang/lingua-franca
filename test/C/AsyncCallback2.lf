@@ -31,7 +31,10 @@ main reactor AsyncCallback2 {
             struct timespec sleep_time = {(time_t) 0, (long)10000000};
             struct timespec remaining_time;
             nanosleep(&sleep_time, &remaining_time);
-            callback((trigger_t*)a);
+            // a is actually a pointer to the action struct on the self struct.
+            // But the first item in that struct is a pointer to the trigger_t
+            // object. The following song and dance gets that pointer.
+            callback(*(trigger_t**)a);
             return NULL;
         }
         pthread_t threadId;

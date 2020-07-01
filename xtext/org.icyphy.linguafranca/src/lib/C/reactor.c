@@ -39,7 +39,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+    // The argument may point to reactor-specific action struct,
+    // but the first element of that struct is a pointer to the trigger_t
+    // for the action, so we can get that point via a cast.
+    trigger_t* trigger = *((trigger_t**)action);
     return __schedule(trigger, extra_delay, token);
 }
 
@@ -47,11 +51,15 @@ handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* tok
  * Variant of schedule_token that creates a token to carry the specified value.
  * See reactor.h for documentation.
  */
-handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+    // The argument may point to reactor-specific action struct,
+    // but the first element of that struct is a pointer to the trigger_t
+    // for the action, so we can get that point via a cast.
+    trigger_t* trigger = *((trigger_t**)action);
     token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
-    return schedule_token(trigger, extra_delay, token);
+    return schedule_token(action, extra_delay, token);
 }
 
 /**
@@ -59,9 +67,13 @@ handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value,
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+    // The argument may point to reactor-specific action struct,
+    // but the first element of that struct is a pointer to the trigger_t
+    // for the action, so we can get that point via a cast.
+    trigger_t* trigger = *((trigger_t**)action);
     if (value == NULL) {
-        return schedule_token(trigger, offset, NULL);
+        return schedule_token(action, offset, NULL);
     }
     if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
@@ -75,7 +87,7 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
     // Initialize token with an array size of length and a reference count of 0.
     token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
     // The schedule function will increment the reference count.
-    return schedule_token(trigger, offset, token);
+    return schedule_token(action, offset, token);
 }
 
 // Advance logical time to the lesser of the specified time or the
