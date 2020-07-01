@@ -136,11 +136,12 @@ do { \
  * @param length The length of the array to send.
  * @see token_t
  */
-#define set_array(out, value, length) \
+#define set_array(out, val, element_size, length) \
 do { \
-    out ## _is_present = true; \
-    __initialize_token(self->__ ## out, value, self->__ ## out->element_size, length, self->__ ## out ## _num_destinations); \
-    self->__ ## out ## _is_present = true; \
+    out->is_present = true; \
+    token_t* token = __initialize_token(out->token, val, element_size, length, out->num_destinations); \
+    out->token = token; \
+    out->value = token->value; \
 } while(0)
 
 /**
@@ -217,7 +218,7 @@ do { \
  */
 #define set_present(out) \
 do { \
-    out ->is_present = true; \
+    out->is_present = true; \
 } while(0)
 
 /**
