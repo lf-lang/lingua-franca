@@ -37,7 +37,7 @@ class MemorizingExpandCollapseAction extends AbstractAction {
     public static val SynthesisOption MEMORIZE_EXPANSION_STATES = SynthesisOption.createCheckOption("Remember Collapsed/Expanded Reactors", true)
     
     /** Memory-leak-free cache of expansion states */
-    public static final WeakHashMap<EObject, Boolean> EXPANSION_STATES = new WeakHashMap()
+    static final WeakHashMap<EObject, Boolean> EXPANSION_STATES = new WeakHashMap()
     
     /**
      * Sets the expansion state of a node and saves it for future synthesis.
