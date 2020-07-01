@@ -3279,6 +3279,13 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')
+        } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
+            // Non-mutable, multiport, primitive type.
+            pr(builder, '''
+                «structType»** «input.name» = self->__«input.name»;
+            ''')
+        } else {
+            throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
         }
         // Set the _width variable for all cases. This will be -1
         // for a variable-width multiport, which is not currently supported.
