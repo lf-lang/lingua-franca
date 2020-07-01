@@ -705,19 +705,24 @@ void schedule_output_reactions(reaction_t* reaction) {
  * Schedule an action to occur with the specified value and time offset
  * with no payload (no value conveyed).
  * See schedule_token(), which this uses, for details.
- * @param trigger Pointer to a trigger object (typically an action on a self struct).
+ * @param action Pointer to an action on the self struct.
  * @param offset The time offset over and above that in the action.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule(trigger_t* trigger, interval_t offset) {
-    return schedule_token(trigger, offset, NULL);
+handle_t schedule(void* action, interval_t offset) {
+    return schedule_token(action, offset, NULL);
 }
 
 /**
  * Variant of schedule_value when the value is an integer.
  * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
  */
-handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
+handle_t schedule_int(void* action, interval_t extra_delay, int value) {
+    // The argument may point to reactor-specific action struct,
+    // but the first element of that struct is a pointer to the trigger_t
+    // for the action, so we can get that point via a cast.
+    trigger_t* trigger = *((trigger_t**)action);
     // NOTE: This doesn't acquire the mutex lock in the multithreaded version
     // until schedule_value is called. This should be OK because the element_size
     // does not change dynamically.
@@ -727,7 +732,7 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
     }
     int* container = (int*)malloc(sizeof(int));
     *container = value;
-    return schedule_value(trigger, extra_delay, container, 1);
+    return schedule_value(action, extra_delay, container, 1);
 }
 
 /**

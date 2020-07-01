@@ -11,7 +11,7 @@ main reactor AsyncCallback {
 	
 	preamble {= 
 		#include <pthread.h>
-		void callback(trigger_t* a) {
+		void callback(void* a) {
 		    // Schedule twice in rapid succession.
 		    // The second value should be dropped because the
 		    // timestamps will not be sufficiently separated.
@@ -25,7 +25,7 @@ main reactor AsyncCallback {
 			struct timespec sleep_time = {(time_t) 0, (long)100000000};
 			struct timespec remaining_time;
 			nanosleep(&sleep_time, &remaining_time);
-			callback((trigger_t*)a);
+			callback(a);
 			return NULL;
 		}
 		pthread_t threadId;
@@ -50,8 +50,8 @@ main reactor AsyncCallback {
 		    printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
 		    exit(1);
 		}
-		if (a_value != 0) {
-			printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", a_value);
+		if (a->value != 0) {
+			printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", a->value);
 			exit(2);
 		}
         if (self->toggle) {

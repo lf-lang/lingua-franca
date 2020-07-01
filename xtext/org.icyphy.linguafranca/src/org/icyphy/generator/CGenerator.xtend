@@ -68,21 +68,43 @@ import org.icyphy.linguaFranca.Variable
 import static extension org.icyphy.ASTUtils.*
 
 /** 
- * Generator for C target.
+ * Generator for C target. This class generates C code definining each reactor
+ * class given in the input .lf file and imported .lf files. The generated code
+ * has the following components:
+ * 
+ * * A typedef for inputs, outputs, and actions of each reactor class. These
+ *   define the types of the variables that reactions use to access inputs and
+ *   action values and to set output values.
+ * 
+ * * A typedef for a "self" struct for each reactor class. One instance of this
+ *   struct will be created for each reactor instance. See below for details.
+ * 
+ * * A function definition for each reaction in each reactor class. These
+ *   functions take an instance of the self struct as an argument.
+ * 
+ * * A constructor function for each reactor class. This is used to create
+ *   a new instance of the reactor.
+ * 
+ * After these, the main generated function is `__initialize_trigger_objects()`.
+ * This function creates the instances of reactors (using their constructors)
+ * and makes connections between them.
+ * 
+ * A few other smaller functions are also generated.
  * 
  * ## Self Struct
  * 
- * For each reactor class, this generator defines a "self" struct with fields
- * for each of the following:
+ * The "self" struct has fields for each of the following:
  * 
  * * parameter: the field name and type match the parameter.
  * * state: the field name and type match the state.
+ * * action: the field name prepends the action name with "__".
+ *   A second field for the action is also created to house the trigger_t object.
+ *   That second field prepends the action name with "___".
  * * output: the field name prepends the output name with "__".
- * * output present: boolean indicating whether the output is present.
- * * output number of destinations: integer indicating how many destinations there are (for reference counting).
- * * input: a pointer to the source value of this input (in another self struct).
- * * input present: a pointer to the source's boolean indicating whether the value is present.
- * 
+ * * input:  the field name prepends the output name with "__".
+ *   A second field for the input is also created to house the trigger_t object.
+ *   That second field prepends the input name with "___".
+ *
  * If, in addition, the reactor contains other reactors and reacts to their outputs,
  * then there will be a struct within the self struct for each such contained reactor.
  * The name of that self struct will be the name of the contained reactor prepended with "__".
@@ -90,7 +112,8 @@ import static extension org.icyphy.ASTUtils.*
  * that are read together with pointers to booleans indicating whether those outputs are present.
  * 
  * If, in addition, the reactor has a reaction to shutdown, then there will be a pointer to
- * trigger_t object (see reactor.h) for the shutdown event.
+ * trigger_t object (see reactor.h) for the shutdown event and an action struct named
+ * __shutdown on the self struct.
  * 
  * ## Reaction Functions
  * 
@@ -100,89 +123,92 @@ import static extension org.icyphy.ASTUtils.*
  * before that C code, the generator inserts a few lines of code that extract from the
  * self struct the variables that that code has declared it will use. For example, if
  * the reaction declares that it is triggered by or uses an input named "x" of type
- * int, the function will contain code like this:
+ * int, the function will contain a line like this:
  * ```
- *     bool x_is_present = *(self->__x_is_present);
- *     int x;
- *     if (x_is_present) {
- *         x = *(self->__x);
- *     }
+ *     e_x_t* x = self->__x;
  * ```
+ * where `r` is the full name of the reactor class and the struct type `r_x_t`
+ * will be defined like this:
+ * ```
+ *     typedef struct {
+ *         int value;
+ *         bool is_present;
+ *         int num_destinations;
+ *     } r_x_t;
+ * ```
+ * The above assumes the type of `x` is `int`.
  * If the programmer fails to declare that it uses x, then the absence of the
- * above code will trigger a compile error when the verbatim code attempts to read x.
- * 
- * If, in addition, the reactor has a reaction to shutdown, then there will be a pointer to
- * trigger_t object (see reactor.h) for the shutdown event. This will be used to define the
- * following variables in the reaction function:
- * 
- * * shutdown_is_present: A boolean indicating whether a shutdown is in progress.
- * * shutdown_has_value: A boolean indicating whether the shutdown action has a value.
- * * shutdown_token: Pointer to the token_t object containing the shutdown value, if any.
+ * above code will trigger a compile error when the verbatim code attempts to read `x`.
  *
  * ## Constructor
  * 
  * For each reactor class, this generator will create a constructor function named
- * new_R, where R is the reactor class name. This function will malloc and return
+ * `new_r`, where `r` is the reactor class name. This function will malloc and return
  * a pointer to an instance of the "self" struct.  This struct initially represents
  * an unconnected reactor. To establish connections between reactors, additional
  * information needs to be inserted (see below). The self struct is made visible
  * to the body of a reaction as a variable named "self".  The self struct contains the
  * following:
  * 
- * * Parameters: For each parameter p of the reactor, there will be a field p
+ * * Parameters: For each parameter `p` of the reactor, there will be a field `p`
  *   with the type and value of the parameter. So C code in the body of a reaction
- *   can access parameter values as self->p.
+ *   can access parameter values as `self->p`.
  * 
- * * State variables: For each state variable s of the reactor, there will be a field s
+ * * State variables: For each state variable `s` of the reactor, there will be a field `s`
  *   with the type and value of the state variable. So C code in the body of a reaction
- *   can access state variables as as self->s.
+ *   can access state variables as as `self->s`.
  * 
  * The self struct also contains various fields that the user is not intended to
  * use. The names of these fields begin with at least two underscores. They are:
  * 
- * * Outputs: For each output named "out", there will be a field "__out" that is
+ * * Outputs: For each output named `out`, there will be a field `__out` that is
  *   a struct containing a value field whose type matches that of the output.
- *   The output value is stored here. That struct also has a field "is_present"
+ *   The output value is stored here. That struct also has a field `is_present`
  *   that is a boolean indicating whether the output has been set.
  *   This field is reset to false at the start of every time
- *   step. There is also a field "num_destinations" whose value matches the
+ *   step. There is also a field `num_destinations` whose value matches the
  *   number of downstream reactions that use this variable. This field must be
  *   set when connections are made or changed. It is used to initialize
  *   reference counts for dynamically allocated message payloads.
  * 
- * * Inputs: For each input named "in" of type T, there is a field named "__in"
+ * * Inputs: For each input named `in` of type T, there is a field named `__in`
  *   that is a pointer struct with a value field of type T. The struct pointed
- *   to also has an "is_present" field of type bool that indicates whether the
+ *   to also has an `is_present` field of type bool that indicates whether the
  *   input is present.
  * 
  * * Outputs of contained reactors: If a reactor reacts to outputs of a
- *   contained reactor R, then the self struct will contain a nested struct
- *   named "__R" that has fields pointing to those outputs. For example,
- *   if R has an output "out" of type T, then there will be field in __R
- *   named "__out" that points to a struct containing a value field
- *   of type T and a field named "is_present" of type bool.
+ *   contained reactor `r`, then the self struct will contain a nested struct
+ *   named `__r` that has fields pointing to those outputs. For example,
+ *   if `r` has an output `out` of type T, then there will be field in `__r`
+ *   named `out` that points to a struct containing a value field
+ *   of type T and a field named `is_present` of type bool.
  * 
  * * Inputs of contained reactors: If a reactor sends to inputs of a
- *   contained reactor R, then the self struct will contain a nested struct
- *   named "__R" that has fields for storing the values provided to those
- *   inputs. For example, if R has an input "in" of type T, then there will
- *   be field in __R named "in" that is a struct with a value field
- *   of type T and a field named "is_present" of type bool.
+ *   contained reactor `r`, then the self struct will contain a nested struct
+ *   named `__r` that has fields for storing the values provided to those
+ *   inputs. For example, if R has an input `in` of type T, then there will
+ *   be field in __R named `in` that is a struct with a value field
+ *   of type T and a field named `is_present` of type bool.
  * 
  * * Actions: If the reactor has an action a (logical or physical), then there
- *   will be a field in the self struct named "__a" of type trigger_t.
+ *   will be a field in the self struct named `__a` and another named `___a`.
+ *   The type of the first is specific to the action and contains a `value`
+ *   field with the type and value of the action (if it has a value). That
+ *   struct also has a `has_value` field, an `is_present` field, and a
+ *   `token` field (which is NULL if the action carries no value).
+ *   The `___a` field is of type trigger_t.
  *   That struct contains various things, including an array of reactions
  *   sensitive to this trigger and a token_t struct containing the value of
  *   the action, if it has a value.  See reactor.h in the C library for
  *   details.
  * 
  * * Reactions: Each reaction will have several fields in the self struct.
- *   Each of these has a name that begins with "___reaction_i", where i is
+ *   Each of these has a name that begins with `___reaction_i`, where i is
  *   the number of the reaction, starting with 0. The fields are:
  *   * ___reaction_i: The struct that is put onto the reaction queue to
  *     execute the reaction (see reactor.h in the C library).
  *   * ___reaction_i_outputs_are_present: An array of pointers to the
- *     __out_is_present fields of each output "out" that may be set by
+ *     __out_is_present fields of each output `out` that may be set by
  *     this reaction. This array also includes pointers to the _is_present
  *     fields of inputs of contained reactors to which this reaction writes.
  *     This array is set up by the constructor.
@@ -203,18 +229,18 @@ import static extension org.icyphy.ASTUtils.*
  *
  * * Triggers: For each Timer, Action, Input, and Output of a contained
  *   reactor that triggers reactions, there will be a trigger_t struct
- *   on the self struct with name "___t", where t is the name of the trigger.
+ *   on the self struct with name `___t`, where t is the name of the trigger.
  * 
  * ## Connections Between Reactors
  * 
  * Establishing connections between reactors involves two steps.
  * First, each destination (e.g. an input port) must have pointers to
  * the source (the output port). As explained above, for an input named
- * "in", the field "__in" is a pointer to the output data being read.
- * In addition, "__in_is_present" is a pointer to the corresponding
- * out_is_present field of the output reactor's self struct.
+ * `in`, the field `__in->value` is a pointer to the output data being read.
+ * In addition, `__in->is_present` is a pointer to the corresponding
+ * `out->is_present` field of the output reactor's self struct.
  *  
- * In addition reaction_i struct on the self struct has a triggers
+ * In addition, the `reaction_i` struct on the self struct has a `triggers`
  * field that records all the trigger_t structs for ports and reactions
  * that are triggered by the i-th reaction. The triggers field is
  * an array of arrays of pointers to trigger_t structs.
@@ -258,7 +284,6 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author{Chris Gill, <cdgill@wustl.edu>}
  * @author {Christian Menard <christian.menard@tu-dresden.de>
  */
 class CGenerator extends GeneratorBase {
@@ -297,7 +322,7 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to execute at the start of a time step.
     var startTimeStep = new StringBuilder()
     
-    /** Count of the number of _is_present fields of the self struct that
+    /** Count of the number of is_present fields of the self struct that
      *  need to be reinitialized in __start_time_step().
      */
     var startTimeStepIsPresentCount = 0
@@ -1077,6 +1102,21 @@ class CGenerator extends GeneratorBase {
                 } «variableStructType(output, reactor)»;
             ''')
         }
+        // Finally, handle actions.
+        // The very first item on this struct needs to be
+        // a trigger_t* because the struct will be cast to (trigger_t*)
+        // by the schedule() functions to get to the trigger.
+        for (action : reactor.allActions) {
+            pr(action, code, '''
+                typedef struct {
+                    trigger_t* trigger;
+                    «action.valueDeclaration»
+                    bool is_present;
+                    bool has_value;
+                    token_t* token;
+                } «variableStructType(action, reactor)»;
+            ''')
+        }
     }
 
     /**
@@ -1086,6 +1126,10 @@ class CGenerator extends GeneratorBase {
      * ```
      *     int value[10];
      * ```
+     * There will be an array of size 4 of structs, each containing this value 
+     * array.
+     * @param port The port.
+     * @return A string providing the value field of the port struct.
      */
     protected def valueDeclaration(Port port) {
         if (port.type === null) {
@@ -1097,7 +1141,7 @@ class CGenerator extends GeneratorBase {
         // will be a separate field pointing to the token.
         // val portType = lfTypeToTokenType(port.inferredType)
         val portType = port.inferredType.targetType
-        // If the input type has the form type[number], then treat it specially
+        // If the port type has the form type[number], then treat it specially
         // to get a valid C type.
         val matcher = arrayPatternFixed.matcher(portType)
         if (matcher.find()) {
@@ -1109,6 +1153,42 @@ class CGenerator extends GeneratorBase {
             return '''«matcher.group(1)» value«matcher.group(2)»;''';
         } else {
             return '''«portType» value;'''
+        }
+    }
+
+    /**
+     * For the specified action, return a declaration for action struct to
+     * contain the value of the action. An action of
+     * type int[10], for example, will result in this:
+     * ```
+     *     int* value;
+     * ```
+     * This will return an empty string for an action with no type.
+     * @param action The action.
+     * @return A string providing the value field of the action struct.
+     */
+    protected def valueDeclaration(Action action) {
+        if (action.type === null) {
+            return ''
+        }
+        // Do not convert to token_t* using lfTypeToTokenType because there
+        // will be a separate field pointing to the token.
+        val actionType = action.inferredType.targetType
+        // If the input type has the form type[number], then treat it specially
+        // to get a valid C type.
+        val matcher = arrayPatternFixed.matcher(actionType)
+        if (matcher.find()) {
+            // for int[10], the first match is int, the second [10].
+            // The following results in: int* foo;
+            return '''«matcher.group(1)»* value;''';
+        } else {
+            val matcher2 = arrayPatternVariable.matcher(actionType)
+            if (matcher2.find()) {
+                // for int[], the first match is int.
+                // The following results in: int* foo;
+                return '''«matcher2.group(1)»* value;''';
+            }
+            return '''«actionType» value;'''
         }
     }
 
@@ -1137,6 +1217,17 @@ class CGenerator extends GeneratorBase {
             prSourceLineNumber(body, stateVar)
             pr(body, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
         }
+        // Next handle actions.
+        for (action : reactor.allActions) {
+            pr(action, body, '''
+                «variableStructType(action, reactor)» __«action.name»;
+            ''')
+            // Initialize the trigger pointer in the action.
+            pr(action, constructorCode, '''
+                self->__«action.name».trigger = &self->___«action.name»;
+            ''')
+        }
+        
         // Next handle inputs.
         for (input : reactor.allInputs) {
             // If the port is a multiport, create an array.
@@ -1715,7 +1806,9 @@ class CGenerator extends GeneratorBase {
                     generatePortVariablesInReaction(reactionInitialization,
                         fieldsForStructsForContainedReactors, trigger, reactor)
                 } else if (trigger.variable instanceof Action) {
-                    generateActionVariablesInReaction(reactionInitialization, trigger.variable as Action)
+                    generateActionVariablesInReaction(
+                        reactionInitialization, trigger.variable as Action, reactor
+                    )
                     actionsAsTriggers.add(trigger.variable as Action);
                 }
             }
@@ -1732,6 +1825,15 @@ class CGenerator extends GeneratorBase {
         for (VarRef src : reaction.sources ?: emptyList) {
             if (src.variable instanceof Port) {
                 generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src, reactor)
+            } else if (src.variable instanceof Action) {
+                // It's a bit odd to read but not be triggered by an action, but
+                // OK, I guess we allow it.
+                generateActionVariablesInReaction(
+                    reactionInitialization,
+                    src.variable as Action,
+                    reactor
+                )
+                actionsAsTriggers.add(src.variable as Action);
             }
         }
 
@@ -1745,9 +1847,10 @@ class CGenerator extends GeneratorBase {
                 if (effect.variable instanceof Action) {
                     // It is an action, not an output.
                     // If it has already appeared as trigger, do not redefine it.
-                    if (!actionsAsTriggers.contains(effect.variable.name)) {
-                        pr(reactionInitialization,
-                            "trigger_t* " + effect.variable.name + ' = &self->___' + effect.variable.name + ';');
+                    if (!actionsAsTriggers.contains(effect.variable)) {
+                        pr(reactionInitialization, '''
+                            «variableStructType(effect.variable, reactor)»* «effect.variable.name» = &self->__«effect.variable.name»;
+                        ''')
                     }
                 } else {
                     if (effect.variable instanceof Output) {
@@ -2014,6 +2117,14 @@ class CGenerator extends GeneratorBase {
                     startTimeStepIsPresentCount++
                 }
             }
+        }
+        for (action : instance.actions) {
+            pr(startTimeStep, '''
+                // Add action «action.getFullName» to array of is_present fields.
+                __is_present_fields[«startTimeStepIsPresentCount»] 
+                        = &«containerSelfStructName»->__«action.name».is_present;
+            ''')
+            startTimeStepIsPresentCount++
         }
     }
     
@@ -2316,7 +2427,7 @@ class CGenerator extends GeneratorBase {
      *  @param reactor The reactor class.
      *  @return The name of the self struct.
      */
-    def variableStructType(TypedVariable variable, Reactor reactor) {
+    def variableStructType(Variable variable, Reactor reactor) {
         '''«reactor.name.toLowerCase»_«variable.name»_t'''
     }
     
@@ -2740,7 +2851,7 @@ class CGenerator extends GeneratorBase {
             '''
         } else {
             '''
-            set(«outputName», «action.name»_value);
+            set(«outputName», «action.name»->value);
             '''
         }
     }
@@ -2787,14 +2898,14 @@ class CGenerator extends GeneratorBase {
         ''')
         if (isTokenType(type)) {
             result.append('''
-                set_token(«receiveRef», «action.name»_token);
-                «action.name»_token->ref_count++;
+                set_token(«receiveRef», «action.name»->token);
+                «action.name»->token->ref_count++;
             ''')
         } else {
             // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
             // So passing it downstream should be OK.
             result.append('''
-                set(«receiveRef», «action.name»_value);
+                set(«receiveRef», «action.name»->value);
             ''')
         }
         return result.toString
@@ -3172,50 +3283,39 @@ class CGenerator extends GeneratorBase {
     /** Generate action variables for a reaction.
      *  @param builder The string builder into which to write the code.
      *  @param action The action.
+     *  @param reactor The reactor.
      */
-    private def generateActionVariablesInReaction(StringBuilder builder, Action action) {
+    private def generateActionVariablesInReaction(
+        StringBuilder builder,
+        Action action,
+        Reactor reactor
+    ) {
+        val structType = variableStructType(action, reactor)
         // If the action has a type, create variables for accessing the value.
         val type = action.inferredType
         // Pointer to the token_t sent as the payload in the trigger.
         val tokenPointer = '''(self->___«action.name».token)'''
-        // Create the _has_value variable.
-        pr(builder,
-            '''
-            bool «action.name»_is_present = self->___«action.name».is_present;
-            bool «action.name»_has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
-            token_t* «action.name»_token = «tokenPointer»;
-            ''')
-        // Create the _value variable if there is a type.
+        pr(action, builder, '''
+            // Expose the action struct as a local variable whose name matches the action name.
+            «structType»* «action.name» = &self->__«action.name»;
+            // Set the fields of the action struct to match the current trigger.
+            «action.name»->is_present = self->___«action.name».is_present;
+            «action.name»->has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
+            «action.name»->token = «tokenPointer»;
+        ''')
+        // Set the value field only if there is a type.
         if (!type.isUndefined) {
-            if (isTokenType(type)) {
-                // Create the value variable, but initialize it only if the pointer is not null.
-                // NOTE: The token_t objects will get recycled automatically using
-                // this scheme and never freed. The total number of token_t structs created
-                // will equal the maximum number of actions that are simultaneously in
-                // the event queue.
-                
-                var cType = type.targetType
-                pr(builder, '''
-                    «cType» «action.name»_value;
-                    if («action.name»_has_value) {
-                        «action.name»_value = ((«cType»)«tokenPointer»->value);
-                    }
-                    '''
-                )
-            } else {
-                // Create the value variable, but initialize it only if the pointer is not null.
-                // NOTE: The token_t objects will get recycled automatically using
-                // this scheme and never freed. The total number of token_t structs created
-                // will equal the maximum number of actions that are simultaneously in
-                // the event queue.
-                pr(builder, '''
-                    «type.targetType» «action.name»_value;
-                    if («action.name»_has_value) {
-                        «action.name»_value = *((«type.targetType»*)«tokenPointer»->value);
-                    }
-                    '''
-                )
-            }
+            // The value field will either be a copy (for primitive types)
+            // or a pointer (for types ending in *).
+            pr(action, builder, '''
+                if («action.name»->has_value) {
+                    «IF type.isTokenType»
+                        «action.name»->value = («type.targetType»)«tokenPointer»->value;
+                    «ELSE»
+                        «action.name»->value = *(«type.targetType»*)«tokenPointer»->value;
+                    «ENDIF»
+                }
+            ''')
         }
     }
     
@@ -3260,7 +3360,7 @@ class CGenerator extends GeneratorBase {
                 «structType»* «input.name» = self->__«input.name»;
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
-                    «input.name»->value = «input.name»->token->value;
+                    «input.name»->value = («inputType.targetType»)«input.name»->token->value;
                 } else {
                     «input.name»->length = 0;
                 }
@@ -3274,7 +3374,7 @@ class CGenerator extends GeneratorBase {
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
                     «input.name»->token = writable_copy(«input.name»->token);
-                    «input.name»->value = «input.name»->token->value;
+                    «input.name»->value = («inputType.targetType»)«input.name»->token->value;
                 } else {
                     «input.name»->length = 0;
                 }
@@ -3293,62 +3393,6 @@ class CGenerator extends GeneratorBase {
         pr(builder, '''
             int «input.name»_width = «input.multiportWidth»;
         ''')
-        /* FIXME: OLD VERSION:
-        if (input.isMutable) {
-            pr(builder, '''
-                // FIXME: I doubt this is going to work as is with multiports!  
-                // Mutable input, so copy the input struct into a temporary variable.
-                «structType» __tmp_«input.name»«arraySpec» = *(self->__«input.name»);
-                «structType»* «input.name»«arraySpec» = &__tmp_«input.name»;
-            ''')
-        } else {
-            pr(builder, '''
-                «structType»* «input.name»«arraySpec» = self->__«input.name»;
-            ''')
-        }
-        if (input.inferredType.isTokenType) {
-            // Set the length field of the input and copy the token if
-            // necessary for mutable inputs. This has to be done differently
-            // for multiports, which have to iterate.
-            if (arraySpec == '') {
-                pr(builder, '''
-                    if («input.name»->is_present) {
-                        «input.name»->length = «input.name»->token->length;
-                        «IF input.isMutable»
-                            «input.name»->token = writable_copy(«input.name»->token);
-                        «ENDIF»
-                        «input.name»->value = «input.name»->token->value;
-                    } else {
-                        «input.name»->length = 0;
-                    }
-                ''')
-            } else {
-                pr(builder, '''
-                    for (int i = 0; i < «input.multiportWidth»; i++) {
-                        if («input.name»[i]->is_present) {
-                            «input.name»[i]->length = «input.name»[i]->token->length;
-                            «IF input.isMutable»
-                                «input.name»[i]->token = writable_copy(«input.name»[i]->token);
-                            «ENDIF»
-                        } else {
-                            «input.name»[i]->length = 0;
-                        }
-                        «input.name»[i]->value = «input.name»[i]->token->value;
-                    }
-                ''')
-            }
-        }
-        // Generate the name_width variable for a multiport.
-        // FIXME: Here the multiport width is a property of the class definition,
-        // which means it cannot be parameterized. Perhaps the width should be
-        // a field on the self struct.
-        if (arraySpec != '') {
-            pr(builder, '''
-                int «input.name»_width = «input.multiportWidth»;
-            ''')
-        }
-        * 
-        */
     }
     
     /** Generate into the specified string builder the code to
@@ -3413,6 +3457,7 @@ class CGenerator extends GeneratorBase {
                 "Output is required to have a type: " + output.name)
         } else {
             val outputStructType = variableStructType(output, reactor)
+            // FIXME: This is not likely to work for multiports.
             var arraySpec = output.multiportArraySpec
             if (arraySpec != '') arraySpec = '*'
             pr(builder, '''
