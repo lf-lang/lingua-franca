@@ -27,13 +27,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.generator
 
 import java.util.ArrayList
-import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
-import java.util.List
-import java.util.Map
 import java.util.Set
 import org.icyphy.DirectedGraph
 import org.icyphy.linguaFranca.Action
@@ -62,8 +59,6 @@ import static extension org.icyphy.ASTUtils.*
 class ReactorInstance extends NamedInstance<Instantiation> {
 
     int branchCount = 1
-    Map<FederateInstance, List<ReactionInstance>> reactionsByFederate
-        = new HashMap<FederateInstance, List<ReactionInstance>>()
 
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
@@ -435,36 +430,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
-    /** Return a list of ReactionInstance containing every reaction of this
-     *  reactor that should be included in code generated for the specified
-     *  federate. If the reaction is triggered by or sends data to a contained
-     *  reactor that is not in the federate, then that reaction will not be
-     *  included in the returned list.  The returned list is cached for
-     *  efficiency. It is constructed only the first time this method is
-     *  called.
-     *  @param federate The federate or null to include all reactions.
-     */
-    def List<ReactionInstance> reactionsInFederate(FederateInstance federate) {
-        if (federate === null) reactions
-        else {
-            var result = reactionsByFederate.get(federate)
-            if (result !== null) result
-            else {
-                result = new LinkedList<ReactionInstance>()
-                reactionsByFederate.put(federate, result)
-                for (reactionInstance : reactions) {
-                    if (federate.containsReaction(
-                        definition.reactorClass,
-                        reactionInstance.definition
-                    )) {
-                        result.add(reactionInstance)
-                    }
-                }
-                result
-            }
-        }
-    }
-
     /** Return a descriptive string. */
     override toString() {
         "ReactorInstance " + getFullName

@@ -220,7 +220,7 @@ bool __next() {
     }
 
     // Peek at the earliest event in the event queue.
-    event_t* event = pqueue_peek(event_q);
+    event_t* event = (event_t*)pqueue_peek(event_q);
     instant_t next_time = FOREVER;
     if (event != NULL) {
         // There is an event in the event queue.
@@ -259,7 +259,7 @@ bool __next() {
         }
 
         // If the event queue has changed, return to iterate.
-        if (pqueue_peek(event_q) != event) return true;
+        if ((event_t*)pqueue_peek(event_q) != event) return true;
 
         // If the event time was past the stop time, it is now safe to stop execution.
         if (event->time != next_time) {
@@ -328,7 +328,7 @@ bool __next() {
         // If the event queue is no longer empty (e.g. an input message
         // has arrived exactly at the stop time), then return true to
         // iterate again and process that message.
-        event = pqueue_peek(event_q);
+        event = (event_t*)pqueue_peek(event_q);
         if (event != NULL) return true;
 
         // The event queue is still empty, but since keepalive has been
@@ -351,7 +351,7 @@ bool __next() {
         }
         // wait_until successfully waited until next_time.
         // If the event queue is no longer empty, return true to iterate.
-        event = pqueue_peek(event_q);
+        event = (event_t*)pqueue_peek(event_q);
         if (event != NULL) return true;
 
         // Nothing on the event queue and we have reached the stop time.
@@ -393,7 +393,7 @@ void stop() {
  */
 bool is_blocked(reaction_t* reaction) {
     for (int i = 1; i < executing_q->size; i++) {
-        reaction_t* running = executing_q->d[i];
+        reaction_t* running = (reaction_t*) executing_q->d[i];
         if (LEVEL(running->index) < LEVEL(reaction->index)
                 && OVERLAPPING(reaction->chain_id, running->chain_id)) {
             return true;
@@ -447,7 +447,7 @@ reaction_t* first_ready_reaction() {
     reaction_t* b;
 
     // Find a reaction that is ready to execute.
-    while ((r = pqueue_pop(reaction_q)) != NULL) {
+    while ((r = (reaction_t*)pqueue_pop(reaction_q)) != NULL) {
         if (is_blocked(r)) {
             // Move blocked reaction onto another queue.
             // NOTE: This could also just be be a FIFO.
@@ -461,12 +461,12 @@ reaction_t* first_ready_reaction() {
     // This will swap the two queues if the transfer_q has
     // gotten larger than the reaction_q.
     if (pqueue_size(reaction_q) >= pqueue_size(transfer_q)) {
-        while ((b = pqueue_pop(transfer_q)) != NULL) {
+        while ((b = (reaction_t*)pqueue_pop(transfer_q)) != NULL) {
             pqueue_insert(reaction_q, b);
         }
     } else {
         pqueue_t* tmp;
-        while ((b = pqueue_pop(reaction_q)) != NULL) {
+        while ((b = (reaction_t*)pqueue_pop(reaction_q)) != NULL) {
             pqueue_insert(transfer_q, b);
         }
         tmp = reaction_q;
@@ -648,7 +648,7 @@ pthread_t* __thread_ids;
 // Start threads in the thread pool.
 void start_threads() {
     // printf("DEBUG: Starting %d worker threads.\n", number_of_threads);
-    __thread_ids = malloc(number_of_threads * sizeof(pthread_t));
+    __thread_ids = (pthread_t*)malloc(number_of_threads * sizeof(pthread_t));
     number_of_idle_threads = number_of_threads;
     for (int i = 0; i < number_of_threads; i++) {
         pthread_create(&__thread_ids[i], NULL, worker, NULL);
@@ -664,7 +664,7 @@ void __execute_reactions_during_wrapup() {
     // NOTE: deadlines on these reactions are ignored.
     // Is that the right thing to do?
     while (pqueue_size(reaction_q) > 0) {
-        reaction_t* reaction = pqueue_pop(reaction_q);
+        reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
 
         // Invoke the reaction function.
         pthread_mutex_unlock(&mutex);
@@ -697,7 +697,7 @@ void wrapup() {
     pthread_mutex_lock(&mutex);
     // Copy the current time so that we don't advance time even if __next() does.
     instant_t wrapup_time = current_time;
-    event_t* event = pqueue_peek(event_q);
+    event_t* event = (event_t*)pqueue_peek(event_q);
     while (event != NULL && event->time == wrapup_time) {
         __next(); // Ignore return value. We already know we need to terminate.
         __execute_reactions_during_wrapup();
