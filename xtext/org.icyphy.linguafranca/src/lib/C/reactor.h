@@ -542,7 +542,7 @@ token_t* create_token(size_t element_size);
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_int(trigger_t* action, interval_t extra_delay, int value);
+handle_t schedule_int(void* action, interval_t extra_delay, int value);
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -594,7 +594,7 @@ handle_t schedule_int(trigger_t* action, interval_t extra_delay, int value);
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_token(trigger_t* action, interval_t extra_delay, token_t* token);
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -608,7 +608,7 @@ handle_t schedule_token(trigger_t* action, interval_t extra_delay, token_t* toke
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_value(trigger_t* action, interval_t extra_delay, void* value, int length);
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length);
 
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -617,13 +617,13 @@ handle_t schedule_value(trigger_t* action, interval_t extra_delay, void* value, 
  * that its size is given in the trigger's token object's element_size field
  * multiplied by the specified length.
  * See schedule_token(), which this uses, for details.
- * @param trigger Pointer to a trigger object (typically an action on a self struct).
+ * @param action Pointer to an action on a self struct.
  * @param offset The time offset over and above that in the action.
  * @param value A pointer to the value to copy.
  * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length);
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
  * For a federated execution, broadcast stop() to all federates.
