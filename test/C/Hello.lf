@@ -25,7 +25,7 @@ reactor Reschedule(period:time(2 secs), message:string("Hello C")) {
 		(self->count)++;
 		printf("***** action %d at time %lld\n", self->count, get_logical_time());
 		// Check the a_has_value variable.
-		if (a_has_value) {
+		if (a->has_value) {
 		    printf("FAILURE: Expected a_has_value to be false, but it was true.\n");
 		    exit(2);
 		}

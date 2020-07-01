@@ -7,7 +7,7 @@ reactor Source {
         schedule_int(a, MSEC(200), 42);
     =}
     reaction(a) -> out {=
-        set_token(out, a_token);
+        set_token(out, a->token);
     =}
 }
 // expected parameter is for testing.
