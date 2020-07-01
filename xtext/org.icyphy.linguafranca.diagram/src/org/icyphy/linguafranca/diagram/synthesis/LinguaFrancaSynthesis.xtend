@@ -59,6 +59,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction
 import org.icyphy.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction
+import org.icyphy.linguafranca.diagram.synthesis.action.FilterCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
@@ -85,6 +86,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension LinguaFrancaShapeExtensions
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
 	@Inject extension LinguaFrancaSynthesisCycleDetection
+	@Inject extension FilterCycleAction
 	
 	// -------------------------------------------------------------------------
 
@@ -100,6 +102,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val TEXT_ERROR_CONTAINS_CYCLE = "Reactor contains cyclic dependencies!"
 	public static val TEXT_ERROR_CYCLE_DETECTION = "Dependency cycle detection failed.\nCould not detect dependency cycles due to unexpected graph structure."
 	public static val TEXT_ERROR_CYCLE_BTN_SHOW = "Show Cycle"
+	public static val TEXT_ERROR_CYCLE_BTN_FILTER = "Filter Cycle"
+	public static val TEXT_ERROR_CYCLE_BTN_UNFILTER = "Remove Cycle Filter"
 	public static val TEXT_NO_MAIN_REACTOR = "No Main Reactor"
 	public static val TEXT_REACTOR_NULL = "Reactor is null"
 	public static val TEXT_HIDE_ACTION = "[Hide]"
@@ -123,7 +127,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ReactorParameterDisplayModes.values, ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE)
 	
-	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Dependencies", false).setCategory(EXPERIMENTAL)
+	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(EXPERIMENTAL)
 	public static val SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency cycle detection", false).setCategory(EXPERIMENTAL)
 	public static val SynthesisOption SHOW_COMMENTS = SynthesisOption.createCheckOption("Comments", false).setCategory(EXPERIMENTAL)
 	
@@ -400,7 +404,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		try {
 			val result = node.detectAndHighlightCycles[
 				if (it instanceof KNode) {
-					it.data.filter(typeof(KRendering)).filter[getProperty(KlighdProperties.COLLAPSED_RENDERING)].forEach[errorStyle()]
+					val renderings = it.data.filter(typeof(KRendering)).toList
+					if (renderings.size === 1) {
+						renderings.head.errorStyle()
+					} else {
+						renderings.filter[getProperty(KlighdProperties.COLLAPSED_RENDERING)].forEach[errorStyle()]
+					}
 				} else if (it instanceof KEdge) {
 					it.data.filter(typeof(KRendering)).forEach[errorStyle()]
         			// TODO initiallyHide does not work with incremental (https://github.com/kieler/KLighD/issues/37)
@@ -417,14 +426,33 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 err.KContainerRendering.addRectangle() => [ // Add to existing figure
                 	setGridPlacementData().from(LEFT, 3, 0, TOP, -1, 0).to(RIGHT, 3, 0, BOTTOM, 3, 0)
             		noSelectionStyle()
-            		addSingleClickAction(ShowCycleAction.ID)
+            		invisible = true
+            		gridPlacement = 2
             		
-            		addText(TEXT_ERROR_CYCLE_BTN_SHOW) => [
-            			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
-		            	fontSize = 5
-            			setSurroundingSpace(1, 0)
-            			noSelectionStyle()
-            			addSingleClickAction(ShowCycleAction.ID)
+            		addRectangle() => [
+	                	setGridPlacementData().from(LEFT, 0, 0, TOP, 0, 0).to(RIGHT, 2, 0, BOTTOM, 0, 0)
+	            		noSelectionStyle()
+	            		addSingleClickAction(ShowCycleAction.ID)
+	            		addText(TEXT_ERROR_CYCLE_BTN_SHOW) => [
+	            			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
+			            	fontSize = 5
+	            			setSurroundingSpace(1, 0)
+	            			noSelectionStyle()
+	            			addSingleClickAction(ShowCycleAction.ID)
+	            		]
+            		]
+            		addRectangle() => [
+	                	setGridPlacementData().from(LEFT, 0, 0, TOP, 0, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
+	            		noSelectionStyle()
+	            		addSingleClickAction(FilterCycleAction.ID)
+	            		addText(node.isCycleFiltered() ? TEXT_ERROR_CYCLE_BTN_UNFILTER : TEXT_ERROR_CYCLE_BTN_FILTER) => [
+	            			styles += err.KContainerRendering.children.head.styles.map[copy] // Copy text style
+			            	fontSize = 5
+	            			setSurroundingSpace(1, 0)
+	            			noSelectionStyle()
+	            			addSingleClickAction(FilterCycleAction.ID)
+	            			markCycleFilterText(err)
+	            		]
             		]
                 ]
                 if (result.recursion) {
@@ -434,11 +462,20 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 	]
                 }
                 
+                // if user interactively requested a filtered diagram keep it filtered during updates
+                if (node.isCycleFiltered()) {
+                	node.filterCycle()
+                }
+                
                 return err
-            } else if (result.recursion) {
-            	return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
+            } else {
+            	node.resetCycleFiltering()
+            	if (result.recursion) {
+            		return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
+            	}
             }
         } catch(Exception e) {
+        	node.resetCycleFiltering()
         	e.printStackTrace()
         	return node.addErrorComment(TEXT_ERROR_CYCLE_DETECTION)
         }
@@ -784,7 +821,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				foreground = Colors.CHOCOLATE_1
 				boldLineSelectionStyle()
 				//addFixedTailArrowDecorator() // Fix for bug: https://github.com/kieler/KLighD/issues/38
-				//addHeadArrowDecorator()
+				addHeadArrowDecorator()
 			]
 		]
 	}

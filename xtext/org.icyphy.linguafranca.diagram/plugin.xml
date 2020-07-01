@@ -26,6 +26,10 @@
             class="org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction"
             id="org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction">
       </action>
+      <action
+            class="org.icyphy.linguafranca.diagram.synthesis.action.FilterCycleAction"
+            id="org.icyphy.linguafranca.diagram.synthesis.action.FilterCycleAction">
+      </action>
       <styleModifier
             class="org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjustment"
             id="org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjustment">
