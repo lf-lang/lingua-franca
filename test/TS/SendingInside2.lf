@@ -3,6 +3,10 @@ reactor Printer {
     input x:number;
     reaction(x) {=
         console.log("Inside reactor received:" + x );
+        if (x != 1) {
+            console.log("ERROR: Expected 1.");
+            util.failure();
+        }
     =}
 }
 main reactor SendingInside2 {
