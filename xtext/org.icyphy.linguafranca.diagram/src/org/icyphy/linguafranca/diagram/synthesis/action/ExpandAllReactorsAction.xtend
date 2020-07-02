@@ -19,7 +19,7 @@ class ExpandAllReactorsAction extends AbstractAction {
     override execute(ActionContext context) {
         val vc = context.viewContext
         for (node : vc.viewModel.eAllContentsOfType(KNode).filter[sourceIsReactor].toIterable) {
-            node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE), vc.viewer, true)
+            node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)?.crumb, vc.viewer, true)
         }
         return IAction.ActionResult.createResult(true);
     }

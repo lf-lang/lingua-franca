@@ -27,7 +27,7 @@ class FilterCycleAction extends AbstractAction {
         
         val all = vc.getOptionValue(LinguaFrancaSynthesis.SHOW_ALL_REACTORS)
         val nodes = if (all instanceof Boolean && all as Boolean) {
-        	vc.viewModel.children.head.children
+        	vc.viewModel.children.map[children].flatten.toList
         } else {
         	vc.viewModel.children
         }

@@ -20,7 +20,7 @@ class CollapseAllReactorsAction extends AbstractAction {
         val vc = context.viewContext
         for (node : vc.viewModel.eAllContentsOfType(KNode).filter[sourceIsReactor].toIterable) {
         	if (!node.sourceAsReactor().main) { // Do not collapse main reactor
-            	node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE), vc.viewer, false)
+            	node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)?.crumb, vc.viewer, false)
             }
         }
         return IAction.ActionResult.createResult(true);
