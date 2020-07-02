@@ -126,12 +126,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE)
+	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ReactorParameterDisplayModes.values, ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE)
 	
-	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(EXPERIMENTAL)
 	public static val SynthesisOption SHOW_COMMENTS = SynthesisOption.createCheckOption("Comments", false).setCategory(EXPERIMENTAL)
 	
     /** Synthesis actions */
@@ -147,11 +147,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
 			SHOW_REACTION_CODE,
+			SHOW_REACTION_ORDER_EDGES,
 			SHOW_REACTOR_HOST,
 			SHOW_INSTANCE_NAMES,
 			REACTOR_PARAMETER_MODE,
 			REACTOR_PARAMETER_TABLE_COLS,
-			SHOW_REACTION_ORDER_EDGES,
 			SHOW_COMMENTS
 		]
 	}
