@@ -22,7 +22,7 @@
 //$ ./a.out
 
 target C {
-    compile: "gcc src-gen/HelloProtocolBuffers.c src-gen/hello_string.pb-c.c -l protobuf-c -o bin/HelloProtocolBuffers"
+    flags: "src-gen/hello_string.pb-c.c -l protobuf-c"
 };
 import hello_string.proto;
 main reactor HelloProtocolBuffers {

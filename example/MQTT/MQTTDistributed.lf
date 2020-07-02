@@ -67,12 +67,7 @@ target C {
     threads: 1, // Must use threaded implementation so schedule is thread safe.
     flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c",
     timeout: 10 secs,
-    keepalive: true, // FIXME: This should be automatic with a physical action.
-    federates: {
-        RTI: {host: "localhost", port: 15044},
-        Publisher: {reactors: [msg, pub]},
-        Subscriber: {reactors: [sub, dsp]}
-    }
+    keepalive: true // FIXME: This should be automatic with a physical action.
 };
 
 import MQTTPublisher.lf;
@@ -100,10 +95,10 @@ reactor MessageGenerator(root:string("")) {
         // Dynamically allocate memory for the output.
         set_new_array(message, length);
         // Populate the output string and increment the count.
-        snprintf(message, length, "%s %d", self->root, self->count++);
+        snprintf(message->value, length, "%s %d", self->root, self->count++);
         printf("MessageGenerator: At time %lld, publish message: %s\n",
             get_elapsed_logical_time(),
-            message
+            message->value
         );
     =}
 }
@@ -118,12 +113,12 @@ reactor PrintMessage {
     reaction(message) {=
         printf("PrintMessage: At (elapsed) logical time %lld, subscriber receives: %s\n",
             get_elapsed_logical_time(),
-            message
+            message->value
         );
     =}
 }
 
-main reactor MQTTTest {
+federated reactor MQTTTest {
     pub = new MQTTPublisher(
         topic = "my/test",
         address = "tcp://localhost:1883",
