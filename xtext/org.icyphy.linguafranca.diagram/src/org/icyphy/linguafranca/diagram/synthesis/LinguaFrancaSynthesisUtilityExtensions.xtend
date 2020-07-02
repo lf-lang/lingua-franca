@@ -1,7 +1,9 @@
 package org.icyphy.linguafranca.diagram.synthesis
 
+import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
+import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.TerminalRule
@@ -186,6 +188,14 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 			}
 		}
 		return null
+	}
+	
+	def Object sourceElement(KGraphElement elem) {
+		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)
+	}
+	
+	def boolean sourceIsReactor(KNode node) {
+		return node.sourceElement() instanceof Reactor
 	}
 
 }

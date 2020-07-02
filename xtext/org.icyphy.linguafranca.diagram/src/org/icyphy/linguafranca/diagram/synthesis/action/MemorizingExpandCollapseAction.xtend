@@ -74,7 +74,7 @@ class MemorizingExpandCollapseAction extends AbstractAction {
         val source = node.sourceElement()
         
         if (source instanceof EObject) {
-        	node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)?:source, v, !v.isExpanded(node)) // toggle
+        	node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)?.crumb?:source, v, !v.isExpanded(node)) // toggle
         }
         
         return IAction.ActionResult.createResult(true);
