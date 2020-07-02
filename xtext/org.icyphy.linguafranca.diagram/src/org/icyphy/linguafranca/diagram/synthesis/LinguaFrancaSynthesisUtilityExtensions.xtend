@@ -204,17 +204,20 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 				while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
 					val rule = node.grammarElement
 					if (rule instanceof TerminalRule) {
-						if ("ML_COMMENT".equals(rule.name)) {
-							if (node.text.trim().startsWith("/**")) { // Only JavaDoc
-								var line = node.text.split("\n").filterNull.findFirst[contains(key)]
-								if (line !== null) {
-									var value = line.substring(line.indexOf(key) + key.length).trim()
-									if (value.contains("*")) { // in case of single line JavaDoc (e.g. /** @anno 1503 */)
-										value = value.substring(0, value.indexOf("*")).trim()
-									}
-									return value
-								}
+						var String line;
+						if ("SL_COMMENT".equals(rule.name)) {
+							if (node.text.contains(key)) {
+								line = node.text
 							}
+						} else if ("ML_COMMENT".equals(rule.name)) {
+							line = node.text.split("\n").filterNull.findFirst[contains(key)]
+						}
+						if (line !== null) {
+							var value = line.substring(line.indexOf(key) + key.length).trim()
+							if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
+								value = value.substring(0, value.indexOf("*")).trim()
+							}
+							return value
 						}
 					}
 					node = node.nextSibling
