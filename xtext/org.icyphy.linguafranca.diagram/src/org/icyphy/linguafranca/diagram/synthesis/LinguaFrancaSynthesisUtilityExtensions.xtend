@@ -190,6 +190,40 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 		return null
 	}
 	
+	/**
+	 * Retrieves the annotations value from JavaDoc comments associated with the given model element in the AST.
+	 */
+	def String findAnnotationInComments(EObject object, String key) {
+		if (object.eResource instanceof XtextResource) {
+			val compNode = NodeModelUtils.findActualNodeFor(object)
+			if (compNode !== null) {
+				var node = compNode.firstChild
+				while (node instanceof CompositeNode) {
+					node = node.firstChild
+				}
+				while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
+					val rule = node.grammarElement
+					if (rule instanceof TerminalRule) {
+						if ("ML_COMMENT".equals(rule.name)) {
+							if (node.text.trim().startsWith("/**")) { // Only JavaDoc
+								var line = node.text.split("\n").filterNull.findFirst[contains(key)]
+								if (line !== null) {
+									var value = line.substring(line.indexOf(key) + key.length).trim()
+									if (value.contains("*")) { // in case of single line JavaDoc (e.g. /** @anno 1503 */)
+										value = value.substring(0, value.indexOf("*")).trim()
+									}
+									return value
+								}
+							}
+						}
+					}
+					node = node.nextSibling
+				}
+			}
+		}
+		return null
+	}
+	
 	def Object sourceElement(KGraphElement elem) {
 		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)
 	}

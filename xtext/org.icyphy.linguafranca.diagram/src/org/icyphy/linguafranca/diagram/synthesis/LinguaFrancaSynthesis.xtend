@@ -122,6 +122,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false)
 	public static val SynthesisOption CYCLE_DETECTION = SynthesisOption.createCheckOption("Dependency Cycle Detection", true)
 	
+	public static val SynthesisOption SHOW_USER_LABELS = SynthesisOption.createCheckOption("User Labels (@label in JavaDoc)", true).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
@@ -132,8 +133,6 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ReactorParameterDisplayModes.values, ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE)
 	
-	public static val SynthesisOption SHOW_COMMENTS = SynthesisOption.createCheckOption("Comments", false).setCategory(EXPERIMENTAL)
-	
     /** Synthesis actions */
     public static val DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details")
     public static val DisplayedActionData EXPAND_ALL = DisplayedActionData.create(ExpandAllReactorsAction.ID, "Show all Details")
@@ -143,6 +142,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_ALL_REACTORS,
 			MEMORIZE_EXPANSION_STATES,
 			CYCLE_DETECTION,
+			SHOW_USER_LABELS,
 			SHOW_HYPERLINKS,
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
@@ -151,8 +151,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_REACTOR_HOST,
 			SHOW_INSTANCE_NAMES,
 			REACTOR_PARAMETER_MODE,
-			REACTOR_PARAMETER_TABLE_COLS,
-			SHOW_COMMENTS
+			REACTOR_PARAMETER_TABLE_COLS
 		]
 	}
 	
@@ -929,8 +928,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 	
 	private def Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
-		if (SHOW_COMMENTS.booleanValue) {
-			val commentText = element.findComments()
+		if (SHOW_USER_LABELS.booleanValue) {
+			val commentText = element.findAnnotationInComments("@label")
 			
 			if (!commentText.nullOrEmpty) {
 				val comment = createNode()
