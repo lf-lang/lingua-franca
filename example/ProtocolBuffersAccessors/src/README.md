@@ -1,1 +1,0 @@
-This example demonstrates protocol buffers in C reactors. Instructions are in a comment at the top of src/HelloProtocolBuffers.lf.
