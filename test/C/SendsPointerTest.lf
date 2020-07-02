@@ -15,8 +15,8 @@ reactor SendsPointer  {
 reactor Print(expected:int(42)) {
     input in:int_pointer;
     reaction(in) {=
-        printf("Received: %d\n", *in);
-        if (*in != self->expected) {
+        printf("Received: %d\n", *in->value);
+        if (*in->value != self->expected) {
             printf("ERROR: Expected value to be %d.\n", self->expected);
             exit(1);
         }

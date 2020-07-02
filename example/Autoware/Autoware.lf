@@ -153,14 +153,14 @@ reactor DataFusion(threshold:time(20 msec)) {
 
     // Handle two ports
     reaction(imageobject, LIDARobject) -> both_ports_are_present {=
-        if(imageobject_is_present)
+        if(imageobject->is_present)
         {
-		    self->tmpImageobject = imageobject;
+		    self->tmpImageobject = imageobject->value;
 		    self->tmpImageobjectTag = get_logical_time(); // Store the tag
 		   
 		    instant_t window = self->tmpLIDARobjectTag - get_logical_time();
 	
-		    if(LIDARobject_is_present)
+		    if(LIDARobject->is_present)
 		    {
 			schedule(both_ports_are_present, 0);
 		    }
@@ -179,9 +179,9 @@ reactor DataFusion(threshold:time(20 msec)) {
             }
 	    // printf("Received image object at %llu physical and %llu logical.\n", get_physical_time(), get_logical_time());
         }
-        else if(LIDARobject_is_present)
+        else if(LIDARobject->is_present)
         {
-            self->tmpLIDARobject = LIDARobject;
+            self->tmpLIDARobject = LIDARobject->value;
 	    	self->tmpLIDARobjectTag = get_logical_time(); // Store the tag
             
 	    	instant_t window = self->tmpImageobjectTag - get_logical_time();                                                                                                                                                                       

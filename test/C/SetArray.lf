@@ -1,23 +1,13 @@
+// This tests set_array()
 // This tests the use of the "polymorphic" delay reactor on a struct.
 // It delays by a logical time any pointer datatype.
 target C;
-reactor DelayPointer(delay:time(100 msec)) {
-    mutable input in:void*;
-    output out:void*;
-    logical action a:void*;
-    reaction(in) -> a {=
-        // mutable input guarantees *in will not be freed.
-        schedule_token(a, self->delay, in->token);
-    =}
-    reaction(a) -> out {=
-        set_token(out, a->token);
-    =}
-}
 reactor Source {
     output out:int[];
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
-        set_new_array(out, 3);
+        int* array = malloc(3 * sizeof(int));
+        set_array(out, array, sizeof(int), 3);
         
         // Above allocates the array, which then must be populated.
         out->value[0] = 0;
@@ -50,8 +40,6 @@ reactor Print(scale:int(1)) {
 }
 main reactor DelayArray {
     s = new Source();
-    d = new DelayPointer();
     p = new Print();
-    s.out -> d.in;
-    d.out -> p.in;
+    s.out -> p.in;
 }

@@ -5,11 +5,11 @@ reactor Delay(delay:time(100 msec)) {
     output out:int;
     logical action a:int;
     reaction(a) -> out {=
-        if (a_has_value && a_is_present) set(out, a_value);
+        if (a->has_value && a->is_present) set(out, a->value);
     =}
     reaction(in) -> a {=
         // Use specialized form of schedule for integer payloads.
-        schedule_int(a, self->delay, in);
+        schedule_int(a, self->delay, in->value);
     =}
 }
 reactor Test {
@@ -21,7 +21,7 @@ reactor Test {
         self->start_time = get_logical_time();
     =} 
     reaction(in) {=
-        printf("Received: %d.\n", in);
+        printf("Received: %d.\n", in->value);
         self->received_value = true;
         // Check the time of the input.
         instant_t current_time = get_logical_time();
@@ -31,8 +31,8 @@ reactor Test {
             printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
             exit(1);
         }
-        if (in != 42) {
-            printf("ERROR: Expected input value to be 42. It was %d.\n", in);
+        if (in->value != 42) {
+            printf("ERROR: Expected input value to be 42. It was %d.\n", in->value);
             exit(2);            
         }
     =}

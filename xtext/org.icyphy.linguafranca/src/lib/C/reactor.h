@@ -117,25 +117,10 @@
  *  reactor in form input_name.port_name.
  * @param value The value to insert into the self struct.
  */
-#define set(out, value) \
+#define set(out, val) \
 do { \
-    out ## _is_present = true; \
-    self->__ ## out = value; \
-    self->__ ## out ## _is_present = true; \
-} while(0)
-
-/**
- * Version of set() for use with multiplex output ports.
- * @param out The output port (by name) or input of a contained
- *  reactor in form input_name.port_name.
- * @param index The index of the particular channel to write to.
- * @param value The value to insert into the self struct.
- */
-#define set_i(out, index, value) \
-do { \
-    out ## _is_present[index] = true; \
-    self->__ ## out[index] = value; \
-    self->__ ## out ## _is_present[index] = true; \
+    out->value = val; \
+    out->is_present = true; \
 } while(0)
 
 /**
@@ -147,15 +132,17 @@ do { \
  * It also sets the corresponding _is_present variable in the self
  * struct to true (which causes the object message to be sent).
  * @param out The output port (by name).
- * @param value The array to send (a pointer to the first element).
+ * @param val The array to send (a pointer to the first element).
  * @param length The length of the array to send.
  * @see token_t
  */
-#define set_array(out, value, length) \
+#define set_array(out, val, element_size, length) \
 do { \
-    out ## _is_present = true; \
-    __initialize_token(self->__ ## out, value, self->__ ## out->element_size, length, self->__ ## out ## _num_destinations); \
-    self->__ ## out ## _is_present = true; \
+    out->is_present = true; \
+    token_t* token = __initialize_token_with_value(out->token, val, length); \
+    token->ref_count = out->num_destinations; \
+    out->token = token; \
+    out->value = token->value; \
 } while(0)
 
 /**
@@ -175,20 +162,18 @@ do { \
 #ifndef __cplusplus
 #define set_new(out) \
 do { \
-    out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
-    out = token->value; \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
+    out->is_present = true; \
+    token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    out->value = token->value; \
+    out->token = token; \
 } while(0)
 #else
 #define set_new(out) \
 do { \
-    out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, 1, self->__ ## out ## _num_destinations); \
-    out = static_cast<decltype(out)>(token->value); \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
+    out->is_present = true; \
+    token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    out->value = static_cast<decltype(out)>token->value; \
+    out->token = token; \
 } while(0)
 #endif
 
@@ -208,20 +193,18 @@ do { \
 #ifndef __cplusplus
 #define set_new_array(out, length) \
 do { \
-    out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
-    out = token->value; \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
+    out->is_present = true; \
+    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
+    out->value = token->value; \
+    out->token = token; \
 } while(0)
 #else
 #define set_new_array(out, length) \
 do { \
-    out ## _is_present = true; \
-    token_t* token = __set_new_array_impl(self->__ ## out, length, self->__ ## out ## _num_destinations); \
-    out = static_cast<decltype(out)>(token->value); \
-    self->__ ## out ## _is_present = true; \
-    self->__ ## out = token; \
+    out->is_present = true; \
+    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
+    out->value = static_cast<decltype(out)>(token->value); \
+    out->token = token; \
 } while(0)
 #endif
 
@@ -236,8 +219,7 @@ do { \
  */
 #define set_present(out) \
 do { \
-    out ## _is_present = true; \
-    self->__ ## out ## _is_present = true; \
+    out->is_present = true; \
 } while(0)
 
 /**
@@ -249,12 +231,13 @@ do { \
  * @param out The output port (by name).
  * @param token A pointer to token obtained from an input or action.
  */
-#define set_token(out, token) \
+#define set_token(out, newtoken) \
 do { \
-    out ## _is_present = true; \
-    self->__ ## out = token; \
-    token->ref_count += self->__ ## out ## _num_destinations; \
-    self->__ ## out ## _is_present = true; \
+    out->is_present = true; \
+    out->value = newtoken->value; \
+    out->token = newtoken; \
+    newtoken->ref_count += out->num_destinations; \
+    out->is_present = true; \
 } while(0)
 
 /**
@@ -560,7 +543,7 @@ token_t* create_token(size_t element_size);
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_int(trigger_t* action, interval_t extra_delay, int value);
+handle_t schedule_int(void* action, interval_t extra_delay, int value);
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -612,7 +595,7 @@ handle_t schedule_int(trigger_t* action, interval_t extra_delay, int value);
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_token(trigger_t* action, interval_t extra_delay, token_t* token);
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -626,7 +609,7 @@ handle_t schedule_token(trigger_t* action, interval_t extra_delay, token_t* toke
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_value(trigger_t* action, interval_t extra_delay, void* value, int length);
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length);
 
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -635,13 +618,13 @@ handle_t schedule_value(trigger_t* action, interval_t extra_delay, void* value, 
  * that its size is given in the trigger's token object's element_size field
  * multiplied by the specified length.
  * See schedule_token(), which this uses, for details.
- * @param trigger Pointer to a trigger object (typically an action on a self struct).
+ * @param action Pointer to an action on a self struct.
  * @param offset The time offset over and above that in the action.
  * @param value A pointer to the value to copy.
  * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length);
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
  * For a federated execution, broadcast stop() to all federates.

@@ -49,7 +49,7 @@ reactor Pong(expected:int(1000000)) {
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
-        set(send, receive);   
+        set(send, receive->value);   
     =}
     reaction(shutdown) {=
         if (self->count != self->expected) {
@@ -60,6 +60,7 @@ reactor Pong(expected:int(1000000)) {
         }
     =}
 }
+
 main reactor PingPong {
     ping = new Ping();
     pong = new Pong();

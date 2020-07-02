@@ -1,10 +1,10 @@
 // Tests the is_present variable for actions.
 target C;
-main reactor Periodic(offset:time(1 nsec), period:time(500 msec)) {
+main reactor ActionIsPresent(offset:time(1 nsec), period:time(500 msec)) {
     logical action a;
     state success:bool(false);
     reaction(startup, a) -> a {=
-        if (!a_is_present) {
+        if (!a->is_present) {
             if (self->offset == 0) {
                 printf("Hello World!\n");
                 self->success = true;

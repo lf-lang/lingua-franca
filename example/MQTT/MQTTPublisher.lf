@@ -124,7 +124,7 @@ reactor MQTTPublisher (
             int rc = MQTTClient_waitForCompletion(self->client, self->inflight.delivery_token, TIMEOUT);
             if (rc != MQTTCLIENT_SUCCESS) {
                 fprintf(stderr, "ERROR: Message delivery failed with error code %d.\n", rc);
-                fprintf(stderr, "Message: %s\n", in);
+                fprintf(stderr, "Message: %s\n", in->value);
                 fprintf(stderr, "On topic '%s' for publisher with ClientID: %s\n", self->topic, self->clientID);
             }
         }
@@ -133,12 +133,12 @@ reactor MQTTPublisher (
         
         // Allocate memory for a copy of the message.
         // The length includes the null-terminator of the string and 8 bytes for the timestamp.
-        int length = strlen(in) + 1 + sizeof(instant_t);
+        int length = strlen(in->value) + 1 + sizeof(instant_t);
         if (self->include_physical_timestamp) {
             length += sizeof(instant_t);
         }
         self->inflight.message = malloc(sizeof(char) * length);
-        memcpy(self->inflight.message, in, strlen(in) + 1);
+        memcpy(self->inflight.message, in->value, strlen(in->value) + 1);
         
         // Append the current timestamp to the message.
         // This is always last, after the physical timestamp if it is included.
