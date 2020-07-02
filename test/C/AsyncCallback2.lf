@@ -1,4 +1,7 @@
-// Test asynchronous callbacks that trigger a non-physical action.
+// Test asynchronous callbacks that trigger a logical action.
+// FIXME: asynchronous triggering of logical actions should be disallowed!!!
+// This test has illegal code. The runtime should exit when schedule is called.
+//
 // This test case assumes that target is multithreaded.
 // This test will not work with the unthreaded C target because that target
 // does not implement any mutex protecting the event queue.

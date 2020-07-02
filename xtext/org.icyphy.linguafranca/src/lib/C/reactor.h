@@ -132,14 +132,15 @@ do { \
  * It also sets the corresponding _is_present variable in the self
  * struct to true (which causes the object message to be sent).
  * @param out The output port (by name).
- * @param value The array to send (a pointer to the first element).
+ * @param val The array to send (a pointer to the first element).
  * @param length The length of the array to send.
  * @see token_t
  */
 #define set_array(out, val, element_size, length) \
 do { \
     out->is_present = true; \
-    token_t* token = __initialize_token(out->token, val, element_size, length, out->num_destinations); \
+    token_t* token = __initialize_token_with_value(out->token, val, length); \
+    token->ref_count = out->num_destinations; \
     out->token = token; \
     out->value = token->value; \
 } while(0)

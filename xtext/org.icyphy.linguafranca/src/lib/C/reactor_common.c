@@ -411,22 +411,20 @@ token_t* create_token(size_t element_size) {
 }
 
 /**
+ * Return a token for storing an array of the specified length
+ * with the specified value containing the array.
  * If the specified token is available (its reference count is 0),
- * then initialize it with the specified value, length (number of array
- * elements or 1 if it is not an array), and reference count.
- * Otherwise, create a new token and initialize it.
- * The new token will point to the same trigger and element_size
- * as the specified token. Return either the specified token, or,
- * if a new one was created, the new token.
+ * then reuse it. Otherwise, create a new token.
+ * The element_size for elements of the array is specified by
+ * the specified token.
  *
- * @param token The token to populate, if it is available or null to create a new token.
- * @param value The value to be carried by the token or NULL for none.
- * @param element_size The size of memory for the token payload.
+ * @param token The token to populate, if it is available (must not be NULL).
+ * @param value The value of the array.
  * @param length The length of the array, or 1 if it is not an array.
- * @param ref_count The initial reference count.
- * @return Either the specified token or a new one carrying the value.
+ * @return Either the specified token or a new one, in each case with a value
+ *  field pointing to newly allocated memory.
  */
-token_t* __initialize_token(token_t* token, void* value, size_t element_size, int length, int ref_count) {
+token_t* __initialize_token_with_value(token_t* token, void* value, int length) {
     // assert(token != NULL);
 
     // If necessary, allocate memory for a new token_t struct.
@@ -435,13 +433,35 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
     // printf("DEBUG: initializing a token %p with ref_count %d.\n", token, token->ref_count);
     if (token == NULL || token->ref_count > 0) {
         // The specified token is not available.
-        result = create_token(element_size);
+        result = create_token(token->element_size);
     }
     result->value = value;
     result->length = length;
-    // printf("DEBUG: setting ref_count to %d.\n", ref_count);
-    result->ref_count = ref_count;
     return result;
+}
+
+/**
+ * Return a token for storing an array of the specified length
+ * with new memory allocated (using malloc) for storing that array.
+ * If the specified token is available (its reference count is 0),
+ * then reuse it. Otherwise, create a new token.
+ * The element_size for elements of the array is specified by
+ * the specified token. The caller should populate the value and
+ * ref_count field of the returned token after this returns.
+ *
+ * @param token The token to populate, if it is available (must not be NULL).
+ * @param length The length of the array, or 1 if it is not an array.
+ * @return Either the specified token or a new one, in each case with a value
+ *  field pointing to newly allocated memory.
+ */
+token_t* __initialize_token(token_t* token, int length) {
+    // assert(token != NULL);
+
+    // Allocate memory for storing the array.
+    void* value = malloc(token->element_size * length);
+    // Count allocations to issue a warning if this is never freed.
+    __count_payload_allocations++;
+    return __initialize_token_with_value(token, value, length);
 }
 
 /**
@@ -714,15 +734,28 @@ handle_t schedule(void* action, interval_t offset) {
 }
 
 /**
+ * Utility function to convert a pointer to action struct into
+ * a pointer to the corresponding trigger struct.  The type of the
+ * action struct is defined by a generated typedef and differs for different
+ * actions, which is why the point to the action struct is a void*.
+ * All such structs, however, share a common feature, which is tht the
+ * first entry in the struct is a pointer to the corresponding trigger_t
+ * struct.  This function uses this fact to return a pointer to that
+ * trigger_t struct.
+ * @param action A pointer to an action struct.
+ * @return A pointer to the corresponding trigger struct.
+ */
+trigger_t* _lf_action_to_trigger(void* action) {
+    return *((trigger_t**)action);
+}
+
+/**
  * Variant of schedule_value when the value is an integer.
  * See reactor.h for documentation.
  * @param action Pointer to an action on the self struct.
  */
 handle_t schedule_int(void* action, interval_t extra_delay, int value) {
-    // The argument may point to reactor-specific action struct,
-    // but the first element of that struct is a pointer to the trigger_t
-    // for the action, so we can get that point via a cast.
-    trigger_t* trigger = *((trigger_t**)action);
+    trigger_t* trigger = _lf_action_to_trigger(action);
     // NOTE: This doesn't acquire the mutex lock in the multithreaded version
     // until schedule_value is called. This should be OK because the element_size
     // does not change dynamically.
@@ -752,10 +785,9 @@ token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) 
         return NULL;
     }
     // First, initialize the token, reusing the one given if possible.
-    token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
+    token_t* new_token = __initialize_token(token, length);
+    new_token->ref_count = num_destinations;
     // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
-    // Count allocations to issue a warning if this is never freed.
-    __count_payload_allocations++;
     return new_token;
 }
 

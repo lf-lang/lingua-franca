@@ -40,10 +40,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * See reactor.h for documentation.
  */
 handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
-    // The argument may point to reactor-specific action struct,
-    // but the first element of that struct is a pointer to the trigger_t
-    // for the action, so we can get that point via a cast.
-    trigger_t* trigger = *((trigger_t**)action);
+    trigger_t* trigger = _lf_action_to_trigger(action);
     return __schedule(trigger, extra_delay, token);
 }
 
@@ -52,10 +49,7 @@ handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
  * See reactor.h for documentation.
  */
 handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
-    // The argument may point to reactor-specific action struct,
-    // but the first element of that struct is a pointer to the trigger_t
-    // for the action, so we can get that point via a cast.
-    trigger_t* trigger = *((trigger_t**)action);
+    trigger_t* trigger = _lf_action_to_trigger(action);
     token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
@@ -68,10 +62,7 @@ handle_t schedule_value(void* action, interval_t extra_delay, void* value, int l
  * See reactor.h for documentation.
  */
 handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
-    // The argument may point to reactor-specific action struct,
-    // but the first element of that struct is a pointer to the trigger_t
-    // for the action, so we can get that point via a cast.
-    trigger_t* trigger = *((trigger_t**)action);
+    trigger_t* trigger = _lf_action_to_trigger(action);
     if (value == NULL) {
         return schedule_token(action, offset, NULL);
     }
@@ -79,13 +70,11 @@ handle_t schedule_copy(void* action, interval_t offset, void* value, int length)
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
         return -1;
     }
-    int element_size = trigger->token->element_size;
-    void* container = malloc(element_size * length);
-    __count_payload_allocations++;
-    // printf("DEBUG: __schedule_copy: Allocating memory for payload (token value): %p\n", container);
-    memcpy(container, value, element_size * length);
+    // printf("DEBUG: schedule_copy: Allocating memory for payload (token value): %p\n", container);
     // Initialize token with an array size of length and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
+    token_t* token = __initialize_token(trigger->token, length);
+    // Copy the value into the newly allocated memory.
+    memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.
     return schedule_token(action, offset, token);
 }
