@@ -13,7 +13,7 @@ main reactor AsyncCallback {
 	preamble {= 
 		#include <pthread.h>
 				
-		void callback(trigger_t* a) {
+		void callback(void* a) {
 		    // Schedule twice. If the action is not physical, these should
 		    // get consolidated into a single action triggering. If it is,
 		    // then they cause two separate triggerings with close but not
@@ -27,7 +27,7 @@ main reactor AsyncCallback {
 			struct timespec sleep_time = {(time_t) 0, (long)100000000};
 			struct timespec remaining_time;
 			nanosleep(&sleep_time, &remaining_time);
-			callback((trigger_t*)a);
+			callback(a);
 			return NULL;
 		}
 		pthread_t threadId;

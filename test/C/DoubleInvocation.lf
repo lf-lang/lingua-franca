@@ -32,10 +32,10 @@ reactor Print {
         printf("####### Print startup\n");
     =}
     reaction (position, velocity) {=
-        if (position_is_present) {
-            printf("Position: %d.\n", position);
+        if (position->is_present) {
+            printf("Position: %d.\n", position->value);
         }
-        if (position == self->previous) {
+        if (position->value == self->previous) {
             printf("ERROR: Multiple firings at the same logical time!\n");
             exit(1);
         }

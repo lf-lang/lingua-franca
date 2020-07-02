@@ -12,8 +12,8 @@ reactor Source {
         }
     =}
     reaction(startup) -> out {=
-        if (out_is_present) {
-            int previous_output = *out;
+        if (out->is_present) {
+            int previous_output = out->value;
             set(out, 2 * previous_output);
         } else {
             set(out, 42);
@@ -23,8 +23,8 @@ reactor Source {
 reactor Sink {
     input in:int;
     reaction(in) {=
-        printf("Received %d.\n", in);
-        if (in != 42) {
+        printf("Received %d.\n", in->value);
+        if (in->value != 42) {
             fprintf(stderr, "FAILED: Expected 42.\n");
             exit(1);
         }

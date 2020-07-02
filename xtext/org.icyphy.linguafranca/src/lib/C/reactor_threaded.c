@@ -54,7 +54,8 @@ pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+    trigger_t* trigger = _lf_action_to_trigger(action);
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
@@ -71,10 +72,12 @@ handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* tok
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
     if (value == NULL) {
-        return schedule_token(trigger, offset, NULL);
+        return schedule_token(action, offset, NULL);
     }
+    trigger_t* trigger = _lf_action_to_trigger(action);
+
     if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
         return -1;
@@ -82,13 +85,11 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
-    int element_size = trigger->token->element_size;
-    void* container = malloc(element_size * length);
-    __count_payload_allocations++;
-    // printf("DEBUG: __schedule_copy: Allocating memory for payload (token value): %p\n", container);
-    memcpy(container, value, element_size * length);
+    // printf("DEBUG: schedule_copy: Allocating memory for payload (token value): %p\n", container);
     // Initialize token with an array size of length and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
+    token_t* token = __initialize_token(trigger->token, length);
+    // Copy the value into the newly allocated memory.
+    memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.
     handle_t result = __schedule(trigger, offset, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
@@ -102,7 +103,9 @@ handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int l
  * Variant of schedule_token that creates a token to carry the specified value.
  * See reactor.h for documentation.
  */
-handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+    trigger_t* trigger = _lf_action_to_trigger(action);
+
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");

@@ -15,10 +15,10 @@ reactor Work {
     output out:int;
     reaction(in1, in2) -> out {=
     	int ret;
-    	if (in1 > 10) {
-    		ret = in2 * in1;
+    	if (in1->value > 10) {
+    		ret = in2->value * in1->value;
     	} else {
-    		ret = in2 + in1;
+    		ret = in2->value + in1->value;
     	}
         set(out, ret);
     =}
@@ -26,7 +26,7 @@ reactor Work {
 reactor Print {
     input in:int;
     reaction(in) {=
-        printf("Received: %d\n", in);
+        printf("Received: %d\n", in->value);
     =}
 }
 

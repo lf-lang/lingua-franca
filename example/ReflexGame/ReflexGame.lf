@@ -83,7 +83,7 @@ reactor GetUserInput {
     =}
     
     reaction(user_response) -> another {=
-        if (user_response_value == EOF) {
+        if (user_response->value == EOF) {
             stop();
             return;
         }
