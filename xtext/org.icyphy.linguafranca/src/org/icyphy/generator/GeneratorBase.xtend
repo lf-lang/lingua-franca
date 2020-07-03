@@ -865,23 +865,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         indentation.put(builder, buffer.toString)
     }
 
-    /**
-     * Open a non-Lingua Franca import file at the specified URI
-     * in the specified resource set. Throw an exception if the
-     * file import is not supported. This base class always throws
-     * an exception because the only supported imports, by default,
-     * are Lingua Franca files.
-     * @param importStatement The original import statement (used for error reporting).
-     * @param resourceSet The resource set in which to find the file.
-     * @param resolvedURI The URI to import.
-     */
-    protected def openForeignImport(
-        Import importStatement, ResourceSet resourceSet, URI resolvedURI
-    ) {
-        reportError(importStatement, "Unsupported imported file type: "
-            + importStatement.importURI
-        )
-    }
     
     /**
      * Open an import at the Lingua Franca file at the specified URI in the
@@ -1072,31 +1055,32 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         for (importStatement : resource.allContents.toIterable.filter(Import)) {
             // Resolve the import as a URI relative to the current resource's URI.
             val URI currentURI = resource?.getURI;
-            val URI importedURI = URI?.createFileURI(importStatement.importURI);
+            val URI importedURI = URI?.createFileURI(importStatement.importedNamespace);
             val URI resolvedURI = importedURI?.resolve(currentURI);
             val ResourceSet resourceSet = resource?.resourceSet;
             
             // Check for self import.
             if (resolvedURI.equals(currentURI)) {
                 reportError(importStatement,
-                    "Recursive imports are not permitted: " + importStatement.importURI)
+                    "Recursive imports are not permitted: " + importStatement.importedNamespace)
                 return
             }
             try {
-                if (importStatement.importURI.endsWith(".lf")) {
-                    // Handle Lingua Franca imports.
-                    val imported = openLFImport(importStatement, resourceSet, resolvedURI)
-                    if (imported !== null) {
-                        importedResources.get(resource).add(imported)
-                    }
-                } else {
-                    // Handle other supported imports (if any).
-                    openForeignImport(importStatement, resourceSet, resolvedURI)
-                }
+            	System.out.println(importStatement.importedNamespace)
+//                if (importStatement.importURI.endsWith(".lf")) {
+//                    // Handle Lingua Franca imports.
+//                    val imported = openLFImport(importStatement, resourceSet, resolvedURI)
+//                    if (imported !== null) {
+//                        importedResources.get(resource).add(imported)
+//                    }
+//                } else {
+//                    // Handle other supported imports (if any).
+//                    // FIXME: Error!
+//                }
             } catch (Exception ex) {
                 reportError(
                     importStatement,
-                    "Import error: " + importStatement.importURI +
+                    "Import error: " + importStatement.importedNamespace +
                     "\nException message: " + ex.message
                 )
             }

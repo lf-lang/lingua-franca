@@ -42,6 +42,7 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
  */
 Model:
     target=Target
+    (package=PackageDeclaration)
     (imports+=Import)*
     (preambles+=Preamble)*
     (reactors+=Reactor)+
@@ -53,8 +54,20 @@ Model:
  * Import declaration.
  */
 Import:
-    'import' importURI=Path ';'
+    'import' importedNamespace= QualifiedNameWithWildcard ';'
     ;
+    
+/**
+ * Deceleration for the package name
+  */    
+PackageDeclaration:
+    'package' name=QualifiedName ';';
+    
+QualifiedName:
+    ID ('.' ID)*;
+    
+QualifiedNameWithWildcard:
+    QualifiedName '.*'?;
 
 /**
  * Declaration of a reactor class.

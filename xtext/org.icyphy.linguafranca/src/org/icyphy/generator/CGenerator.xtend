@@ -2263,45 +2263,45 @@ class CGenerator extends GeneratorBase {
      *  @param importStatement The original import statement (used for error reporting).
      *  @param resourceSet The resource set in which to find the file.
      *  @param resolvedURI The URI to import.
-     */
-    override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
-        // Unfortunately, the resolvedURI appears to be useless for ordinary files
-        // (non-xtext files). Use the original importStatement.importURI
-        if (importStatement.importURI.endsWith(".proto")) {
-            // FIXME: Should we include protoc-c as a submodule? If so, how to invoke it?
-            // protoc is commonly installed in /usr/local/bin, which sadly is not by
-            // default on the PATH for a Mac.
-            // Invoke protoc-c.
-            val protocCommand = newArrayList
-            protocCommand.addAll("protoc-c", "--c_out=src-gen", importStatement.importURI)
-            if (executeCommand(protocCommand, directory) != 0) {
-                return reportError(importStatement, "Protocol buffer compiler failed."
-                    + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c."
-                    + "\nMake sure that your PATH variable includes the directory where protoc-c is installed,"
-                    + "\ntypically /usr/local/bin. You can set PATH in ~/.bash_profile on Linux or Mac.")
-            }
-            if (compileAdditionalSources === null) {
-                compileAdditionalSources = newArrayList
-            }
-            // Strip the ".proto" off the file name.
-            // NOTE: This assumes that the filename matches the generated files, which it seems to.
-            val rootFilename = importStatement.importURI.substring(0, importStatement.importURI.length - 6)
-            compileAdditionalSources.add("src-gen" + File.separator + rootFilename + ".pb-c.c")
-            
-            // The -l protobuf-c command-line option should be added only once, even if there
-            // are multiple protobuf imports.
-            if (compileLibraries === null) {
-                compileLibraries = newArrayList
-                compileLibraries.add('-l')
-                compileLibraries.add('protobuf-c')
-            }
-        } else {
-            return reportError(importStatement, "Unsupported imported file type: "
-                + importStatement.importURI
-            )
-        }
-        return "OK"
-    }
+//     */
+//    override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
+//        // Unfortunately, the resolvedURI appears to be useless for ordinary files
+//        // (non-xtext files). Use the original importStatement.importURI
+////        if (importStatement.importURI.endsWith(".proto")) {
+////            // FIXME: Should we include protoc-c as a submodule? If so, how to invoke it?
+////            // protoc is commonly installed in /usr/local/bin, which sadly is not by
+////            // default on the PATH for a Mac.
+////            // Invoke protoc-c.
+////            val protocCommand = newArrayList
+////            protocCommand.addAll("protoc-c", "--c_out=src-gen", importStatement.importURI)
+////            if (executeCommand(protocCommand, directory) != 0) {
+////                return reportError(importStatement, "Protocol buffer compiler failed."
+////                    + "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c."
+////                    + "\nMake sure that your PATH variable includes the directory where protoc-c is installed,"
+////                    + "\ntypically /usr/local/bin. You can set PATH in ~/.bash_profile on Linux or Mac.")
+////            }
+////            if (compileAdditionalSources === null) {
+////                compileAdditionalSources = newArrayList
+////            }
+////            // Strip the ".proto" off the file name.
+////            // NOTE: This assumes that the filename matches the generated files, which it seems to.
+////            val rootFilename = importStatement.importURI.substring(0, importStatement.importURI.length - 6)
+////            compileAdditionalSources.add("src-gen" + File.separator + rootFilename + ".pb-c.c")
+////            
+////            // The -l protobuf-c command-line option should be added only once, even if there
+////            // are multiple protobuf imports.
+////            if (compileLibraries === null) {
+////                compileLibraries = newArrayList
+////                compileLibraries.add('-l')
+////                compileLibraries.add('protobuf-c')
+////            }
+////        } else {
+//            return reportError(importStatement, "Unsupported imported file type: "
+//                + importStatement.importURI
+////            )
+////        }
+////        return "OK"
+//    }
 
     /**
      * Open an import at the Lingua Franca file at the specified URI in the
@@ -3046,16 +3046,20 @@ class CGenerator extends GeneratorBase {
             runCommand.add(targetTimeoutUnit.toString)
         }
         
-        // Generate #include statements for each .proto import.
-        for (import : resource.allContents.toIterable.filter(Import)) {
-            if (import.importURI.endsWith(".proto")) {
-                // Strip the ".proto" off the file name.
-                // NOTE: This assumes that the filename matches the generated files, which it seems to.
-                val rootFilename = import.importURI.substring(0, import.importURI.length - 6)
-                // Finally, generate the #include for the generated .h file.
-                pr('#include "' + rootFilename + '.pb-c.h"')
-            }
+        {
+        	
         }
+        
+        // Generate #include statements for each .proto import.
+//        for (import : resource.allContents.toIterable.filter(Import)) {
+//            if (import.importURI.endsWith(".proto")) {
+//                // Strip the ".proto" off the file name.
+//                // NOTE: This assumes that the filename matches the generated files, which it seems to.
+//                val rootFilename = import.importURI.substring(0, import.importURI.length - 6)
+//                // Finally, generate the #include for the generated .h file.
+//                pr('#include "' + rootFilename + '.pb-c.h"')
+//            }
+//        }
     }
 
     // Regular expression pattern for compiler error messages with resource
