@@ -3394,8 +3394,8 @@ class CGenerator extends GeneratorBase {
         } else if (input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
             // Mutable, non-multiport, primitive type.
             pr(builder, '''
-                // Mutable input, so copy the input struct into a temporary variable.
-                // Primitive type, so the input value on the struct is a copy.
+                // Mutable input, so copy the input into a temporary variable.
+                // The input value on the struct is a copy.
                 «structType» __tmp_«input.name» = *(self->__«input.name»);
                 «structType»* «input.name» = &__tmp_«input.name»;
             ''')
@@ -3418,12 +3418,21 @@ class CGenerator extends GeneratorBase {
                 «structType»* «input.name» = &__tmp_«input.name»;
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
-                    «input.name»->token = writable_copy(«input.name»->token);
+                    token_t* _lf_input_token = «input.name»->token;
+                    «input.name»->token = writable_copy(_lf_input_token);
+                    if («input.name»->token != _lf_input_token) {
+                        // A copy of the input token has been made.
+                        // This needs to be reference counted.
+                        «input.name»->token->ref_count = 1;
+                        // Repurpose the next_free pointer on the token to add to the list.
+                        «input.name»->token->next_free = _lf_more_tokens_with_ref_count;
+                        _lf_more_tokens_with_ref_count = «input.name»->token;
+                    }
                     «input.name»->value = («inputType.targetType»)«input.name»->token->value;
                 } else {
                     «input.name»->length = 0;
                 }
-            ''')
+            ''')            
         } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
             // Non-mutable, multiport, primitive type.
             pr(builder, '''
