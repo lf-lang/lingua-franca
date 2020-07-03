@@ -188,8 +188,8 @@ class InstanceBinding {
      */
     override equals(Object obj) {
         if (obj instanceof InstanceBinding) {
-            return ((this.path === null && obj.path === null) ||
-                (this.path !== null && this.path.equals(obj.path)) &&
+            return (((this.path === null && obj.path === null) ||
+                (this.path !== null && this.path.equals(obj.path))) &&
                     this.node === obj.node)
         }
         return false
