@@ -299,7 +299,7 @@ class TypeScriptGenerator extends GeneratorBase {
             dir = new File(cOutPath)
             if (!dir.exists()) dir.mkdirs()
             
-            generateFederateRTI()
+            createFederateRTI()
 
             // Copy the required library files into the target file system.
             // This will overwrite previous versions.
