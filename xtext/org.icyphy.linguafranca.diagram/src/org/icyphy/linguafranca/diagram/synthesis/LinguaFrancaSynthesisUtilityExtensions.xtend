@@ -1,7 +1,9 @@
 package org.icyphy.linguafranca.diagram.synthesis
 
+import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
+import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.TerminalRule
@@ -186,6 +188,51 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 			}
 		}
 		return null
+	}
+	
+	/**
+	 * Retrieves the annotations value from JavaDoc comments associated with the given model element in the AST.
+	 */
+	def String findAnnotationInComments(EObject object, String key) {
+		if (object.eResource instanceof XtextResource) {
+			val compNode = NodeModelUtils.findActualNodeFor(object)
+			if (compNode !== null) {
+				var node = compNode.firstChild
+				while (node instanceof CompositeNode) {
+					node = node.firstChild
+				}
+				while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
+					val rule = node.grammarElement
+					if (rule instanceof TerminalRule) {
+						var String line;
+						if ("SL_COMMENT".equals(rule.name)) {
+							if (node.text.contains(key)) {
+								line = node.text
+							}
+						} else if ("ML_COMMENT".equals(rule.name)) {
+							line = node.text.split("\n").filterNull.findFirst[contains(key)]
+						}
+						if (line !== null) {
+							var value = line.substring(line.indexOf(key) + key.length).trim()
+							if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
+								value = value.substring(0, value.indexOf("*")).trim()
+							}
+							return value
+						}
+					}
+					node = node.nextSibling
+				}
+			}
+		}
+		return null
+	}
+	
+	def Object sourceElement(KGraphElement elem) {
+		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)
+	}
+	
+	def boolean sourceIsReactor(KNode node) {
+		return node.sourceElement() instanceof Reactor
 	}
 
 }

@@ -10,16 +10,16 @@ reactor Test {
     state received:int(0);
     reaction(c) {=
         self->received++;
-        printf("Received %d.\n", c);
+        printf("Received %d.\n", c->value);
         (self->i)++;
-        if (c != self->i) {
-            printf("ERROR: Expected %d but got %d\n.", self->i, c);
+        if (c->value != self->i) {
+            printf("ERROR: Expected %d but got %d\n.", self->i, c->value);
             exit(1);
         }
         interval_t elapsed_time = get_elapsed_logical_time();
         printf("Current logical time is: %lld\n", elapsed_time);
 
-        interval_t expected_logical_time = SEC(2) + SEC(1)*(c-1);
+        interval_t expected_logical_time = SEC(2) + SEC(1)*(c->value - 1);
         if (elapsed_time != expected_logical_time) {
             printf("ERROR: Expected logical time to be %lld but got %lld\n.",
                 expected_logical_time, elapsed_time

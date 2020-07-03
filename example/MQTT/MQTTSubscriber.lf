@@ -208,11 +208,11 @@ reactor MQTTSubscriber (
         // The incoming_message action contains a token that we can just forward.
         // The allocated memory will be freed when the token's reference count hits 0.
         // Note that this token will still contain the sender's timestamp.
-        set_token(message, incoming_message_token);
+        set_token(message, incoming_message->token);
                 
         // Get the sender's timestamp.
         instant_t* timestamp = (instant_t*)(
-            incoming_message_token->value + incoming_message_token->length - sizeof(instant_t)
+            incoming_message->token->value + incoming_message->token->length - sizeof(instant_t)
         );
         // printf("DEBUG: Received message carrying timestamp %lld.\n", *timestamp);
         
@@ -226,10 +226,10 @@ reactor MQTTSubscriber (
         
         // If a physical timestamp was sent, use that to collect
         // latency stats instead of the logical time increment.
-        size_t string_length = strlen(incoming_message_value); // Assumes null-terminated string.
-        if (incoming_message_token->length == string_length + 1 + 2*sizeof(instant_t)) {
+        size_t string_length = strlen(incoming_message->value); // Assumes null-terminated string.
+        if (incoming_message->token->length == string_length + 1 + 2*sizeof(instant_t)) {
             instant_t receive_physical_time = get_physical_time();
-            instant_t physical_timestamp = extract_ll((unsigned char*)(incoming_message_value + string_length + 1));
+            instant_t physical_timestamp = extract_ll((unsigned char*)(incoming_message->value + string_length + 1));
             latency = receive_physical_time - physical_timestamp;
             // printf("DEBUG: MQTTReceiver.reaction: Reacted to message after measured latency of %lld nsec (assuming synchronized clocks).\n", latency);
         }

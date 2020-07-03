@@ -63,6 +63,7 @@ MultipleContained.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
+PingPongDistributed.lf
 Pipeline.lf
 Preamble.lf
 PreambleFile.lf
@@ -74,6 +75,7 @@ SendingInside.lf
 SendingInside2.lf
 SendingInsideThreaded.lf
 SendsPointerTest.lf
+SetArray.lf
 SetToken.lf
 SimpleDeadline.lf
 SimpleImport.lf
