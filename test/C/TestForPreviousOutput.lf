@@ -13,8 +13,7 @@ reactor Source {
     =}
     reaction(startup) -> out {=
         if (out->is_present) {
-            int previous_output = out->value;
-            set(out, 2 * previous_output);
+            set(out, 2 * out->value);
         } else {
             set(out, 42);
         }
