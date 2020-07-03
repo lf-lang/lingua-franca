@@ -18,6 +18,7 @@ Composition.lf
 CompositionAfter.lf
 CompositionGain.lf
 CompositionThreaded.lf
+CountSelf.lf
 CountTest.lf
 DanglingOutput.lf
 Deadline.lf

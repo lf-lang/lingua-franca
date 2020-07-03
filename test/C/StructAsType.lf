@@ -1,7 +1,7 @@
 // Source produces a struct directly, rather than a pointer to
 // a struct.
 target C;
-reactor Source {
+reactor StructAsType {
     preamble {=
         typedef struct hello_t {
             char* name;
@@ -33,7 +33,7 @@ reactor Print(expected:int(42)) {
     =}
 }
 main reactor StructPrint {
-    s = new Source();
+    s = new StructAsType();
     p = new Print();
     s.out -> p.in;
 }

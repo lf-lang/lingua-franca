@@ -1,0 +1,35 @@
+// This tests actions with payloads by delaying an input by a fixed amount.
+target C {
+    timeout: 1 sec,
+    fast: true
+};
+reactor CountSelf(delay:time(100 msec)) {
+    output out:int;
+    logical action a:int;
+    reaction(startup) -> a, out {=
+        set(out, 0);
+        schedule_int(a, self->delay, 1);
+    =}
+    reaction(a) -> a, out {=
+        set(out, a->value);
+        schedule_int(a, self->delay, a->value + 1);
+    =}
+}
+reactor Test {
+    input in:int;
+    state count:int(0);
+    reaction(in) {=
+        printf("Received: %d.\n", in->value);
+        if (in->value != self->count) {
+            fprintf(stderr, "ERROR: Expected %d.\n", self->count);
+            exit(1);
+        }
+        self->count++;
+    =}
+}
+
+main reactor DelayInt { 
+    d = new CountSelf();
+    t = new Test();
+    d.out -> t.in; 
+}
