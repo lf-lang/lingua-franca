@@ -5,7 +5,7 @@ reactor Source {
     output out:int;
     timer t;
     reaction(t) -> out {=
-        set(out, 1);
+        SET(out, 1);
     =}
 }
 
@@ -14,7 +14,7 @@ reactor Gain {
     output out:int;
     reaction(in) -> out {=
         printf("Received %d.\n", in->value);
-        set(out, in->value * 2);
+        SET(out, in->value * 2);
     =}
 }
 

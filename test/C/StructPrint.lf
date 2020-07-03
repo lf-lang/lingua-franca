@@ -11,7 +11,7 @@ reactor StructPrint {
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
-        set_new(out);
+        SET_NEW(out);
         // Above allocates a struct, which then must be populated.
         out->value->name = "Earth";
         out->value->value = 42;

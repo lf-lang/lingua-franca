@@ -8,14 +8,14 @@ reactor Source {
         srand(time(0));
         // Randomly produce an output or not.
         if (rand() % 2) {
-            set(out, 21);
+            SET(out, 21);
         }
     =}
     reaction(startup) -> out {=
         if (out->is_present) {
-            set(out, 2 * out->value);
+            SET(out, 2 * out->value);
         } else {
-            set(out, 42);
+            SET(out, 42);
         }
     =}
 }

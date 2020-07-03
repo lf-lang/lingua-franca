@@ -10,7 +10,7 @@ reactor Source {
     timer t(0, 1 sec);
     reaction(t) -> out {=
         // Dynamically allocate an output array of length 3.
-        set_new_array(out, 3);
+        SET_NEW_ARRAY(out, 3);
         printf("At time %lld, sending array at address %p\n", get_elapsed_logical_time(), out->value); 
         
         // Above allocates the array, which then must be populated.
