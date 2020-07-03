@@ -652,9 +652,10 @@ class CGenerator extends GeneratorBase {
 
             // Write the generated code to the output file.
             var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + cFilename));
+                new File(srcGenPath + File.separator + cFilename), false);
             fOut.write(getCode().getBytes())
             fOut.close()
+            
         }
         // Restore the base filename.
         filename = baseFilename
@@ -667,6 +668,27 @@ class CGenerator extends GeneratorBase {
         } else {
             println("Exiting before invoking target compiler.")
         }
+        
+        
+        //Cleanup the code so that it is more readable
+        for (federate : federates) {
+                
+        	// Only clean one file if there is no federation.
+            if (!federate.isSingleton) {            	
+                filename = baseFilename + '_' + federate.name            	
+            }
+            
+            // Derive target filename from the .lf filename.
+            val cFilename = filename + ".c";
+            
+            
+	        // Write a clean version of the code to the output file
+	        var fOut = new FileOutputStream(
+	        new File(srcGenPath + File.separator + cFilename));
+	        fOut.write(getReadableCode().getBytes())
+	        fOut.close()
+	        
+	    }
     }
     
     /** Invoke the compiler on the generated code. */
@@ -3071,6 +3093,29 @@ class CGenerator extends GeneratorBase {
         }
         return null as ErrorFileAndLine
     }
+    
+    
+    /**
+     * Target specific cleanup for the C language.
+     * @return The code with #line directives removed
+     */
+     override getReadableCode()
+     {
+     	val stringCode = code.toString()
+        val lines = stringCode.split(System.getProperty("line.separator"));
+        
+        val readableStringBuilder = new StringBuilder("");
+        
+        for(line : lines)
+        {
+        	val trimmedLine = line.trim()
+        	if(!trimmedLine.startsWith("#line"))
+        	{
+        	    readableStringBuilder.append(line).append(System.getProperty("line.separator"));
+        	}
+        }
+        return readableStringBuilder.toString()
+     }
         
     // //////////////////////////////////////////
     // // Private methods.
