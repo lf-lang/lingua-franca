@@ -65,10 +65,10 @@ reactor MessageGenerator(root:string("")) {
         // Dynamically allocate memory for the output.
         set_new_array(message, length);
         // Populate the output string and increment the count.
-        snprintf(message, length, "%s %d", self->root, self->count++);
+        snprintf(message->value, length, "%s %d", self->root, self->count++);
         printf("MessageGenerator: At time %lld, send message: %s\n",
             get_elapsed_logical_time(),
-            message
+            message->value
         );
     =}
 }
@@ -83,7 +83,7 @@ reactor PrintMessage {
     reaction(message) {=
         printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",
             get_elapsed_logical_time(),
-            message
+            message->value
         );
     =}
 }

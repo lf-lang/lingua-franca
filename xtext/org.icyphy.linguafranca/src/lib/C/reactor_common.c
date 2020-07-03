@@ -48,9 +48,11 @@ bool absent = false;
 bool fast = false;
 
 /**
- * By default, execution is not threaded.
- **/
-unsigned int number_of_threads = 0;
+ * The number of worker threads for threaded execution.
+ * By default, execution is not threaded and this variable will have value 0,
+ * meaning that the execution is not threaded.
+ */
+unsigned int number_of_threads;
 
 /**
  * Current time in nanoseconds since January 1, 1970.
@@ -172,8 +174,8 @@ handle_t __handle = 1;
 /**
  * Return whether the first and second argument are given in reverse order.
  */
-static int in_reverse_order(pqueue_pri_t this, pqueue_pri_t that) {
-    return (this > that);
+static int in_reverse_order(pqueue_pri_t thiz, pqueue_pri_t that) {
+    return (thiz > that);
 }
 
 /**
@@ -240,7 +242,7 @@ static void set_reaction_position(void *a, size_t pos) {
  * Print some information about the given reaction.
  */
 static void print_reaction(FILE *out, void *reaction) {
-	reaction_t *r = reaction;
+	reaction_t *r = (reaction_t*)reaction;
     fprintf(out, "chain_id:%llu, index: %llu, reaction: %p\n", 
         r->chain_id, r->index, r);
 }
@@ -249,7 +251,7 @@ static void print_reaction(FILE *out, void *reaction) {
  * Print some information about the given event.
  */
 static void print_event(FILE *out, void *event) {
-	event_t *e = event;
+	event_t *e = (event_t*)event;
     fprintf(out, "time: %lld, trigger: %p, token: %p\n",
 			e->time, e->trigger, e->token);
 }
@@ -409,22 +411,20 @@ token_t* create_token(size_t element_size) {
 }
 
 /**
+ * Return a token for storing an array of the specified length
+ * with the specified value containing the array.
  * If the specified token is available (its reference count is 0),
- * then initialize it with the specified value, length (number of array
- * elements or 1 if it is not an array), and reference count.
- * Otherwise, create a new token and initialize it.
- * The new token will point to the same trigger and element_size
- * as the specified token. Return either the specified token, or,
- * if a new one was created, the new token.
+ * then reuse it. Otherwise, create a new token.
+ * The element_size for elements of the array is specified by
+ * the specified token.
  *
- * @param token The token to populate, if it is available or null to create a new token.
- * @param value The value to be carried by the token or NULL for none.
- * @param element_size The size of memory for the token payload.
+ * @param token The token to populate, if it is available (must not be NULL).
+ * @param value The value of the array.
  * @param length The length of the array, or 1 if it is not an array.
- * @param ref_count The initial reference count.
- * @return Either the specified token or a new one carrying the value.
+ * @return Either the specified token or a new one, in each case with a value
+ *  field pointing to newly allocated memory.
  */
-token_t* __initialize_token(token_t* token, void* value, size_t element_size, int length, int ref_count) {
+token_t* __initialize_token_with_value(token_t* token, void* value, int length) {
     // assert(token != NULL);
 
     // If necessary, allocate memory for a new token_t struct.
@@ -433,13 +433,35 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
     // printf("DEBUG: initializing a token %p with ref_count %d.\n", token, token->ref_count);
     if (token == NULL || token->ref_count > 0) {
         // The specified token is not available.
-        result = create_token(element_size);
+        result = create_token(token->element_size);
     }
     result->value = value;
     result->length = length;
-    // printf("DEBUG: setting ref_count to %d.\n", ref_count);
-    result->ref_count = ref_count;
     return result;
+}
+
+/**
+ * Return a token for storing an array of the specified length
+ * with new memory allocated (using malloc) for storing that array.
+ * If the specified token is available (its reference count is 0),
+ * then reuse it. Otherwise, create a new token.
+ * The element_size for elements of the array is specified by
+ * the specified token. The caller should populate the value and
+ * ref_count field of the returned token after this returns.
+ *
+ * @param token The token to populate, if it is available (must not be NULL).
+ * @param length The length of the array, or 1 if it is not an array.
+ * @return Either the specified token or a new one, in each case with a value
+ *  field pointing to newly allocated memory.
+ */
+token_t* __initialize_token(token_t* token, int length) {
+    // assert(token != NULL);
+
+    // Allocate memory for storing the array.
+    void* value = malloc(token->element_size * length);
+    // Count allocations to issue a warning if this is never freed.
+    __count_payload_allocations++;
+    return __initialize_token_with_value(token, value, length);
 }
 
 /**
@@ -450,7 +472,7 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
 void __pop_events() {
     event_t* event;
     do {
-        event = pqueue_pop(event_q);
+        event = (event_t*)pqueue_pop(event_q);
 
         token_t* token = event->token;
 
@@ -497,7 +519,7 @@ void __pop_events() {
         pqueue_insert(recycle_q, event);
 
         // Peek at the next event in the event queue.
-        event = pqueue_peek(event_q);
+        event = (event_t*)pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
 }
@@ -564,9 +586,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
     // Get an event_t struct to put on the event queue.
     // Recycle event_t structs, if possible.    
-    event_t* e = pqueue_pop(recycle_q);
+    event_t* e = (event_t*)pqueue_pop(recycle_q);
     if (e == NULL) {
-        e = malloc(sizeof(struct event_t));
+        e = (event_t*)malloc(sizeof(struct event_t));
     }
     
     // Set the payload.
@@ -638,7 +660,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // Handle duplicate events for logical actions (events with the same tag).
     // This replaces the previous payload with the new one.
     if (!trigger->is_physical) {
-        event_t* existing = pqueue_find_equal_same_priority(event_q, e);
+        event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
             // Free the previous payload.
             if (existing->token != token) __done_using(existing->token);
@@ -703,19 +725,37 @@ void schedule_output_reactions(reaction_t* reaction) {
  * Schedule an action to occur with the specified value and time offset
  * with no payload (no value conveyed).
  * See schedule_token(), which this uses, for details.
- * @param trigger Pointer to a trigger object (typically an action on a self struct).
+ * @param action Pointer to an action on the self struct.
  * @param offset The time offset over and above that in the action.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule(trigger_t* trigger, interval_t offset) {
-    return schedule_token(trigger, offset, NULL);
+handle_t schedule(void* action, interval_t offset) {
+    return schedule_token(action, offset, NULL);
+}
+
+/**
+ * Utility function to convert a pointer to action struct into
+ * a pointer to the corresponding trigger struct.  The type of the
+ * action struct is defined by a generated typedef and differs for different
+ * actions, which is why the point to the action struct is a void*.
+ * All such structs, however, share a common feature, which is tht the
+ * first entry in the struct is a pointer to the corresponding trigger_t
+ * struct.  This function uses this fact to return a pointer to that
+ * trigger_t struct.
+ * @param action A pointer to an action struct.
+ * @return A pointer to the corresponding trigger struct.
+ */
+trigger_t* _lf_action_to_trigger(void* action) {
+    return *((trigger_t**)action);
 }
 
 /**
  * Variant of schedule_value when the value is an integer.
  * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
  */
-handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
+handle_t schedule_int(void* action, interval_t extra_delay, int value) {
+    trigger_t* trigger = _lf_action_to_trigger(action);
     // NOTE: This doesn't acquire the mutex lock in the multithreaded version
     // until schedule_value is called. This should be OK because the element_size
     // does not change dynamically.
@@ -723,9 +763,9 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
         fprintf(stderr, "Action type is not an integer.");
         return -1;
     }
-    int* container = malloc(sizeof(int));
+    int* container = (int*)malloc(sizeof(int));
     *container = value;
-    return schedule_value(trigger, extra_delay, container, 1);
+    return schedule_value(action, extra_delay, container, 1);
 }
 
 /**
@@ -735,14 +775,19 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
  * @param token The token to use as a template (or if it is free, to use).
  * @param length The length of the array.
  * @param num_destinations The number of destinations (for initializing the reference count).
- * @return A pointer to the new or reused token.
+ * @return A pointer to the new or reused token or null if the template token
+ *  is incompatible with this usage.
  */
-void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
+token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) {
+    // If the template token cannot carry a payload, then it is incompatible.
+    if (token->element_size == 0) {
+        fprintf(stderr, "ERROR: set_new_array: specified token cannot carry an array. It has zero element_size.\n");
+        return NULL;
+    }
     // First, initialize the token, reusing the one given if possible.
-    token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
+    token_t* new_token = __initialize_token(token, length);
+    new_token->ref_count = num_destinations;
     // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
-    // Count allocations to issue a warning if this is never freed.
-    __count_payload_allocations++;
     return new_token;
 }
 
@@ -750,6 +795,7 @@ void* __set_new_array_impl(token_t* token, int length, int num_destinations) {
  * Return a writable copy of the specified token.
  * If the reference count is 1, this returns the original token rather than a copy.
  * The reference count will still be 1.
+ * If the size of the token payload is zero, this also returns the original token.
  * Otherwise, this returns a new token with a reference count of 0.
  * To ensure that the allocated memory is not leaked, this new token must be
  * either passed to an output using set_token() or scheduled with a action
@@ -763,6 +809,9 @@ token_t* writable_copy(token_t* token) {
    } else {
         // printf("DEBUG: writable_copy: Copying array because reference count is greater than 1. It is %d.\n", token->ref_count);
         size_t size = token->element_size * token->length;
+        if (size == 0) {
+            return token;
+        }
         void* copy = malloc(size);
         // printf("DEBUG: Allocating memory for writable copy %p.\n", copy);
         memcpy(copy, token->value, size);
@@ -961,7 +1010,7 @@ void termination() {
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {
         printf("---- There are %zu unprocessed future events on the event queue.\n", pqueue_size(event_q));
-        event_t* event = pqueue_peek(event_q);
+        event_t* event = (event_t*)pqueue_peek(event_q);
         interval_t event_time = event->time - start_time;
         printf("---- The first future event has timestamp %lld after start time.\n", event_time);
     }
@@ -1039,37 +1088,3 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
 }
 #endif
 // ********** End Windows Support
-
-// Patmos does not have an epoch, so it does not have clock_gettime
-// clock() looks like not working, use the hardware counter of Patmos
-#ifdef __PATMOS__
-int clock_gettime(clockid_t clk_id, struct timespec *tp) {
-    // TODO: use all 64 bits of the timer
-    int timestamp = TIMER_US_LOW;
-// printf("Time %d\n", timestamp);
-    tp->tv_sec = timestamp/1000000;
-    tp->tv_nsec = (timestamp%1000000) * 1000;
-// printf("clock_gettime: %lld %ld\n", tp->tv_sec, tp->tv_nsec);
-    return 0;
-}
-
-int nanosleep(const struct timespec *req, struct timespec *rem) {
-
-    // We could use our deadline device here
-    int timestamp = TIMER_US_LOW;
-// printf("nanosleep: %lld %ld\n", req->tv_sec, req->tv_nsec);
-    
-    timestamp += req->tv_sec * 1000000 + req->tv_nsec / 1000;
-// printf("sleep to %d\n", timestamp);
-    while (timestamp - TIMER_US_LOW > 0) {
-        ;
-// printf("time %d\n", TIMER_US_LOW);
-    }
-    if (rem != 0) {
-        rem->tv_sec = 0;
-        rem->tv_nsec = 0;
-
-    }
-    return 0;
-}
-#endif

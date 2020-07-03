@@ -25,6 +25,8 @@ import org.eclipse.elk.core.math.ElkPadding
 import org.eclipse.elk.graph.properties.Property
 import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 
+import static extension org.eclipse.emf.ecore.util.EcoreUtil.copy
+
 /**
  * Extension class that provides styles and coloring for the Lingua France diagram synthesis.
  * 
@@ -320,15 +322,50 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     def KRendering addFixedTailArrowDecorator(KPolyline pl) {
     	val head = pl.addTailArrowDecorator()
 		head.placementData = createKDecoratorPlacementData => [
-            it.rotateWithLine = true
-            it.relative = 0f
-            it.absolute = 2f
-            it.width = 8
-            it.height = 6
-            it.setXOffset(-3f)
-            it.setYOffset(-4f)
+            rotateWithLine = true
+            relative = 0f
+            absolute = 2f
+            width = 8
+            height = 6
+            setXOffset(-3f)
+            setYOffset(-4f)
         ]
         return head
     }
 
+	def addArrayDecorator(KEdge edge, Integer size) {
+		val line = edge.KRendering
+		if (line instanceof KPolyline) {
+			//line.lineWidth = 2
+			
+			val placement = createKDecoratorPlacementData => [
+                rotateWithLine = true
+                relative = 0f
+                absolute = 6f
+            ]
+			
+			val slash = line.addChild(createKPolyline()) => [
+	            //lineWidth = 2
+	            points += createKPosition(RIGHT, 0, 0, TOP, 0, 0)
+	            points += createKPosition(LEFT, 0, 0, BOTTOM, 0, 0)
+	        ]
+	        slash.placementData = placement.copy() => [
+                width = 5
+                height = 10
+	            setYOffset(-5f)
+            ]
+            
+			if (size !== null) {
+				val num = line.addChild(createKText()) => [
+				    text = size.toString()
+				    fontSize = 5
+				    noSelectionStyle
+		        ]
+		        num.placementData = placement.copy() => [
+		            setXOffset(2f)
+	            ]
+            }
+		}
+	}
+		
 }

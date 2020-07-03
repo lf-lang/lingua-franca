@@ -41,10 +41,10 @@ reactor MessageGenerator(root:string("")) {
         // Dynamically allocate memory for the output.
         set_new_array(message, length);
         // Populate the output string and increment the count.
-        snprintf(message, length, "%s %d", self->root, self->count++);
+        snprintf(message->value, length, "%s %d", self->root, self->count++);
         printf("MessageGenerator: At time %lld, send message: %s\n",
             get_elapsed_logical_time(),
-            message
+            message->value
         );
     =}
 }
@@ -60,11 +60,11 @@ reactor PrintMessage {
     reaction(message) {=
         printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",
             get_elapsed_logical_time(),
-            message
+            message->value
         );
         // Check the trailing number only of the message.
         self->count++;
-        int trailing_number = atoi(&message[12]);
+        int trailing_number = atoi(&message->value[12]);
         if (trailing_number != self->count) {
             printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
             exit(1);

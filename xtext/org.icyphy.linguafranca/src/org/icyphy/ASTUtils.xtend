@@ -46,6 +46,7 @@ import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
@@ -89,30 +90,32 @@ class ASTUtils {
         val delayClasses = new HashSet<Reactor>()
         
         // Iterate over the connections in the tree.
-        for (connection : resource.allContents.toIterable.filter(Connection)) {
-            if (connection.delay !== null) {
-                val parent = connection.eContainer as Reactor
-                val type = (connection.rightPort.variable as Port).type
-                val delayClass = getDelayClass(type, delayClasses, generator)
-                val generic = generator.supportsGenerics ? 
-                    InferredType.fromAST(type).toText : ""
-                val delayInstance = getDelayInstance(delayClass,
-                    connection.delay, generic)
+        for (container : resource.allContents.toIterable.filter(Reactor)) {
+            for (connection : container.connections) {
+                if (connection.delay !== null) {
+                    val parent = connection.eContainer as Reactor
+                    val type = (connection.rightPort.variable as Port).type
+                    val delayClass = getDelayClass(type, delayClasses, container, resource, generator)
+                    val generic = generator.supportsGenerics
+                            ? InferredType.fromAST(type).toText
+                            : ""
+                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic)
 
-                // Stage the new connections for insertion into the tree.
-                var connections = newConnections.get(parent)
-                if (connections === null) connections = new LinkedList()
-                connections.addAll(connection.rerouteViaDelay(delayInstance))
-                newConnections.put(parent, connections)
+                    // Stage the new connections for insertion into the tree.
+                    var connections = newConnections.get(parent)
+                    if(connections === null) connections = new LinkedList()
+                    connections.addAll(connection.rerouteViaDelay(delayInstance))
+                    newConnections.put(parent, connections)
 
-                // Stage the original connection for deletion from the tree.
-                oldConnections.add(connection)
+                    // Stage the original connection for deletion from the tree.
+                    oldConnections.add(connection)
 
-                // Stage the newly created delay reactor instance for insertion
-                var instances = delayInstances.get(parent)
-                if (instances === null) instances = new LinkedList()
-                instances.addAll(delayInstance)
-                delayInstances.put(parent, instances)
+                    // Stage the newly created delay reactor instance for insertion
+                    var instances = delayInstances.get(parent)
+                    if(instances === null) instances = new LinkedList()
+                    instances.addAll(delayInstance)
+                    delayInstances.put(parent, instances)
+                }
             }
         }
         // Remove old connections; insert new ones.
@@ -122,8 +125,6 @@ class ASTUtils {
         newConnections.forEach [ reactor, connections |
             reactor.connections.addAll(connections)
         ]
-        // Also add class definitions of the created delay reactor(s).
-        delayClasses.forEach[reactor|resource.contents.add(reactor)]
         // Finally, insert the instances and, before doing so, assign them a unique name.
         delayInstances.forEach [ reactor, instantiations |
             instantiations.forEach [ instantiation |
@@ -218,10 +219,17 @@ class ASTUtils {
      * it is added to the set generated classes, and it is returned.
      * @param type The type the delay class must be compatible with.
      * @param generatedClasses Set of class definitions already generated.
+     * @param container The first container that needs this class.
+     * @param resource The eCore resource.
      * @param generator A code generator.
      */
-    private static def Reactor getDelayClass(Type type, 
-            Set<Reactor> generatedClasses, GeneratorBase generator) {
+    private static def Reactor getDelayClass(
+        Type type, 
+        Set<Reactor> generatedClasses,
+        Reactor container,
+        Resource resource,
+        GeneratorBase generator
+    ) {
         
         val className = generator.supportsGenerics ? 
             GeneratorBase.GEN_DELAY_CLASS_NAME : {
@@ -321,7 +329,57 @@ class ASTUtils {
         
         generatedClasses.add(delayClass)
         
+        // Finally, add the class definition just prior to the
+        // container reactor in the resource.
+        // Contained reactors are normally declared before container
+        // reactors. But we don't want them to be too much before
+        // because conceivably they could depend on preamble code
+        // that defines data types in previously defined reactors.
+        val model = findModel(resource)
+        val position = reactorPosition(container, model)
+        if (position < 0) {
+            throw new RuntimeException("INTERNAL ERROR: Cannot find " + container + " in the model.")
+        }
+        model.reactors.add(position, delayClass)
+        
         return delayClass
+    }
+    
+    /**
+     * Return the position of the specified reactor in the model contents.
+     * Reactor class definitions are always in the top-level Model.
+     * @param reactor The reactor class definition to find.
+     * @param model The top-level model.
+     * @return Return the position or -1 if it is not found.
+     */
+    static private def reactorPosition(Reactor reactor, Model model) {
+        var position = 0
+        for (candidate : model.reactors) {
+            if (reactor === candidate) {
+                return position
+            }
+            position++
+        }
+        return -1
+    }
+    
+    /**
+     * Return the top-level Model.
+     */
+    static def findModel(Resource resource) {
+        var model = null as Model
+        for (t : resource.contents) {
+            if (t instanceof Model) {
+                if (model !== null) {
+                    throw new RuntimeException("There is more than one Model!")
+                }
+                model = t
+            }
+        }
+        if (model === null) {
+            throw new RuntimeException("No Model found!")
+        }
+        model
     }
     
     /** 

@@ -21,11 +21,11 @@ reactor Destination {
 	state s:int(2);
 	reaction(x, w) {=
 		int sum = 0;
-		if (x_is_present) {
-			sum += x;
+		if (x->is_present) {
+			sum += x->value;
 		}
-		if (w_is_present) {
-			sum += w;
+		if (w->is_present) {
+			sum += w->value;
 		}
 		printf("Sum of inputs is: %d\n", sum);
 		if (sum != self->s) {

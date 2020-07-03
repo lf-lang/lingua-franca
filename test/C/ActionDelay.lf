@@ -7,7 +7,7 @@ reactor GeneratedDelay {
     state y_state:int(0);
     logical action act(100 msec);
     reaction(y_in) -> act {=
-        self->y_state = y_in;
+        self->y_state = y_in->value;
         schedule(act, MSEC(0));
     =}
 

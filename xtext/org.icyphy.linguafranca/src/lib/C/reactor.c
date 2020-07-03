@@ -39,7 +39,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+    trigger_t* trigger = _lf_action_to_trigger(action);
     return __schedule(trigger, extra_delay, token);
 }
 
@@ -47,11 +48,12 @@ handle_t schedule_token(trigger_t* trigger, interval_t extra_delay, token_t* tok
  * Variant of schedule_token that creates a token to carry the specified value.
  * See reactor.h for documentation.
  */
-handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+    trigger_t* trigger = _lf_action_to_trigger(action);
     token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
-    return schedule_token(trigger, extra_delay, token);
+    return schedule_token(action, extra_delay, token);
 }
 
 /**
@@ -59,23 +61,22 @@ handle_t schedule_value(trigger_t* trigger, interval_t extra_delay, void* value,
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t schedule_copy(trigger_t* trigger, interval_t offset, void* value, int length) {
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+    trigger_t* trigger = _lf_action_to_trigger(action);
     if (value == NULL) {
-        return schedule_token(trigger, offset, NULL);
+        return schedule_token(action, offset, NULL);
     }
     if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
         return -1;
     }
-    int element_size = trigger->token->element_size;
-    void* container = malloc(element_size * length);
-    __count_payload_allocations++;
-    // printf("DEBUG: __schedule_copy: Allocating memory for payload (token value): %p\n", container);
-    memcpy(container, value, element_size * length);
+    // printf("DEBUG: schedule_copy: Allocating memory for payload (token value): %p\n", container);
     // Initialize token with an array size of length and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, container, trigger->element_size, length, 0);
+    token_t* token = __initialize_token(trigger->token, length);
+    // Copy the value into the newly allocated memory.
+    memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.
-    return schedule_token(trigger, offset, token);
+    return schedule_token(action, offset, token);
 }
 
 // Advance logical time to the lesser of the specified time or the
@@ -164,7 +165,7 @@ void print_snapshot() {
 // the keepalive command-line option has not been given.
 // Otherwise, return 1.
 int next() {
-    event_t* event = pqueue_peek(event_q);
+    event_t* event = (event_t*)pqueue_peek(event_q);
     // If there is no next event and -keepalive has been specified
     // on the command line, then we will wait the maximum time possible.
     instant_t next_time = LLONG_MAX;
@@ -182,7 +183,7 @@ int next() {
         // Sleep was interrupted or the timeout time has been reached.
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
-        event_t* new_event = pqueue_peek(event_q);
+        event_t* new_event = (event_t*)pqueue_peek(event_q);
         if (new_event == event) {
             // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
@@ -208,7 +209,7 @@ int next() {
     
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
-        reaction_t* reaction = pqueue_pop(reaction_q);
+        reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
         // printf("DEBUG: Address of reaction: %p\n", reaction);
 

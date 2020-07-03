@@ -21,8 +21,8 @@ reactor EngineControl {
 	=}
 	 
 	reaction(angle) -> torque {= 
-		if (!*(self->braking)) { 
-			set(torque, calc_torq(angle));
+		if (!self->braking) { 
+			set(torque, calc_torq(angle->value));
 		}	
 	=}
 	
@@ -33,9 +33,9 @@ reactor EngineControl {
 
 reactor LeftPedal { 
 	preamble {=
-	  	#define ZERO_MAX 3;
-	  	#define ZERO_MIN 0;
-	    volatile unsigned char* mm_reg = (char*) 0x1ffff670;    
+	  	#define ZERO_MAX 3
+	  	#define ZERO_MIN 0
+	    volatile unsigned char* mm_reg = (unsigned char*) 0x1ffff670;    
 	=}
 	
 	output angle:int;
@@ -51,11 +51,11 @@ reactor LeftPedal {
     reaction(check) -> angle, on_off {=
         int a = (int) *mm_reg;
         if(!self->pressed && a > ZERO_MAX) {
-          set(on-off, true);
+          set(on_off, true);
           self->pressed = true;
         }
         if (self->pressed && a < ZERO_MIN) {
-          set(on-off, false);
+          set(on_off, false);
           self->pressed = false;
         }
         set(angle, a);
@@ -64,7 +64,7 @@ reactor LeftPedal {
 
 reactor RightPedal {
     preamble {=
-    	volatile unsigned char* mm_reg = (char*) 0x1ffff670;
+    	// volatile unsigned char* mm_reg = (char*) 0x1ffff670;
         void callback() {
             int value = (int) *mm_reg;
             self->pedal = value;

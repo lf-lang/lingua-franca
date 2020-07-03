@@ -78,12 +78,13 @@ import java.io.FileOutputStream
 
 /**
  * Generator base class for shared code between code generators.
+ * This extends AbstractLinguaFrancaValidator so that errors can be highlighted
+ * in the XText-based IDE.
  * 
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Chris Gill, <cdgill@wustl.edu>}
- *  @author{Christian Menard <christian.menard@tu-dresden.de}
- *  @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresden.de}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
 abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
@@ -106,9 +107,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
     
     public static var GEN_DELAY_CLASS_NAME = "__GenDelay"
-    
-    static protected CharSequence listItemSeparator = ', '
-    
+        
     ////////////////////////////////////////////
     //// Protected fields.
         
@@ -136,12 +135,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /**
      * Indicator of whether generator errors occurred.
+     * This is set to true by the report() method and returned by the
+     * errorsOccurred() method.
      */
-    protected var generatorErrorsOccurred = false
+    var generatorErrorsOccurred = false
     
     /**
      * If running in an Eclipse IDE, the iResource refers to the
      * IFile representing the Lingua Franca program.
+     * This is the XText view of the file, which is distinct
+     * from the Eclipse eCore view of the file and the OS view of the file.
      */
     protected var iResource = null as IResource
     
@@ -151,7 +154,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected ReactorInstance main
     
     /**
-     * Definition of the main (top-level) reactor
+     * Definition of the main (top-level) reactor.
+     * This is an automatically generated AST node for the top-level
+     * reactor.
      */
     protected Instantiation mainDef
     
@@ -171,6 +176,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     
     /**
      * The file containing the main source code.
+     * This is the Eclipse eCore view of the file, which is distinct
+     * from the XText view of the file and the OS view of the file.
      */
     protected var Resource resource
     
@@ -218,7 +225,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var Set<Reaction> unorderedReactions = null
     
     /**
-     * A map of all resources to the set of resource they import
+     * A map of all resources to the set of resource they import.
+     * These are Eclipse eCore views of the files.
      */
     protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
@@ -258,12 +266,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     )
     
     /**
-     * For the top-level reactor (main), a list of reactions in each federate.
-     *This will be null if there is only one federate.
-     */
-    protected var HashMap<FederateInstance,LinkedList<Reaction>> reactionsInFederate = null
-
-    /**
      * The build-type target parameter, or null if there is none.
      */
     protected String targetBuildType
@@ -302,6 +304,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * The value of the keepalive target parameter, or false if there is none.
      */
     protected boolean targetKeepalive
+    
+    /**
+     * The target name.
+     */
+    protected String targetName
     
     /**
      * The level of logging or null if not given.
@@ -365,6 +372,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         generatorErrorsOccurred = false
         
         var target = resource.findTarget
+        targetName = target.name
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
                 switch param.name {
@@ -642,7 +650,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     // structure for the generated C RTI?
     /** Create the runtime infrastructure (RTI) source file.
      */
-    def generateFederateRTI() {
+    def createFederateRTI() {
         // Derive target filename from the .lf filename.
         var cFilename = filename + "_RTI.c"
 
@@ -688,8 +696,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 val numUpstream = federate.dependsOn.keySet.size
                 // Allocate memory for the arrays storing the connectivity information.
                 pr(rtiCode, '''
-                    federates[«federate.id»].upstream = malloc(sizeof(federate_t*) * «numUpstream»);
-                    federates[«federate.id»].upstream_delay = malloc(sizeof(interval_t*) * «numUpstream»);
+                    federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
+                    federates[«federate.id»].upstream_delay = (interval_t*)malloc(sizeof(interval_t*) * «numUpstream»);
                     federates[«federate.id»].num_upstream = «numUpstream»;
                 ''')
                 // Next, populate these arrays.
@@ -726,7 +734,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 val numDownstream = federate.sendsTo.keySet.size
                 // Allocate memory for the array.
                 pr(rtiCode, '''
-                    federates[«federate.id»].downstream = malloc(sizeof(federate_t*) * «numDownstream»);
+                    federates[«federate.id»].downstream = (int*)malloc(sizeof(federate_t*) * «numDownstream»);
                     federates[«federate.id»].num_downstream = «numDownstream»;
                 ''')
                 // Next, populate the array.
@@ -761,8 +769,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         fOut.close()
     }
     
-    
-        /** Invoke the compiler on the generated code. */
+
+    /** Invoke the compiler on the generated code. */
     def compileCode() {
 
         // If there is more than one federate, compile each one.
@@ -1344,27 +1352,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def parseCommandOutput(String line) {
         return null as ErrorFileAndLine
     }
-    
-    /** Return a list of Reaction containing every reaction of the specified
-     *  reactor that should be included in code generated for the specified
-     *  federate. If the reaction is triggered by or sends data to a contained
-     *  reactor that is not in the federate, then that reaction will not be
-     *  included in the returned list.  This method assumes that analyzeFederates
-     *  has been called.
-     *  @param reactor The reactor
-     *  @param federate The federate or null to include all reactions.
-     */
-    protected def List<Reaction> reactionsInFederate(Reactor reactor, FederateInstance federate) {
-        if (!reactor.federated || federate === null || reactionsInFederate === null) {
-            reactor.allReactions
-        } else {
-            // reactionsInFederate is a Map<FederateInstance,List<Reaction>>
-            var result = reactionsInFederate.get(federate)
-            if (result === null) reactor.allReactions
-            else result
-        }
-    }
-    
+        
     /** Parse the specified string for command errors that can be reported
      *  using marks in the Eclipse IDE. In this class, we attempt to parse
      *  the messages to look for file and line information, thereby generating
@@ -1433,8 +1421,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     resource = files.get(0)
                 }
             } else {
+                // No line designator.
                 if (message.length > 0) {
                     message.append("\n")
+                } else {
+                    if (line.toLowerCase.contains('warning:')) {
+                        severity = IMarker.SEVERITY_WARNING
+                    }
                 }
                 message.append(line)
             }
@@ -1863,9 +1856,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 */
             }
             
-            // Create the cached list of reactions in federates.
-            reactionsInFederate = new HashMap<FederateInstance,LinkedList<Reaction>>()
-            
             // Create a FederateInstance for each top-level reactor.
             for (instantiation : mainDef.reactorClass.allInstantiations) {
                 // Assign an integer ID to the federate.
@@ -1971,16 +1961,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             for (connection : connectionsToRemove) {
                 // Remove the original connection for the parent.
                 mainDef.reactorClass.connections.remove(connection)
-            }
-            // Construct the cached list of reactions in federates.
-            for (federate : federates) {
-                val reactions = new LinkedList<Reaction>()
-                reactionsInFederate.put(federate, reactions)
-                for (reaction : mainDef.reactorClass.allReactions) {
-                    if (federate.containsReaction(mainDef.reactorClass, reaction)) {
-                        reactions.add(reaction)
-                    }
-                }
             }
         }
     }
@@ -2147,6 +2127,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     abstract def String getTargetVariableSizeListType(String baseType);
     
+    /**
+     * Return a string representing the specified type in the target language.
+     * @param type The type.
+     */ 
     def String getTargetType(InferredType type) {
         if (type.isUndefined) {
             return targetUndefinedType

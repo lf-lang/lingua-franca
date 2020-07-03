@@ -29,6 +29,7 @@ package org.icyphy.validation
 import java.util.ArrayList
 import java.util.Arrays
 import java.util.HashSet
+import java.util.LinkedList
 import java.util.List
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
@@ -70,21 +71,22 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.TypedVariable
 import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
-import java.util.LinkedList
-import org.icyphy.linguaFranca.VarRef
 
 /**
  * Custom validation checks for Lingua Franca programs.
+ * 
+ * Also see: https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  *  
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
- * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
+ * 
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
