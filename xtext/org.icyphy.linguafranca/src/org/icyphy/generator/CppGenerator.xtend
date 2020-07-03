@@ -54,7 +54,7 @@ import static extension org.icyphy.ASTUtils.*
 import java.util.stream.IntStream
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Port
-
+import org.icyphy.ASTUtils
 
 /** Generator for C++ target.
  * 
@@ -189,6 +189,15 @@ class CppGenerator extends GeneratorBase {
         var r = n.eContainer as Reactor
         'r' + r.reactions.lastIndexOf(n)
     }
+    
+    def label(Reaction n) {
+        val label = ASTUtils.label(n)
+        if (label === null) {
+            n.name
+        } else {
+            label
+        }
+    }
 
     def priority(Reaction n) {
         var r = n.eContainer as Reactor
@@ -196,7 +205,7 @@ class CppGenerator extends GeneratorBase {
     }
 
     def declare(Reaction n) '''
-        reactor::Reaction «n.name»{"«n.name»", «n.priority», this, [this]() { «n.name»_body(); }};
+        reactor::Reaction «n.name»{"«n.label»", «n.priority», this, [this]() { «n.name»_body(); }};
     '''
 
     def declareStateVariables(Reactor r) '''
@@ -285,6 +294,7 @@ class CppGenerator extends GeneratorBase {
 
     def implementReactionBodies(Reactor r) '''
         «FOR n : r.reactions SEPARATOR '\n'»
+            // reaction «n.label»
             «IF r.isGeneric»«r.templateLine»«ENDIF»
             void «r.templateName»::«n.name»_body() {
               «n.code.toText»
@@ -294,6 +304,7 @@ class CppGenerator extends GeneratorBase {
 
     def implementReactionDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '\n' SEPARATOR '\n'»
+            // deadline handler for reaction «n.label»
             «IF r.isGeneric»«r.templateLine»«ENDIF»
             void «r.templateName»::«n.name»_deadline_handler() {
               «n.deadline.code.toText»
@@ -830,7 +841,7 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "782f74eb301eabd78b10f3094044c9943aa2566b"
+          GIT_TAG "2aae163e612feb697a29cd5383e5736e7d12b3a3"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
