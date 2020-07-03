@@ -5,7 +5,7 @@ import ImportedComposition.lf;
 main reactor ImportComposition {
     a = new ImportedComposition();
     reaction(startup) -> a.x {=
-        set(a.x, 42); 
+        SET(a.x, 42); 
     =}
     reaction(a.y) {=
         interval_t receive_time = get_elapsed_logical_time();

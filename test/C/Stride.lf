@@ -9,7 +9,7 @@ reactor Count(stride:int(1)) {
     output y:int;
     timer t(0, 100 msec);
     reaction(t) -> y {=
-        set(y, self->count);
+        SET(y, self->count);
         self->count += self->stride;
     =}
 }

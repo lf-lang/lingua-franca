@@ -4,6 +4,6 @@ reactor Count {
     output out:int;
     timer t(0, 1 sec);
     reaction(t) -> out {=
-        set(out, self->count++);
+        SET(out, self->count++);
     =}
 }

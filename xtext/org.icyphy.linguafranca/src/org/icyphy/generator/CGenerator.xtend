@@ -2192,7 +2192,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         reaction.code.body = '''
                             // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            set(«rightPort.toText», «leftPort.toText»->value);
+                            SET(«rightPort.toText», «leftPort.toText»->value);
                         '''
                     }
                     reactor.reactions.add(reaction)
@@ -2873,7 +2873,7 @@ class CGenerator extends GeneratorBase {
             '''
         } else {
             '''
-            set(«outputName», «action.name»->value);
+            SET(«outputName», «action.name»->value);
             '''
         }
     }
@@ -2920,14 +2920,14 @@ class CGenerator extends GeneratorBase {
         ''')
         if (isTokenType(type)) {
             result.append('''
-                set_token(«receiveRef», «action.name»->token);
+                SET_TOKEN(«receiveRef», «action.name»->token);
                 «action.name»->token->ref_count++;
             ''')
         } else {
             // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
             // So passing it downstream should be OK.
             result.append('''
-                set(«receiveRef», «action.name»->value);
+                SET(«receiveRef», «action.name»->value);
             ''')
         }
         return result.toString

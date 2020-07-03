@@ -19,7 +19,7 @@ reactor Source(period:time(1 sec)) {
             while (get_physical_time() < start_time + sleep_time) {};
         }
         printf("Source sends: %d.\n", self->count);
-        set(y, self->count);
+        SET(y, self->count);
         (self->count)++;
     =}
 }

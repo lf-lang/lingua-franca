@@ -5,7 +5,7 @@ reactor Source {
     output out:int;
     timer t;
     reaction(t) -> out {=
-        set(out, 1);
+        SET(out, 1);
     =} 
 } 
 

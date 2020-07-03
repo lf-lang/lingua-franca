@@ -8,7 +8,7 @@ reactor SendsPointer  {
     output out:int_pointer;
     reaction(startup) -> out {=
         static int my_constant = 42;
-        set(out, &my_constant);
+        SET(out, &my_constant);
     =}
 }
 // expected parameter is for testing.
