@@ -929,7 +929,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	
 	private def Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
 		if (SHOW_USER_LABELS.booleanValue) {
-			val commentText = element.findAnnotationInComments("@label")
+			val commentText = ASTUtils.findAnnotationInComments(element, "@label")
 			
 			if (!commentText.nullOrEmpty) {
 				val comment = createNode()
