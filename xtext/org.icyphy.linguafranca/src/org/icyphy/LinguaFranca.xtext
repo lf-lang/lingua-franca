@@ -42,7 +42,7 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
  */
 Model:
     target=Target
-    (package=PackageDeclaration)
+    (package=PackageDeclaration)?
     (imports+=Import)*
     (preambles+=Preamble)*
     (reactors+=Reactor)+
