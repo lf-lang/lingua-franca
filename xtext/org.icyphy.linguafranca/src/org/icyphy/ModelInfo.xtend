@@ -124,16 +124,19 @@ class ModelInfo {
     private def void collectImports(Resource resource, Set<Resource> visited) {
         for (import : resource.allContents.toIterable.filter(Import)) {
             // Resolve the import as a URI relative to the current resource's URI.
-            val URI currentURI = resource?.getURI;
-            val URI importedURI = URI?.createFileURI(import.importURI);
-            val URI resolvedURI = importedURI?.resolve(currentURI);
-            val importResource = resource.resourceSet?.getResource(resolvedURI, true);
+            //val URI currentURI = resource?.getURI;
+            //val URI importedURI = URI?.createFileURI(import.);
+            //System.out.println(importedURI);
+            //val URI resolvedURI = importedURI?.resolve(currentURI);
+            
+            val importResource = import.importedNamespace;
+            System.out.println(importResource);
             
             // Continue recursion if not already visited.
-            if (!visited.contains(importResource)) {
-                visited.add(importResource)
-                collectImports(importResource, visited)
-            }
+//            if (!visited.contains(importResource)) {
+//                visited.add(importResource)
+//                collectImports(importResource, visited)
+//            }
         }
     }
     

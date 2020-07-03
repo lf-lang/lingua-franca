@@ -2,8 +2,6 @@
 
 package org.icyphy.scoping
 
-import org.eclipse.xtext.scoping.impl.ImportUriGlobalScopeProvider
-
 import com.google.common.base.Splitter
 import com.google.inject.Inject
 import com.google.inject.Provider
@@ -15,11 +13,12 @@ import org.eclipse.xtext.resource.IResourceDescription
 import org.eclipse.xtext.util.IResourceScopeCache
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.LinguaFrancaResourceDescriptionStrategy
+import org.eclipse.xtext.scoping.impl.AbstractGlobalScopeProvider
 
 /** Global scope provider designed limit global scope to 
  *  only those files that were explicitly imported.
  */
-class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
+class LinguaFrancaGlobalScopeProvider extends AbstractGlobalScopeProvider {
     // NOTE: Adapted from example provided by Itemis.
     // https://blogs.itemis.com/en/in-five-minutes-to-transitive-imports-within-a-dsl-with-xtext 
     
@@ -31,7 +30,8 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
     @Inject
     IResourceScopeCache cache;
 
-    override protected getImportedUris(Resource resource) {
+    // @deprecated
+    protected def getImportedUris(Resource resource) {
         return cache.get(LinguaFrancaGlobalScopeProvider.getSimpleName(), resource, new Provider<LinkedHashSet<URI>>() {
             override get() {
                 val uniqueImportURIs = collectImportUris(resource, new LinkedHashSet<URI>(5))
