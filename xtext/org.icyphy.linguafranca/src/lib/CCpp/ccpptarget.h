@@ -14,8 +14,8 @@ typedef struct {
 template <class T>
 void SET(template_port_struct* out, T value)
 {
-	out->value = value;
-	out->is_present = true;
+    out->value = value;
+    out->is_present = true;
 }
 
 #endif // CPP_TARGET_H

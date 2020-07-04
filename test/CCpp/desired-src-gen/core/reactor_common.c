@@ -246,7 +246,7 @@ static void set_reaction_position(void *a, size_t pos) {
  * Print some information about the given reaction.
  */
 static void print_reaction(FILE *out, void *reaction) {
-	reaction_t *r = (reaction_t*)reaction;
+    reaction_t *r = (reaction_t*)reaction;
     fprintf(out, "chain_id:%llu, index: %llu, reaction: %p\n", 
         r->chain_id, r->index, r);
 }
@@ -255,9 +255,9 @@ static void print_reaction(FILE *out, void *reaction) {
  * Print some information about the given event.
  */
 static void print_event(FILE *out, void *event) {
-	event_t *e = (event_t*)event;
+    event_t *e = (event_t*)event;
     fprintf(out, "time: %lld, trigger: %p, token: %p\n",
-			e->time, e->trigger, e->token);
+            e->time, e->trigger, e->token);
 }
 
 // ********** Priority Queue Support End
@@ -572,22 +572,22 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         // printf("DEBUG: __schedule: payload at %p.\n", token->value);
     }
 
-	// The trigger argument could be null, meaning that nothing is triggered.
+    // The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
     // payload will be freed, if there is one.
-	if (trigger == NULL) {
-	    __done_using(token);
-	    return 0;
-	}
+    if (trigger == NULL) {
+        __done_using(token);
+        return 0;
+    }
 
     // Increment the reference count of the token.
-	if (token != NULL) {
-	    token->ref_count++;
-	}
+    if (token != NULL) {
+        token->ref_count++;
+    }
 
     // Compute the tag (the logical timestamp for the future event).
-	// We first do this assuming it is logical action and then, if it is a
-	// physical action, modify it if physical time exceeds the result.
+    // We first do this assuming it is logical action and then, if it is a
+    // physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
     interval_t tag = current_time + delay;
     // printf("DEBUG: __schedule: current_time = %lld.\n", current_time);
@@ -728,7 +728,7 @@ void schedule_output_reactions(reaction_t* reaction) {
                 }
             }
         }
-	}
+    }
 }
 
 /**
@@ -899,64 +899,64 @@ int process_args(int argc, char* argv[]) {
            duration = atoll(time_spec);
            // A parse error returns 0LL, so check to see whether that is what is meant.
            if (duration == 0LL && strncmp(time_spec, "0", 1) != 0) {
-        	   // Parse error.
-        	   printf("Error: invalid time value: %s", time_spec);
-        	   usage(argc, argv);
-        	   return 0;
+               // Parse error.
+               printf("Error: invalid time value: %s", time_spec);
+               usage(argc, argv);
+               return 0;
            }
            if (strncmp(units, "sec", 3) == 0) {
-        	   duration = SEC(duration);
+               duration = SEC(duration);
            } else if (strncmp(units, "msec", 4) == 0) {
-        	   duration = MSEC(duration);
+               duration = MSEC(duration);
            } else if (strncmp(units, "usec", 4) == 0) {
-        	   duration = USEC(duration);
+               duration = USEC(duration);
            } else if (strncmp(units, "nsec", 4) == 0) {
-        	   duration = NSEC(duration);
+               duration = NSEC(duration);
            } else if (strncmp(units, "min", 3) == 0) {
-        	   duration = MINUTE(duration);
+               duration = MINUTE(duration);
            } else if (strncmp(units, "hour", 4) == 0) {
-        	   duration = HOUR(duration);
+               duration = HOUR(duration);
            } else if (strncmp(units, "day", 3) == 0) {
-        	   duration = DAY(duration);
+               duration = DAY(duration);
            } else if (strncmp(units, "week", 4) == 0) {
-        	   duration = WEEK(duration);
+               duration = WEEK(duration);
            } else {
-        	   // Invalid units.
-        	   printf("Error: invalid time units: %s", units);
-        	   usage(argc, argv);
-        	   return 0;
+               // Invalid units.
+               printf("Error: invalid time units: %s", units);
+               usage(argc, argv);
+               return 0;
            }
        } else if (strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--keepalive") == 0) {
-    	   if (argc < i + 2) {
-    		   printf("Error: --keepalive needs a boolean.\n");
-    		   usage(argc, argv);
-    		   return 0;
-    	   }
-    	   i++;
-    	   char* keep_spec = argv[i];
-    	   if (strcmp(keep_spec, "true") == 0) {
-    		   keepalive_specified = true;
-    	   } else if (strcmp(keep_spec, "false") == 0) {
-    		   keepalive_specified = false;
-    	   } else {
-    		   printf("Error: Invalid value for --keepalive: %s\n", keep_spec);
-    	   }
+           if (argc < i + 2) {
+               printf("Error: --keepalive needs a boolean.\n");
+               usage(argc, argv);
+               return 0;
+           }
+           i++;
+           char* keep_spec = argv[i];
+           if (strcmp(keep_spec, "true") == 0) {
+               keepalive_specified = true;
+           } else if (strcmp(keep_spec, "false") == 0) {
+               keepalive_specified = false;
+           } else {
+               printf("Error: Invalid value for --keepalive: %s\n", keep_spec);
+           }
        } else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--threads") == 0) {
-    	   if (argc < i + 2) {
-    		   printf("Error: --threads needs an integer argument.\n");
-    		   usage(argc, argv);
-    		   return 0;
-    	   }
-    	   i++;
-    	   char* threads_spec = argv[i++];
-    	   number_of_threads = atoi(threads_spec);
-    	   if (number_of_threads <= 0) {
-    		   printf("Error: Invalid value for --threads: %s\n", threads_spec);
-    	   }
+           if (argc < i + 2) {
+               printf("Error: --threads needs an integer argument.\n");
+               usage(argc, argv);
+               return 0;
+           }
+           i++;
+           char* threads_spec = argv[i++];
+           number_of_threads = atoi(threads_spec);
+           if (number_of_threads <= 0) {
+               printf("Error: Invalid value for --threads: %s\n", threads_spec);
+           }
        } else {
-    	   printf("Error: Unrecognized command-line argument: %s\n", argv[i]);
-    	   usage(argc, argv);
-    	   return 0;
+           printf("Error: Unrecognized command-line argument: %s\n", argv[i]);
+           usage(argc, argv);
+           return 0;
        }
     }
     return 1;
@@ -988,7 +988,7 @@ void initialize() {
 
     event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
-	// NOTE: The recycle queue does not need to be sorted. But here it is.
+    // NOTE: The recycle queue does not need to be sorted. But here it is.
     recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
 
