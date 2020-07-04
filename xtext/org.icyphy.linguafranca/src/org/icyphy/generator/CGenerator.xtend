@@ -376,7 +376,7 @@ class CGenerator extends GeneratorBase {
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
 
-        // Copy the required library files into the target file system.
+        // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
         var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
         if (targetThreads === 0) {
@@ -395,10 +395,21 @@ class CGenerator extends GeneratorBase {
         
         for (file : files) {
             copyFileFromClassPath(
+                "/" + "lib" + "/" + "core" + "/" + file,
+                srcGenPath + File.separator + "core" + File.separator + file
+            )
+        }
+
+        // Copy the required target language files into the target file system.
+        // This will also overwrite previous versions.
+        var targetFiles = newArrayList("ctarget.h");
+        for (file : targetFiles) {
+            copyFileFromClassPath(
                 "/" + "lib" + "/" + "C" + "/" + file,
                 srcGenPath + File.separator + file
             )
         }
+
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = filename
@@ -741,7 +752,7 @@ class CGenerator extends GeneratorBase {
             #undefine NUMBER_OF_FEDERATES
             #endif
             #define NUMBER_OF_FEDERATES «federates.length»
-            #include "rti.c"
+            #include "core/rti.c"
             int main(int argc, char* argv[]) {
         ''')
         indent(rtiCode)
@@ -913,10 +924,14 @@ class CGenerator extends GeneratorBase {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
-                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log
+                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
+                    pushd src-gen/core > /dev/
+                    echo "Copying LF core files to host «federate.host»"
+                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen
+                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
                     ssh «federate.host» 'cd «path»; «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
@@ -949,10 +964,14 @@ class CGenerator extends GeneratorBase {
             pr(distCode, '''
                 cd «path»
                 echo "Making directory «path» and subdirectories src-gen and path on host «target»"
-                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log
+                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
+                pushd src-gen/core > /dev/null
+                echo "Copying LF core files to host «target»"
+                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/core
+                popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files to host «target»"
-                scp «filename»_RTI.c rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen
+                scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
                 echo "Compiling on host «target» using: «this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
                 ssh «target» '«this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
@@ -2997,7 +3016,7 @@ class CGenerator extends GeneratorBase {
     override generatePreamble() {
         super.generatePreamble()
         
-        pr('#include "pqueue.c"')
+        pr('#include "ctarget.h"')
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
         // Handle target parameters.
@@ -3013,12 +3032,12 @@ class CGenerator extends GeneratorBase {
                    number_of_threads = «targetThreads»;
                 }
             ''')
-            pr("#include \"reactor_threaded.c\"")
+            pr("#include \"core/reactor_threaded.c\"")
         } else {
-            pr("#include \"reactor.c\"")
+            pr("#include \"core/reactor.c\"")
         }
         if (federates.length > 1) {
-            pr("#include \"federate.c\"")
+            pr("#include \"core/federate.c\"")
         }
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
