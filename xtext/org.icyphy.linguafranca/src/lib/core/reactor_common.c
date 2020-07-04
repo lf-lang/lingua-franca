@@ -103,6 +103,10 @@ int __is_present_fields_size = 0;
 // decremented at the start of each time step.
 // NOTE: This may have to be resized for a mutation.
 token_present_t* __tokens_with_ref_count = NULL;
+// Dynamically created list of tokens that are copies made
+// as a result of mutable inputs. These need to also have
+// __done_using() called on them at the start of the next time step.
+token_t* _lf_more_tokens_with_ref_count = NULL;
 int __tokens_with_ref_count_size = 0;
 
 /////////////////////////////
@@ -358,6 +362,12 @@ void __start_time_step() {
             }
             __done_using(*(__tokens_with_ref_count[i].token));
         }
+    }
+    // Also handle dynamically created tokens for mutable inputs.
+    while (_lf_more_tokens_with_ref_count != NULL) {
+        token_t* next = _lf_more_tokens_with_ref_count->next_free;
+        __done_using(_lf_more_tokens_with_ref_count);
+        _lf_more_tokens_with_ref_count = next;
     }
     for(int i = 0; i < __is_present_fields_size; i++) {
         *__is_present_fields[i] = false;

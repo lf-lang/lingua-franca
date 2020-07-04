@@ -10,7 +10,7 @@ reactor A_Really_Long_Name_For_A_Source(period:time(2 sec)) {
 	state count:int(0);
 	reaction(t) -> y {=
 		(self->count)++;
-		set(y, self->count);
+		SET(y, self->count);
 	=}
 }
 reactor Another_Really_Long_Name_For_A_Test_Class {

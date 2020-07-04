@@ -1,7 +1,7 @@
 // Source produces a dynamically allocated struct, which it passes
 // to Print. Reference counting ensures that the struct is freed.
 target C;
-reactor Source {
+reactor StructPrint {
     preamble {=
         typedef struct hello_t {
             char* name;
@@ -11,8 +11,7 @@ reactor Source {
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
-        set_new(out);
-        
+        SET_NEW(out);
         // Above allocates a struct, which then must be populated.
         out->value->name = "Earth";
         out->value->value = 42;
@@ -30,8 +29,8 @@ reactor Print(expected:int(42)) {
         }
     =}
 }
-main reactor StructPrint {
-    s = new Source();
+main reactor StructPrintTest {
+    s = new StructPrint();
     p = new Print();
     s.out -> p.in;
 }

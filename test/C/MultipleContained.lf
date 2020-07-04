@@ -6,7 +6,7 @@ reactor Contained {
     input in1:int;
     input in2:int;
     reaction(startup) -> trigger {=
-        set(trigger, 42);
+        SET(trigger, 42);
     =}
     reaction(in1) {=
         printf("in1 received %d.\n", in1->value);
@@ -26,7 +26,7 @@ reactor Contained {
 main reactor MultipleContained {
     c = new Contained();
     reaction(c.trigger) -> c.in1, c.in2 {=
-        set(c.in1, c.trigger->value);
-        set(c.in2, c.trigger->value);
+        SET(c.in1, c.trigger->value);
+        SET(c.in2, c.trigger->value);
     =}
 }

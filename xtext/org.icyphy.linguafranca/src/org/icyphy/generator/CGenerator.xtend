@@ -368,7 +368,7 @@ class CGenerator extends GeneratorBase {
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
 
-        // Copy the required library files into the target file system.
+        // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
         var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
         if (targetThreads === 0) {
@@ -387,10 +387,21 @@ class CGenerator extends GeneratorBase {
         
         for (file : files) {
             copyFileFromClassPath(
+                "/" + "lib" + "/" + "core" + "/" + file,
+                srcGenPath + File.separator + "core" + File.separator + file
+            )
+        }
+
+        // Copy the required target language files into the target file system.
+        // This will also overwrite previous versions.
+        var targetFiles = newArrayList("ctarget.h");
+        for (file : targetFiles) {
+            copyFileFromClassPath(
                 "/" + "lib" + "/" + "C" + "/" + file,
                 srcGenPath + File.separator + file
             )
         }
+
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = filename
@@ -644,9 +655,10 @@ class CGenerator extends GeneratorBase {
 
             // Write the generated code to the output file.
             var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + cFilename));
+                new File(srcGenPath + File.separator + cFilename), false);
             fOut.write(getCode().getBytes())
             fOut.close()
+            
         }
         // Restore the base filename.
         filename = baseFilename
@@ -659,11 +671,156 @@ class CGenerator extends GeneratorBase {
         } else {
             println("Exiting before invoking target compiler.")
         }
+        
+        
+        //Cleanup the code so that it is more readable
+        for (federate : federates) {
+                
+        	// Only clean one file if there is no federation.
+            if (!federate.isSingleton) {            	
+                filename = baseFilename + '_' + federate.name            	
+            }
+            
+            // Derive target filename from the .lf filename.
+            val cFilename = filename + ".c";
+            
+            
+	        // Write a clean version of the code to the output file
+	        var fOut = new FileOutputStream(
+	        new File(srcGenPath + File.separator + cFilename), false);
+	        fOut.write(getReadableCode().getBytes())
+	        fOut.close()
+	        
+	    }
     }
 
-    // //////////////////////////////////////////
-    // // Code generators.
+    ////////////////////////////////////////////
+    //// Code generators.
+    
+    /** Create the runtime infrastructure (RTI) source file.
+     */
+    def createFederateRTI() {
+        // Derive target filename from the .lf filename.
+        var cFilename = filename + "_RTI.c"
         
+        var srcGenPath = directory + File.separator + "src-gen"
+        var outPath = directory + File.separator + "bin"
+
+        // Delete source previously produced by the LF compiler.
+        var file = new File(srcGenPath + File.separator + cFilename)
+        if (file.exists) {
+            file.delete
+        }
+
+        // Delete binary previously produced by the C compiler.
+        file = new File(outPath + File.separator + filename)
+        if (file.exists) {
+            file.delete
+        }
+        
+        val rtiCode = new StringBuilder()
+        pr(rtiCode, '''
+            #ifdef NUMBER_OF_FEDERATES
+            #undefine NUMBER_OF_FEDERATES
+            #endif
+            #define NUMBER_OF_FEDERATES «federates.length»
+            #include "core/rti.c"
+            int main(int argc, char* argv[]) {
+        ''')
+        indent(rtiCode)
+        
+        // Initialize the array of information that the RTI has about the
+        // federates.
+        // FIXME: No support below for some federates to be FAST and some REALTIME.
+        pr(rtiCode, '''
+            for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                initialize_federate(i);
+                «IF targetFast»
+                    federates[i].mode = FAST;
+                «ENDIF»
+            }
+        ''')
+        // Initialize the arrays indicating connectivity to upstream and downstream federates.
+        for(federate : federates) {
+            if (!federate.dependsOn.keySet.isEmpty) {
+                // Federate receives non-physical messages from other federates.
+                // Initialize the upstream and upstream_delay arrays.
+                val numUpstream = federate.dependsOn.keySet.size
+                // Allocate memory for the arrays storing the connectivity information.
+                pr(rtiCode, '''
+                    federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
+                    federates[«federate.id»].upstream_delay = (interval_t*)malloc(sizeof(interval_t*) * «numUpstream»);
+                    federates[«federate.id»].num_upstream = «numUpstream»;
+                ''')
+                // Next, populate these arrays.
+                // Find the minimum delay in the process.
+                // FIXME: Zero delay is not really the same as a microstep delay.
+                var count = 0;
+                for (upstreamFederate : federate.dependsOn.keySet) {
+                    pr(rtiCode, '''
+                        federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
+                        federates[«federate.id»].upstream_delay[«count»] = 0LL;
+                    ''')
+                    // The minimum delay calculation needs to be made in the C code because it
+                    // may depend on parameter values.
+                    // FIXME: These would have to be top-level parameters, which don't really
+                    // have any support yet. Ideally, they could be overridden on the command line.
+                    // When that is done, they will need to be in scope here.
+                    val delays = federate.dependsOn.get(upstreamFederate)
+                    if (delays !== null) {
+                        for (value : delays) {
+                            pr(rtiCode, '''
+                                if (federates[«federate.id»].upstream_delay[«count»] < «value.getTargetTime») {
+                                    federates[«federate.id»].upstream_delay[«count»] = «value.getTargetTime»;
+                                }
+                            ''')
+                        }
+                    }
+                    count++;
+                }
+            }
+            // Next, set up the downstream array.
+            if (!federate.sendsTo.keySet.isEmpty) {
+                // Federate sends non-physical messages to other federates.
+                // Initialize the downstream array.
+                val numDownstream = federate.sendsTo.keySet.size
+                // Allocate memory for the array.
+                pr(rtiCode, '''
+                    federates[«federate.id»].downstream = (int*)malloc(sizeof(federate_t*) * «numDownstream»);
+                    federates[«federate.id»].num_downstream = «numDownstream»;
+                ''')
+                // Next, populate the array.
+                // Find the minimum delay in the process.
+                // FIXME: Zero delay is not really the same as a microstep delay.
+                var count = 0;
+                for (downstreamFederate : federate.sendsTo.keySet) {
+                    pr(rtiCode, '''
+                        federates[«federate.id»].downstream[«count»] = «downstreamFederate.id»;
+                    ''')
+                    count++;
+                }
+            }
+        }
+        
+        // Start the RTI server before launching the federates because if it
+        // fails, e.g. because the port is not available, then we don't want to
+        // launch the federates.
+        pr(rtiCode, '''
+            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
+        ''')
+        
+        // Generate code that blocks until the federates resign.
+        pr(rtiCode, "wait_for_federates(socket_descriptor);")
+        
+        unindent(rtiCode)
+        pr(rtiCode, "}")
+        
+        var fOut = new FileOutputStream(
+                new File(srcGenPath + File.separator + cFilename));
+        fOut.write(rtiCode.toString().getBytes())
+        fOut.close()
+    }
+    
     /** Create the launcher shell scripts. This will create one or two file
      *  in the output path (bin directory). The first has name equal to
      *  the filename of the source file without the ".lf" extension.
@@ -739,10 +896,14 @@ class CGenerator extends GeneratorBase {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
-                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log
+                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
+                    pushd src-gen/core > /dev/
+                    echo "Copying LF core files to host «federate.host»"
+                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen
+                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
                     ssh «federate.host» 'cd «path»; «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
@@ -775,10 +936,14 @@ class CGenerator extends GeneratorBase {
             pr(distCode, '''
                 cd «path»
                 echo "Making directory «path» and subdirectories src-gen and path on host «target»"
-                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log
+                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
+                pushd src-gen/core > /dev/null
+                echo "Copying LF core files to host «target»"
+                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/core
+                popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files to host «target»"
-                scp «filename»_RTI.c rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen
+                scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
                 echo "Compiling on host «target» using: «this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
                 ssh «target» '«this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
@@ -2018,7 +2183,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         reaction.code.body = '''
                             // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            set(«rightPort.toText», «leftPort.toText»->value);
+                            SET(«rightPort.toText», «leftPort.toText»->value);
                         '''
                     }
                     reactor.reactions.add(reaction)
@@ -2699,7 +2864,7 @@ class CGenerator extends GeneratorBase {
             '''
         } else {
             '''
-            set(«outputName», «action.name»->value);
+            SET(«outputName», «action.name»->value);
             '''
         }
     }
@@ -2746,14 +2911,14 @@ class CGenerator extends GeneratorBase {
         ''')
         if (isTokenType(type)) {
             result.append('''
-                set_token(«receiveRef», «action.name»->token);
+                SET_TOKEN(«receiveRef», «action.name»->token);
                 «action.name»->token->ref_count++;
             ''')
         } else {
             // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
             // So passing it downstream should be OK.
             result.append('''
-                set(«receiveRef», «action.name»->value);
+                SET(«receiveRef», «action.name»->value);
             ''')
         }
         return result.toString
@@ -2823,7 +2988,7 @@ class CGenerator extends GeneratorBase {
     override generatePreamble() {
         super.generatePreamble()
         
-        pr('#include "pqueue.c"')
+        pr('#include "ctarget.h"')
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
         // Handle target parameters.
@@ -2839,12 +3004,12 @@ class CGenerator extends GeneratorBase {
                    number_of_threads = «targetThreads»;
                 }
             ''')
-            pr("#include \"reactor_threaded.c\"")
+            pr("#include \"core/reactor_threaded.c\"")
         } else {
-            pr("#include \"reactor.c\"")
+            pr("#include \"core/reactor.c\"")
         }
         if (federates.length > 1) {
-            pr("#include \"federate.c\"")
+            pr("#include \"core/federate.c\"")
         }
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
@@ -2919,6 +3084,29 @@ class CGenerator extends GeneratorBase {
         }
         return null as ErrorFileAndLine
     }
+    
+    
+    /**
+     * Target specific cleanup for the C language.
+     * @return The code with #line directives removed
+     */
+     override getReadableCode()
+     {
+     	val stringCode = code.toString()
+        val lines = stringCode.split(System.getProperty("line.separator"));
+        
+        val readableStringBuilder = new StringBuilder("");
+        
+        for(line : lines)
+        {
+        	val trimmedLine = line.trim()
+        	if(!trimmedLine.startsWith("#line"))
+        	{
+        	    readableStringBuilder.append(line).append(System.getProperty("line.separator"));
+        	}
+        }
+        return readableStringBuilder.toString()
+     }
         
     // //////////////////////////////////////////
     // // Private methods.
@@ -3155,8 +3343,8 @@ class CGenerator extends GeneratorBase {
         } else if (input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
             // Mutable, non-multiport, primitive type.
             pr(builder, '''
-                // Mutable input, so copy the input struct into a temporary variable.
-                // Primitive type, so the input value on the struct is a copy.
+                // Mutable input, so copy the input into a temporary variable.
+                // The input value on the struct is a copy.
                 «structType» __tmp_«input.name» = *(self->__«input.name»);
                 «structType»* «input.name» = &__tmp_«input.name»;
             ''')
@@ -3179,12 +3367,21 @@ class CGenerator extends GeneratorBase {
                 «structType»* «input.name» = &__tmp_«input.name»;
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
-                    «input.name»->token = writable_copy(«input.name»->token);
+                    token_t* _lf_input_token = «input.name»->token;
+                    «input.name»->token = writable_copy(_lf_input_token);
+                    if («input.name»->token != _lf_input_token) {
+                        // A copy of the input token has been made.
+                        // This needs to be reference counted.
+                        «input.name»->token->ref_count = 1;
+                        // Repurpose the next_free pointer on the token to add to the list.
+                        «input.name»->token->next_free = _lf_more_tokens_with_ref_count;
+                        _lf_more_tokens_with_ref_count = «input.name»->token;
+                    }
                     «input.name»->value = («inputType.targetType»)«input.name»->token->value;
                 } else {
                     «input.name»->length = 0;
                 }
-            ''')
+            ''')            
         } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
             // Non-mutable, multiport, primitive type.
             pr(builder, '''

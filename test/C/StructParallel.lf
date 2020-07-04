@@ -6,7 +6,7 @@ target C;
 import StructScale.lf;
 
 main reactor ArrayParallel {
-    s = new Source();
+    s = new StructPrint();
     c1 = new Scale();
     c2 = new Scale(scale = 3);
     p1 = new Print(expected = 84);

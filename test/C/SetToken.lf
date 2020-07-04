@@ -1,4 +1,4 @@
-// Illustration of set_token() in the wiki.
+// Illustration of SET_TOKEN() in the wiki.
 target C;
 reactor Source {
     output out:int*;
@@ -7,7 +7,7 @@ reactor Source {
         schedule_int(a, MSEC(200), 42);
     =}
     reaction(a) -> out {=
-        set_token(out, a->token);
+        SET_TOKEN(out, a->token);
     =}
 }
 // expected parameter is for testing.

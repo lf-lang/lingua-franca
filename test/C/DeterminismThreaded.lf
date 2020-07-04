@@ -5,7 +5,7 @@ reactor Source {
 	output y:int;
 	timer t;
 	reaction(t) -> y {=
-		set(y, 1);
+		SET(y, 1);
 	=}
 } 
 reactor Destination {
@@ -30,7 +30,7 @@ reactor Pass {
 	input x:int;
 	output y:int;
 	reaction(x) -> y {=
-		set(y, x->value);
+		SET(y, x->value);
 	=}
 }
 main reactor DeterminismThreaded {
