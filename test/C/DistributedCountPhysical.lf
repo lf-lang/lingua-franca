@@ -13,7 +13,7 @@ reactor Count {
     state s:int(0);
     output out:int;
     reaction(t) -> out {=
-        set(out, self->s);
+        SET(out, self->s);
         self->s++;
     =}
 }

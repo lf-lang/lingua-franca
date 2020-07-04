@@ -663,9 +663,10 @@ class CGenerator extends GeneratorBase {
 
             // Write the generated code to the output file.
             var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + cFilename));
+                new File(srcGenPath + File.separator + cFilename), false);
             fOut.write(getCode().getBytes())
             fOut.close()
+            
         }
         // Restore the base filename.
         filename = baseFilename
@@ -678,6 +679,27 @@ class CGenerator extends GeneratorBase {
         } else {
             println("Exiting before invoking target compiler.")
         }
+        
+        
+        //Cleanup the code so that it is more readable
+        for (federate : federates) {
+                
+        	// Only clean one file if there is no federation.
+            if (!federate.isSingleton) {            	
+                filename = baseFilename + '_' + federate.name            	
+            }
+            
+            // Derive target filename from the .lf filename.
+            val cFilename = filename + ".c";
+            
+            
+	        // Write a clean version of the code to the output file
+	        var fOut = new FileOutputStream(
+	        new File(srcGenPath + File.separator + cFilename), false);
+	        fOut.write(getReadableCode().getBytes())
+	        fOut.close()
+	        
+	    }
     }
     
     /** Invoke the compiler on the generated code. */
@@ -2189,7 +2211,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         reaction.code.body = '''
                             // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            set(«rightPort.toText», «leftPort.toText»->value);
+                            SET(«rightPort.toText», «leftPort.toText»->value);
                         '''
                     }
                     reactor.reactions.add(reaction)
@@ -2870,7 +2892,7 @@ class CGenerator extends GeneratorBase {
             '''
         } else {
             '''
-            set(«outputName», «action.name»->value);
+            SET(«outputName», «action.name»->value);
             '''
         }
     }
@@ -2917,14 +2939,14 @@ class CGenerator extends GeneratorBase {
         ''')
         if (isTokenType(type)) {
             result.append('''
-                set_token(«receiveRef», «action.name»->token);
+                SET_TOKEN(«receiveRef», «action.name»->token);
                 «action.name»->token->ref_count++;
             ''')
         } else {
             // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
             // So passing it downstream should be OK.
             result.append('''
-                set(«receiveRef», «action.name»->value);
+                SET(«receiveRef», «action.name»->value);
             ''')
         }
         return result.toString
@@ -3090,6 +3112,29 @@ class CGenerator extends GeneratorBase {
         }
         return null as ErrorFileAndLine
     }
+    
+    
+    /**
+     * Target specific cleanup for the C language.
+     * @return The code with #line directives removed
+     */
+     override getReadableCode()
+     {
+     	val stringCode = code.toString()
+        val lines = stringCode.split(System.getProperty("line.separator"));
+        
+        val readableStringBuilder = new StringBuilder("");
+        
+        for(line : lines)
+        {
+        	val trimmedLine = line.trim()
+        	if(!trimmedLine.startsWith("#line"))
+        	{
+        	    readableStringBuilder.append(line).append(System.getProperty("line.separator"));
+        	}
+        }
+        return readableStringBuilder.toString()
+     }
         
     // //////////////////////////////////////////
     // // Private methods.
@@ -3368,8 +3413,8 @@ class CGenerator extends GeneratorBase {
         } else if (input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
             // Mutable, non-multiport, primitive type.
             pr(builder, '''
-                // Mutable input, so copy the input struct into a temporary variable.
-                // Primitive type, so the input value on the struct is a copy.
+                // Mutable input, so copy the input into a temporary variable.
+                // The input value on the struct is a copy.
                 «structType» __tmp_«input.name» = *(self->__«input.name»);
                 «structType»* «input.name» = &__tmp_«input.name»;
             ''')
@@ -3392,12 +3437,21 @@ class CGenerator extends GeneratorBase {
                 «structType»* «input.name» = &__tmp_«input.name»;
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
-                    «input.name»->token = writable_copy(«input.name»->token);
+                    token_t* _lf_input_token = «input.name»->token;
+                    «input.name»->token = writable_copy(_lf_input_token);
+                    if («input.name»->token != _lf_input_token) {
+                        // A copy of the input token has been made.
+                        // This needs to be reference counted.
+                        «input.name»->token->ref_count = 1;
+                        // Repurpose the next_free pointer on the token to add to the list.
+                        «input.name»->token->next_free = _lf_more_tokens_with_ref_count;
+                        _lf_more_tokens_with_ref_count = «input.name»->token;
+                    }
                     «input.name»->value = («inputType.targetType»)«input.name»->token->value;
                 } else {
                     «input.name»->length = 0;
                 }
-            ''')
+            ''')            
         } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
             // Non-mutable, multiport, primitive type.
             pr(builder, '''

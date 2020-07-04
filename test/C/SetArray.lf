@@ -1,4 +1,4 @@
-// This tests set_array()
+// This tests SET_ARRAY()
 // This tests the use of the "polymorphic" delay reactor on a struct.
 // It delays by a logical time any pointer datatype.
 target C;
@@ -7,7 +7,7 @@ reactor Source {
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
         int* array = malloc(3 * sizeof(int));
-        set_array(out, array, sizeof(int), 3);
+        SET_ARRAY(out, array, sizeof(int), 3);
         
         // Above allocates the array, which then must be populated.
         out->value[0] = 0;
