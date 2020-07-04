@@ -61,6 +61,11 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.eclipse.emf.ecore.EObject
+import org.eclipse.xtext.resource.XtextResource
+import org.eclipse.xtext.nodemodel.impl.CompositeNode
+import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
+import org.eclipse.xtext.TerminalRule
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -1359,5 +1364,60 @@ class ASTUtils {
      */
     def static isGeneric(Reactor r) {
         return r.typeParms.length != 0;
+    }
+    
+    /**
+     * Retrieve a specific annotation in a JavaDoc style comment associated with the given model element in the AST.
+     * 
+     * This will look for a JavaDoc style comment. If one is found, it searches for the given annotation `key`.
+     * and extracts any string that follows the annotation marker.  
+     * 
+     * @param object the AST model element to search a comment for
+     * @param key the specific annotation key to be extracted
+     * @return `null` if no JavaDoc style comment was found or if it does not contain the given key.
+     *     The string immediately following the annotation marker otherwise.
+     */
+    def static String findAnnotationInComments(EObject object, String key) {
+        if (object.eResource instanceof XtextResource) {
+            val compNode = NodeModelUtils.findActualNodeFor(object)
+            if (compNode !== null) {
+                var node = compNode.firstChild
+                while (node instanceof CompositeNode) {
+                    node = node.firstChild
+                }
+                while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
+                    val rule = node.grammarElement
+                    if (rule instanceof TerminalRule) {
+                        var String line;
+                        if ("SL_COMMENT".equals(rule.name)) {
+                            if (node.text.contains(key)) {
+                                line = node.text
+                            }
+                        } else if ("ML_COMMENT".equals(rule.name)) {
+                            line = node.text.split("\n").filterNull.findFirst[contains(key)]
+                        }
+                        if (line !== null) {
+                            var value = line.substring(line.indexOf(key) + key.length).trim()
+                            if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
+                                value = value.substring(0, value.indexOf("*")).trim()
+                            }
+                            return value
+                        }
+                    }
+                    node = node.nextSibling
+                }
+            }
+        }
+        return null
+    }
+    
+    /**
+     * Search for an `@label` annotation for a given reaction.
+     * 
+     * @param n the reaction for which the label should be searched
+     * @return The annotated string if an `@label` annotation was found. `null` otherwise.
+     */
+    def static String label(Reaction n) {
+        return n.findAnnotationInComments("@label")
     }
 }

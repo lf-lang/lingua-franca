@@ -3,7 +3,7 @@ target C;
 reactor Bar {
     output out:int;
     reaction(startup) -> out {=
-        set(out, 42);
+        SET(out, 42);
     =}
 }
 

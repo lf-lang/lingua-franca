@@ -1,12 +1,12 @@
 // This tests actions with immutable payloads that are neither malloc'd nor freed.
 target C;
 
-reactor Delay(delay:time(100 msec)) {
+reactor DelayString(delay:time(100 msec)) {
     input in:string;
     output out:string;
     logical action a:string;
     reaction(a) -> out {=
-        set(out, a->value);
+        SET(out, a->value);
     =}
     reaction(in) -> a {=
         // The following copies the char*, not the string.
@@ -32,11 +32,11 @@ reactor Test {
     =}
 }
 
-main reactor DelayString { 
-    d = new Delay();
+main reactor DelayStringTest { 
+    d = new DelayString();
     t = new Test();
     d.out -> t.in; 
     reaction(startup) -> d.in {=
-        set(d.in, "Hello");
+        SET(d.in, "Hello");
     =}
 }

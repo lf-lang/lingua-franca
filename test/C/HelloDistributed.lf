@@ -11,7 +11,7 @@ reactor Source {
     output out:string;
     reaction(startup) -> out {=
         printf("Sending 'Hello World!' message from source federate.\n");
-        set(out, "Hello World!");
+        SET(out, "Hello World!");
         stop();  // FIXME: This should be broadcast as a request to stop all federates.
     =}
 }

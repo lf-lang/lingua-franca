@@ -673,7 +673,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		
 		// Report error if this reaction is part of a cycle.
         for (cycle : this.info.reactionGraph.cycles) {
-            val reactorName = (reaction.eContainer as Reactor).name
+            val reactor = (reaction.eContainer) as Reactor
             if (cycle.exists[it.node === reaction]) {
                 // Report involved triggers.
                 val trigs = new LinkedList()
@@ -683,7 +683,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     ]) ? trigs.add((t as VarRef).toText) : {}
                 ]
                 if (trigs.size > 0) {
-                    error('''Reaction triggers involved in cyclic dependency in reactor «reactorName»: «trigs.join(', ')».''',
+                    error('''Reaction triggers involved in cyclic dependency in reactor «reactor.name»: «trigs.join(', ')».''',
                         Literals.REACTION__TRIGGERS)
                 }
                 
@@ -694,7 +694,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         sources.add(t.toText): {}
                 ]
                 if (sources.size > 0) {
-                    error('''Reaction sources involved in cyclic dependency in reactor «reactorName»: «sources.join(', ')».''',
+                    error('''Reaction sources involved in cyclic dependency in reactor «reactor.name»: «sources.join(', ')».''',
                         Literals.REACTION__SOURCES)
                 }
                 
@@ -705,20 +705,22 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         effects.add(t.toText): {}
                 ]
                 if (effects.size > 0) {
-                    error('''Reaction effects involved in cyclic dependency in reactor «reactorName»: «effects.join(', ')».''',
+                    error('''Reaction effects involved in cyclic dependency in reactor «reactor.name»: «effects.join(', ')».''',
                         Literals.REACTION__EFFECTS)
                 }
                 
                 if (trigs.size + sources.size == 0) {
                     error(
-                    '''Cyclic dependency due to preceding reaction. Consider reordering reactions within reactor «reactorName» to avoid causality loop.''',
-                    Literals.REACTION__CODE
-                    )    
+                    '''Cyclic dependency due to preceding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
+                    reaction.eContainer,
+                    Literals.REACTOR__REACTIONS,
+                    reactor.reactions.indexOf(reaction))    
                 } else if (effects.size == 0) {
                     error(
-                    '''Cyclic dependency due to succeeding reaction. Consider reordering reactions within reactor «reactorName» to avoid causality loop.''',
-                    Literals.REACTION__CODE
-                    )    
+                    '''Cyclic dependency due to succeeding reaction. Consider reordering reactions within reactor «reactor.name» to avoid causality loop.''',
+                    reaction.eContainer,
+                    Literals.REACTOR__REACTIONS,
+                    reactor.reactions.indexOf(reaction))
                 }
                 // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
                 // Moving them won't help solve the problem.

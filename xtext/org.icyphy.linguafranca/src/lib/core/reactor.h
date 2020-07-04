@@ -61,8 +61,8 @@
 
 //  ======== Macros ========  //
 
-#define constructor(classname) (new_ ## classname)
-#define self_struct_t(classname) (classname ## _self_t)
+#define CONSTRUCTOR(classname) (new_ ## classname)
+#define SELF_STRUCT_T(classname) (classname ## _self_t)
 
 
 // Commonly used time values.
@@ -95,7 +95,7 @@
 #define WEEKS(t) (t * 604800000000000LL)
 
 ////////////////////////////////////////////////////////////
-//// Functions for producing outputs.
+//// Macros for producing outputs.
 
 // NOTE: According to the "Swallowing the Semicolon" section on this page:
 //    https://gcc.gnu.org/onlinedocs/gcc-3.0.1/cpp_3.html
@@ -117,7 +117,7 @@
  *  reactor in form input_name.port_name.
  * @param value The value to insert into the self struct.
  */
-#define set(out, val) \
+#define SET(out, val) \
 do { \
     out->value = val; \
     out->is_present = true; \
@@ -136,7 +136,7 @@ do { \
  * @param length The length of the array to send.
  * @see token_t
  */
-#define set_array(out, val, element_size, length) \
+#define SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
     token_t* token = __initialize_token_with_value(out->token, val, length); \
@@ -160,7 +160,7 @@ do { \
  * @param out The output port (by name).
  */
 #ifndef __cplusplus
-#define set_new(out) \
+#define SET_NEW(out) \
 do { \
     out->is_present = true; \
     token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
@@ -168,7 +168,7 @@ do { \
     out->token = token; \
 } while(0)
 #else
-#define set_new(out) \
+#define SET_NEW(out) \
 do { \
     out->is_present = true; \
     token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
@@ -191,7 +191,7 @@ do { \
  * @param length The length of the array to be sent.
  */
 #ifndef __cplusplus
-#define set_new_array(out, length) \
+#define SET_NEW_ARRAY(out, length) \
 do { \
     out->is_present = true; \
     token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
@@ -199,7 +199,7 @@ do { \
     out->token = token; \
 } while(0)
 #else
-#define set_new_array(out, length) \
+#define SET_NEW_ARRAY(out, length) \
 do { \
     out->is_present = true; \
     token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
@@ -217,7 +217,7 @@ do { \
  * after this is called.
  * @param out The output port (by name).
  */
-#define set_present(out) \
+#define SET_PRESENT(out) \
 do { \
     out->is_present = true; \
 } while(0)
@@ -231,7 +231,7 @@ do { \
  * @param out The output port (by name).
  * @param token A pointer to token obtained from an input or action.
  */
-#define set_token(out, newtoken) \
+#define SET_TOKEN(out, newtoken) \
 do { \
     out->is_present = true; \
     out->value = newtoken->value; \

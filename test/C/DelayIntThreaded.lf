@@ -7,7 +7,7 @@ reactor Delay(delay:time(100 msec)) {
     output out:int;
     logical action a:int;
     reaction(a) -> out {=
-        set(out, a->value);
+        SET(out, a->value);
     =}
     reaction(in) -> a {=
         // Use specialized form of schedule for integer payloads.
@@ -52,6 +52,6 @@ main reactor DelayInt {
     t = new Test();
     d.out -> t.in; 
     reaction(startup) -> d.in {=
-        set(d.in, 42);
+        SET(d.in, 42);
     =}
 }
