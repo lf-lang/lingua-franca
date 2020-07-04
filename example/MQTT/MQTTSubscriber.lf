@@ -6,7 +6,9 @@
  * @author Ravi Akella
  * @author Edward A. Lee
  */
-target C;
+target C {
+    threads: 1  // This makes sure pthreads is included and gives access to the mutex.
+};
 
 /**
  * Reactor that subscribes to a specified MQTT topic on which
@@ -100,7 +102,10 @@ reactor MQTTSubscriber (
             // First acquire the mutex lock. Otherwise, logical time could have a big
             // jump between this calculation and the call to schedule, resulting in a long delay.
             
-            // FIXME: pthread_mutex_lock(&mutex);
+            // NOTE: Since schedule_copy also acquires this lock, we assume here that the
+            // pthreads library correctly implements recursive mutex locks to unlock all
+            // locks held by the current thread when waiting for signals.
+            pthread_mutex_lock(&mutex);
             
             instant_t timestamp = extract_ll((unsigned char*)message->payload + message->payloadlen - sizeof(instant_t));
             interval_t delay = timestamp - get_logical_time();
@@ -124,7 +129,7 @@ reactor MQTTSubscriber (
             // can measure the latency.
             schedule_copy(incoming_message, delay, (char*)message->payload, message->payloadlen);
             
-            // FIXME: pthread_mutex_unlock(&mutex);
+            pthread_mutex_unlock(&mutex);
 
             // MQTTClient_freeMessage() also frees the memory allocated to the payload,
             // which is why we have to copy the message here.
@@ -208,7 +213,7 @@ reactor MQTTSubscriber (
         // The incoming_message action contains a token that we can just forward.
         // The allocated memory will be freed when the token's reference count hits 0.
         // Note that this token will still contain the sender's timestamp.
-        set_token(message, incoming_message->token);
+        SET_TOKEN(message, incoming_message->token);
                 
         // Get the sender's timestamp.
         instant_t* timestamp = (instant_t*)(
