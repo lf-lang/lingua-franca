@@ -684,22 +684,22 @@ class CGenerator extends GeneratorBase {
         //Cleanup the code so that it is more readable
         for (federate : federates) {
                 
-        	// Only clean one file if there is no federation.
-            if (!federate.isSingleton) {            	
-                filename = baseFilename + '_' + federate.name            	
+            // Only clean one file if there is no federation.
+            if (!federate.isSingleton) {                
+                filename = baseFilename + '_' + federate.name               
             }
             
             // Derive target filename from the .lf filename.
             val cFilename = filename + ".c";
             
             
-	        // Write a clean version of the code to the output file
-	        var fOut = new FileOutputStream(
-	        new File(srcGenPath + File.separator + cFilename), false);
-	        fOut.write(getReadableCode().getBytes())
-	        fOut.close()
-	        
-	    }
+            // Write a clean version of the code to the output file
+            var fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + cFilename), false);
+            fOut.write(getReadableCode().getBytes())
+            fOut.close()
+            
+        }
     }
     
     /** Invoke the compiler on the generated code. */
@@ -2571,45 +2571,45 @@ class CGenerator extends GeneratorBase {
             
             val initializer = getInitializer(stateVar, instance)
             if (stateVar.initialized) {
-	          	if (stateVar.isOfTimeType) {
-	                pr(initializeTriggerObjects,
-	                    nameOfSelfStruct + "->" + stateVar.name + " = " +
-	                        initializer + ";")
-	            } else {
-	                // If the state is initialized with a parameter, then do not use
-	                // a temporary variable. Otherwise, do, because
-	                // static initializers for arrays and structs have to be handled
-	                // this way, and there is no way to tell whether the type of the array
-	                // is a struct.
-	                if (stateVar.isParameterized && stateVar.init.size > 0) {
-	                    pr(initializeTriggerObjects,
-	                        nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
-	                } else {
-	                    val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
-	                    // Array type has to be handled specially because C doesn't accept
-	                    // type[] as a type designator.
-	                    // Use the superclass to avoid [] being replaced by *.
-	                    var type = super.getTargetType(stateVar.inferredType)
-	                    val matcher = arrayPatternVariable.matcher(type)
-	                    if (matcher.find()) {
-	                        // If the state type ends in [], then we have to move the []
-	                        // because C is very picky about where this goes. It has to go
-	                        // after the variable name.
-	                        pr(initializeTriggerObjects,
-	                            "static " + matcher.group(1) + " " +
-	                            temporaryVariableName + "[] = " + initializer + ";"
-	                        )
-	                    } else {
-	                        pr(initializeTriggerObjects,
-	                            "static " + type + " " +
-	                            temporaryVariableName + " = " + initializer + ";"
-	                        )
-	                    }
-	                    pr(initializeTriggerObjects,
-	                        nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
-	                    ) 
-	                }
-	            }	
+                if (stateVar.isOfTimeType) {
+                    pr(initializeTriggerObjects,
+                        nameOfSelfStruct + "->" + stateVar.name + " = " +
+                            initializer + ";")
+                } else {
+                    // If the state is initialized with a parameter, then do not use
+                    // a temporary variable. Otherwise, do, because
+                    // static initializers for arrays and structs have to be handled
+                    // this way, and there is no way to tell whether the type of the array
+                    // is a struct.
+                    if (stateVar.isParameterized && stateVar.init.size > 0) {
+                        pr(initializeTriggerObjects,
+                            nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
+                    } else {
+                        val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                        // Array type has to be handled specially because C doesn't accept
+                        // type[] as a type designator.
+                        // Use the superclass to avoid [] being replaced by *.
+                        var type = super.getTargetType(stateVar.inferredType)
+                        val matcher = arrayPatternVariable.matcher(type)
+                        if (matcher.find()) {
+                            // If the state type ends in [], then we have to move the []
+                            // because C is very picky about where this goes. It has to go
+                            // after the variable name.
+                            pr(initializeTriggerObjects,
+                                "static " + matcher.group(1) + " " +
+                                temporaryVariableName + "[] = " + initializer + ";"
+                            )
+                        } else {
+                            pr(initializeTriggerObjects,
+                                "static " + type + " " +
+                                temporaryVariableName + " = " + initializer + ";"
+                            )
+                        }
+                        pr(initializeTriggerObjects,
+                            nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
+                        ) 
+                    }
+                }   
             }
         }
 
@@ -3120,18 +3120,18 @@ class CGenerator extends GeneratorBase {
      */
      override getReadableCode()
      {
-     	val stringCode = code.toString()
+        val stringCode = code.toString()
         val lines = stringCode.split(System.getProperty("line.separator"));
         
         val readableStringBuilder = new StringBuilder("");
         
         for(line : lines)
         {
-        	val trimmedLine = line.trim()
-        	if(!trimmedLine.startsWith("#line"))
-        	{
-        	    readableStringBuilder.append(line).append(System.getProperty("line.separator"));
-        	}
+            val trimmedLine = line.trim()
+            if(!trimmedLine.startsWith("#line"))
+            {
+                readableStringBuilder.append(line).append(System.getProperty("line.separator"));
+            }
         }
         return readableStringBuilder.toString()
      }
@@ -3758,7 +3758,7 @@ class CGenerator extends GeneratorBase {
             if (p.type.isList && p.init.size > 1) {
                 return p.init.join('{', ', ', '}', [it.targetValue])
             } else {
-            	return p.init.get(0).targetValue
+                return p.init.get(0).targetValue
             }
         
     }
