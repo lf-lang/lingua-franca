@@ -12,7 +12,7 @@ typedef struct {
 } template_port_struct;
 
 template <class T>
-void SET (template_port_struct* out, T value)
+void SET(template_port_struct* out, T value)
 {
 	out->value = value;
 	out->is_present = true;
