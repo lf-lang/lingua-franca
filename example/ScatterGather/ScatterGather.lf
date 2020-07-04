@@ -9,6 +9,10 @@
  * a second reaction in ScatterGather will execute. That second reaction
  * collects all the results of the workers into an array and sends the
  * result to the output.
+ * 
+ * This program should not be used as a model for creating designs.
+ * It uses internal, implementation-specific details that will eventually
+ * be abstracted out into an API.
  */
 target C { 
     threads: 4
@@ -43,6 +47,12 @@ reactor ScatterGather {
     // The type of a self struct is the reactor class name, converted to
     // lower case, followed by _self_t.
     state workers:worker_self_t**({=NULL=});
+    
+    // The data type of the upstream source does not match the
+    // data type of the workers' inputs, so we have to create an
+    // array of places to store the input data.
+    state worker_inputs:worker_worker_in_t*({=NULL=});
+    
     // Create a template worker, which ensures that downstream
     // levels are correct. The template worker could have any
     // number of reactions sensitive to the input we will provide.
@@ -50,13 +60,22 @@ reactor ScatterGather {
     reaction(in) -> template_worker.worker_in {=
         SET(template_worker.worker_in, in->value[0]);
         // SCATTER(in, worker_in, Worker, self->workers, id);
+        // Create an array of pointers to work self structs.
         self->workers = malloc(in->length * sizeof(worker_self_t*));
+        // The data type of the upstream source does not match the
+        // data type of the workers' inputs, so we have to create an
+        // array of places to store the input data.
+        self->worker_inputs = malloc(in->length * sizeof(worker_worker_in_t));
         pthread_mutex_lock(&mutex);
         for (int i=1; i < in->length; i++) {
+            printf("Initializing worker %d\n", i);
             self->workers[i] = new_Worker();
             self->workers[i]->id = i;
-            self->workers[i]->__worker_in->is_present = true;
-            self->workers[i]->__worker_in->value = in->value[i];
+            printf("HERE %d\n", i);
+            self->workers[i]->__worker_in = &self->worker_inputs[i];
+            self->worker_inputs[i].is_present = true;
+            self->worker_inputs[i].value = in->value[i]; // Copies the value or pointer.
+            self->worker_inputs[i].num_destinations = 1;
             trigger_t worker_trigger = self->workers[i]->___worker_in;
             for(int j = 0; j < worker_trigger.number_of_reactions; j++) {
                 worker_trigger.reactions[j]->index = self->___reaction_0.index + j + 1;
@@ -68,6 +87,7 @@ reactor ScatterGather {
                 worker_trigger.reactions[j]->chain_id = self->___reaction_0.chain_id;
                 pqueue_insert(reaction_q, worker_trigger.reactions[j]);
             }
+            printf("Initialized worker %d\n", i);
         }
         // Signal all the worker threads.
         pthread_cond_broadcast(&reaction_q_changed);
