@@ -284,7 +284,8 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>
+ * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
 class CGenerator extends GeneratorBase {
     
@@ -293,12 +294,6 @@ class CGenerator extends GeneratorBase {
     
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newHashSet('C')
-    
-    // Additional sources to add to the compile command if appropriate.
-    var compileAdditionalSources = null as ArrayList<String>
-
-    // Additional libraries to add to the compile command using the "-l" command-line option.
-    var compileLibraries = null as ArrayList<String>
 
     // List of deferred assignments to perform in initialize_trigger_objects.
     // FIXME: Remove this and InitializeRemoteTriggersTable
@@ -310,9 +305,6 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to go at the end of the __initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
 
-    /** The main (top-level) reactor instance. */
-    protected ReactorInstance main
-    
     // The command to run the generated code if specified in the target directive.
     var runCommand = new ArrayList<String>()
 
@@ -701,33 +693,13 @@ class CGenerator extends GeneratorBase {
             
         }
     }
+
+    ////////////////////////////////////////////
+    //// Code generators.
     
-    /** Invoke the compiler on the generated code. */
-    def compileCode() {
-
-        // If there is more than one federate, compile each one.
-        var fileToCompile = filename // base file name.
-        for (federate : federates) {
-            // Empty string means no federates were defined, so we only
-            // compile one file.
-            if (!federate.isSingleton) {
-                fileToCompile = filename + '_' + federate.name
-            }
-            executeCommand(compileCommand(fileToCompile), directory)
-        }
-        // Also compile the RTI files if there is more than one federate.
-        if (federates.length > 1) {
-            fileToCompile = filename + '_RTI'
-            executeCommand(compileCommand(fileToCompile), directory)
-        }
-    }
-
-    // //////////////////////////////////////////
-    // // Code generators.
-        
     /** Create the runtime infrastructure (RTI) source file.
      */
-    def createFederateRTI() {
+    override createFederateRTI() {
         // Derive target filename from the .lf filename.
         var cFilename = filename + "_RTI.c"
         
@@ -3138,48 +3110,6 @@ class CGenerator extends GeneratorBase {
         
     // //////////////////////////////////////////
     // // Private methods.
-    
-    /** Return a command to compile the specified C file.
-     *  @param fileToCompile The C filename without the .c extension.
-     */
-    protected def compileCommand(String fileToCompile) {
-        val cFilename = fileToCompile + ".c";            
-        val relativeSrcFilename = "src-gen" + "/" + cFilename;
-        val relativeBinFilename = "bin" + File.separator + fileToCompile;
-
-        var compileCommand = newArrayList
-        compileCommand.add(targetCompiler)
-        val flags = targetCompilerFlags.split(' ')
-        compileCommand.addAll(flags)
-        compileCommand.add(relativeSrcFilename)
-        if (compileAdditionalSources !== null) {
-            compileCommand.addAll(compileAdditionalSources)
-        }
-        if (compileLibraries !== null) {
-            compileCommand.addAll(compileLibraries)
-        }
-        // Only set the output file name if it hasn't already been set
-        // using a target property or command line flag.
-        if (compileCommand.forall[it.trim != "-o"]) {
-            compileCommand.addAll("-o", relativeBinFilename)
-        }
-
-        // If threaded computation is requested, add a -pthread option.
-        if (targetThreads !== 0) {
-            compileCommand.add("-pthread")
-        }
-        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (main === null) {
-            compileCommand.add("-c") // FIXME: revisit
-            if (mode === Mode.STANDALONE) {
-                reportError("ERROR: Did not output executable; no main reactor found.")
-            }
-        }
-        return compileCommand
-    }
     
     /** Perform deferred initializations in initialize_trigger_objects.
      *  @param federate The federate for which we are doing this.
