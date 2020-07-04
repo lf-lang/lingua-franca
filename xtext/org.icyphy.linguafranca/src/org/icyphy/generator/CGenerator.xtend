@@ -699,7 +699,7 @@ class CGenerator extends GeneratorBase {
     
     /** Create the runtime infrastructure (RTI) source file.
      */
-    def createFederateRTI() {
+    override createFederateRTI() {
         // Derive target filename from the .lf filename.
         var cFilename = filename + "_RTI.c"
         
