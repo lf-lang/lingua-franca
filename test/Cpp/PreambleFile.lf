@@ -38,7 +38,7 @@ reactor Print {
     =}
     input x:MyStruct;
     reaction(x) {=
-        auto& value = *x.get();
+        MyStruct value = *x.get(); // implicit copy
         value.foo = add_42(value.foo);
         print(value);
     =}

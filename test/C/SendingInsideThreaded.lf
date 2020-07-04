@@ -23,6 +23,6 @@ main reactor SendingInsideThreaded {
 	p = new Printer();
 	reaction(t) -> p.x {=
 		(self->count)++;
-		set(p.x, self->count);
+		SET(p.x, self->count);
 	=}
 }

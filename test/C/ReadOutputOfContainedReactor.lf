@@ -5,7 +5,7 @@ target C;
 reactor Contained {
     output out:int;
     reaction(startup) -> out {=
-        set(out, 42);
+        SET(out, 42);
     =}
 }
 main reactor ReadOutputOfContainedReactor {

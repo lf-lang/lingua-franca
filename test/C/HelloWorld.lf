@@ -1,7 +1,6 @@
 target C; 
 reactor HelloWorld {
-    timer t;
-    reaction(t) {=
+    reaction(startup) {=
         printf("Hello World.\n");
     =}
 }

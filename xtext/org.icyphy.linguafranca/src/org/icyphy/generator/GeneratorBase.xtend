@@ -1058,6 +1058,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def getCode() {
         code.toString()
     }
+    
+    /**
+     * Depending on the target language, parts of code might be
+     * generated that are only useful for the compiler and can
+     * make the generated code less readable for the end user.
+     * @return The cleaned up code so far as a String
+     */
+     protected def getReadableCode() {
+     	code.toString()
+     }
         
     /**
      * Increase the indentation of the output code produced.
