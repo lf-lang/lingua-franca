@@ -16,7 +16,7 @@ target C {
 reactor Source {
     output out:int[];
     reaction(startup) -> out {=
-        set_new_array(out, 4);
+        SET_NEW_ARRAY(out, 4);
         for (int i=0; i < 4; i++) {
             out->value[i] = i;
         }
@@ -27,7 +27,7 @@ reactor Worker(id:int(2)) {
     output worker_out:int;
     reaction(worker_in) -> worker_out {=
         printf("Worker received in first reaction%d\n", worker_in->value);
-        set(worker_out, worker_in->value * self->id);
+        SET(worker_out, worker_in->value * self->id);
     =}
     reaction(worker_in) {=
         printf("Worker received second %d\n", worker_in->value);
@@ -48,7 +48,7 @@ reactor ScatterGather {
     // number of reactions sensitive to the input we will provide.
     template_worker = new Worker();
     reaction(in) -> template_worker.worker_in {=
-        set(template_worker.worker_in, in->value[0]);
+        SET(template_worker.worker_in, in->value[0]);
         // SCATTER(in, worker_in, Worker, self->workers, id);
         self->workers = malloc(in->length * sizeof(worker_self_t*));
         pthread_mutex_lock(&mutex);
@@ -74,7 +74,7 @@ reactor ScatterGather {
         pthread_mutex_unlock(&mutex);
     =}
     reaction(in, template_worker.worker_out) -> out {=
-        set_new_array(out, in->length);
+        SET_NEW_ARRAY(out, in->length);
         // FIXME: We should be checking template_worker.worker_out_is_present.
         // But what do we do if it is not present?
         out->value[0] = template_worker.worker_out->value;
