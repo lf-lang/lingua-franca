@@ -76,6 +76,20 @@ class PortInstance extends TriggerInstance<Variable> {
     /////////////////////////////////////////////
     //// Public Methods
     
+    /** Return the full name of this instance, which has the form
+     *  "a.b.c", where "c" is the name of this instance, "b" is the name
+     *  of its container, and "a" is the name of its container, stopping
+     *  at the container in main.
+     *  @return The full name of this instance.
+     */
+    override String getFullName() {
+        var result = super.getFullName()
+        if (this.index >= 0) {
+            result += "[" + this.index + "]"
+        }
+        result
+    }
+    
     /**
      * Return the index of this port in a multiport array or -1 if
      * this port is not in a multiport array. 

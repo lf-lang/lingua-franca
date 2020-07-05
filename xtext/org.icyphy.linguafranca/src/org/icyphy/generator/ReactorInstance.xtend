@@ -130,12 +130,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // If the left side of the connection has the form port[i],
             // then use the specific port, not the multiport.
             if (connection.leftPort.variableArraySpec !== null) {
-                val width = (dstInstance as MultiportInstance).instances.size
+                val width = (srcInstance as MultiportInstance).instances.size
                 val index = connection.leftPort.variableArraySpec.length
                 if (index >= width) {
                     generator.reportError(connection.leftPort, "Index out of range.")
                 }
-                dstInstance = (dstInstance as MultiportInstance).instances.get(index)
+                srcInstance = (srcInstance as MultiportInstance).instances.get(index)
             }
             
             srcInstance.dependentPorts.add(dstInstance)
