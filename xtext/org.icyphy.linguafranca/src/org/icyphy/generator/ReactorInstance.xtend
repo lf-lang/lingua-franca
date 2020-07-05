@@ -92,7 +92,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Instantiate outputs for this reactor instance
         for (outputDecl : definition.reactorClass.allOutputs) {
-            this.outputs.add(new PortInstance(outputDecl, this))
+            if (outputDecl.arraySpec === null) {
+                this.outputs.add(new PortInstance(outputDecl, this))
+            } else {
+                this.outputs.add(new MultiportInstance(outputDecl, this, generator))
+            }
         }
 
         // Instantiate timers for this reactor instance

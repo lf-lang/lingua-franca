@@ -107,8 +107,15 @@ class ReactionInstance extends NamedInstance<Reaction> {
         for (effect : definition.effects) {
             if (effect.variable instanceof Port) {
                 var portInstance = parent.getPortInstance(effect)
-                this.dependentPorts.add(portInstance)
-                portInstance.dependsOnReactions.add(this)
+                if (portInstance instanceof MultiportInstance) {
+                    for (multiportInstance : portInstance.instances) {
+                        this.dependentPorts.add(multiportInstance)
+                        multiportInstance.dependsOnReactions.add(this)
+                    }
+                } else {
+                    this.dependentPorts.add(portInstance)
+                    portInstance.dependsOnReactions.add(this)
+                }
             } else {
                 // Effect must be an Action.
                 var actionInstance = parent.getActionInstance(

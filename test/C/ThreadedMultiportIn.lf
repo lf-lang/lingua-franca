@@ -38,6 +38,13 @@ reactor Destination {
 		}
 		self->s += 4;
 	=}
+    reaction(shutdown) {=
+        if (self->s == 0) {
+            fprintf(stderr, "ERROR: Destination received no input!\n");
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
 }
 
 main reactor ScatterGather { 
