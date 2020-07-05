@@ -2016,7 +2016,11 @@ class CGenerator extends GeneratorBase {
                         // NOTE: Need a unique name for the pointer to the malloc'd array because some of the
                         // initialization has to occur at the end of __initialize_trigger_objects(), after
                         // all reactor instances have been created.
-                        val triggerArray = '''«reactorInstance.uniqueID»_«reaction.reactionIndex»_«portCount»'''
+                        var bankIndex = ""
+                        if (reactorInstance.bankIndex >= 0) {
+                            bankIndex = '_' + reactorInstance.bankIndex + '_'
+                        }
+                        val triggerArray = '''«reactorInstance.uniqueID»«bankIndex»_«reaction.reactionIndex»_«portCount»'''
                         pr(initializeTriggerObjects, '''
                             // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
@@ -2442,12 +2446,20 @@ class CGenerator extends GeneratorBase {
     }
 
     /** Return the unique name for the "self" struct of the specified
-     *  reactor instance from the instance ID.
+     *  reactor instance from the instance ID. If the instance is a member
+     *  of a bank of reactors, this returns something of the form
+     *  name_self[index], where the index is the position within the bank.
      *  @param instance The reactor instance.
      *  @return The name of the self struct.
      */
     static def selfStructName(ReactorInstance instance) {
-        return instance.uniqueID + "_self"
+        var result = instance.uniqueID + "_self"
+        // If this reactor is a member of a bank of reactors, then change
+        // the name of its self struct to append [index].
+        if (instance.bankIndex >= 0) {
+            result += "[" + instance.bankIndex + "]"
+        }
+        return result
     }
 
     /** Construct a unique type for the "self" struct of the specified
@@ -2509,7 +2521,8 @@ class CGenerator extends GeneratorBase {
         return '''«selfStructName(reaction.parent)»->__«port.parent.name».«port.name»_trigger;'''
     }
 
-    /** Traverse the runtime hierarchy of reaction instances and generate code.
+    /** Generate code to instantiate the specified reactor instance and
+     *  initialize it.
      *  @param instance A reactor instance.
      *  @param federate A federate name to conditionally generate code by
      *   contained reactors or null if there are no federates.
@@ -2523,14 +2536,31 @@ class CGenerator extends GeneratorBase {
         var fullName = instance.fullName
         pr(initializeTriggerObjects, '// ************* Instance ' + fullName + ' of class ' +
             reactorClass.name)
-
-        // Generate the instance struct containing parameters, state variables,
-        // and outputs (the "self" struct).
+            
         var nameOfSelfStruct = selfStructName(instance)
         var structType = selfStructType(reactorClass)
-        pr(initializeTriggerObjects, '''
-            «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
-        ''')
+
+        // If this reactor is a placeholder for a bank of reactors, then generate
+        // an array of instances of reactors and return.
+        if (instance.bankMembers !== null) {
+            pr(initializeTriggerObjects, '''
+                «structType»* «nameOfSelfStruct»[«instance.bankMembers.size»];
+            ''')
+            return
+        }
+
+        // Generate the instance self struct containing parameters, state variables,
+        // and outputs (the "self" struct). The form is slightly different
+        // depending on whether its in a bank of reactors.
+        if (instance.bankIndex >= 0) {
+            pr(initializeTriggerObjects, '''
+                «nameOfSelfStruct» = new_«reactorClass.name»();
+            ''')
+        } else {
+            pr(initializeTriggerObjects, '''
+                «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
+            ''')
+        }
 
         // Generate code to initialize the "self" struct in the
         // __initialize_trigger_objects function.
@@ -2582,7 +2612,11 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects,
                             nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
                     } else {
-                        val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                        var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                        // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
+                        if (instance.bank !== null) {
+                            temporaryVariableName += "_" + instance.bankIndex
+                        }
                         // Array type has to be handled specially because C doesn't accept
                         // type[] as a type designator.
                         // Use the superclass to avoid [] being replaced by *.
