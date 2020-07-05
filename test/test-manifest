@@ -14,6 +14,7 @@ ArrayFree.lf
 ArrayParallel.lf
 ArrayPrint.lf
 ArrayScale.lf
+BankToBank.lf
 Composition.lf
 CompositionAfter.lf
 CompositionGain.lf

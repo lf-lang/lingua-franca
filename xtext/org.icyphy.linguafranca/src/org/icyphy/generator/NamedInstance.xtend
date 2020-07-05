@@ -67,11 +67,18 @@ abstract class NamedInstance<T extends EObject> {
     /** Return the full name of this instance, which has the form
      *  "a.b.c", where "c" is the name of this instance, "b" is the name
      *  of its container, and "a" is the name of its container, stopping
-     *  at the container in main.
+     *  at the container in main. If any reactor in the hierarchy is
+     *  in a bank of reactors then, it will appear as a[index].
+     *  Similarly, if c is a port in a multiport, it will appear as
+     *  c[index].
      *  @return The full name of this instance.
      */
     def String getFullName() {
-        getFullNameWithJoiner('.')
+        if (this.parent === null) {
+            this.getName
+        } else {
+            parent.getFullName() + "." + this.getName
+        }
     }
     
     /** Return the name of this instance as given in its definition.
