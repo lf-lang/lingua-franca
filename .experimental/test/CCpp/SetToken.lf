@@ -1,0 +1,28 @@
+// Illustration of SET_TOKEN() in the wiki.
+target C;
+reactor Source {
+    output out:int*;
+    logical action a:int;
+    reaction(startup) -> a {=
+        schedule_int(a, MSEC(200), 42);
+    =}
+    reaction(a) -> out {=
+        SET_TOKEN(out, a->token);
+    =}
+}
+// expected parameter is for testing.
+reactor Print(expected:int(42)) {
+    input in:int*;
+    reaction(in) {=
+        printf("Received %d\n", *(in->value));
+        if (*(in->value) != 42) {
+            printf("ERROR: Expected value to be 42.\n");
+            exit(1);
+        }
+    =}
+}
+main reactor StructPrint {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}

@@ -1,0 +1,43 @@
+// Source produces a dynamically allocated array, which it passes
+// to Print. Reference counting ensures that the array is freed.
+target C;
+reactor Source {
+    output out:int[];
+    reaction(startup) -> out {=
+        // Dynamically allocate an output array of length 3.
+        SET_NEW_ARRAY(out, 3);
+        
+        // Above allocates the array, which then must be populated.
+        out->value[0] = 0;
+        out->value[1] = 1;
+        out->value[2] = 2;
+    =}
+}
+// The scale parameter is just for testing.
+reactor Print(scale:int(1)) {
+    input in:int[];
+    reaction(in) {=
+        int count = 0;       // For testing.
+        bool failed = false; // For testing.
+        printf("Received: [");
+        for (int i = 0; i < in->length; i++) {
+            if (i > 0) printf(", ");
+            printf("%d", in->value[i]);
+            // For testing, check whether values match expectation.
+            if (in->value[i] != self->scale * count) {
+                failed = true;
+            }
+            count++;         // For testing.
+        }
+        printf("]\n");
+        if (failed) {
+            printf("ERROR: Value received by Print does not match expectation!\n");
+            exit(1);
+        }
+    =}
+}
+main reactor ArrayPrint {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
+}
