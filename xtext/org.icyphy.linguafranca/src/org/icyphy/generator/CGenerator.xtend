@@ -2937,7 +2937,6 @@ class CGenerator extends GeneratorBase {
         if (isTokenType(type)) {
             result.append('''
                 SET_TOKEN(«receiveRef», «action.name»->token);
-                «action.name»->token->ref_count++;
             ''')
         } else {
             // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
