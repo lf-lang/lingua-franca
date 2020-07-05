@@ -95,6 +95,22 @@ class PortInstance extends TriggerInstance<Variable> {
         definition instanceof Output
     }
     
+    /** Return the number of destination reactors for this port instance. */
+    def numDestinationReactors() {
+        // Count the number of destination reactors that receive data from
+        // this output port. Do this by building a set of the containers
+        // of all dependent ports and reactions. The dependentReactions
+        // includes reactions of the container that listen to this port.
+        val destinationReactors = new HashSet<ReactorInstance>()
+        for (destinationPort : this.dependentPorts) {
+            destinationReactors.add(destinationPort.parent)
+        }
+        for (destinationReaction : this.dependentReactions) {
+            destinationReactors.add(destinationReaction.parent)
+        }
+        return destinationReactors.size
+    }
+    
     /** Return a descriptive string. */
     override toString() {
         "PortInstance " + getFullName

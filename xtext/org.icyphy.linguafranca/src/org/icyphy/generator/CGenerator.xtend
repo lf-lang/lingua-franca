@@ -1471,11 +1471,24 @@ class CGenerator extends GeneratorBase {
                 for (effect : reaction.effects) {
                     if (effect.variable instanceof Port) {
                         // Create the entry in the _outputs_are_present array for this port.
+                        // If the port is a multiport, then we need to create an entry for each
+                        // individual port.
                         // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
-                        pr(constructorCode, '''
-                            self->__reaction_«reactionCount»_outputs_are_present[«outputCount»] = &self->__«ASTUtils.toText(effect)».is_present;
-                        ''')
-                        outputCount++
+                        val port = effect.variable as Port
+                        if (!port.isMultiport) {
+                            pr(constructorCode, '''
+                                self->__reaction_«reactionCount»_outputs_are_present[«outputCount»] = &self->__«ASTUtils.toText(effect)».is_present;
+                            ''')
+                            outputCount++
+                        } else {
+                            pr(constructorCode, '''
+                                for (int i = 0; i < «port.multiportWidth»; i++) {
+                                    self->__reaction_«reactionCount»_outputs_are_present[«outputCount» + i]
+                                            = &self->__«ASTUtils.toText(effect)»[i].is_present;
+                                }
+                            ''')
+                            outputCount += port.multiportWidth
+                        }
                     }
                 }
                 // Create the map of triggers to reactions.
@@ -2123,11 +2136,23 @@ class CGenerator extends GeneratorBase {
             if (reactorBelongsToFederate(child, federate)) {
                 var nameOfSelfStruct = selfStructName(child)
                 for (output : child.outputs) {
-                    pr(startTimeStep, '''
-                        // Add port «output.getFullName» to array of is_present fields.
-                        __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name».is_present;
-                    ''')
-                    startTimeStepIsPresentCount++
+                    if (output instanceof MultiportInstance) {
+                        var j = 0
+                        for (multiportInstance : output.instances) {
+                            pr(startTimeStep, '''
+                                // Add port «output.getFullName» to array of is_present fields.
+                                __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name»[«j»].is_present;
+                            ''')
+                            startTimeStepIsPresentCount++
+                            j++
+                        }
+                    } else {
+                        pr(startTimeStep, '''
+                            // Add port «output.getFullName» to array of is_present fields.
+                            __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name».is_present;
+                        ''')
+                        startTimeStepIsPresentCount++
+                    }
                 }
             }
         }
@@ -2600,21 +2625,21 @@ class CGenerator extends GeneratorBase {
         // One of the destination reactors may be the container of this
         // instance because it may have a reaction to an output of this instance. 
         for (output : instance.outputs) {
-            // Count the number of destination reactors that receive data from
-            // this output port. Do this by building a set of the containers
-            // of all dependent ports and reactions. The dependentReactions
-            // includes reactions of the container that listen to this port.
-            val destinationReactors = new HashSet<ReactorInstance>()
-            for (destinationPort : output.dependentPorts) {
-                destinationReactors.add(destinationPort.parent)
+            if (output instanceof MultiportInstance) {
+                var j = 0
+                for (multiportInstance : output.instances) {
+                    var numDestinations = multiportInstance.numDestinationReactors
+                    pr(initializeTriggerObjects, '''
+                        «nameOfSelfStruct»->__«output.name»[«j»].num_destinations = «numDestinations»;
+                    ''')
+                    j++
+                }
+            } else {
+                var numDestinations = output.numDestinationReactors
+                pr(initializeTriggerObjects, '''
+                    «nameOfSelfStruct»->__«output.name».num_destinations = «numDestinations»;
+                ''')
             }
-            for (destinationReaction : output.dependentReactions) {
-                destinationReactors.add(destinationReaction.parent)
-            }
-            var numDestinations = destinationReactors.size
-            pr(initializeTriggerObjects, '''
-                «nameOfSelfStruct»->__«output.name».num_destinations = «numDestinations»;
-            ''')
         }
         
         // Do the same for inputs of contained reactors that are sent data by reactions
@@ -3460,12 +3485,23 @@ class CGenerator extends GeneratorBase {
                 "Output is required to have a type: " + output.name)
         } else {
             val outputStructType = variableStructType(output, reactor)
-            // FIXME: This is not likely to work for multiports.
-            var arraySpec = output.multiportArraySpec
-            if (arraySpec != '') arraySpec = '*'
-            pr(builder, '''
-                «outputStructType»*«arraySpec» «output.name» = &self->__«output.name»;
-            ''')
+            // Unfortunately, for the SET macros to work out-of-the-box for
+            // multiports, we need an array of *pointers* to the output structs,
+            // but what we have on the self struct is an array of output structs.
+            // So we have to handle multiports specially here a construct that
+            // array of pointers.
+            if (!output.isMultiport) {
+                pr(builder, '''
+                    «outputStructType»* «output.name» = &self->__«output.name»;
+                ''')
+            } else {
+                pr(builder, '''
+                    «outputStructType»* «output.name»[«output.multiportWidth»];
+                    for(int i=0; i < «output.multiportWidth»; i++) {
+                         «output.name»[i] = &(self->__«output.name»[i]);
+                    }
+                ''')
+            }
         }
     }
 
