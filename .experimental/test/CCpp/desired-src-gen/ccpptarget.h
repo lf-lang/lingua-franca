@@ -5,6 +5,8 @@
 #include "core/pqueue.c"
 #include "core/reactor.c"
 
+#define SET(out, value) set(out, value)
+
 typedef struct {
     int value;
     bool is_present;
@@ -12,7 +14,7 @@ typedef struct {
 } template_port_struct;
 
 template <class T>
-void SET(template_port_struct* out, T value)
+void set(template_port_struct* out, T value)
 {
     out->value = value;
     out->is_present = true;

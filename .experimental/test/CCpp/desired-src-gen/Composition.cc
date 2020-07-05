@@ -48,7 +48,7 @@ public:
         source_y_t *y = &self->__y;
         self->count++;
         std::cout << "Source sending " << self->count << "." << std::endl;
-        SET<int>((template_port_struct *)y, self->count);
+        SET((template_port_struct *)y, self->count);
     }
 };
 // =============== END reactor class Source
