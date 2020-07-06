@@ -14,6 +14,7 @@ import org.icyphy.validation.LinguaFrancaNamesAreUniqueValidationHelper
 import com.google.inject.Provider
 
 import org.eclipse.xtext.resource.containers.ResourceSetBasedAllContainersStateProvider
+import org.icyphy.scoping.LinguaFrancaStateManagerProvider
 
 /**
  * This class is used to register components to be used at runtime 
@@ -26,7 +27,7 @@ class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
     }
     
    override Class<? extends IAllContainersState.Provider> bindIAllContainersState$Provider() {
-		return ResourceSetBasedAllContainersStateProvider;
+		return LinguaFrancaStateManagerProvider;
 	}
 		
     /** Establish a binding to our custom resource description strategy. */

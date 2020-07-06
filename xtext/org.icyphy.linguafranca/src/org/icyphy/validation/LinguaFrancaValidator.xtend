@@ -144,6 +144,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
         var greeting_description = resourceDescriptions.getResourceDescription(reactor.eResource.URI)
         var visibleContainers = containerManager.getVisibleContainers(greeting_description, resourceDescriptions)
+        System.out.println("Visible containers are " + visibleContainers)
 
         for (visibleContainer : visibleContainers) {
             for (otherDescription : visibleContainer.getExportedObjectsByType(LinguaFrancaPackage.Literals.REACTOR)) {
