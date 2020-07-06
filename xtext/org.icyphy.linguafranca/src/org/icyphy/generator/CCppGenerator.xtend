@@ -346,12 +346,19 @@ class CCppGenerator extends CGenerator {
         acceptableTargetSet
     }
     
-    
+    /** Add necessary include files specific to the target language.
+     *  Note. The core files always need to be copied uniformly across
+     *  all target languages.
+     */
     override includeTargetLanguageHeaders()
     {    	
         pr('#include "ccpptarget.h"')
     }
     
+    /** Append the appropriate filename for the given target language
+     * @param fileName The file name used internally by Lingua Franca
+     * which doesn't include the target-specific extension.
+     */
     override getTargetFileName(String fileName)
     {
     	return fileName + ".cc";
@@ -369,7 +376,10 @@ class CCppGenerator extends CGenerator {
             	super.doGenerate(resource, fsa, context);
             }
             
-            
+    
+    /**
+     * Copy C specific target code to the src-gen directory
+     */        
     override copyTargetFiles()
     {    	
         var srcGenPath = directory + File.separator + "src-gen"
