@@ -155,7 +155,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // Note that this can only happen _after_ the children and 
         // port instances have been created.
         for (connection : definition.reactorClass.allConnections) {
-            // FIXME: If the source or the destination's .container is a bank
+            // If the source or the destination's .container is a bank
             // of reactors, then the following will return null.
             var srcInstance = this.getPortInstance(connection.leftPort)
             var dstInstance = this.getPortInstance(connection.rightPort)
@@ -197,8 +197,39 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 // Destination is probably a bank of reactors.
                 // FIXME
             } else {
-                // Ordinary connection
-                connectPortInstances(connection, srcInstance, dstInstance)                
+                // Source and destination could both be multiports,
+                // or destination could be a multiport.
+                if (dstInstance instanceof MultiportInstance) {
+                    var width = dstInstance.instances.size
+                    if (srcInstance instanceof MultiportInstance) {
+                        // Both source and destination are multiports.
+                        if (srcInstance.instances.size < width) {
+                            width = srcInstance.instances.size
+                        }
+                        var srcIterator = srcInstance.instances.iterator
+                        var dstIterator = dstInstance.instances.iterator
+                        while (width-- > 0) {
+                            connectPortInstances(connection, srcIterator.next, dstIterator.next)
+                        }
+                    } else {
+                        // Only the destination is a multiport.
+                        // If no specific destination index has been specified, then
+                        // broadcast to all of them.
+                        if (connection.rightPort.variableArraySpec === null) {
+                            for (dst : dstInstance.instances) {
+                                connectPortInstances(connection, srcInstance, dst)
+                            }
+                        } else {
+                            // Otherwise, just connect to the one.
+                            connectPortInstances(connection, srcInstance, dstInstance)
+                        }
+                    }
+                } else {
+                    // Ordinary connection.
+                    // NOTE: Counting on the validator to prevent connection of multiport output
+                    // to single port input.
+                    connectPortInstances(connection, srcInstance, dstInstance)
+                }               
             }           
         }
 
@@ -261,12 +292,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // then use the specific port, not the multiport.
         var destination = dstInstance
         if (connection.rightPort.variableArraySpec !== null) {
-            val width = (dstInstance as MultiportInstance).instances.size
-            val index = connection.rightPort.variableArraySpec.length
-            if (index >= width) {
-                generator.reportError(connection.rightPort, "Index out of range.")
+            // The specific port may already be the one specified, in which case,
+            // skip this.
+            if (dstInstance instanceof MultiportInstance) {
+                val width = (dstInstance as MultiportInstance).instances.size
+                val index = connection.rightPort.variableArraySpec.length
+                if (index >= width) {
+                    generator.reportError(connection.rightPort, "Index out of range.")
+                }
+                destination = (dstInstance as MultiportInstance).instances.get(index)
             }
-            destination = (dstInstance as MultiportInstance).instances.get(index)
         }
         var source = srcInstance
         // If the left side of the connection has the form port[i],
