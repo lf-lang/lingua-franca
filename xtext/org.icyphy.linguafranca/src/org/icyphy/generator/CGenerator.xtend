@@ -732,7 +732,7 @@ class CGenerator extends GeneratorBase {
      */
     override createFederateRTI() {
         // Derive target filename from the .lf filename.
-        var cFilename = filename + "_RTI.c"
+        var cFilename = getTargetFileName(filename + "_RTI")
         
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"

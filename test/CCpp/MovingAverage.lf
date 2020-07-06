@@ -11,7 +11,7 @@ reactor Source {
     state count:int(0);
     timer clock(0, 200 msec);
     reaction(clock) -> out {=
-        SET(out, self->count);
+        SET(out, (double)self->count);
         self->count++;
     =}
 }
@@ -42,10 +42,10 @@ reactor Print {
     input in:double;
     state count:int(0);
     reaction(in) {=
-        printf("Received: %f\n", in->value);
+        std::cout << "Received: " << in->value << std::endl;
         static double expected[] = {0.0, 0.25, 0.75, 1.5, 2.5, 3.5};
         if (in->value != expected[self->count]) {
-            printf("ERROR: Expected %f.\n", expected[self->count]);
+            std::cerr << "ERROR: Expected " << expected[self->count] << std::endl;
             exit(1);
         }
         self->count++;

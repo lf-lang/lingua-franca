@@ -17,16 +17,16 @@ reactor Test {
     input in:string;
     state start_time:time(0);
     reaction(in) {=
-        printf("Received: %s.\n", in->value);
+        std::cout << "Received:" << in->value << "." << std::endl;
         // Check the time of the input.
         interval_t elapsed = get_elapsed_logical_time();
-        printf("After %lld nsec of logical time.\n", elapsed);
+        std::cout << "After " << elapsed << " nsec of logical time." << std::endl;
         if (elapsed != 100000000LL) {
-            printf("ERROR: Expected elapsed time to be 100000000. It was %lld.\n", elapsed);
+            std::cerr << "ERROR: Expected elapsed time to be 100000000. It was " << elapsed << std::endl;
             exit(1);
         }
         if (strcmp(in->value, "Hello") != 0) {
-            printf("ERROR: Expected input value to be \"Hello\". It was \"%s\".\n", in->value);
+            std::cout << "ERROR: Expected input value to be \"Hello\". It was " << in->value << "\"." << std::endl;
             exit(2);            
         }
     =}
@@ -37,6 +37,7 @@ main reactor DelayStringTest {
     t = new Test();
     d.out -> t.in; 
     reaction(startup) -> d.in {=
-        SET(d.in, "Hello");
+        char *hello_c = "Hello";
+        SET(d.in, hello_c);
     =}
 }
