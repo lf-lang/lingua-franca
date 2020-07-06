@@ -11,6 +11,9 @@ import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper
 import org.icyphy.scoping.LinguaFrancaContainerManager
 import org.icyphy.scoping.LinguaFrancaStateManager
 import org.icyphy.validation.LinguaFrancaNamesAreUniqueValidationHelper
+import com.google.inject.Provider
+
+import org.eclipse.xtext.resource.containers.ResourceSetBasedAllContainersStateProvider
 
 /**
  * This class is used to register components to be used at runtime 
@@ -22,9 +25,9 @@ class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
         return LinguaFrancaContainerManager;
     }
     
-    def Class<? extends IAllContainersState> provideIAllContainersState() {
-        return LinguaFrancaStateManager;
-    }
+   override Class<? extends IAllContainersState.Provider> bindIAllContainersState$Provider() {
+		return ResourceSetBasedAllContainersStateProvider;
+	}
 		
     /** Establish a binding to our custom resource description strategy. */
     def Class<? extends IDefaultResourceDescriptionStrategy> bindIDefaultResourceDescriptionStrategy() {
