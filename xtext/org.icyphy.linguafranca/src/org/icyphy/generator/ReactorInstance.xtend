@@ -102,6 +102,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 var childInstance = new ReactorInstance(definition, parent, generator, index)
                 this.bankMembers.add(childInstance)
                 childInstance.bank = this
+                childInstance.bankIndex = index
             }
             return
         }
@@ -166,9 +167,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 if (sourceReactor === null || sourceReactor.bankMembers === null) {
                     generator.reportError(connection.leftPort, "No such source port.")
                 } else {
-                    // Source is a bank of reactors. Two possibilities now.
-                    // Either the destination is also a bank of reactors or
-                    // the destination port is a multiport.
+                    // Source is a bank of reactors. 
+                    var width = sourceReactor.bankMembers.size
+                    // Two possibilities now. Either the destination is also a bank 
+                    // of reactors or the destination port is a multiport.
                     if (dstInstance === null) {
                         // Destination is probably a bank of reactors.
                         var destinationReactor = this.getChildReactorInstance(connection.rightPort.container)
@@ -176,7 +178,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                             generator.reportError(connection.rightPort, "No such destinations port.")
                         } else {
                             // Bank to bank connection. Find the lesser of the two widths.
-                            var width = sourceReactor.bankMembers.size
                             if (destinationReactor.bankMembers.size < width) {
                                 width = destinationReactor.bankMembers.size
                             }
@@ -185,17 +186,29 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                                 srcInstance = sourceReactor.bankMembers.get(i).lookupLocalPort(connection.leftPort.variable as Port)
                                 dstInstance = destinationReactor.bankMembers.get(i).lookupLocalPort(connection.rightPort.variable as Port)
                                 connectPortInstances(connection, srcInstance, dstInstance)
-                                print("FIXME connecting " + srcInstance.toString + " to " + dstInstance.toString)
                             }
                         }
+                    } else if (dstInstance instanceof MultiportInstance) {
+                        // Destination is a multiport.
+                        if (dstInstance.width < width) {
+                            width = dstInstance.width
+                        }
+                        for (var i = 0; i < width; i++) {
+                            // srcInstance is null, so replace it.
+                            srcInstance = sourceReactor.bankMembers.get(i).lookupLocalPort(
+                                connection.leftPort.variable as Port)
+                            val dstPortInstance = dstInstance.getInstance(i)
+                            connectPortInstances(connection, srcInstance, dstPortInstance)
+                        }
                     } else {
-                        // Destination is probably a multiport.
-                        // FIXME
+                        generator.reportError(connection.rightPort,
+                            "Cannot connect a bank of reactors to a single port."
+                        )
                     }
                 }
             } else if (dstInstance === null) {
                 // Destination is probably a bank of reactors.
-                // FIXME
+                // FIXME FIXME FIXME
             } else {
                 // Source and destination could both be multiports,
                 // or destination could be a multiport.

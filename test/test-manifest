@@ -11,8 +11,10 @@ AsyncCallbackDrop.lf
 ArrayAsParameter.lf
 ArrayAsType.lf
 ArrayFree.lf
+ArrayInstancesToArrayPort.lf
 ArrayParallel.lf
 ArrayPrint.lf
+ArrayPorts.lf
 ArrayScale.lf
 BankToBank.lf
 Composition.lf
@@ -101,4 +103,3 @@ ThreadedThreaded.lf
 TimeLimit.lf
 TimeLimitThreaded.lf
 UnconnectedInput.lf
-
