@@ -1279,7 +1279,28 @@ class CGenerator extends GeneratorBase {
             
             pr(input, body, '''
                 «variableStructType(input, reactor)»* __«input.name»«arraySpec»;
+                // Default input (in case it does not get connected)
+                «variableStructType(input, reactor)» __default__«input.name»;
             ''')
+            if (input.arraySpec === null) {
+                pr(input, constructorCode, '''
+                    // Set input by default to an always absent default input.
+                    self->__«input.name» = &self->__default__«input.name»;
+                ''')
+            } else {
+                // input is a multiport. Need to set defaults in case it
+                // remains unconnected.
+                if (input.arraySpec.ofVariableLength) {
+                    reportError(input, "Variable width multiports not supported.")
+                } else {
+                    pr(input, constructorCode, '''
+                        // Set inputs by default to an always absent default input.
+                        for (int i = 0; i < «input.arraySpec.length»; i++) {
+                            self->__«input.name»[i] = &self->__default__«input.name»;
+                        }
+                    ''')
+                }
+            }
         }
 
         // Find output ports that receive data from inside reactors
@@ -3248,9 +3269,6 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        // Set all input pointers to point to NULL by default.
-        setInputsAbsentByDefault(main, federate)
-        
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
         createDefaultTokens(main, federate)
@@ -3762,39 +3780,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Set inputs _is_present variables to the default false.
-     *  This is useful in case the input is left unconnected.
-     *  @param parent The container reactor.
-     *  @param federate The federate, or null if there is no federation.
-     */
-    private def void setInputsAbsentByDefault(ReactorInstance parent, FederateInstance federate) {
-        // For all inputs, set a default where their _is_present variable points to False.
-        // This handles dangling input ports that are not connected to anything
-        // even if they are connected locally in the hierarchy, but not globally.
-        for (containedReactor : parent.children) {
-            // Do this only for reactors in the federate.
-            if (reactorBelongsToFederate(containedReactor, federate)) {
-                var selfStructName = selfStructName(containedReactor)
-                for (input : containedReactor.inputs) {
-                    val width = input.definition.multiportWidth
-                    if (width > 0) {
-                        pr('''
-                            for (int i = 0; i < «width»; i++) {
-                                «selfStructName»->__«input.definition.name»[i] = NULL;
-                            }
-                        ''')
-                    } else {
-                        pr('''
-                            «selfStructName»->__«input.definition.name» = NULL;
-                        ''')                        
-                    }
-                }
-                // In case this is a composite, handle its assignments.
-                setInputsAbsentByDefault(containedReactor, federate)
-            }
-        }
-    }
-        
     // Regular expression pattern for array types with specified length.
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
