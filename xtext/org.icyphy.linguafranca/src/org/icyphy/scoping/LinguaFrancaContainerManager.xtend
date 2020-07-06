@@ -49,6 +49,8 @@ class LinguaFrancaContainerManager extends StateBasedContainerManager {
 		{
 			System.out.println("Error: " + e.message)
 		}
+		
+		System.out.println("Returning containers : " + result)
 		return result;
 	}
 
