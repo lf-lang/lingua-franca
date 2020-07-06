@@ -2608,6 +2608,19 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
+            // If the reactor has a parameter named "bank_position", set it.
+            for (parameter : reactorClass.allParameters) {
+                if (parameter.name == "bank_position"
+                    && getTargetType(parameter.inferredType) == "int"
+                ) {
+                    // Override the default parameter value for bank_position.
+                    // This needs to be at the end or it will be overwrittend
+                    // with the default parameter value.
+                    pr(initializeTriggerObjectsEnd, '''
+                        «nameOfSelfStruct»->bank_position = «instance.bankIndex»;
+                    ''')
+                }
+            }
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
@@ -3532,6 +3545,7 @@ class CGenerator extends GeneratorBase {
                 «structType»** «input.name» = self->__«input.name»;
             ''')
         } else {
+            // FIXME FIXME FIXME
             throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
         }
         // Set the _width variable for all cases. This will be -1
@@ -3621,6 +3635,12 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')
             }
+            // Set the _width variable for all cases. This will be -1
+            // for a variable-width multiport, which is not currently supported.
+            // It will be -2 if it is not multiport.
+            pr(builder, '''
+                int «output.name»_width = «output.multiportWidth»;
+            ''')
         }
     }
 

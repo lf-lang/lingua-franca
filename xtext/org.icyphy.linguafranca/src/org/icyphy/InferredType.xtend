@@ -49,7 +49,7 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Christian Menard <christian.menard@tu-dresden.de>}
  */
 class InferredType {
-    /** The AST node representing the inferred type if such a note exists.  */    
+    /** The AST node representing the inferred type if such a node exists.  */    
     public val Type astType
     /** A flag indicating whether the inferred type has the base type time. */
     public val Boolean isTime
