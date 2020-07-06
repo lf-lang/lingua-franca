@@ -38,10 +38,17 @@ class LinguaFrancaContainerManager extends StateBasedContainerManager {
 				result.set(0, first);
 			}
 		}
-		val LF_CLASSPATH = System.getenv("LF_CLASSPATH")
-		System.out.println("Reading Lingua Franca classpath: " + LF_CLASSPATH)
-		val paths = LF_CLASSPATH.split(System.getProperty("path.separator"));
-		result.addAll(getVisibleContainers(paths, resourceDescriptions))
+		
+		try{
+		    val LF_CLASSPATH = System.getenv("LF_CLASSPATH")
+		    System.out.println("Reading Lingua Franca classpath: " + LF_CLASSPATH)
+		    val paths = LF_CLASSPATH.split(System.getProperty("path.separator"));
+		    result.addAll(super.getVisibleContainers(paths, resourceDescriptions))
+		}
+		catch (Exception e)
+		{
+			System.out.println("Error: " + e.message)
+		}
 		return result;
 	}
 
