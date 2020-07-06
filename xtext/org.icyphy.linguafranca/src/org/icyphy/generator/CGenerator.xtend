@@ -3288,10 +3288,41 @@ class CGenerator extends GeneratorBase {
                         destination.definition as TypedVariable,
                         destination.parent.definition.reactorClass
                     )
+                    // If the source or destination (or both) is a multiport, then
+                    // we need an iterative connection here over the minimum of the widths of
+                    // the two multiports.
+                    var srcIndex = ""
+                    var dstIndex = ""
+                    var width = 0
+                    if (eventualSource instanceof MultiportInstance) {
+                        // Source is a multiport.
+                        srcIndex = "[i]"
+                        width = eventualSource.instances.size
+                        if (!(destination instanceof MultiportInstance)) {
+                             // FIXME: What if the destination reactor is a bank of reactors?
+                             // FIXME FIXME FIXME
+                            reportError(destination.definition, "Cannot connect a multiport to a single port")
+                        }
+                    }
+                    if (destination instanceof MultiportInstance) {
+                        // Destination is a multiport.
+                        dstIndex = "[i]"
+                        if (destination.instances.size < width) {
+                            width = destination.instances.size
+                        }
+                    }
+                    if (width > 0) {
+                        pr('''for (int i = 0; i < «width»; i++) {''')
+                        indent()
+                    }
                     pr('''
                         // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                        «destinationReference(destination)» = («destStructType»*)&«sourceReference(eventualSource)»;
+                        «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
                     ''')
+                    if (width > 0) {
+                        unindent()
+                        pr("}")
+                    }
                 }
             }
         }
