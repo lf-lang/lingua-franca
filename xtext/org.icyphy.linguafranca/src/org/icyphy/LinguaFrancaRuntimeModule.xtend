@@ -10,9 +10,7 @@ import org.eclipse.xtext.scoping.impl.DefaultGlobalScopeProvider
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper
 import org.icyphy.scoping.LinguaFrancaContainerManager
 import org.icyphy.scoping.LinguaFrancaStateManager
-import org.eclipse.xtext.validation.NamesAreUniqueValidationHelper
 import org.icyphy.validation.LinguaFrancaNamesAreUniqueValidationHelper
-import com.google.inject.Provider;
 
 /**
  * This class is used to register components to be used at runtime 
@@ -24,10 +22,9 @@ class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
         return LinguaFrancaContainerManager;
     }
     
-    def Class<? extends IAllContainersState.Provider> provideIAllContainersState() {
+    def Class<? extends IAllContainersState> provideIAllContainersState() {
         return LinguaFrancaStateManager;
     }
-    
 		
     /** Establish a binding to our custom resource description strategy. */
     def Class<? extends IDefaultResourceDescriptionStrategy> bindIDefaultResourceDescriptionStrategy() {
