@@ -289,6 +289,9 @@ import static extension org.icyphy.ASTUtils.*
  */
 class CCppGenerator extends CGenerator {
 	
+	// Set of acceptable import targets includes only C.
+    val acceptableTargetSet = newHashSet('C','CCpp')
+	
 	new () {
         super()
         // set defaults
@@ -301,6 +304,20 @@ class CCppGenerator extends CGenerator {
     
    ////////////////////////////////////////////
     //// Public methods
+    
+    
+    ////////////////////////////////////////////
+    //// Protected methods
+    
+    /** Return a set of targets that are acceptable to this generator.
+     *  Imported files that are Lingua Franca files must specify targets
+     *  in this set or an error message will be reported and the import
+     *  will be ignored. The returned set contains only "C".
+     */
+    override acceptableTargets() {
+        acceptableTargetSet
+    }
+    
     
     override includeTargetLanguageHeaders()
     {    	
@@ -529,9 +546,17 @@ class CCppGenerator extends CGenerator {
             // So we have to handle multiports specially here a construct that
             // array of pointers.
             if (!output.isMultiport) {
-                pr(builder, '''
-                    «template_port_type»<«outputType.targetType»>* «output.name» = («template_port_type»<«outputType.targetType»> *) &self->__«output.name»;
-                ''')
+            	if (!outputType.isTokenType) {
+                    pr(builder, '''
+                        «template_port_type»<«outputType.targetType»>* «output.name» = («template_port_type»<«outputType.targetType»> *) &self->__«output.name»;
+                    ''')
+                }
+                else 
+                {
+                    pr(builder, '''
+                        «template_port_type_with_token»<«outputType.targetType»>* «output.name» = («template_port_type_with_token»<«outputType.targetType»> *) &self->__«output.name»;
+                    ''')                	
+                }
             } else {
                 pr(builder, '''
                     «template_port_type»<«outputType.targetType»>* «output.name»[«output.multiportWidth»];
