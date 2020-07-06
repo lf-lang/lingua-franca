@@ -12,7 +12,6 @@ import org.icyphy.scoping.LinguaFrancaContainerManager
 import org.icyphy.scoping.LinguaFrancaStateManager
 import org.eclipse.xtext.validation.NamesAreUniqueValidationHelper
 import org.icyphy.validation.LinguaFrancaNamesAreUniqueValidationHelper
-
 import com.google.inject.Provider;
 
 /**
