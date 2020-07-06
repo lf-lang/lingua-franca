@@ -12,13 +12,15 @@ reactor Source {
 }
 
 reactor Sink {
-    input[4] in:unsigned;
+    input[5] in:unsigned;
     reaction (in) {=
         for (int i = 0; i < in_width; i++) {
-            printf("Received %d\n", in[i]->value);
-            if (in[i]->value != i) {
-                fprintf(stderr, "ERROR: expected %d!\n", i);
-                exit(1);    
+            if (in[i]->is_present) {
+                printf("Received %d\n", in[i]->value);
+                if (in[i]->value != i) {
+                    fprintf(stderr, "ERROR: expected %d!\n", i);
+                    exit(1);
+                }    
             }
         }
     =}
