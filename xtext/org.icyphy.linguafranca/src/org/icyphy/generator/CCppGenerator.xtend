@@ -376,7 +376,7 @@ class CCppGenerator extends CGenerator {
             // First define the struct containing the output value and indicator
             // of its presence.
             pr(structBuilder, '''
-               «template_port_type»<«outputType»>* «portName»;
+               «template_port_type»<«outputType.targetType»>* «portName»;
             ''')
 
             // Next, initialize the struct with the current values.

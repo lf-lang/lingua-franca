@@ -1,0 +1,13 @@
+// This tests the ability to import a reactor definition
+// that itself imports a reactor definition.
+target CCpp {
+	threads: 2	
+};
+import Imported.lf;
+main reactor ImportThreaded {
+	timer t;
+	a = new Imported();
+	reaction(t) -> a.x {=
+		SET(a.x, 42); 
+	=}
+}
