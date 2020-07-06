@@ -54,12 +54,12 @@ Model:
  * Import declaration.
  */
 Import:
-    'import' importedNamespace= QualifiedNameWithWildcard ';'
-    ;
+    'import' ((importedNamespace=QualifiedNameWithWildcard ('as' alias=ID)?) | importURI=STRING) ';'
+;
     
 /**
- * Deceleration for the package name
-  */    
+ * Package name declaration.
+ */    
 PackageDeclaration:
     'package' name=QualifiedName ';';
     
@@ -404,7 +404,7 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | 'at' |
+    'new' | 'federated' | 'at' | 'as' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
