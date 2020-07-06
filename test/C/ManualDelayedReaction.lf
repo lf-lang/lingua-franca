@@ -28,8 +28,12 @@ reactor Source {
         set(out, 1);
     =} 
 }
-reactor Sink {
+
+reactor Sink(g:int(0)) {
 	input in:int;
+	g = new Source();
+	
+	
 	reaction(in) {=
         interval_t elapsed_logical = get_elapsed_logical_time();
         interval_t logical = get_logical_time();

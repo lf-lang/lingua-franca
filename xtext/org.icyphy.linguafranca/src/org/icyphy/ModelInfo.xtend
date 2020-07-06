@@ -89,7 +89,6 @@ class ModelInfo {
      * Data structure for tracking dependencies between reactions.
      */
     public ReactionGraph reactionGraph
-
     
     // FIXME: Potentially also move the name uniqueness checks here to ensure global uniqueness.
     // FIXME: If a there is a cyclic instantiation somewhere inside an imported file, report an error
