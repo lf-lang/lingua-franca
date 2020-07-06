@@ -10,8 +10,9 @@ target CCpp {
 reactor Source {
     output out:string;
     reaction(startup) -> out {=
-        printf("Sending 'Hello World!' message from source federate.\n");
-        SET(out, "Hello World!");
+        std::cout << "Sending 'Hello World!' message from source federate." << std::endl ;
+        char* hello_c = "Hello World!";
+	SET(out, hello_c);
         stop();  // FIXME: This should be broadcast as a request to stop all federates.
     =}
 }
