@@ -392,15 +392,7 @@ class CGenerator extends GeneratorBase {
             )
         }
 
-        // Copy the required target language files into the target file system.
-        // This will also overwrite previous versions.
-        var targetFiles = newArrayList("ctarget.h");
-        for (file : targetFiles) {
-            copyFileFromClassPath(
-                "/" + "lib" + "/" + "C" + "/" + file,
-                srcGenPath + File.separator + file
-            )
-        }
+        copyTargetFiles();
 
 
         // Perform distinct code generation into distinct files for each federate.
@@ -445,7 +437,7 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = filename + ".c";
+            val cFilename = getTargetFileName(filename);
 
             // Delete source previously produced by the LF compiler.
             var file = new File(srcGenPath + File.separator + cFilename)
@@ -653,11 +645,8 @@ class CGenerator extends GeneratorBase {
                 }
             }
 
-            // Write the generated code to the output file.
-            var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(getCode().getBytes())
-            fOut.close()
+			
+			writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
             
         }
         // Restore the base filename.
@@ -692,6 +681,34 @@ class CGenerator extends GeneratorBase {
             fOut.close()
             
         }
+    }
+    
+    protected def copyTargetFiles()
+    {    	
+        var srcGenPath = directory + File.separator + "src-gen"
+    	// Copy the required target language files into the target file system.
+        // This will also overwrite previous versions.
+        var targetFiles = newArrayList("ctarget.h");
+        for (file : targetFiles) {
+            copyFileFromClassPath(
+                "/" + "lib" + "/" + "C" + "/" + file,
+                srcGenPath + File.separator + file
+            )
+        }
+    }
+    
+    protected def writeSourceCodeToFile(byte[] code, String path)
+    {
+        // Write the generated code to the output file.
+        var fOut = new FileOutputStream(
+            new File(path), false);
+        fOut.write(code)
+        fOut.close()
+    }
+    
+    protected def getTargetFileName(String fileName)
+    {
+    	return fileName + ".c";
     }
 
     ////////////////////////////////////////////
@@ -1019,7 +1036,7 @@ class CGenerator extends GeneratorBase {
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
      */
-    def generateReactorFederated(Reactor reactor, FederateInstance federate) {
+    protected def generateReactorFederated(Reactor reactor, FederateInstance federate) {
 
         // Create Timer and Action for startup and shutdown, if they occur.
         handleStartupAndShutdown(reactor)
@@ -1766,7 +1783,7 @@ class CGenerator extends GeneratorBase {
      *   federated or not the main reactor and reactions should be
      *   unconditionally generated.
      */
-    def generateReactions(Reactor reactor, FederateInstance federate) {
+    protected def generateReactions(Reactor reactor, FederateInstance federate) {
         var reactionIndex = 0;
         for (reaction : reactor.allReactions) {
             if (federate === null || federate.containsReaction(reactor, reaction)) {
@@ -1786,7 +1803,7 @@ class CGenerator extends GeneratorBase {
      *  @param reactor The reactor.
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
-    def generateReaction(Reaction reaction, Reactor reactor, int reactionIndex) {
+    protected def generateReaction(Reaction reaction, Reactor reactor, int reactionIndex) {
         // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(reactor, reactionIndex)
 
@@ -3046,7 +3063,8 @@ class CGenerator extends GeneratorBase {
     override generatePreamble() {
         super.generatePreamble()
         
-        pr('#include "ctarget.h"')
+        includeTargetLanguageHeaders()
+        
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
         // Handle target parameters.
@@ -3105,6 +3123,11 @@ class CGenerator extends GeneratorBase {
                 pr('#include "' + rootFilename + '.pb-c.h"')
             }
         }
+    }
+    
+    protected def includeTargetLanguageHeaders()
+    {    	
+        pr('#include "ctarget.h"')
     }
 
     // Regular expression pattern for compiler error messages with resource
@@ -3378,7 +3401,7 @@ class CGenerator extends GeneratorBase {
      *  @param input The input statement from the AST.
      *  @param reactor The reactor.
      */
-    private def generateInputVariablesInReaction(
+    protected def generateInputVariablesInReaction(
         StringBuilder builder,
         Input input,
         Reactor reactor
@@ -3469,7 +3492,7 @@ class CGenerator extends GeneratorBase {
      *  @param port The port.
      *  @param reactor The reactor.
      */
-    private def generatePortVariablesInReaction(
+    protected def generatePortVariablesInReaction(
         StringBuilder builder,
         HashMap<Instantiation,StringBuilder> structs,
         VarRef port,
@@ -3508,7 +3531,7 @@ class CGenerator extends GeneratorBase {
      *  @param builder The string builder.
      *  @param output The output statement from the AST.
      */
-    private def generateOutputVariablesInReaction(
+    protected def generateOutputVariablesInReaction(
         StringBuilder builder,
         Output output,
         Reactor reactor
@@ -3547,7 +3570,7 @@ class CGenerator extends GeneratorBase {
      *  @param definition AST node defining the reactor within which this occurs
      *  @param input Input of the contained reactor.
      */
-    private def generateVariablesForSendingToContainedReactors(
+    protected def generateVariablesForSendingToContainedReactors(
         StringBuilder builder,
         HashMap<Instantiation,StringBuilder> structs,
         Instantiation definition,
@@ -3588,7 +3611,7 @@ class CGenerator extends GeneratorBase {
      *  (it is a pointer) or [] (it is a array with unspecified length).
      *  @param type The type specification.
      */
-    private def isTokenType(InferredType type) {
+    protected def isTokenType(InferredType type) {
         if (type.isUndefined)
             return false
         val targetType = type.targetType
