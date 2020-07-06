@@ -1,6 +1,5 @@
 package org.icyphy.scoping;
 
-import org.eclipse.xtext.resource.containers.ResourceSetBasedAllContainersState;
 import org.eclipse.xtext.resource.containers.StateBasedContainerManager;
 import org.eclipse.xtext.resource.IResourceDescriptions
 import org.eclipse.xtext.resource.IResourceDescription
@@ -10,15 +9,15 @@ import org.eclipse.xtext.resource.IContainer
 import java.util.Collections
 import org.eclipse.xtext.resource.containers.ProjectDescriptionBasedContainerManager
 import com.google.inject.Inject
-import org.eclipse.xtext.resource.containers.IAllContainersState
+//import org.eclipse.xtext.resource.containers.IAllContainersState
 
 class LinguaFrancaContainerManager extends StateBasedContainerManager {
 
     @Inject
 	ProjectDescriptionBasedContainerManager delegate;
 	
-	@Inject
-	LinguaFrancaStateManager.Provider stateProvider;
+	//@Inject
+	//LinguaFrancaStateManager.Provider stateProvider;
 	
 	override
 	List<IContainer> getVisibleContainers(IResourceDescription desc, IResourceDescriptions resourceDescriptions) {
@@ -26,7 +25,7 @@ class LinguaFrancaContainerManager extends StateBasedContainerManager {
 			return delegate.getVisibleContainers(desc, resourceDescriptions);
 		}
 		val root = internalGetContainerHandle(desc, resourceDescriptions);
-		if (root == null) {
+		if (root === null) {
 			return Collections.emptyList();
 		}
 		val handles = getState(resourceDescriptions).getVisibleContainerHandles(root);
@@ -38,6 +37,7 @@ class LinguaFrancaContainerManager extends StateBasedContainerManager {
 				result.set(0, first);
 			}
 		}
+
 		
 		try{
 		    val LF_CLASSPATH = System.getenv("LF_CLASSPATH")
