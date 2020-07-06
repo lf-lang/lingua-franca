@@ -544,4 +544,33 @@ class CCppGenerator extends CGenerator {
     }
     
     
+    /** Overwrite the generated code after compile with a
+     * clean version.
+     */
+    override writeCleanCode(String baseFilename)
+    {
+        var srcGenPath = directory + File.separator + "src-gen"
+    	//Cleanup the code so that it is more readable
+        for (federate : federates) {
+                
+            // Only clean one file if there is no federation.
+            if (!federate.isSingleton) {                
+                filename = baseFilename + '_' + federate.name               
+            }
+            
+            // Derive target filename from the .lf filename.
+            val cFilename = filename + ".cc";
+            
+            
+            // Write a clean version of the code to the output file
+            var fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + cFilename), false);
+            fOut.write(getReadableCode().getBytes())
+            fOut.close()
+            
+        }
+    	
+    }
+    
+    
 }

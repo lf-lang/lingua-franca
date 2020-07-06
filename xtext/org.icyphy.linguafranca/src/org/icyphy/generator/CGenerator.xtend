@@ -662,7 +662,17 @@ class CGenerator extends GeneratorBase {
         }
         
         
-        //Cleanup the code so that it is more readable
+        writeCleanCode(filename)
+        
+    }
+    
+    /** Overwrite the generated code after compile with a
+     * clean version.
+     */
+    protected def writeCleanCode(String baseFilename)
+    {
+        var srcGenPath = directory + File.separator + "src-gen"
+    	//Cleanup the code so that it is more readable
         for (federate : federates) {
                 
             // Only clean one file if there is no federation.
@@ -681,6 +691,7 @@ class CGenerator extends GeneratorBase {
             fOut.close()
             
         }
+    	
     }
     
     /** Copy target specific files to the src-gen directory */
