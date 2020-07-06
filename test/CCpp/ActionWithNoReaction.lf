@@ -1,0 +1,35 @@
+// This checks that action can be created even if there is no reaction.
+// This test passes merely by compiling and executing without a segfault.
+// Its other functionality is tested by other tests.
+target CCpp {
+    fast: true,
+    timeout: 3 sec
+};
+reactor foo {
+    input x:int;
+    output y:int;
+    logical action a:int*;
+    reaction(x) -> y, a {=
+        SET(y, 2*x->value);
+        schedule(a, MSEC(500));
+    =}
+    // reaction(a) {= =}
+}
+reactor print {
+    input x:int;
+    reaction(x) {=
+        printf("Result is %d\n", x->value);
+        printf("Current logical time is: %lld\n", get_elapsed_logical_time());
+        printf("Current physical time is: %lld\n", get_elapsed_physical_time());
+    =}
+}
+
+main reactor top {
+    f = new foo();
+    p = new print();
+    timer t(0, 1 sec);
+    reaction(t) -> f.x {=
+        SET(f.x, 42);
+    =}
+    f.y -> p.x after 10 msec;
+}

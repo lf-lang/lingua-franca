@@ -1,0 +1,65 @@
+// This tests transport of dynamically allocated arrays over
+// connections with 'after'.
+target CCpp {
+    timeout: 5 sec,
+    fast: true
+};
+reactor Source {
+    output out:int[];
+    state iteration:int(1);
+    timer t(0, 1 sec);
+    reaction(t) -> out {=
+        // Dynamically allocate an output array of length 3.
+        SET_NEW_ARRAY(out, 3);
+        printf("At time %lld, sending array at address %p\n", get_elapsed_logical_time(), out->value); 
+        
+        // Above allocates the array, which then must be populated.
+        out->value[0] = 1 * self->iteration;
+        out->value[1] = 2 * self->iteration;
+        out->value[2] = 3 * self->iteration;
+        self->iteration++;
+    =}
+}
+// The scale parameter is just for testing.
+reactor Print(scale:int(1)) {
+    input in:int[];
+    state iteration:int(1);
+    state inputs_received:int(0);
+    reaction(in) {=
+        self->inputs_received++;
+        int count = 1;       // For testing.
+        bool failed = false; // For testing.
+        printf("At time %lld, received array at address %p\n", get_elapsed_logical_time(), in->value);
+        printf("Received: [");
+        for (int i = 0; i < in->length; i++) {
+            if (i > 0) printf(", ");
+            printf("%d", in->value[i]);
+            // For testing, check whether values match expectation.
+            if (in->value[i] != self->scale * count * self->iteration) {
+                failed = true;
+            }
+            count++;         // For testing.
+        }
+        printf("]\n");
+        if (failed) {
+            printf("ERROR: Value received by Print does not match expectation!\n");
+            exit(1);
+        }
+        if (count != 4) {
+            printf("ERROR: Received array length is not 3!\n");
+            exit(2);
+        }
+        self->iteration++;
+    =}
+    reaction(shutdown) {=
+        if (self->inputs_received == 0) {
+            printf("ERROR: Print reactor received no inputs.\n");
+            exit(3);
+        }
+    =}
+}
+main reactor DelayArray {
+    s = new Source();
+    p = new Print();
+    s.out -> p.in after 1500 msec;
+}

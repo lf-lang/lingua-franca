@@ -1,0 +1,48 @@
+/** This example demonstrates a very simple use of protocol buffers
+ *  within a reactor. It encodes and decodes a very simple protocol
+ *  buffer definition in Person.proto. This reactor is heavily
+ *  based on the examples at https://github.com/protobuf-c/protobuf-c/wiki/Examples.
+ *  This example just packs and unpacks a message.
+ *
+ *  To run this example first install the protocol buffers compiler
+ *  from https://github.com/protocolbuffers/protobuf. It is also
+ *  available from homebrew on a Mac via 
+ * 
+ *       $ brew install protobuf
+ * 
+ *  Building protobuf from source is slow, so avoid doing that
+ *  if possible. Next install the C plugin for protocol buffers from 
+ * 
+ *      https://github.com/protobuf-c/protobuf-c
+ * 
+ *  The code generator assumes
+ *  that executables are installed within the PATH. On a Mac, this is
+ *  typically at /usr/local/bin.
+ */
+
+target CCpp;
+import Person.proto;
+
+main reactor HelloProtocolBuffers {
+	reaction(startup) {=
+		Person person = PERSON__INIT;     	// Macro to create the protocol buffer
+		void *buffer; 						// Buffer to store the serialized data
+		unsigned len; 						// Length of the packed message
+		
+		person.name = "Lingua Franca";
+		person.id = 1;
+		person.email = "eal@berkeley.edu";
+		
+		// Pack the message into buffer.
+		len = person__get_packed_size(&person);
+		buffer = malloc(len);
+		person__pack(&person, buffer);
+		
+		// Now unpack the message from buffer.
+		Person *unpacked = person__unpack(NULL, len, buffer);
+		
+		// Extract and print the unpacked message.
+		printf("Name: %s\n", unpacked->name);
+		free(buffer);                        // Free the allocated serialized buffer	
+	=}
+}

@@ -1,0 +1,60 @@
+// Demonstration of a state variable that is an array.
+// The MovingAverage reactor computes the moving average of the last
+// four inputs and produces that as output.  The source is a counting
+// sequence.
+target CCpp {
+    timeout: 1 sec,
+    fast: true
+};
+reactor Source {
+    output out:double;
+    state count:int(0);
+    timer clock(0, 200 msec);
+    reaction(clock) -> out {=
+        SET(out, self->count);
+        self->count++;
+    =}
+}
+reactor MovingAverageImpl {
+    state delay_line:double[]({= {0.0, 0.0, 0.0} =});
+    state index:int(0);
+    input in:double;
+    output out:double;
+    reaction(in) -> out {=
+        // Calculate the output.
+        double sum = in->value;
+        for (int i = 0; i < 3; i++) {
+            sum += self->delay_line[i];
+        }
+        SET(out, sum/4.0);
+
+        // Insert the input in the delay line.
+        self->delay_line[self->index] = in->value;
+
+        // Update the index for the next input.
+        self->index++;
+        if (self->index >= 3) {
+            self->index = 0;
+        }
+    =}
+}
+reactor Print {
+    input in:double;
+    state count:int(0);
+    reaction(in) {=
+        printf("Received: %f\n", in->value);
+        static double expected[] = {0.0, 0.25, 0.75, 1.5, 2.5, 3.5};
+        if (in->value != expected[self->count]) {
+            printf("ERROR: Expected %f.\n", expected[self->count]);
+            exit(1);
+        }
+        self->count++;
+    =}
+}
+main reactor MovingAverage {
+    s = new Source();
+    m = new MovingAverageImpl();
+    p = new Print();
+    s.out -> m.in;
+    m.out -> p.in;
+}

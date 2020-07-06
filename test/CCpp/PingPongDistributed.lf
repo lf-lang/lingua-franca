@@ -1,0 +1,72 @@
+/**
+ * Basic benchmark from the Savina benchmark suite that is
+ * intended to measure message-passing overhead.
+ * This is based on https://www.scala-lang.org/old/node/54
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * This is a distributed version, where Ping and Pong run in
+ * separate programs and can be run on different machines.
+ * 
+ * To get a sense, some (informal) results for 1,000,000 ping-pongs
+ * on my Mac:
+ * 
+ * Unthreaded: 97 msec
+ * Threaded: 265 msec
+ * Distributed: 53 seconds
+ * 
+ * There is no parallelism in this application, so it does not benefit from being
+ * being distributed.
+ * 
+ * These measurements are total execution time, including startup and shutdown, of
+ * all three programs.
+ * 
+ * @author Edward A. Lee
+ */
+target CCpp;
+reactor Ping(count:int(10)) {
+    input receive:int;
+    output send:int;
+    state pingsLeft:int(count);
+    logical action serve;
+    reaction (startup) -> send {=
+        printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
+        SET(send, self->pingsLeft--);
+    =}
+    reaction (serve) -> send {= 
+        printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
+        SET(send, self->pingsLeft--);
+    =}
+    reaction (receive) -> serve {=
+        if (self->pingsLeft > 0) {
+            schedule(serve, 0);
+        } else {
+            stop();
+        }
+    =}
+} 
+reactor Pong(expected:int(10)) {
+    input receive:int;
+    output send:int;
+    state count:int(0);
+    reaction(receive) -> send {=
+        self->count++;
+        printf("At logical time %lld, Pong received %d.\n", get_elapsed_logical_time(), receive->value);
+        SET(send, receive->value);
+        if (self->count == self->expected) stop();
+    =}
+    reaction(shutdown) {=
+        if (self->count != self->expected) {
+            fprintf(stderr, "Pong expected to receive %d inputs, but it received %d.\n",
+                self->expected, self->count
+            );
+            exit(1);
+        }
+        printf("Pong received %d pings.\n", self->count);
+    =}
+}
+federated reactor PingPong(count:int(100)) {
+    ping = new Ping(count = count);
+    pong = new Pong(expected = count);
+    ping.send ~> pong.receive;
+    pong.send ~> ping.receive; 
+}

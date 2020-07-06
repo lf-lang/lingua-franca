@@ -1,0 +1,13 @@
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target CCpp;
+reactor ImportedAgain {
+	input x:int;
+	reaction(x) {=
+        printf("Received: %d.\n", x->value);
+		if (x->value != 42) {
+			printf("ERROR: Expected input to be 42. Got: %d.\n", x->value);
+			exit(1);
+		}
+	=}
+}

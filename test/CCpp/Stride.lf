@@ -1,0 +1,31 @@
+// This example illustrates state variables and parameters on the wiki.
+// For this test, success is just compiling and running.
+target CCpp {
+    timeout: 2 sec,
+    fast: true
+};
+reactor Count(stride:int(1)) {
+    state count:int(1);
+    output y:int;
+    timer t(0, 100 msec);
+    reaction(t) -> y {=
+        SET(y, self->count);
+        self->count += self->stride;
+    =}
+}
+reactor Display {
+    input x:int;
+    state expected:int(1); // for testing.
+    reaction(x) {=
+        printf("Received: %d.\n", x->value);
+        if (x->value != self->expected) {
+            fprintf(stderr, "ERROR: Expected %d\n", self->expected);
+        }
+        self->expected += 2;
+    =}
+}
+main reactor Stride {
+    c = new Count(stride = 2);
+    d = new Display();
+    c.y -> d.x;
+}

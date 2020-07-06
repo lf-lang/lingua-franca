@@ -1,0 +1,25 @@
+target CCpp {
+    fast: true,
+    timeout: 1 sec
+};
+
+main reactor Periodic(
+        offset:time(0), 
+        period:time(500 msec)) {
+    logical action init(offset);
+    logical action recur(period);
+   
+    reaction(startup) -> init, recur {=
+        if (self->offset == 0) {
+            printf("Hello World!\n");
+            schedule(recur, 0);		
+        } else {
+            schedule(init, 0);
+        }
+    =}
+    
+    reaction(init, recur) -> recur {=
+        printf("Hello World!\n");
+        schedule(recur, 0);
+    =}
+}
