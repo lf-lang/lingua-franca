@@ -63,6 +63,9 @@ Minimal.lf
 MinimalThreaded.lf
 MovingAverage.lf
 MultipleContained.lf
+MultiportIn.lf
+MultiportOut.lf
+MultiportToMultiport.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
@@ -94,8 +97,6 @@ StructPrint.lf
 StructScale.lf
 TestForPreviousOutput.lf
 Threaded.lf
-ThreadedMultiportIn.lf
-ThreadedMultiportOut.lf
 ThreadedThreaded.lf
 TimeLimit.lf
 TimeLimitThreaded.lf
