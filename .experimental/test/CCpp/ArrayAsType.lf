@@ -1,6 +1,6 @@
 // Source produces a statically allocated array, which it passes
 // to Print. The destination references the array directly.
-target C;
+target CCpp;
 reactor Source {
     output out:int[3];
     reaction(startup) -> out {=
