@@ -6,7 +6,7 @@ reactor Source {
     output out:unsigned;
     
     reaction(startup) -> out {=
-        SET(out, 1);
+        SET(out, (unsigned int)1);
     =}
 }
 
@@ -15,7 +15,7 @@ reactor Work {
     output out:unsigned;
     
     reaction(in) -> out {=
-        SET(out, in->value);    
+        SET(out, (unsigned int)in->value);    
     =}
 }
 
