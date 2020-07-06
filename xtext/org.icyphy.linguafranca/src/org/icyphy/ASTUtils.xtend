@@ -67,6 +67,7 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.TerminalRule
 
+
 /**
  * A helper class for modifying and analyzing the AST.
  * @author{Marten Lohstroh <marten@berkeley.edu>}

@@ -1,7 +1,7 @@
 // This is used by the test for the ability to import a reactor definition
 // that itself imports a reactor definition.
 target C;
-import ImportedAgain.lf;
+import ImportedAgain.*;
 reactor Imported {
 	input x:int;
 	a = new ImportedAgain();
