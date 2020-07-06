@@ -67,12 +67,14 @@ MovingAverage.lf
 MultipleContained.lf
 MultiportIn.lf
 MultiportOut.lf
+MultiportToBank.lf
 MultiportToMultiport.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
 PingPongDistributed.lf
 Pipeline.lf
+PortToBank.lf
 Preamble.lf
 PreambleFile.lf
 ReadOutputOfContainedReactor.lf
