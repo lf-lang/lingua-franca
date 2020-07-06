@@ -28,12 +28,12 @@ reactor Sink {
         interval_t elapsed_logical = get_elapsed_logical_time();
         interval_t logical = get_logical_time();
         interval_t physical = get_physical_time();
-        printf("Logical, physical, and elapsed logical: %lld %lld %lld.\n", logical, physical, elapsed_logical);
+        std::cout << "Logical, physical, and elapsed logical: " << logical << physical << elapsed_logical << std::endl;
         if (elapsed_logical != MSEC(100)) {
-        	printf("FAILURE: Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
+        	std::cerr << "FAILURE: Expected " << MSEC(100) << " but got " << elapsed_logical << std::endl;
             exit(1);
         } else {
-            printf("SUCCESS. Elapsed logical time is 100 msec.\n");
+            std::cout << "SUCCESS. Elapsed logical time is 100 msec." << std::endl;
         }
 	=}
 }
