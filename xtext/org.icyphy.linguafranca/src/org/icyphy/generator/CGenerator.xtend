@@ -683,6 +683,7 @@ class CGenerator extends GeneratorBase {
         }
     }
     
+    /** Copy target specific files to the src-gen directory */
     protected def copyTargetFiles()
     {    	
         var srcGenPath = directory + File.separator + "src-gen"
@@ -697,6 +698,7 @@ class CGenerator extends GeneratorBase {
         }
     }
     
+    /** Write the source code to file */
     protected def writeSourceCodeToFile(byte[] code, String path)
     {
         // Write the generated code to the output file.
@@ -706,7 +708,8 @@ class CGenerator extends GeneratorBase {
         fOut.close()
     }
     
-    protected def getTargetFileName(String fileName)
+    /** Produces the filename including the target-specific extension */
+    override getTargetFileName(String fileName)
     {
     	return fileName + ".c";
     }
