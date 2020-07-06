@@ -76,6 +76,12 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import com.google.inject.Inject
+import org.eclipse.xtext.resource.IContainer
+import org.eclipse.xtext.resource.IResourceDescriptions
+import org.icyphy.linguaFranca.LinguaFrancaPackage
+import com.google.inject.Provider
+import org.eclipse.xtext.resource.XtextResourceSet
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -123,6 +129,38 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     static val usernameRegex = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$"
 
     static val hostOrFQNRegex = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$"
+
+    public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
+
+    @Inject
+    IContainer.Manager containerManager;
+    @Inject
+    IResourceDescriptions resourceDescriptions
+    @Inject
+    Provider<XtextResourceSet> resourceSetProvider;
+
+    @Check
+    def checkReactorGloballyUnique(Reactor reactor) {
+
+        var greeting_description = resourceDescriptions.getResourceDescription(reactor.eResource.URI)
+        var visibleContainers = containerManager.getVisibleContainers(greeting_description, resourceDescriptions)
+
+        for (visibleContainer : visibleContainers) {
+            for (otherDescription : visibleContainer.getExportedObjectsByType(LinguaFrancaPackage.Literals.REACTOR)) {
+                val other = resourceSetProvider.get.getEObject(otherDescription.EObjectURI, true) as Reactor
+
+                if (reactor.eResource.URI != other.eResource.URI) {
+                    // This means distinct files, all reactors in same file have same URI
+                    if (reactor.name == other.name) {
+                        warning('''Duplicate reactor '«reactor.name»' in package''', LinguaFrancaPackage.Literals.REACTOR__NAME,
+                            GLOBALLY_DUPLICATE_NAME)
+                    }
+                }
+
+            }
+        }
+    }
+
 
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
