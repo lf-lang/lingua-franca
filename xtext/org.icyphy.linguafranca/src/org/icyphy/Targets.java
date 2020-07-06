@@ -355,12 +355,12 @@ public enum Targets {
         /**
          * Flags to be passed on to the target compiler.
          */
-        FLAGS("flags", Arrays.asList(Targets.C)),
+        FLAGS("flags", Arrays.asList(Targets.C, Targets.CCpp)),
         
         /**
          * Directive to specify the coordination mode
          */
-        COORDINATION("coordination", Arrays.asList(Targets.C)),
+        COORDINATION("coordination", Arrays.asList(Targets.C, Targets.CCpp)),
         
         /**
          * FIXME
@@ -375,7 +375,7 @@ public enum Targets {
         /**
          * Directive to not invoke the target compiler.
          */
-        NO_COMPILE("no-compile", Arrays.asList(Targets.C, Targets.CPP)),
+        NO_COMPILE("no-compile", Arrays.asList(Targets.C, Targets.CPP, Targets.CCpp)),
         
         /**
          * Directive to disable validation of reactor rules at runtime.
@@ -385,7 +385,7 @@ public enum Targets {
         /**
          * Directive to specify the number of threads.
          */
-        THREADS("threads", Arrays.asList(Targets.C, Targets.CPP)),
+        THREADS("threads", Arrays.asList(Targets.C, Targets.CPP, Targets.CCpp)),
         
         /**
          * Directive to specify the execution timeout.

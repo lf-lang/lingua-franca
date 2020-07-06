@@ -459,7 +459,7 @@ class CCppGenerator extends CGenerator {
         } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
             // Non-mutable, multiport, primitive type.
             pr(builder, '''
-                «template_port_type»<«inputType.targetType»>** «input.name» = («template_port_type»<«inputType.targetType»> *) self->__«input.name»;
+                «template_port_type»<«inputType.targetType»>** «input.name» = («template_port_type»<«inputType.targetType»> **) self->__«input.name»;
             ''')
         } else {
             throw new RuntimeException("FIXME: Multiport functionality not yet realized.")

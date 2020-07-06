@@ -3,10 +3,10 @@
 target CCpp;
 reactor StructPrint {
     preamble {=
-        typedef struct hello_t {
+        struct hello_t {
             char* name;
             int value;
-        } hello_t;
+        };
     =}
     output out:hello_t*;
     reaction(startup) -> out {=
@@ -22,9 +22,9 @@ reactor StructPrint {
 reactor Print(expected:int(42)) {
     input in:hello_t*;
     reaction(in) {=
-        printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
+        std::cout << "Received: name" << in->value->name << ", value = " << in->value->value << std::endl;
         if (in->value->value != self->expected) {
-            printf("ERROR: Expected value to be %d.\n", self->expected);
+            std::cerr << "ERROR: Expected value to be " << self->expected << std::endl;
             exit(1);
         }
     =}
