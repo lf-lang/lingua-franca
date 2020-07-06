@@ -453,6 +453,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
+        val x = resource.resourceSet
+        
         analyzeModel(resource, fsa, context)
 
         // First, produce any preamble code that the code generator needs
@@ -1055,7 +1057,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         for (importStatement : resource.allContents.toIterable.filter(Import)) {
             // Resolve the import as a URI relative to the current resource's URI.
             val URI currentURI = resource?.getURI;
-            val URI importedURI = URI?.createFileURI(importStatement.importedNamespace);
+            val URI importedURI = URI?.createFileURI(importStatement?.importedNamespace);
             val URI resolvedURI = importedURI?.resolve(currentURI);
             val ResourceSet resourceSet = resource?.resourceSet;
             
