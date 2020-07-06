@@ -76,6 +76,12 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import com.google.inject.Inject
+import org.eclipse.xtext.resource.IContainer
+import org.eclipse.xtext.resource.IResourceDescriptions
+import org.icyphy.linguaFranca.LinguaFrancaPackage
+import com.google.inject.Provider
+import org.eclipse.xtext.resource.XtextResourceSet
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -90,13 +96,6 @@ import static extension org.icyphy.ASTUtils.*
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
-    var reactorClasses = newHashSet()
-    var parameters = newHashSet()
-    var inputs = newHashSet()
-    var outputs = newHashSet()
-    var timers = newHashSet()
-    var actions = newHashSet()
-    var allNames = newHashSet() // Names of contained objects must be unique.
     var Targets target;
 
     var info = new ModelInfo()
@@ -131,6 +130,38 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     static val hostOrFQNRegex = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$"
 
+    public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
+
+    @Inject
+    IContainer.Manager containerManager;
+    @Inject
+    IResourceDescriptions resourceDescriptions
+    @Inject
+    Provider<XtextResourceSet> resourceSetProvider;
+
+    @Check
+    def checkReactorGloballyUnique(Reactor reactor) {
+
+        var greeting_description = resourceDescriptions.getResourceDescription(reactor.eResource.URI)
+        var visibleContainers = containerManager.getVisibleContainers(greeting_description, resourceDescriptions)
+
+        for (visibleContainer : visibleContainers) {
+            for (otherDescription : visibleContainer.getExportedObjectsByType(LinguaFrancaPackage.Literals.REACTOR)) {
+                val other = resourceSetProvider.get.getEObject(otherDescription.EObjectURI, true) as Reactor
+
+                if (reactor.eResource.URI != other.eResource.URI) {
+                    // This means distinct files, all reactors in same file have same URI
+                    if (reactor.name == other.name) {
+                        warning('''Duplicate reactor '«reactor.name»' in package''', LinguaFrancaPackage.Literals.REACTOR__NAME,
+                            GLOBALLY_DUPLICATE_NAME)
+                    }
+                }
+
+            }
+        }
+    }
+
+
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
     // Check the name of a feature for illegal substrings.
@@ -157,21 +188,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
     // FAST ensures that these checks run whenever a file is modified.
-    // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
-    @Check(FAST)
-    def reset(Model model) {
-        reactorClasses.clear()
-    }
-
-    @Check(FAST)
-    def resetSets(Reactor reactor) {
-        parameters.clear()
-        inputs.clear()
-        outputs.clear()
-        timers.clear()
-        actions.clear()
-        allNames.clear()
-    }
+    // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).    
 
     // //////////////////////////////////////////////////
     // // The following checks are in alphabetical order.
@@ -184,15 +201,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.ACTION__ORIGIN
             )
         }
-
-        if (allNames.contains(action.name)) {
-            error(
-                UNIQUENESS_MESSAGE + action.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        actions.add(action.name);
-        allNames.add(action.name)
     }
 
     @Check(FAST)
@@ -354,14 +362,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkInput(Input input) {
         checkName(input.name, Literals.VARIABLE__NAME)
-        if (allNames.contains(input.name)) {
-            error(
-                UNIQUENESS_MESSAGE + input.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        inputs.add(input.name)
-        allNames.add(input.name)
         if (target.requiresTypes) {
             if (input.type === null) {
                 error("Input must have a type.", Literals.TYPED_VARIABLE__TYPE)
@@ -381,13 +381,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkInstantiation(Instantiation instantiation) {
         checkName(instantiation.name, Literals.INSTANTIATION__NAME)
-        if (allNames.contains(instantiation.name)) {
-            error(
-                UNIQUENESS_MESSAGE + instantiation.name,
-                Literals.INSTANTIATION__NAME
-            )
-        }
-        allNames.add(instantiation.name)
         if (instantiation.reactorClass.isMain || instantiation.reactorClass.isFederated) {
             error(
                 "Cannot instantiate a main (or federated) reactor: " +
@@ -551,14 +544,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkOutput(Output output) {
         checkName(output.name, Literals.VARIABLE__NAME)
-        if (allNames.contains(output.name)) {
-            error(
-                UNIQUENESS_MESSAGE + output.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        outputs.add(output.name);
-        allNames.add(output.name)
         if (this.target.requiresTypes) {
             if (output.type === null) {
                 error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE)
@@ -574,14 +559,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkParameter(Parameter param) {
         checkName(param.name, Literals.PARAMETER__NAME)
-        if (allNames.contains(param.name)) {
-            error(
-                UNIQUENESS_MESSAGE + param.name,
-                Literals.PARAMETER__NAME
-            )
-        }
-        parameters.add(param.name)
-        allNames.add(param.name)
 
         if (param.init.exists[it.parameter !== null]) {
             // Initialization using parameters is forbidden.
@@ -732,13 +709,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkReactor(Reactor reactor) {
         checkName(reactor.name, Literals.REACTOR__NAME)
-        if (reactorClasses.contains(reactor.name)) {
-            error(
-                "Names of reactor classes must be unique: " + reactor.name,
-                Literals.REACTOR__NAME
-            )
-        }
-        reactorClasses.add(reactor.name);
         
         // C++ reactors may not be called 'preamble'
         if (this.target == Targets.CPP && reactor.name.equalsIgnoreCase("preamble")) {
@@ -874,14 +844,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkState(StateVar stateVar) {
         checkName(stateVar.name, Literals.STATE_VAR__NAME)
-        if (allNames.contains(stateVar.name)) {
-            error(
-                UNIQUENESS_MESSAGE + stateVar.name,
-                Literals.STATE_VAR__NAME
-            )
-        }
-        inputs.add(stateVar.name);
-        allNames.add(stateVar.name)
 
         if (stateVar.isOfTimeType) {
             // If the state is declared to be a time,
@@ -979,14 +941,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkTimer(Timer timer) {
         checkName(timer.name, Literals.VARIABLE__NAME)
-        if (allNames.contains(timer.name)) {
-            error(
-                UNIQUENESS_MESSAGE + timer.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        timers.add(timer.name);
-        allNames.add(timer.name)
     }
     
     @Check(FAST)
@@ -1006,7 +960,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
     }
 
-    static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
     static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
