@@ -161,6 +161,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             var srcInstance = this.getPortInstance(connection.leftPort)
             var dstInstance = this.getPortInstance(connection.rightPort)
             
+            // Unfortunately, we have to do some complicated tests here
+            // to support multiport-to-multiport, multiport-to-bank,
+            // and bank-to-multiport communication.
             if (srcInstance === null) {
                 // Source is probably a bank of reactors.
                 var sourceReactor = this.getChildReactorInstance(connection.leftPort.container)
@@ -175,7 +178,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         // Destination is probably a bank of reactors.
                         var destinationReactor = this.getChildReactorInstance(connection.rightPort.container)
                         if (destinationReactor === null || destinationReactor.bankMembers === null) {
-                            generator.reportError(connection.rightPort, "No such destinations port.")
+                            generator.reportError(connection.rightPort, "No such destination port.")
                         } else {
                             // Bank to bank connection. Find the lesser of the two widths.
                             if (destinationReactor.bankMembers.size < width) {
@@ -207,8 +210,40 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     }
                 }
             } else if (dstInstance === null) {
+                // Source is not a bank of reactors.
+                
                 // Destination is probably a bank of reactors.
-                // FIXME FIXME FIXME
+                // Source could be either a multiport or an ordinary port.
+                // If the latter, its output should be broadcast to the destinations.
+                // If the former, then it should send distinct outputs to each member
+                // of the bank.
+                var destinationReactor = this.getChildReactorInstance(connection.rightPort.container)
+                if (destinationReactor === null || destinationReactor.bankMembers === null) {
+                    generator.reportError(connection.rightPort, "No such destination port.")
+                } else if (srcInstance instanceof MultiportInstance) {
+                    // Multiport-to-bank communication.
+                    // Find the lesser of the two widths.
+                    var width = srcInstance.width
+                    if (destinationReactor.bankMembers.size < width) {
+                        width = destinationReactor.bankMembers.size
+                    }
+                    for (var i = 0; i < width; i++) {
+                        // dstInstance is null, so replace it.
+                        dstInstance = destinationReactor.bankMembers.get(i).lookupLocalPort(
+                            connection.rightPort.variable as Port)
+                        val srcPortInstance = srcInstance.getInstance(i)
+                        connectPortInstances(connection, srcPortInstance, dstInstance)
+                    }
+                } else {
+                    // ordinary-to-bank communication, which should be a broadcast.
+                    var width = destinationReactor.bankMembers.size
+                    for (var i = 0; i < width; i++) {
+                        // dstInstance is null, so replace it.
+                        dstInstance = destinationReactor.bankMembers.get(i).lookupLocalPort(
+                            connection.rightPort.variable as Port)
+                        connectPortInstances(connection, srcInstance, dstInstance)
+                    }
+                }
             } else {
                 // Source and destination could both be multiports,
                 // or destination could be a multiport.
