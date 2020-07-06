@@ -282,6 +282,61 @@ class CCppGenerator extends CGenerator {
     ////////////////////////////////////////////
     //// Protected methods
     
+     /**
+     * Generate the struct type definitions for inputs, outputs, and
+     * actions of the specified reactor in the specified federate.
+     * @param reactor The parsed reactor data structure.
+     * @param federate A federate name, or null to unconditionally generate.
+     */
+    override generateAuxiliaryStructs(
+        Reactor reactor, FederateInstance federate
+    ) {
+        // First, handle inputs.
+        for (input : reactor.allInputs) {
+            if (input.inferredType.isTokenType) {
+                pr(input, code, '''
+                    using «variableStructType(input, reactor)» = «template_port_type_with_token»<«input.inferredType.targetType»>;
+                ''')
+            }
+            else
+            {
+                pr(input, code, '''
+                    using «variableStructType(input, reactor)» = «template_port_type»<«input.inferredType.targetType»>;
+                ''')            	
+            }
+            
+        }
+        // Next, handle outputs.
+        for (output : reactor.allOutputs) {
+            if (output.inferredType.isTokenType) {
+                 pr(output, code, '''
+                    using «variableStructType(output, reactor)» = «template_port_type_with_token»<«output.inferredType.targetType»>;
+                 ''')
+            }
+            else
+            {
+                pr(output, code, '''
+                    using «variableStructType(output, reactor)» = «template_port_type»<«output.inferredType.targetType»>;
+                ''')
+            }
+        }
+        // Finally, handle actions.
+        // The very first item on this struct needs to be
+        // a trigger_t* because the struct will be cast to (trigger_t*)
+        // by the schedule() functions to get to the trigger.
+        for (action : reactor.allActions) {
+            pr(action, code, '''
+                typedef struct {
+                    trigger_t* trigger;
+                    «action.valueDeclaration»
+                    bool is_present;
+                    bool has_value;
+                    token_t* token;
+                } «variableStructType(action, reactor)»;
+            ''')
+        }
+    }
+    
     /** Return a set of targets that are acceptable to this generator.
      *  Imported files that are Lingua Franca files must specify targets
      *  in this set or an error message will be reported and the import
@@ -326,259 +381,6 @@ class CCppGenerator extends CGenerator {
                 "/" + "lib" + "/" + "CCpp" + "/" + file,
                 srcGenPath + File.separator + file
             )
-        }
-    }
-            
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for ports in a reaction function
-     *  from the "self" struct. The port may be an input of the
-     *  reactor or an output of a contained reactor. The second
-     *  argument provides, for each contained reactor, a place to
-     *  write the declaration of the output of that reactor that
-     *  is triggering reactions.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param port The port.
-     *  @param reactor The reactor.
-     */
-    override generatePortVariablesInReaction(
-        StringBuilder builder,
-        HashMap<Instantiation,StringBuilder> structs,
-        VarRef port,
-        Reactor reactor
-    ) {
-        if (port.variable instanceof Input) {
-            generateInputVariablesInReaction(builder, port.variable as Input, reactor)
-        } else {
-            // port is an output of a contained reactor.
-            val output = port.variable as Output
-            val portName = output.name
-            
-            val outputType = output.inferredType
-            
-            var structBuilder = structs.get(port.container)
-            if (structBuilder === null) {
-                structBuilder = new StringBuilder
-                structs.put(port.container, structBuilder)
-            }
-            val reactorName = port.container.name
-            if(!outputType.isTokenType)
-            {
-                // First define the struct containing the output value and indicator
-                // of its presence.
-                pr(structBuilder, '''
-                   «template_port_type»<«outputType.targetType»>* «portName»;
-                ''')
-
-                // Next, initialize the struct with the current values.
-                pr(builder, '''
-                    «reactorName».«portName» = («template_port_type»<«outputType.targetType»> *) self->__«reactorName».«portName»;
-                ''')
-            }
-            else
-            {
-            	// First define the struct containing the output value and indicator
-                // of its presence.
-                pr(structBuilder, '''
-                   «template_port_type_with_token»<«outputType.targetType»>* «portName»;
-                ''')
-
-                // Next, initialize the struct with the current values.
-                pr(builder, '''
-                    «reactorName».«portName» = («template_port_type_with_token»<«outputType.targetType»> *) self->__«reactorName».«portName»;
-                ''')
-            }
-        }
-    }
-    
-    
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for the specified input port
-     *  in a reaction function from the "self" struct.
-     *  @param builder The string builder.
-     *  @param input The input statement from the AST.
-     *  @param reactor The reactor.
-     */
-    override generateInputVariablesInReaction(
-        StringBuilder builder,
-        Input input,
-        Reactor reactor
-    ) {
-        val structType = variableStructType(input, reactor)
-        val inputType = input.inferredType
-        // Create the local variable whose name matches the input name.
-        // If the input has not been declared mutable, then this is a pointer
-        // to the upstream output. Otherwise, it is a copy of the upstream output,
-        // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
-        // depending on whether the input is mutable, whether it is a multiport,
-        // and whether it is a token type.
-        // Easy case first.
-        if (!input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
-            // Non-mutable, non-multiport, primitive type.
-            pr(builder, '''
-                «template_port_type»<«inputType.targetType»>* «input.name» = («template_port_type»<«inputType.targetType»> *) self->__«input.name»;
-            ''')
-        } else if (input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
-            // Mutable, non-multiport, primitive type.
-            pr(builder, '''
-                // Mutable input, so copy the input into a temporary variable.
-                // The input value on the struct is a copy.
-                «structType» __tmp_«input.name» = *(self->__«input.name»);
-                «template_port_type»<«inputType.targetType»>* «input.name» = («template_port_type»<«inputType.targetType»> *)&__tmp_«input.name»;
-            ''')
-        } else if (!input.isMutable && inputType.isTokenType && input.multiportWidth <= 0) {
-            // Non-mutable, non-multiport, token type.
-            pr(builder, '''
-                «template_port_type_with_token»<«inputType.targetType»>* «input.name» = («template_port_type_with_token»<«inputType.targetType»> *) self->__«input.name»;
-                if («input.name»->is_present) {
-                    «input.name»->length = «input.name»->token->length;
-                    «input.name»->value = («inputType.targetType»)«input.name»->token->value;
-                } else {
-                    «input.name»->length = 0;
-                }
-            ''')
-        } else if (input.isMutable && inputType.isTokenType && input.multiportWidth <= 0) {
-            // Mutable, non-multiport, token type.
-            pr(builder, '''
-                // Mutable input, so copy the input struct into a temporary variable.
-                «structType» __tmp_«input.name» = *(self->__«input.name»);
-                «template_port_type_with_token»<«inputType.targetType»>* «input.name» = («template_port_type_with_token»<«inputType.targetType»> *) &__tmp_«input.name»;
-                if («input.name»->is_present) {
-                    «input.name»->length = «input.name»->token->length;
-                    token_t* _lf_input_token = «input.name»->token;
-                    «input.name»->token = writable_copy(_lf_input_token);
-                    if («input.name»->token != _lf_input_token) {
-                        // A copy of the input token has been made.
-                        // This needs to be reference counted.
-                        «input.name»->token->ref_count = 1;
-                        // Repurpose the next_free pointer on the token to add to the list.
-                        «input.name»->token->next_free = _lf_more_tokens_with_ref_count;
-                        _lf_more_tokens_with_ref_count = «input.name»->token;
-                    }
-                    «input.name»->value = («inputType.targetType»)«input.name»->token->value;
-                } else {
-                    «input.name»->length = 0;
-                }
-            ''')            
-        } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
-            // Non-mutable, multiport, primitive type.
-            pr(builder, '''
-                «template_port_type»<«inputType.targetType»>** «input.name» = («template_port_type»<«inputType.targetType»> **) self->__«input.name»;
-            ''')
-        } else {
-            throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
-        }
-        // Set the _width variable for all cases. This will be -1
-        // for a variable-width multiport, which is not currently supported.
-        // It will be -2 if it is not multiport.
-        pr(builder, '''
-            int «input.name»_width = «input.multiportWidth»;
-        ''')
-    }
-    
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for sending data to an input
-     *  of a contained reaction (e.g. for a deadline violation).
-     *  The code goes into two builders because some of it has to
-     *  collected into a single struct definition.
-     *  @param builder The string builder.
-     *  @param definition AST node defining the reactor within which this occurs
-     *  @param input Input of the contained reactor.
-     */
-    override generateVariablesForSendingToContainedReactors(
-        StringBuilder builder,
-        HashMap<Instantiation,StringBuilder> structs,
-        Instantiation definition,
-        Input input
-    ) {
-        var structBuilder = structs.get(definition)
-        if (structBuilder === null) {
-            structBuilder = new StringBuilder
-            structs.put(definition, structBuilder)
-        }
-        val inputType = input.inferredType
-        val inputStructType = variableStructType(input, definition.reactorClass)
-        if(!inputType.isTokenType)
-        {
-            pr(structBuilder, '''
-                «template_port_type»<«inputType.targetType»>* «input.name»;
-            ''')
-        
-            pr(builder, '''
-                «definition.name».«input.name» = («template_port_type»<«inputType.targetType»> *) &(self->__«definition.name».«input.name»);
-            '''
-            )
-        }
-        else
-        {
-            pr(structBuilder, '''
-                «template_port_type_with_token»<«inputType.targetType»>* «input.name»;
-            ''')
-        
-            pr(builder, '''
-                «definition.name».«input.name» = («template_port_type_with_token»<«inputType.targetType»> *) &(self->__«definition.name».«input.name»);
-            '''
-            )
-        }   
-    }
-    
-    
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for outputs in a reaction function
-     *  from the "self" struct.
-     *  @param builder The string builder.
-     *  @param output The output statement from the AST.
-     */
-    override generateOutputVariablesInReaction(
-        StringBuilder builder,
-        Output output,
-        Reactor reactor
-    ) {
-    	
-        val outputType = output.inferredType
-        if (output.type === null) {
-            reportError(output,
-                "Output is required to have a type: " + output.name)
-        } else {
-            val outputStructType = variableStructType(output, reactor)
-            // Unfortunately, for the SET macros to work out-of-the-box for
-            // multiports, we need an array of *pointers* to the output structs,
-            // but what we have on the self struct is an array of output structs.
-            // So we have to handle multiports specially here a construct that
-            // array of pointers.
-            if (!output.isMultiport) {
-            	if (!outputType.isTokenType) {
-                    pr(builder, '''
-                        «template_port_type»<«outputType.targetType»>* «output.name» = («template_port_type»<«outputType.targetType»> *) &self->__«output.name»;
-                    ''')
-                }
-                else 
-                {
-                    pr(builder, '''
-                        «template_port_type_with_token»<«outputType.targetType»>* «output.name» = («template_port_type_with_token»<«outputType.targetType»> *) &self->__«output.name»;
-                    ''')                	
-                }
-            } else {
-            	if (!outputType.isTokenType) {
-                    pr(builder, '''
-                        «template_port_type»<«outputType.targetType»>* «output.name»[«output.multiportWidth»];
-                        for(int i=0; i < «output.multiportWidth»; i++) {
-                             «output.name»[i] = («template_port_type»<«outputType.targetType»> *) &(self->__«output.name»[i]);
-                        }
-                    ''')
-                }
-                else
-                {
-                    pr(builder, '''
-                        «template_port_type_with_token»<«outputType.targetType»>* «output.name»[«output.multiportWidth»];
-                        for(int i=0; i < «output.multiportWidth»; i++) {
-                             «output.name»[i] = («template_port_type_with_token»<«outputType.targetType»> *) &(self->__«output.name»[i]);
-                        }
-                    ''')
-                }
-            }
         }
     }
     
