@@ -646,7 +646,7 @@ class CGenerator extends GeneratorBase {
             }
 
 			
-			writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
+            writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
             
         }
         // Restore the base filename.
@@ -1050,7 +1050,7 @@ class CGenerator extends GeneratorBase {
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
      */
-    protected def generateReactorFederated(Reactor reactor, FederateInstance federate) {
+    def generateReactorFederated(Reactor reactor, FederateInstance federate) {
 
         // Create Timer and Action for startup and shutdown, if they occur.
         handleStartupAndShutdown(reactor)
@@ -1797,7 +1797,7 @@ class CGenerator extends GeneratorBase {
      *   federated or not the main reactor and reactions should be
      *   unconditionally generated.
      */
-    protected def generateReactions(Reactor reactor, FederateInstance federate) {
+    def generateReactions(Reactor reactor, FederateInstance federate) {
         var reactionIndex = 0;
         for (reaction : reactor.allReactions) {
             if (federate === null || federate.containsReaction(reactor, reaction)) {
@@ -1817,7 +1817,7 @@ class CGenerator extends GeneratorBase {
      *  @param reactor The reactor.
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
-    protected def generateReaction(Reaction reaction, Reactor reactor, int reactionIndex) {
+    def generateReaction(Reaction reaction, Reactor reactor, int reactionIndex) {
         // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(reactor, reactionIndex)
 
@@ -3415,7 +3415,7 @@ class CGenerator extends GeneratorBase {
      *  @param input The input statement from the AST.
      *  @param reactor The reactor.
      */
-    protected def generateInputVariablesInReaction(
+    private def generateInputVariablesInReaction(
         StringBuilder builder,
         Input input,
         Reactor reactor
@@ -3506,7 +3506,7 @@ class CGenerator extends GeneratorBase {
      *  @param port The port.
      *  @param reactor The reactor.
      */
-    protected def generatePortVariablesInReaction(
+    private def generatePortVariablesInReaction(
         StringBuilder builder,
         HashMap<Instantiation,StringBuilder> structs,
         VarRef port,
@@ -3545,7 +3545,7 @@ class CGenerator extends GeneratorBase {
      *  @param builder The string builder.
      *  @param output The output statement from the AST.
      */
-    protected def generateOutputVariablesInReaction(
+    private def generateOutputVariablesInReaction(
         StringBuilder builder,
         Output output,
         Reactor reactor
@@ -3584,7 +3584,7 @@ class CGenerator extends GeneratorBase {
      *  @param definition AST node defining the reactor within which this occurs
      *  @param input Input of the contained reactor.
      */
-    protected def generateVariablesForSendingToContainedReactors(
+    private def generateVariablesForSendingToContainedReactors(
         StringBuilder builder,
         HashMap<Instantiation,StringBuilder> structs,
         Instantiation definition,
