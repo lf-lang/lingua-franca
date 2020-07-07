@@ -286,7 +286,7 @@ class CCppGenerator extends CGenerator {
     *
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
-	val template_port_type =  "template_input_output_port_struct"
+	val template_port_type =  "template_port_instance_struct"
 
     /** 
     * Special template struct for ports with dynamically allocated
@@ -303,7 +303,7 @@ class CCppGenerator extends CGenerator {
     *
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
-	val template_port_type_with_token = "template_input_output_port_with_token_struct"
+	val template_port_type_with_token = "template_port_instance_with_token_struct"
     
    ////////////////////////////////////////////
     //// Public methods
