@@ -14,7 +14,6 @@ ArrayFree.lf
 ArrayInstancesToArrayPort.lf
 ArrayParallel.lf
 ArrayPrint.lf
-ArrayPorts.lf
 ArrayScale.lf
 BankToBank.lf
 Composition.lf
@@ -70,6 +69,7 @@ MultiportOut.lf
 MultiportToBank.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
+MultiportToMultiport2.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
