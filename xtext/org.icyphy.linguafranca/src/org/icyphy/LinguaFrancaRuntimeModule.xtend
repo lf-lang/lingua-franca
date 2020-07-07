@@ -15,6 +15,9 @@ import com.google.inject.Provider
 
 import org.eclipse.xtext.resource.containers.ResourceSetBasedAllContainersStateProvider
 import org.icyphy.scoping.LinguaFrancaStateManagerProvider
+import org.eclipse.xtext.resource.IResourceDescription
+import org.icyphy.scoping.LinguaFrancaResourceDescriptionManager
+import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 
 /**
  * This class is used to register components to be used at runtime 
@@ -23,25 +26,32 @@ import org.icyphy.scoping.LinguaFrancaStateManagerProvider
 class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
 	
 	override Class<? extends IContainer.Manager> bindIContainer$Manager() {
-        return LinguaFrancaContainerManager;
+        LinguaFrancaContainerManager;
     }
     
    override Class<? extends IAllContainersState.Provider> bindIAllContainersState$Provider() {
-		return LinguaFrancaStateManagerProvider;
+		LinguaFrancaStateManagerProvider;
 	}
+	
+	def Class<? extends IResourceDescription.Manager> bindIResourceDescription$Manager() {
+        LinguaFrancaResourceDescriptionManager;
+    }
+    
 		
     /** Establish a binding to our custom resource description strategy. */
     def Class<? extends IDefaultResourceDescriptionStrategy> bindIDefaultResourceDescriptionStrategy() {
-        DefaultResourceDescriptionStrategy
+        LinguaFrancaResourceDescriptionStrategy
     }
     
     /** Establish a binding to our custom global scope provider. */
     override Class<? extends IGlobalScopeProvider> bindIGlobalScopeProvider() {
-        DefaultGlobalScopeProvider;
+        LinguaFrancaGlobalScopeProvider;
     }
     
     /** Establish a binding to a helper that checks that names are unique. */
     def Class<? extends INamesAreUniqueValidationHelper> bindNamesAreUniqueValidationHelper() {
         LinguaFrancaNamesAreUniqueValidationHelper;
     }
+    
+    
 }

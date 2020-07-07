@@ -9,6 +9,8 @@ import org.eclipse.xtext.resource.IContainer
 import java.util.Collections
 import org.eclipse.xtext.resource.containers.ProjectDescriptionBasedContainerManager
 import com.google.inject.Inject
+import java.util.ArrayList
+
 //import org.eclipse.xtext.resource.containers.IAllContainersState
 
 class LinguaFrancaContainerManager extends StateBasedContainerManager {
@@ -41,16 +43,19 @@ class LinguaFrancaContainerManager extends StateBasedContainerManager {
 		
 		try{
 		    val LF_CLASSPATH = System.getenv("LF_CLASSPATH")
-		    System.out.println("Reading Lingua Franca classpath: " + LF_CLASSPATH)
 		    val paths = LF_CLASSPATH.split(System.getProperty("path.separator"));
-		    result.addAll(super.getVisibleContainers(paths, resourceDescriptions))
+		    var path_list = new ArrayList<String>(paths.length)
+		    Collections.addAll ( path_list, paths)
+		    System.out.println("Reading Lingua Franca classpath: " + paths.toString)
+		    System.out.println("Reading resource descriptions : " + resourceDescriptions.toString)
+		    result.addAll(super.getVisibleContainers(path_list, resourceDescriptions))
 		}
 		catch (Exception e)
 		{
 			System.out.println("Error: " + e.message)
 		}
 		
-		System.out.println("Returning containers : " + result)
+		System.out.println("Returning containers : " + result.toString)
 		return result;
 	}
 
