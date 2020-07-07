@@ -45,7 +45,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reactor.h"
 
 /**
- * A template struct for input output ports
+ * A template struct for an instance of each port
  * in Lingua Franca. This template is used 
  * in the CCppGenerator instead of redefining
  * a struct for each port.
@@ -54,10 +54,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * T value: the value of the port with type T
  * is_present: indicates if the value of the port is present
  *     at the current logcal time
- * num_destinations: 
+ * num_destinations: used for reference counting the number of
+ *     connections to destinations.
  **/
 template <class T>
-struct template_input_output_port_struct {
+struct template_port_instance_struct {
     T value;
     bool is_present;
     int num_destinations;
@@ -68,7 +69,7 @@ struct template_input_output_port_struct {
  * for dynamic arrays
  **/
 template <class T>
-struct template_input_output_port_with_token_struct {
+struct template_port_instance_with_token_struct {
     T value;
     bool is_present;
     int num_destinations;
@@ -89,13 +90,12 @@ struct template_input_output_port_with_token_struct {
  * so that the type designating string does not end in '*'.
  * @param out The output port (by name) or input of a contained
  *  reactor in form input_name.port_name.
- * @param value The value to insert into the self struct.
+ * @param val The value to insert into the self struct.
  */
 template <class T>
-void SET(template_input_output_port_struct<T>* out, T val)
+void SET(template_port_instance_struct<T>* out, T val)
 {
-    out->value = val;
-    out->is_present = true;
+    __LF_SET(out, static_cast<T>(val));
 }
 
 
@@ -113,13 +113,9 @@ void SET(template_input_output_port_struct<T>* out, T val)
  * @see token_t
  */
 template <class T>
-void SET(template_input_output_port_with_token_struct<T>* out, T val, int element_size, int length)
+void SET(template_port_instance_with_token_struct<T>* out, T val, int element_size, int length)
 {
-    token_t* token = __initialize_token_with_value(out->token, val, length);
-    token->ref_count = out->num_destinations;
-    out->token = token;
-    out->is_present = true;
-    out->value = static_cast<T>(token->value);
+    __LF_SET_ARRAY(out, val, element_size, length);
 }
 
 /**
@@ -136,12 +132,9 @@ void SET(template_input_output_port_with_token_struct<T>* out, T val, int elemen
  * @param length The length of the array to be sent.
  */
 template <class T>
-void SET(template_input_output_port_with_token_struct<T>* out, int length)
+void SET(template_port_instance_with_token_struct<T>* out, int length)
 {
-    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations);
-    out->token = token;
-    out->is_present = true;
-    out->value = static_cast<T>(token->value);
+    __LF_SET_NEW_ARRAY(out, length);
 }
 
 /**
@@ -159,7 +152,7 @@ void SET(template_input_output_port_with_token_struct<T>* out, int length)
  * @param out The output port (by name).
  */
 template <class T>
-void SET(template_input_output_port_with_token_struct<T>* out)
+void SET(template_port_instance_with_token_struct<T>* out)
 {
     SET(out, 1);
 }
@@ -174,9 +167,9 @@ void SET(template_input_output_port_with_token_struct<T>* out)
  * @param out The output port (by name).
  */
 template <class T>
-void SET(template_input_output_port_struct<T>* out)
+void SET(template_port_instance_struct<T>* out)
 {
-    out->is_present = true;
+    __LF_SET_PRESENT(out);
 }
 
 /**
@@ -189,12 +182,9 @@ void SET(template_input_output_port_struct<T>* out)
  * @param token A pointer to token obtained from an input or action.
  */
 template <class T>
-void SET(template_input_output_port_with_token_struct<T>* out, token_t* newtoken)
+void SET(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
 {
-    out->value = static_cast<T>(newtoken->value);
-    out->token = newtoken;
-    newtoken->ref_count += out->num_destinations;
-    out->is_present = true;
+    __LF_SET_TOKEN(out, newtoken);
 }
 
 /**
@@ -222,32 +212,32 @@ void SET(template_input_output_port_with_token_struct<T>* out, token_t* newtoken
  */
 
 template <class T>
-void SET_ARRAY(template_input_output_port_with_token_struct<T>* out, T val, int element_size, int length)
+void SET_ARRAY(template_port_instance_with_token_struct<T>* out, T val, int element_size, int length)
 {
     SET(out, val, element_size, length);
 }
 
 
 template <class T>
-void SET_NEW(template_input_output_port_with_token_struct<T>* out)
+void SET_NEW(template_port_instance_with_token_struct<T>* out)
 {
     SET(out);
 }
 
 template <class T>
-void SET_NEW_ARRAY(template_input_output_port_with_token_struct<T>* out, int length)
+void SET_NEW_ARRAY(template_port_instance_with_token_struct<T>* out, int length)
 {
     SET(out, length);
 }
 
 template <class T>
-void SET_PRESENT(template_input_output_port_struct<T>* out)
+void SET_PRESENT(template_port_instance_struct<T>* out)
 {
     SET(out);
 }
 
 template <class T>
-void SET_TOKEN(template_input_output_port_with_token_struct<T>* out, token_t* newtoken)
+void SET_TOKEN(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
 {
     SET(out, newtoken);
 }

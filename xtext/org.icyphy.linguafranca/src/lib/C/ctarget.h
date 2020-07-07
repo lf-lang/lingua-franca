@@ -66,11 +66,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  reactor in form input_name.port_name.
  * @param value The value to insert into the self struct.
  */
-#define SET(out, val) \
-do { \
-    out->value = val; \
-    out->is_present = true; \
-} while(0)
+#define SET(out, val) __LF_SET(out, val)
 
 /**
  * Version of set for output types given as 'type[]' where you
@@ -85,14 +81,7 @@ do { \
  * @param length The length of the array to send.
  * @see token_t
  */
-#define SET_ARRAY(out, val, element_size, length) \
-do { \
-    out->is_present = true; \
-    token_t* token = __initialize_token_with_value(out->token, val, length); \
-    token->ref_count = out->num_destinations; \
-    out->token = token; \
-    out->value = token->value; \
-} while(0)
+#define SET_ARRAY(out, val, element_size, length) __LF_SET_ARRAY(out, val, element_size, length)
 
 /**
  * Version of set() for output types given as 'type*' that
@@ -108,13 +97,7 @@ do { \
  * struct to true (which causes the object message to be sent),
  * @param out The output port (by name).
  */
-#define SET_NEW(out) \
-do { \
-    out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
-    out->value = token->value; \
-    out->token = token; \
-} while(0)
+#define SET_NEW(out) __LF_SET_NEW(out)
 
 /**
  * Version of set() for output types given as 'type[]'.
@@ -129,13 +112,7 @@ do { \
  * @param out The output port (by name).
  * @param length The length of the array to be sent.
  */
-#define SET_NEW_ARRAY(out, length) \
-do { \
-    out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
-    out->value = token->value; \
-    out->token = token; \
-} while(0)
+#define SET_NEW_ARRAY(out, length) __LF_SET_NEW_ARRAY(out, length)
 
 /**
  * Version of set() for output types given as 'type[number]'.
@@ -146,10 +123,7 @@ do { \
  * after this is called.
  * @param out The output port (by name).
  */
-#define SET_PRESENT(out) \
-do { \
-    out->is_present = true; \
-} while(0)
+#define SET_PRESENT(out) __LF_SET_PRESENT(out)
 
 /**
  * Version of set() for output types given as 'type*' or 'type[]' where you want
@@ -160,13 +134,6 @@ do { \
  * @param out The output port (by name).
  * @param token A pointer to token obtained from an input or action.
  */
-#define SET_TOKEN(out, newtoken) \
-do { \
-    out->is_present = true; \
-    out->value = newtoken->value; \
-    out->token = newtoken; \
-    newtoken->ref_count += out->num_destinations; \
-    out->is_present = true; \
-} while(0)
+#define SET_TOKEN(out, newtoken) __LF_SET_TOKEN(out, newtoken)
 
 #endif // CTARGET_H
