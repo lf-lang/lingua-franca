@@ -384,6 +384,23 @@ class CCppGenerator extends CGenerator {
     {    	
         pr('#include "ccpptarget.h"')
     }
+
+    /** Add necessary source files specific to the target language.  */
+    override includeTargetLanguageSourceFiles()
+    {
+        if (targetThreads > 0) {
+            // Set this as the default in the generated code,
+            // but only if it has not been overridden on the command line.
+            pr(startTimers, '''
+                if (number_of_threads == 0) {
+                   number_of_threads = «targetThreads»;
+                }
+            ''')
+        }
+        if (federates.length > 1) {
+            pr("#include \"core/federate.c\"")
+        }
+    }
     
     /** Append the appropriate filename for the given target language
      * @param fileName The file name used internally by Lingua Franca
@@ -403,6 +420,9 @@ class CCppGenerator extends CGenerator {
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
+                // Always use the threaded version
+                targetThreads = 1;
+
             	super.doGenerate(resource, fsa, context);
             }
             
@@ -638,7 +658,5 @@ class CCppGenerator extends CGenerator {
                 reportWarning(null, "Unable to make distributor script executable.")
             }
         }
-    }
-    
-    
+    }   
 }
