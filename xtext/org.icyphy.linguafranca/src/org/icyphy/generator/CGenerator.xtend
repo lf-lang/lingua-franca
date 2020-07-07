@@ -3271,7 +3271,12 @@ class CGenerator extends GeneratorBase {
             
             // We assume here that all connections across federates have been
             // broken and replaced by reactions handling the communication.
-            if (reactorBelongsToFederate(eventualSource.parent, federate)) {
+            // Moreover, if the eventual source is an input and it is NOT
+            // written to by a reaction, then it is dangling, so we skip it.
+            if (reactorBelongsToFederate(eventualSource.parent, federate)
+                && eventualSource.isOutput
+                || eventualSource.dependsOnReactions.size > 0
+            ) {
                 val destinations = instance.destinations.get(source)
                 for (destination : destinations) {
                     var comment = ''
@@ -3293,8 +3298,6 @@ class CGenerator extends GeneratorBase {
                         srcIndex = "[i]"
                         width = eventualSource.instances.size
                         if (!(destination instanceof MultiportInstance)) {
-                             // FIXME: What if the destination reactor is a bank of reactors?
-                             // FIXME FIXME FIXME
                             reportError(destination.definition, "Cannot connect a multiport to a single port")
                         }
                     }

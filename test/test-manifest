@@ -68,6 +68,7 @@ MultipleContained.lf
 MultiportIn.lf
 MultiportOut.lf
 MultiportToBank.lf
+MultiportToHierarchy.lf
 MultiportToMultiport.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
