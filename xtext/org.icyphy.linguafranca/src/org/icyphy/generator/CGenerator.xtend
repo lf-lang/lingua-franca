@@ -2105,14 +2105,27 @@ class CGenerator extends GeneratorBase {
                 var nameOfSelfStruct = selfStructName(child)
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
-                        pr(startTimeStep, '''
-                            __tokens_with_ref_count[«startTimeStepTokens»].token
-                                    = &«nameOfSelfStruct»->__«input.name»->token;
-                            __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                    = &«nameOfSelfStruct»->__«input.name»->is_present;
-                            __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
-                        ''')
-                        startTimeStepTokens++
+                        if (input instanceof MultiportInstance) {
+                            pr(startTimeStep, '''
+                                for (int i = 0; i < «input.width»; i++) {
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                            = &«nameOfSelfStruct»->__«input.name»[i]->token;
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                            = &«nameOfSelfStruct»->__«input.name»[i]->is_present;
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                }
+                            ''')
+                            startTimeStepTokens += input.width
+                        } else {
+                            pr(startTimeStep, '''
+                                __tokens_with_ref_count[«startTimeStepTokens»].token
+                                        = &«nameOfSelfStruct»->__«input.name»->token;
+                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                        = &«nameOfSelfStruct»->__«input.name»->is_present;
+                                __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                            ''')
+                            startTimeStepTokens++
+                        }
                     }
                 }
             }
@@ -3512,6 +3525,11 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 «structType»** «input.name» = self->__«input.name»;
             ''')
+        } else if (!input.isMutable) {
+            // Non-mutable, multiport, token type.
+            pr(builder, '''
+                «structType»** «input.name» = self->__«input.name»;
+            ''')
         } else {
             // FIXME FIXME FIXME
             throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
@@ -3757,9 +3775,17 @@ class CGenerator extends GeneratorBase {
                         // If the rootType is 'void', we need to avoid generating the code
                         // 'sizeof(void)', which some compilers reject.
                         val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                        pr('''
-                            «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
-                        ''')
+                        if (output instanceof MultiportInstance) {
+                            pr('''
+                                for (int i = 0; i < «output.width»; i++) {
+                                    «nameOfSelfStruct»->__«output.name»[i].token = __create_token(«size»);
+                                }
+                            ''')
+                        } else {
+                            pr('''
+                                «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
+                            ''')
+                        }
                     }
                 }
                 // In case this is a composite, handle its contained reactors.

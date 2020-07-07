@@ -88,14 +88,15 @@ do { \
  * allocated array will be handled automatically
  * when the last downstream reader of the message has finished.
  * @param out The output port (by name).
- * @param length The length of the array to be sent.
+ * @param len The length of the array to be sent.
  */
-#define SET_NEW_ARRAY(out, length) \
+#define SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
+    token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = token->value; \
     out->token = token; \
+    out->length = len; \
 } while(0)
 
 /**
