@@ -2,13 +2,9 @@
 // /home/soroosh/lingua-franca/test/CCpp/Composition.lf
 #include "ccpptarget.h"
 #define NUMBER_OF_FEDERATES 1
+#include "core/reactor.c"
 // =============== START reactor class Source
-typedef struct
-{
-    int value;
-    bool is_present;
-    int num_destinations;
-} source_y_t;
+using source_y_t = template_input_output_port_struct<int>;
 class source_t
 {
     // FIXME: Need finer granularity on access
@@ -54,12 +50,7 @@ public:
 // =============== END reactor class Source
 
 // =============== START reactor class Test
-typedef struct
-{
-    int value;
-    bool is_present;
-    int num_destinations;
-} test_x_t;
+using test_x_t = template_input_output_port_struct<int>;
 typedef struct
 {
     trigger_t *trigger;
