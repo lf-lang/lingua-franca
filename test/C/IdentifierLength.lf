@@ -10,7 +10,7 @@ reactor A_Really_Long_Name_For_A_Source(period:time(2 sec)) {
 	state count:int(0);
 	reaction(t) -> y {=
 		(self->count)++;
-		set(y, self->count);
+		SET(y, self->count);
 	=}
 }
 reactor Another_Really_Long_Name_For_A_Test_Class {
@@ -18,8 +18,8 @@ reactor Another_Really_Long_Name_For_A_Test_Class {
 	state count:int(0);
 	reaction(x) {=
 		(self->count)++;
-		printf("Received %d\n", x);
-		if (x != self->count) { 
+		printf("Received %d\n", x->value);
+		if (x->value != self->count) { 
 			printf("FAILURE: Expected %d\n", self->count);
 			exit(1); 
 		}

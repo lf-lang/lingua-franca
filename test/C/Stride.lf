@@ -5,18 +5,23 @@ target C {
     fast: true
 };
 reactor Count(stride:int(1)) {
-    state count:int(0);
+    state count:int(1);
     output y:int;
     timer t(0, 100 msec);
     reaction(t) -> y {=
-        set(y, self->count);
+        SET(y, self->count);
         self->count += self->stride;
     =}
 }
 reactor Display {
     input x:int;
+    state expected:int(1); // for testing.
     reaction(x) {=
-        printf("Received: %d.\n", x);
+        printf("Received: %d.\n", x->value);
+        if (x->value != self->expected) {
+            fprintf(stderr, "ERROR: Expected %d\n", self->expected);
+        }
+        self->expected += 2;
     =}
 }
 main reactor Stride {

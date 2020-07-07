@@ -19,8 +19,8 @@ reactor Ball {
     state p:int(200);
     timer trigger(0, 1 sec);
     reaction(trigger) -> position, velocity {=
-        set(position, self->p);
-        set(velocity, -1);      
+        SET(position, self->p);
+        SET(velocity, -1);      
         self->p -= 1;
     =}
 }
@@ -32,10 +32,10 @@ reactor Print {
         printf("####### Print startup\n");
     =}
     reaction (position, velocity) {=
-        if (position_is_present) {
-            printf("Position: %d.\n", position);
+        if (position->is_present) {
+            printf("Position: %d.\n", position->value);
         }
-        if (position == self->previous) {
+        if (position->value == self->previous) {
             printf("ERROR: Multiple firings at the same logical time!\n");
             exit(1);
         }

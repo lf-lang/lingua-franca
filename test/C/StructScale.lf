@@ -11,13 +11,13 @@ reactor Scale(scale:int(2)) {
     
     output out:hello_t*;
     reaction(in) -> out {=
-        in->value *= self->scale;
-        set_token(out, in_token);
+        in->value->value *= self->scale;
+        SET_TOKEN(out, in->token);
     =}
 }
 
 main reactor StructScale {
-    s = new Source();
+    s = new StructPrint();
     c = new Scale();
     p = new Print(expected=84);
     s.out -> c.in;

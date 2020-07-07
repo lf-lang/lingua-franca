@@ -74,14 +74,17 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import java.io.FileOutputStream
 
 /**
  * Generator base class for shared code between code generators.
+ * This extends AbstractLinguaFrancaValidator so that errors can be highlighted
+ * in the XText-based IDE.
  * 
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Chris Gill, <cdgill@wustl.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
 abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
@@ -104,9 +107,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
     
     public static var GEN_DELAY_CLASS_NAME = "__GenDelay"
-    
-    static protected CharSequence listItemSeparator = ', '
-    
+        
     ////////////////////////////////////////////
     //// Protected fields.
         
@@ -114,6 +115,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * All code goes into this string buffer.
      */
     protected var code = new StringBuilder
+    
+    /** Additional sources to add to the compile command if appropriate. */
+    protected var compileAdditionalSources = null as ArrayList<String>
+    
+    /** Additional libraries to add to the compile command using the "-l" command-line option. */
+    protected var compileLibraries = null as ArrayList<String>
 
     /**
      * Path to the directory containing the .lf file.
@@ -128,17 +135,28 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /**
      * Indicator of whether generator errors occurred.
+     * This is set to true by the report() method and returned by the
+     * errorsOccurred() method.
      */
-    protected var generatorErrorsOccurred = false
+    var generatorErrorsOccurred = false
     
     /**
      * If running in an Eclipse IDE, the iResource refers to the
      * IFile representing the Lingua Franca program.
+     * This is the XText view of the file, which is distinct
+     * from the Eclipse eCore view of the file and the OS view of the file.
      */
     protected var iResource = null as IResource
     
+    /** 
+     * The main (top-level) reactor instance.
+     */
+    protected ReactorInstance main
+    
     /**
-     * Definition of the main (top-level) reactor
+     * Definition of the main (top-level) reactor.
+     * This is an automatically generated AST node for the top-level
+     * reactor.
      */
     protected Instantiation mainDef
     
@@ -158,8 +176,26 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     
     /**
      * The file containing the main source code.
+     * This is the Eclipse eCore view of the file, which is distinct
+     * from the XText view of the file and the OS view of the file.
      */
     protected var Resource resource
+    
+    /** 
+     * The path from the LF file directory 
+     * to the directory containing generated
+     * RTI C code. This can be overridden in a target
+     * generator to change the directory.
+     */
+    protected var rtiSrcPath = File.separator + "src-gen";
+    
+    /** 
+     * The path from the LF file directory
+     * to the directory containing the compiled
+     * RTI binary. This can be overridden in a target
+     * generator to change the directory.
+     */
+    protected var rtiBinPath = File.separator + "bin"
     
     /**
      * The full path to the file containing the .lf file including the
@@ -189,7 +225,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var Set<Reaction> unorderedReactions = null
     
     /**
-     * A map of all resources to the set of resource they import
+     * A map of all resources to the set of resource they import.
+     * These are Eclipse eCore views of the files.
      */
     protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
@@ -603,6 +640,205 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
         result
     }
+    
+    
+    // //////////////////////////////////////////
+    // Protected methods for code generation
+    // of the RTI.
+    
+    // FIXME: Allow target code generators to specify the directory
+    // structure for the generated C RTI?
+    /** Create the runtime infrastructure (RTI) source file.
+     */
+    def createFederateRTI() {
+        // Derive target filename from the .lf filename.
+        var cFilename = filename + "_RTI.c"
+
+        // Delete source previously produced by the LF compiler.
+        var file = new File(directory + rtiSrcPath + File.separator + cFilename)
+        if (file.exists) {
+            file.delete
+        }
+
+        // Delete binary previously produced by the C compiler.
+        file = new File(directory + rtiBinPath + File.separator + filename)
+        if (file.exists) {
+            file.delete
+        }
+        
+        val rtiCode = new StringBuilder()
+        pr(rtiCode, '''
+            #ifdef NUMBER_OF_FEDERATES
+            #undefine NUMBER_OF_FEDERATES
+            #endif
+            #define NUMBER_OF_FEDERATES «federates.length»
+            #include "rti.c"
+            int main(int argc, char* argv[]) {
+        ''')
+        indent(rtiCode)
+        
+        // Initialize the array of information that the RTI has about the
+        // federates.
+        // FIXME: No support below for some federates to be FAST and some REALTIME.
+        pr(rtiCode, '''
+            for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                initialize_federate(i);
+                «IF targetFast»
+                    federates[i].mode = FAST;
+                «ENDIF»
+            }
+        ''')
+        // Initialize the arrays indicating connectivity to upstream and downstream federates.
+        for(federate : federates) {
+            if (!federate.dependsOn.keySet.isEmpty) {
+                // Federate receives non-physical messages from other federates.
+                // Initialize the upstream and upstream_delay arrays.
+                val numUpstream = federate.dependsOn.keySet.size
+                // Allocate memory for the arrays storing the connectivity information.
+                pr(rtiCode, '''
+                    federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
+                    federates[«federate.id»].upstream_delay = (interval_t*)malloc(sizeof(interval_t*) * «numUpstream»);
+                    federates[«federate.id»].num_upstream = «numUpstream»;
+                ''')
+                // Next, populate these arrays.
+                // Find the minimum delay in the process.
+                // FIXME: Zero delay is not really the same as a microstep delay.
+                var count = 0;
+                for (upstreamFederate : federate.dependsOn.keySet) {
+                    pr(rtiCode, '''
+                        federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
+                        federates[«federate.id»].upstream_delay[«count»] = 0LL;
+                    ''')
+                    // The minimum delay calculation needs to be made in the C code because it
+                    // may depend on parameter values.
+                    // FIXME: These would have to be top-level parameters, which don't really
+                    // have any support yet. Ideally, they could be overridden on the command line.
+                    // When that is done, they will need to be in scope here.
+                    val delays = federate.dependsOn.get(upstreamFederate)
+                    if (delays !== null) {
+                        for (value : delays) {
+                            pr(rtiCode, '''
+                                if (federates[«federate.id»].upstream_delay[«count»] < «value.getRTITime») {
+                                    federates[«federate.id»].upstream_delay[«count»] = «value.getRTITime»;
+                                }
+                            ''')
+                        }
+                    }
+                    count++;
+                }
+            }
+            // Next, set up the downstream array.
+            if (!federate.sendsTo.keySet.isEmpty) {
+                // Federate sends non-physical messages to other federates.
+                // Initialize the downstream array.
+                val numDownstream = federate.sendsTo.keySet.size
+                // Allocate memory for the array.
+                pr(rtiCode, '''
+                    federates[«federate.id»].downstream = (int*)malloc(sizeof(federate_t*) * «numDownstream»);
+                    federates[«federate.id»].num_downstream = «numDownstream»;
+                ''')
+                // Next, populate the array.
+                // Find the minimum delay in the process.
+                // FIXME: Zero delay is not really the same as a microstep delay.
+                var count = 0;
+                for (downstreamFederate : federate.sendsTo.keySet) {
+                    pr(rtiCode, '''
+                        federates[«federate.id»].downstream[«count»] = «downstreamFederate.id»;
+                    ''')
+                    count++;
+                }
+            }
+        }
+        
+        // Start the RTI server before launching the federates because if it
+        // fails, e.g. because the port is not available, then we don't want to
+        // launch the federates.
+        pr(rtiCode, '''
+            int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
+        ''')
+        
+        // Generate code that blocks until the federates resign.
+        pr(rtiCode, "wait_for_federates(socket_descriptor);")
+        
+        unindent(rtiCode)
+        pr(rtiCode, "}")
+        
+        var fOut = new FileOutputStream(
+                new File(directory + rtiSrcPath + File.separator + cFilename));
+        fOut.write(rtiCode.toString().getBytes())
+        fOut.close()
+    }
+    
+
+    /** Invoke the compiler on the generated code. */
+    def compileCode() {
+
+        // If there is more than one federate, compile each one.
+        var fileToCompile = filename // base file name.
+        for (federate : federates) {
+            // Empty string means no federates were defined, so we only
+            // compile one file.
+            if (!federate.isSingleton) {
+                fileToCompile = filename + '_' + federate.name
+            }
+            executeCommand(compileCommand(fileToCompile, true), directory)
+        }
+        // Also compile the RTI files if there is more than one federate.
+        if (federates.length > 1) {
+            compileRTI()
+        }
+    }
+    
+    /** Invoke the compiler on the generated RTI */
+    def compileRTI() {
+        var fileToCompile = filename + '_RTI'
+        executeCommand(compileCommand(fileToCompile, false), directory)
+    }
+    
+    /** Return a command to compile the specified C file.
+     *  @param fileToCompile The C filename without the .c extension.
+     *  @param doNotLinkIfNoMain If true, the compile command will have a
+     *  `-c` flag when there is no main reactor. If false, the compile command
+     *  will never have a `-c` flag.
+     */
+    protected def compileCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
+        val cFilename = fileToCompile + ".c";            
+        val relativeSrcFilename = "src-gen" + File.separator + cFilename;
+        val relativeBinFilename = "bin" + File.separator + fileToCompile;
+
+        var compileCommand = newArrayList
+        compileCommand.add(targetCompiler)
+        val flags = targetCompilerFlags.split(' ')
+        compileCommand.addAll(flags)
+        compileCommand.add(relativeSrcFilename)
+        if (compileAdditionalSources !== null) {
+            compileCommand.addAll(compileAdditionalSources)
+        }
+        if (compileLibraries !== null) {
+            compileCommand.addAll(compileLibraries)
+        }
+        // Only set the output file name if it hasn't already been set
+        // using a target property or command line flag.
+        if (compileCommand.forall[it.trim != "-o"]) {
+            compileCommand.addAll("-o", relativeBinFilename)
+        }
+
+        // If threaded computation is requested, add a -pthread option.
+        if (targetThreads !== 0) {
+            compileCommand.add("-pthread")
+        }
+        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
+        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+        // Then again, I think this only makes sense when we can do linking.
+        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
+        if (doNotLinkIfNoMain && main === null) {
+            compileCommand.add("-c") // FIXME: revisit
+            if (mode === Mode.STANDALONE) {
+                reportError("ERROR: Did not output executable; no main reactor found.")
+            }
+        }
+        return compileCommand
+    }
 
     ////////////////////////////////////////////
     //// Protected methods.
@@ -822,6 +1058,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def getCode() {
         code.toString()
     }
+    
+    /**
+     * Depending on the target language, parts of code might be
+     * generated that are only useful for the compiler and can
+     * make the generated code less readable for the end user.
+     * @return The cleaned up code so far as a String
+     */
+     protected def getReadableCode() {
+     	code.toString()
+     }
         
     /**
      * Increase the indentation of the output code produced.
@@ -1533,9 +1779,35 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def String getTargetReference(Parameter param) {
         return param.name
     }
-        
+    
     ////////////////////////////////////////////////////
     //// Private functions
+    
+    /**
+     * Get textual representation of a time in the target language.
+     * This is a separate function from 
+     * getTargetTime to avoid producing invalid RTI
+     * code for targets that override timeInTargetLanguage
+     * to return a C-incompatible time type.
+     *
+     * @param v A time AST node
+     * @return An RTI-compatible (ie. C target) time string
+     */
+    protected def getRTITime(Value v) {  
+        var TimeValue time 
+        if (v.time !== null) {
+            time = new TimeValue(v.time.interval, v.time.unit)
+        } else if (v.isZero) {
+            time = new TimeValue(0, TimeUnit.NONE)
+        } else {
+            return v.toText
+        }
+        if (time.unit != TimeUnit.NONE) {
+            return time.unit.name() + '(' + time.time + ')'
+        } else {
+            return time.time.toString()
+        }
+    }
     
     /** Analyze the resource (the .lf file) that is being parsed
      *  to determine whether code is being mapped to single or to
@@ -1703,6 +1975,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
     
+    
     /**
      * Create a string representing the absolute file path of a resource.
      */
@@ -1864,6 +2137,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     abstract def String getTargetVariableSizeListType(String baseType);
     
+    /**
+     * Return a string representing the specified type in the target language.
+     * @param type The type.
+     */ 
     def String getTargetType(InferredType type) {
         if (type.isUndefined) {
             return targetUndefinedType

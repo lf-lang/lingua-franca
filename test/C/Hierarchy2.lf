@@ -7,7 +7,7 @@ reactor Source {
     output out:int;
     timer t(0, 1 sec);
     reaction(t) -> out {=
-        set(out, 1);
+        SET(out, 1);
     =}
 }
 reactor Count {
@@ -16,7 +16,7 @@ reactor Count {
     state i:int(0);
     reaction(t) -> out {=
         (self->i)++;
-        set(out, self->i);
+        SET(out, self->i);
     =}
 }
 reactor Add {
@@ -25,17 +25,17 @@ reactor Add {
     output out:int;
     reaction(in1, in2) -> out {=
         int result = 0;
-        if (in1_is_present) result += in1;
-        if (in2_is_present) result += in2;
-        set(out, result);
+        if (in1->is_present) result += in1->value;
+        if (in2->is_present) result += in2->value;
+        SET(out, result);
     =}
 }
 reactor Print {
     input in:int;
     state expected:int(2);
     reaction(in) {=
-        printf("Received: %d.\n", in);
-        if (in != self->expected) {
+        printf("Received: %d.\n", in->value);
+        if (in->value != self->expected) {
             printf("Expected %d.\n", self->expected);
             exit(1);
         }

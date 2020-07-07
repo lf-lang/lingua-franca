@@ -30,10 +30,10 @@ reactor Ping(count:int(1000000)) {
     state pingsLeft:int(count);
     logical action serve;
     reaction (startup) -> send {=
-        set(send, self->pingsLeft--);
+        SET(send, self->pingsLeft--);
     =}
     reaction (serve) -> send {= 
-        set(send, self->pingsLeft--);
+        SET(send, self->pingsLeft--);
     =}
     reaction (receive) -> serve {=
         if (self->pingsLeft > 0) {
@@ -49,7 +49,7 @@ reactor Pong(expected:int(1000000)) {
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
-        set(send, receive);   
+        SET(send, receive->value);   
     =}
     reaction(shutdown) {=
         if (self->count != self->expected) {
@@ -58,8 +58,10 @@ reactor Pong(expected:int(1000000)) {
             );
             exit(1);
         }
+        printf("Success.\n");
     =}
 }
+
 main reactor PingPong {
     ping = new Ping();
     pong = new Pong();

@@ -41,7 +41,7 @@ class ShowCycleAction extends AbstractAction {
         }
         // expand
         for (node : cycleNodes) {
-            node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE), vc.viewer, true)
+            node.setExpansionState(node.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)?.crumb, vc.viewer, true)
         }
         
         return IAction.ActionResult.createResult(true);

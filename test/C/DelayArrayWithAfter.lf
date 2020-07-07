@@ -10,13 +10,13 @@ reactor Source {
     timer t(0, 1 sec);
     reaction(t) -> out {=
         // Dynamically allocate an output array of length 3.
-        set_new_array(out, 3);
-        printf("At time %lld, sending array at address %p\n", get_elapsed_logical_time(), out); 
+        SET_NEW_ARRAY(out, 3);
+        printf("At time %lld, sending array at address %p\n", get_elapsed_logical_time(), out->value); 
         
         // Above allocates the array, which then must be populated.
-        out[0] = 1 * self->iteration;
-        out[1] = 2 * self->iteration;
-        out[2] = 3 * self->iteration;
+        out->value[0] = 1 * self->iteration;
+        out->value[1] = 2 * self->iteration;
+        out->value[2] = 3 * self->iteration;
         self->iteration++;
     =}
 }
@@ -29,13 +29,13 @@ reactor Print(scale:int(1)) {
         self->inputs_received++;
         int count = 1;       // For testing.
         bool failed = false; // For testing.
-        printf("At time %lld, received array at address %p\n", get_elapsed_logical_time(), in);
+        printf("At time %lld, received array at address %p\n", get_elapsed_logical_time(), in->value);
         printf("Received: [");
-        for (int i = 0; i < in_length; i++) {
+        for (int i = 0; i < in->length; i++) {
             if (i > 0) printf(", ");
-            printf("%d", in[i]);
+            printf("%d", in->value[i]);
             // For testing, check whether values match expectation.
-            if (in[i] != self->scale * count * self->iteration) {
+            if (in->value[i] != self->scale * count * self->iteration) {
                 failed = true;
             }
             count++;         // For testing.

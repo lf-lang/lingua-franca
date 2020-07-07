@@ -10,10 +10,10 @@ reactor Scale(scale:int(2)) {
     mutable input in:int[];
     output out:int[];
     reaction(in) -> out {=
-        for(int i = 0; i < in_length; i++) {
-            in[i] = in[i] * self->scale;
+        for(int i = 0; i < in->length; i++) {
+            in->value[i] *= self->scale;
         }
-        set_token(out, in_token);
+        SET_TOKEN(out, in->token);
     =}
 }
 main reactor ArrayScale {

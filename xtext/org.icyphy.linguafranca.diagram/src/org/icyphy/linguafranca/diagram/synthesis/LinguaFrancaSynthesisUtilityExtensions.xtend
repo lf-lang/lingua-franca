@@ -1,7 +1,9 @@
 package org.icyphy.linguafranca.diagram.synthesis
 
+import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
+import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.TerminalRule
@@ -146,46 +148,12 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 		kge.data.add(createKIdentifier => [it.setId(id)])
 	}
 	
-	/**
-	 * Retrieves comments associated with model element form the AST.
-	 */
-	def String findComments(EObject object) {
-		if (object.eResource instanceof XtextResource) {
-			val compNode = NodeModelUtils.findActualNodeFor(object)
-			if (compNode !== null) {
-				val comments = newArrayList
-				var node = compNode.firstChild
-				while (node instanceof CompositeNode) {
-					node = node.firstChild
-				}
-				while (node instanceof HiddenLeafNode) { // only comments preceding start of element
-					val rule = node.grammarElement
-					if (rule instanceof TerminalRule) {
-						if ("SL_COMMENT".equals(rule.name)) {
-							comments += node.text.substring(2).trim()
-						} else if ("ML_COMMENT".equals(rule.name)) {
-							var block = node.text
-							block = block.substring(block.startsWith("/**") ? 3 : 2, block.length - 2).trim()
-							val lines = block.split("\n").map[trim()].toList
-							comments += lines.map[
-								if (it.startsWith("* ")) {
-									it.substring(2)
-								} else if (it.startsWith("*")) {
-									it.substring(1)
-								} else {
-									it
-								}
-							].join("\n")
-						}
-					}
-					node = node.nextSibling
-				}
-				if (!comments.empty) {
-					return comments.join("\n")
-				}
-			}
-		}
-		return null
+	def Object sourceElement(KGraphElement elem) {
+		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)
+	}
+	
+	def boolean sourceIsReactor(KNode node) {
+		return node.sourceElement() instanceof Reactor
 	}
 
 }

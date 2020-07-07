@@ -8,15 +8,15 @@ reactor SendsPointer  {
     output out:int_pointer;
     reaction(startup) -> out {=
         static int my_constant = 42;
-        set(out, &my_constant);
+        SET(out, &my_constant);
     =}
 }
 // expected parameter is for testing.
 reactor Print(expected:int(42)) {
     input in:int_pointer;
     reaction(in) {=
-        printf("Received: %d\n", *in);
-        if (*in != self->expected) {
+        printf("Received: %d\n", *in->value);
+        if (*in->value != self->expected) {
             printf("ERROR: Expected value to be %d.\n", self->expected);
             exit(1);
         }

@@ -11,8 +11,8 @@ reactor Print {
     state received:int(0);
     reaction(in) {=
         self->received++;
-        printf("Received: %d at logical time %lld\n", in, get_elapsed_logical_time());
-        if (in != self->count) {
+        printf("Received: %d at logical time %lld\n", in->value, get_elapsed_logical_time());
+        if (in->value != self->count) {
             printf("ERROR: Expected %d.\n", self->count);
             exit(1);
         }
@@ -37,7 +37,7 @@ main reactor Pipeline {
     p = new Print();
     
     reaction(t) -> c1.in {=
-        set(c1.in, self->count++);        
+        SET(c1.in, self->count++);        
     =}
     
     c1.out -> c2.in after 200 msec;

@@ -10,8 +10,8 @@ main reactor ScheduleValue {
         schedule_value(a, 0, value, 6);
     =}
     reaction(a) {=
-        printf("Received: %s\n", a_value);
-        if (strcmp(a_value, "Hello") != 0) {
+        printf("Received: %s\n", a->value);
+        if (strcmp(a->value, "Hello") != 0) {
             fprintf(stderr, "FAILURE: Should have received 'Hello'\n");
             exit(1);
         }
