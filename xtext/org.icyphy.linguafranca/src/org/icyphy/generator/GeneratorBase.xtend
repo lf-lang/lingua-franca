@@ -159,7 +159,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * A list of Reactor definitions in the main resource, including non-main 
      * reactors defined in imported resources.
      */
-    protected var List<Reactor> reactors
+    protected var Set<Reactor> reactors
     
     /**
      * The file containing the main source code.
@@ -453,8 +453,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
-        val x = resource.resourceSet
-        
         analyzeModel(resource, fsa, context)
 
         // First, produce any preamble code that the code generator needs
@@ -463,10 +461,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         // Collect a list of reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
-        reactors = newLinkedList
+        reactors = newLinkedHashSet
         
         // Next process all the imports to find reactors defined in the imports.
-        processImports(resource)
+        //processImports(resource)
         
         // Replace connections in this resources that are annotated with the 
         // "after" keyword by ones that go through a delay reactor. 
@@ -489,9 +487,24 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // non-main reactors that are not instantiated in a particular
         // federate. But it seems harmless to generate it since a good
         // compiler will remove it anyway as dead code.
+        
+        for (inst : resource.allContents.toIterable.filter(Instantiation)) {
+            inst.collectClasses
+        }
+        
         for (reactor : resource.allContents.toIterable.filter(Reactor)) {
             if (!reactor.isMain && !reactor.isFederated) {
                 reactors.add(reactor)
+            }
+        }
+    }
+    
+    def void collectClasses(Instantiation instantiation) {
+        val reactor = instantiation.reactorClass
+        if (!this.reactors.contains(reactor)) {
+            this.reactors.add(reactor)
+            for (inst : reactor.instantiations) {
+                inst.collectClasses
             }
         }
     }
