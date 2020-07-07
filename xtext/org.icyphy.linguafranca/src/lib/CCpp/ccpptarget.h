@@ -43,6 +43,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include "core/pqueue.c"
 #include "core/reactor.h"
+#include "core/reactor_threaded.c"
 
 /**
  * A template struct for an instance of each port
@@ -70,6 +71,20 @@ struct template_port_instance_struct {
  **/
 template <class T>
 struct template_port_instance_with_token_struct {
+    T value;
+    bool is_present;
+    int num_destinations;
+    token_t* token;
+    int length;
+};
+
+
+/**
+ * A template struct for an instance of an action
+ * in Lingua franca.
+ **/
+template <class T>
+struct template_action_instance_with_token_struct {
     T value;
     bool is_present;
     int num_destinations;
@@ -187,12 +202,65 @@ void SET(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
     __LF_SET_TOKEN(out, newtoken);
 }
 
-/**
- * TODO: Implement GET and schedule functions.
- * Note. The schedule functions will also be 
+/////////////////////////////////////////////////////
+/////////////  Schedule Functions
+ /* Note. The schedule functions will also be 
  * optional for C/C++ because of the commonality
  * but need to be reimplemented for other target
  * languages such as Python.
+ * /
+ 
+/**
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
+ */
+handle_t schedule_int(void* action, interval_t extra_delay, int value)
+{
+    return __lf_schedule_int(action, extra_delay, value);
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with no payload (no value conveyed).
+ * See schedule_token(), which this uses, for details.
+ * @param action Pointer to an action on the self struct.
+ * @param offset The time offset over and above that in the action.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule(void* action, interval_t offset) {
+    return __lf_schedule_token(action, offset, NULL);
+}
+
+/**
+ * Schedule the specified trigger at current_time plus the offset of the
+ * specified trigger plus the delay.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+    return __lf_schedule_token(action, extra_delay, token);
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+    return __lf_schedule_copy(action, offset, value, length);
+}
+
+
+/**
+ * Variant of schedule_token that creates a token to carry the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+    return __lf_schedule_value(action, extra_delay, value, length);
+}
+
+/**
+ * TODO: Implement GET functions.
  */
 
 

@@ -137,6 +137,7 @@ do { \
  * @param length The length of the array to send.
  * @see token_t
  */
+#ifndef __cplusplus
 #define __LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
@@ -145,6 +146,16 @@ do { \
     out->token = token; \
     out->value = token->value; \
 } while(0)
+#else
+#define __LF_SET_ARRAY(out, val, element_size, length) \
+do { \
+    out->is_present = true; \
+    token_t* token = __initialize_token_with_value(out->token, val, length); \
+    token->ref_count = out->num_destinations; \
+    out->token = token; \
+    out->value = static_cast<decltype(out->value)>(token->value); \
+} while(0)
+#endif
 
 /**
  * Version of set() for output types given as 'type*' that
