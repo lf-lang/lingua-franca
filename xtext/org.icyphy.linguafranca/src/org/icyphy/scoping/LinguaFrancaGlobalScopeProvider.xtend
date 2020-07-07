@@ -46,7 +46,7 @@ class LinguaFrancaGlobalScopeProvider extends DefaultGlobalScopeProvider {
 		val cacheKey = getCacheKey("VisibleContainers", resource.getResourceSet());
 		val cache = new OnChangeEvictingCache().getOrCreate(resource);
 		var result = cache.get(cacheKey as Object);
-		if (result == null) {
+		if (result === null) {
 			result = containerManager.getVisibleContainers(description, resourceDescriptions);
 			// SZ: I'ld like this dependency to be moved to the implementation of the
 			// container manager, but it is not aware of a CacheAdapter
