@@ -80,20 +80,6 @@ struct template_port_instance_with_token_struct {
 
 
 /**
- * A template struct for an instance of an action
- * in Lingua franca.
- **/
-template <class T>
-struct template_action_instance_with_token_struct {
-    T value;
-    bool is_present;
-    int num_destinations;
-    token_t* token;
-    int length;
-};
-
-
-/**
  * Set the specified output (or input of a contained reactor)
  * to the specified value.
  *
