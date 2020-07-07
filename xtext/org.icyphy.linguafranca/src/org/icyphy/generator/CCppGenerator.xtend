@@ -1,4 +1,4 @@
-/* Generator for C target. */
+/* Generator for CCpp target. */
 
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
@@ -41,11 +41,11 @@ import org.icyphy.linguaFranca.VarRef
 import static extension org.icyphy.ASTUtils.*
 
 /** 
- * Generator for C target. This class generates C code definining each reactor
+ * Generator for CCpp target. This class generates C++ code definining each reactor
  * class given in the input .lf file and imported .lf files. The generated code
  * has the following components:
  * 
- * * A typedef for inputs, outputs, and actions of each reactor class. These
+ * * An alias for template structs for inputs, outputs, and typedefs for actions of each reactor class. These
  *   define the types of the variables that reactions use to access inputs and
  *   action values and to set output values.
  * 
@@ -259,6 +259,7 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
  * @author{Christian Menard <christian.menard@tu-dresden.de>}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
+ * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 class CCppGenerator extends CGenerator {
 	
@@ -272,7 +273,36 @@ class CCppGenerator extends CGenerator {
         this.targetCompilerFlags = "-O2"// -Wall -Wconversion"
     }
 	
+    /** 
+    * Template struct for ports with primitive types and
+    * statically allocated arrays in Lingua Franca.
+    * This template is defined as
+    *     template <class T>
+    *     struct template_input_output_port_struct {
+    *         T value;
+    *         bool is_present;
+    *         int num_destinations;
+    *     };
+    *
+    * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
+    */
 	val template_port_type =  "template_input_output_port_struct"
+
+    /** 
+    * Special template struct for ports with dynamically allocated
+    * array types (a.k.a. token types) in Lingua Franca.
+    * This template is defined as
+    *     template <class T>
+    *     struct template_input_output_port_struct {
+    *         T value;
+    *         bool is_present;
+    *         int num_destinations;
+    *         token_t* token;
+    *         int length;
+    *     };
+    *
+    * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
+    */
 	val template_port_type_with_token = "template_input_output_port_with_token_struct"
     
    ////////////////////////////////////////////
@@ -283,7 +313,7 @@ class CCppGenerator extends CGenerator {
     //// Protected methods
     
      /**
-     * Generate the struct type definitions for inputs, outputs, and
+     * Generate the aliases for inputs, outputs, and struct type definitions for 
      * actions of the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
@@ -347,8 +377,8 @@ class CCppGenerator extends CGenerator {
     }
     
     /** Add necessary include files specific to the target language.
-     *  Note. The core files always need to be copied uniformly across
-     *  all target languages.
+     *  Note. The core files always need to be (and will be) copied 
+     *  uniformly across all target languages.
      */
     override includeTargetLanguageHeaders()
     {    	
