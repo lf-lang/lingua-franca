@@ -637,7 +637,9 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         void __termination() {
                             unsigned char message_marker = RESIGN;
-                            write(rti_socket, &message_marker, 1);
+                            if (write(rti_socket, &message_marker, 1) != 1) {
+                                fprintf(stderr, "WARNING: Failed to send RESIGN message to the RTI.\n");
+                            }
                         }
                     ''')
                 } else {
