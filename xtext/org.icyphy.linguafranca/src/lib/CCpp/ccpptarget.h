@@ -5,6 +5,18 @@
 #include "core/pqueue.c"
 #include "core/reactor.h"
 
+/**
+ * A template struct for input output ports
+ * in Lingua Franca. This template is used 
+ * in the CCppGenerator instead of redefining
+ * a struct for each port.
+ * This template can be used for both primitive types
+ * and statically allocated arrays (e.g., int x[3];).
+ * T value: the value of the port with type T
+ * is_present: indicates if the value of the port is present
+ *     at the current logcal time
+ * num_destinations: 
+ **/
 template <class T>
 struct template_input_output_port_struct {
     T value;
@@ -14,7 +26,7 @@ struct template_input_output_port_struct {
 
 /**
  * Special version of the template_input_output_port_struct
- * for dynamic? arrays
+ * for dynamic arrays
  **/
 template <class T>
 struct template_input_output_port_with_token_struct {
@@ -147,8 +159,21 @@ void SET(template_input_output_port_with_token_struct<T>* out, token_t* newtoken
 }
 
 
-///////////////////////////////
-/////// Compatibility layer with the C runtime (optional)
+/**
+ * Compatibility layer with the C runtime (optional).
+ * These functions are here to enable universal Lingua Franca programs that
+ * can have the shape:
+ * 
+ *     target Universal;
+ *     reactor UniversalReactor {
+ *         input in:int;
+ *         output out:int;
+ *         reaction(in) -> out {=
+ *             SET(out, GET(in))  
+ *         =} 
+ *     }
+ */
+
 template <class T>
 void SET_ARRAY(template_input_output_port_with_token_struct<T>* out, T val, int element_size, int length)
 {
