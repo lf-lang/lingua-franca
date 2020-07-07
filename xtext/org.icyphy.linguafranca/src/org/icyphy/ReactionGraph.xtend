@@ -53,9 +53,21 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
      * @param model The AST.
      */
     new (Model model) {
-        // Find the main reactors and traverse the AST depth-first.
-        collectNodesFrom(model.eAllContents.filter(Reactor).findFirst[it.main],
-            new BreadCrumbTrail("", null, ""))
+        // Find the main reactor.
+        this(model.reactors.findFirst[main])
+    }
+    
+    /**
+     * Construct a reaction graph based on the given reactor in the AST model.
+     * Runs Tarjan's algorithm to detect cyclic dependencies between reactions.
+     * It is assumed that no instantiation cycles are present in the program.
+     * Checks for instantiation cycles thus must be carried out prior to  
+     * constructing the reaction graph.
+     * @param reactor The reactor in the AST.
+     */
+    new (Reactor reactor) {
+        // Traverse the AST depth-first form the given reactor.
+        collectNodesFrom(reactor, new BreadCrumbTrail("", null, ""))
         this.detectCycles()
     }
 
@@ -176,8 +188,8 @@ class InstanceBinding {
      */
     override equals(Object obj) {
         if (obj instanceof InstanceBinding) {
-            return ((this.path === null && obj.path === null) ||
-                (this.path !== null && this.path.equals(obj.path)) &&
+            return (((this.path === null && obj.path === null) ||
+                (this.path !== null && this.path.equals(obj.path))) &&
                     this.node === obj.node)
         }
         return false

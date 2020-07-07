@@ -6,7 +6,7 @@ reactor Source {
     output out:unsigned;
     
     reaction(startup) -> out {=
-        set(out, 1);
+        SET(out, 1);
     =}
 }
 
@@ -15,7 +15,7 @@ reactor Work {
     output out:unsigned;
     
     reaction(in) -> out {=
-        set(out, in);    
+        SET(out, in->value);    
     =}
 }
 
@@ -28,10 +28,10 @@ main reactor Parallel {
     s.out -> w1.in after 20 msec;
     
     reaction(w0.out) {=
-        printf("Received %d from worker 0.\n", w0.out);
+        printf("Received %d from worker 0.\n", w0.out->value);
     =}
     
     reaction(w1.out) {=
-        printf("Received %d from worker 1.\n", w1.out);
+        printf("Received %d from worker 1.\n", w1.out->value);
     =}
 }

@@ -8,7 +8,7 @@ reactor foo {
     input x:int;
     output y:int;
     reaction(x) -> y {=
-        set(y, 2*x);
+        SET(y, 2*x->value);
     =}
 }
 reactor print {
@@ -18,8 +18,8 @@ reactor print {
     reaction(x) {=
         self->received++;
         interval_t elapsed_time = get_elapsed_logical_time();
-        printf("Result is %d\n", x);
-        if (x != 84) {
+        printf("Result is %d\n", x->value);
+        if (x->value != 84) {
             printf("ERROR: Expected result to be 84.\n");
             exit(1);
         }
@@ -43,7 +43,7 @@ main reactor top {
     p = new print();
     timer t(0, 1 sec);
     reaction(t) -> f.x {=
-        set(f.x, 42);
+        SET(f.x, 42);
     =}
     f.y -> p.x after 10 msec;
 }

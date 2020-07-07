@@ -5,31 +5,31 @@ target C;
 reactor Contained {
     output out:int;
     reaction(startup) -> out {=
-        set(out, 42);
+        SET(out, 42);
     =}
 }
 main reactor ReadOutputOfContainedReactor {
     c = new Contained();
     state count:int(0);
     reaction(startup) c.out {=
-        printf("Startup reaction reading output of contained reactor: %d.\n", c.out);
-        if (c.out != 42) {
+        printf("Startup reaction reading output of contained reactor: %d.\n", c.out->value);
+        if (c.out->value != 42) {
             fprintf(stderr, "Expected 42!\n");
             exit(2);
         }
         self->count++;
     =}
     reaction(c.out) {=
-        printf("Reading output of contained reactor: %d.\n", c.out);
-        if (c.out != 42) {
+        printf("Reading output of contained reactor: %d.\n", c.out->value);
+        if (c.out->value != 42) {
             fprintf(stderr, "Expected 42!\n");
             exit(3);
         }
         self->count++;
     =}
     reaction(startup, c.out) {=
-        printf("Alternate triggering reading output of contained reactor: %d.\n", c.out);
-        if (c.out != 42) {
+        printf("Alternate triggering reading output of contained reactor: %d.\n", c.out->value);
+        if (c.out->value != 42) {
             fprintf(stderr, "Expected 42!\n");
             exit(4);
         }

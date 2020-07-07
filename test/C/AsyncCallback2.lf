@@ -1,4 +1,7 @@
-// Test asynchronous callbacks that trigger a non-physical action.
+// Test asynchronous callbacks that trigger a logical action.
+// FIXME: asynchronous triggering of logical actions should be disallowed!!!
+// This test has illegal code. The runtime should exit when schedule is called.
+//
 // This test case assumes that target is multithreaded.
 // This test will not work with the unthreaded C target because that target
 // does not implement any mutex protecting the event queue.
@@ -10,7 +13,6 @@ main reactor AsyncCallback2 {
     
     preamble {=
         #include <pthread.h>
-                
         void callback(trigger_t* a) {
             // Schedule twice. If the action is not physical, these should
             // get consolidated into a single action triggering. If it is,
@@ -32,7 +34,10 @@ main reactor AsyncCallback2 {
             struct timespec sleep_time = {(time_t) 0, (long)10000000};
             struct timespec remaining_time;
             nanosleep(&sleep_time, &remaining_time);
-            callback((trigger_t*)a);
+            // a is actually a pointer to the action struct on the self struct.
+            // But the first item in that struct is a pointer to the trigger_t
+            // object. The following song and dance gets that pointer.
+            callback(*(trigger_t**)a);
             return NULL;
         }
         pthread_t threadId;

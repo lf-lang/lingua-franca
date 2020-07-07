@@ -1,0 +1,67 @@
+// This is a version fo the Threaded test that uses a multiport input at the destination.
+// Its purpose is to test multiport inputs.
+target C {
+    timeout: 2 sec,
+    fast: true
+};
+
+reactor Source {
+	timer t(0, 200 msec);
+	output out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+		SET(out, self->s);
+		self->s++;
+	=}
+}
+reactor Computation {
+	input in:int;
+	output out:int;
+	reaction(in) -> out {=
+        // No need to sleep for this test.
+		// struct timespec sleep_time = {(time_t) 0, (long)200000000};
+		// struct timespec remaining_time;
+		// nanosleep(&sleep_time, &remaining_time);
+		SET(out, in->value);
+	=}
+}
+reactor Destination {
+	state s:int(0);
+	input[4] in:int;
+	reaction(in) {=
+		int sum = 0;
+		for (int i = 0; i < in_width; i++) {
+		    sum += in[i]->value;
+        } 
+		printf("Sum of received: %d.\n", sum);
+		if (sum != self->s) {
+			printf("ERROR: Expected %d.\n", self->s);
+			exit(1);
+		}
+		self->s += 4;
+	=}
+    reaction(shutdown) {=
+        if (self->s == 0) {
+            fprintf(stderr, "ERROR: Destination received no input!\n");
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor ScatterGather { 
+	a = new Source();
+	t1 = new Computation();
+	t2 = new Computation();
+	t3 = new Computation();
+	t4 = new Computation();
+	b = new Destination();
+	a.out -> t1.in;
+	a.out -> t2.in;
+	a.out -> t3.in;
+	a.out -> t4.in; 
+	t1.out -> b.in[0];
+	t2.out -> b.in[1];
+	t3.out -> b.in[2];
+	t4.out -> b.in[3];
+}

@@ -26,7 +26,7 @@ reactor SourceProto {
     reaction(startup) -> out {=
         out->name = "Hello World";
         out->number = 42;
-        set_present(out);
+        SET_PRESENT(out);
     =}
 }
 

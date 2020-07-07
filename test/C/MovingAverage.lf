@@ -11,7 +11,7 @@ reactor Source {
     state count:int(0);
     timer clock(0, 200 msec);
     reaction(clock) -> out {=
-        set(out, self->count);
+        SET(out, self->count);
         self->count++;
     =}
 }
@@ -22,14 +22,14 @@ reactor MovingAverageImpl {
     output out:double;
     reaction(in) -> out {=
         // Calculate the output.
-        double sum = in;
+        double sum = in->value;
         for (int i = 0; i < 3; i++) {
             sum += self->delay_line[i];
         }
-        set(out, sum/4.0);
+        SET(out, sum/4.0);
 
         // Insert the input in the delay line.
-        self->delay_line[self->index] = in;
+        self->delay_line[self->index] = in->value;
 
         // Update the index for the next input.
         self->index++;
@@ -42,9 +42,9 @@ reactor Print {
     input in:double;
     state count:int(0);
     reaction(in) {=
-        printf("Received: %f\n", in);
+        printf("Received: %f\n", in->value);
         static double expected[] = {0.0, 0.25, 0.75, 1.5, 2.5, 3.5};
-        if (in != expected[self->count]) {
+        if (in->value != expected[self->count]) {
             printf("ERROR: Expected %f.\n", expected[self->count]);
             exit(1);
         }

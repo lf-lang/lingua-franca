@@ -8,23 +8,22 @@ reactor Source {
         srand(time(0));
         // Randomly produce an output or not.
         if (rand() % 2) {
-            set(out, 21);
+            SET(out, 21);
         }
     =}
     reaction(startup) -> out {=
-        if (out_is_present) {
-            int previous_output = *out;
-            set(out, 2 * previous_output);
+        if (out->is_present) {
+            SET(out, 2 * out->value);
         } else {
-            set(out, 42);
+            SET(out, 42);
         }
     =}
 }
 reactor Sink {
     input in:int;
     reaction(in) {=
-        printf("Received %d.\n", in);
-        if (in != 42) {
+        printf("Received %d.\n", in->value);
+        if (in->value != 42) {
             fprintf(stderr, "FAILED: Expected 42.\n");
             exit(1);
         }

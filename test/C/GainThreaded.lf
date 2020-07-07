@@ -4,16 +4,16 @@
         input x:int;
         output y:int;
         reaction(x) -> y {=
-            set(y, x * self->scale);
+            SET(y, x->value * self->scale);
         =}
     }
     reactor Test {
         input x:int;
         state received_value:bool(false);
         reaction(x) {=
-            printf("Received %d.\n", x);
+            printf("Received %d.\n", x->value);
             self->received_value = true;
-            if (x != 2) {
+            if (x->value != 2) {
                 printf("ERROR: Expected 2!\n");
                 exit(1);
             }
@@ -31,6 +31,6 @@
         d = new Test();
         g.y -> d.x;
         reaction(startup) -> g.x {=
-            set(g.x, 1);
+            SET(g.x, 1);
         =}
     }

@@ -7,25 +7,22 @@ reactor DelayPointer(delay:time(100 msec)) {
     logical action a:void*;
     reaction(in) -> a {=
         // mutable input guarantees *in will not be freed.
-        schedule_token(a, self->delay, in_token);
+        schedule_token(a, self->delay, in->token);
     =}
     reaction(a) -> out {=
-        // Using set_array delegates responsibility for
-        // freeing the allocated memory downstream.
-        // Note that the length has to be repeated here!
-        set_token(out, a_token);
+        SET_TOKEN(out, a->token);
     =}
 }
 reactor Source {
     output out:int[];
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
-        set_new_array(out, 3);
+        SET_NEW_ARRAY(out, 3);
         
         // Above allocates the array, which then must be populated.
-        out[0] = 0;
-        out[1] = 1;
-        out[2] = 2;
+        out->value[0] = 0;
+        out->value[1] = 1;
+        out->value[2] = 2;
     =}
 }
 // The scale parameter is just for testing.
@@ -35,11 +32,11 @@ reactor Print(scale:int(1)) {
         int count = 0;       // For testing.
         bool failed = false; // For testing.
         printf("Received: [");
-        for (int i = 0; i < in_length; i++) {
+        for (int i = 0; i < in->length; i++) {
             if (i > 0) printf(", ");
-            printf("%d", in[i]);
+            printf("%d", in->value[i]);
             // For testing, check whether values match expectation.
-            if (in[i] != self->scale * count) {
+            if (in->value[i] != self->scale * count) {
                 failed = true;
             }
             count++;         // For testing.

@@ -2,13 +2,17 @@ target C;
 reactor Printer {
     input x:int;
     reaction(x) {=
-        printf("Inside reactor received: %d\n", x);
+        printf("Inside reactor received: %d\n", x->value);
+        if (x->value != 1) {
+            fprintf(stderr, "ERROR: Expected 1.\n");
+            exit(1);
+        }
     =}
 }
 main reactor SendingInside2 {
     timer t;
     p = new Printer();
     reaction(t) -> p.x {=
-        set(p.x, 1);
+        SET(p.x, 1);
     =}
 }

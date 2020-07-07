@@ -11,7 +11,7 @@ reactor Source(period:time(2 sec)) {
 	reaction(t) -> y {=
 		(self->count)++;
 		printf("Source sending %d.\n", self->count);
-		set(y, self->count);
+		SET(y, self->count);
 	=}
 }
 
@@ -20,8 +20,8 @@ reactor Test {
 	state count:int(0);
 	reaction(x) {=
 		(self->count)++;
-		printf("Received %d\n", x);
-		if (x != self->count) { 
+		printf("Received %d\n", x->value);
+		if (x->value != self->count) { 
 			fprintf(stderr, "FAILURE: Expected %d\n", self->count);
 			exit(1); 
 		}

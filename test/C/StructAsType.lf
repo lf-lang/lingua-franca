@@ -1,7 +1,7 @@
 // Source produces a struct directly, rather than a pointer to
 // a struct.
 target C;
-reactor Source {
+reactor StructAsType {
     preamble {=
         typedef struct hello_t {
             char* name;
@@ -13,27 +13,27 @@ reactor Source {
         // Create the struct on the stack and then copy
         // it to the output as follows:
         struct hello_t temp = {"Earth", 42};
-        set(out, temp);
+        SET(out, temp);
         // Alternatively, you can anonymously create the struct, but in this case,
-        // parentheses around the second argument to set() are needed because
-        // set() is a macro and it will get confused by the comma in the argument
+        // parentheses around the second argument to SET() are needed because
+        // SET() is a macro and it will get confused by the comma in the argument
         // and think that three arguments are being provided.
-        // set(out, ((hello_t){"Earth", 42}));
+        // SET(out, ((hello_t){"Earth", 42}));
     =}
 }
 // expected parameter is for testing.
 reactor Print(expected:int(42)) {
     input in:hello_t;
     reaction(in) {=
-        printf("Received: name = %s, value = %d\n", in.name, in.value);
-        if (in.value != self->expected) {
+        printf("Received: name = %s, value = %d\n", in->value.name, in->value.value);
+        if (in->value.value != self->expected) {
             printf("ERROR: Expected value to be %d.\n", self->expected);
             exit(1);
         }
     =}
 }
 main reactor StructPrint {
-    s = new Source();
+    s = new StructAsType();
     p = new Print();
     s.out -> p.in;
 }

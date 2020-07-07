@@ -14,7 +14,7 @@ reactor Source {
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-		set(out, self->s);
+		SET(out, self->s);
 		self->s++;
 	=}
 }
@@ -29,7 +29,7 @@ reactor TakeTime {
 		for (int i = 0; i < 100000000; i++) {
 		    offset++;
 		}
-		set(out, in + offset);
+		SET(out, in->value + offset);
 	=}
 }
 reactor Destination {
@@ -39,7 +39,7 @@ reactor Destination {
 	input in3:int;
 	input in4:int;
 	reaction(in1, in2, in3, in4) {=
-		int sum = in1 + in2 + in3 + in4;
+		int sum = in1->value + in2->value + in3->value + in4->value;
 		printf("Sum of received: %d.\n", sum);
 		if (sum != self->s) {
 			printf("ERROR: Expected %d.\n", self->s);

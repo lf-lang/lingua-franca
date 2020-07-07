@@ -5,7 +5,7 @@ reactor Source {
 	output y:int;
 	timer t;
 	reaction(t) -> y {=
-		set(y, 1);
+		SET(y, 1);
 	=}
 } 
 reactor Destination {
@@ -13,11 +13,11 @@ reactor Destination {
 	input y:int;
 	reaction(x, y) {=
 		int sum = 0;
-		if (x_is_present) {
-			sum += x;
+		if (x->is_present) {
+			sum += x->value;
 		}
-		if (y_is_present) {
-			sum += y;
+		if (y->is_present) {
+			sum += y->value;
 		}
 		printf("Received %d.\n", sum);
 		if (sum != 2) {
@@ -30,7 +30,7 @@ reactor Pass {
 	input x:int;
 	output y:int;
 	reaction(x) -> y {=
-		set(y, x);
+		SET(y, x->value);
 	=}
 }
 main reactor DeterminismThreaded {

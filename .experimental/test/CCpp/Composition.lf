@@ -1,0 +1,40 @@
+// This test connects a simple counting source to tester
+// that checks against its own count.
+target C {
+    fast: true,
+    timeout: 10 sec
+};
+reactor Source(period:time(2 sec)) {
+	output y:int;
+	timer t(1 sec, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		self->count++;
+		std::cout << "Source sending" << self->count << "." << std::endl;
+		SET(y, self->count);
+	=}
+}
+
+reactor Test {
+	input x:int;
+	state count:int(0);
+	reaction(x) {=
+		self->count++; // local variables declared here that are not state variables should be strongly discouraged
+		std::cout << "Received " << x->value << std::endl; // Or x->get()
+		if (x->value != self->count) { // Or x->get()
+			std::cerr << "FAILURE: Expected " <<  count << endl; // could be this->count as well
+			exit(1); 
+		}
+	=}
+	reaction(shutdown) {=
+	    if (count == 0) {
+	        std::cerr << "FAILURE: No data received." << std::endl;
+	    }
+	=}
+}
+main reactor Composition {
+	s = new Source();
+	
+	d = new Test();
+	s.y -> d.x;
+}

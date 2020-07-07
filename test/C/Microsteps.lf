@@ -10,11 +10,11 @@ reactor Destination {
             exit(1);
         }
         int count = 0;
-        if (x_is_present) {
+        if (x->is_present) {
             printf("  x is present.\n");
             count++;
         }
-        if (y_is_present) {
+        if (y->is_present) {
             printf("  y is present.\n");
             count++;
         }
@@ -29,10 +29,10 @@ main reactor Microsteps {
     logical action repeat;
     d = new Destination();
     reaction(start) -> d.x, repeat {=
-        set(d.x, 1);
+        SET(d.x, 1);
         schedule(repeat, 0);
     =}
     reaction(repeat) -> d.y {=
-        set(d.y, 1);
+        SET(d.y, 1);
     =}
 }

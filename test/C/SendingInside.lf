@@ -8,8 +8,8 @@ reactor Printer {
 	input x:int;
 	state count:int(1);
 	reaction(x) {=
-		printf("Inside reactor received: %d\n", x);
-		if (x != self->count) {
+		printf("Inside reactor received: %d\n", x->value);
+		if (x->value != self->count) {
 			printf("FAILURE: Expected %d.\n", self->count);
 			exit(1);
 		}
@@ -22,6 +22,6 @@ main reactor SendingInside {
 	p = new Printer();
 	reaction(t) -> p.x {=
 		(self->count)++;
-		set(p.x, self->count);
+		SET(p.x, self->count);
 	=}
 }

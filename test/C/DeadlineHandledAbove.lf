@@ -9,7 +9,7 @@ reactor Deadline(threshold:time(100 msec)) {
         exit(1);
     =} deadline(threshold) {=
         printf("Deadline violation detected.\n");
-        set(deadline_violation, true);
+        SET(deadline_violation, true);
     =}
 }
 main reactor DeadlineHandledAbove {
@@ -21,7 +21,7 @@ main reactor DeadlineHandledAbove {
         interval_t sleep_time = MSEC(200);
         instant_t start_time = get_physical_time();
         while (get_physical_time() < start_time + sleep_time) {};
-        set(d.x, 42);
+        SET(d.x, 42);
     =}
     reaction(d.deadline_violation) {=
         if (d.deadline_violation) {
@@ -37,4 +37,4 @@ main reactor DeadlineHandledAbove {
             exit(2);
         }
     =}
-} 
+}

@@ -67,6 +67,23 @@ class MultiportInstance extends PortInstance {
             instancePort.dependsOnReactions = this.dependsOnReactions
         }
     }
+    
+    /**
+     * Return the specified port instance in this multiport.
+     */
+    def getInstance(int position) {
+        if (position < 0 || position >= instances.size) {
+            throw new Exception("Port index out of range.")
+        }
+        return instances.get(position)
+    }
+    
+    /**
+     * Return the width of this port, which is the size of the instances list.
+     */
+    def getWidth() {
+        instances.size
+    }
         
     /////////////////////////////////////////////
     //// Public Fields
