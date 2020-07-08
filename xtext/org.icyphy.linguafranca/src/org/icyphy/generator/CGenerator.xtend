@@ -1057,9 +1057,6 @@ class CGenerator extends GeneratorBase {
         // Create Timer and Action for startup and shutdown, if they occur.
         handleStartupAndShutdown(reactor)
         
-        // Create reactions to transfer data up the hierarchy.
-        generateTransferOutputs(reactor)
-
         pr("// =============== START reactor class " + reactor.name)
 
         // Preamble code contains state declarations with static initializers.
@@ -1335,13 +1332,6 @@ class CGenerator extends GeneratorBase {
             pr(output, body, '''
                 «variableStructType(output, reactor)» __«output.name»«arraySpec»;
             ''')
-            // If there are contained reactors that send data via this output,
-            // then create a place to put the pointers to the sources of that data.
-            if (outputToContainedOutput.get(output) !== null) {
-            pr(output, body, '''
-                «variableStructType(output, reactor)»* __«output.name»_inside«arraySpec»;
-            ''')
-            }
         }
         
         // If there are contained reactors that either receive inputs
@@ -2091,7 +2081,7 @@ class CGenerator extends GeneratorBase {
                             // In that case, we want NULL.
                             // If the destination is an output port, however, then
                             // the dependentReactions.size reflects the number of downstream
-                            // reactions. But we want only one trigger (for transfer outputs).
+                            // reactions.
                             if (destination.dependentReactions.size === 0 || destination.isOutput) {
                                 pr(initializeTriggerObjectsEnd, '''
                                     // Destination port «destination.getFullName» itself has no reactions.
@@ -2237,63 +2227,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Generate one reaction function definition for each output of
-     *  a reactor that relays data from the output of a contained reactor.
-     *  This reaction function transfers the data from the output of the
-     *  contained reactor (in the self struct of this reactor labeled as
-     *  "inside") to the output of this reactor (also in its self struct).
-     *  There needs to be one reaction function
-     *  for each such output because these reaction functions have to be
-     *  individually invoked after each contained reactor produces an
-     *  output that must be relayed. These reactions are set up to not
-     *  be required to be invoked in any particular order.
-     *  @param reactor The reactor.
-     */
-    def generateTransferOutputs(Reactor reactor) {
-        // FIXME: Is this really necessary? Couldn't the transitive closure function
-        // of ReactorInstance traverse the hierarchy?
-        for (connection : reactor.connections) {
-            // If the connection has the form c.x -> y, then it's what we are looking for.
-            if (connection.rightPort.container === null &&
-                    connection.leftPort.container !== null) {
-                if (connection.rightPort.variable instanceof Output) {
-                    val reaction = ASTUtils.factory.createReaction()
-                    // Mark this unordered relative to other reactions in the container.
-                    // It will still be ordered by dependencies to the source.
-                    reaction.makeUnordered()
-                    val leftPort = ASTUtils.factory.createVarRef()
-                    leftPort.container = connection.leftPort.container
-                    leftPort.variable = connection.leftPort.variable
-                    val rightPort = ASTUtils.factory.createVarRef()
-                    rightPort.variable = connection.rightPort.variable
-                    reaction.triggers.add(leftPort)
-                    reaction.effects.add(rightPort)
-                    reaction.code = factory.createCode()
-                    if ((rightPort.variable as Port).inferredType.isTokenType) {
-                        reaction.code.body = '''
-                            «DISABLE_REACTION_INITIALIZATION_MARKER»
-                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            self->__«rightPort.toText».value = self->__«leftPort.toText».value;
-                            self->__«rightPort.toText».is_present = true;
-                        '''
-                    } else {
-                        reaction.code.body = '''
-                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            SET(«rightPort.toText», «leftPort.toText»->value);
-                        '''
-                    }
-                    reactor.reactions.add(reaction)
-                } else {
-                    reportError(
-                        connection,
-                        "Expected an output port but got " +
-                            connection.rightPort.variable.name
-                    )
-                }
-            }
-        }
-    }
-
     /**
      * For each timer and action in the specified reactor instance, generate
      * initialization code for the offset and period fields. This code goes into
@@ -2411,11 +2344,9 @@ class CGenerator extends GeneratorBase {
      * This will have one of the following forms:
      * 
      * * selfStruct->__portName
-     * * selfStruct->__portName_inside
      * * selfStruct->__portName[i]
-     * * selfStruct->__portName_inside[i]
      * 
-     * @param port An instance of a destination port.
+     * @param port An instance of a destination input port.
      */
     static def destinationReference(PortInstance port) {
         var destStruct = selfStructName(port.parent)
@@ -2429,7 +2360,7 @@ class CGenerator extends GeneratorBase {
         if (port.isInput) {
             return '''«destStruct»->__«port.name»«destinationIndexSpec»'''
         } else {
-            return '''«destStruct»->__«port.name»_inside«destinationIndexSpec»'''
+            throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
     }
  
@@ -3343,46 +3274,49 @@ class CGenerator extends GeneratorBase {
             ) {
                 val destinations = instance.destinations.get(source)
                 for (destination : destinations) {
-                    var comment = ''
-                    if (source !== eventualSource) {
-                        comment = ''' (eventual source is «eventualSource.getFullName»)'''
-                    }
-                    val destStructType = variableStructType(
-                        destination.definition as TypedVariable,
-                        destination.parent.definition.reactorClass
-                    )
-                    // If the source or destination (or both) is a multiport, then
-                    // we need an iterative connection here over the minimum of the widths of
-                    // the two multiports.
-                    var srcIndex = ""
-                    var dstIndex = ""
-                    var width = 0
-                    if (eventualSource instanceof MultiportInstance) {
-                        // Source is a multiport.
-                        srcIndex = "[i]"
-                        width = eventualSource.instances.size
-                        if (!(destination instanceof MultiportInstance)) {
-                            reportError(destination.definition, "Cannot connect a multiport to a single port")
+                    // If the destination is an output, then skip this step.
+                    if (destination.isInput) {
+                        var comment = ''
+                        if (source !== eventualSource) {
+                            comment = ''' (eventual source is «eventualSource.getFullName»)'''
                         }
-                    }
-                    if (destination instanceof MultiportInstance) {
-                        // Destination is a multiport.
-                        dstIndex = "[i]"
-                        if (destination.instances.size < width) {
-                            width = destination.instances.size
+                        val destStructType = variableStructType(
+                            destination.definition as TypedVariable,
+                            destination.parent.definition.reactorClass
+                        )
+                        // If the source or destination (or both) is a multiport, then
+                        // we need an iterative connection here over the minimum of the widths of
+                        // the two multiports.
+                        var srcIndex = ""
+                        var dstIndex = ""
+                        var width = 0
+                        if (eventualSource instanceof MultiportInstance) {
+                            // Source is a multiport.
+                            srcIndex = "[i]"
+                            width = eventualSource.instances.size
+                            if (!(destination instanceof MultiportInstance)) {
+                                reportError(destination.definition, "Cannot connect a multiport to a single port")
+                            }
                         }
-                    }
-                    if (width > 0) {
-                        pr('''for (int i = 0; i < «width»; i++) {''')
-                        indent()
-                    }
-                    pr('''
-                        // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                        «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
-                    ''')
-                    if (width > 0) {
-                        unindent()
-                        pr("}")
+                        if (destination instanceof MultiportInstance) {
+                            // Destination is a multiport.
+                            dstIndex = "[i]"
+                            if (destination.instances.size < width) {
+                                width = destination.instances.size
+                            }
+                        }
+                        if (width > 0) {
+                            pr('''for (int i = 0; i < «width»; i++) {''')
+                            indent()
+                        }
+                        pr('''
+                            // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                            «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
+                        ''')
+                        if (width > 0) {
+                            unindent()
+                            pr("}")
+                        }
                     }
                 }
             }
@@ -3569,19 +3503,53 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')            
-        } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
-            // Non-mutable, multiport, primitive type.
+        } else if (!input.isMutable && input.multiportWidth > 0) {
+            // Non-mutable, multiport, primitive or token type.
             pr(builder, '''
                 «structType»** «input.name» = self->__«input.name»;
             ''')
-        } else if (!input.isMutable) {
-            // Non-mutable, multiport, token type.
+        } else if (inputType.isTokenType) {
+            // Mutable, multiport, token type
             pr(builder, '''
-                «structType»** «input.name» = self->__«input.name»;
+                // Mutable multiport input, so copy the input structs
+                // into an array of temporary variables on the stack.
+                «structType» __tmp_«input.name»[«input.multiportWidth»];
+                «structType»* «input.name»[«input.multiportWidth»];
+                for (int i = 0; i < «input.multiportWidth»; i++) {
+                    «input.name»[i] = &__tmp_«input.name»[i];
+                    __tmp_«input.name»[i] = *(self->__«input.name»[i]);
+                    // If necessary, copy the tokens.
+                    if («input.name»[i]->is_present) {
+                        «input.name»[i]->length = «input.name»[i]->token->length;
+                        token_t* _lf_input_token = «input.name»[i]->token;
+                        «input.name»[i]->token = writable_copy(_lf_input_token);
+                        if («input.name»[i]->token != _lf_input_token) {
+                            // A copy of the input token has been made.
+                            // This needs to be reference counted.
+                            «input.name»[i]->token->ref_count = 1;
+                            // Repurpose the next_free pointer on the token to add to the list.
+                            «input.name»[i]->token->next_free = _lf_more_tokens_with_ref_count;
+                            _lf_more_tokens_with_ref_count = «input.name»[i]->token;
+                        }
+                        «input.name»[i]->value = («inputType.targetType»)«input.name»[i]->token->value;
+                    } else {
+                        «input.name»[i]->length = 0;
+                    }
+                }
             ''')
         } else {
-            // FIXME FIXME FIXME
-            throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
+            // Mutable, multiport, primitive type
+            pr(builder, '''
+                // Mutable multiport input, so copy the input structs
+                // into an array of temporary variables on the stack.
+                «structType» __tmp_«input.name»[«input.multiportWidth»];
+                «structType»* «input.name»[«input.multiportWidth»];
+                for (int i = 0; i < «input.multiportWidth»; i++) {
+                    «input.name»[i]  = &__tmp_«input.name»[i];
+                    // Copy the struct, which includes the value.
+                    __tmp_«input.name»[i] = *(self->__«input.name»[i]);
+                }
+            ''')
         }
         // Set the _width variable for all cases. This will be -1
         // for a variable-width multiport, which is not currently supported.
