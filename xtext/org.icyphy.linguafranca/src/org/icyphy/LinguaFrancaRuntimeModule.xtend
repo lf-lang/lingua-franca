@@ -40,7 +40,7 @@ class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
 		
     /** Establish a binding to our custom resource description strategy. */
     def Class<? extends IDefaultResourceDescriptionStrategy> bindIDefaultResourceDescriptionStrategy() {
-        LinguaFrancaResourceDescriptionStrategy
+        DefaultResourceDescriptionStrategy
     }
     
     /** Establish a binding to our custom global scope provider. */

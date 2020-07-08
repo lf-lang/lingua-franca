@@ -24,7 +24,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.icyphy
+package org.icyphy.graph
 
 import java.util.HashMap
 import java.util.Map

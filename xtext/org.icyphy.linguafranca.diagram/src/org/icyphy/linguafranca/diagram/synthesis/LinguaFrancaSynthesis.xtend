@@ -44,7 +44,7 @@ import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.emf.ecore.EObject
 import org.icyphy.ASTUtils
-import org.icyphy.BreadCrumbTrail
+import org.icyphy.graph.BreadCrumbTrail
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection

@@ -24,7 +24,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.icyphy
+package org.icyphy.graph
 
 /**
  * Node to be used in
@@ -42,6 +42,16 @@ class AnnotatedNode<T> {
      * a node with a higher index was discovered later than this one.
      */
     public var index = -1;
+    
+    /**
+     * Temporary mark do be used in topological sort algorithm.
+     */
+    public var hasTempMark = false;
+    
+    /**
+     * Temporary mark do be used in topological sort algorithm.
+     */
+    public var hasPermMark = false;
     
     /**
      * The smallest index of any node known to be reachable from this node.
