@@ -129,6 +129,7 @@ do { \
     out->token = newtoken; \
     newtoken->ref_count += out->num_destinations; \
     out->is_present = true; \
+    out->length = newtoken->length; \
 } while(0)
 
 #endif // CTARGET_H

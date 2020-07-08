@@ -68,6 +68,8 @@ MultiportFromBank.lf
 MultiportFromBankHierarchy.lf
 MultiportFromHierarchy.lf
 MultiportIn.lf
+MultiportMutableInput.lf
+MultiportMutableInputArray.lf
 MultiportOut.lf
 MultiportToBank.lf
 MultiportToBankHierarchy.lf

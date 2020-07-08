@@ -3454,19 +3454,53 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')            
-        } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
-            // Non-mutable, multiport, primitive type.
+        } else if (!input.isMutable && input.multiportWidth > 0) {
+            // Non-mutable, multiport, primitive or token type.
             pr(builder, '''
                 «structType»** «input.name» = self->__«input.name»;
             ''')
-        } else if (!input.isMutable) {
-            // Non-mutable, multiport, token type.
+        } else if (inputType.isTokenType) {
+            // Mutable, multiport, token type
             pr(builder, '''
-                «structType»** «input.name» = self->__«input.name»;
+                // Mutable multiport input, so copy the input structs
+                // into an array of temporary variables on the stack.
+                «structType» __tmp_«input.name»[«input.multiportWidth»];
+                «structType»* «input.name»[«input.multiportWidth»];
+                for (int i = 0; i < «input.multiportWidth»; i++) {
+                    «input.name»[i] = &__tmp_«input.name»[i];
+                    __tmp_«input.name»[i] = *(self->__«input.name»[i]);
+                    // If necessary, copy the tokens.
+                    if («input.name»[i]->is_present) {
+                        «input.name»[i]->length = «input.name»[i]->token->length;
+                        token_t* _lf_input_token = «input.name»[i]->token;
+                        «input.name»[i]->token = writable_copy(_lf_input_token);
+                        if («input.name»[i]->token != _lf_input_token) {
+                            // A copy of the input token has been made.
+                            // This needs to be reference counted.
+                            «input.name»[i]->token->ref_count = 1;
+                            // Repurpose the next_free pointer on the token to add to the list.
+                            «input.name»[i]->token->next_free = _lf_more_tokens_with_ref_count;
+                            _lf_more_tokens_with_ref_count = «input.name»[i]->token;
+                        }
+                        «input.name»[i]->value = («inputType.targetType»)«input.name»[i]->token->value;
+                    } else {
+                        «input.name»[i]->length = 0;
+                    }
+                }
             ''')
         } else {
-            // FIXME FIXME FIXME
-            throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
+            // Mutable, multiport, primitive type
+            pr(builder, '''
+                // Mutable multiport input, so copy the input structs
+                // into an array of temporary variables on the stack.
+                «structType» __tmp_«input.name»[«input.multiportWidth»];
+                «structType»* «input.name»[«input.multiportWidth»];
+                for (int i = 0; i < «input.multiportWidth»; i++) {
+                    «input.name»[i]  = &__tmp_«input.name»[i];
+                    // Copy the struct, which includes the value.
+                    __tmp_«input.name»[i] = *(self->__«input.name»[i]);
+                }
+            ''')
         }
         // Set the _width variable for all cases. This will be -1
         // for a variable-width multiport, which is not currently supported.
