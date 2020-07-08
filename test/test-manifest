@@ -67,6 +67,7 @@ MultipleContained.lf
 MultiportIn.lf
 MultiportOut.lf
 MultiportToBank.lf
+MultiportFromHierarchy.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
