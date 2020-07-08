@@ -242,6 +242,7 @@ do { \
     out->token = newtoken; \
     newtoken->ref_count += out->num_destinations; \
     out->is_present = true; \
+    out->length = newtoken->length; \
 } while(0)
 #else
 #define _LF_SET_TOKEN(out, newtoken) \
@@ -251,6 +252,7 @@ do { \
     out->token = newtoken; \
     newtoken->ref_count += out->num_destinations; \
     out->is_present = true; \
+    out->length = newtoken->length; \
 } while(0)
 #endif
 
