@@ -1301,13 +1301,6 @@ class CGenerator extends GeneratorBase {
             pr(output, body, '''
                 «variableStructType(output, reactor)» __«output.name»«arraySpec»;
             ''')
-            // If there are contained reactors that send data via this output,
-            // then create a place to put the pointers to the sources of that data.
-            if (outputToContainedOutput.get(output) !== null) {
-            pr(output, body, '''
-                «variableStructType(output, reactor)»* __«output.name»_inside«arraySpec»;
-            ''')
-            }
         }
         
         // If there are contained reactors that either receive inputs
@@ -2320,11 +2313,9 @@ class CGenerator extends GeneratorBase {
      * This will have one of the following forms:
      * 
      * * selfStruct->__portName
-     * * selfStruct->__portName_inside
      * * selfStruct->__portName[i]
-     * * selfStruct->__portName_inside[i]
      * 
-     * @param port An instance of a destination port.
+     * @param port An instance of a destination input port.
      */
     static def destinationReference(PortInstance port) {
         var destStruct = selfStructName(port.parent)
@@ -2338,7 +2329,7 @@ class CGenerator extends GeneratorBase {
         if (port.isInput) {
             return '''«destStruct»->__«port.name»«destinationIndexSpec»'''
         } else {
-            return '''«destStruct»->__«port.name»_inside«destinationIndexSpec»'''
+            throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
     }
  
@@ -3234,46 +3225,49 @@ class CGenerator extends GeneratorBase {
             ) {
                 val destinations = instance.destinations.get(source)
                 for (destination : destinations) {
-                    var comment = ''
-                    if (source !== eventualSource) {
-                        comment = ''' (eventual source is «eventualSource.getFullName»)'''
-                    }
-                    val destStructType = variableStructType(
-                        destination.definition as TypedVariable,
-                        destination.parent.definition.reactorClass
-                    )
-                    // If the source or destination (or both) is a multiport, then
-                    // we need an iterative connection here over the minimum of the widths of
-                    // the two multiports.
-                    var srcIndex = ""
-                    var dstIndex = ""
-                    var width = 0
-                    if (eventualSource instanceof MultiportInstance) {
-                        // Source is a multiport.
-                        srcIndex = "[i]"
-                        width = eventualSource.instances.size
-                        if (!(destination instanceof MultiportInstance)) {
-                            reportError(destination.definition, "Cannot connect a multiport to a single port")
+                    // If the destination is an output, then skip this step.
+                    if (destination.isInput) {
+                        var comment = ''
+                        if (source !== eventualSource) {
+                            comment = ''' (eventual source is «eventualSource.getFullName»)'''
                         }
-                    }
-                    if (destination instanceof MultiportInstance) {
-                        // Destination is a multiport.
-                        dstIndex = "[i]"
-                        if (destination.instances.size < width) {
-                            width = destination.instances.size
+                        val destStructType = variableStructType(
+                            destination.definition as TypedVariable,
+                            destination.parent.definition.reactorClass
+                        )
+                        // If the source or destination (or both) is a multiport, then
+                        // we need an iterative connection here over the minimum of the widths of
+                        // the two multiports.
+                        var srcIndex = ""
+                        var dstIndex = ""
+                        var width = 0
+                        if (eventualSource instanceof MultiportInstance) {
+                            // Source is a multiport.
+                            srcIndex = "[i]"
+                            width = eventualSource.instances.size
+                            if (!(destination instanceof MultiportInstance)) {
+                                reportError(destination.definition, "Cannot connect a multiport to a single port")
+                            }
                         }
-                    }
-                    if (width > 0) {
-                        pr('''for (int i = 0; i < «width»; i++) {''')
-                        indent()
-                    }
-                    pr('''
-                        // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                        «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
-                    ''')
-                    if (width > 0) {
-                        unindent()
-                        pr("}")
+                        if (destination instanceof MultiportInstance) {
+                            // Destination is a multiport.
+                            dstIndex = "[i]"
+                            if (destination.instances.size < width) {
+                                width = destination.instances.size
+                            }
+                        }
+                        if (width > 0) {
+                            pr('''for (int i = 0; i < «width»; i++) {''')
+                            indent()
+                        }
+                        pr('''
+                            // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                            «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
+                        ''')
+                        if (width > 0) {
+                            unindent()
+                            pr("}")
+                        }
                     }
                 }
             }
