@@ -752,7 +752,7 @@ trigger_t* _lf_action_to_trigger(void* action) {
  * See reactor.h for documentation.
  * @param action Pointer to an action on the self struct.
  */
-handle_t __lf_schedule_int(void* action, interval_t extra_delay, int value) {
+handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     // NOTE: This doesn't acquire the mutex lock in the multithreaded version
     // until schedule_value is called. This should be OK because the element_size
@@ -763,7 +763,7 @@ handle_t __lf_schedule_int(void* action, interval_t extra_delay, int value) {
     }
     int* container = (int*)malloc(sizeof(int));
     *container = value;
-    return __lf_schedule_value(action, extra_delay, container, 1);
+    return _lf_schedule_value(action, extra_delay, container, 1);
 }
 
 /**

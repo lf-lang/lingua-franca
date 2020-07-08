@@ -39,7 +39,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t __lf_schedule_token(void* action, interval_t extra_delay, token_t* token) {
+handle_t _lf_schedule_token(void* action, interval_t extra_delay, token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     return __schedule(trigger, extra_delay, token);
 }
@@ -48,7 +48,7 @@ handle_t __lf_schedule_token(void* action, interval_t extra_delay, token_t* toke
  * Variant of schedule_token that creates a token to carry the specified value.
  * See reactor.h for documentation.
  */
-handle_t __lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     token_t* token = create_token(trigger->element_size);
     token->value = value;
@@ -61,7 +61,7 @@ handle_t __lf_schedule_value(void* action, interval_t extra_delay, void* value, 
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t __lf_schedule_copy(void* action, interval_t offset, void* value, int length) {
+handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     if (value == NULL) {
         return schedule_token(action, offset, NULL);

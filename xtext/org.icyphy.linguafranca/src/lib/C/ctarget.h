@@ -30,10 +30,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This API layer can be used in conjunction with:
  *     target C;
  * 
- * Note for target language developers. Every target language has a runtime translation
- * layer that works with the common core, as well as a source generator. 
- * This file should act as a template for future runtime developement for target languages.
- * For source generation, see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CGenerator.xtend.
+ * Note for target language developers. This is one way of developing a target language where 
+ * the C core runtime is adopted. This file is a translation layer that implements Lingua Franca 
+ * APIs which interact with the internal _lf_SET and _lf_schedule APIs. This file can act as a 
+ * template for future runtime developement for target languages.
+ * For source generation, see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CCppGenerator.xtend.
  */
 
 
@@ -43,8 +44,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reactor.h"
 #include "core/pqueue.c" // FIXME: Ideally this should be hidden
 
-////////////////////////////////////////////////////////////
-//// Macros for producing outputs.
+//////////////////////////////////////////////////////////////
+/////////////  SET Functions (to produce an output)
 
 // NOTE: According to the "Swallowing the Semicolon" section on this page:
 //    https://gcc.gnu.org/onlinedocs/gcc-3.0.1/cpp_3.html
@@ -66,7 +67,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  reactor in form input_name.port_name.
  * @param value The value to insert into the self struct.
  */
-#define SET(out, val) __LF_SET(out, val)
+#define SET(out, val) _LF_SET(out, val)
 
 /**
  * Version of set for output types given as 'type[]' where you
@@ -81,7 +82,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param length The length of the array to send.
  * @see token_t
  */
-#define SET_ARRAY(out, val, element_size, length) __LF_SET_ARRAY(out, val, element_size, length)
+#define SET_ARRAY(out, val, element_size, length) _LF_SET_ARRAY(out, val, element_size, length)
 
 /**
  * Version of set() for output types given as 'type*' that
@@ -97,7 +98,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * struct to true (which causes the object message to be sent),
  * @param out The output port (by name).
  */
-#define SET_NEW(out) __LF_SET_NEW(out)
+#define SET_NEW(out) _LF_SET_NEW(out)
 
 /**
  * Version of set() for output types given as 'type[]'.
@@ -112,7 +113,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param out The output port (by name).
  * @param len The length of the array to be sent.
  */
-#define SET_NEW_ARRAY(out, len) __LF_SET_NEW_ARRAY(out, len)
+#define SET_NEW_ARRAY(out, len) _LF_SET_NEW_ARRAY(out, len)
 
 /**
  * Version of set() for output types given as 'type[number]'.
@@ -123,7 +124,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * after this is called.
  * @param out The output port (by name).
  */
-#define SET_PRESENT(out) __LF_SET_PRESENT(out)
+#define SET_PRESENT(out) _LF_SET_PRESENT(out)
 
 /**
  * Version of set() for output types given as 'type*' or 'type[]' where you want
@@ -134,8 +135,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param out The output port (by name).
  * @param token A pointer to token obtained from an input or action.
  */
-#define SET_TOKEN(out, newtoken) __LF_SET_TOKEN(out, newtoken)
+#define SET_TOKEN(out, newtoken) _LF_SET_TOKEN(out, newtoken)
 
+//////////////////////////////////////////////////////////////
+/////////////  Schedule Functions
+ 
 
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -146,7 +150,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule(void* action, interval_t offset) {
-    return __lf_schedule_token(action, offset, NULL);
+    return _lf_schedule_token(action, offset, NULL);
 }
 
 /**
@@ -156,7 +160,7 @@ handle_t schedule(void* action, interval_t offset) {
  */
 handle_t schedule_int(void* action, interval_t extra_delay, int value)
 {
-    return __lf_schedule_int(action, extra_delay, value);
+    return _lf_schedule_int(action, extra_delay, value);
 }
 
 /**
@@ -165,7 +169,7 @@ handle_t schedule_int(void* action, interval_t extra_delay, int value)
  * See reactor.h for documentation.
  */
 handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
-    return __lf_schedule_token(action, extra_delay, token);
+    return _lf_schedule_token(action, extra_delay, token);
 }
 
 /**
@@ -174,7 +178,7 @@ handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
  * See reactor.h for documentation.
  */
 handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
-    return __lf_schedule_copy(action, offset, value, length);
+    return _lf_schedule_copy(action, offset, value, length);
 }
 
 
@@ -183,7 +187,7 @@ handle_t schedule_copy(void* action, interval_t offset, void* value, int length)
  * See reactor.h for documentation.
  */
 handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
-    return __lf_schedule_value(action, extra_delay, value, length);
+    return _lf_schedule_value(action, extra_delay, value, length);
 }
 
 #endif // CTARGET_H
