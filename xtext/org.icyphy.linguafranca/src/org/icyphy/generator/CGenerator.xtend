@@ -1026,9 +1026,6 @@ class CGenerator extends GeneratorBase {
         // Create Timer and Action for startup and shutdown, if they occur.
         handleStartupAndShutdown(reactor)
         
-        // Create reactions to transfer data up the hierarchy.
-        generateTransferOutputs(reactor)
-
         pr("// =============== START reactor class " + reactor.name)
 
         // Preamble code contains state declarations with static initializers.
@@ -2060,7 +2057,7 @@ class CGenerator extends GeneratorBase {
                             // In that case, we want NULL.
                             // If the destination is an output port, however, then
                             // the dependentReactions.size reflects the number of downstream
-                            // reactions. But we want only one trigger (for transfer outputs).
+                            // reactions.
                             if (destination.dependentReactions.size === 0 || destination.isOutput) {
                                 pr(initializeTriggerObjectsEnd, '''
                                     // Destination port «destination.getFullName» itself has no reactions.
@@ -2206,63 +2203,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Generate one reaction function definition for each output of
-     *  a reactor that relays data from the output of a contained reactor.
-     *  This reaction function transfers the data from the output of the
-     *  contained reactor (in the self struct of this reactor labeled as
-     *  "inside") to the output of this reactor (also in its self struct).
-     *  There needs to be one reaction function
-     *  for each such output because these reaction functions have to be
-     *  individually invoked after each contained reactor produces an
-     *  output that must be relayed. These reactions are set up to not
-     *  be required to be invoked in any particular order.
-     *  @param reactor The reactor.
-     */
-    def generateTransferOutputs(Reactor reactor) {
-        // FIXME: Is this really necessary? Couldn't the transitive closure function
-        // of ReactorInstance traverse the hierarchy?
-        for (connection : reactor.connections) {
-            // If the connection has the form c.x -> y, then it's what we are looking for.
-            if (connection.rightPort.container === null &&
-                    connection.leftPort.container !== null) {
-                if (connection.rightPort.variable instanceof Output) {
-                    val reaction = ASTUtils.factory.createReaction()
-                    // Mark this unordered relative to other reactions in the container.
-                    // It will still be ordered by dependencies to the source.
-                    reaction.makeUnordered()
-                    val leftPort = ASTUtils.factory.createVarRef()
-                    leftPort.container = connection.leftPort.container
-                    leftPort.variable = connection.leftPort.variable
-                    val rightPort = ASTUtils.factory.createVarRef()
-                    rightPort.variable = connection.rightPort.variable
-                    reaction.triggers.add(leftPort)
-                    reaction.effects.add(rightPort)
-                    reaction.code = factory.createCode()
-                    if ((rightPort.variable as Port).inferredType.isTokenType) {
-                        reaction.code.body = '''
-                            «DISABLE_REACTION_INITIALIZATION_MARKER»
-                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            self->__«rightPort.toText».value = self->__«leftPort.toText».value;
-                            self->__«rightPort.toText».is_present = true;
-                        '''
-                    } else {
-                        reaction.code.body = '''
-                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            SET(«rightPort.toText», «leftPort.toText»->value);
-                        '''
-                    }
-                    reactor.reactions.add(reaction)
-                } else {
-                    reportError(
-                        connection,
-                        "Expected an output port but got " +
-                            connection.rightPort.variable.name
-                    )
-                }
-            }
-        }
-    }
-
     /**
      * For each timer and action in the specified reactor instance, generate
      * initialization code for the offset and period fields. This code goes into
