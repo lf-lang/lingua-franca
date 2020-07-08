@@ -138,16 +138,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
- * Variant of schedule_value when the value is an integer.
- * See reactor.h for documentation.
- * @param action Pointer to an action on the self struct.
- */
-handle_t schedule_int(void* action, interval_t extra_delay, int value)
-{
-    return __lf_schedule_int(action, extra_delay, value);
-}
-
-/**
  * Schedule an action to occur with the specified value and time offset
  * with no payload (no value conveyed).
  * See schedule_token(), which this uses, for details.
@@ -157,6 +147,16 @@ handle_t schedule_int(void* action, interval_t extra_delay, int value)
  */
 handle_t schedule(void* action, interval_t offset) {
     return __lf_schedule_token(action, offset, NULL);
+}
+
+/**
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
+ */
+handle_t schedule_int(void* action, interval_t extra_delay, int value)
+{
+    return __lf_schedule_int(action, extra_delay, value);
 }
 
 /**

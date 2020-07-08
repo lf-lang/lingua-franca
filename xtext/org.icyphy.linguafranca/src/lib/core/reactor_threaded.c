@@ -74,7 +74,7 @@ handle_t __lf_schedule_token(void* action, interval_t extra_delay, token_t* toke
  */
 handle_t __lf_schedule_copy(void* action, interval_t offset, void* value, int length) {
     if (value == NULL) {
-        return schedule_token(action, offset, NULL);
+        return __lf_schedule_token(action, offset, NULL);
     }
     trigger_t* trigger = _lf_action_to_trigger(action);
 

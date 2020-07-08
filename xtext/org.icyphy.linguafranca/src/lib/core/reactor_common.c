@@ -763,7 +763,7 @@ handle_t __lf_schedule_int(void* action, interval_t extra_delay, int value) {
     }
     int* container = (int*)malloc(sizeof(int));
     *container = value;
-    return schedule_value(action, extra_delay, container, 1);
+    return __lf_schedule_value(action, extra_delay, container, 1);
 }
 
 /**
