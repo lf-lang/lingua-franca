@@ -64,10 +64,13 @@ Minimal.lf
 MinimalThreaded.lf
 MovingAverage.lf
 MultipleContained.lf
+MultiportFromBank.lf
+MultiportFromBankHierarchy.lf
+MultiportFromHierarchy.lf
 MultiportIn.lf
 MultiportOut.lf
 MultiportToBank.lf
-MultiportFromHierarchy.lf
+MultiportToBankHierarchy.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
