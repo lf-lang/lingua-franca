@@ -31,9 +31,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This API layer can be used in conjunction with:
  *     target CCpp;
  * 
- * Note for target language developers. Every target language has a runtime translation
- * layer that works with the common core, as well as a source generator. 
- * This file should act as a template for future runtime developement for target languages.
+ * Note for target language developers. This is one way of developing a target language where 
+ * the C core runtime is adopted. This file is a translation layer that implements Lingua Franca 
+ * APIs which interact with the internal _lf_SET and _lf_schedule APIs. This file can act as a 
+ * template for future runtime developement for target languages.
  * For source generation, see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CCppGenerator.xtend.
  */
 
@@ -79,6 +80,9 @@ struct template_port_instance_with_token_struct {
 };
 
 
+//////////////////////////////////////////////////////////////
+/////////////  SET Functions (to produce an output)
+
 /**
  * Set the specified output (or input of a contained reactor)
  * to the specified value.
@@ -96,7 +100,7 @@ struct template_port_instance_with_token_struct {
 template <class T>
 void SET(template_port_instance_struct<T>* out, T val)
 {
-    __LF_SET(out, static_cast<T>(val));
+    _LF_SET(out, static_cast<T>(val));
 }
 
 
@@ -116,7 +120,7 @@ void SET(template_port_instance_struct<T>* out, T val)
 template <class T>
 void SET(template_port_instance_with_token_struct<T>* out, T val, int element_size, int length)
 {
-    __LF_SET_ARRAY(out, val, element_size, length);
+    _LF_SET_ARRAY(out, val, element_size, length);
 }
 
 /**
@@ -135,7 +139,7 @@ void SET(template_port_instance_with_token_struct<T>* out, T val, int element_si
 template <class T>
 void SET(template_port_instance_with_token_struct<T>* out, int length)
 {
-    __LF_SET_NEW_ARRAY(out, length);
+    _LF_SET_NEW_ARRAY(out, length);
 }
 
 /**
@@ -170,7 +174,7 @@ void SET(template_port_instance_with_token_struct<T>* out)
 template <class T>
 void SET(template_port_instance_struct<T>* out)
 {
-    __LF_SET_PRESENT(out);
+    _LF_SET_PRESENT(out);
 }
 
 /**
@@ -185,16 +189,12 @@ void SET(template_port_instance_struct<T>* out)
 template <class T>
 void SET(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
 {
-    __LF_SET_TOKEN(out, newtoken);
+    _LF_SET_TOKEN(out, newtoken);
 }
 
-/////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
 /////////////  Schedule Functions
- /* Note. The schedule functions will also be 
- * optional for C/C++ because of the commonality
- * but need to be reimplemented for other target
- * languages such as Python.
- * /
+ 
  
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -205,7 +205,7 @@ void SET(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule(void* action, interval_t offset) {
-    return __lf_schedule_token(action, offset, NULL);
+    return _lf_schedule_token(action, offset, NULL);
 }
 
 /**
@@ -215,7 +215,7 @@ handle_t schedule(void* action, interval_t offset) {
  */
 handle_t schedule(void* action, interval_t extra_delay, int value)
 {
-    return __lf_schedule_int(action, extra_delay, value);
+    return _lf_schedule_int(action, extra_delay, value);
 }
 
 /**
@@ -224,7 +224,7 @@ handle_t schedule(void* action, interval_t extra_delay, int value)
  * See reactor.h for documentation.
  */
 handle_t schedule(void* action, interval_t extra_delay, token_t* token) {
-    return __lf_schedule_token(action, extra_delay, token);
+    return _lf_schedule_token(action, extra_delay, token);
 }
 
 /**
@@ -233,7 +233,7 @@ handle_t schedule(void* action, interval_t extra_delay, token_t* token) {
  * See reactor.h for documentation.
  */
 handle_t schedule(void* action, interval_t offset, void* value, int length) {
-    return __lf_schedule_copy(action, offset, value, length);
+    return _lf_schedule_copy(action, offset, value, length);
 }
 
 
@@ -242,7 +242,7 @@ handle_t schedule(void* action, interval_t offset, void* value, int length) {
  * See reactor.h for documentation.
  */
 handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
-    return __lf_schedule_value(action, extra_delay, value, length);
+    return _lf_schedule_value(action, extra_delay, value, length);
 }
 
 /**

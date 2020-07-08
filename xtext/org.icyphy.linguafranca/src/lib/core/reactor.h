@@ -118,7 +118,7 @@
  *  reactor in form input_name.port_name.
  * @param value The value to insert into the self struct.
  */
-#define __LF_SET(out, val) \
+#define _LF_SET(out, val) \
 do { \
     out->value = val; \
     out->is_present = true; \
@@ -138,7 +138,7 @@ do { \
  * @see token_t
  */
 #ifndef __cplusplus
-#define __LF_SET_ARRAY(out, val, element_size, length) \
+#define _LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
     token_t* token = __initialize_token_with_value(out->token, val, length); \
@@ -147,7 +147,7 @@ do { \
     out->value = token->value; \
 } while(0)
 #else
-#define __LF_SET_ARRAY(out, val, element_size, length) \
+#define _LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
     token_t* token = __initialize_token_with_value(out->token, val, length); \
@@ -171,7 +171,7 @@ do { \
  * struct to true (which causes the object message to be sent),
  * @param out The output port (by name).
  */
-#define __LF_SET_NEW(out) \
+#define _LF_SET_NEW(out) \
 do { \
     out->is_present = true; \
     token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
@@ -193,7 +193,7 @@ do { \
  * @param length The length of the array to be sent.
  */
 #ifndef __cplusplus
-#define __LF_SET_NEW_ARRAY(out, len) \
+#define _LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
     token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
@@ -202,7 +202,7 @@ do { \
     out->length = len; \
 } while(0)
 #else
-#define __LF_SET_NEW_ARRAY(out, len) \
+#define _LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
     token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
@@ -220,7 +220,7 @@ do { \
  * after this is called.
  * @param out The output port (by name).
  */
-#define __LF_SET_PRESENT(out) \
+#define _LF_SET_PRESENT(out) \
 do { \
     out->is_present = true; \
 } while(0)
@@ -235,7 +235,7 @@ do { \
  * @param token A pointer to token obtained from an input or action.
  */
 #ifndef __cplusplus
-#define __LF_SET_TOKEN(out, newtoken) \
+#define _LF_SET_TOKEN(out, newtoken) \
 do { \
     out->is_present = true; \
     out->value = newtoken->value; \
@@ -244,7 +244,7 @@ do { \
     out->is_present = true; \
 } while(0)
 #else
-#define __LF_SET_TOKEN(out, newtoken) \
+#define _LF_SET_TOKEN(out, newtoken) \
 do { \
     out->is_present = true; \
     out->value = static_cast<decltype(out->value)>(newtoken->value); \
@@ -558,7 +558,7 @@ token_t* create_token(size_t element_size);
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __lf_schedule_int(void* action, interval_t extra_delay, int value);
+handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value);
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -610,7 +610,7 @@ handle_t __lf_schedule_int(void* action, interval_t extra_delay, int value);
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __lf_schedule_token(void* action, interval_t extra_delay, token_t* token);
+handle_t _lf_schedule_token(void* action, interval_t extra_delay, token_t* token);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -624,7 +624,7 @@ handle_t __lf_schedule_token(void* action, interval_t extra_delay, token_t* toke
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __lf_schedule_value(void* action, interval_t extra_delay, void* value, int length);
+handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length);
 
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -639,7 +639,7 @@ handle_t __lf_schedule_value(void* action, interval_t extra_delay, void* value, 
  * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __lf_schedule_copy(void* action, interval_t offset, void* value, int length);
+handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
  * For a federated execution, broadcast stop() to all federates.
