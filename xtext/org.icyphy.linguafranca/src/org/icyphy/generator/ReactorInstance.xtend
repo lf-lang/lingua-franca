@@ -1028,14 +1028,20 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             )
         }
         // If the port is an input port, then include it in the result.
-        if (source.definition instanceof Input) {
+        if (source.isInput) {
             destinations.add(source)
         }
         var localDestinations = this.destinations.get(source)
 
         for (destination : localDestinations ?: emptyList) {
             destinations.add(destination)
-            destination.parent.transitiveClosure(destination, destinations)
+            if (destination.isInput) {
+                // Destination may have further destinations lower in the hierarchy.
+                destination.parent.transitiveClosure(destination, destinations)
+            } else if (destination.parent.parent !== null) {
+                // Destination may have further destinations higher in the hierarchy.
+                destination.parent.parent.transitiveClosure(destination, destinations)
+            }
         }
     }
 

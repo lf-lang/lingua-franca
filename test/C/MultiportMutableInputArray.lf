@@ -1,0 +1,71 @@
+// Source produces a dynamically allocated arrays on a multiport, which it passes
+// to Scale. Scale requests a writable copy, which, instead of
+// copying, it just gets ownership of the original array.
+// It modifies it and passes it to Print. It gets freed after
+// Print is done with it.
+target C;
+reactor Source {
+    output[2] out:int[];
+    reaction(startup) -> out {=
+        // Dynamically allocate an output array of length 3.
+        SET_NEW_ARRAY(out[0], 3);
+        
+        // Above allocates the array, which then must be populated.
+        out[0]->value[0] = 0;
+        out[0]->value[1] = 1;
+        out[0]->value[2] = 2;
+
+        // Dynamically allocate an output array of length 3.
+        SET_NEW_ARRAY(out[1], 3);
+        
+        // Above allocates the array, which then must be populated.
+        out[1]->value[0] = 3;
+        out[1]->value[1] = 4;
+        out[1]->value[2] = 5;
+    =}
+}
+// The scale parameter is just for testing.
+reactor Print(scale:int(1)) {
+    input[2] in:int[];
+    reaction(in) {=
+        int count = 0;       // For testing.
+        bool failed = false; // For testing.
+        for(int j = 0; j < 2; j++) {
+            printf("Received on channel %d: [", j);
+            for (int i = 0; i < in[j]->length; i++) {
+                if (i > 0) printf(", ");
+                printf("%d", in[j]->value[i]);
+                // For testing, check whether values match expectation.
+                if (in[j]->value[i] != self->scale * count) {
+                    failed = true;
+                }
+                count++;         // For testing.
+            }
+            printf("]\n");
+        }
+        if (failed) {
+            printf("ERROR: Value received by Print does not match expectation!\n");
+            exit(1);
+        }
+    =}
+}
+
+reactor Scale(scale:int(2)) {
+    mutable input[2] in:int[];
+    output[2] out:int[];
+    reaction(in) -> out {=
+        for(int j = 0; j < 2; j++) {
+            for(int i = 0; i < in[j]->length; i++) {
+                in[j]->value[i] *= self->scale;
+            }
+            SET_TOKEN(out[j], in[j]->token);
+        }
+    =}
+}
+main reactor ArrayScale {
+    s = new Source();
+    c = new Scale();
+    p = new Print(scale=2);
+    s.out -> c.in;
+    c.out -> p.in;
+}

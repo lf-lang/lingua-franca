@@ -64,9 +64,15 @@ Minimal.lf
 MinimalThreaded.lf
 MovingAverage.lf
 MultipleContained.lf
+MultiportFromBank.lf
+MultiportFromBankHierarchy.lf
+MultiportFromHierarchy.lf
 MultiportIn.lf
+MultiportMutableInput.lf
+MultiportMutableInputArray.lf
 MultiportOut.lf
 MultiportToBank.lf
+MultiportToBankHierarchy.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
