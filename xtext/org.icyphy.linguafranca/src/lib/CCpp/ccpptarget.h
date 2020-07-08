@@ -197,16 +197,6 @@ void SET(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
  * /
  
 /**
- * Variant of schedule_value when the value is an integer.
- * See reactor.h for documentation.
- * @param action Pointer to an action on the self struct.
- */
-handle_t schedule_int(void* action, interval_t extra_delay, int value)
-{
-    return __lf_schedule_int(action, extra_delay, value);
-}
-
-/**
  * Schedule an action to occur with the specified value and time offset
  * with no payload (no value conveyed).
  * See schedule_token(), which this uses, for details.
@@ -219,11 +209,21 @@ handle_t schedule(void* action, interval_t offset) {
 }
 
 /**
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
+ */
+handle_t schedule(void* action, interval_t extra_delay, int value)
+{
+    return __lf_schedule_int(action, extra_delay, value);
+}
+
+/**
  * Schedule the specified trigger at current_time plus the offset of the
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+handle_t schedule(void* action, interval_t extra_delay, token_t* token) {
     return __lf_schedule_token(action, extra_delay, token);
 }
 
@@ -232,7 +232,7 @@ handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+handle_t schedule(void* action, interval_t offset, void* value, int length) {
     return __lf_schedule_copy(action, offset, value, length);
 }
 
@@ -294,6 +294,20 @@ template <class T>
 void SET_TOKEN(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
 {
     SET(out, newtoken);
+}
+
+/* Schedule compatiblity layer */
+handle_t schedule_int(void* action, interval_t extra_delay, int value)
+{
+    return schedule(action, extra_delay, value);
+}
+
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+    return schedule(action, extra_delay, token);
+}
+
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+    return schedule(action, offset, value, length);
 }
 
 #endif // CPP_TARGET_H

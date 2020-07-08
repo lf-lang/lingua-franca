@@ -208,6 +208,7 @@ do { \
     token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = static_cast<decltype(out->value)>(token->value); \
     out->token = token; \
+    out->length = len; \
 } while(0)
 #endif
 /**
@@ -557,7 +558,7 @@ token_t* create_token(size_t element_size);
  * @param value The value to send.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_int(void* action, interval_t extra_delay, int value);
+handle_t __lf_schedule_int(void* action, interval_t extra_delay, int value);
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -609,7 +610,7 @@ handle_t schedule_int(void* action, interval_t extra_delay, int value);
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_token(void* action, interval_t extra_delay, token_t* token);
+handle_t __lf_schedule_token(void* action, interval_t extra_delay, token_t* token);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -623,7 +624,7 @@ handle_t schedule_token(void* action, interval_t extra_delay, token_t* token);
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length);
+handle_t __lf_schedule_value(void* action, interval_t extra_delay, void* value, int length);
 
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -638,7 +639,7 @@ handle_t schedule_value(void* action, interval_t extra_delay, void* value, int l
  * @param length The length, if an array, 1 if a scalar, and 0 if value is NULL.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_copy(void* action, interval_t offset, void* value, int length);
+handle_t __lf_schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
  * For a federated execution, broadcast stop() to all federates.
