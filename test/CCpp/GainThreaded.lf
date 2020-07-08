@@ -1,5 +1,5 @@
 // Example in the Wiki.
-    target C {threads: 1};
+    target CCpp {threads: 1};
     reactor Scale(scale:int(2)) {
         input x:int;
         output y:int;
