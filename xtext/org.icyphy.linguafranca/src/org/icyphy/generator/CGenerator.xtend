@@ -433,7 +433,7 @@ class CGenerator extends GeneratorBase {
         
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
-                generateReactorFederated(this.mainDef.reactorClass, federate)
+                //generateReactorFederated(this.mainDef.reactorClass, federate)
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.

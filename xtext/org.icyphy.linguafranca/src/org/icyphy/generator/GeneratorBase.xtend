@@ -74,6 +74,8 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.graph.AnnotatedDependencyGraph
+import org.icyphy.graph.AnnotatedNode
 
 /**
  * Generator base class for shared code between code generators.
@@ -159,7 +161,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * A list of Reactor definitions in the main resource, including non-main 
      * reactors defined in imported resources.
      */
-    protected var Set<Reactor> reactors
+    protected var List<Reactor> reactors
     
     /**
      * The file containing the main source code.
@@ -461,7 +463,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         // Collect a list of reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
-        reactors = newLinkedHashSet
+        reactors = newLinkedList
         
         // Next process all the imports to find reactors defined in the imports.
         //processImports(resource)
@@ -488,24 +490,35 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // federate. But it seems harmless to generate it since a good
         // compiler will remove it anyway as dead code.
         
+//        for (inst : resource.allContents.toIterable.filter(Instantiation)) {
+//            inst.collectClasses
+//        }
+//        
+//        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+//            if (!reactor.isMain && !reactor.isFederated) {
+//                reactors.add(reactor)
+//            }
+//        }
+    
+        val graph = new AnnotatedDependencyGraph<Reactor>()
         for (inst : resource.allContents.toIterable.filter(Instantiation)) {
-            inst.collectClasses
+            // Build a dependency graph
+            collectClasses(inst, graph)
         }
-        
-        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            if (!reactor.isMain && !reactor.isFederated) {
-                reactors.add(reactor)
-            }
-        }
+        this.reactors = graph.nodesOrderedDescending
+        println(this.reactors)
     }
     
-    def void collectClasses(Instantiation instantiation) {
+    def void collectClasses(Instantiation instantiation, AnnotatedDependencyGraph<Reactor> graph) {
         val reactor = instantiation.reactorClass
-        if (!this.reactors.contains(reactor)) {
-            this.reactors.add(reactor)
-            for (inst : reactor.instantiations) {
-                inst.collectClasses
-            }
+        val container = instantiation.eContainer as Reactor
+        //if (!container.isMain) {
+            graph.addEdge(new AnnotatedNode(container), new AnnotatedNode(reactor))
+//        } else {
+//            graph.addNode(new AnnotatedNode(reactor)) // FIXME: Why are we treating main separately?
+//        }
+        for (inst : reactor.instantiations) {
+            inst.collectClasses(graph)
         }
     }
     

@@ -42,6 +42,9 @@ import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Import
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.common.util.URI
+import org.icyphy.graph.ReactionGraph
+import org.icyphy.graph.AnnotatedDependencyGraph
+import org.icyphy.graph.AnnotatedNode
 
 /**
  * A helper class for analyzing the AST.

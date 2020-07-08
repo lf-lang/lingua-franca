@@ -24,7 +24,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.icyphy
+package org.icyphy.graph
 
 import java.util.LinkedList
 import java.util.List
@@ -34,14 +34,42 @@ import java.util.HashSet
 
 /** 
  * Elaboration of `DirectedGraph` that stores nodes in a wrapper used
- * for annotations 
+ * for annotations. It reports whether there are cyclic dependencies
+ * present in the graph.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> {
+class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> { // FIXME: Make this SortableDependencyGraph; also create an interface DependencyGraph
 
+    /**
+     * Indicates whether or not the graph has been analyzed for cycles.
+     * If this variable is false, Tarjan's algorithm need to be ran to find out
+     * whether or not this graph has cycles.
+     */
+    var cycleAnalysisDone = false
+
+    /**
+     * Indicates whether or not the graph has been sorted.
+     * If this variable is false, a new DFS has to be done to compute a
+     * topological sort.
+     */
+    var isSorted = false
+    
     var index = 0
+    
+    
+    var List<T> sortedNodes
+    
     var Stack<AnnotatedNode<T>> stack = new Stack()
+    
     public var List<Set<T>> cycles = new LinkedList()
+
+    override addEdge(AnnotatedNode<T> effect, AnnotatedNode<T> origin) {
+        this.cycleAnalysisDone = false
+        this.isSorted = false
+        super.addEdge(effect, origin)
+    }
+
+    // FIXME: add more overrides
 
     /**
      * Construct a new dependency graph.
@@ -50,19 +78,55 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> {
         
     }
     
+    def void sortNodes() {
+        
+        // Cleanup.
+        this.sortedNodes = newLinkedList
+        this.nodes.forEach[it.hasTempMark = false; it.hasPermMark = false]
+        
+        // Start sorting.
+        for (node : this.nodes) {
+            if (!node.hasPermMark) {
+                // Unmarked node.
+                this.visit(node)
+            }
+        }
+    }
+    
+    
+    def void visit(AnnotatedNode<T> node) {
+        if (node.hasPermMark) {
+            return
+        }
+        if (node.hasTempMark) {
+            // Not a DAG.
+            throw new Error("Cycle found.")
+        }
+        node.hasTempMark = true
+        for (dep : node.effects) {
+            visit(dep)
+        }
+        node.hasTempMark = false
+        node.hasPermMark = true
+        this.sortedNodes.add(node.contents)
+    }
+    
     /**
      * Run Tarjan's algorithm for finding strongly connected components.
      * After invoking this method, the detected cycles with be listed 
      * in the class variable `cycles`.
      */
     def void detectCycles() {
-        this.index = 0
-        this.stack = new Stack()
-        this.cycles = new LinkedList();
-        for (node : this.nodes) {
-            if (node.index == -1) {
-                this.traverse(node)
-            }
+        if (!this.cycleAnalysisDone) {
+            this.index = 0
+            this.stack = new Stack()
+            this.cycles = new LinkedList();
+            this.nodes.forEach[it.index = -1]
+            for (node : this.nodes) {
+                if (node.index == -1) {
+                    this.strongConnect(node)
+                }
+            }    
         }
     }
     
@@ -70,7 +134,7 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> {
      * Traverse the graph to visit unvisited dependencies and determine
      * whether they are part of a cycle. 
      */
-    def void traverse(AnnotatedNode<T> node) {
+    def void strongConnect(AnnotatedNode<T> node) {
         node.index = this.index
         node.lowLink = this.index
         node.onStack = true
@@ -84,7 +148,7 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> {
                     node.selfLoop = true
                 }
             } else if (dep.index == -1) {
-                traverse(dep)    
+                strongConnect(dep)    
                 node.lowLink = Math.min(node.lowLink, dep.lowLink)
             } 
         }
@@ -101,6 +165,16 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> {
             if (scc.size > 1 || node.selfLoop)
                 this.cycles.add(scc)
         }   
+    }
+    
+    def nodesOrderedAscending() {
+        this.sortNodes()
+        this.sortedNodes
+    }
+    
+    def nodesOrderedDescending() {
+        this.sortNodes()
+        this.sortedNodes.reverse
     }
 }
 
