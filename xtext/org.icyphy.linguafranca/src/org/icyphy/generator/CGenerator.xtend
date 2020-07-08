@@ -637,7 +637,9 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         void __termination() {
                             unsigned char message_marker = RESIGN;
-                            write(rti_socket, &message_marker, 1);
+                            if (write(rti_socket, &message_marker, 1) != 1) {
+                                fprintf(stderr, "WARNING: Failed to send RESIGN message to the RTI.\n");
+                            }
                         }
                     ''')
                 } else {
@@ -1279,7 +1281,28 @@ class CGenerator extends GeneratorBase {
             
             pr(input, body, '''
                 «variableStructType(input, reactor)»* __«input.name»«arraySpec»;
+                // Default input (in case it does not get connected)
+                «variableStructType(input, reactor)» __default__«input.name»;
             ''')
+            if (input.arraySpec === null) {
+                pr(input, constructorCode, '''
+                    // Set input by default to an always absent default input.
+                    self->__«input.name» = &self->__default__«input.name»;
+                ''')
+            } else {
+                // input is a multiport. Need to set defaults in case it
+                // remains unconnected.
+                if (input.arraySpec.ofVariableLength) {
+                    reportError(input, "Variable width multiports not supported.")
+                } else {
+                    pr(input, constructorCode, '''
+                        // Set inputs by default to an always absent default input.
+                        for (int i = 0; i < «input.arraySpec.length»; i++) {
+                            self->__«input.name»[i] = &self->__default__«input.name»;
+                        }
+                    ''')
+                }
+            }
         }
 
         // Find output ports that receive data from inside reactors
@@ -2113,14 +2136,27 @@ class CGenerator extends GeneratorBase {
                 var nameOfSelfStruct = selfStructName(child)
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
-                        pr(startTimeStep, '''
-                            __tokens_with_ref_count[«startTimeStepTokens»].token
-                                    = &«nameOfSelfStruct»->__«input.name»->token;
-                            __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                    = &«nameOfSelfStruct»->__«input.name»->is_present;
-                            __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
-                        ''')
-                        startTimeStepTokens++
+                        if (input instanceof MultiportInstance) {
+                            pr(startTimeStep, '''
+                                for (int i = 0; i < «input.width»; i++) {
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                            = &«nameOfSelfStruct»->__«input.name»[i]->token;
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                            = &«nameOfSelfStruct»->__«input.name»[i]->is_present;
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                }
+                            ''')
+                            startTimeStepTokens += input.width
+                        } else {
+                            pr(startTimeStep, '''
+                                __tokens_with_ref_count[«startTimeStepTokens»].token
+                                        = &«nameOfSelfStruct»->__«input.name»->token;
+                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                        = &«nameOfSelfStruct»->__«input.name»->is_present;
+                                __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                            ''')
+                            startTimeStepTokens++
+                        }
                     }
                 }
             }
@@ -2587,6 +2623,19 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
+            // If the reactor has a parameter named "bank_position", set it.
+            for (parameter : reactorClass.allParameters) {
+                if (parameter.name == "bank_position"
+                    && getTargetType(parameter.inferredType) == "int"
+                ) {
+                    // Override the default parameter value for bank_position.
+                    // This needs to be at the end or it will be overwrittend
+                    // with the default parameter value.
+                    pr(initializeTriggerObjectsEnd, '''
+                        «nameOfSelfStruct»->bank_position = «instance.bankIndex»;
+                    ''')
+                }
+            }
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
@@ -3260,9 +3309,6 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        // Set all input pointers to point to NULL by default.
-        setInputsAbsentByDefault(main, federate)
-        
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
         createDefaultTokens(main, federate)
@@ -3289,7 +3335,12 @@ class CGenerator extends GeneratorBase {
             
             // We assume here that all connections across federates have been
             // broken and replaced by reactions handling the communication.
-            if (reactorBelongsToFederate(eventualSource.parent, federate)) {
+            // Moreover, if the eventual source is an input and it is NOT
+            // written to by a reaction, then it is dangling, so we skip it.
+            if (reactorBelongsToFederate(eventualSource.parent, federate)
+                && eventualSource.isOutput
+                || eventualSource.dependsOnReactions.size > 0
+            ) {
                 val destinations = instance.destinations.get(source)
                 for (destination : destinations) {
                     var comment = ''
@@ -3300,10 +3351,39 @@ class CGenerator extends GeneratorBase {
                         destination.definition as TypedVariable,
                         destination.parent.definition.reactorClass
                     )
+                    // If the source or destination (or both) is a multiport, then
+                    // we need an iterative connection here over the minimum of the widths of
+                    // the two multiports.
+                    var srcIndex = ""
+                    var dstIndex = ""
+                    var width = 0
+                    if (eventualSource instanceof MultiportInstance) {
+                        // Source is a multiport.
+                        srcIndex = "[i]"
+                        width = eventualSource.instances.size
+                        if (!(destination instanceof MultiportInstance)) {
+                            reportError(destination.definition, "Cannot connect a multiport to a single port")
+                        }
+                    }
+                    if (destination instanceof MultiportInstance) {
+                        // Destination is a multiport.
+                        dstIndex = "[i]"
+                        if (destination.instances.size < width) {
+                            width = destination.instances.size
+                        }
+                    }
+                    if (width > 0) {
+                        pr('''for (int i = 0; i < «width»; i++) {''')
+                        indent()
+                    }
                     pr('''
                         // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                        «destinationReference(destination)» = («destStructType»*)&«sourceReference(eventualSource)»;
+                        «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
                     ''')
+                    if (width > 0) {
+                        unindent()
+                        pr("}")
+                    }
                 }
             }
         }
@@ -3494,7 +3574,13 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 «structType»** «input.name» = self->__«input.name»;
             ''')
+        } else if (!input.isMutable) {
+            // Non-mutable, multiport, token type.
+            pr(builder, '''
+                «structType»** «input.name» = self->__«input.name»;
+            ''')
         } else {
+            // FIXME FIXME FIXME
             throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
         }
         // Set the _width variable for all cases. This will be -1
@@ -3584,6 +3670,12 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')
             }
+            // Set the _width variable for all cases. This will be -1
+            // for a variable-width multiport, which is not currently supported.
+            // It will be -2 if it is not multiport.
+            pr(builder, '''
+                int «output.name»_width = «output.multiportWidth»;
+            ''')
         }
     }
 
@@ -3732,9 +3824,17 @@ class CGenerator extends GeneratorBase {
                         // If the rootType is 'void', we need to avoid generating the code
                         // 'sizeof(void)', which some compilers reject.
                         val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                        pr('''
-                            «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
-                        ''')
+                        if (output instanceof MultiportInstance) {
+                            pr('''
+                                for (int i = 0; i < «output.width»; i++) {
+                                    «nameOfSelfStruct»->__«output.name»[i].token = __create_token(«size»);
+                                }
+                            ''')
+                        } else {
+                            pr('''
+                                «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
+                            ''')
+                        }
                     }
                 }
                 // In case this is a composite, handle its contained reactors.
@@ -3743,39 +3843,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Set inputs _is_present variables to the default false.
-     *  This is useful in case the input is left unconnected.
-     *  @param parent The container reactor.
-     *  @param federate The federate, or null if there is no federation.
-     */
-    private def void setInputsAbsentByDefault(ReactorInstance parent, FederateInstance federate) {
-        // For all inputs, set a default where their _is_present variable points to False.
-        // This handles dangling input ports that are not connected to anything
-        // even if they are connected locally in the hierarchy, but not globally.
-        for (containedReactor : parent.children) {
-            // Do this only for reactors in the federate.
-            if (reactorBelongsToFederate(containedReactor, federate)) {
-                var selfStructName = selfStructName(containedReactor)
-                for (input : containedReactor.inputs) {
-                    val width = input.definition.multiportWidth
-                    if (width > 0) {
-                        pr('''
-                            for (int i = 0; i < «width»; i++) {
-                                «selfStructName»->__«input.definition.name»[i] = NULL;
-                            }
-                        ''')
-                    } else {
-                        pr('''
-                            «selfStructName»->__«input.definition.name» = NULL;
-                        ''')                        
-                    }
-                }
-                // In case this is a composite, handle its assignments.
-                setInputsAbsentByDefault(containedReactor, federate)
-            }
-        }
-    }
-        
     // Regular expression pattern for array types with specified length.
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[10]", the first match will be "foo" and the second "[10]".

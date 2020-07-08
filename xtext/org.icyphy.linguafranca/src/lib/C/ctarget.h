@@ -110,9 +110,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * allocated array will be handled automatically
  * when the last downstream reader of the message has finished.
  * @param out The output port (by name).
- * @param length The length of the array to be sent.
+ * @param len The length of the array to be sent.
  */
-#define SET_NEW_ARRAY(out, length) __LF_SET_NEW_ARRAY(out, length)
+#define SET_NEW_ARRAY(out, len) __LF_SET_NEW_ARRAY(out, len)
 
 /**
  * Version of set() for output types given as 'type[number]'.
