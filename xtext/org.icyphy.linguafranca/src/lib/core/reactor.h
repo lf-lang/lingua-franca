@@ -196,16 +196,16 @@ do { \
 #define __LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
+    token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = token->value; \
     out->token = token; \
     out->length = len; \
 } while(0)
 #else
-#define __LF_SET_NEW_ARRAY(out, length) \
+#define __LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
+    token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = static_cast<decltype(out->value)>(token->value); \
     out->token = token; \
 } while(0)
