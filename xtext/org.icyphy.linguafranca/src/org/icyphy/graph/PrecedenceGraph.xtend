@@ -31,6 +31,7 @@ import java.util.List
 import java.util.Stack
 import java.util.Set
 import java.util.HashSet
+import java.util.HashMap
 
 /** 
  * Elaboration of `DirectedGraph` that stores nodes in a wrapper used
@@ -38,9 +39,9 @@ import java.util.HashSet
  * present in the graph.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class PrecedenceGraph<T> implements DirectedGraph<T> {
+class PrecedenceGraph<T> extends DirectedGraph<T> {
 
-    var graph = new SimpleDirectedGraph<AnnotatedNode<T>>
+    var annotations = new NodeAnnotations<T>()
 
     /**
      * Indicates whether or not the graph has been analyzed for cycles.
@@ -60,11 +61,11 @@ class PrecedenceGraph<T> implements DirectedGraph<T> {
     
     var List<T> sortedNodes = emptyList
     
-    var Stack<AnnotatedNode<T>> stack = new Stack()
+    var Stack<T> stack = new Stack()
     
     var List<Set<T>> cycles = emptyList
 
-    private def graphChanged() {
+    override graphChanged() {
         this.cycleAnalysisDone = false
         this.isSorted = false
     }
@@ -81,14 +82,14 @@ class PrecedenceGraph<T> implements DirectedGraph<T> {
         if (!this.isSorted) {
             // Cleanup.
             this.sortedNodes = newLinkedList
-            this.graph.nodes.forEach [
-                it.hasTempMark = false;
-                it.hasPermMark = false
+            this.nodes.forEach [
+                this.annotations.get(it).hasTempMark = false;
+                this.annotations.get(it).hasPermMark = false
             ]
 
             // Start sorting.
-            for (node : this.graph.nodes) {
-                if (!node.hasPermMark) {
+            for (node : this.nodes) {
+                if (!this.annotations.get(node).hasPermMark) {
                     // Unmarked node.
                     this.visit(node)
                 }
@@ -98,21 +99,22 @@ class PrecedenceGraph<T> implements DirectedGraph<T> {
     }
     
     
-    def void visit(AnnotatedNode<T> node) {
-        if (node.hasPermMark) {
+    def void visit(T node) {
+        val annotation = this.annotations.get(node)
+        if (annotation.hasPermMark) {
             return
         }
-        if (node.hasTempMark) {
+        if (annotation.hasTempMark) {
             // Not a DAG.
             throw new Error("Cycle found.")
         }
-        node.hasTempMark = true
-        for (dep : this.graph.getEffects(node)) {
+        annotation.hasTempMark = true
+        for (dep : this.getEffects(node)) {
             visit(dep)
         }
-        node.hasTempMark = false
-        node.hasPermMark = true
-        this.sortedNodes.add(node.contents)
+        annotation.hasTempMark = false
+        annotation.hasPermMark = true
+        this.sortedNodes.add(node)
     }
     
     /**
@@ -125,9 +127,9 @@ class PrecedenceGraph<T> implements DirectedGraph<T> {
             this.index = 0
             this.stack = new Stack()
             this.cycles = new LinkedList();
-            this.graph.nodes.forEach[it.index = -1]
-            for (node : this.graph.nodes) {
-                if (node.index == -1) {
+            this.nodes.forEach[this.annotations.get(it).index = -1]
+            for (node : this.nodes) {
+                if (this.annotations.get(node).index == -1) {
                     this.strongConnect(node)
                 }
             }    
@@ -151,35 +153,36 @@ class PrecedenceGraph<T> implements DirectedGraph<T> {
      * Traverse the graph to visit unvisited dependencies and determine
      * whether they are part of a cycle. 
      */
-    def void strongConnect(AnnotatedNode<T> node) {
-        node.index = this.index
-        node.lowLink = this.index
-        node.onStack = true
+    def void strongConnect(T node) {
+        val annotation = this.annotations.get(node)
+        annotation.index = this.index
+        annotation.lowLink = this.index
+        annotation.onStack = true
         this.index++
         this.stack.push(node)
-        for (dep : this.graph.getOrigins(node)) {
-            
-            if (dep.onStack) {
-                node.lowLink = Math.min(node.lowLink, dep.index)
+        for (dep : this.getOrigins(node)) {
+            val depAnnotation = this.annotations.get(dep)
+            if (depAnnotation.onStack) {
+                annotation.lowLink = Math.min(annotation.lowLink, depAnnotation.index)
                 if (node.equals(dep)) {
-                    node.selfLoop = true
+                    annotation.selfLoop = true
                 }
-            } else if (dep.index == -1) {
+            } else if (depAnnotation.index == -1) {
                 strongConnect(dep)    
-                node.lowLink = Math.min(node.lowLink, dep.lowLink)
+                annotation.lowLink = Math.min(annotation.lowLink, depAnnotation.lowLink)
             } 
         }
         
-        if (node.lowLink == node.index) {
+        if (annotation.lowLink == annotation.index) {
             var scc = new HashSet()
-            var AnnotatedNode<T> dep = null
+            var T dep = null
             do {
                 dep = this.stack.pop()
-                dep.onStack = false
-                scc.add(dep.contents)
+                this.annotations.get(dep).onStack = false
+                scc.add(dep)
             } while(!node.equals(dep))
             // Only report self loops or cycles with two or more nodes.
-            if (scc.size > 1 || node.selfLoop)
+            if (scc.size > 1 || annotation.selfLoop)
                 this.cycles.add(scc)
         }   
     }
@@ -194,60 +197,22 @@ class PrecedenceGraph<T> implements DirectedGraph<T> {
         this.sortedNodes.reverse
     }
     
-    override getOrigins(T node) {
-        this.graph.getOrigins(new AnnotatedNode(node)).map[it.contents]
+}
+
+class NodeAnnotations<T> {
+    var annotations = new HashMap<T, NodeAnnotation>
+    
+    def get(T node) {
+        var annotation = this.annotations.get(node)
+        if (annotation === null) {
+            annotation = new NodeAnnotation()
+            this.annotations.put(node, annotation)
+        }
+        return annotation
     }
     
-    override getEffects(T node) {
-        this.graph.getEffects(new AnnotatedNode(node)).map[it.contents]
-    }
-    
-    override rootNodes() {
-        this.graph.rootNodes.map[it.contents]
-    }
-    
-    override leafNodes() {
-        this.graph.leafNodes.map[it.contents]
-    }
-    
-    override hasNode(T node) {
-        this.graph.hasNode(new AnnotatedNode(node))
-    }
-    
-    override addNode(T node) {
-        this.graph.addNode(new AnnotatedNode(node))
-    }
-    
-    override removeNode(T node) {
-        graphChanged()
-        this.graph.removeNode(new AnnotatedNode(node))
-    }
-    
-    override addEdge(T to, T from) {
-        graphChanged()
-        this.graph.addEdge(new AnnotatedNode(to), new AnnotatedNode(from))
-    }
-    
-    override addEdges(T to, List<T> from) {
-        graphChanged()
-        this.graph.addEdges(new AnnotatedNode(to), from.map[new AnnotatedNode(it)])
-    }
-    
-    override removeEdge(T to, T from) {
-        graphChanged()
-        this.graph.removeEdge(new AnnotatedNode(to), new AnnotatedNode(from))
-    }
-    
-    override nodeCount() {
-        this.graph.nodeCount
-    }
-    
-    override edgeCount() {
-        this.graph.edgeCount
-    }
-    
-    override nodes() {
-        this.graph.nodes.map[it.contents]
+    def put(T node, NodeAnnotation annotation) {
+        this.annotations.put(node, annotation)
     }
     
 }
@@ -260,7 +225,7 @@ class PrecedenceGraph<T> implements DirectedGraph<T> {
  * of Tarjan's algorithm for finding strongly connected components.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class AnnotatedNode<T> {
+class NodeAnnotation {
     
     /**
      * Sequence number that is assigned when this node is discovered.
@@ -291,48 +256,9 @@ class AnnotatedNode<T> {
     public var onStack = false;
     
     /**
-     * The contents of this node.
-     */
-    public var T contents = null;
-    
-    /**
      * Whether or not this node has a dependency on itself.
      */
     public var selfLoop = false
     
-    /**
-     * Create a new annotated node providing its contents.
-     */
-    new(T value) {
-        this.contents = value;
-    }
-    
-    /**
-     * Two annotated nodes are considered equal if their contents is equal.
-     */
-    override equals(Object obj) {
-        if (obj instanceof AnnotatedNode){
-            return contents.equals(obj.contents);    
-        }
-        return false
-    }
-    
-    /**
-     * Return the hash code of the node's contents.
-     */
-    override hashCode() {
-        return contents.hashCode
-    }
-
-    /**
-     * Return the string representation of the node's contents.
-     */    
-    override toString() {
-        return contents.toString
-    }
-    
-    static def <T> List<T> unpack(List<AnnotatedNode<T>> list) {
-        return list.map[it.contents]
-    }
 }
 

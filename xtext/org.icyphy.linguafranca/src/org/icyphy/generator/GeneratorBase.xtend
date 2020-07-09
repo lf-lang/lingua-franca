@@ -74,7 +74,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.graph.AnnotatedNode
 import org.icyphy.graph.PrecedenceGraph
 
 /**
@@ -512,11 +511,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     def void collectClasses(Instantiation instantiation, PrecedenceGraph<Reactor> graph) {
         val reactor = instantiation.reactorClass
         val container = instantiation.eContainer as Reactor
-        //if (!container.isMain) {
+        if (!container.isMain) {
             graph.addEdge(container, reactor)
-//        } else {
-//            graph.addNode(new AnnotatedNode(reactor)) // FIXME: Why are we treating main separately?
-//        }
+        } else {
+            graph.addNode(reactor)
+        }
         for (inst : reactor.instantiations) {
             inst.collectClasses(graph)
         }
