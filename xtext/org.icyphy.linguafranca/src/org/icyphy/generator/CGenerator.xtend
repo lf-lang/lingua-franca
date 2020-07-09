@@ -325,7 +325,7 @@ class CGenerator extends GeneratorBase {
     var startTimeStepTokens = 0
 
     // Place to collect code to initialize timers for all reactors.
-    var startTimers = new StringBuilder()
+    protected var startTimers = new StringBuilder()
     var startTimersCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
@@ -392,15 +392,7 @@ class CGenerator extends GeneratorBase {
             )
         }
 
-        // Copy the required target language files into the target file system.
-        // This will also overwrite previous versions.
-        var targetFiles = newArrayList("ctarget.h");
-        for (file : targetFiles) {
-            copyFileFromClassPath(
-                "/" + "lib" + "/" + "C" + "/" + file,
-                srcGenPath + File.separator + file
-            )
-        }
+        copyTargetFiles();
 
 
         // Perform distinct code generation into distinct files for each federate.
@@ -445,7 +437,7 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = filename + ".c";
+            val cFilename = getTargetFileName(filename);
 
             // Delete source previously produced by the LF compiler.
             var file = new File(srcGenPath + File.separator + cFilename)
@@ -655,11 +647,8 @@ class CGenerator extends GeneratorBase {
                 }
             }
 
-            // Write the generated code to the output file.
-            var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(getCode().getBytes())
-            fOut.close()
+			
+            writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
             
         }
         // Restore the base filename.
@@ -675,7 +664,17 @@ class CGenerator extends GeneratorBase {
         }
         
         
-        //Cleanup the code so that it is more readable
+        writeCleanCode(filename)
+        
+    }
+    
+    /** Overwrite the generated code after compile with a
+     * clean version.
+     */
+    protected def writeCleanCode(String baseFilename)
+    {
+        var srcGenPath = directory + File.separator + "src-gen"
+    	//Cleanup the code so that it is more readable
         for (federate : federates) {
                 
             // Only clean one file if there is no federation.
@@ -694,6 +693,38 @@ class CGenerator extends GeneratorBase {
             fOut.close()
             
         }
+    	
+    }
+    
+    /** Copy target specific files to the src-gen directory */
+    protected def copyTargetFiles()
+    {    	
+        var srcGenPath = directory + File.separator + "src-gen"
+    	// Copy the required target language files into the target file system.
+        // This will also overwrite previous versions.
+        var targetFiles = newArrayList("ctarget.h");
+        for (file : targetFiles) {
+            copyFileFromClassPath(
+                "/" + "lib" + "/" + "C" + "/" + file,
+                srcGenPath + File.separator + file
+            )
+        }
+    }
+    
+    /** Write the source code to file */
+    protected def writeSourceCodeToFile(byte[] code, String path)
+    {
+        // Write the generated code to the output file.
+        var fOut = new FileOutputStream(
+            new File(path), false);
+        fOut.write(code)
+        fOut.close()
+    }
+    
+    /** Produces the filename including the target-specific extension */
+    override getTargetFileName(String fileName)
+    {
+    	return fileName + ".c";
     }
 
     ////////////////////////////////////////////
@@ -703,7 +734,7 @@ class CGenerator extends GeneratorBase {
      */
     override createFederateRTI() {
         // Derive target filename from the .lf filename.
-        var cFilename = filename + "_RTI.c"
+        var cFilename = getTargetFileName(filename + "_RTI")
         
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
@@ -3026,7 +3057,8 @@ class CGenerator extends GeneratorBase {
     override generatePreamble() {
         super.generatePreamble()
         
-        pr('#include "ctarget.h"')
+        includeTargetLanguageHeaders()
+        
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
         // Handle target parameters.
@@ -3034,21 +3066,9 @@ class CGenerator extends GeneratorBase {
         if (targetThreads === 0 && federates.length > 1) {
             targetThreads = 1
         }
-        if (targetThreads > 0) {
-            // Set this as the default in the generated code,
-            // but only if it has not been overridden on the command line.
-            pr(startTimers, '''
-                if (number_of_threads == 0) {
-                   number_of_threads = «targetThreads»;
-                }
-            ''')
-            pr("#include \"core/reactor_threaded.c\"")
-        } else {
-            pr("#include \"core/reactor.c\"")
-        }
-        if (federates.length > 1) {
-            pr("#include \"core/federate.c\"")
-        }
+
+        includeTargetLanguageSourceFiles()
+        
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
@@ -3084,6 +3104,35 @@ class CGenerator extends GeneratorBase {
                 // Finally, generate the #include for the generated .h file.
                 pr('#include "' + rootFilename + '.pb-c.h"')
             }
+        }
+    }
+    
+    /** Add necessary header files specific to the target language.
+     *  Note. The core files always need to be (and will be) copied 
+     *  uniformly across all target languages.
+     */
+    protected def includeTargetLanguageHeaders()
+    {    	
+        pr('#include "ctarget.h"')
+    }
+    
+    /** Add necessary source files specific to the target language.  */
+    protected def includeTargetLanguageSourceFiles()
+    {
+        if (targetThreads > 0) {
+            // Set this as the default in the generated code,
+            // but only if it has not been overridden on the command line.
+            pr(startTimers, '''
+                if (number_of_threads == 0) {
+                   number_of_threads = «targetThreads»;
+                }
+            ''')
+            pr("#include \"core/reactor_threaded.c\"")
+        } else {
+            pr("#include \"core/reactor.c\"")
+        }
+        if (federates.length > 1) {
+            pr("#include \"core/federate.c\"")
         }
     }
 
@@ -3648,7 +3697,7 @@ class CGenerator extends GeneratorBase {
      *  (it is a pointer) or [] (it is a array with unspecified length).
      *  @param type The type specification.
      */
-    private def isTokenType(InferredType type) {
+    protected def isTokenType(InferredType type) {
         if (type.isUndefined)
             return false
         val targetType = type.targetType

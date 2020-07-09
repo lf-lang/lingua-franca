@@ -1,0 +1,46 @@
+/** Output events at physical times at least 100, 300, and 600
+ *  msec after the start time.
+ *  This uses a physical action with a minimum interarrival time of
+ *  100 msec. The reactor increases the interarrival time with each
+ *  invocation of the schedule() function.
+ *  The timestamps of the events will be exact because the physical
+ *  time at which schedule() is called is always way smaller than
+ *  the time of the last invocation (or start time) plus the minimum
+ *  interarrival time. Hence, the minimum interarrival time always
+ *  determines the time of the next event.
+ */
+target CCpp {
+    timeout: 1 sec
+};
+main reactor SlowingClockPhysical {
+    physical action a(100 msec, 100 msec); // first offset and minimum interarrival time.
+    state interval:time(100 msec);
+    state expected_time:time(100 msec);
+    reaction(startup) -> a {=
+        self->expected_time = MSEC(100);
+        schedule(a, 0);
+    =}
+    reaction(a) -> a {=
+        instant_t elapsed_logical_time = get_elapsed_logical_time();
+        printf("Logical time since start: \%lld nsec.\n",
+            elapsed_logical_time
+        );
+        if (elapsed_logical_time < self->expected_time) {
+            printf("ERROR: Expected logical time to be at least: \%lld nsec.\n",
+                self->expected_time
+            );
+            exit(1);
+        }
+        self->interval += MSEC(100);
+        self->expected_time = MSEC(100) + self->interval;
+        schedule(a, self->interval);
+        printf("Scheduling next to occur after: \%lld nsec.\n", self->interval);
+    =}
+    reaction(shutdown) {=
+        if (self->expected_time < MSEC(500)) {
+            printf("ERROR: Expected the next expected time to be at least: 500000000 nsec.\n");
+            printf("It was: \%lld nsec.\n", self->expected_time);
+            exit(2);            
+        }
+    =}
+}

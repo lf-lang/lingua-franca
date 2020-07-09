@@ -1,0 +1,44 @@
+/** Test a particularly simple form of a distributed deterministic system
+ *  where a federation that receives timestamped messages has only those
+ *  messages as triggers. Therefore, no additional coordination of the
+ *  advancement of time (HLA or Ptides) is needed.
+ *  @author Edward A. Lee
+ */
+target CCpp {
+    timeout: 0 sec
+};
+reactor Source {
+    output out:string;
+    reaction(startup) -> out {=
+        std::cout << "Sending 'Hello World!' message from source federate." << std::endl ;
+        char* hello_c = "Hello World!";
+	SET(out, hello_c);
+        stop();  // FIXME: This should be broadcast as a request to stop all federates.
+    =}
+}
+reactor Destination {
+    input in:string;
+    state received:bool(false);
+    reaction(startup) {=
+        printf("Destination started.\n");
+    =}
+    reaction(in) {=
+        printf("At logical time %lld, destination received: %s\n", get_elapsed_logical_time(), in->value);
+        if (strcmp(in->value, "Hello World!") != 0) {
+            printf("ERROR: Expected to receive 'Hello World!'\n");
+            exit(1);
+        }
+        self->received = true;
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            printf("ERROR: Destination did not receive the message.\n");
+            exit(2);
+        }
+    =}
+}
+federated reactor HelloDistributed at localhost:15046 {
+    s = new Source();      // Reactor s is in federate Source
+    d = new Destination(); // Reactor d is in federate Destination
+    s.out -> d.in;         // This version preserves the timestamp.
+}

@@ -1,0 +1,24 @@
+// Example from Schedule section of the C Reactor Target wiki page.
+target CCpp;
+reactor Schedule {
+    input x:int;
+    logical action a;
+    reaction(x) -> a {=
+        schedule(a, MSEC(200));
+    =}
+    reaction(a) {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("Action triggered at logical time %lld nsec after start.\n", elapsed_time);
+        if (elapsed_time != 200000000LL) {
+            printf("Expected action time to be 200 msec. It was %lld nsec.\n", elapsed_time);
+            exit(1);
+        }
+    =}
+}
+main reactor Main {
+    a = new Schedule();
+    timer t;
+    reaction(t) -> a.x {=
+        SET(a.x, 1);
+    =}
+}

@@ -1,0 +1,64 @@
+// Test asynchronous callbacks that trigger a physical action with a DROP policy.
+// This test case assumes that the target is multithreaded.
+// This test will not work with the unthreaded C target because that target
+// does not implement any mutex protecting the event queue.
+target CCpp {
+	threads: 1,
+	timeout: 2 sec
+};
+
+main reactor AsyncCallback {
+	
+	preamble {= 
+		#include <pthread.h>
+		void callback(void* a) {
+		    // Schedule twice in rapid succession.
+		    // The second value should be dropped because the
+		    // timestamps will not be sufficiently separated.
+		    // The minimum time between these is determined
+		    // by the argument in the physical action definition.
+			schedule_int(a, 0, 0);
+            schedule_int(a, 0, 1);
+		}
+		// Simulate time passing before a callback occurs.
+		void* take_time(void* a) {
+			struct timespec sleep_time = {(time_t) 0, (long)100000000};
+			struct timespec remaining_time;
+			nanosleep(&sleep_time, &remaining_time);
+			callback(a);
+			return NULL;
+		}
+		pthread_t threadId;
+	=}
+	timer t(0, 200 msec);
+	state thread_id:pthread_t(0);
+	state expected_time:time(100 msec);
+	state toggle:bool(false);
+	
+    physical action a(100 msec, 100 msec, true):int;
+    state i:int(0);
+  
+	reaction(t) -> a {=
+		// start new thread, provide callback
+		pthread_create(&self->thread_id, NULL, &take_time, a);
+	=}
+	
+	reaction(a) {=
+		instant_t elapsed_time = get_elapsed_logical_time();
+        printf("Asynchronous callback %d: Assigned logical time greater than start time by %lld nsec.\n", self->i++, elapsed_time); 
+		if (elapsed_time <= self->expected_time) {
+		    printf("ERROR: Expected logical time to be larger than %lld.\n", self->expected_time);
+		    exit(1);
+		}
+		if (a->value != 0) {
+			printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", a->value);
+			exit(2);
+		}
+        if (self->toggle) {
+            self->toggle = false;
+            self->expected_time += 200000000LL;
+        } else {
+            self->toggle = true;
+        }
+	=}
+}

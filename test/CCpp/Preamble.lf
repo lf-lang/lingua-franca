@@ -1,0 +1,19 @@
+target CCpp {
+    timeout: 2 sec,
+    fast: true
+};
+main reactor Preamble {
+    preamble {=
+        #include <stdlib.h>
+        int add_42(int i) {
+            return i + 42;
+        }
+    =}
+    timer t;
+    reaction(t) {=
+        char* s = "42";
+        int i = atoi(s);
+        printf("Converted string %s to int %d.\n", s, i);
+        printf("42 plus 42 is %d.\n", add_42(42));
+    =}
+}

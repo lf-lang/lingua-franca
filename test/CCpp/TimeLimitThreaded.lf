@@ -1,0 +1,43 @@
+// Test that the stop function can be used to internally impose a
+// a time limit.
+// Correct output for this 1, 2, 3, 4.
+// Failure for this test is failing to halt.
+target CCpp {
+    flags: "-O2",
+    fast: true,
+    threads: 1
+};
+reactor Clock(offset:time(0), period:time(1 sec)) {
+    output y:int;
+    timer t(offset, period);
+    state count:int(0);
+    reaction(t) -> y {=
+        (self->count)++;
+        //printf("Reacting at time %ld.\n", get_elapsed_logical_time());
+        SET(y, self->count);
+    =}
+}
+reactor Destination {
+    input x:int;
+    state s:int(1);
+    reaction(x) {=
+        // printf("%d\n", x->value);
+        if (x->value != self->s) {
+            printf("Error: Expected %d and got %d.\n", self->s, x->value);
+            exit(1);
+        }
+        self->s++;
+    =}
+}
+main reactor TimeLimit(period:time(1 usec)) {
+    timer stop(1 secs);
+    reaction(stop) {=
+        stop();
+    =}
+    reaction(shutdown) {=
+        printf("**** shutdown reaction invoked.\n");
+    =}
+    c = new Clock(period = period);
+    d = new Destination();
+    c.y -> d.x;
+}

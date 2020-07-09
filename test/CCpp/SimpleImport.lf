@@ -1,0 +1,6 @@
+target CCpp;
+import HelloWorld.lf;
+main reactor SimpleImport {
+    a = new HelloWorld();
+    b = new HelloWorld();
+}

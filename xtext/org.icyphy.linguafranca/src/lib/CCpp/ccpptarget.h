@@ -1,12 +1,66 @@
+/**
+ * @file
+ * @author Edward A. Lee (eal@berkeley.edu)
+ * @author Soroush Bateni (soroush@utdallas.edu)
+ *
+ * @section LICENSE
+Copyright (c) 2020, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ * @section DESCRIPTION
+ * Target-specific runtime functions for the C++ target language.
+ * This API layer can be used in conjunction with:
+ *     target CCpp;
+ * 
+ * Note for target language developers. This is one way of developing a target language where 
+ * the C core runtime is adopted. This file is a translation layer that implements Lingua Franca 
+ * APIs which interact with the internal _lf_SET and _lf_schedule APIs. This file can act as a 
+ * template for future runtime developement for target languages.
+ * For source generation, see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CCppGenerator.xtend.
+ */
+
 #ifndef CPP_TARGET_H
 #define CPP_TARGET_H
 
 #include <iostream>
 #include "core/pqueue.c"
 #include "core/reactor.h"
+#include "core/reactor_threaded.c"
 
+/**
+ * A template struct for an instance of each port
+ * in Lingua Franca. This template is used 
+ * in the CCppGenerator instead of redefining
+ * a struct for each port.
+ * This template can be used for both primitive types
+ * and statically allocated arrays (e.g., int x[3];).
+ * T value: the value of the port with type T
+ * is_present: indicates if the value of the port is present
+ *     at the current logcal time
+ * num_destinations: used for reference counting the number of
+ *     connections to destinations.
+ **/
 template <class T>
-struct template_input_output_port_struct {
+struct template_port_instance_struct {
     T value;
     bool is_present;
     int num_destinations;
@@ -14,10 +68,10 @@ struct template_input_output_port_struct {
 
 /**
  * Special version of the template_input_output_port_struct
- * for dynamic? arrays
+ * for dynamic arrays
  **/
 template <class T>
-struct template_input_output_port_with_token_struct {
+struct template_port_instance_with_token_struct {
     T value;
     bool is_present;
     int num_destinations;
@@ -25,6 +79,9 @@ struct template_input_output_port_with_token_struct {
     int length;
 };
 
+
+//////////////////////////////////////////////////////////////
+/////////////  SET Functions (to produce an output)
 
 /**
  * Set the specified output (or input of a contained reactor)
@@ -38,13 +95,12 @@ struct template_input_output_port_with_token_struct {
  * so that the type designating string does not end in '*'.
  * @param out The output port (by name) or input of a contained
  *  reactor in form input_name.port_name.
- * @param value The value to insert into the self struct.
+ * @param val The value to insert into the self struct.
  */
 template <class T>
-void SET(template_input_output_port_struct<T>* out, T val)
+void SET(template_port_instance_struct<T>* out, T val)
 {
-    out->value = val;
-    out->is_present = true;
+    _LF_SET(out, static_cast<T>(val));
 }
 
 
@@ -62,13 +118,9 @@ void SET(template_input_output_port_struct<T>* out, T val)
  * @see token_t
  */
 template <class T>
-void SET(template_input_output_port_with_token_struct<T>* out, T val, int element_size, int length)
+void SET(template_port_instance_with_token_struct<T>* out, T val, int element_size, int length)
 {
-    token_t* token = __initialize_token_with_value(out->token, val, length);
-    token->ref_count = out->num_destinations;
-    out->token = token;
-    out->is_present = true;
-    out->value = static_cast<T>(token->value);
+    _LF_SET_ARRAY(out, val, element_size, length);
 }
 
 /**
@@ -85,12 +137,9 @@ void SET(template_input_output_port_with_token_struct<T>* out, T val, int elemen
  * @param length The length of the array to be sent.
  */
 template <class T>
-void SET(template_input_output_port_with_token_struct<T>* out, int length)
+void SET(template_port_instance_with_token_struct<T>* out, int length)
 {
-    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations);
-    out->token = token;
-    out->is_present = true;
-    out->value = static_cast<T>(token->value);
+    _LF_SET_NEW_ARRAY(out, length);
 }
 
 /**
@@ -108,7 +157,7 @@ void SET(template_input_output_port_with_token_struct<T>* out, int length)
  * @param out The output port (by name).
  */
 template <class T>
-void SET(template_input_output_port_with_token_struct<T>* out)
+void SET(template_port_instance_with_token_struct<T>* out)
 {
     SET(out, 1);
 }
@@ -123,9 +172,9 @@ void SET(template_input_output_port_with_token_struct<T>* out)
  * @param out The output port (by name).
  */
 template <class T>
-void SET(template_input_output_port_struct<T>* out)
+void SET(template_port_instance_struct<T>* out)
 {
-    out->is_present = true;
+    _LF_SET_PRESENT(out);
 }
 
 /**
@@ -138,46 +187,127 @@ void SET(template_input_output_port_struct<T>* out)
  * @param token A pointer to token obtained from an input or action.
  */
 template <class T>
-void SET(template_input_output_port_with_token_struct<T>* out, token_t* newtoken)
+void SET(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
 {
-    out->value = static_cast<T>(newtoken->value);
-    out->token = newtoken;
-    newtoken->ref_count += out->num_destinations;
-    out->is_present = true;
+    _LF_SET_TOKEN(out, newtoken);
+}
+
+//////////////////////////////////////////////////////////////
+/////////////  Schedule Functions
+ 
+ 
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with no payload (no value conveyed).
+ * See schedule_token(), which this uses, for details.
+ * @param action Pointer to an action on the self struct.
+ * @param offset The time offset over and above that in the action.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule(void* action, interval_t offset) {
+    return _lf_schedule_token(action, offset, NULL);
+}
+
+/**
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
+ */
+handle_t schedule(void* action, interval_t extra_delay, int value)
+{
+    return _lf_schedule_int(action, extra_delay, value);
+}
+
+/**
+ * Schedule the specified trigger at current_time plus the offset of the
+ * specified trigger plus the delay.
+ * See reactor.h for documentation.
+ */
+handle_t schedule(void* action, interval_t extra_delay, token_t* token) {
+    return _lf_schedule_token(action, extra_delay, token);
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule(void* action, interval_t offset, void* value, int length) {
+    return _lf_schedule_copy(action, offset, value, length);
 }
 
 
-///////////////////////////////
-/////// Compatibility layer with the C runtime (optional)
+/**
+ * Variant of schedule_token that creates a token to carry the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+    return _lf_schedule_value(action, extra_delay, value, length);
+}
+
+/**
+ * TODO: Implement GET functions.
+ */
+
+
+/**
+ * Compatibility layer with the C runtime (optional).
+ * These functions are here to enable universal Lingua Franca programs that
+ * can have the shape:
+ * 
+ *     target Universal;
+ *     reactor UniversalReactor {
+ *         input in:int;
+ *         output out:int;
+ *         reaction(in) -> out {=
+ *             SET(out, GET(in))  
+ *         =} 
+ *     }
+ */
+
 template <class T>
-void SET_ARRAY(template_input_output_port_with_token_struct<T>* out, T val, int element_size, int length)
+void SET_ARRAY(template_port_instance_with_token_struct<T>* out, T val, int element_size, int length)
 {
     SET(out, val, element_size, length);
 }
 
 
 template <class T>
-void SET_NEW(template_input_output_port_with_token_struct<T>* out)
+void SET_NEW(template_port_instance_with_token_struct<T>* out)
 {
     SET(out);
 }
 
 template <class T>
-void SET_NEW_ARRAY(template_input_output_port_with_token_struct<T>* out, int length)
+void SET_NEW_ARRAY(template_port_instance_with_token_struct<T>* out, int length)
 {
     SET(out, length);
 }
 
 template <class T>
-void SET_PRESENT(template_input_output_port_struct<T>* out)
+void SET_PRESENT(template_port_instance_struct<T>* out)
 {
     SET(out);
 }
 
 template <class T>
-void SET_TOKEN(template_input_output_port_with_token_struct<T>* out, token_t* newtoken)
+void SET_TOKEN(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
 {
     SET(out, newtoken);
+}
+
+/* Schedule compatiblity layer */
+handle_t schedule_int(void* action, interval_t extra_delay, int value)
+{
+    return schedule(action, extra_delay, value);
+}
+
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+    return schedule(action, extra_delay, token);
+}
+
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+    return schedule(action, offset, value, length);
 }
 
 #endif // CPP_TARGET_H

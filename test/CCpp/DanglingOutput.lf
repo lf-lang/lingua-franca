@@ -1,0 +1,25 @@
+// This tests that an output that is not connected to anything does not result
+// in a compilation error.  Passing the test is just compiling and running.
+target CCpp;
+reactor Source {
+    output out:int;
+    timer t;
+    reaction(t) -> out {=
+        SET(out, 1);
+    =}
+}
+
+reactor Gain {
+    input in:int;
+    output out:int;
+    reaction(in) -> out {=
+        printf("Received %d.\n", in->value);
+        SET(out, in->value * 2);
+    =}
+}
+
+main reactor DanglingOutput {
+    source = new Source();
+    container = new Gain();
+    source.out -> container.in;
+}

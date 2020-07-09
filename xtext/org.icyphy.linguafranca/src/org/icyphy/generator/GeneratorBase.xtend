@@ -802,7 +802,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  will never have a `-c` flag.
      */
     protected def compileCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val cFilename = fileToCompile + ".c";            
+        val cFilename = getTargetFileName(fileToCompile);            
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
         val relativeBinFilename = "bin" + File.separator + fileToCompile;
 
@@ -842,6 +842,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Protected methods.
+    
+    /** Produces the filename including the target-specific extension */
+    protected def getTargetFileName(String fileName)
+    {
+    	return fileName + ".c";
+    }
 
     /**
      * Return a set of targets that are acceptable to this generator.
