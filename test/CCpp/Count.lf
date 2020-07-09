@@ -1,9 +1,0 @@
-target CCpp;
-reactor Count {
-    state count:int(1);
-    output out:int;
-    timer t(0, 1 sec);
-    reaction(t) -> out {=
-        SET(out, self->count++);
-    =}
-}
