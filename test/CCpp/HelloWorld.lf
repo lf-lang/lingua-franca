@@ -1,0 +1,9 @@
+target CCpp; 
+reactor HelloWorld {
+    reaction(startup) {=
+        printf("Hello World.\n");
+    =}
+}
+main reactor HelloWorldTest {
+    a = new HelloWorld();
+}

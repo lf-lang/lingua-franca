@@ -1,0 +1,46 @@
+ // Check multiport output to multiport input.
+ // Destination port is wider than sending port.
+target CCpp {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source {
+	timer t(0, 200 msec);
+	output[4] out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+        for(int i = 0; i < 4; i++) {
+            SET(out[i], self->s++);
+        }
+	=}
+}
+reactor Destination {
+	state s:int(6);
+	input[5] in:int; // Width is one larger than that of the source.
+	reaction(in) {=
+		int sum = 0;
+		for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) sum += in[i]->value;
+        }
+		printf("Sum of received: %d.\n", sum);
+		if (sum != self->s) {
+			printf("ERROR: Expected %d.\n", self->s);
+			exit(1);
+		}
+		self->s += 16;
+	=}
+	reaction(shutdown) {=
+        if (self->s <= 6) {
+            fprintf(stderr, "ERROR: Destination received no input!\n");
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor MultiportToMultiport { 
+	a = new Source();
+	b = new Destination();
+	a.out -> b.in;
+}

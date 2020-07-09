@@ -60,7 +60,9 @@ else
                     command="bin/$name"
                 elif [ $1 == "C" ]; then
                     command="bin/$name"
-                elif [ $1 == "TS" ]; then
+	        elif [ $1 == "CCpp" ]; then
+                    command="bin/$name"
+	        elif [ $1 == "TS" ]; then
                     command="node ${name}/dist/${name}"".js"
                 else
                     echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";

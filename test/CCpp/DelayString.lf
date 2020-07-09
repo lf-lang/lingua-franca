@@ -1,0 +1,43 @@
+// This tests actions with immutable payloads that are neither malloc'd nor freed.
+target CCpp;
+
+reactor DelayString(delay:time(100 msec)) {
+    input in:string;
+    output out:string;
+    logical action a:string;
+    reaction(a) -> out {=
+        SET(out, a->value);
+    =}
+    reaction(in) -> a {=
+        // The following copies the char*, not the string.
+        schedule_copy(a, self->delay, &(in->value), 1);
+    =}
+}
+reactor Test {
+    input in:string;
+    state start_time:time(0);
+    reaction(in) {=
+        std::cout << "Received:" << in->value << "." << std::endl;
+        // Check the time of the input.
+        interval_t elapsed = get_elapsed_logical_time();
+        std::cout << "After " << elapsed << " nsec of logical time." << std::endl;
+        if (elapsed != 100000000LL) {
+            std::cerr << "ERROR: Expected elapsed time to be 100000000. It was " << elapsed << std::endl;
+            exit(1);
+        }
+        if (strcmp(in->value, "Hello") != 0) {
+            std::cout << "ERROR: Expected input value to be \"Hello\". It was " << in->value << "\"." << std::endl;
+            exit(2);            
+        }
+    =}
+}
+
+main reactor DelayStringTest { 
+    d = new DelayString();
+    t = new Test();
+    d.out -> t.in; 
+    reaction(startup) -> d.in {=
+        char *hello_c = "Hello";
+        SET(d.in, hello_c);
+    =}
+}
