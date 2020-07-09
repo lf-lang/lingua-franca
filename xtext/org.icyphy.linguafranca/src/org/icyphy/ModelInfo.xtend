@@ -43,8 +43,8 @@ import org.icyphy.linguaFranca.Import
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.emf.common.util.URI
 import org.icyphy.graph.ReactionGraph
-import org.icyphy.graph.AnnotatedDependencyGraph
 import org.icyphy.graph.AnnotatedNode
+import org.icyphy.graph.PrecedenceGraph
 
 /**
  * A helper class for analyzing the AST.
@@ -56,7 +56,7 @@ class ModelInfo {
      * Data structure for tracking dependencies between reactor classes. An 
      * instantiation of class A inside of class B implies that B depends on A.
      */
-    public AnnotatedDependencyGraph<Reactor> instantiationGraph
+    public PrecedenceGraph<Reactor> instantiationGraph
     
     /**
      * A mapping from reactors to the sites of their instantiation.
@@ -148,22 +148,23 @@ class ModelInfo {
      */
     private def analyzeInstantiations() {
         this.instantiationMap = new HashMap()
-        this.instantiationGraph = new AnnotatedDependencyGraph()
+        this.instantiationGraph = new PrecedenceGraph()
         
         val resources = new HashSet<Resource>()
         resources.add(model.eResource)
         collectImports(model.eResource, resources)
         
         for (resource : resources) {
-            for (instantiation : resource.allContents.toIterable.filter(Instantiation)) {
+            for (instantiation : resource.allContents.toIterable.filter(
+                Instantiation)) {
                 var set = this.instantiationMap.get(instantiation.reactorClass)
                 if (set === null)
                     set = new HashSet<Instantiation>()
                 set.add(instantiation)
                 this.instantiationMap.put(instantiation.reactorClass, set)
                 this.instantiationGraph.addEdge(
-                    new AnnotatedNode(instantiation.eContainer as Reactor),
-                    new AnnotatedNode(instantiation.reactorClass))
+                    (instantiation.eContainer as Reactor),
+                    instantiation.reactorClass)
             }
         }
         this.instantiationGraph.detectCycles()    
