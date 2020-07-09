@@ -1,8 +1,0 @@
-// This is a smoke test of a minimal reactor.
-target CCpp;
-main reactor Minimal {
-    reaction(startup) {=
-        printf("Hello World.\n");
-    =}
-   
-}
