@@ -32,7 +32,6 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
-import org.icyphy.graph.DirectedGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -45,6 +44,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.graph.SimpleDirectedGraph
 
 /**
  * Representation of a runtime instance of a reactor.
@@ -498,8 +498,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * At the very least we could just replace dependsOnReactions and dependentReactions
      * with a DirectedGraph<ReactionInstance>. 
      */
-    protected def DirectedGraph<ReactionInstance> getDependencyGraph() {
-        var graph = new DirectedGraph<ReactionInstance>()
+    protected def SimpleDirectedGraph<ReactionInstance> getDependencyGraph() {
+        var graph = new SimpleDirectedGraph<ReactionInstance>()
         for (child : this.children) {
             graph.merge(child.dependencyGraph)
         }
@@ -534,7 +534,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param chainID The current chain ID.
      */
     private def long propagateUp(ReactionInstance current,
-        DirectedGraph<ReactionInstance> graph, long chainID) {
+        SimpleDirectedGraph<ReactionInstance> graph, long chainID) {
         val origins = graph.getOrigins(current)
         var mask = chainID
         var first = true
@@ -573,7 +573,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param optimize Whether or not make assignments that maximize the
      * amount of parallelism. If false, just assign 1 to every node.
      */
-    protected def assignChainIDs(DirectedGraph<ReactionInstance> graph,
+    protected def assignChainIDs(SimpleDirectedGraph<ReactionInstance> graph,
             boolean optimize) {
         val leafs = graph.leafNodes
         this.branchCount = 0
@@ -600,7 +600,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * If any cycles are present in the dependency graph, an exception is
      * thrown. This method should be called only on the top-level (main) reactor.
      */
-    protected def assignLevels(DirectedGraph<ReactionInstance> dependencies) {       
+    protected def assignLevels(SimpleDirectedGraph<ReactionInstance> dependencies) {       
         val graph = dependencies.copy
         var start = new ArrayList(graph.rootNodes)
         

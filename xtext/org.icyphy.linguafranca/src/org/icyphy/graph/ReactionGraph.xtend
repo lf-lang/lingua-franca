@@ -42,7 +42,7 @@ import static extension org.icyphy.ASTUtils.*
  * dependencies between them.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
+class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
 
     /**
      * Construct a reaction graph based on the given AST and run Tarjan's
@@ -91,12 +91,12 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
             for (c : reactor.connections) {
                 // Ignore connections with delays because delays break cycles.
                 if (c.delay === null) {
-                    this.addEdge(new AnnotatedNode(
-                        new InstanceBinding(c.rightPort.variable,
-                            path.append(c.rightPort.container, c.rightPort.container?.name))),
-                        new AnnotatedNode(
-                            new InstanceBinding(c.leftPort.variable,
-                                path.append(c.leftPort.container, c.leftPort.container?.name))))
+                    this.addEdge(new InstanceBinding(c.rightPort.variable,
+                        path.append(c.rightPort.container,
+                            c.rightPort.container?.name)),
+                        new InstanceBinding(c.leftPort.variable,
+                            path.append(c.leftPort.container,
+                                c.leftPort.container?.name)))
                 }
             }
         }
@@ -106,46 +106,43 @@ class ReactionGraph extends AnnotatedDependencyGraph<InstanceBinding> {
             // Iterate over the reactions.
             for (r : reactor.reactions) {
                 // Add edges implied by reactions.
-                val reaction = new AnnotatedNode(
-                    new InstanceBinding(r as EObject, path))
+                val reaction = new InstanceBinding(r as EObject, path)
                 for (trigger : r.triggers.filter(VarRef)) {
                     if (trigger.variable instanceof Port) {
                         this.addEdge(reaction,
-                            new AnnotatedNode(
-                                new InstanceBinding(trigger.variable,
-                                    path.append(trigger.container, trigger.container?.name))))
+                            new InstanceBinding(trigger.variable,
+                                path.append(trigger.container,
+                                    trigger.container?.name)))
                     }
                 }
-                for (source : r.sources.
-                    filter[it.variable instanceof Port]) {
+                for (source : r.sources.filter[it.variable instanceof Port]) {
                     this.addEdge(reaction,
-                        new AnnotatedNode(
-                            new InstanceBinding(source.variable,
-                                path.append(source.container, source.container?.name))))
+                        new InstanceBinding(source.variable,
+                            path.append(source.container,
+                                source.container?.name)))
                 }
                 for (effect : r.effects.filter[it.variable instanceof Port]) {
                     this.addEdge(
-                        new AnnotatedNode(
-                            new InstanceBinding(effect.variable,
-                                path.append(effect.container, effect.container?.name))),
-                        reaction)
+                        new InstanceBinding(effect.variable,
+                            path.append(effect.container,
+                                effect.container?.name)), reaction)
                 }
 
                 // Add edges implied by ordering of reactions within the reactor.
                 if (prev !== null) {
                     this.addEdge(
                         reaction,
-                        new AnnotatedNode(
-                            new InstanceBinding(prev, path))
+                        new InstanceBinding(prev, path)
                     )
                 }
                 prev = r
             }
         }
-        
+
         if (reactor.allInstantiations !== null) {
             for (inst : reactor.instantiations) {
-                this.collectNodesFrom(inst.reactorClass, path.append(inst, inst.name))
+                this.collectNodesFrom(inst.reactorClass,
+                    path.append(inst, inst.name))
             }
         }
     }

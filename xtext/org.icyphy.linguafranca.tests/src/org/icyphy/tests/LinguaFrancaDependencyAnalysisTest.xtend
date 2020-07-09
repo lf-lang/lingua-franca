@@ -132,7 +132,7 @@ class LinguaFrancaDependencyAnalysisTest {
 		
 		var info = new ModelInfo()
 		info.update(model)
-        Assertions.assertTrue(info.instantiationGraph.cycles.size == 1, 
+		Assertions.assertTrue(info.instantiationGraph.hasCycles == true, 
         	"Did not detect cyclic instantiation.")
     }
     

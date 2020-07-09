@@ -38,7 +38,9 @@ import java.util.HashSet
  * present in the graph.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> { // FIXME: Make this SortableDependencyGraph; also create an interface DependencyGraph
+class PrecedenceGraph<T> implements DirectedGraph<T> {
+
+    var graph = new SimpleDirectedGraph<AnnotatedNode<T>>
 
     /**
      * Indicates whether or not the graph has been analyzed for cycles.
@@ -56,40 +58,42 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> { // F
     
     var index = 0
     
-    
-    var List<T> sortedNodes
+    var List<T> sortedNodes = emptyList
     
     var Stack<AnnotatedNode<T>> stack = new Stack()
     
-    public var List<Set<T>> cycles = new LinkedList()
+    var List<Set<T>> cycles = emptyList
 
-    override addEdge(AnnotatedNode<T> effect, AnnotatedNode<T> origin) {
+    private def graphChanged() {
         this.cycleAnalysisDone = false
         this.isSorted = false
-        super.addEdge(effect, origin)
     }
-
-    // FIXME: add more overrides
 
     /**
      * Construct a new dependency graph.
      */
-    new() {
+    new () {
         
     }
     
-    def void sortNodes() {
+    private def void sortNodes() {
         
-        // Cleanup.
-        this.sortedNodes = newLinkedList
-        this.nodes.forEach[it.hasTempMark = false; it.hasPermMark = false]
-        
-        // Start sorting.
-        for (node : this.nodes) {
-            if (!node.hasPermMark) {
-                // Unmarked node.
-                this.visit(node)
+        if (!this.isSorted) {
+            // Cleanup.
+            this.sortedNodes = newLinkedList
+            this.graph.nodes.forEach [
+                it.hasTempMark = false;
+                it.hasPermMark = false
+            ]
+
+            // Start sorting.
+            for (node : this.graph.nodes) {
+                if (!node.hasPermMark) {
+                    // Unmarked node.
+                    this.visit(node)
+                }
             }
+            this.isSorted = true
         }
     }
     
@@ -103,7 +107,7 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> { // F
             throw new Error("Cycle found.")
         }
         node.hasTempMark = true
-        for (dep : node.effects) {
+        for (dep : this.graph.getEffects(node)) {
             visit(dep)
         }
         node.hasTempMark = false
@@ -121,13 +125,26 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> { // F
             this.index = 0
             this.stack = new Stack()
             this.cycles = new LinkedList();
-            this.nodes.forEach[it.index = -1]
-            for (node : this.nodes) {
+            this.graph.nodes.forEach[it.index = -1]
+            for (node : this.graph.nodes) {
                 if (node.index == -1) {
                     this.strongConnect(node)
                 }
             }    
         }
+    }
+    
+    def hasCycles() {
+        this.detectCycles
+        if (this.cycles.size > 0) {
+            return true
+        }
+        return false
+    }
+    
+    def getCycles() {
+        this.detectCycles
+        return this.cycles
     }
     
     /**
@@ -140,7 +157,7 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> { // F
         node.onStack = true
         this.index++
         this.stack.push(node)
-        for (dep : this.getOrigins(node)) {
+        for (dep : this.graph.getOrigins(node)) {
             
             if (dep.onStack) {
                 node.lowLink = Math.min(node.lowLink, dep.index)
@@ -175,6 +192,147 @@ class AnnotatedDependencyGraph<T> extends DirectedGraph<AnnotatedNode<T>> { // F
     def nodesOrderedDescending() {
         this.sortNodes()
         this.sortedNodes.reverse
+    }
+    
+    override getOrigins(T node) {
+        this.graph.getOrigins(new AnnotatedNode(node)).map[it.contents]
+    }
+    
+    override getEffects(T node) {
+        this.graph.getEffects(new AnnotatedNode(node)).map[it.contents]
+    }
+    
+    override rootNodes() {
+        this.graph.rootNodes.map[it.contents]
+    }
+    
+    override leafNodes() {
+        this.graph.leafNodes.map[it.contents]
+    }
+    
+    override hasNode(T node) {
+        this.graph.hasNode(new AnnotatedNode(node))
+    }
+    
+    override addNode(T node) {
+        this.graph.addNode(new AnnotatedNode(node))
+    }
+    
+    override removeNode(T node) {
+        graphChanged()
+        this.graph.removeNode(new AnnotatedNode(node))
+    }
+    
+    override addEdge(T to, T from) {
+        graphChanged()
+        this.graph.addEdge(new AnnotatedNode(to), new AnnotatedNode(from))
+    }
+    
+    override addEdges(T to, List<T> from) {
+        graphChanged()
+        this.graph.addEdges(new AnnotatedNode(to), from.map[new AnnotatedNode(it)])
+    }
+    
+    override removeEdge(T to, T from) {
+        graphChanged()
+        this.graph.removeEdge(new AnnotatedNode(to), new AnnotatedNode(from))
+    }
+    
+    override nodeCount() {
+        this.graph.nodeCount
+    }
+    
+    override edgeCount() {
+        this.graph.edgeCount
+    }
+    
+    override nodes() {
+        this.graph.nodes.map[it.contents]
+    }
+    
+}
+
+/**
+ * Node to be used in
+ * {@link #AnnotatedDependencyGraph AnnotatedDependencyGraph}.
+ * 
+ * In particular, this is a helper class for its implementation
+ * of Tarjan's algorithm for finding strongly connected components.
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ */
+class AnnotatedNode<T> {
+    
+    /**
+     * Sequence number that is assigned when this node is discovered.
+     * A node with a lower index was discovered later than this one;
+     * a node with a higher index was discovered later than this one.
+     */
+    public var index = -1;
+    
+    /**
+     * Temporary mark do be used in topological sort algorithm.
+     */
+    public var hasTempMark = false;
+    
+    /**
+     * Temporary mark do be used in topological sort algorithm.
+     */
+    public var hasPermMark = false;
+    
+    /**
+     * The smallest index of any node known to be reachable from this node.
+     */
+    public var lowLink = -1;
+    
+    /**
+     * Whether or not this node is currently on the stack that
+     * keeps track of visited nodes that potentially form a cycle.
+     */
+    public var onStack = false;
+    
+    /**
+     * The contents of this node.
+     */
+    public var T contents = null;
+    
+    /**
+     * Whether or not this node has a dependency on itself.
+     */
+    public var selfLoop = false
+    
+    /**
+     * Create a new annotated node providing its contents.
+     */
+    new(T value) {
+        this.contents = value;
+    }
+    
+    /**
+     * Two annotated nodes are considered equal if their contents is equal.
+     */
+    override equals(Object obj) {
+        if (obj instanceof AnnotatedNode){
+            return contents.equals(obj.contents);    
+        }
+        return false
+    }
+    
+    /**
+     * Return the hash code of the node's contents.
+     */
+    override hashCode() {
+        return contents.hashCode
+    }
+
+    /**
+     * Return the string representation of the node's contents.
+     */    
+    override toString() {
+        return contents.toString
+    }
+    
+    static def <T> List<T> unpack(List<AnnotatedNode<T>> list) {
+        return list.map[it.contents]
     }
 }
 

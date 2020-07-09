@@ -74,8 +74,8 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.graph.AnnotatedDependencyGraph
 import org.icyphy.graph.AnnotatedNode
+import org.icyphy.graph.PrecedenceGraph
 
 /**
  * Generator base class for shared code between code generators.
@@ -500,7 +500,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 //            }
 //        }
     
-        val graph = new AnnotatedDependencyGraph<Reactor>()
+        val graph = new PrecedenceGraph<Reactor>()
         for (inst : resource.allContents.toIterable.filter(Instantiation)) {
             // Build a dependency graph
             collectClasses(inst, graph)
@@ -509,11 +509,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         println(this.reactors)
     }
     
-    def void collectClasses(Instantiation instantiation, AnnotatedDependencyGraph<Reactor> graph) {
+    def void collectClasses(Instantiation instantiation, PrecedenceGraph<Reactor> graph) {
         val reactor = instantiation.reactorClass
         val container = instantiation.eContainer as Reactor
         //if (!container.isMain) {
-            graph.addEdge(new AnnotatedNode(container), new AnnotatedNode(reactor))
+            graph.addEdge(container, reactor)
 //        } else {
 //            graph.addNode(new AnnotatedNode(reactor)) // FIXME: Why are we treating main separately?
 //        }
