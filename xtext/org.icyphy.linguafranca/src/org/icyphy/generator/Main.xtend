@@ -19,6 +19,7 @@ import org.eclipse.xtext.validation.IResourceValidator
 import org.icyphy.LinguaFrancaStandaloneSetup
 import java.io.FileNotFoundException
 import java.util.Properties
+import java.util.List
 
 class Main {
 
@@ -94,6 +95,14 @@ class Main {
             throw new FileNotFoundException(fileName);
         }
         
+        println("filename: " + fileName)
+        
+		// Add all local files to the resource.
+		for (String file : getSourceFiles(fileRoot)) {
+            if (!file.equals(fileName))
+                set.getResource(URI.createURI(file), true);
+        }
+		
 		val resource = set.getResource(URI.createFileURI(fileName), true)
 
 		// Read the code
@@ -124,4 +133,24 @@ class Main {
 		generator.generate(resource, fileAccess, context)
 		System.out.println('Code generation finished.')
 	}
+	
+	private def List<String> getSourceFiles(String folderName) throws IOException {
+        val result = newLinkedList
+        var folder = new File(folderName);
+        for (String s : folder.list()) {
+            val f = new File(folder.getAbsolutePath() + '/' + s);
+            val path = folderName + '/' + s;
+            if (isModelFile(f)) {
+                result.add(path);
+            }
+            else if (f.isDirectory()) {
+                result.addAll(getSourceFiles(path));
+            }
+        }       
+        return result;
+    }
+    
+    private def isModelFile(File f) {
+        return f.isFile() && f.getName().endsWith(".lf"); // FIXME: This will not work with foreign imports
+    }
 }
