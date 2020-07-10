@@ -24,14 +24,12 @@ import org.eclipse.xtext.resource.IContainer
 import org.eclipse.xtext.resource.IResourceDescription.Event.Source
 import org.eclipse.xtext.scoping.impl.DefaultGlobalScopeProvider
 
-/** Global scope provider designed limit global scope to 
- *  only those files that were explicitly imported.
+/** Global scope provider designed to limit global scope to the current
+ * project directory.
  */
 class LinguaFrancaGlobalScopeProvider extends DefaultGlobalScopeProvider {
-    // NOTE: Adapted from example provided by Itemis.
-    // https://blogs.itemis.com/en/in-five-minutes-to-transitive-imports-within-a-dsl-with-xtext 
-    
-    static final Splitter SPLITTER = Splitter.on(LinguaFrancaResourceDescriptionStrategy.DELIMITER);
+	// Note: Adapted from Xtext manual.
+	// See https://www.eclipse.org/Xtext/documentation/2.6.0/Xtext%20Documentation.pdf Chapter 8.7
 
     
     @Inject
@@ -40,16 +38,26 @@ class LinguaFrancaGlobalScopeProvider extends DefaultGlobalScopeProvider {
 	@Inject
 	IResourceDescription.Manager descriptionManager;
     
+    /* Access to resources are constrained in Xtext by the container manager, which is language specific.
+     * Therefore, the first step in acquiring the resource is to get its corresponding container. 
+     * This function returns a list of containers that contain a specific resource.
+     * @param resource
+     * @return A list of visible containers that have access to the resource. 
+     */
     override List<IContainer> getVisibleContainers(Resource resource) {
+    	// Get the contents of the resource in the form of an ISelectable that holds the imported names
+    	// from a given resource.
 		val description = descriptionManager.getResourceDescription(resource);
+		// A flat index that contains all resource descriptions
 		val resourceDescriptions = getResourceDescriptions(resource);
+		
+		// Cache management for faster retrieval of visible containers
 		val cacheKey = getCacheKey("VisibleContainers", resource.getResourceSet());
 		val cache = new OnChangeEvictingCache().getOrCreate(resource);
 		var result = cache.get(cacheKey as Object);
 		if (result === null) {
+			// If a resource's container is not in cache, actually use the container manager.
 			result = containerManager.getVisibleContainers(description, resourceDescriptions);
-			// SZ: I'ld like this dependency to be moved to the implementation of the
-			// container manager, but it is not aware of a CacheAdapter
 			if (resourceDescriptions instanceof IResourceDescription.Event.Source) {
 				val eventSource = resourceDescriptions as Source;
 				var delegatingEventSource = new DelegatingEventSource(eventSource);
