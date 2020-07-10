@@ -13,6 +13,6 @@ main reactor SendingInside2 {
     timer t;
     p = new Printer();
     reaction(t) -> p.x {=
-        set(p.x, 1);
+        SET(p.x, 1);
     =}
 }

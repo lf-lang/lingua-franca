@@ -11,7 +11,7 @@ reactor Source(period:time(2 sec)) {
 	reaction(t) -> y {=
 		self->count++;
 		std::cout << "Source sending" << self->count << "." << std::endl;
-		y->set(count);
+		SET(y, self->count);
 	=}
 }
 
@@ -20,8 +20,8 @@ reactor Test {
 	state count:int(0);
 	reaction(x) {=
 		self->count++; // local variables declared here that are not state variables should be strongly discouraged
-		std::cout << "Received " << x << std::endl; // Or x->get()
-		if (x != self->count) { // Or x->get()
+		std::cout << "Received " << x->value << std::endl; // Or x->get()
+		if (x->value != self->count) { // Or x->get()
 			std::cerr << "FAILURE: Expected " <<  count << endl; // could be this->count as well
 			exit(1); 
 		}

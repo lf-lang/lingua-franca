@@ -15,7 +15,7 @@ reactor Camera(offset:time(0), period:time(1 sec)) {
 	timer t(offset, period);
 
     reaction(t) -> image {=
-        set(image, "kitty");
+        SET(image, "kitty");
     =}
 }
 
@@ -25,7 +25,7 @@ reactor LIDAR(offset:time(0), period:time(1 sec)) {
     timer t(offset, period);
 
     reaction(t) -> pointcloud {=
-        set(pointcloud, "INTERSECTION");
+        SET(pointcloud, "INTERSECTION");
     =}
 }
 
@@ -78,7 +78,7 @@ reactor ImageObjectDetection {
 
 
 
-        set(object, "DUMMY Results");
+        SET(object, "DUMMY Results");
     =}
 }
 
@@ -133,7 +133,7 @@ reactor LIDARObjectDetection {
 
         // cudaDeviceSynchronize();
 
-        set(object, "Hey look there is a kitty!");
+        SET(object, "Hey look there is a kitty!");
     =}
 }
 
@@ -217,7 +217,7 @@ reactor DataFusion(threshold:time(20 msec)) {
         interval_t sleep_time = MSEC(2);
         instant_t start_time = get_physical_time();
         while (get_physical_time() < start_time + sleep_time) {};
-        set(object, "fused");
+        SET(object, "fused");
     =}
 }
 
@@ -230,7 +230,7 @@ reactor Semantics {
         struct timespec sleep_time = {(time_t) 0, (long)6000000};
         struct timespec remaining_time;
         nanosleep(&sleep_time, &remaining_time);
-	set(actuation, 5);
+	SET(actuation, 5);
     =}
 }
 
@@ -252,7 +252,7 @@ reactor SafetyBreak {
     output actuation:int;
 
     reaction(LIDARPointCloud) -> actuation {=
-        set(actuation, 5);
+        SET(actuation, 5);
     =}
 }
 

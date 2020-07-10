@@ -10,6 +10,6 @@ main reactor Import {
 	
 	a = new Imported();
 	reaction(t) -> a.x {=
-		set(a.x, 42); 
+		SET(a.x, 42); 
 	=}
 }

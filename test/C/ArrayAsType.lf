@@ -7,7 +7,7 @@ reactor Source {
         out->value[0] = 0;
         out->value[1] = 1;
         out->value[2] = 2;
-        set_present(out);
+        SET_PRESENT(out);
     =}
 }
 // The scale parameter is just for testing.

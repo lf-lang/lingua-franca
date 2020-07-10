@@ -12,7 +12,7 @@ reactor Source {
     reaction(startup) -> out {=
         out->value.name = "Earth";
         out->value.value = 42;
-        set_present(out);
+        SET_PRESENT(out);
     =}
 }
 // expected parameter is for testing.

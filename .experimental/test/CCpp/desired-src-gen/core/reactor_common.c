@@ -103,6 +103,10 @@ int __is_present_fields_size = 0;
 // decremented at the start of each time step.
 // NOTE: This may have to be resized for a mutation.
 token_present_t* __tokens_with_ref_count = NULL;
+// Dynamically created list of tokens that are copies made
+// as a result of mutable inputs. These need to also have
+// __done_using() called on them at the start of the next time step.
+token_t* _lf_more_tokens_with_ref_count = NULL;
 int __tokens_with_ref_count_size = 0;
 
 /////////////////////////////
@@ -242,7 +246,7 @@ static void set_reaction_position(void *a, size_t pos) {
  * Print some information about the given reaction.
  */
 static void print_reaction(FILE *out, void *reaction) {
-	reaction_t *r = (reaction_t*)reaction;
+    reaction_t *r = (reaction_t*)reaction;
     fprintf(out, "chain_id:%llu, index: %llu, reaction: %p\n", 
         r->chain_id, r->index, r);
 }
@@ -251,9 +255,9 @@ static void print_reaction(FILE *out, void *reaction) {
  * Print some information about the given event.
  */
 static void print_event(FILE *out, void *event) {
-	event_t *e = (event_t*)event;
+    event_t *e = (event_t*)event;
     fprintf(out, "time: %lld, trigger: %p, token: %p\n",
-			e->time, e->trigger, e->token);
+            e->time, e->trigger, e->token);
 }
 
 // ********** Priority Queue Support End
@@ -359,6 +363,12 @@ void __start_time_step() {
             __done_using(*(__tokens_with_ref_count[i].token));
         }
     }
+    // Also handle dynamically created tokens for mutable inputs.
+    while (_lf_more_tokens_with_ref_count != NULL) {
+        token_t* next = _lf_more_tokens_with_ref_count->next_free;
+        __done_using(_lf_more_tokens_with_ref_count);
+        _lf_more_tokens_with_ref_count = next;
+    }
     for(int i = 0; i < __is_present_fields_size; i++) {
         *__is_present_fields[i] = false;
     }
@@ -411,22 +421,20 @@ token_t* create_token(size_t element_size) {
 }
 
 /**
+ * Return a token for storing an array of the specified length
+ * with the specified value containing the array.
  * If the specified token is available (its reference count is 0),
- * then initialize it with the specified value, length (number of array
- * elements or 1 if it is not an array), and reference count.
- * Otherwise, create a new token and initialize it.
- * The new token will point to the same trigger and element_size
- * as the specified token. Return either the specified token, or,
- * if a new one was created, the new token.
+ * then reuse it. Otherwise, create a new token.
+ * The element_size for elements of the array is specified by
+ * the specified token.
  *
- * @param token The token to populate, if it is available or null to create a new token.
- * @param value The value to be carried by the token or NULL for none.
- * @param element_size The size of memory for the token payload.
+ * @param token The token to populate, if it is available (must not be NULL).
+ * @param value The value of the array.
  * @param length The length of the array, or 1 if it is not an array.
- * @param ref_count The initial reference count.
- * @return Either the specified token or a new one carrying the value.
+ * @return Either the specified token or a new one, in each case with a value
+ *  field pointing to newly allocated memory.
  */
-token_t* __initialize_token(token_t* token, void* value, size_t element_size, int length, int ref_count) {
+token_t* __initialize_token_with_value(token_t* token, void* value, int length) {
     // assert(token != NULL);
 
     // If necessary, allocate memory for a new token_t struct.
@@ -435,13 +443,35 @@ token_t* __initialize_token(token_t* token, void* value, size_t element_size, in
     // printf("DEBUG: initializing a token %p with ref_count %d.\n", token, token->ref_count);
     if (token == NULL || token->ref_count > 0) {
         // The specified token is not available.
-        result = create_token(element_size);
+        result = create_token(token->element_size);
     }
     result->value = value;
     result->length = length;
-    // printf("DEBUG: setting ref_count to %d.\n", ref_count);
-    result->ref_count = ref_count;
     return result;
+}
+
+/**
+ * Return a token for storing an array of the specified length
+ * with new memory allocated (using malloc) for storing that array.
+ * If the specified token is available (its reference count is 0),
+ * then reuse it. Otherwise, create a new token.
+ * The element_size for elements of the array is specified by
+ * the specified token. The caller should populate the value and
+ * ref_count field of the returned token after this returns.
+ *
+ * @param token The token to populate, if it is available (must not be NULL).
+ * @param length The length of the array, or 1 if it is not an array.
+ * @return Either the specified token or a new one, in each case with a value
+ *  field pointing to newly allocated memory.
+ */
+token_t* __initialize_token(token_t* token, int length) {
+    // assert(token != NULL);
+
+    // Allocate memory for storing the array.
+    void* value = malloc(token->element_size * length);
+    // Count allocations to issue a warning if this is never freed.
+    __count_payload_allocations++;
+    return __initialize_token_with_value(token, value, length);
 }
 
 /**
@@ -542,22 +572,22 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         // printf("DEBUG: __schedule: payload at %p.\n", token->value);
     }
 
-	// The trigger argument could be null, meaning that nothing is triggered.
+    // The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
     // payload will be freed, if there is one.
-	if (trigger == NULL) {
-	    __done_using(token);
-	    return 0;
-	}
+    if (trigger == NULL) {
+        __done_using(token);
+        return 0;
+    }
 
     // Increment the reference count of the token.
-	if (token != NULL) {
-	    token->ref_count++;
-	}
+    if (token != NULL) {
+        token->ref_count++;
+    }
 
     // Compute the tag (the logical timestamp for the future event).
-	// We first do this assuming it is logical action and then, if it is a
-	// physical action, modify it if physical time exceeds the result.
+    // We first do this assuming it is logical action and then, if it is a
+    // physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
     interval_t tag = current_time + delay;
     // printf("DEBUG: __schedule: current_time = %lld.\n", current_time);
@@ -698,26 +728,44 @@ void schedule_output_reactions(reaction_t* reaction) {
                 }
             }
         }
-	}
+    }
 }
 
 /**
  * Schedule an action to occur with the specified value and time offset
  * with no payload (no value conveyed).
  * See schedule_token(), which this uses, for details.
- * @param trigger Pointer to a trigger object (typically an action on a self struct).
+ * @param action Pointer to an action on the self struct.
  * @param offset The time offset over and above that in the action.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule(trigger_t* trigger, interval_t offset) {
-    return schedule_token(trigger, offset, NULL);
+handle_t schedule(void* action, interval_t offset) {
+    return schedule_token(action, offset, NULL);
+}
+
+/**
+ * Utility function to convert a pointer to action struct into
+ * a pointer to the corresponding trigger struct.  The type of the
+ * action struct is defined by a generated typedef and differs for different
+ * actions, which is why the point to the action struct is a void*.
+ * All such structs, however, share a common feature, which is tht the
+ * first entry in the struct is a pointer to the corresponding trigger_t
+ * struct.  This function uses this fact to return a pointer to that
+ * trigger_t struct.
+ * @param action A pointer to an action struct.
+ * @return A pointer to the corresponding trigger struct.
+ */
+trigger_t* _lf_action_to_trigger(void* action) {
+    return *((trigger_t**)action);
 }
 
 /**
  * Variant of schedule_value when the value is an integer.
  * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
  */
-handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
+handle_t schedule_int(void* action, interval_t extra_delay, int value) {
+    trigger_t* trigger = _lf_action_to_trigger(action);
     // NOTE: This doesn't acquire the mutex lock in the multithreaded version
     // until schedule_value is called. This should be OK because the element_size
     // does not change dynamically.
@@ -727,7 +775,7 @@ handle_t schedule_int(trigger_t* trigger, interval_t extra_delay, int value) {
     }
     int* container = (int*)malloc(sizeof(int));
     *container = value;
-    return schedule_value(trigger, extra_delay, container, 1);
+    return schedule_value(action, extra_delay, container, 1);
 }
 
 /**
@@ -747,10 +795,9 @@ token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) 
         return NULL;
     }
     // First, initialize the token, reusing the one given if possible.
-    token_t* new_token = __initialize_token(token, malloc(token->element_size * length), token->element_size, length, num_destinations);
+    token_t* new_token = __initialize_token(token, length);
+    new_token->ref_count = num_destinations;
     // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
-    // Count allocations to issue a warning if this is never freed.
-    __count_payload_allocations++;
     return new_token;
 }
 
@@ -852,64 +899,64 @@ int process_args(int argc, char* argv[]) {
            duration = atoll(time_spec);
            // A parse error returns 0LL, so check to see whether that is what is meant.
            if (duration == 0LL && strncmp(time_spec, "0", 1) != 0) {
-        	   // Parse error.
-        	   printf("Error: invalid time value: %s", time_spec);
-        	   usage(argc, argv);
-        	   return 0;
+               // Parse error.
+               printf("Error: invalid time value: %s", time_spec);
+               usage(argc, argv);
+               return 0;
            }
            if (strncmp(units, "sec", 3) == 0) {
-        	   duration = SEC(duration);
+               duration = SEC(duration);
            } else if (strncmp(units, "msec", 4) == 0) {
-        	   duration = MSEC(duration);
+               duration = MSEC(duration);
            } else if (strncmp(units, "usec", 4) == 0) {
-        	   duration = USEC(duration);
+               duration = USEC(duration);
            } else if (strncmp(units, "nsec", 4) == 0) {
-        	   duration = NSEC(duration);
+               duration = NSEC(duration);
            } else if (strncmp(units, "min", 3) == 0) {
-        	   duration = MINUTE(duration);
+               duration = MINUTE(duration);
            } else if (strncmp(units, "hour", 4) == 0) {
-        	   duration = HOUR(duration);
+               duration = HOUR(duration);
            } else if (strncmp(units, "day", 3) == 0) {
-        	   duration = DAY(duration);
+               duration = DAY(duration);
            } else if (strncmp(units, "week", 4) == 0) {
-        	   duration = WEEK(duration);
+               duration = WEEK(duration);
            } else {
-        	   // Invalid units.
-        	   printf("Error: invalid time units: %s", units);
-        	   usage(argc, argv);
-        	   return 0;
+               // Invalid units.
+               printf("Error: invalid time units: %s", units);
+               usage(argc, argv);
+               return 0;
            }
        } else if (strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--keepalive") == 0) {
-    	   if (argc < i + 2) {
-    		   printf("Error: --keepalive needs a boolean.\n");
-    		   usage(argc, argv);
-    		   return 0;
-    	   }
-    	   i++;
-    	   char* keep_spec = argv[i];
-    	   if (strcmp(keep_spec, "true") == 0) {
-    		   keepalive_specified = true;
-    	   } else if (strcmp(keep_spec, "false") == 0) {
-    		   keepalive_specified = false;
-    	   } else {
-    		   printf("Error: Invalid value for --keepalive: %s\n", keep_spec);
-    	   }
+           if (argc < i + 2) {
+               printf("Error: --keepalive needs a boolean.\n");
+               usage(argc, argv);
+               return 0;
+           }
+           i++;
+           char* keep_spec = argv[i];
+           if (strcmp(keep_spec, "true") == 0) {
+               keepalive_specified = true;
+           } else if (strcmp(keep_spec, "false") == 0) {
+               keepalive_specified = false;
+           } else {
+               printf("Error: Invalid value for --keepalive: %s\n", keep_spec);
+           }
        } else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--threads") == 0) {
-    	   if (argc < i + 2) {
-    		   printf("Error: --threads needs an integer argument.\n");
-    		   usage(argc, argv);
-    		   return 0;
-    	   }
-    	   i++;
-    	   char* threads_spec = argv[i++];
-    	   number_of_threads = atoi(threads_spec);
-    	   if (number_of_threads <= 0) {
-    		   printf("Error: Invalid value for --threads: %s\n", threads_spec);
-    	   }
+           if (argc < i + 2) {
+               printf("Error: --threads needs an integer argument.\n");
+               usage(argc, argv);
+               return 0;
+           }
+           i++;
+           char* threads_spec = argv[i++];
+           number_of_threads = atoi(threads_spec);
+           if (number_of_threads <= 0) {
+               printf("Error: Invalid value for --threads: %s\n", threads_spec);
+           }
        } else {
-    	   printf("Error: Unrecognized command-line argument: %s\n", argv[i]);
-    	   usage(argc, argv);
-    	   return 0;
+           printf("Error: Unrecognized command-line argument: %s\n", argv[i]);
+           usage(argc, argv);
+           return 0;
        }
     }
     return 1;
@@ -941,7 +988,7 @@ void initialize() {
 
     event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
-	// NOTE: The recycle queue does not need to be sorted. But here it is.
+    // NOTE: The recycle queue does not need to be sorted. But here it is.
     recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
 

@@ -29,10 +29,10 @@ main reactor Microsteps {
     logical action repeat;
     d = new Destination();
     reaction(start) -> d.x, repeat {=
-        set(d.x, 1);
+        SET(d.x, 1);
         schedule(repeat, 0);
     =}
     reaction(repeat) -> d.y {=
-        set(d.y, 1);
+        SET(d.y, 1);
     =}
 }

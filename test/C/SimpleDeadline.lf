@@ -10,7 +10,7 @@ reactor Deadline(threshold:time(100 msec)) {
         exit(1);
     =} deadline(threshold) {=
         printf("Deadline violation detected.\n");
-        set(deadlineViolation, true);
+        SET(deadlineViolation, true);
     =}
 }
 reactor Print {
@@ -30,6 +30,6 @@ main reactor SimpleDeadline {
         struct timespec sleep_time = {(time_t) 0, (long)20000000};
         struct timespec remaining_time;
         nanosleep(&sleep_time, &remaining_time);
-        set(d.x, 42);
+        SET(d.x, 42);
     =}
 } 

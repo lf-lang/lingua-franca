@@ -14,7 +14,7 @@ reactor EngineControl {
 	reaction(on_off) -> torque {=
 		if(self->braking) {
 			self->braking = true;
-			set(torque, 0);
+			SET(torque, 0);
 		} else {
 			self->braking = false;
 		}
@@ -22,12 +22,12 @@ reactor EngineControl {
 	 
 	reaction(angle) -> torque {= 
 		if (!self->braking) { 
-			set(torque, calc_torq(angle->value));
+			SET(torque, calc_torq(angle->value));
 		}	
 	=}
 	
 	reaction(pulse) -> check {=
-		set(check, true);	
+		SET(check, true);	
 	=} 
 }
 
@@ -51,14 +51,14 @@ reactor LeftPedal {
     reaction(check) -> angle, on_off {=
         int a = (int) *mm_reg;
         if(!self->pressed && a > ZERO_MAX) {
-          set(on_off, true);
+          SET(on_off, true);
           self->pressed = true;
         }
         if (self->pressed && a < ZERO_MIN) {
-          set(on_off, false);
+          SET(on_off, false);
           self->pressed = false;
         }
-        set(angle, a);
+        SET(angle, a);
      =}
 }
 
@@ -89,7 +89,7 @@ reactor RightPedal {
         if (self->pedal < 0) {
             // handle error
         } else {
-            set(angle, self->pedal); 
+            SET(angle, self->pedal); 
         }
     =}
 }

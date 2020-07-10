@@ -1,7 +1,8 @@
 // This is a version fo the Threaded test that uses a multiport input at the destination.
 // Its purpose is to test multiport inputs.
 target C {
-    timeout: 2 sec
+    timeout: 2 sec,
+    fast: true
 };
 
 reactor Source {
@@ -9,7 +10,7 @@ reactor Source {
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-		set(out, self->s);
+		SET(out, self->s);
 		self->s++;
 	=}
 }
@@ -17,10 +18,11 @@ reactor Computation {
 	input in:int;
 	output out:int;
 	reaction(in) -> out {=
-		struct timespec sleep_time = {(time_t) 0, (long)200000000};
-		struct timespec remaining_time;
-		nanosleep(&sleep_time, &remaining_time);
-		set(out, in->value);
+        // No need to sleep for this test.
+		// struct timespec sleep_time = {(time_t) 0, (long)200000000};
+		// struct timespec remaining_time;
+		// nanosleep(&sleep_time, &remaining_time);
+		SET(out, in->value);
 	=}
 }
 reactor Destination {
@@ -38,6 +40,13 @@ reactor Destination {
 		}
 		self->s += 4;
 	=}
+    reaction(shutdown) {=
+        if (self->s == 0) {
+            fprintf(stderr, "ERROR: Destination received no input!\n");
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
 }
 
 main reactor ScatterGather { 

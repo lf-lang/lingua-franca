@@ -18,7 +18,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 	reaction(t) -> y {=
 		(self->count)++;
 		//printf("Reacting at time %ld.\n", get_elapsed_logical_time());
-		set(y, self->count);
+		SET(y, self->count);
 	=}
 }
 reactor Destination {

@@ -37,7 +37,7 @@ main reactor Pipeline {
     p = new Print();
     
     reaction(t) -> c1.in {=
-        set(c1.in, self->count++);        
+        SET(c1.in, self->count++);        
     =}
     
     c1.out -> c2.in after 200 msec;

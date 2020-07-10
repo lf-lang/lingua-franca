@@ -76,6 +76,18 @@ class PortInstance extends TriggerInstance<Variable> {
     /////////////////////////////////////////////
     //// Public Methods
     
+    /** Override the base class to append [index] if this port
+     *  is a multiport instance.
+     *  @return The full name of this instance.
+     */
+    override String getFullName() {
+        var result = super.getFullName()
+        if (this.index >= 0) {
+            result += "[" + this.index + "]"
+        }
+        result
+    }
+    
     /**
      * Return the index of this port in a multiport array or -1 if
      * this port is not in a multiport array. 
@@ -93,6 +105,22 @@ class PortInstance extends TriggerInstance<Variable> {
     /** Return true if the port is an output. */
     def isOutput() {
         definition instanceof Output
+    }
+    
+    /** Return the number of destination reactors for this port instance. */
+    def numDestinationReactors() {
+        // Count the number of destination reactors that receive data from
+        // this output port. Do this by building a set of the containers
+        // of all dependent ports and reactions. The dependentReactions
+        // includes reactions of the container that listen to this port.
+        val destinationReactors = new HashSet<ReactorInstance>()
+        for (destinationPort : this.dependentPorts) {
+            destinationReactors.add(destinationPort.parent)
+        }
+        for (destinationReaction : this.dependentReactions) {
+            destinationReactors.add(destinationReaction.parent)
+        }
+        return destinationReactors.size
     }
     
     /** Return a descriptive string. */

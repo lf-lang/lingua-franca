@@ -19,6 +19,6 @@ main reactor Main {
     a = new Schedule();
     timer t;
     reaction(t) -> a.x {=
-        set(a.x, 1);
+        SET(a.x, 1);
     =}
 }

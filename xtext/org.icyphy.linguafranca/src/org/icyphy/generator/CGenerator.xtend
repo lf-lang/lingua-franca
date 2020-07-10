@@ -284,7 +284,8 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>
+ * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
 class CGenerator extends GeneratorBase {
     
@@ -293,12 +294,6 @@ class CGenerator extends GeneratorBase {
     
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newHashSet('C')
-    
-    // Additional sources to add to the compile command if appropriate.
-    var compileAdditionalSources = null as ArrayList<String>
-
-    // Additional libraries to add to the compile command using the "-l" command-line option.
-    var compileLibraries = null as ArrayList<String>
 
     // List of deferred assignments to perform in initialize_trigger_objects.
     // FIXME: Remove this and InitializeRemoteTriggersTable
@@ -310,9 +305,6 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to go at the end of the __initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
 
-    /** The main (top-level) reactor instance. */
-    protected ReactorInstance main
-    
     // The command to run the generated code if specified in the target directive.
     var runCommand = new ArrayList<String>()
 
@@ -333,7 +325,7 @@ class CGenerator extends GeneratorBase {
     var startTimeStepTokens = 0
 
     // Place to collect code to initialize timers for all reactors.
-    var startTimers = new StringBuilder()
+    protected var startTimers = new StringBuilder()
     var startTimersCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
@@ -376,7 +368,7 @@ class CGenerator extends GeneratorBase {
         dir = new File(outPath)
         if (!dir.exists()) dir.mkdirs()
 
-        // Copy the required library files into the target file system.
+        // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
         var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
         if (targetThreads === 0) {
@@ -395,10 +387,13 @@ class CGenerator extends GeneratorBase {
         
         for (file : files) {
             copyFileFromClassPath(
-                "/" + "lib" + "/" + "C" + "/" + file,
-                srcGenPath + File.separator + file
+                "/" + "lib" + "/" + "core" + "/" + file,
+                srcGenPath + File.separator + "core" + File.separator + file
             )
         }
+
+        copyTargetFiles();
+
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = filename
@@ -442,7 +437,7 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = filename + ".c";
+            val cFilename = getTargetFileName(filename);
 
             // Delete source previously produced by the LF compiler.
             var file = new File(srcGenPath + File.separator + cFilename)
@@ -642,7 +637,9 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         void __termination() {
                             unsigned char message_marker = RESIGN;
-                            write(rti_socket, &message_marker, 1);
+                            if (write(rti_socket, &message_marker, 1) != 1) {
+                                fprintf(stderr, "WARNING: Failed to send RESIGN message to the RTI.\n");
+                            }
                         }
                     ''')
                 } else {
@@ -650,11 +647,8 @@ class CGenerator extends GeneratorBase {
                 }
             }
 
-            // Write the generated code to the output file.
-            var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(getCode().getBytes())
-            fOut.close()
+			
+            writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
             
         }
         // Restore the base filename.
@@ -670,55 +664,77 @@ class CGenerator extends GeneratorBase {
         }
         
         
-        //Cleanup the code so that it is more readable
+        writeCleanCode(filename)
+        
+    }
+    
+    /** Overwrite the generated code after compile with a
+     * clean version.
+     */
+    protected def writeCleanCode(String baseFilename)
+    {
+        var srcGenPath = directory + File.separator + "src-gen"
+    	//Cleanup the code so that it is more readable
         for (federate : federates) {
                 
-        	// Only clean one file if there is no federation.
-            if (!federate.isSingleton) {            	
-                filename = baseFilename + '_' + federate.name            	
+            // Only clean one file if there is no federation.
+            if (!federate.isSingleton) {                
+                filename = baseFilename + '_' + federate.name               
             }
             
             // Derive target filename from the .lf filename.
             val cFilename = filename + ".c";
             
             
-	        // Write a clean version of the code to the output file
-	        var fOut = new FileOutputStream(
-	        new File(srcGenPath + File.separator + cFilename), false);
-	        fOut.write(getReadableCode().getBytes())
-	        fOut.close()
-	        
-	    }
+            // Write a clean version of the code to the output file
+            var fOut = new FileOutputStream(
+            new File(srcGenPath + File.separator + cFilename), false);
+            fOut.write(getReadableCode().getBytes())
+            fOut.close()
+            
+        }
+    	
     }
     
-    /** Invoke the compiler on the generated code. */
-    def compileCode() {
-
-        // If there is more than one federate, compile each one.
-        var fileToCompile = filename // base file name.
-        for (federate : federates) {
-            // Empty string means no federates were defined, so we only
-            // compile one file.
-            if (!federate.isSingleton) {
-                fileToCompile = filename + '_' + federate.name
-            }
-            executeCommand(compileCommand(fileToCompile), directory)
-        }
-        // Also compile the RTI files if there is more than one federate.
-        if (federates.length > 1) {
-            fileToCompile = filename + '_RTI'
-            executeCommand(compileCommand(fileToCompile), directory)
+    /** Copy target specific files to the src-gen directory */
+    protected def copyTargetFiles()
+    {    	
+        var srcGenPath = directory + File.separator + "src-gen"
+    	// Copy the required target language files into the target file system.
+        // This will also overwrite previous versions.
+        var targetFiles = newArrayList("ctarget.h");
+        for (file : targetFiles) {
+            copyFileFromClassPath(
+                "/" + "lib" + "/" + "C" + "/" + file,
+                srcGenPath + File.separator + file
+            )
         }
     }
+    
+    /** Write the source code to file */
+    protected def writeSourceCodeToFile(byte[] code, String path)
+    {
+        // Write the generated code to the output file.
+        var fOut = new FileOutputStream(
+            new File(path), false);
+        fOut.write(code)
+        fOut.close()
+    }
+    
+    /** Produces the filename including the target-specific extension */
+    override getTargetFileName(String fileName)
+    {
+    	return fileName + ".c";
+    }
 
-    // //////////////////////////////////////////
-    // // Code generators.
-        
+    ////////////////////////////////////////////
+    //// Code generators.
+    
     /** Create the runtime infrastructure (RTI) source file.
      */
-    def createFederateRTI() {
+    override createFederateRTI() {
         // Derive target filename from the .lf filename.
-        var cFilename = filename + "_RTI.c"
+        var cFilename = getTargetFileName(filename + "_RTI")
         
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
@@ -741,7 +757,7 @@ class CGenerator extends GeneratorBase {
             #undefine NUMBER_OF_FEDERATES
             #endif
             #define NUMBER_OF_FEDERATES «federates.length»
-            #include "rti.c"
+            #include "core/rti.c"
             int main(int argc, char* argv[]) {
         ''')
         indent(rtiCode)
@@ -913,10 +929,14 @@ class CGenerator extends GeneratorBase {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
-                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log
+                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
+                    pushd src-gen/core > /dev/
+                    echo "Copying LF core files to host «federate.host»"
+                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen
+                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
                     ssh «federate.host» 'cd «path»; «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
@@ -949,10 +969,14 @@ class CGenerator extends GeneratorBase {
             pr(distCode, '''
                 cd «path»
                 echo "Making directory «path» and subdirectories src-gen and path on host «target»"
-                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log
+                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
+                pushd src-gen/core > /dev/null
+                echo "Copying LF core files to host «target»"
+                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/core
+                popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files to host «target»"
-                scp «filename»_RTI.c rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen
+                scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
                 echo "Compiling on host «target» using: «this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
                 ssh «target» '«this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
@@ -1033,9 +1057,6 @@ class CGenerator extends GeneratorBase {
         // Create Timer and Action for startup and shutdown, if they occur.
         handleStartupAndShutdown(reactor)
         
-        // Create reactions to transfer data up the hierarchy.
-        generateTransferOutputs(reactor)
-
         pr("// =============== START reactor class " + reactor.name)
 
         // Preamble code contains state declarations with static initializers.
@@ -1257,7 +1278,28 @@ class CGenerator extends GeneratorBase {
             
             pr(input, body, '''
                 «variableStructType(input, reactor)»* __«input.name»«arraySpec»;
+                // Default input (in case it does not get connected)
+                «variableStructType(input, reactor)» __default__«input.name»;
             ''')
+            if (input.arraySpec === null) {
+                pr(input, constructorCode, '''
+                    // Set input by default to an always absent default input.
+                    self->__«input.name» = &self->__default__«input.name»;
+                ''')
+            } else {
+                // input is a multiport. Need to set defaults in case it
+                // remains unconnected.
+                if (input.arraySpec.ofVariableLength) {
+                    reportError(input, "Variable width multiports not supported.")
+                } else {
+                    pr(input, constructorCode, '''
+                        // Set inputs by default to an always absent default input.
+                        for (int i = 0; i < «input.arraySpec.length»; i++) {
+                            self->__«input.name»[i] = &self->__default__«input.name»;
+                        }
+                    ''')
+                }
+            }
         }
 
         // Find output ports that receive data from inside reactors
@@ -1290,13 +1332,6 @@ class CGenerator extends GeneratorBase {
             pr(output, body, '''
                 «variableStructType(output, reactor)» __«output.name»«arraySpec»;
             ''')
-            // If there are contained reactors that send data via this output,
-            // then create a place to put the pointers to the sources of that data.
-            if (outputToContainedOutput.get(output) !== null) {
-            pr(output, body, '''
-                «variableStructType(output, reactor)»* __«output.name»_inside«arraySpec»;
-            ''')
-            }
         }
         
         // If there are contained reactors that either receive inputs
@@ -1480,11 +1515,24 @@ class CGenerator extends GeneratorBase {
                 for (effect : reaction.effects) {
                     if (effect.variable instanceof Port) {
                         // Create the entry in the _outputs_are_present array for this port.
+                        // If the port is a multiport, then we need to create an entry for each
+                        // individual port.
                         // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
-                        pr(constructorCode, '''
-                            self->__reaction_«reactionCount»_outputs_are_present[«outputCount»] = &self->__«ASTUtils.toText(effect)».is_present;
-                        ''')
-                        outputCount++
+                        val port = effect.variable as Port
+                        if (!port.isMultiport) {
+                            pr(constructorCode, '''
+                                self->__reaction_«reactionCount»_outputs_are_present[«outputCount»] = &self->__«ASTUtils.toText(effect)».is_present;
+                            ''')
+                            outputCount++
+                        } else {
+                            pr(constructorCode, '''
+                                for (int i = 0; i < «port.multiportWidth»; i++) {
+                                    self->__reaction_«reactionCount»_outputs_are_present[«outputCount» + i]
+                                            = &self->__«ASTUtils.toText(effect)»[i].is_present;
+                                }
+                            ''')
+                            outputCount += port.multiportWidth
+                        }
                     }
                 }
                 // Create the map of triggers to reactions.
@@ -2012,7 +2060,11 @@ class CGenerator extends GeneratorBase {
                         // NOTE: Need a unique name for the pointer to the malloc'd array because some of the
                         // initialization has to occur at the end of __initialize_trigger_objects(), after
                         // all reactor instances have been created.
-                        val triggerArray = '''«reactorInstance.uniqueID»_«reaction.reactionIndex»_«portCount»'''
+                        var bankIndex = ""
+                        if (reactorInstance.bankIndex >= 0) {
+                            bankIndex = '_' + reactorInstance.bankIndex + '_'
+                        }
+                        val triggerArray = '''«reactorInstance.uniqueID»«bankIndex»_«reaction.reactionIndex»_«portCount»'''
                         pr(initializeTriggerObjects, '''
                             // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
                             // array of trigger pointers for downstream reactions through port «port.getFullName»
@@ -2029,7 +2081,7 @@ class CGenerator extends GeneratorBase {
                             // In that case, we want NULL.
                             // If the destination is an output port, however, then
                             // the dependentReactions.size reflects the number of downstream
-                            // reactions. But we want only one trigger (for transfer outputs).
+                            // reactions.
                             if (destination.dependentReactions.size === 0 || destination.isOutput) {
                                 pr(initializeTriggerObjectsEnd, '''
                                     // Destination port «destination.getFullName» itself has no reactions.
@@ -2074,14 +2126,27 @@ class CGenerator extends GeneratorBase {
                 var nameOfSelfStruct = selfStructName(child)
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
-                        pr(startTimeStep, '''
-                            __tokens_with_ref_count[«startTimeStepTokens»].token
-                                    = &«nameOfSelfStruct»->__«input.name»->token;
-                            __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                    = &«nameOfSelfStruct»->__«input.name»->is_present;
-                            __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
-                        ''')
-                        startTimeStepTokens++
+                        if (input instanceof MultiportInstance) {
+                            pr(startTimeStep, '''
+                                for (int i = 0; i < «input.width»; i++) {
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                            = &«nameOfSelfStruct»->__«input.name»[i]->token;
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                            = &«nameOfSelfStruct»->__«input.name»[i]->is_present;
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                }
+                            ''')
+                            startTimeStepTokens += input.width
+                        } else {
+                            pr(startTimeStep, '''
+                                __tokens_with_ref_count[«startTimeStepTokens»].token
+                                        = &«nameOfSelfStruct»->__«input.name»->token;
+                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                        = &«nameOfSelfStruct»->__«input.name»->is_present;
+                                __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                            ''')
+                            startTimeStepTokens++
+                        }
                     }
                 }
             }
@@ -2132,11 +2197,23 @@ class CGenerator extends GeneratorBase {
             if (reactorBelongsToFederate(child, federate)) {
                 var nameOfSelfStruct = selfStructName(child)
                 for (output : child.outputs) {
-                    pr(startTimeStep, '''
-                        // Add port «output.getFullName» to array of is_present fields.
-                        __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name».is_present;
-                    ''')
-                    startTimeStepIsPresentCount++
+                    if (output instanceof MultiportInstance) {
+                        var j = 0
+                        for (multiportInstance : output.instances) {
+                            pr(startTimeStep, '''
+                                // Add port «output.getFullName» to array of is_present fields.
+                                __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name»[«j»].is_present;
+                            ''')
+                            startTimeStepIsPresentCount++
+                            j++
+                        }
+                    } else {
+                        pr(startTimeStep, '''
+                            // Add port «output.getFullName» to array of is_present fields.
+                            __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name».is_present;
+                        ''')
+                        startTimeStepIsPresentCount++
+                    }
                 }
             }
         }
@@ -2150,63 +2227,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Generate one reaction function definition for each output of
-     *  a reactor that relays data from the output of a contained reactor.
-     *  This reaction function transfers the data from the output of the
-     *  contained reactor (in the self struct of this reactor labeled as
-     *  "inside") to the output of this reactor (also in its self struct).
-     *  There needs to be one reaction function
-     *  for each such output because these reaction functions have to be
-     *  individually invoked after each contained reactor produces an
-     *  output that must be relayed. These reactions are set up to not
-     *  be required to be invoked in any particular order.
-     *  @param reactor The reactor.
-     */
-    def generateTransferOutputs(Reactor reactor) {
-        // FIXME: Is this really necessary? Couldn't the transitive closure function
-        // of ReactorInstance traverse the hierarchy?
-        for (connection : reactor.connections) {
-            // If the connection has the form c.x -> y, then it's what we are looking for.
-            if (connection.rightPort.container === null &&
-                    connection.leftPort.container !== null) {
-                if (connection.rightPort.variable instanceof Output) {
-                    val reaction = ASTUtils.factory.createReaction()
-                    // Mark this unordered relative to other reactions in the container.
-                    // It will still be ordered by dependencies to the source.
-                    reaction.makeUnordered()
-                    val leftPort = ASTUtils.factory.createVarRef()
-                    leftPort.container = connection.leftPort.container
-                    leftPort.variable = connection.leftPort.variable
-                    val rightPort = ASTUtils.factory.createVarRef()
-                    rightPort.variable = connection.rightPort.variable
-                    reaction.triggers.add(leftPort)
-                    reaction.effects.add(rightPort)
-                    reaction.code = factory.createCode()
-                    if ((rightPort.variable as Port).inferredType.isTokenType) {
-                        reaction.code.body = '''
-                            «DISABLE_REACTION_INITIALIZATION_MARKER»
-                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            self->__«rightPort.toText».value = self->__«leftPort.toText».value;
-                            self->__«rightPort.toText».is_present = true;
-                        '''
-                    } else {
-                        reaction.code.body = '''
-                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            set(«rightPort.toText», «leftPort.toText»->value);
-                        '''
-                    }
-                    reactor.reactions.add(reaction)
-                } else {
-                    reportError(
-                        connection,
-                        "Expected an output port but got " +
-                            connection.rightPort.variable.name
-                    )
-                }
-            }
-        }
-    }
-
     /**
      * For each timer and action in the specified reactor instance, generate
      * initialization code for the offset and period fields. This code goes into
@@ -2324,11 +2344,9 @@ class CGenerator extends GeneratorBase {
      * This will have one of the following forms:
      * 
      * * selfStruct->__portName
-     * * selfStruct->__portName_inside
      * * selfStruct->__portName[i]
-     * * selfStruct->__portName_inside[i]
      * 
-     * @param port An instance of a destination port.
+     * @param port An instance of a destination input port.
      */
     static def destinationReference(PortInstance port) {
         var destStruct = selfStructName(port.parent)
@@ -2342,7 +2360,7 @@ class CGenerator extends GeneratorBase {
         if (port.isInput) {
             return '''«destStruct»->__«port.name»«destinationIndexSpec»'''
         } else {
-            return '''«destStruct»->__«port.name»_inside«destinationIndexSpec»'''
+            throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
     }
  
@@ -2426,12 +2444,20 @@ class CGenerator extends GeneratorBase {
     }
 
     /** Return the unique name for the "self" struct of the specified
-     *  reactor instance from the instance ID.
+     *  reactor instance from the instance ID. If the instance is a member
+     *  of a bank of reactors, this returns something of the form
+     *  name_self[index], where the index is the position within the bank.
      *  @param instance The reactor instance.
      *  @return The name of the self struct.
      */
     static def selfStructName(ReactorInstance instance) {
-        return instance.uniqueID + "_self"
+        var result = instance.uniqueID + "_self"
+        // If this reactor is a member of a bank of reactors, then change
+        // the name of its self struct to append [index].
+        if (instance.bankIndex >= 0) {
+            result += "[" + instance.bankIndex + "]"
+        }
+        return result
     }
 
     /** Construct a unique type for the "self" struct of the specified
@@ -2493,7 +2519,8 @@ class CGenerator extends GeneratorBase {
         return '''«selfStructName(reaction.parent)»->__«port.parent.name».«port.name»_trigger;'''
     }
 
-    /** Traverse the runtime hierarchy of reaction instances and generate code.
+    /** Generate code to instantiate the specified reactor instance and
+     *  initialize it.
      *  @param instance A reactor instance.
      *  @param federate A federate name to conditionally generate code by
      *   contained reactors or null if there are no federates.
@@ -2507,14 +2534,44 @@ class CGenerator extends GeneratorBase {
         var fullName = instance.fullName
         pr(initializeTriggerObjects, '// ************* Instance ' + fullName + ' of class ' +
             reactorClass.name)
-
-        // Generate the instance struct containing parameters, state variables,
-        // and outputs (the "self" struct).
+            
         var nameOfSelfStruct = selfStructName(instance)
         var structType = selfStructType(reactorClass)
-        pr(initializeTriggerObjects, '''
-            «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
-        ''')
+
+        // If this reactor is a placeholder for a bank of reactors, then generate
+        // an array of instances of reactors and return.
+        if (instance.bankMembers !== null) {
+            pr(initializeTriggerObjects, '''
+                «structType»* «nameOfSelfStruct»[«instance.bankMembers.size»];
+            ''')
+            return
+        }
+
+        // Generate the instance self struct containing parameters, state variables,
+        // and outputs (the "self" struct). The form is slightly different
+        // depending on whether its in a bank of reactors.
+        if (instance.bankIndex >= 0) {
+            pr(initializeTriggerObjects, '''
+                «nameOfSelfStruct» = new_«reactorClass.name»();
+            ''')
+            // If the reactor has a parameter named "bank_position", set it.
+            for (parameter : reactorClass.allParameters) {
+                if (parameter.name == "bank_position"
+                    && getTargetType(parameter.inferredType) == "int"
+                ) {
+                    // Override the default parameter value for bank_position.
+                    // This needs to be at the end or it will be overwrittend
+                    // with the default parameter value.
+                    pr(initializeTriggerObjectsEnd, '''
+                        «nameOfSelfStruct»->bank_position = «instance.bankIndex»;
+                    ''')
+                }
+            }
+        } else {
+            pr(initializeTriggerObjects, '''
+                «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
+            ''')
+        }
 
         // Generate code to initialize the "self" struct in the
         // __initialize_trigger_objects function.
@@ -2552,45 +2609,49 @@ class CGenerator extends GeneratorBase {
             
             val initializer = getInitializer(stateVar, instance)
             if (stateVar.initialized) {
-	          	if (stateVar.isOfTimeType) {
-	                pr(initializeTriggerObjects,
-	                    nameOfSelfStruct + "->" + stateVar.name + " = " +
-	                        initializer + ";")
-	            } else {
-	                // If the state is initialized with a parameter, then do not use
-	                // a temporary variable. Otherwise, do, because
-	                // static initializers for arrays and structs have to be handled
-	                // this way, and there is no way to tell whether the type of the array
-	                // is a struct.
-	                if (stateVar.isParameterized && stateVar.init.size > 0) {
-	                    pr(initializeTriggerObjects,
-	                        nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
-	                } else {
-	                    val temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
-	                    // Array type has to be handled specially because C doesn't accept
-	                    // type[] as a type designator.
-	                    // Use the superclass to avoid [] being replaced by *.
-	                    var type = super.getTargetType(stateVar.inferredType)
-	                    val matcher = arrayPatternVariable.matcher(type)
-	                    if (matcher.find()) {
-	                        // If the state type ends in [], then we have to move the []
-	                        // because C is very picky about where this goes. It has to go
-	                        // after the variable name.
-	                        pr(initializeTriggerObjects,
-	                            "static " + matcher.group(1) + " " +
-	                            temporaryVariableName + "[] = " + initializer + ";"
-	                        )
-	                    } else {
-	                        pr(initializeTriggerObjects,
-	                            "static " + type + " " +
-	                            temporaryVariableName + " = " + initializer + ";"
-	                        )
-	                    }
-	                    pr(initializeTriggerObjects,
-	                        nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
-	                    ) 
-	                }
-	            }	
+                if (stateVar.isOfTimeType) {
+                    pr(initializeTriggerObjects,
+                        nameOfSelfStruct + "->" + stateVar.name + " = " +
+                            initializer + ";")
+                } else {
+                    // If the state is initialized with a parameter, then do not use
+                    // a temporary variable. Otherwise, do, because
+                    // static initializers for arrays and structs have to be handled
+                    // this way, and there is no way to tell whether the type of the array
+                    // is a struct.
+                    if (stateVar.isParameterized && stateVar.init.size > 0) {
+                        pr(initializeTriggerObjects,
+                            nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
+                    } else {
+                        var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                        // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
+                        if (instance.bank !== null) {
+                            temporaryVariableName += "_" + instance.bankIndex
+                        }
+                        // Array type has to be handled specially because C doesn't accept
+                        // type[] as a type designator.
+                        // Use the superclass to avoid [] being replaced by *.
+                        var type = super.getTargetType(stateVar.inferredType)
+                        val matcher = arrayPatternVariable.matcher(type)
+                        if (matcher.find()) {
+                            // If the state type ends in [], then we have to move the []
+                            // because C is very picky about where this goes. It has to go
+                            // after the variable name.
+                            pr(initializeTriggerObjects,
+                                "static " + matcher.group(1) + " " +
+                                temporaryVariableName + "[] = " + initializer + ";"
+                            )
+                        } else {
+                            pr(initializeTriggerObjects,
+                                "static " + type + " " +
+                                temporaryVariableName + " = " + initializer + ";"
+                            )
+                        }
+                        pr(initializeTriggerObjects,
+                            nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
+                        ) 
+                    }
+                }   
             }
         }
 
@@ -2609,21 +2670,21 @@ class CGenerator extends GeneratorBase {
         // One of the destination reactors may be the container of this
         // instance because it may have a reaction to an output of this instance. 
         for (output : instance.outputs) {
-            // Count the number of destination reactors that receive data from
-            // this output port. Do this by building a set of the containers
-            // of all dependent ports and reactions. The dependentReactions
-            // includes reactions of the container that listen to this port.
-            val destinationReactors = new HashSet<ReactorInstance>()
-            for (destinationPort : output.dependentPorts) {
-                destinationReactors.add(destinationPort.parent)
+            if (output instanceof MultiportInstance) {
+                var j = 0
+                for (multiportInstance : output.instances) {
+                    var numDestinations = multiportInstance.numDestinationReactors
+                    pr(initializeTriggerObjects, '''
+                        «nameOfSelfStruct»->__«output.name»[«j»].num_destinations = «numDestinations»;
+                    ''')
+                    j++
+                }
+            } else {
+                var numDestinations = output.numDestinationReactors
+                pr(initializeTriggerObjects, '''
+                    «nameOfSelfStruct»->__«output.name».num_destinations = «numDestinations»;
+                ''')
             }
-            for (destinationReaction : output.dependentReactions) {
-                destinationReactors.add(destinationReaction.parent)
-            }
-            var numDestinations = destinationReactors.size
-            pr(initializeTriggerObjects, '''
-                «nameOfSelfStruct»->__«output.name».num_destinations = «numDestinations»;
-            ''')
         }
         
         // Do the same for inputs of contained reactors that are sent data by reactions
@@ -2873,7 +2934,7 @@ class CGenerator extends GeneratorBase {
             '''
         } else {
             '''
-            set(«outputName», «action.name»->value);
+            SET(«outputName», «action.name»->value);
             '''
         }
     }
@@ -2920,14 +2981,13 @@ class CGenerator extends GeneratorBase {
         ''')
         if (isTokenType(type)) {
             result.append('''
-                set_token(«receiveRef», «action.name»->token);
-                «action.name»->token->ref_count++;
+                SET_TOKEN(«receiveRef», «action.name»->token);
             ''')
         } else {
             // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
             // So passing it downstream should be OK.
             result.append('''
-                set(«receiveRef», «action.name»->value);
+                SET(«receiveRef», «action.name»->value);
             ''')
         }
         return result.toString
@@ -2997,7 +3057,8 @@ class CGenerator extends GeneratorBase {
     override generatePreamble() {
         super.generatePreamble()
         
-        pr('#include "pqueue.c"')
+        includeTargetLanguageHeaders()
+        
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
         // Handle target parameters.
@@ -3005,21 +3066,9 @@ class CGenerator extends GeneratorBase {
         if (targetThreads === 0 && federates.length > 1) {
             targetThreads = 1
         }
-        if (targetThreads > 0) {
-            // Set this as the default in the generated code,
-            // but only if it has not been overridden on the command line.
-            pr(startTimers, '''
-                if (number_of_threads == 0) {
-                   number_of_threads = «targetThreads»;
-                }
-            ''')
-            pr("#include \"reactor_threaded.c\"")
-        } else {
-            pr("#include \"reactor.c\"")
-        }
-        if (federates.length > 1) {
-            pr("#include \"federate.c\"")
-        }
+
+        includeTargetLanguageSourceFiles()
+        
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
@@ -3060,6 +3109,35 @@ class CGenerator extends GeneratorBase {
 //                pr('#include "' + rootFilename + '.pb-c.h"')
 //            }
 //        }
+    }
+    
+    /** Add necessary header files specific to the target language.
+     *  Note. The core files always need to be (and will be) copied 
+     *  uniformly across all target languages.
+     */
+    protected def includeTargetLanguageHeaders()
+    {    	
+        pr('#include "ctarget.h"')
+    }
+    
+    /** Add necessary source files specific to the target language.  */
+    protected def includeTargetLanguageSourceFiles()
+    {
+        if (targetThreads > 0) {
+            // Set this as the default in the generated code,
+            // but only if it has not been overridden on the command line.
+            pr(startTimers, '''
+                if (number_of_threads == 0) {
+                   number_of_threads = «targetThreads»;
+                }
+            ''')
+            pr("#include \"core/reactor_threaded.c\"")
+        } else {
+            pr("#include \"core/reactor.c\"")
+        }
+        if (federates.length > 1) {
+            pr("#include \"core/federate.c\"")
+        }
     }
 
     // Regular expression pattern for compiler error messages with resource
@@ -3105,66 +3183,24 @@ class CGenerator extends GeneratorBase {
      */
      override getReadableCode()
      {
-     	val stringCode = code.toString()
+        val stringCode = code.toString()
         val lines = stringCode.split(System.getProperty("line.separator"));
         
         val readableStringBuilder = new StringBuilder("");
         
         for(line : lines)
         {
-        	val trimmedLine = line.trim()
-        	if(!trimmedLine.startsWith("#line"))
-        	{
-        	    readableStringBuilder.append(line).append(System.getProperty("line.separator"));
-        	}
+            val trimmedLine = line.trim()
+            if(!trimmedLine.startsWith("#line"))
+            {
+                readableStringBuilder.append(line).append(System.getProperty("line.separator"));
+            }
         }
         return readableStringBuilder.toString()
      }
         
     // //////////////////////////////////////////
     // // Private methods.
-    
-    /** Return a command to compile the specified C file.
-     *  @param fileToCompile The C filename without the .c extension.
-     */
-    protected def compileCommand(String fileToCompile) {
-        val cFilename = fileToCompile + ".c";            
-        val relativeSrcFilename = "src-gen" + "/" + cFilename;
-        val relativeBinFilename = "bin" + File.separator + fileToCompile;
-
-        var compileCommand = newArrayList
-        compileCommand.add(targetCompiler)
-        val flags = targetCompilerFlags.split(' ')
-        compileCommand.addAll(flags)
-        compileCommand.add(relativeSrcFilename)
-        if (compileAdditionalSources !== null) {
-            compileCommand.addAll(compileAdditionalSources)
-        }
-        if (compileLibraries !== null) {
-            compileCommand.addAll(compileLibraries)
-        }
-        // Only set the output file name if it hasn't already been set
-        // using a target property or command line flag.
-        if (compileCommand.forall[it.trim != "-o"]) {
-            compileCommand.addAll("-o", relativeBinFilename)
-        }
-
-        // If threaded computation is requested, add a -pthread option.
-        if (targetThreads !== 0) {
-            compileCommand.add("-pthread")
-        }
-        // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
-        // Then again, I think this only makes sense when we can do linking.
-        // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
-        if (main === null) {
-            compileCommand.add("-c") // FIXME: revisit
-            if (mode === Mode.STANDALONE) {
-                reportError("ERROR: Did not output executable; no main reactor found.")
-            }
-        }
-        return compileCommand
-    }
     
     /** Perform deferred initializations in initialize_trigger_objects.
      *  @param federate The federate for which we are doing this.
@@ -3208,9 +3244,6 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        // Set all input pointers to point to NULL by default.
-        setInputsAbsentByDefault(main, federate)
-        
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
         createDefaultTokens(main, federate)
@@ -3237,21 +3270,58 @@ class CGenerator extends GeneratorBase {
             
             // We assume here that all connections across federates have been
             // broken and replaced by reactions handling the communication.
-            if (reactorBelongsToFederate(eventualSource.parent, federate)) {
+            // Moreover, if the eventual source is an input and it is NOT
+            // written to by a reaction, then it is dangling, so we skip it.
+            if (reactorBelongsToFederate(eventualSource.parent, federate)
+                && eventualSource.isOutput
+                || eventualSource.dependsOnReactions.size > 0
+            ) {
                 val destinations = instance.destinations.get(source)
                 for (destination : destinations) {
-                    var comment = ''
-                    if (source !== eventualSource) {
-                        comment = ''' (eventual source is «eventualSource.getFullName»)'''
+                    // If the destination is an output, then skip this step.
+                    if (destination.isInput) {
+                        var comment = ''
+                        if (source !== eventualSource) {
+                            comment = ''' (eventual source is «eventualSource.getFullName»)'''
+                        }
+                        val destStructType = variableStructType(
+                            destination.definition as TypedVariable,
+                            destination.parent.definition.reactorClass
+                        )
+                        // If the source or destination (or both) is a multiport, then
+                        // we need an iterative connection here over the minimum of the widths of
+                        // the two multiports.
+                        var srcIndex = ""
+                        var dstIndex = ""
+                        var width = 0
+                        if (eventualSource instanceof MultiportInstance) {
+                            // Source is a multiport.
+                            srcIndex = "[i]"
+                            width = eventualSource.instances.size
+                            if (!(destination instanceof MultiportInstance)) {
+                                reportError(destination.definition, "Cannot connect a multiport to a single port")
+                            }
+                        }
+                        if (destination instanceof MultiportInstance) {
+                            // Destination is a multiport.
+                            dstIndex = "[i]"
+                            if (destination.instances.size < width) {
+                                width = destination.instances.size
+                            }
+                        }
+                        if (width > 0) {
+                            pr('''for (int i = 0; i < «width»; i++) {''')
+                            indent()
+                        }
+                        pr('''
+                            // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                            «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
+                        ''')
+                        if (width > 0) {
+                            unindent()
+                            pr("}")
+                        }
                     }
-                    val destStructType = variableStructType(
-                        destination.definition as TypedVariable,
-                        destination.parent.definition.reactorClass
-                    )
-                    pr('''
-                        // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                        «destinationReference(destination)» = («destStructType»*)&«sourceReference(eventualSource)»;
-                    ''')
                 }
             }
         }
@@ -3437,13 +3507,53 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')            
-        } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
-            // Non-mutable, multiport, primitive type.
+        } else if (!input.isMutable && input.multiportWidth > 0) {
+            // Non-mutable, multiport, primitive or token type.
             pr(builder, '''
                 «structType»** «input.name» = self->__«input.name»;
             ''')
+        } else if (inputType.isTokenType) {
+            // Mutable, multiport, token type
+            pr(builder, '''
+                // Mutable multiport input, so copy the input structs
+                // into an array of temporary variables on the stack.
+                «structType» __tmp_«input.name»[«input.multiportWidth»];
+                «structType»* «input.name»[«input.multiportWidth»];
+                for (int i = 0; i < «input.multiportWidth»; i++) {
+                    «input.name»[i] = &__tmp_«input.name»[i];
+                    __tmp_«input.name»[i] = *(self->__«input.name»[i]);
+                    // If necessary, copy the tokens.
+                    if («input.name»[i]->is_present) {
+                        «input.name»[i]->length = «input.name»[i]->token->length;
+                        token_t* _lf_input_token = «input.name»[i]->token;
+                        «input.name»[i]->token = writable_copy(_lf_input_token);
+                        if («input.name»[i]->token != _lf_input_token) {
+                            // A copy of the input token has been made.
+                            // This needs to be reference counted.
+                            «input.name»[i]->token->ref_count = 1;
+                            // Repurpose the next_free pointer on the token to add to the list.
+                            «input.name»[i]->token->next_free = _lf_more_tokens_with_ref_count;
+                            _lf_more_tokens_with_ref_count = «input.name»[i]->token;
+                        }
+                        «input.name»[i]->value = («inputType.targetType»)«input.name»[i]->token->value;
+                    } else {
+                        «input.name»[i]->length = 0;
+                    }
+                }
+            ''')
         } else {
-            throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
+            // Mutable, multiport, primitive type
+            pr(builder, '''
+                // Mutable multiport input, so copy the input structs
+                // into an array of temporary variables on the stack.
+                «structType» __tmp_«input.name»[«input.multiportWidth»];
+                «structType»* «input.name»[«input.multiportWidth»];
+                for (int i = 0; i < «input.multiportWidth»; i++) {
+                    «input.name»[i]  = &__tmp_«input.name»[i];
+                    // Copy the struct, which includes the value.
+                    __tmp_«input.name»[i] = *(self->__«input.name»[i]);
+                }
+            ''')
         }
         // Set the _width variable for all cases. This will be -1
         // for a variable-width multiport, which is not currently supported.
@@ -3515,11 +3625,28 @@ class CGenerator extends GeneratorBase {
                 "Output is required to have a type: " + output.name)
         } else {
             val outputStructType = variableStructType(output, reactor)
-            // FIXME: This is not likely to work for multiports.
-            var arraySpec = output.multiportArraySpec
-            if (arraySpec != '') arraySpec = '*'
+            // Unfortunately, for the SET macros to work out-of-the-box for
+            // multiports, we need an array of *pointers* to the output structs,
+            // but what we have on the self struct is an array of output structs.
+            // So we have to handle multiports specially here a construct that
+            // array of pointers.
+            if (!output.isMultiport) {
+                pr(builder, '''
+                    «outputStructType»* «output.name» = &self->__«output.name»;
+                ''')
+            } else {
+                pr(builder, '''
+                    «outputStructType»* «output.name»[«output.multiportWidth»];
+                    for(int i=0; i < «output.multiportWidth»; i++) {
+                         «output.name»[i] = &(self->__«output.name»[i]);
+                    }
+                ''')
+            }
+            // Set the _width variable for all cases. This will be -1
+            // for a variable-width multiport, which is not currently supported.
+            // It will be -2 if it is not multiport.
             pr(builder, '''
-                «outputStructType»*«arraySpec» «output.name» = &self->__«output.name»;
+                int «output.name»_width = «output.multiportWidth»;
             ''')
         }
     }
@@ -3574,7 +3701,7 @@ class CGenerator extends GeneratorBase {
      *  (it is a pointer) or [] (it is a array with unspecified length).
      *  @param type The type specification.
      */
-    private def isTokenType(InferredType type) {
+    protected def isTokenType(InferredType type) {
         if (type.isUndefined)
             return false
         val targetType = type.targetType
@@ -3669,9 +3796,17 @@ class CGenerator extends GeneratorBase {
                         // If the rootType is 'void', we need to avoid generating the code
                         // 'sizeof(void)', which some compilers reject.
                         val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                        pr('''
-                            «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
-                        ''')
+                        if (output instanceof MultiportInstance) {
+                            pr('''
+                                for (int i = 0; i < «output.width»; i++) {
+                                    «nameOfSelfStruct»->__«output.name»[i].token = __create_token(«size»);
+                                }
+                            ''')
+                        } else {
+                            pr('''
+                                «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
+                            ''')
+                        }
                     }
                 }
                 // In case this is a composite, handle its contained reactors.
@@ -3680,39 +3815,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Set inputs _is_present variables to the default false.
-     *  This is useful in case the input is left unconnected.
-     *  @param parent The container reactor.
-     *  @param federate The federate, or null if there is no federation.
-     */
-    private def void setInputsAbsentByDefault(ReactorInstance parent, FederateInstance federate) {
-        // For all inputs, set a default where their _is_present variable points to False.
-        // This handles dangling input ports that are not connected to anything
-        // even if they are connected locally in the hierarchy, but not globally.
-        for (containedReactor : parent.children) {
-            // Do this only for reactors in the federate.
-            if (reactorBelongsToFederate(containedReactor, federate)) {
-                var selfStructName = selfStructName(containedReactor)
-                for (input : containedReactor.inputs) {
-                    val width = input.definition.multiportWidth
-                    if (width > 0) {
-                        pr('''
-                            for (int i = 0; i < «width»; i++) {
-                                «selfStructName»->__«input.definition.name»[i] = NULL;
-                            }
-                        ''')
-                    } else {
-                        pr('''
-                            «selfStructName»->__«input.definition.name» = NULL;
-                        ''')                        
-                    }
-                }
-                // In case this is a composite, handle its assignments.
-                setInputsAbsentByDefault(containedReactor, federate)
-            }
-        }
-    }
-        
     // Regular expression pattern for array types with specified length.
     // \s is whitespace, \w is a word character (letter, number, or underscore).
     // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
@@ -3743,7 +3845,7 @@ class CGenerator extends GeneratorBase {
             if (p.type.isList && p.init.size > 1) {
                 return p.init.join('{', ', ', '}', [it.targetValue])
             } else {
-            	return p.init.get(0).targetValue
+                return p.init.get(0).targetValue
             }
         
     }
