@@ -21,6 +21,12 @@ class LinguaFrancaContainerManager extends StateBasedContainerManager {
 	//@Inject
 	//LinguaFrancaStateManager.Provider stateProvider;
 	
+	/*
+	 * Based on a flat resource description index, finds a list of containers that have access to a given resource.
+	 * These containers hold descriptions for the resource and can be used to retrieve imported names from the resource.
+	 * @param desc The description of a resource that is used to lookup the resource description index.
+	 * @param resourceDescriptions The flat list of resource descriptions that is used as a database to lookup desc.
+	 */
 	override
 	List<IContainer> getVisibleContainers(IResourceDescription desc, IResourceDescriptions resourceDescriptions) {
 		if (delegate.shouldUseProjectDescriptionBasedContainers(resourceDescriptions)) {
@@ -41,21 +47,7 @@ class LinguaFrancaContainerManager extends StateBasedContainerManager {
 		}
 
 		
-		try{
-		    val LF_CLASSPATH = System.getenv("LF_CLASSPATH")
-		    val paths = LF_CLASSPATH.split(System.getProperty("path.separator"));
-		    var path_list = new ArrayList<String>(paths.length)
-		    Collections.addAll ( path_list, paths)
-		    System.out.println("Reading Lingua Franca classpath: " + paths.toString)
-		    System.out.println("Reading resource descriptions : " + resourceDescriptions.toString)
-		    result.addAll(super.getVisibleContainers(path_list, resourceDescriptions))
-		}
-		catch (Exception e)
-		{
-			System.out.println("Error: " + e.message)
-		}
 		
-		System.out.println("Returning containers : " + result.toString)
 		return result;
 	}
 
