@@ -8,7 +8,7 @@ reactor foo {
     input x:int;
     output y:int;
     reaction(x) -> y {=
-        set(y, 2*x->value);
+        SET(y, 2*x->value);
     =}
 }
 reactor print {
@@ -43,7 +43,7 @@ main reactor top {
     p = new print();
     timer t(0, 1 sec);
     reaction(t) -> f.x {=
-        set(f.x, 42);
+        SET(f.x, 42);
     =}
     f.y -> p.x after 10 msec;
 }

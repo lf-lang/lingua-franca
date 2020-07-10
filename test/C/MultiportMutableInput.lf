@@ -1,0 +1,46 @@
+// Source produces a ints on a multiport, which it passes
+// to Scale. Scale requests a writable copy.
+// It modifies it and passes it to Print. It gets freed after
+// Print is done with it.
+target C;
+reactor Source {
+    output[2] out:int;
+    reaction(startup) -> out {=
+        SET(out[0], 21);
+        SET(out[1], 42);
+    =}
+}
+// The scale parameter is just for testing.
+reactor Print(scale:int(1)) {
+    input[2] in:int;
+    reaction(in) {=
+        int expected = 42;
+        for(int j = 0; j < 2; j++) {
+            printf("Received on channel %d: %d", j, in[j]->value);
+            if (in[j]->value != expected) {
+                printf("ERROR: Expected %d!\n", expected);
+                exit(1);
+            }
+            expected *=2;
+        }
+    =}
+}
+
+reactor Scale(scale:int(2)) {
+    mutable input[2] in:int;
+    output[2] out:int;
+    reaction(in) -> out {=
+        for(int j = 0; j < 2; j++) {
+            // Modify the input, allowed because mutable.
+            in[j]->value *= self->scale;
+            SET(out[j], in[j]->value);
+        }
+    =}
+}
+main reactor ArrayScale {
+    s = new Source();
+    c = new Scale();
+    p = new Print(scale=2);
+    s.out -> c.in;
+    c.out -> p.in;
+}

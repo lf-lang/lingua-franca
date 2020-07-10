@@ -67,7 +67,7 @@ target C {
     threads: 1, // Must use threaded implementation so schedule is thread safe.
     flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c",
     timeout: 10 secs,
-    keepalive: true // FIXME: This should be automatic with a physical action.
+    keepalive: true
 };
 
 import MQTTPublisher.lf;
@@ -93,7 +93,7 @@ reactor MessageGenerator(root:string("")) {
         // Add one for the null terminator.
         int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
         // Dynamically allocate memory for the output.
-        set_new_array(message, length);
+        SET_NEW_ARRAY(message, length);
         // Populate the output string and increment the count.
         snprintf(message->value, length, "%s %d", self->root, self->count++);
         printf("MessageGenerator: At time %lld, publish message: %s\n",

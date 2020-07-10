@@ -22,7 +22,7 @@ reactor RandomSource {
     reaction(prompt) -> out, prompt {=
         printf("Hit Return!");
         fflush(stdout);
-        set(out, true);
+        SET(out, true);
     =}
     reaction(another) -> prompt {=
         schedule(prompt, random_time());
@@ -69,7 +69,7 @@ reactor GetUserInput {
             printf("Response time ms: %d\n", time_in_ms);
             self->prompt_time = 0LL;
         }
-        set(another, true);
+        SET(another, true);
     =}
 
     reaction(prompt) {=

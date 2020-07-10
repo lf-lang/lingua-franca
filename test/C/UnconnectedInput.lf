@@ -1,0 +1,43 @@
+// Test unconnected input.
+target C {
+    timeout: 5 sec,
+    fast: true
+};
+reactor Source {
+    output out:int;
+    timer t(0, 1 sec);
+    state s:int(1);
+    reaction(t) -> out {=
+        SET(out, self->s++);
+    =}
+}
+reactor Add {
+    input in1:int;
+    input in2:int;
+    output out:int;
+    reaction(in1, in2) -> out {=
+        int result = 0;
+        if (in1->is_present) result += in1->value;
+        if (in2->is_present) result += in2->value;
+        SET(out, result);
+    =}
+}
+reactor Print {
+    input in:int;
+    state expected:int(1);
+    reaction(in) {=
+        printf("Received: %d.\n", in->value);
+        if (in->value != self->expected) {
+            printf("ERROR: Expected %d.\n", self->expected);
+            exit(1);
+        }
+        self->expected++;
+    =}
+}
+main reactor UnconnectedInput {
+    source = new Source();
+    add = new Add();
+    print = new Print();
+    source.out -> add.in2;
+    add.out -> print.in;
+}

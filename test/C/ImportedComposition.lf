@@ -5,7 +5,7 @@ reactor Gain {
     input x:int;
     output y:int;
     reaction(x) -> y {=
-        set(y, x->value * 2);
+        SET(y, x->value * 2);
     =}
 }
 reactor ImportedComposition {

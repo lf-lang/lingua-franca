@@ -16,7 +16,7 @@ reactor GeneratedDelay {
 =}
 
   reaction(act) -> y_out {=
-    set(y_out, self->y_state);
+    SET(y_out, self->y_state);
   =}
 }
 reactor Source {
@@ -24,7 +24,7 @@ reactor Source {
     timer t;
     // reaction(t) -> out after 100 msec {=
     reaction(t) -> out {=
-        set(out, 1);
+        SET(out, 1);
     =} 
 }
 
