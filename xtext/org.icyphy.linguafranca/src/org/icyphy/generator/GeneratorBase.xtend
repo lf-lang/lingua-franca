@@ -540,7 +540,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     def void collectClasses(Instantiation instantiation, PrecedenceGraph<Reactor> graph) {
         val reactor = instantiation.reactorClass
         val container = instantiation.eContainer as Reactor
-        if (!container.isMain) {
+        if (!container.isMain && !container.isFederated) {
             graph.addEdge(container, reactor)
         } else {
             graph.addNode(reactor)
