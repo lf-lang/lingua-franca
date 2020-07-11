@@ -343,12 +343,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // The specific port may already be the one specified, in which case,
             // skip this.
             if (dstInstance instanceof MultiportInstance) {
-                val width = (dstInstance as MultiportInstance).instances.size
+                val width = (dstInstance).instances.size
                 val index = connection.rightPort.variableArraySpec.length
                 if (index >= width) {
                     generator.reportError(connection.rightPort, "Index out of range.")
                 }
-                destination = (dstInstance as MultiportInstance).instances.get(index)
+                destination = (dstInstance).instances.get(index)
             }
         }
         var source = srcInstance

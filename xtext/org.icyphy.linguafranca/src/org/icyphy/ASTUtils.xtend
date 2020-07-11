@@ -1395,7 +1395,14 @@ class ASTUtils {
                                 line = node.text
                             }
                         } else if ("ML_COMMENT".equals(rule.name)) {
-                            line = node.text.split("\n").filterNull.findFirst[contains(key)]
+                            var found = false
+                            for (str : node.text.split("\n")) {
+                                if (!found && str.contains(key)) {
+                                    line = str
+                                }
+                            }
+                            // This is shorter but causes a warning:
+                            //line = node.text.split("\n").filterNull.findFirst[it.contains(key)]
                         }
                         if (line !== null) {
                             var value = line.substring(line.indexOf(key) + key.length).trim()

@@ -1318,7 +1318,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             val URI currentURI = resource?.getURI;
             val URI importedURI = URI?.createFileURI(importStatement?.importedNamespace);
             val URI resolvedURI = importedURI?.resolve(currentURI);
-            val ResourceSet resourceSet = resource?.resourceSet;
+            //val ResourceSet resourceSet = resource?.resourceSet;
             
             // Check for self import.
             if (resolvedURI.equals(currentURI)) {

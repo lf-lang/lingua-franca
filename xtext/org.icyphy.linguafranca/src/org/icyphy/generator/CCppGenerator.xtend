@@ -28,15 +28,10 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.util.HashMap
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
 
