@@ -15,10 +15,10 @@ reactor Free(scale:int(2)) {
     =}
 }
 main reactor ArrayFree {
-    s = new Source();
+    s = new ArrayPrintSource();
     c = new Free();
-    c2 = new Scale();
-    p = new Print(scale = 2);
+    c2 = new ArrayScaleScale();
+    p = new ArrayPrintPrint(scale = 2);
     s.out -> c.in;
     s.out -> c2.in;
     c2.out -> p.in;

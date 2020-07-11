@@ -153,7 +153,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 if (reactor.eResource.URI != other.eResource.URI) {
                     // This means distinct files, all reactors in same file have same URI
                     if (reactor.name == other.name) {
-                        warning('''Duplicate reactor '«reactor.name»' in package''', LinguaFrancaPackage.Literals.REACTOR__NAME,
+                        error('''Duplicate reactor '«reactor.name»' in package''', LinguaFrancaPackage.Literals.REACTOR__NAME,
                             GLOBALLY_DUPLICATE_NAME)
                     }
                 }

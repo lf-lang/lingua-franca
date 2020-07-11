@@ -1,7 +1,7 @@
 // Source produces a struct directly, rather than a pointer to
 // a struct.
 target C;
-reactor StructAsType {
+reactor StructAsTypeSomething {
     preamble {=
         typedef struct hello_t {
             char* name;
@@ -9,6 +9,7 @@ reactor StructAsType {
         } hello_t;
     =}
     output out:hello_t;
+    
     reaction(startup) -> out {=
         // Create the struct on the stack and then copy
         // it to the output as follows:
@@ -22,7 +23,7 @@ reactor StructAsType {
     =}
 }
 // expected parameter is for testing.
-reactor Print(expected:int(42)) {
+reactor StructAsTypePrint(expected:int(42)) {
     input in:hello_t;
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value.name, in->value.value);
@@ -32,8 +33,8 @@ reactor Print(expected:int(42)) {
         }
     =}
 }
-main reactor StructPrint {
-    s = new StructAsType();
-    p = new Print();
+main reactor StructAsType {
+    s = new StructAsTypeSomething();
+    p = new StructAsTypePrint();
     s.out -> p.in;
 }

@@ -13,7 +13,7 @@ target C {
     timeout: 5 sec,
     fast: true
 };
-reactor Ball {
+reactor DoubleInvocationBall {
     output position:int;
     output velocity:int;
     state p:int(200);
@@ -24,7 +24,7 @@ reactor Ball {
         self->p -= 1;
     =}
 }
-reactor Print {
+reactor DoubleInvocationPrint {
     input velocity:int;
     input position:int;
     state previous:int(-1);
@@ -42,9 +42,9 @@ reactor Print {
     =}
 }
 main reactor DoubleInvocation {
-    b1 = new Ball();
-    p = new Print();
-    plot = new Print();
+    b1 = new DoubleInvocationBall();
+    p = new DoubleInvocationPrint();
+    plot = new DoubleInvocationPrint();
     b1.position -> p.position;
     b1.velocity -> p.velocity;
     b1.position -> plot.position;

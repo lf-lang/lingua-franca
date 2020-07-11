@@ -7,7 +7,6 @@ import ActionDelay;
 
 main reactor Import {
 	timer t;
-	
 	a = new Imported();
 	reaction(t) -> a.x {=
 		SET(a.x, 42); 

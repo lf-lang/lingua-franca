@@ -1,7 +1,7 @@
 // Source produces a dynamically allocated array, which it passes
 // to Print. Reference counting ensures that the array is freed.
 target C;
-reactor Source {
+reactor ArrayPrintSource {
     output out:int[];
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
@@ -14,7 +14,7 @@ reactor Source {
     =}
 }
 // The scale parameter is just for testing.
-reactor Print(scale:int(1)) {
+reactor ArrayPrintPrint(scale:int(1)) {
     input in:int[];
     reaction(in) {=
         int count = 0;       // For testing.
@@ -37,7 +37,7 @@ reactor Print(scale:int(1)) {
     =}
 }
 main reactor ArrayPrint {
-    s = new Source();
-    p = new Print();
+    s = new ArrayPrintSource();
+    p = new ArrayPrintPrint();
     s.out -> p.in;
 }
