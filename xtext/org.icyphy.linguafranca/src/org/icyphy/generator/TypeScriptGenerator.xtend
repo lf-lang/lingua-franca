@@ -78,8 +78,6 @@ class TypeScriptGenerator extends GeneratorBase {
     val acceptableTargetSet = newHashSet('TypeScript')
     
     // Target filename.
-    var tsFilename = filename + ".ts"
-    var jsFilename = filename + ".js"
     var configPath = File.separator + "lib" + File.separator + "TS"
     var projectPath = directory + File.separator + filename
     var reactorTSPath = File.separator + "lib" + File.separator +
@@ -118,8 +116,8 @@ class TypeScriptGenerator extends GeneratorBase {
         // FIXME: These important files are defined above in two places
         
         // Important files and directories
-        tsFilename = filename + ".ts"
-        jsFilename = filename + ".js"
+        var tsFilename = filename + ".ts"
+        var jsFilename = filename + ".js"
         projectPath = directory + File.separator + filename
         reactorTSPath = File.separator + "lib" + File.separator +
             "TS" + File.separator + "reactor-ts"
@@ -175,8 +173,8 @@ class TypeScriptGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val tsFilename = federateFilename + ".ts";
-            val jsFilename = federateFilename + ".js";
+            tsFilename = federateFilename + ".ts";
+            jsFilename = federateFilename + ".js";
 
             // Delete source previously produced by the LF compiler.
             var file = new File(srcGenPath + File.separator + tsFilename)

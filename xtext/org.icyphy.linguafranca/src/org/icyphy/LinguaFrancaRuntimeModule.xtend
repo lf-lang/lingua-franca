@@ -3,21 +3,16 @@ package org.icyphy
 
 import org.eclipse.xtext.resource.IContainer
 import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy
+import org.eclipse.xtext.resource.IResourceDescription
 import org.eclipse.xtext.resource.containers.IAllContainersState
 import org.eclipse.xtext.resource.impl.DefaultResourceDescriptionStrategy
 import org.eclipse.xtext.scoping.IGlobalScopeProvider
-import org.eclipse.xtext.scoping.impl.DefaultGlobalScopeProvider
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper
 import org.icyphy.scoping.LinguaFrancaContainerManager
-import org.icyphy.scoping.LinguaFrancaStateManager
-import org.icyphy.validation.LinguaFrancaNamesAreUniqueValidationHelper
-import com.google.inject.Provider
-
-import org.eclipse.xtext.resource.containers.ResourceSetBasedAllContainersStateProvider
-import org.icyphy.scoping.LinguaFrancaStateManagerProvider
-import org.eclipse.xtext.resource.IResourceDescription
-import org.icyphy.scoping.LinguaFrancaResourceDescriptionManager
 import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
+import org.icyphy.scoping.LinguaFrancaResourceDescriptionManager
+import org.icyphy.scoping.LinguaFrancaStateManagerProvider
+import org.icyphy.validation.LinguaFrancaNamesAreUniqueValidationHelper
 
 /**
  * This class is used to register components to be used at runtime 
