@@ -4,7 +4,7 @@ target C {
     timeout: 5 sec,
     fast: true
 };
-reactor Source {
+reactor DelayArrayWithAfterSource {
     output out:int[];
     state iteration:int(1);
     timer t(0, 1 sec);
@@ -20,8 +20,9 @@ reactor Source {
         self->iteration++;
     =}
 }
+
 // The scale parameter is just for testing.
-reactor Print(scale:int(1)) {
+reactor DelayArrayWithAfterPrint(scale:int(1)) {
     input in:int[];
     state iteration:int(1);
     state inputs_received:int(0);
@@ -58,8 +59,8 @@ reactor Print(scale:int(1)) {
         }
     =}
 }
-main reactor DelayArray {
-    s = new Source();
-    p = new Print();
+main reactor DelayArrayWithAfter {
+    s = new DelayArrayWithAfterSource();
+    p = new DelayArrayWithAfterPrint();
     s.out -> p.in after 1500 msec;
 }

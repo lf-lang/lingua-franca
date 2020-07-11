@@ -6,7 +6,7 @@
 target C;
 import ArrayPrint.lf;
 
-reactor Scale(scale:int(2)) {
+reactor ArrayScaleScale(scale:int(2)) {
     mutable input in:int[];
     output out:int[];
     reaction(in) -> out {=
@@ -17,9 +17,9 @@ reactor Scale(scale:int(2)) {
     =}
 }
 main reactor ArrayScale {
-    s = new Source();
-    c = new Scale();
-    p = new Print(scale=2);
+    s = new ArrayPrintSource();
+    c = new ArrayScaleScale();
+    p = new ArrayPrintPrint(scale=2);
     s.out -> c.in;
     c.out -> p.in;
 }

@@ -5,7 +5,40 @@
 // Print is done with it.
 target C;
 import StructPrint.lf;
-reactor Scale(scale:int(2)) {
+
+// expected parameter is for testing.
+reactor TestInput(expected:int(42)) {
+    
+    input in:hello_t*; // FIXME: WARNING: This is extremely precarious. 
+    // Instantiations determine the order in which reactor definitions are
+    // generated. This is necessary one reactor can instantiate another,
+    // and the constructor of this other reactor must be defined before
+    // it is referenced. The instantiations of TestInput and StrucScalePrint
+    // in the main reactor below have to dependencies, so the ordering
+    // is arbitrary. This input declaration, however, implies a dependency
+    // on the preamble of StructScalePrint. Counterintuitively, switching
+    // the order of these two reactor classes in the LF source causes a compilation
+    // failure. We can avert this by letting the order of declaration within
+    // the file also impose an ordering constraint, but should a preamble
+    // declared in one reactor really affect anything in another reactor?
+    // Don't we have a file-scope preamble for this purpose? The syntax
+    // allows it, but the code generator ignores it currently.
+    reaction(in) {=
+        printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
+        if (in->value->value != self->expected) {
+            printf("ERROR: Expected value to be %d.\n", self->expected);
+            exit(1);
+        }
+    =}
+}
+
+reactor StructScalePrint(scale:int(2)) {
+      preamble {=
+        typedef struct hello_t {
+            char* name;
+            int value;
+        } hello_t;
+    =}
     // Mutable keyword indicates that this reactor wants a writable copy of the input.
     mutable input in:hello_t*;
     
@@ -17,9 +50,9 @@ reactor Scale(scale:int(2)) {
 }
 
 main reactor StructScale {
-    s = new StructPrint();
-    c = new Scale();
-    p = new Print(expected=84);
+    s = new StructScalePrint();
+    c = new StructScalePrint();
+    p = new TestInput(expected=84);
     s.out -> c.in;
     c.out -> p.in;
 }
