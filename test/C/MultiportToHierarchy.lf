@@ -17,7 +17,7 @@ reactor Source {
 }
 reactor Destination {
 	state s:int(6);
-	input[5] in:int; // Width is one larger than that of the source.
+	input[4] in:int; // Width is one larger than that of the source.
 	reaction(in) {=
 		int sum = 0;
 		for (int i = 0; i < in_width; i++) {
@@ -39,7 +39,7 @@ reactor Destination {
     =}
 }
 reactor Container {
-    input[5] in:int;
+    input[4] in:int;
     dst = new Destination();
     in -> dst.in;
 }

@@ -57,7 +57,7 @@ class MultiportInstance extends PortInstance {
         val width = definition.arraySpec.length
         
         for (var i = 0; i < width; i++) {
-            val instancePort = new PortInstance(definition, parent, i)
+            val instancePort = new PortInstance(definition, parent, i, this)
             instances.add(instancePort)
             // Inputs arriving at the instance port trigger the reactions
             // that depend on the multiport. 
