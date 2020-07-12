@@ -64,6 +64,7 @@ reactor Scale(scale:int(2)) {
         }
     =}
 }
+
 main reactor ArrayScale {
     s = new Source();
     c = new Scale();

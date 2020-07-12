@@ -6,9 +6,9 @@ target C {
     fast: true
 }; 
 reactor Source {
-    output[4] out:int;
+    output[3] out:int;
     reaction(startup) -> out {=
-        for(int i = 0; i < 4; i++) {
+        for(int i = 0; i < out_width; i++) {
             SET(out[i], i);
         }
     =}
@@ -33,7 +33,7 @@ reactor Destination(bank_position:int(0)) {
     =}
 }
 reactor Container {
-    input[4] in:int;
+    input[3] in:int;
     c = new[3] Destination();
     in -> c.in;
 }

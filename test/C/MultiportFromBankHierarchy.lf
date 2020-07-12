@@ -13,7 +13,7 @@ reactor Source(bank_position:int(0)) {
 }
 reactor Container {
     output[3] out:int;
-    s = new[4] Source();
+    s = new[3] Source();
     s.out -> out;
 }
 reactor Destination {

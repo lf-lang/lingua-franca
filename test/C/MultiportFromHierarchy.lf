@@ -1,5 +1,4 @@
  // Check multiport output to multiport input, where the former is a hierarchical reactor.
- // Note that the widths do not all match.
 target C {
     timeout: 2 sec,
     threads: 4,
@@ -17,7 +16,7 @@ reactor Source {
 }
 reactor Destination {
 	state s:int(6);
-	input[5] in:int; // Width is one larger than that of the source.
+	input[4] in:int;
 	reaction(in) {=
 		int sum = 0;
 		for (int i = 0; i < in_width; i++) {
@@ -39,13 +38,13 @@ reactor Destination {
     =}
 }
 reactor Container {
-    output[5] out:int;
+    output[4] out:int;
     src = new InsideContainer();
     src.out -> out;
 }
 
 reactor InsideContainer {
-    output[6] out:int;
+    output[4] out:int;
     src = new Source();
     src.out -> out;
 }
