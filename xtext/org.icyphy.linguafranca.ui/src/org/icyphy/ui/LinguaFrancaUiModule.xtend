@@ -17,6 +17,8 @@ import org.eclipse.xtext.ui.editor.autoedit.CommandInfo
 import org.eclipse.xtext.ui.editor.autoedit.DefaultAutoEditStrategyProvider
 import org.eclipse.xtext.ui.editor.autoedit.MultiLineTerminalsEditStrategy
 import org.eclipse.xtext.ui.editor.autoedit.SingleLineTerminalsStrategy
+import com.google.inject.Provider
+import org.eclipse.xtext.resource.containers.IAllContainersState
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -29,6 +31,12 @@ import org.eclipse.xtext.ui.editor.autoedit.SingleLineTerminalsStrategy
  */
 @FinalFieldsConstructor
 class LinguaFrancaUiModule extends AbstractLinguaFrancaUiModule {
+    
+    // Instead of classpath, use Properties -> Project Reference
+    override Provider<IAllContainersState> provideIAllContainersState() {
+       return org.eclipse.xtext.ui.shared.Access.getJavaProjectsState();
+    }
+    
     
     def Class<? extends DefaultAutoEditStrategyProvider> bindAutoEditStrategy() {
         return LinguaFrancaAutoEdit

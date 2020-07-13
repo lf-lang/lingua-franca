@@ -13,6 +13,7 @@ import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 import org.icyphy.scoping.LinguaFrancaResourceDescriptionManager
 import org.icyphy.scoping.LinguaFrancaStateManagerProvider
 import org.icyphy.validation.LinguaFrancaNamesAreUniqueValidationHelper
+import org.eclipse.xtext.resource.containers.StateBasedContainerManager
 
 /**
  * This class is used to register components to be used at runtime 
@@ -21,7 +22,7 @@ import org.icyphy.validation.LinguaFrancaNamesAreUniqueValidationHelper
 class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
 	
 	override Class<? extends IContainer.Manager> bindIContainer$Manager() {
-        LinguaFrancaContainerManager;
+        return StateBasedContainerManager;
     }
     
    override Class<? extends IAllContainersState.Provider> bindIAllContainersState$Provider() {
