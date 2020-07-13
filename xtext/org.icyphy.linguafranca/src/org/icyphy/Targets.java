@@ -348,10 +348,15 @@ public enum Targets {
          */
         COMPILER("compiler", Arrays.asList(Targets.ALL)),
         /**
-         * Directive to let the execution engine run as fast as possible (and
+         * Directive to let the execution engine allow logical time to elapse
+         * faster than physical time.
          */
         FAST("fast", Arrays.asList(Targets.ALL)),
-        
+        /**
+         * Directive to stage files on the class path to be copied into the
+         * directory that stores the generated files.
+         */
+        FILES("files", Arrays.asList(Targets.ALL)),
         /**
          * Flags to be passed on to the target compiler.
          */
@@ -363,7 +368,8 @@ public enum Targets {
         COORDINATION("coordination", Arrays.asList(Targets.C, Targets.CCpp)),
         
         /**
-         * FIXME
+         * Directive to let the execution engine remain active also if there
+         * are no more events in the event queue.
          */
         KEEPALIVE("keepalive", Arrays.asList(Targets.ALL)),
         
