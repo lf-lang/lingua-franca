@@ -1,5 +1,5 @@
 CC=gcc
-LDFLAGS = $(shell python3-config --ldflags) 
+LDFLAGS = $(shell python3-config --libs) 
 CFLAGS = $(shell python3-config --includes)
 
 %.o: %.c
