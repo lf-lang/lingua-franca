@@ -1,0 +1,12 @@
+// This tests the ability to import a reactor definition
+// that itself imports a reactor definition.
+target C;
+import test.shared.ForeignImport.*;
+
+main reactor Import {
+	timer t;
+	a = new ForeignImport();
+	reaction(t) -> a.x {=
+		SET(a.x, 42); 
+	=}
+}
