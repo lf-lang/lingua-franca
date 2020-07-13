@@ -27,6 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** 
  * Grammar for Lingua Franca.
+ * A note of caution: extending this grammar with productions that introduce
+ * new terminals (i.e., anything written between quotes), will require those 
+ * terminals to also be added to the Token production at the bottom of this
+ * file. Failing to do so will cause a parse error whenever a terminal not
+ * listed in the Token production is featured in a segment of target-language
+ * code (e.g., a reaction body).
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
@@ -380,10 +386,15 @@ enum TimeUnit:
     DAY='day' | DAYS='days' |
     WEEK='week' | WEEKS='weeks';
 
+// An arbitrary sequence of terminals.
 Body:
     Token*
 ;
-
+// Production for the tokenization of target code. All terminals used in any
+// of the productions in the grammar (except for `{=` and `=}`) have to be
+// listed here. Whenever a terminal is encountered amid a sequence of target-
+// language tokens that is not featured in this production, this will demarcate
+// the end of a target-code segment.
 Token:
     // Imported terminals
     ID | INT | STRING | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER | 
