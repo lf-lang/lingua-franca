@@ -82,6 +82,7 @@ import org.eclipse.xtext.resource.IResourceDescriptions
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import com.google.inject.Provider
 import org.eclipse.xtext.resource.XtextResourceSet
+import org.icyphy.linguaFranca.Import
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -162,6 +163,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
     }
 
+    @Check
+    def checkImport(Import imp) {
+        if (imp.importedNamespace !== null) {
+            // .*
+            // Check if 
+            //resourceSetProvider.get.classpathUriResolver.resolve()
+        }
+    }
 
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
