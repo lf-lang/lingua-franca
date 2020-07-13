@@ -20,6 +20,7 @@ import org.icyphy.LinguaFrancaStandaloneSetup
 import java.io.FileNotFoundException
 import java.util.Properties
 import java.util.List
+import java.util.ArrayList
 
 class Main {
 
@@ -102,17 +103,38 @@ class Main {
             if (!file.equals(fileName))
                 set.getResource(URI.createURI(file), true);
         }
-		
+        
+        
+        // FIXME: temporary fix for the standalone mode. Does not work for the IDE.
+        try
+        {
+            // Load all the resource in LF_CLASSPATH
+            var LF_CLASSPATH = System.getenv("LF_CLASSPATH");
+            var String[] paths = LF_CLASSPATH.split(System.getProperty("path.separator"));
+            for (String path: paths) {
+                // Add all global files to the resource
+                for (String file : getSourceFiles(path)) {
+                    if (!file.equals(fileName))
+                        set.getResource(URI.createURI(file), true);
+                    }
+            }
+        
+        }
+        catch (Exception e)
+        {
+            System::err.println("LF_CLASSPATH is not set.")
+        }
+        		
 		val resource = set.getResource(URI.createFileURI(fileName), true)
 
 		// Read the code
 		val code = new StringBuilder();
 		
-			val reader = new BufferedReader(new FileReader(fileName));
-			var String line;
-			while ((line = reader.readLine()) !== null) {
-				code.append(line).append("\n");
-			}
+		val reader = new BufferedReader(new FileReader(fileName));
+		var String line;
+		while ((line = reader.readLine()) !== null) {
+			code.append(line).append("\n");
+		}
 		
 
 		// Validate the resource
