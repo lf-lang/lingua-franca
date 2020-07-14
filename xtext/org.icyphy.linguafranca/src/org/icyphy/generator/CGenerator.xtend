@@ -2276,15 +2276,29 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** Open a non-Lingua Franca import file at the specified URI
-     *  in the specified resource set. Throw an exception if the
-     *  file import is not supported. This class imports .proto files
-     *  and runs, if possible, the protoc protocol buffer code generator
-     *  to produce the required .h and .c files.
-     *  @param importStatement The original import statement (used for error reporting).
-     *  @param resourceSet The resource set in which to find the file.
-     *  @param resolvedURI The URI to import.
-//     */
+    /**
+     * Process a given .proto file.
+     * 
+     * Run, if possible, the proto-c protocol buffer code generator to produce
+     * the required .h and .c files.
+     */
+     def processProtoFile(String name) {
+        val protocCommand = newArrayList
+        protocCommand.addAll("protoc-c", "--c_out=src-gen", name)
+        if (executeCommand(protocCommand, directory) != 0) {
+            return reportError(
+                "Protocol buffer compiler failed." +
+                    "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c." +
+                    "\nMake sure that your PATH variable includes the directory where protoc-c is installed," +
+                    "\ntypically /usr/local/bin. You can set PATH in ~/.bash_profile on Linux or Mac.")
+        }
+        val rootFilename = name.substring(0, name.length - 6)
+        compileAdditionalSources.add("src-gen" + File.separator + rootFilename +
+            ".pb-c.c")
+
+        compileLibraries.add('-l')
+        compileLibraries.add('protobuf-c')
+    }
 //    override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
 //        // Unfortunately, the resolvedURI appears to be useless for ordinary files
 //        // (non-xtext files). Use the original importStatement.importURI
@@ -3105,6 +3119,12 @@ class CGenerator extends GeneratorBase {
             val name = file.name
             if (name.endsWith(".h")) {
                 pr('''#include "«name»"''')
+            }
+            if (name.endsWith(".proto")) {
+                val rootFilename = name.substring(0, name.length - 6)
+                pr('#include "' + rootFilename + '.pb-c.h"')
+                
+                this.processProtoFile(file.name)
             }
             val target = new File(directory + File.separator + "src-gen/" + name)
             if (target.exists) {
