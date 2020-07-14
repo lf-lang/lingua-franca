@@ -76,6 +76,7 @@ import org.icyphy.graph.PrecedenceGraph
 import java.io.FileOutputStream
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.Targets.TargetProperties
 
 /**
  * Generator base class for shared code between code generators.
@@ -302,6 +303,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected boolean targetFast = false
     
     /**
+     * List of files to be processed by the code generator.
+     */
+    protected List<String> targetFiles = newLinkedList
+    /**
      * The value of the keepalive target parameter, or false if there is none.
      */
     protected boolean targetKeepalive
@@ -387,6 +392,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetFast = true
                         }
+                    case TargetProperties.FILES.name: {
+                        this.targetFiles = newLinkedList
+                        if (param.value.array !== null) {
+                            for (element : param.value.array.elements) {
+                                if (element.literal !== null) {
+                                    this.targetFiles.add(element.literal)
+                                }
+                            }
+                        }
+                    }
                     case "flags":
                         targetCompilerFlags = param.value.literal.withoutQuotes
                     case "no-compile":
