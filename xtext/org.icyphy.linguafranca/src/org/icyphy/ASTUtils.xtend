@@ -66,7 +66,8 @@ import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.nodemodel.impl.CompositeNode
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.TerminalRule
-
+import java.io.File
+import java.io.IOException
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -1428,4 +1429,51 @@ class ASTUtils {
     def static String label(Reaction n) {
         return n.findAnnotationInComments("@label")
     }
+    
+    
+    /**
+     * Search for a given file name in the current directory.
+     * If not found, search in directories in LF_CLASSPATH.
+     * The first file found will be returned.
+     * 
+     * @param fileName The file name or relative path + file name
+     * in plain string format
+     * @return A Java file or null if not found
+     */
+     def static File findFileInClassPath(String fileName)
+     {
+        val currentRoot = (new File("")).getAbsolutePath()
+        var File foundFile;
+                  
+        // Check in local directory
+        foundFile = new File(currentRoot + '/' + fileName);
+        if(foundFile.exists && foundFile.isFile)
+        {
+            return foundFile;
+        }
+        
+        
+        // Check in LF_CLASSPATH
+        try
+        {
+            // Load all the resources in LF_CLASSPATH
+            var LF_CLASSPATH = System.getenv("LF_CLASSPATH");
+            var String[] paths = LF_CLASSPATH.split(System.getProperty("path.separator"));
+            for (String path: paths) {
+                foundFile = new File(path + '/' + fileName);
+                if(foundFile.exists && foundFile.isFile)
+                {
+                    return foundFile;
+                }
+            }
+        
+        }
+        catch (Exception e)
+        {
+            System::err.println("LF_CLASSPATH is not set.")
+        }
+        
+        return null;
+     }
+     
 }
