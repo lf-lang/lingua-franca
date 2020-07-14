@@ -305,7 +305,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * List of files to be processed by the code generator.
      */
-    protected List<String> targetFiles = newLinkedList
+    protected List<File> targetFiles = newLinkedList
+    
+    /**
+     * Contents of $LF_CLASSPATH, if it was set.
+     */
+    protected String classpath
+    
     /**
      * The value of the keepalive target parameter, or false if there is none.
      */
@@ -375,6 +381,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def void analyzeModel(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
+        
+        this.resource = resource
+        // Figure out the file name for the target code from the source file name.
+        resource.analyzeResource
+        
+        // Clear any markers that may have been created by a pervious build.
+        // Markers mark problems in the Eclipse IDE when running in integrated mode.
+        clearMarkers()
+        
         generatorErrorsOccurred = false
         
         var target = resource.findTarget
@@ -393,12 +408,29 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetFast = true
                         }
                     case TargetProperties.FILES.name: {
+                        var allFound = true;
                         this.targetFiles = newLinkedList
+                        // FIXME: handle singleton case
+                        
                         if (param.value.array !== null) {
                             for (element : param.value.array.elements) {
                                 if (element.literal !== null) {
-                                    this.targetFiles.add(element.literal)
+                                    val filename = element.literal.withoutQuotes
+                                    val file = filename.findFileInClassPath
+                                    if (file !== null ) {
+                                        this.targetFiles.add(file)
+                                    } else {
+                                        // Warn that file hasn't been found.
+                                        allFound = false
+                                        this.reportWarning(target.config, '''Could not find «filename».''')
+                                    }
+                                    
                                 }
+                            }
+                            if (!allFound && this.classpath.isNullOrEmpty) {
+                                // Report that LF_CLASSPATH hasn't been set 
+                                // and something hasn't been found.
+                                this.reportWarning(target.config, "LF_CLASSPATH environment variable not set.")
                             }
                         }
                     }
@@ -457,13 +489,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
         }
         
-        this.resource = resource
-        // Figure out the file name for the target code from the source file name.
-        resource.analyzeResource
-        
-        // Clear any markers that may have been created by a pervious build.
-        // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        clearMarkers()
         
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.
@@ -1486,6 +1511,42 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 )
             }
         }
+    }
+
+    /**
+     * Search for a given file name in the current directory.
+     * If not found, search in directories in LF_CLASSPATH.
+     * The first file found will be returned.
+     * 
+     * @param fileName The file name or relative path + file name
+     * in plain string format
+     * @return A Java file or null if not found
+     */
+     def File findFile(String fileName) {
+
+        var File foundFile;
+
+        // Check in local directory
+        foundFile = new File(this.directory + '/' + fileName);
+        if (foundFile.exists && foundFile.isFile) {
+            return foundFile;
+        }
+
+        // Check in LF_CLASSPATH
+        // Load all the resources in LF_CLASSPATH if it is set.
+        this.classpath = System.getenv("LF_CLASSPATH");
+        if (this.classpath !== null) {
+            var String[] paths = this.classpath.split(
+                System.getProperty("path.separator"));
+            for (String path : paths) {
+                foundFile = new File(path + '/' + fileName);
+                if (foundFile.exists && foundFile.isFile) {
+                    return foundFile;
+                }
+            }
+        }
+        // Not found.
+        return null;
     }
 
     /**
