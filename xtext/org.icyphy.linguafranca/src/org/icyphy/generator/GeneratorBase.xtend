@@ -416,7 +416,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             for (element : param.value.array.elements) {
                                 if (element.literal !== null) {
                                     val filename = element.literal.withoutQuotes
-                                    val file = filename.findFileInClassPath
+                                    val file = filename.findFile
                                     if (file !== null ) {
                                         this.targetFiles.add(file)
                                     } else {
