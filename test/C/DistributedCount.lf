@@ -12,7 +12,7 @@ target C {
 
 import Count.lf;
 
-reactor Print {
+reactor DistrubutedCountPrint {
     input in:int;
     state c:int(1);
     reaction(in) {=
@@ -36,8 +36,8 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount at localhost {
+federated reactor DistributedCountMain at localhost {
     c = new Count();
-    p = new Print();
+    p = new DistrubutedCountPrint();
     c.out -> p.in after 200 msec;    // Indicating a 'logical' connection.
 }
