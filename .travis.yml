@@ -23,8 +23,8 @@ addons:
       - g++-7
 install:
   - wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protobuf-all-3.12.3.tar.gz
-  - tar -xzvf protobuf-2.4.1.tar.gz
-  - pushd protobuf-2.4.1 && ./configure --prefix=/usr && make && sudo make install && popd
+  - tar -xzvf protobuf-all-3.12.3.tar.gz
+  - pushd protobuf-all-3.12.3 && ./configure --prefix=/usr && make && sudo make install && popd
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
