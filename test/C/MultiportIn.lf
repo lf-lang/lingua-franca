@@ -18,10 +18,6 @@ reactor Computation {
 	input in:int;
 	output out:int;
 	reaction(in) -> out {=
-        // No need to sleep for this test.
-		// struct timespec sleep_time = {(time_t) 0, (long)200000000};
-		// struct timespec remaining_time;
-		// nanosleep(&sleep_time, &remaining_time);
 		SET(out, in->value);
 	=}
 }

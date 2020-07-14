@@ -85,6 +85,9 @@ import static extension org.icyphy.ASTUtils.*
  * * A constructor function for each reactor class. This is used to create
  *   a new instance of the reactor.
  * 
+ * * A destructor function for each reactor class. This frees all dynamically
+ *   allocated memory associated with an instance of the class.
+ * 
  * After these, the main generated function is `__initialize_trigger_objects()`.
  * This function creates the instances of reactors (using their constructors)
  * and makes connections between them.
@@ -231,6 +234,13 @@ import static extension org.icyphy.ASTUtils.*
  *   reactor that triggers reactions, there will be a trigger_t struct
  *   on the self struct with name `___t`, where t is the name of the trigger.
  * 
+ * ## Destructor
+ * 
+ * For each reactor class, this generator will create a constructor function named
+ * `delete_r`, where `r` is the reactor class name. This function takes a self
+ * struct for the class as an argument and frees all dynamically allocated memory
+ * for the instance of the class. 
+ * 
  * ## Connections Between Reactors
  * 
  * Establishing connections between reactors involves two steps.
@@ -325,7 +335,7 @@ class CGenerator extends GeneratorBase {
     var startTimeStepTokens = 0
 
     // Place to collect code to initialize timers for all reactors.
-    var startTimers = new StringBuilder()
+    protected var startTimers = new StringBuilder()
     var startTimersCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
@@ -392,15 +402,7 @@ class CGenerator extends GeneratorBase {
             )
         }
 
-        // Copy the required target language files into the target file system.
-        // This will also overwrite previous versions.
-        var targetFiles = newArrayList("ctarget.h");
-        for (file : targetFiles) {
-            copyFileFromClassPath(
-                "/" + "lib" + "/" + "C" + "/" + file,
-                srcGenPath + File.separator + file
-            )
-        }
+        copyTargetFiles();
 
 
         // Perform distinct code generation into distinct files for each federate.
@@ -445,7 +447,7 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = filename + ".c";
+            val cFilename = getTargetFileName(filename);
 
             // Delete source previously produced by the LF compiler.
             var file = new File(srcGenPath + File.separator + cFilename)
@@ -655,11 +657,8 @@ class CGenerator extends GeneratorBase {
                 }
             }
 
-            // Write the generated code to the output file.
-            var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(getCode().getBytes())
-            fOut.close()
+			
+            writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
             
         }
         // Restore the base filename.
@@ -675,7 +674,17 @@ class CGenerator extends GeneratorBase {
         }
         
         
-        //Cleanup the code so that it is more readable
+        writeCleanCode(filename)
+        
+    }
+    
+    /** Overwrite the generated code after compile with a
+     * clean version.
+     */
+    protected def writeCleanCode(String baseFilename)
+    {
+        var srcGenPath = directory + File.separator + "src-gen"
+    	//Cleanup the code so that it is more readable
         for (federate : federates) {
                 
             // Only clean one file if there is no federation.
@@ -694,6 +703,38 @@ class CGenerator extends GeneratorBase {
             fOut.close()
             
         }
+    	
+    }
+    
+    /** Copy target specific files to the src-gen directory */
+    protected def copyTargetFiles()
+    {    	
+        var srcGenPath = directory + File.separator + "src-gen"
+    	// Copy the required target language files into the target file system.
+        // This will also overwrite previous versions.
+        var targetFiles = newArrayList("ctarget.h");
+        for (file : targetFiles) {
+            copyFileFromClassPath(
+                "/" + "lib" + "/" + "C" + "/" + file,
+                srcGenPath + File.separator + file
+            )
+        }
+    }
+    
+    /** Write the source code to file */
+    protected def writeSourceCodeToFile(byte[] code, String path)
+    {
+        // Write the generated code to the output file.
+        var fOut = new FileOutputStream(
+            new File(path), false);
+        fOut.write(code)
+        fOut.close()
+    }
+    
+    /** Produces the filename including the target-specific extension */
+    override getTargetFileName(String fileName)
+    {
+    	return fileName + ".c";
     }
 
     ////////////////////////////////////////////
@@ -703,7 +744,7 @@ class CGenerator extends GeneratorBase {
      */
     override createFederateRTI() {
         // Derive target filename from the .lf filename.
-        var cFilename = filename + "_RTI.c"
+        var cFilename = getTargetFileName(filename + "_RTI")
         
         var srcGenPath = directory + File.separator + "src-gen"
         var outPath = directory + File.separator + "bin"
@@ -1012,6 +1053,7 @@ class CGenerator extends GeneratorBase {
      * * A "self" struct type definition (see the class documentation above).
      * * A function for each reaction.
      * * A constructor for creating an instance.
+     * * A destructor for deleting an instance.
      * 
      * If the reactor is the main reactor, then
      * the generated code may be customized. Specifically,
@@ -1026,9 +1068,6 @@ class CGenerator extends GeneratorBase {
         // Create Timer and Action for startup and shutdown, if they occur.
         handleStartupAndShutdown(reactor)
         
-        // Create reactions to transfer data up the hierarchy.
-        generateTransferOutputs(reactor)
-
         pr("// =============== START reactor class " + reactor.name)
 
         // Preamble code contains state declarations with static initializers.
@@ -1042,11 +1081,13 @@ class CGenerator extends GeneratorBase {
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         val constructorCode = new StringBuilder()
+        val destructorCode = new StringBuilder()
 
         generateAuxiliaryStructs(reactor, federate)
-        generateSelfStruct(reactor, federate, constructorCode)
+        generateSelfStruct(reactor, federate, constructorCode, destructorCode)
         generateReactions(reactor, federate)
         generateConstructor(reactor, federate, constructorCode)
+        generateDestructor(reactor, federate, destructorCode)
                 
         pr("// =============== END reactor class " + reactor.name)
         pr("")
@@ -1068,6 +1109,39 @@ class CGenerator extends GeneratorBase {
                 «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
                 «constructorCode.toString»
                 return self;
+            }
+        ''')
+    }
+
+    /**
+     * Generate a destructor for the specified reactor in the specified federate.
+     * @param reactor The parsed reactor data structure.
+     * @param federate A federate name, or null to unconditionally generate.
+     * @param destructorCode Lines of code previously generated that need to
+     *  go into the destructor.
+     */
+    protected def generateDestructor(
+        Reactor reactor, FederateInstance federate, StringBuilder destructorCode
+    ) {
+        // Append to the destructor code freeing the trigger arrays for each reaction.
+        var reactionCount = 0
+        for (reaction : reactor.reactions) {
+            if (federate === null || federate.containsReaction(reactor, reaction)) {
+                pr(destructorCode, '''
+                    for(int i = 0; i < self->___reaction_«reactionCount».num_outputs; i++) {
+                        free(self->___reaction_«reactionCount».triggers[i]);
+                    }
+                ''')
+            }
+            // Increment the reaction count even if not in the federate for consistency.
+            reactionCount++;
+        }
+        
+        val structType = selfStructType(reactor)
+        pr('''
+            void delete_«reactor.name»(«structType»* self) {
+                «destructorCode.toString»
+                free(self);
             }
         ''')
     }
@@ -1214,9 +1288,14 @@ class CGenerator extends GeneratorBase {
      * @param federate A federate name, or null to unconditionally generate.
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
+     * @param destructorCode Place to put lines of code that need to
+     *  go into the destructor.
      */
     protected def generateSelfStruct(
-        Reactor reactor, FederateInstance federate, StringBuilder constructorCode
+        Reactor reactor,
+        FederateInstance federate,
+        StringBuilder constructorCode,
+        StringBuilder destructorCode
     ) {
         // Construct the typedef for the "self" struct.
         // First, create a type name for the self struct.
@@ -1304,13 +1383,6 @@ class CGenerator extends GeneratorBase {
             pr(output, body, '''
                 «variableStructType(output, reactor)» __«output.name»«arraySpec»;
             ''')
-            // If there are contained reactors that send data via this output,
-            // then create a place to put the pointers to the sources of that data.
-            if (outputToContainedOutput.get(output) !== null) {
-            pr(output, body, '''
-                «variableStructType(output, reactor)»* __«output.name»_inside«arraySpec»;
-            ''')
-            }
         }
         
         // If there are contained reactors that either receive inputs
@@ -2060,7 +2132,7 @@ class CGenerator extends GeneratorBase {
                             // In that case, we want NULL.
                             // If the destination is an output port, however, then
                             // the dependentReactions.size reflects the number of downstream
-                            // reactions. But we want only one trigger (for transfer outputs).
+                            // reactions.
                             if (destination.dependentReactions.size === 0 || destination.isOutput) {
                                 pr(initializeTriggerObjectsEnd, '''
                                     // Destination port «destination.getFullName» itself has no reactions.
@@ -2105,14 +2177,27 @@ class CGenerator extends GeneratorBase {
                 var nameOfSelfStruct = selfStructName(child)
                 for (input : child.inputs) {
                     if (isTokenType((input.definition as Input).inferredType)) {
-                        pr(startTimeStep, '''
-                            __tokens_with_ref_count[«startTimeStepTokens»].token
-                                    = &«nameOfSelfStruct»->__«input.name»->token;
-                            __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                    = &«nameOfSelfStruct»->__«input.name»->is_present;
-                            __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
-                        ''')
-                        startTimeStepTokens++
+                        if (input instanceof MultiportInstance) {
+                            pr(startTimeStep, '''
+                                for (int i = 0; i < «input.width»; i++) {
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                            = &«nameOfSelfStruct»->__«input.name»[i]->token;
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                            = &«nameOfSelfStruct»->__«input.name»[i]->is_present;
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                }
+                            ''')
+                            startTimeStepTokens += input.width
+                        } else {
+                            pr(startTimeStep, '''
+                                __tokens_with_ref_count[«startTimeStepTokens»].token
+                                        = &«nameOfSelfStruct»->__«input.name»->token;
+                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                        = &«nameOfSelfStruct»->__«input.name»->is_present;
+                                __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                            ''')
+                            startTimeStepTokens++
+                        }
                     }
                 }
             }
@@ -2193,63 +2278,6 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Generate one reaction function definition for each output of
-     *  a reactor that relays data from the output of a contained reactor.
-     *  This reaction function transfers the data from the output of the
-     *  contained reactor (in the self struct of this reactor labeled as
-     *  "inside") to the output of this reactor (also in its self struct).
-     *  There needs to be one reaction function
-     *  for each such output because these reaction functions have to be
-     *  individually invoked after each contained reactor produces an
-     *  output that must be relayed. These reactions are set up to not
-     *  be required to be invoked in any particular order.
-     *  @param reactor The reactor.
-     */
-    def generateTransferOutputs(Reactor reactor) {
-        // FIXME: Is this really necessary? Couldn't the transitive closure function
-        // of ReactorInstance traverse the hierarchy?
-        for (connection : reactor.connections) {
-            // If the connection has the form c.x -> y, then it's what we are looking for.
-            if (connection.rightPort.container === null &&
-                    connection.leftPort.container !== null) {
-                if (connection.rightPort.variable instanceof Output) {
-                    val reaction = ASTUtils.factory.createReaction()
-                    // Mark this unordered relative to other reactions in the container.
-                    // It will still be ordered by dependencies to the source.
-                    reaction.makeUnordered()
-                    val leftPort = ASTUtils.factory.createVarRef()
-                    leftPort.container = connection.leftPort.container
-                    leftPort.variable = connection.leftPort.variable
-                    val rightPort = ASTUtils.factory.createVarRef()
-                    rightPort.variable = connection.rightPort.variable
-                    reaction.triggers.add(leftPort)
-                    reaction.effects.add(rightPort)
-                    reaction.code = factory.createCode()
-                    if ((rightPort.variable as Port).inferredType.isTokenType) {
-                        reaction.code.body = '''
-                            «DISABLE_REACTION_INITIALIZATION_MARKER»
-                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            self->__«rightPort.toText».value = self->__«leftPort.toText».value;
-                            self->__«rightPort.toText».is_present = true;
-                        '''
-                    } else {
-                        reaction.code.body = '''
-                            // Transfer output from «leftPort.toText» to «rightPort.toText» in «reactor.name»
-                            SET(«rightPort.toText», «leftPort.toText»->value);
-                        '''
-                    }
-                    reactor.reactions.add(reaction)
-                } else {
-                    reportError(
-                        connection,
-                        "Expected an output port but got " +
-                            connection.rightPort.variable.name
-                    )
-                }
-            }
-        }
-    }
-
     /**
      * For each timer and action in the specified reactor instance, generate
      * initialization code for the offset and period fields. This code goes into
@@ -2367,11 +2395,9 @@ class CGenerator extends GeneratorBase {
      * This will have one of the following forms:
      * 
      * * selfStruct->__portName
-     * * selfStruct->__portName_inside
      * * selfStruct->__portName[i]
-     * * selfStruct->__portName_inside[i]
      * 
-     * @param port An instance of a destination port.
+     * @param port An instance of a destination input port.
      */
     static def destinationReference(PortInstance port) {
         var destStruct = selfStructName(port.parent)
@@ -2385,7 +2411,7 @@ class CGenerator extends GeneratorBase {
         if (port.isInput) {
             return '''«destStruct»->__«port.name»«destinationIndexSpec»'''
         } else {
-            return '''«destStruct»->__«port.name»_inside«destinationIndexSpec»'''
+            throw new Exception("INTERNAL ERROR: destinationReference() should only be called on input ports.")
         }        
     }
  
@@ -2801,9 +2827,8 @@ class CGenerator extends GeneratorBase {
                         «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
                     ''')
                 }
-
             }
-            // Increment the reaction count even if not in the federate for conistency.
+            // Increment the reaction count even if not in the federate for consistency.
             reactionCount++;
         }
         for (child : instance.children) {
@@ -3082,7 +3107,8 @@ class CGenerator extends GeneratorBase {
     override generatePreamble() {
         super.generatePreamble()
         
-        pr('#include "ctarget.h"')
+        includeTargetLanguageHeaders()
+        
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
         // Handle target parameters.
@@ -3090,21 +3116,9 @@ class CGenerator extends GeneratorBase {
         if (targetThreads === 0 && federates.length > 1) {
             targetThreads = 1
         }
-        if (targetThreads > 0) {
-            // Set this as the default in the generated code,
-            // but only if it has not been overridden on the command line.
-            pr(startTimers, '''
-                if (number_of_threads == 0) {
-                   number_of_threads = «targetThreads»;
-                }
-            ''')
-            pr("#include \"core/reactor_threaded.c\"")
-        } else {
-            pr("#include \"core/reactor.c\"")
-        }
-        if (federates.length > 1) {
-            pr("#include \"core/federate.c\"")
-        }
+
+        includeTargetLanguageSourceFiles()
+        
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
@@ -3140,6 +3154,35 @@ class CGenerator extends GeneratorBase {
                 // Finally, generate the #include for the generated .h file.
                 pr('#include "' + rootFilename + '.pb-c.h"')
             }
+        }
+    }
+    
+    /** Add necessary header files specific to the target language.
+     *  Note. The core files always need to be (and will be) copied 
+     *  uniformly across all target languages.
+     */
+    protected def includeTargetLanguageHeaders()
+    {    	
+        pr('#include "ctarget.h"')
+    }
+    
+    /** Add necessary source files specific to the target language.  */
+    protected def includeTargetLanguageSourceFiles()
+    {
+        if (targetThreads > 0) {
+            // Set this as the default in the generated code,
+            // but only if it has not been overridden on the command line.
+            pr(startTimers, '''
+                if (number_of_threads == 0) {
+                   number_of_threads = «targetThreads»;
+                }
+            ''')
+            pr("#include \"core/reactor_threaded.c\"")
+        } else {
+            pr("#include \"core/reactor.c\"")
+        }
+        if (federates.length > 1) {
+            pr("#include \"core/federate.c\"")
         }
     }
 
@@ -3265,6 +3308,9 @@ class CGenerator extends GeneratorBase {
      */
     private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
+        // For destinations that are multiports, need to count channels
+        // in case there is more than one connection.
+        var destinationChannelCount = new HashMap<PortInstance,Integer>()
         for (source : instance.destinations.keySet) {
             // If the source is an input port, find the ultimate source,
             // which could be the input port if it is written to by a reaction
@@ -3280,47 +3326,118 @@ class CGenerator extends GeneratorBase {
                 || eventualSource.dependsOnReactions.size > 0
             ) {
                 val destinations = instance.destinations.get(source)
+                // For multiports, need to count the channels in case there are multiple
+                // destinations.
+                var sourceChannelCount = 0
                 for (destination : destinations) {
-                    var comment = ''
-                    if (source !== eventualSource) {
-                        comment = ''' (eventual source is «eventualSource.getFullName»)'''
-                    }
-                    val destStructType = variableStructType(
-                        destination.definition as TypedVariable,
-                        destination.parent.definition.reactorClass
-                    )
-                    // If the source or destination (or both) is a multiport, then
-                    // we need an iterative connection here over the minimum of the widths of
-                    // the two multiports.
-                    var srcIndex = ""
-                    var dstIndex = ""
-                    var width = 0
-                    if (eventualSource instanceof MultiportInstance) {
-                        // Source is a multiport.
-                        srcIndex = "[i]"
-                        width = eventualSource.instances.size
-                        if (!(destination instanceof MultiportInstance)) {
-                            reportError(destination.definition, "Cannot connect a multiport to a single port")
+                    // If the destination is an output, then skip this step.
+                    // Outputs are handled by finding the transitive closure
+                    // (finding the eventual inputs).
+                    if (destination.isInput) {
+                        var comment = ''
+                        if (source !== eventualSource) {
+                            comment = ''' (eventual source is «eventualSource.getFullName»)'''
                         }
-                    }
-                    if (destination instanceof MultiportInstance) {
-                        // Destination is a multiport.
-                        dstIndex = "[i]"
-                        if (destination.instances.size < width) {
-                            width = destination.instances.size
+                        val destStructType = variableStructType(
+                            destination.definition as TypedVariable,
+                            destination.parent.definition.reactorClass
+                        )
+                        // There are four cases, depending on whether the source or
+                        // destination or both are multiports.
+                        if (eventualSource instanceof MultiportInstance) {
+                            // Source is a multiport. 
+                            // Number of available channels:
+                            var width = eventualSource.instances.size - sourceChannelCount
+                            // If there are no more available channels, there is nothing to do.
+                            if (width > 0) {
+                                if (destination instanceof MultiportInstance) {
+                                    // Source and destination are both multiports.
+                                    // First, get the first available destination channel.
+                                    var destinationChannel = destinationChannelCount.get(destination)
+                                    if (destinationChannel === null) {
+                                        destinationChannel = 0
+                                        destinationChannelCount.put(destination, 1)
+                                    } else {
+                                        // Add the width of the source to the index of the destination's
+                                        // next available channel. This may be out of bounds for the
+                                        // destination.
+                                        destinationChannelCount.put(destination, destinationChannel + width)
+                                    }
+                                    // There will be nothing to do if the destination channel index
+                                    // is out of bounds.
+                                    if (destinationChannel < destination.instances.size) {
+                                        // There is at least one available channel at the destination.
+                                        // The number of connections now will be the minimum of the
+                                        // source width and the number of remaining channels at the
+                                        // destination.
+                                        if (destination.instances.size - destinationChannel < width) {
+                                            width = destination.instances.size - destinationChannel
+                                        }
+                                        // Finally, we can generate the code to make the connections.
+                                        pr('''
+                                            // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                            int j = «sourceChannelCount»;
+                                            for (int i = «destinationChannel»; i < «destinationChannel» + «width»; i++) {
+                                                «destinationReference(destination)»[i]
+                                                    = («destStructType»*)&«sourceReference(eventualSource)»[j++];
+                                            }
+                                        ''')
+                                        sourceChannelCount += width
+                                    } else {
+                                        pr('''
+                                            // No destination channels available for connection from
+                                            // «source.getFullName»«comment» to input port «destination.getFullName».
+                                        ''')
+                                    }
+                                } else {
+                                    // Source is a multiport, destination is a single port.
+                                    pr('''
+                                        // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                        «destinationReference(destination)»
+                                                = («destStructType»*)&«sourceReference(eventualSource)»[«sourceChannelCount»];
+                                    ''')
+                                    sourceChannelCount++
+                                }
+                            } else {
+                                pr('''
+                                    // No source channels available for connection from
+                                    // «source.getFullName»«comment» to input port «destination.getFullName».
+                                ''')
+                            }
+                        } else if (destination instanceof MultiportInstance) {
+                            // Source is a single port, Destination is a multiport.
+                            // First, get the first available destination channel.
+                            var destinationChannel = destinationChannelCount.get(destination)
+                            if (destinationChannel === null) {
+                                destinationChannel = 0
+                                destinationChannelCount.put(destination, 1)
+                            } else {
+                                // Add the width of the source to the index of the destination's
+                                // next available channel. This may be out of bounds for the
+                                // destination.
+                                destinationChannelCount.put(destination, destinationChannel + 1)
+                            }
+                            // There will be nothing to do if the destination channel index
+                            // is out of bounds.
+                            if (destinationChannel < destination.instances.size) {
+                                pr('''
+                                    // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                    «destinationReference(destination)»[«destinationChannel»]
+                                            = («destStructType»*)&«sourceReference(eventualSource)»;
+                                ''')
+                            } else {
+                                pr('''
+                                    // No destination channels available for connection from
+                                    // «source.getFullName»«comment» to input port «destination.getFullName».
+                                ''')
+                            }
+                        } else {
+                            // Both ports are single ports.
+                            pr('''
+                                // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                «destinationReference(destination)» = («destStructType»*)&«sourceReference(eventualSource)»;
+                            ''')
                         }
-                    }
-                    if (width > 0) {
-                        pr('''for (int i = 0; i < «width»; i++) {''')
-                        indent()
-                    }
-                    pr('''
-                        // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                        «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
-                    ''')
-                    if (width > 0) {
-                        unindent()
-                        pr("}")
                     }
                 }
             }
@@ -3507,14 +3624,53 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')            
-        } else if (!input.isMutable && !inputType.isTokenType && input.multiportWidth > 0) {
-            // Non-mutable, multiport, primitive type.
+        } else if (!input.isMutable && input.multiportWidth > 0) {
+            // Non-mutable, multiport, primitive or token type.
             pr(builder, '''
                 «structType»** «input.name» = self->__«input.name»;
             ''')
+        } else if (inputType.isTokenType) {
+            // Mutable, multiport, token type
+            pr(builder, '''
+                // Mutable multiport input, so copy the input structs
+                // into an array of temporary variables on the stack.
+                «structType» __tmp_«input.name»[«input.multiportWidth»];
+                «structType»* «input.name»[«input.multiportWidth»];
+                for (int i = 0; i < «input.multiportWidth»; i++) {
+                    «input.name»[i] = &__tmp_«input.name»[i];
+                    __tmp_«input.name»[i] = *(self->__«input.name»[i]);
+                    // If necessary, copy the tokens.
+                    if («input.name»[i]->is_present) {
+                        «input.name»[i]->length = «input.name»[i]->token->length;
+                        token_t* _lf_input_token = «input.name»[i]->token;
+                        «input.name»[i]->token = writable_copy(_lf_input_token);
+                        if («input.name»[i]->token != _lf_input_token) {
+                            // A copy of the input token has been made.
+                            // This needs to be reference counted.
+                            «input.name»[i]->token->ref_count = 1;
+                            // Repurpose the next_free pointer on the token to add to the list.
+                            «input.name»[i]->token->next_free = _lf_more_tokens_with_ref_count;
+                            _lf_more_tokens_with_ref_count = «input.name»[i]->token;
+                        }
+                        «input.name»[i]->value = («inputType.targetType»)«input.name»[i]->token->value;
+                    } else {
+                        «input.name»[i]->length = 0;
+                    }
+                }
+            ''')
         } else {
-            // FIXME FIXME FIXME
-            throw new RuntimeException("FIXME: Multiport functionality not yet realized.")
+            // Mutable, multiport, primitive type
+            pr(builder, '''
+                // Mutable multiport input, so copy the input structs
+                // into an array of temporary variables on the stack.
+                «structType» __tmp_«input.name»[«input.multiportWidth»];
+                «structType»* «input.name»[«input.multiportWidth»];
+                for (int i = 0; i < «input.multiportWidth»; i++) {
+                    «input.name»[i]  = &__tmp_«input.name»[i];
+                    // Copy the struct, which includes the value.
+                    __tmp_«input.name»[i] = *(self->__«input.name»[i]);
+                }
+            ''')
         }
         // Set the _width variable for all cases. This will be -1
         // for a variable-width multiport, which is not currently supported.
@@ -3662,7 +3818,7 @@ class CGenerator extends GeneratorBase {
      *  (it is a pointer) or [] (it is a array with unspecified length).
      *  @param type The type specification.
      */
-    private def isTokenType(InferredType type) {
+    protected def isTokenType(InferredType type) {
         if (type.isUndefined)
             return false
         val targetType = type.targetType
@@ -3757,9 +3913,17 @@ class CGenerator extends GeneratorBase {
                         // If the rootType is 'void', we need to avoid generating the code
                         // 'sizeof(void)', which some compilers reject.
                         val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
-                        pr('''
-                            «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
-                        ''')
+                        if (output instanceof MultiportInstance) {
+                            pr('''
+                                for (int i = 0; i < «output.width»; i++) {
+                                    «nameOfSelfStruct»->__«output.name»[i].token = __create_token(«size»);
+                                }
+                            ''')
+                        } else {
+                            pr('''
+                                «nameOfSelfStruct»->__«output.name».token = __create_token(«size»);
+                            ''')
+                        }
                     }
                 }
                 // In case this is a composite, handle its contained reactors.

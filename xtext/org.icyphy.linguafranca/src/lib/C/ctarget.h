@@ -1,11 +1,51 @@
+/**
+ * @file
+ * @author Edward A. Lee (eal@berkeley.edu)
+ *
+ * @section LICENSE
+Copyright (c) 2020, The University of California at Berkeley.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ * @section DESCRIPTION
+ * Target-specific runtime functions for the C target language.
+ * This API layer can be used in conjunction with:
+ *     target C;
+ * 
+ * Note for target language developers. This is one way of developing a target language where 
+ * the C core runtime is adopted. This file is a translation layer that implements Lingua Franca 
+ * APIs which interact with the internal _lf_SET and _lf_schedule APIs. This file can act as a 
+ * template for future runtime developement for target languages.
+ * For source generation, see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CCppGenerator.xtend.
+ */
+
+
 #ifndef CTARGET_H
 #define CTARGET_H
 
 #include "core/reactor.h"
 #include "core/pqueue.c" // FIXME: Ideally this should be hidden
 
-////////////////////////////////////////////////////////////
-//// Macros for producing outputs.
+//////////////////////////////////////////////////////////////
+/////////////  SET Functions (to produce an output)
 
 // NOTE: According to the "Swallowing the Semicolon" section on this page:
 //    https://gcc.gnu.org/onlinedocs/gcc-3.0.1/cpp_3.html
@@ -27,11 +67,7 @@
  *  reactor in form input_name.port_name.
  * @param value The value to insert into the self struct.
  */
-#define SET(out, val) \
-do { \
-    out->value = val; \
-    out->is_present = true; \
-} while(0)
+#define SET(out, val) _LF_SET(out, val)
 
 /**
  * Version of set for output types given as 'type[]' where you
@@ -46,14 +82,7 @@ do { \
  * @param length The length of the array to send.
  * @see token_t
  */
-#define SET_ARRAY(out, val, element_size, length) \
-do { \
-    out->is_present = true; \
-    token_t* token = __initialize_token_with_value(out->token, val, length); \
-    token->ref_count = out->num_destinations; \
-    out->token = token; \
-    out->value = token->value; \
-} while(0)
+#define SET_ARRAY(out, val, element_size, length) _LF_SET_ARRAY(out, val, element_size, length)
 
 /**
  * Version of set() for output types given as 'type*' that
@@ -69,13 +98,7 @@ do { \
  * struct to true (which causes the object message to be sent),
  * @param out The output port (by name).
  */
-#define SET_NEW(out) \
-do { \
-    out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
-    out->value = token->value; \
-    out->token = token; \
-} while(0)
+#define SET_NEW(out) _LF_SET_NEW(out)
 
 /**
  * Version of set() for output types given as 'type[]'.
@@ -88,15 +111,9 @@ do { \
  * allocated array will be handled automatically
  * when the last downstream reader of the message has finished.
  * @param out The output port (by name).
- * @param length The length of the array to be sent.
+ * @param len The length of the array to be sent.
  */
-#define SET_NEW_ARRAY(out, length) \
-do { \
-    out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, length, out->num_destinations); \
-    out->value = token->value; \
-    out->token = token; \
-} while(0)
+#define SET_NEW_ARRAY(out, len) _LF_SET_NEW_ARRAY(out, len)
 
 /**
  * Version of set() for output types given as 'type[number]'.
@@ -107,10 +124,7 @@ do { \
  * after this is called.
  * @param out The output port (by name).
  */
-#define SET_PRESENT(out) \
-do { \
-    out->is_present = true; \
-} while(0)
+#define SET_PRESENT(out) _LF_SET_PRESENT(out)
 
 /**
  * Version of set() for output types given as 'type*' or 'type[]' where you want
@@ -121,13 +135,59 @@ do { \
  * @param out The output port (by name).
  * @param token A pointer to token obtained from an input or action.
  */
-#define SET_TOKEN(out, newtoken) \
-do { \
-    out->is_present = true; \
-    out->value = newtoken->value; \
-    out->token = newtoken; \
-    newtoken->ref_count += out->num_destinations; \
-    out->is_present = true; \
-} while(0)
+#define SET_TOKEN(out, newtoken) _LF_SET_TOKEN(out, newtoken)
+
+//////////////////////////////////////////////////////////////
+/////////////  Schedule Functions
+ 
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with no payload (no value conveyed).
+ * See schedule_token(), which this uses, for details.
+ * @param action Pointer to an action on the self struct.
+ * @param offset The time offset over and above that in the action.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+ */
+handle_t schedule(void* action, interval_t offset) {
+    return _lf_schedule_token(action, offset, NULL);
+}
+
+/**
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
+ */
+handle_t schedule_int(void* action, interval_t extra_delay, int value)
+{
+    return _lf_schedule_int(action, extra_delay, value);
+}
+
+/**
+ * Schedule the specified trigger at current_time plus the offset of the
+ * specified trigger plus the delay.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+    return _lf_schedule_token(action, extra_delay, token);
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_copy(void* action, interval_t offset, void* value, int length) {
+    return _lf_schedule_copy(action, offset, value, length);
+}
+
+
+/**
+ * Variant of schedule_token that creates a token to carry the specified value.
+ * See reactor.h for documentation.
+ */
+handle_t schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+    return _lf_schedule_value(action, extra_delay, value, length);
+}
 
 #endif // CTARGET_H

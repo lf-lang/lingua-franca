@@ -32,9 +32,14 @@ reactor Destination(bank_position:int(0)) {
         printf("Success.\n");
     =}
 }
+reactor Container {
+    input[3] in:int;
+    c = new[3] Destination();
+    in -> c.in;
+}
 
-main reactor MultiportToBank { 
+main reactor MultiportToBankHierarchy { 
     a = new Source();
-    b = new[3] Destination();
+    b = new Container();
     a.out -> b.in;
 }
