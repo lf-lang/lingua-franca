@@ -6,4 +6,6 @@ typedef struct hello_t {
     int value;
  } hello_t;
 
+typedef int* int_pointer;
+
 #endif

@@ -2,7 +2,7 @@
 // each of which want to modify it.
 // NOTE: Ideally, only one copy would be made, but this requires
 // modifying the precedence graph between reactions.
-target C;
+target C {files: ["include/hello.h"]};
 //import StructScale.lf;
 
 reactor Check(expected:int(42)) {
@@ -17,12 +17,6 @@ reactor Check(expected:int(42)) {
 }
 
 reactor StructParallelPrint(scale:int(2)) {
-     preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
     // Mutable keyword indicates that this reactor wants a writable copy of the input.
     mutable input in:hello_t*;
     

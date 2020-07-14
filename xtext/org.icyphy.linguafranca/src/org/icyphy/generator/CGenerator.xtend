@@ -66,6 +66,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import java.nio.file.Files
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -3097,6 +3098,19 @@ class CGenerator extends GeneratorBase {
         
         {
         	
+        }
+        
+        // Generate #include statements for each .h file.
+        for (file : this.targetFiles) {
+            val name = file.name
+            if (name.endsWith(".h")) {
+                pr('''#include "«name»"''')
+            }
+            val target = new File(directory + File.separator + "src-gen/" + name)
+            if (target.exists) {
+                target.delete
+            }
+            Files.copy(file.toPath, target.toPath)
         }
         
         // Generate #include statements for each .proto import.
