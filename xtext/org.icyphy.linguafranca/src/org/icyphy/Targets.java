@@ -353,8 +353,9 @@ public enum Targets {
          */
         FAST("fast", Arrays.asList(Targets.ALL)),
         /**
-         * Directive to stage files on the class path to be copied into the
-         * directory that stores the generated files.
+         * Directive to stage particular files on the class path to be
+         * processed by the code generator. What this involves depends
+         * on the file extension.
          */
         FILES("files", Arrays.asList(Targets.ALL)),
         /**
