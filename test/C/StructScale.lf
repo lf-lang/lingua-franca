@@ -3,7 +3,7 @@
 // copying, it just gets ownership of the original struct.
 // It modifies it and passes it to Print. It gets freed after
 // Print is done with it.
-target C;
+target C {files: ["include/hello.h"]};
 import StructPrint.lf;
 
 // expected parameter is for testing.
@@ -33,12 +33,6 @@ reactor TestInput(expected:int(42)) {
 }
 
 reactor StructScalePrint(scale:int(2)) {
-      preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
     // Mutable keyword indicates that this reactor wants a writable copy of the input.
     mutable input in:hello_t*;
     

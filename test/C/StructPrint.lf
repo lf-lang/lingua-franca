@@ -1,15 +1,8 @@
 // Source produces a dynamically allocated struct, which it passes
 // to Print. Reference counting ensures that the struct is freed.
-target C;
+target C {files: ["include/hello.h"]};
 
 reactor StructPrintStructPrint {
-    preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
-    
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
