@@ -119,10 +119,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var code = new StringBuilder
     
     /** Additional sources to add to the compile command if appropriate. */
-    protected var compileAdditionalSources = null as ArrayList<String>
+    protected var List<String> compileAdditionalSources = newArrayList
     
     /** Additional libraries to add to the compile command using the "-l" command-line option. */
-    protected var compileLibraries = null as ArrayList<String>
+    protected var List<String> compileLibraries = newArrayList
 
     /**
      * Path to the directory containing the .lf file.
@@ -878,12 +878,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val flags = targetCompilerFlags.split(' ')
         compileCommand.addAll(flags)
         compileCommand.add(relativeSrcFilename)
-        if (compileAdditionalSources !== null) {
-            compileCommand.addAll(compileAdditionalSources)
-        }
-        if (compileLibraries !== null) {
-            compileCommand.addAll(compileLibraries)
-        }
+        compileCommand.addAll(compileAdditionalSources)
+        compileCommand.addAll(compileLibraries)
+        
         // Only set the output file name if it hasn't already been set
         // using a target property or command line flag.
         if (compileCommand.forall[it.trim != "-o"]) {
