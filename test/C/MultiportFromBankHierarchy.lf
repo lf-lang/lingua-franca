@@ -1,0 +1,45 @@
+ // Check multiport output to bank of recipients.
+ // Here, the bank is smaller than the width of the sending port.
+target C {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source(bank_position:int(0)) {
+    output out:int;
+    reaction(startup) -> out {=
+        SET(out, self->bank_position);
+    =}
+}
+reactor Container {
+    output[3] out:int;
+    s = new[3] Source();
+    s.out -> out;
+}
+reactor Destination {
+    input[3] in:int;
+    state received:bool(false);
+    reaction(in) {=
+        for (int i = 0; i < in_width; i++) {
+            printf("Destination channel %d received %d.\n", i, in[i]->value);
+            if (i != in[i]->value) {
+                printf("ERROR: Expected %d.\n", i);
+                exit(1);
+            }
+        }
+        self->received = true;
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            fprintf(stderr, "ERROR: Destination received no input!\n");
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor MultiportFromBank {
+    a = new Container();
+    b = new Destination();
+    a.out -> b.in;
+}

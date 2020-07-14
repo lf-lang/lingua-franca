@@ -1,0 +1,42 @@
+ // Check multiport output to multiport input.
+ // Destination port is wider than sending port.
+target C {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source {
+    output[2] out:int;
+    reaction(startup) -> out {=
+        for(int i = 0; i < out_width; i++) {
+            SET(out[i], i);
+        }
+    =}
+}
+reactor Destination(expected:int(0)) {
+    input in:int;
+    state received:bool(false);
+    reaction(in) {=
+        printf("Received: %d.\n", in->value);
+        self->received = true;
+        if (in->value != self->expected) {
+            printf("ERROR: Expected %d.\n", self->expected);
+            exit(1);
+        }
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            fprintf(stderr, "ERROR: Destination received no input!\n");
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor MultiportToPort { 
+    a = new Source();
+    b1 = new Destination();
+    b2 = new Destination(expected = 1);
+    a.out -> b1.in;  // Channel 0 of a.out to b1.in.
+    a.out -> b2.in;  // Channel 1 of a.out to b2.in.
+}
