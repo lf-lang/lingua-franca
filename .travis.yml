@@ -14,7 +14,7 @@ cache:
 # The node_js property doesn't work if the language is java
 before_install:
   - nvm install 10.4.0
-  - ./ci/install-protobuf.sh >/dev/null
+  - ci/install-protobuf.sh >/dev/null
 addons:
   apt:
     sources:
