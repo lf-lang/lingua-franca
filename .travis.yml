@@ -21,11 +21,10 @@ addons:
     packages:
       - gcc-7
       - g++-7
-#env:  
-# global:  
-#  - DISPLAY=:99.0  
-#before_install:
-# - sh -e /etc/init.d/xvfb start - sleep 10  
+install:
+  - wget https://protobuf.googlecode.com/files/protobuf-2.4.1.tar.gz
+  - tar -xzvf protobuf-2.4.1.tar.gz
+  - pushd protobuf-2.4.1 && ./configure --prefix=/usr && make && sudo make install && popd
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
