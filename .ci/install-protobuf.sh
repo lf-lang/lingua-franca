@@ -1,7 +1,7 @@
 #!/bin/sh
 set -ex
 echo -n "Installing protobufs......"
-proto_version=protobuf-all-3.12.3
+proto_version=protobuf-3.12.3
 proto_c_version=protobuf-c-1.3.3
 
 if [ ! -d "$proto_version" ]; then
