@@ -355,15 +355,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     var indentation = new HashMap<StringBuilder, String>()
     
-    /**
-     * Recursion stack used to detect cycles in imports.
-     */
-    var importRecursionStack = new HashSet<Resource>();
-    
-    /**
-     * A flag indicating whether a cycle was found while processing imports.
-     */
-    var cyclicImports = false;
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -540,13 +531,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // "after" keyword by ones that go through a delay reactor. 
         resource.insertGeneratedDelays()
         
-        // Abort compilation if a dependency cycle was detected while 
-        // processing imports. If compilation would continue, dependency
-        // cycles between reactor instantiations across files could lead
-        // to a stack overflow!
-        if (cyclicImports) {
-            throw new Exception("Aborting compilation due to dependency cycles in imports!") 
-        }
 
         // Recursively generate reactor class code from their definitions
         // NOTE: We do not generate code for the main reactor here
@@ -1164,63 +1148,63 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
 
     
-    /**
-     * Open an import at the Lingua Franca file at the specified URI in the
-     * specified resource, find all non-main reactors, and add them to the
-     * {@link #GeneratorBase.reactors reactors}.
-     *  @param importStatement The import statement.
-     *  @param resourceSet The resource set in which to find the file.
-     *  @param resolvedURI The URI to import.
-     *  @return The imported resource or null if the import fails.
-     */
-    protected def openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
-        val importResource = resourceSet?.getResource(resolvedURI, true);
-        if (importResource === null) {
-            reportError(importStatement, "Cannot find import file: " + resolvedURI)
-            return null
-        } else {
-            // Make sure the target of the import is acceptable.
-            var targetOK = (acceptableTargets === null)
-            var offendingTarget = ""
-            for (target : importResource.allContents.toIterable.filter(Target)) {
-                for (acceptableTarget : acceptableTargets ?: emptyList()) {
-                    if (acceptableTarget.equalsIgnoreCase(target.name)) {
-                        targetOK = true
-                    }
-                }
-                if (!targetOK) offendingTarget = target.name
-            }
-            if (!targetOK) {
-                reportError(importStatement, "Import target " + offendingTarget
-                    + " is not an acceptable target in import "
-                    + importResource.getURI
-                    + ". Acceptable targets are: "
-                    + acceptableTargets.join(", ")
-                )
-                return null
-            } else {
-                // Temporarily change the sourceFile variable to point to the
-                // import file. Then change it back.
-                val previousSourceFile = sourceFile
-                sourceFile = importResource.toPath
-                try {
-                    // Process any imports that the import has.
-                    processImports(importResource)
-                    // Add each reactor contained by the import to the list of reactors,
-                    // unless it is a main reactor.
-                    for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-                        if (!reactor.isMain && !reactor.isFederated) {
-                            println("Including imported reactor: " + reactor.name)
-                            reactors.add(reactor)
-                        }
-                    }
-                } finally {
-                    sourceFile = previousSourceFile
-                }
-            }
-        }
-        return importResource
-    }
+//    /**
+//     * Open an import at the Lingua Franca file at the specified URI in the
+//     * specified resource, find all non-main reactors, and add them to the
+//     * {@link #GeneratorBase.reactors reactors}.
+//     *  @param importStatement The import statement.
+//     *  @param resourceSet The resource set in which to find the file.
+//     *  @param resolvedURI The URI to import.
+//     *  @return The imported resource or null if the import fails.
+//     */
+//    protected def openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
+//        val importResource = resourceSet?.getResource(resolvedURI, true);
+//        if (importResource === null) {
+//            reportError(importStatement, "Cannot find import file: " + resolvedURI)
+//            return null
+//        } else {
+//            // Make sure the target of the import is acceptable.
+//            var targetOK = (acceptableTargets === null)
+//            var offendingTarget = ""
+//            for (target : importResource.allContents.toIterable.filter(Target)) {
+//                for (acceptableTarget : acceptableTargets ?: emptyList()) {
+//                    if (acceptableTarget.equalsIgnoreCase(target.name)) {
+//                        targetOK = true
+//                    }
+//                }
+//                if (!targetOK) offendingTarget = target.name
+//            }
+//            if (!targetOK) {
+//                reportError(importStatement, "Import target " + offendingTarget
+//                    + " is not an acceptable target in import "
+//                    + importResource.getURI
+//                    + ". Acceptable targets are: "
+//                    + acceptableTargets.join(", ")
+//                )
+//                return null
+//            } else {
+//                // Temporarily change the sourceFile variable to point to the
+//                // import file. Then change it back.
+//                val previousSourceFile = sourceFile
+//                sourceFile = importResource.toPath
+//                try {
+//                    // Process any imports that the import has.
+//                    processImports(importResource)
+//                    // Add each reactor contained by the import to the list of reactors,
+//                    // unless it is a main reactor.
+//                    for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
+//                        if (!reactor.isMain && !reactor.isFederated) {
+//                            println("Including imported reactor: " + reactor.name)
+//                            reactors.add(reactor)
+//                        }
+//                    }
+//                } finally {
+//                    sourceFile = previousSourceFile
+//                }
+//            }
+//        }
+//        return importResource
+//    }
 
     /**
      * Append the specified text plus a final newline to the current
@@ -1322,71 +1306,71 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         pr(code, '// ' + comment);
     }
 
-    /**
-     * Process any imports included in the resource defined by the specified
-     * resource. This will open the import, check for compatibility, and find
-     * and any reactors the import defines that are not main reactors. If the
-     * target is not acceptable to this generator, as reported by
-     * acceptableTargets, report an error, ignore the import and continue.
-     * @param resource The resource (file) that may contain import statements.
-     */
-    protected def void processImports(Resource resource) {
-        // if the resource is in the recursion stack, then there is a cycle in the imports
-        if (importRecursionStack.contains(resource)) {
-            cyclicImports = true
-            throw new Exception("There is a dependency cycle in the import statements!")
-        }
-        
-        // abort if the resource was visited already
-        if (importedResources.keySet.contains(resource)) {
-            return
-        }
-        
-        // Replace connections in this resources that are annotated with the 
-        // "after" keyword by ones that go through a delay reactor. 
-        resource.insertGeneratedDelays()
-        
-        // add resource to imported resources and to the recoursion stack
-        importedResources.put(resource, new HashSet<Resource>())        
-        importRecursionStack.add(resource);
-
-        for (importStatement : resource.allContents.toIterable.filter(Import)) {
-            // Resolve the import as a URI relative to the current resource's URI.
-            val URI currentURI = resource?.getURI;
-            val URI importedURI = URI?.createFileURI(importStatement?.importedNamespace);
-            val URI resolvedURI = importedURI?.resolve(currentURI);
-            //val ResourceSet resourceSet = resource?.resourceSet;
-            
-            // Check for self import.
-            if (resolvedURI.equals(currentURI)) {
-                reportError(importStatement,
-                    "Recursive imports are not permitted: " + importStatement.importedNamespace)
-                return
-            }
-            try {
-            	System.out.println(importStatement.importedNamespace)
-//                if (importStatement.importURI.endsWith(".lf")) {
-//                    // Handle Lingua Franca imports.
-//                    val imported = openLFImport(importStatement, resourceSet, resolvedURI)
-//                    if (imported !== null) {
-//                        importedResources.get(resource).add(imported)
-//                    }
-//                } else {
-//                    // Handle other supported imports (if any).
-//                    // FIXME: Error!
-//                }
-            } catch (Exception ex) {
-                reportError(
-                    importStatement,
-                    "Import error: " + importStatement.importedNamespace +
-                    "\nException message: " + ex.message
-                )
-            }
-        }
-        
-        // remove this resource from the recursion stack
-        importRecursionStack.remove(resource);
-    }
+//    /**
+//     * Process any imports included in the resource defined by the specified
+//     * resource. This will open the import, check for compatibility, and find
+//     * and any reactors the import defines that are not main reactors. If the
+//     * target is not acceptable to this generator, as reported by
+//     * acceptableTargets, report an error, ignore the import and continue.
+//     * @param resource The resource (file) that may contain import statements.
+//     */
+//    protected def void processImports(Resource resource) {
+//        // if the resource is in the recursion stack, then there is a cycle in the imports
+//        if (importRecursionStack.contains(resource)) {
+//            cyclicImports = true
+//            throw new Exception("There is a dependency cycle in the import statements!")
+//        }
+//        
+//        // abort if the resource was visited already
+//        if (importedResources.keySet.contains(resource)) {
+//            return
+//        }
+//        
+//        // Replace connections in this resources that are annotated with the 
+//        // "after" keyword by ones that go through a delay reactor. 
+//        resource.insertGeneratedDelays()
+//        
+//        // add resource to imported resources and to the recoursion stack
+//        importedResources.put(resource, new HashSet<Resource>())        
+//        importRecursionStack.add(resource);
+//
+//        for (importStatement : resource.allContents.toIterable.filter(Import)) {
+//            // Resolve the import as a URI relative to the current resource's URI.
+//            val URI currentURI = resource?.getURI;
+//            val URI importedURI = URI?.createFileURI(importStatement?.importedNamespace);
+//            val URI resolvedURI = importedURI?.resolve(currentURI);
+//            //val ResourceSet resourceSet = resource?.resourceSet;
+//            
+//            // Check for self import.
+//            if (resolvedURI.equals(currentURI)) {
+//                reportError(importStatement,
+//                    "Recursive imports are not permitted: " + importStatement.importedNamespace)
+//                return
+//            }
+//            try {
+//            	System.out.println(importStatement.importedNamespace)
+////                if (importStatement.importURI.endsWith(".lf")) {
+////                    // Handle Lingua Franca imports.
+////                    val imported = openLFImport(importStatement, resourceSet, resolvedURI)
+////                    if (imported !== null) {
+////                        importedResources.get(resource).add(imported)
+////                    }
+////                } else {
+////                    // Handle other supported imports (if any).
+////                    // FIXME: Error!
+////                }
+//            } catch (Exception ex) {
+//                reportError(
+//                    importStatement,
+//                    "Import error: " + importStatement.importedNamespace +
+//                    "\nException message: " + ex.message
+//                )
+//            }
+//        }
+//        
+//        // remove this resource from the recursion stack
+//        importRecursionStack.remove(resource);
+//    }
         
     /**
      * Parsed error message from a compiler is returned here.
