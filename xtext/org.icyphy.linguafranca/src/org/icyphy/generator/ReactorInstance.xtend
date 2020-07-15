@@ -235,7 +235,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             assignLevels(graph)
             // Traverse the graph again, now starting from the leaves,
             // to set the chain IDs.
-            assignChainIDs(graph, false) // FIXME: Temporarily disabled this.
+            assignChainIDs(graph, true)
 
             // Propagate any declared deadline upstream.
             propagateDeadlines()
