@@ -22,7 +22,7 @@ addons:
     packages:
       - gcc-7
       - g++-7
-#      - libprotobuf-dev
+      - libprotobuf-dev
 #      - libprotobuf-c0-dev
 #      - protobuf-compiler
 #      - protobuf-c-compiler
