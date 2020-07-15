@@ -26,14 +26,15 @@ addons:
 #      - libprotobuf-c0-dev
 #      - protobuf-compiler
 #      - protobuf-c-compiler
-install:
-  - ci/install-protobuf.sh >/dev/null
+#install:
+#  - ci/install-protobuf.sh >/dev/null
 #  - wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protobuf-all-3.12.3.tar.gz
 #  - tar -xzvf protobuf-all-3.12.3.tar.gz
 #  - pushd protobuf-3.12.3 && ./configure --prefix=/usr && make && sudo make install && popd
 script:    
 # - jdk_switcher use oraclejdk8
 # - jdk_switcher use oraclejdk11
+ - ci/install-protobuf.sh >/dev/null
  - export CC=/usr/bin/gcc-7
  - export CXX=/usr/bin/g++-7
  - pushd xtext
