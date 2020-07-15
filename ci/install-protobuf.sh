@@ -7,4 +7,4 @@ echo -n "Installing protobufs......"
 
 wget https://github.com/protobuf-c/protobuf-c/releases/download/v1.3.3/protobuf-c-1.3.3.tar.gz
 tar -xzvf protobuf-c-1.3.3.tar.gz
-cd protobuf-c-1.3.3 && ./autogen.sh && ./configure && make && make install
+cd protobuf-c-1.3.3 && ./configure && make && sudo make install
