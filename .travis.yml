@@ -21,6 +21,8 @@ addons:
     packages:
       - gcc-7
       - g++-7
+      - protobuf-compiler
+      - protobuf-c-compiler
 #env:  
 # global:  
 #  - DISPLAY=:99.0  
