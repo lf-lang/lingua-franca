@@ -26,7 +26,7 @@ addons:
       - gcc-7
       - g++-7
       - libprotobuf-dev
-#      - libprotobuf-c-dev
+      - libprotobuf-c-dev
 #      - protobuf-compiler
       - protobuf-c-compiler
 #install:
