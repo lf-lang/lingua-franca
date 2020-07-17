@@ -178,7 +178,11 @@ fi
 for (( i=0; i<$entries; i++ )); do
     if [ $java_version -gt 001008 ]; then
         java --add-opens java.base/java.lang=ALL-UNNAMED -jar "${jarpath}" "${files[$i]}""${targs}";
+        retVal=$?
     else
         java -jar "${jarpath}" "${files[$i]}""${targs}";
+        retVal=$?
     fi
 done
+
+exit $retVal
