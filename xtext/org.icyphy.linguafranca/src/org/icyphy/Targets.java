@@ -354,8 +354,7 @@ public enum Targets {
         FAST("fast", Arrays.asList(Targets.ALL)),
         /**
          * Directive to stage particular files on the class path to be
-         * processed by the code generator. What this involves depends
-         * on the file extension.
+         * processed by the code generator.
          */
         FILES("files", Arrays.asList(Targets.ALL)),
         /**
@@ -388,7 +387,11 @@ public enum Targets {
          * Directive to disable validation of reactor rules at runtime.
          */
         NO_RUNTIME_VALIDATION("no-runtime-validation", Arrays.asList(Targets.CPP)),
-        
+        /**
+         * Directive for specifying .proto files that need to be compiled and their
+         * code included in the sources.
+         */
+        PROTOBUFS("protobufs", Arrays.asList(Targets.C)),
         /**
          * Directive to specify the number of threads.
          */
