@@ -1,14 +1,14 @@
 target C;
 
-reactor Bar {
+reactor SOFIBar {
     output out:int;
     reaction(startup) -> out {=
         SET(out, 42);
     =}
 }
 
-main reactor Foo {
-    bar = new Bar();
+main reactor StartupOutFromInside {
+    bar = new SOFIBar();
     reaction(startup) bar.out {=
         printf("Output from bar: %d\n", bar.out->value);
         if (bar.out->value != 42) {

@@ -1,12 +1,11 @@
 // This tests delaying a struct using after.
-target C;
-reactor Source {
-    preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
+target C {files: include/hello.h};
+
+preamble {=
+	#include "hello.h"
+=}
+
+reactor DSWASource {
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
@@ -18,7 +17,7 @@ reactor Source {
     =}
 }
 // expected parameter is for testing.
-reactor Print(expected:int(42)) {
+reactor DSWAPrint(expected:int(42)) {
     input in:hello_t*;
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
@@ -29,7 +28,7 @@ reactor Print(expected:int(42)) {
     =}
 }
 main reactor DelayStruct {
-    s = new Source();
-    p = new Print();
+    s = new DSWASource();
+    p = new DSWAPrint();
     s.out -> p.in after 100 msec;
 }

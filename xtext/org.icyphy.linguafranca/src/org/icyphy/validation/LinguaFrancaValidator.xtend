@@ -152,9 +152,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 val other = resourceSetProvider.get.getEObject(otherDescription.EObjectURI, true) as Reactor
 
                 if (reactor.eResource.URI != other.eResource.URI) {
-                    // This means distinct files, all reactors in same file have same URI
-                    if (reactor.name == other.name) {
-                        error('''Duplicate reactor '«reactor.name»' in package''', LinguaFrancaPackage.Literals.REACTOR__NAME,
+                    // This means distinct files (all reactors in same file have same URI).
+                    val p1 = (reactor.eContainer as Model).package
+                    val p2 = (other.eContainer as Model).package
+                    if (p1 == p2 && reactor.name == other.name) {
+                        error('''Duplicate reactor '«reactor.name»' in package (see «other.eResource.URI»)''', LinguaFrancaPackage.Literals.REACTOR__NAME,
                             GLOBALLY_DUPLICATE_NAME)
                     }
                 }
