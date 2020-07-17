@@ -16,6 +16,7 @@ reactor ArrayScaleScale(scale:int(2)) {
         SET_TOKEN(out, in->token);
     =}
 }
+
 main reactor ArrayScale {
     s = new ArrayPrintSource();
     c = new ArrayScaleScale();

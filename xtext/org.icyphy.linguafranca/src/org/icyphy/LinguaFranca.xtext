@@ -424,8 +424,12 @@ Token:
     '[' | ']' | '<' | '>' | '[]' |
     // Punctuation
     ':' | ';' | ',' | '.' | '::' |
+    // Slashes
+    ':\\' | '\\' | '/' |
     // Hyphen
     '-' |
+    // Underscore
+    '_' |
     // Arrow
     '->' | 
     // Assignment

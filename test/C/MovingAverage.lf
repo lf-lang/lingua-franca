@@ -6,7 +6,8 @@ target C {
     timeout: 1 sec,
     fast: true
 };
-reactor Source {
+
+reactor MASource {
     output out:double;
     state count:int(0);
     timer clock(0, 200 msec);
@@ -20,6 +21,7 @@ reactor MovingAverageImpl {
     state index:int(0);
     input in:double;
     output out:double;
+    
     reaction(in) -> out {=
         // Calculate the output.
         double sum = in->value;
@@ -38,7 +40,7 @@ reactor MovingAverageImpl {
         }
     =}
 }
-reactor Print {
+reactor MAPrint {
     input in:double;
     state count:int(0);
     reaction(in) {=
@@ -52,9 +54,9 @@ reactor Print {
     =}
 }
 main reactor MovingAverage {
-    s = new Source();
+    s = new MASource();
     m = new MovingAverageImpl();
-    p = new Print();
+    p = new MAPrint();
     s.out -> m.in;
     m.out -> p.in;
 }

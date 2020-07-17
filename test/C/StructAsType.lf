@@ -1,13 +1,12 @@
 // Source produces a struct directly, rather than a pointer to
 // a struct.
-target C;
+target C {files: include/hello.h};
+
+preamble {=
+	#include "hello.h"
+=}
+
 reactor StructAsTypeSomething {
-    preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
     output out:hello_t;
     
     reaction(startup) -> out {=
