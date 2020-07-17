@@ -29,16 +29,15 @@ package org.icyphy.generator
 import java.io.File
 import java.io.FileOutputStream
 import java.math.BigInteger
+import java.nio.file.Files
 import java.util.ArrayList
 import java.util.Collection
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.regex.Pattern
-import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
@@ -48,7 +47,6 @@ import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
-import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -66,7 +64,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import java.nio.file.Files
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -3087,13 +3084,6 @@ class CGenerator extends GeneratorBase {
             if (name.endsWith(".h")) {
                 pr('''#include "«name»"''')
             }
-            // Handle .proto files.
-            if (name.endsWith(".proto")) { // FIXME: introduce separate target property for this.
-                val rootFilename = name.substring(0, name.length - 6)
-                pr('#include "' + rootFilename + '.pb-c.h"')
-                
-                this.processProtoFile(file.name)
-            }
             val target = new File(directory + File.separator + "src-gen/" + name)
             if (target.exists) {
                 target.delete
@@ -3101,16 +3091,17 @@ class CGenerator extends GeneratorBase {
             Files.copy(file.toPath, target.toPath)
         }
         
-        // Generate #include statements for each .proto import.
-//        for (import : resource.allContents.toIterable.filter(Import)) {
-//            if (import.importURI.endsWith(".proto")) {
-//                // Strip the ".proto" off the file name.
-//                // NOTE: This assumes that the filename matches the generated files, which it seems to.
-//                val rootFilename = import.importURI.substring(0, import.importURI.length - 6)
-//                // Finally, generate the #include for the generated .h file.
-//                pr('#include "' + rootFilename + '.pb-c.h"')
-//            }
-//        }
+        // Handle .proto files.
+        for (file : this.protoFiles) {
+            val name = file.name
+            this.processProtoFile(name)
+            val dotIndex = name.lastIndexOf('.')
+            var rootFilename = name
+            if (dotIndex > 0) {
+                rootFilename = name.substring(0, dotIndex)
+            }
+            pr('#include "' + rootFilename + '.pb-c.h"')
+        }
     }
     
     /** Add necessary header files specific to the target language.
