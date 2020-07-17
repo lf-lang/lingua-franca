@@ -68,6 +68,7 @@ import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.TerminalRule
 import java.io.File
 import java.io.IOException
+import org.icyphy.linguaFranca.Element
 
 /**
  * A helper class for modifying and analyzing the AST.

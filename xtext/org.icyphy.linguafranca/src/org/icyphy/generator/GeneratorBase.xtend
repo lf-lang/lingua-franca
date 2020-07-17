@@ -29,6 +29,7 @@ package org.icyphy.generator
 
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
 import java.nio.file.Files
@@ -49,15 +50,16 @@ import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.InferredType
+import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
+import org.icyphy.graph.PrecedenceGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
-import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Parameter
@@ -72,11 +74,8 @@ import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.validation.AbstractLinguaFrancaValidator
-import org.icyphy.graph.PrecedenceGraph
-import java.io.FileOutputStream
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Targets.TargetProperties
 
 /**
  * Generator base class for shared code between code generators.
@@ -303,9 +302,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected boolean targetFast = false
     
     /**
-     * List of files to be processed by the code generator.
+     * List of files to be copied to src-gen.
      */
     protected List<File> targetFiles = newLinkedList
+    
+    /**
+     * List of proto files to be processed by the code generator.
+     */
+    protected List<File> protoFiles = newLinkedList
     
     /**
      * Contents of $LF_CLASSPATH, if it was set.
@@ -398,33 +402,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetFast = true
                         }
-                    case TargetProperties.FILES.name: {
-                        var allFound = true;
-                        this.targetFiles = newLinkedList
-                        // FIXME: handle singleton case
-                        
-                        if (param.value.array !== null) {
-                            for (element : param.value.array.elements) {
-                                if (element.literal !== null) {
-                                    val filename = element.literal.withoutQuotes
-                                    val file = filename.findFile
-                                    if (file !== null ) {
-                                        this.targetFiles.add(file)
-                                    } else {
-                                        // Warn that file hasn't been found.
-                                        allFound = false
-                                        this.reportWarning(target.config, '''Could not find «filename».''')
-                                    }
-                                    
-                                }
-                            }
-                            if (!allFound && this.classpath.isNullOrEmpty) {
-                                // Report that LF_CLASSPATH hasn't been set 
-                                // and something hasn't been found.
-                                this.reportWarning(target.config, "LF_CLASSPATH environment variable not set.")
-                            }
-                        }
-                    }
+                    case TargetProperties.FILES.name:
+                        this.targetFiles.addAll(this.collectFiles(param.value))
+                    case TargetProperties.PROTOBUFS.name: 
+                        this.protoFiles.addAll(this.collectFiles(param.value))
                     case "flags":
                         targetCompilerFlags = param.value.literal.withoutQuotes
                     case "no-compile":
@@ -1492,6 +1473,52 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 )
             }
         }
+    }
+
+    /**
+     * Given the right-hand side of a target property, return a list with all
+     * the files that the property lists.
+     * 
+     * Arrays are traversed, so files are collected recursively. If elements
+     * are found that do not denote files or denote files that cannot be found,
+     * warnings are reported.
+     * @param value The right-hand side of a target property.
+     */
+    def List<File> collectFiles(Element value) {
+        var allFound = true;
+        val files = newLinkedList
+        var filename = ""
+        if (value.array !== null) {
+            for (element : value.array.elements) {
+                files.addAll(element.collectFiles)
+            }
+            return files
+        } else if (value.literal !== null) {
+            filename = value.literal.withoutQuotes
+        } else if (value.id !== "") {
+            filename = value.id
+        } else {
+            this.
+                reportWarning(
+                    value, '''Expected a string, path, or array but found something else.''')
+        }
+        val file = filename.findFile
+        if (file !== null) {
+            files.add(file)
+        } else {
+            // Warn that file hasn't been found.
+            allFound = false
+            this.reportWarning(value, '''Could not find «filename».''')
+        }
+
+        if (!allFound && this.classpath.isNullOrEmpty) {
+            // Report that LF_CLASSPATH hasn't been set 
+            // and something hasn't been found.
+            this.reportWarning(value,
+                "LF_CLASSPATH environment variable is not set.")
+        }
+
+        return files
     }
 
     /**

@@ -221,7 +221,7 @@ Element:
     | array=Array
     | literal=Literal 
     | (time=INT unit=TimeUnit) 
-    | id=ID;
+    | id=Path;
 
 ///////// Pieces
 TypedVariable:
@@ -278,15 +278,15 @@ ArraySpec:
     
 
 IPV4Host:
-    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)? // ('/' dir=Directory)?
+    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)?
 ;
 
 IPV6Host:
-    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?) // ('/' dir=Directory)?
+    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?)
 ;
 
 NamedHost:
-    (user=Kebab '@')? addr=HostName (':' port=INT)? // ('/' dir=Directory)?
+    (user=Kebab '@')? addr=HostName (':' port=INT)?
 ;
 
 Host:
@@ -367,12 +367,15 @@ Code:
 ;
 
 // The following cannot be terminal because it overlaps ID.
-Path: 
-    ID ('.' ID)*;
+//Path: 
+//    ID ('.' ID)*;
     
+FSName: 
+    (ID | '.' | '_')+
+;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
-Directory:
-    (ID ':\\')? ('\\' | '/')? ID (('\\' | '/') ID)*
+Path:
+    (FSName ':\\')? ('\\' | '/')? FSName (('\\' | '/') FSName)*
 ;
 
 /////////// Enums
