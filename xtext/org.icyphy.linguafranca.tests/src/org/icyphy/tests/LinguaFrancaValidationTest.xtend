@@ -40,6 +40,8 @@ import org.icyphy.linguaFranca.Visibility
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
+import java.text.Normalizer
+import org.eclipse.xtext.diagnostics.Diagnostic
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -78,21 +80,21 @@ class LinguaFrancaValidationTest {
         Assertions.assertFalse(model.eResource.errors.isEmpty)
         return model
     } 
-// FIXME: Fix this test. I must not understand the usage of assertError.
-// I get a diff that shows no difference between the expected string and the one obtained.
-//    /**
-//     * Ensure that duplicate identifiers for actions reported.
-//     */
-//    @Test
-//    def void duplicateVariable() {
-//        parseWithoutError('''
-//            target TypeScript;
-//            main reactor Foo {
-//                logical action bar;
-//                physical action bar;
-//            }
-//        ''').assertError(LinguaFrancaPackage::eINSTANCE.action, null, "Expected ERROR 'null' on Action at [-1:-1] but got", "ERROR (null) 'Duplicate Variable 'bar' in Reactor 'Foo'' on Action, offset 57, length 3", "ERROR (null) 'Duplicate Variable 'bar' in Reactor 'Foo'' on Action, offset 82, length 3")
-//    }
+
+    /**
+     * Ensure that duplicate identifiers for actions reported.
+     */
+    @Test
+    def void duplicateVariable() {
+        parseWithoutError('''
+            target TypeScript;
+            main reactor Foo {
+                logical action bar;
+                physical action bar;
+            }
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.action, null,
+        "Duplicate Variable 'bar' in Reactor 'Foo'")
+    }
     
     /**
      * Check that reactors in C++ cannot be named preamble 
