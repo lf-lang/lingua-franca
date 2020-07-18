@@ -1,0 +1,15 @@
+target C;
+package org.icyphy.component;
+
+reactor TestDouble(expected:double[](1.0, 2.0, 3.0, 4.0)) {
+    input in:double;
+    state count:int(0);
+    reaction(in) {=
+        printf("Received: %f\n", in->value);
+        if (in->value != self->expected[self->count]) {
+            printf("ERROR: Expected %f.\n", self->expected[self->count]);
+            exit(1);
+        }
+        self->count++;
+    =}
+}
