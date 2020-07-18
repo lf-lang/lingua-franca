@@ -40,8 +40,6 @@ import org.icyphy.linguaFranca.Visibility
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
-import java.text.Normalizer
-import org.eclipse.xtext.diagnostics.Diagnostic
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
