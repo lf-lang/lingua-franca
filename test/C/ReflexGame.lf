@@ -33,16 +33,16 @@ main reactor KeyListener {
     =}
    
     reaction(a) {=
-        if (*a_value == EOF) {
+        if (*a->value == EOF) {
             printf("\nEnd of file received.\n");
             stop();
-        } else if (*a_value == '\n') {
+        } else if (*a->value == '\n') {
             printf("Enter character(s) followed by return: ");
             self->request_time = get_logical_time();
             fflush(stdout);
         } else {
             interval_t elapsed = get_logical_time() - self->request_time;
-            printf("Character entered: %c after %lld nsec.\n", *a_value, elapsed);
+            printf("Character entered: %c after %lld nsec.\n", *a->value, elapsed);
         }
     =}
 }
