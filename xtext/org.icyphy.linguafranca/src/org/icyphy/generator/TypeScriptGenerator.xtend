@@ -55,6 +55,9 @@ import org.icyphy.InferredType
 import org.icyphy.linguaFranca.Reaction
 import java.nio.file.Files
 import java.nio.file.Paths
+import org.icyphy.linguaFranca.Import
+import org.eclipse.emf.ecore.resource.ResourceSet
+import org.eclipse.emf.common.util.URI
 
 /** Generator for TypeScript target.
  *
@@ -101,7 +104,7 @@ class TypeScriptGenerator extends GeneratorBase {
     var String tscPath
     
     // Array of .proto filenames in the root directory.
-    var String[] protoFiles
+    var HashSet<String> protoFiles = new HashSet<String>()
     
     // FIXME: The CGenerator expects these next two paths to be
     // relative to the directory, not the project folder
@@ -261,8 +264,12 @@ class TypeScriptGenerator extends GeneratorBase {
         // Assumes protoc compiler has been installed on this machine
         
         // First test if the project directory contains any .proto files
-        if (protoFiles.length != 0) {
+        if (protoFiles.size != 0) {
             // Working example: protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --js_out=import_style=commonjs,binary:./generated --ts_out=./generated *.proto
+            
+            // FIXME: Should we include protoc as a submodule? If so, how to invoke it?
+            // protoc is commonly installed in /usr/local/bin, which sadly is not by
+            // default on the PATH for a Mac.
             var protocCommand = newArrayList()
             protocCommand.addAll("protoc",
                 "--plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts",
@@ -270,11 +277,11 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--ts_out=" + srcGenPath
             )
             protocCommand.addAll(protoFiles)
-            println("Compiling all .proto files in the project directory with command: " + protocCommand.join(" "))
+            println("Compiling imported .proto files with command: " + protocCommand.join(" "))
             executeCommand(protocCommand, directory)
             // FIXME: report errors from this command.
         } else {
-            println("No .proto files found in the project directory. Skipping protocol buffer compilation.")
+            println("No .proto files have been imported. Skipping protocol buffer compilation.")
         }
         
 
@@ -354,6 +361,29 @@ class TypeScriptGenerator extends GeneratorBase {
  
     override String getTargetReference(Parameter param) {
         return '''this.«param.name».get()'''
+    }
+    
+    /** Open a non-Lingua Franca import file at the specified URI
+     *  in the specified resource set. Throw an exception if the
+     *  file import is not supported. This class imports .proto files
+     *  and runs, if possible, the protoc protocol buffer code generator
+     *  to produce the required .d.ts and .js files.
+     *  @param importStatement The original import statement (used for error reporting).
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
+     */
+    override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
+        // Unfortunately, the resolvedURI appears to be useless for ordinary files
+        // (non-xtext files). Use the original importStatement.importURI
+        if (importStatement.importURI.endsWith(".proto")) {
+            // Add this file to the list of protocol buffer files to import.
+            protoFiles.add(importStatement.importURI)
+        } else {
+            return reportError(importStatement, "Unsupported imported file type: "
+                + importStatement.importURI
+            )
+        }
+        return "OK"
     }
  
     // //////////////////////////////////////////
@@ -1273,18 +1303,7 @@ class TypeScriptGenerator extends GeneratorBase {
         reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
             + "core" + File.separator
         tscPath = directory + File.separator + "node_modules" +  File.separator 
-        + "typescript" +  File.separator + "bin" +  File.separator + "tsc"        
-        
-                
-        protoFiles = new File(directory).list(
-            [containgDirectory, name | 
-                if (name.matches(".*\\.proto$")) {
-                        return true
-                    } else {
-                        return false
-                    }
-            ]
-        )
+        + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
     }
     
     /**
@@ -1292,7 +1311,7 @@ class TypeScriptGenerator extends GeneratorBase {
      * by imports to .proto files in the root directory
      */
      private def generateProtoPreamble() {
-         pr("// Imports for protocol buffers")
+        pr("// Imports for protocol buffers")
         // Generate imports for .proto files
         for (protoImport : protoFiles) {
             // Remove the .proto suffix
