@@ -81,13 +81,11 @@ MultiportToPort.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
-PersonProtocolBuffers.lf
 PingPongDistributed.lf
 Pipeline.lf
 PortToBank.lf
 Preamble.lf
 PreambleFile.lf
-ProtoNoPacking.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
 ScheduleValue.lf
