@@ -122,7 +122,9 @@ class ModelInfo {
     }
     
     private def void collectImports(Resource resource, Set<Resource> visited) {
-        for (import : resource.allContents.toIterable.filter(Import)) {
+        for (import : resource.allContents.toIterable.filter(Import).filter [
+            it.importURI.endsWith(".lf") // Treating non-lf files as opaque.
+        ]) {
             // Resolve the import as a URI relative to the current resource's URI.
             val URI currentURI = resource?.getURI;
             val URI importedURI = URI?.createFileURI(import.importURI);
