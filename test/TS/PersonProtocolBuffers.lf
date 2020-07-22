@@ -1,5 +1,3 @@
-// FIXME: UPDATE COMMENT BELOW
-
 /** This example demonstrates a very simple use of protocol buffers
  *  within a reactor. It encodes and decodes a very simple protocol
  *  buffer definition in Person.proto. This reactor is heavily
@@ -13,9 +11,7 @@
  *       $ brew install protobuf
  * 
  *  Building protobuf from source is slow, so avoid doing that
- *  if possible. Next install the C plugin for protocol buffers from 
- * 
- *      https://github.com/protobuf-c/protobuf-c
+ *  if possible.
  * 
  *  The code generator assumes
  *  that executables are installed within the PATH. On a Mac, this is
@@ -23,7 +19,7 @@
  */
 
 target TypeScript;
-// import Person.proto;
+import Person.proto;
 
 main reactor HelloProtocolBuffers {
 	reaction(startup) {=
@@ -32,7 +28,7 @@ main reactor HelloProtocolBuffers {
         // for class Person from the file Person.proto is 
         // Person.Person()
 		let person = new Person.Person();
-		person.setName("Lingua Franca")
+		person.setName("Lingua Franca");
 		person.setId(1);
 		person.setEmail("eal@berkeley.edu");
 		
