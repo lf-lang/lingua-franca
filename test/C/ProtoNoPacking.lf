@@ -20,12 +20,11 @@
  */
 target C;
 import ProtoHelloWorld.proto;
-
 reactor SourceProto {
     output out:ProtoHelloWorld;
     reaction(startup) -> out {=
-        out->name = "Hello World";
-        out->number = 42;
+        out->value.name = "Hello World";
+        out->value.number = 42;
         SET_PRESENT(out);
     =}
 }
@@ -33,7 +32,7 @@ reactor SourceProto {
 reactor SinkProto {
     input in:ProtoHelloWorld;
     reaction(in) {=
-        printf("Received: name=\"%s\", number=%d.\n", in.name, in.number);
+        printf("Received: name=\"%s\", number=%d.\n", in->value.name, in->value.number);
     =}
 }
 
