@@ -7,7 +7,6 @@ target Cpp;
 import StructPrint.lf; // this also imports the definition of Hello
 
 reactor Scale(scale:int(2)) {
-    // Mutable keyword indicates that this reactor wants a writable copy of the input.
     input in:Hello;
     
     output out:Hello;
