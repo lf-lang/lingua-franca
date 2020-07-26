@@ -10,7 +10,7 @@ target C {
     coordination: centralized
 };
 
-import Count.lf;
+import Count from "lib/Count.lf";
 
 reactor DistrubutedCountPrint {
     input in:int;

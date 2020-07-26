@@ -3,7 +3,7 @@
 target TypeScript{
     timeout : 2 sec
 };
-import ImportedAgain.lf;
+import ImportedAgain from "ImportedAgain.lf";
 reactor Imported {
     input x:number;
     a = new ImportedAgain();

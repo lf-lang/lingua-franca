@@ -3,7 +3,7 @@
 target TypeScript{
     timeout : 2 sec
 };
-import Imported.lf;
+import Imported from "Imported.lf";
 main reactor Import {
     timer t;
     a = new Imported(); 

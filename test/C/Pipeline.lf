@@ -3,7 +3,7 @@ target C {
     threads: 4
 };
 
-import Threaded.lf;
+import Computation from "Threaded.lf";
 
 reactor Print {
     input in:int;
@@ -39,7 +39,7 @@ main reactor Pipeline {
     reaction(t) -> c1.in {=
         SET(c1.in, self->count++);        
     =}
-    
+   
     c1.out -> c2.in after 200 msec;
     c2.out -> c3.in after 200 msec;
     c3.out -> c4.in after 200 msec;

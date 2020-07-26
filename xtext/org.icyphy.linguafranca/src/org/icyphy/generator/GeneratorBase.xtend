@@ -77,6 +77,7 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.ReactorDecl
 
 /**
  * Generator base class for shared code between code generators.
@@ -174,7 +175,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * A list of Reactor definitions in the main resource, including non-main 
      * reactors defined in imported resources.
      */
-    protected var List<Reactor> reactors = newLinkedList
+    protected var List<ReactorDecl> reactors = newLinkedList // FIXME: Each 
     
     /**
      * The file containing the main source code.
@@ -532,10 +533,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 //            }
 //        }
     
-        val graph = new PrecedenceGraph<Reactor>()
+        val graph = new PrecedenceGraph<ReactorDecl>()
         for (inst : resource.allContents.toIterable.filter(Instantiation)) {
             // Build a dependency graph
-            collectClasses(inst, graph)
+            collectDeclarations(inst, graph)
         }
         this.reactors = graph.nodesOrderedDescending
         println(this.reactors)
@@ -545,7 +546,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         generatePreamble()
     }
     
-    def void collectClasses(Instantiation instantiation, PrecedenceGraph<Reactor> graph) {
+    def void collectDeclarations(Instantiation instantiation, PrecedenceGraph<ReactorDecl> graph) {
         val reactor = instantiation.reactorClass
         val container = instantiation.eContainer as Reactor
         if (!container.isMain && !container.isFederated) {
@@ -553,8 +554,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         } else {
             graph.addNode(reactor)
         }
-        for (inst : reactor.instantiations) {
-            inst.collectClasses(graph)
+        for (inst : reactor.toDefinition.instantiations) {
+            inst.collectDeclarations(graph)
         }
     }
     
@@ -660,20 +661,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }    
         }
         return "0" // FIXME: do this or throw exception?
-    }
-
-    /**
-     * Remove quotation marks surrounding the specified string.
-     */
-    def withoutQuotes(String s) {
-        var result = s
-        if (s.startsWith("\"") || s.startsWith("\'")) {
-            result = s.substring(1)
-        }
-        if (result.endsWith("\"") || result.endsWith("\'")) {
-            result = result.substring(0, result.length - 1)
-        }
-        result
     }
     
     
@@ -1950,27 +1937,29 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        if (mainDef === null || !mainDef.reactorClass.isFederated) {
+        val mainDefn = this.mainDef?.reactorClass.toDefinition
+        
+        if (this.mainDef === null || !mainDefn.isFederated) {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, this)
             federates.add(federateInstance)
             federateByName.put("", federateInstance)
             federateByID.put(0, federateInstance)
         } else {            
-            if (mainDef.reactorClass.host !== null) {
+            if (mainDefn.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
-                if (mainDef.reactorClass.host.addr !== null) {
-                    federationRTIProperties.put('host', mainDef.reactorClass.host.addr)                
+                if (mainDefn.host.addr !== null) {
+                    federationRTIProperties.put('host', mainDefn.host.addr)                
                 }
                 // Get the port information, if specified.
                 // If not specified, this defaults to 14045
-                if (mainDef.reactorClass.host.port !== 0) {
-                    federationRTIProperties.put('port', mainDef.reactorClass.host.port)                
+                if (mainDefn.host.port !== 0) {
+                    federationRTIProperties.put('port', mainDefn.host.port)                
                 }
                 // Get the user information, if specified.
-                if (mainDef.reactorClass.host.user !== null) {
-                    federationRTIProperties.put('user', mainDef.reactorClass.host.user)                
+                if (mainDefn.host.user !== null) {
+                    federationRTIProperties.put('user', mainDefn.host.user)                
                 }
                 // Get the directory information, if specified.
                 /* FIXME
@@ -1981,7 +1970,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             
             // Create a FederateInstance for each top-level reactor.
-            for (instantiation : mainDef.reactorClass.allInstantiations) {
+            for (instantiation : mainDefn.allInstantiations) {
                 // Assign an integer ID to the federate.
                 var federateID = federates.length
                 // Add the federate name to the list of names.
@@ -2031,7 +2020,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // AST with an action (which inherits the delay) and two reactions.
             // The action will be physical.
             var connectionsToRemove = new LinkedList<Connection>()
-            for (connection : mainDef.reactorClass.connections) {
+            for (connection : mainDefn.connections) {
                 var leftFederate = federateByReactor.get(connection.leftPort.container.name)
                 var rightFederate = federateByReactor.get(connection.rightPort.container.name)
                 if (leftFederate !== rightFederate) {
@@ -2084,7 +2073,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             for (connection : connectionsToRemove) {
                 // Remove the original connection for the parent.
-                mainDef.reactorClass.connections.remove(connection)
+                mainDefn.connections.remove(connection)
             }
         }
     }

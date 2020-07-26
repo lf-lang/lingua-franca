@@ -4,7 +4,7 @@
 // Print is done with it.
 target Cpp;
 
-import StructPrint.lf; // this also imports the definition of Hello
+import Print from "StructPrint.lf"; // this also imports the definition of Hello
 
 reactor Scale(scale:int(2)) {
     // Mutable keyword indicates that this reactor wants a writable copy of the input.

@@ -4,25 +4,13 @@
 // It modifies it and passes it to Print. It gets freed after
 // Print is done with it.
 target C {files: ["include/hello.h"]};
-import StructPrint.lf;
+import StructScalePrint from "StructPrint.lf";
 
 // expected parameter is for testing.
 reactor TestInput(expected:int(42)) {
     
-    input in:hello_t*; // FIXME: WARNING: This is extremely precarious. 
-    // Instantiations determine the order in which reactor definitions are
-    // generated. This is necessary one reactor can instantiate another,
-    // and the constructor of this other reactor must be defined before
-    // it is referenced. The instantiations of TestInput and StrucScalePrint
-    // in the main reactor below have to dependencies, so the ordering
-    // is arbitrary. This input declaration, however, implies a dependency
-    // on the preamble of StructScalePrint. Counterintuitively, switching
-    // the order of these two reactor classes in the LF source causes a compilation
-    // failure. We can avert this by letting the order of declaration within
-    // the file also impose an ordering constraint, but should a preamble
-    // declared in one reactor really affect anything in another reactor?
-    // Don't we have a file-scope preamble for this purpose? The syntax
-    // allows it, but the code generator ignores it currently.
+    input in:hello_t*;
+    
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
         if (in->value->value != self->expected) {

@@ -37,9 +37,13 @@ class LinguaFrancaResourceDescriptionStrategy extends DefaultResourceDescription
         }
     }
 
-    /** Build an index containing the strings of the URIs imported resources.
-     *  All the URIs are added to comma-separated string and stored under the 
-     *  key "includes" in the userData map of the object description.
+    /**
+     * Build an index containing the strings of the URIs imported resources.
+     * 
+     * All the URIs are added to comma-separated string and stored under the 
+     * key "includes" in the userData map of the object description.
+     * 
+     * FIXME: store map from (URI + name) to alias? 
      **/
     def void createEObjectDescriptionForModel(Model model,
         IAcceptor<IEObjectDescription> acceptor) {

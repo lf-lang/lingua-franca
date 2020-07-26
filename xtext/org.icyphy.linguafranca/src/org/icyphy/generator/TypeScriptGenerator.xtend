@@ -110,7 +110,7 @@ class TypeScriptGenerator extends GeneratorBase {
            
         // Generate code for each reactor. 
         for (r : reactors) {
-           r.generateReactor()
+           r.toDefinition.generateReactor()
         }
 
         // FIXME: These important files are defined above in two places
@@ -167,7 +167,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
                 // Generate main instance, if there is one.
-                generateReactorFederated(this.mainDef.reactorClass, federate)
+                generateReactorFederated(this.mainDef.reactorClass.toDefinition, federate)
                 generateReactorInstance(this.mainDef)
                 generateRuntimeStart(this.mainDef) 
             }
@@ -421,7 +421,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // reactor class, find the matching parameter assignments in
         // the reactor instance, and write the corresponding parameter
         // value as an argument for the TypeScript constructor
-        for (parameter : childReactor.reactorClass.parameters) {
+        for (parameter : childReactor.reactorClass.toDefinition.parameters) {
             childReactorArguments.add(parameter.getTargetInitializer(childReactor))
         }
         
@@ -863,7 +863,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // be undefined if the command line argument wasn't specified. Otherwise
         // use undefined in the constructor.
         var mainReactorParams = new StringJoiner(", ")
-        for (parameter : defn.reactorClass.parameters) {
+        for (parameter : defn.reactorClass.toDefinition.parameters) {
             
             if (customCLArgs.contains(parameter)) {
                 mainReactorParams.add("__CL" + parameter.name)

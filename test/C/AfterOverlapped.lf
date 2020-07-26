@@ -3,7 +3,8 @@ target C {
     fast: true,
     timeout: 5 sec
 };
-import Count.lf;
+import Count from "lib/Count.lf";
+
 reactor AOTest {
     input c:int;
     state i:int(0);
