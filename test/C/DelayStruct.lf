@@ -1,7 +1,8 @@
 // This tests the use of the "polymorphic" delay reactor on a struct.
 // It delays by a logical time any pointer datatype.
 target C {files: ["include/hello.h"]};
-reactor DelayStructDelayPointer(delay:time(100 msec)) {
+
+reactor DelayPointer(delay:time(100 msec)) {
     input in:void*;
     output out:void*;
     logical action a:void*;

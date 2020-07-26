@@ -3,7 +3,8 @@ target C {
     fast: true
 };
 
-import Count.lf;
+import Count from "lib/Count.lf";
+
 reactor Test {
     input c:int;
     state i:int(0);

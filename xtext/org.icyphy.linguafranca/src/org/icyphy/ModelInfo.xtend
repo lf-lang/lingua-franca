@@ -129,7 +129,7 @@ class ModelInfo {
             //System.out.println(importedURI);
             //val URI resolvedURI = importedURI?.resolve(currentURI);
             
-            val importResource = import.importedNamespace;
+            val importResource = import.importURI;
             System.out.println(importResource);
             
             // Continue recursion if not already visited.
@@ -159,10 +159,10 @@ class ModelInfo {
                 if (set === null)
                     set = new HashSet<Instantiation>()
                 set.add(instantiation)
-                this.instantiationMap.put(instantiation.reactorClass, set)
+                this.instantiationMap.put(instantiation.reactorClass.toDefinition, set)
                 this.instantiationGraph.addEdge(
                     (instantiation.eContainer as Reactor),
-                    instantiation.reactorClass)
+                    instantiation.reactorClass.toDefinition)
             }
         }
         this.instantiationGraph.detectCycles()    

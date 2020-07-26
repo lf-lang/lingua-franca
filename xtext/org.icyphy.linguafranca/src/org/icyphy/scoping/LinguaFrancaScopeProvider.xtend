@@ -42,6 +42,7 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
 
+import static extension org.icyphy.ASTUtils.*
 /**
  * This class enforces custom rules. In particular, it resolves references to 
  * parameters, ports, actions, and timers. Ports can be referenced across at
@@ -81,7 +82,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
         val candidates = new ArrayList<EObject>()
         if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__LHS) {
             return Scopes.scopeFor(
-                (assignment.eContainer as Instantiation).reactorClass.
+                (assignment.eContainer as Instantiation).reactorClass.toDefinition.
                     parameters)
         }
         if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__RHS) {
@@ -134,11 +135,11 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
                         if (type === RefType.TRIGGER ||
                             type === RefType.SOURCE || type === RefType.CLEFT) {
                             return Scopes.scopeFor(
-                                instance.reactorClass.outputs)
+                                instance.reactorClass.toDefinition.outputs)
                         } else if (type === RefType.EFFECT ||
                             type === RefType.DEADLINE ||
                             type === RefType.CRIGHT) {
-                            return Scopes.scopeFor(instance.reactorClass.inputs)
+                            return Scopes.scopeFor(instance.reactorClass.toDefinition.inputs)
                         }
                     }
                 }

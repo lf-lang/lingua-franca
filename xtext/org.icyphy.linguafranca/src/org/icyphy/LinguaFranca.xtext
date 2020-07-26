@@ -42,7 +42,6 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
  */
 Model:
     target=Target
-    (package=PackageDeclaration)?
     (imports+=Import)*
     (preambles+=Preamble)*
     (reactors+=Reactor)+
@@ -53,16 +52,17 @@ Model:
 /**
  * Import declaration.
  */
-Import:
-    'import' ((importedNamespace=QualifiedNameWithWildcard ('as' alias=ID)?) | importURI=STRING) ';'
-;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?;
+
+ReactorDecl: Reactor | ImportedReactor;
+
+ImportedReactor: reactorClass=[Reactor] ('as' name=ID)?;
+
+//Import:
+//    'import' ((importedNamespace=QualifiedNameWithWildcard ('as' alias=ID)?) | importURI=STRING) ';'
+//;
     
-/**
- * Package name declaration.
- */    
-PackageDeclaration:
-    'package' name=QualifiedName ';';
-    
+
 QualifiedName:
     ID ('.' ID)*;
     
@@ -77,7 +77,7 @@ Reactor:
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
-    ('extends' (superClasses+=[Reactor] (',' superClasses+=[Reactor])*))?
+    ('extends' (superClasses+=[ReactorDecl] (',' superClasses+=[ReactorDecl])*))?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -198,7 +198,7 @@ Preamble:
 
 Instantiation:
     name=ID '=' 'new' (arraySpec=ArraySpec)?
-    reactorClass=[Reactor] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
+    reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
     ')' ('at' host=Host)? ';';
 

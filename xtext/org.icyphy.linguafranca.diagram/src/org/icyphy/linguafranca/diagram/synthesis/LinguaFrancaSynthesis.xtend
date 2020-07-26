@@ -68,6 +68,7 @@ import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensi
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import static extension org.icyphy.ASTUtils.*
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -518,7 +519,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Transform instances
 		for (entry : reactor.instantiations.indexed) {
 			val instance = entry.value
-			val rNodes = instance.reactorClass.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors, allReactorNodes)
+			val rNodes = instance.reactorClass.toDefinition.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors, allReactorNodes)
 			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, reactor.instantiations.size - entry.key)
 			nodes += rNodes
 		}

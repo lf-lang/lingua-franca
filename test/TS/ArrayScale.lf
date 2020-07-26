@@ -4,7 +4,7 @@
 // It modifies it and passes it to Print. It gets freed after
 // Print is done with it.
 target TypeScript;
-import ArrayPrint.lf;
+import Source from "ArrayPrint.lf";
 
 reactor Scale(scale:number(2)) {
     mutable input x:{=Array<number>=};

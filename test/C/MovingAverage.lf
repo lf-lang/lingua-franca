@@ -6,6 +6,7 @@ target C {
     timeout: 1 sec,
     fast: true
 };
+import TestDouble from "lib/Test.lf"
 
 reactor MASource {
     output out:double;

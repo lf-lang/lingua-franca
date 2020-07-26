@@ -98,32 +98,32 @@ class Main {
         
         println("filename: " + fileName)
         
-		// Add all local files to the resource.
-		for (String file : getSourceFiles(fileRoot)) {
-            if (!file.equals(fileName))
-                set.getResource(URI.createURI(file), true);
-        }
-        
-        
-        // FIXME: temporary fix for the standalone mode. Does not work for the IDE.
-        try
-        {
-            // Load all the resource in LF_CLASSPATH
-            var LF_CLASSPATH = System.getenv("LF_CLASSPATH");
-            var String[] paths = LF_CLASSPATH.split(System.getProperty("path.separator"));
-            for (String path: paths) {
-                // Add all global files to the resource
-                for (String file : getSourceFiles(path)) {
-                    if (!file.equals(fileName))
-                        set.getResource(URI.createURI(file), true);
-                    }
-            }
-        
-        }
-        catch (Exception e)
-        {
-            System::err.println("LF_CLASSPATH is not set.")
-        }
+//		// Add all local files to the resource.
+//		for (String file : getSourceFiles(fileRoot)) {
+//            if (!file.equals(fileName))
+//                set.getResource(URI.createURI(file), true);
+//        }
+//        
+//        
+//        // FIXME: temporary fix for the standalone mode. Does not work for the IDE.
+//        try
+//        {
+//            // Load all the resource in LF_CLASSPATH
+//            var LF_CLASSPATH = System.getenv("LF_CLASSPATH");
+//            var String[] paths = LF_CLASSPATH.split(System.getProperty("path.separator"));
+//            for (String path: paths) {
+//                // Add all global files to the resource
+//                for (String file : getSourceFiles(path)) {
+//                    if (!file.equals(fileName))
+//                        set.getResource(URI.createURI(file), true);
+//                    }
+//            }
+//        
+//        }
+//        catch (Exception e)
+//        {
+//            System::err.println("LF_CLASSPATH is not set.")
+//        }
         		
 		val resource = set.getResource(URI.createFileURI(fileName), true)
 

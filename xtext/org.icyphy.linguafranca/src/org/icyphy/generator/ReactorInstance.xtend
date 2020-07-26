@@ -108,12 +108,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Apply overrides and instantiate parameters for this reactor instance.
-        for (parameter : definition.reactorClass.allParameters) {
+        for (parameter : definition.reactorClass.toDefinition.allParameters) {
             this.parameters.add(new ParameterInstance(parameter, this))
         }
 
         // Instantiate children for this reactor instance
-        for (child : definition.reactorClass.allInstantiations) {
+        for (child : definition.reactorClass.toDefinition.allInstantiations) {
             var childInstance = new ReactorInstance(child, this, generator)
             this.children.add(childInstance)
             // If the child is a bank of instances, add all the bank instances.
@@ -124,7 +124,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate inputs for this reactor instance
-        for (inputDecl : definition.reactorClass.allInputs) {
+        for (inputDecl : definition.reactorClass.toDefinition.allInputs) {
             if (inputDecl.arraySpec === null) {
                 this.inputs.add(new PortInstance(inputDecl, this))
             } else {
@@ -133,7 +133,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate outputs for this reactor instance
-        for (outputDecl : definition.reactorClass.allOutputs) {
+        for (outputDecl : definition.reactorClass.toDefinition.allOutputs) {
             if (outputDecl.arraySpec === null) {
                 this.outputs.add(new PortInstance(outputDecl, this))
             } else {
@@ -142,12 +142,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate timers for this reactor instance
-        for (timerDecl : definition.reactorClass.allTimers) {
+        for (timerDecl : definition.reactorClass.toDefinition.allTimers) {
             this.timers.add(new TimerInstance(timerDecl, this))
         }
 
         // Instantiate actions for this reactor instance
-        for (actionDecl : definition.reactorClass.allActions) {
+        for (actionDecl : definition.reactorClass.toDefinition.allActions) {
             this.actions.add(new ActionInstance(actionDecl, this))
         }
 
@@ -155,7 +155,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // in the port instances.
         // Note that this can only happen _after_ the children and 
         // port instances have been created.
-        for (connection : definition.reactorClass.allConnections) {
+        for (connection : definition.reactorClass.toDefinition.allConnections) {
             // If the source or the destination's .container is a bank
             // of reactors, then the following will return null.
             var srcInstance = this.getPortInstance(connection.leftPort)
@@ -975,8 +975,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  that follows from the order in which they are defined.
      */
     protected def createReactionInstances() {
-        var reactions = this.definition.reactorClass.allReactions
-        if (this.definition.reactorClass.reactions !== null) {
+        var reactions = this.definition.reactorClass.toDefinition.allReactions
+        if (this.definition.reactorClass.toDefinition.reactions !== null) {
             var ReactionInstance previousReaction = null
             var count = 0
 

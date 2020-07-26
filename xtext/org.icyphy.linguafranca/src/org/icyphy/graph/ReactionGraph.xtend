@@ -141,7 +141,7 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
 
         if (reactor.allInstantiations !== null) {
             for (inst : reactor.instantiations) {
-                this.collectNodesFrom(inst.reactorClass,
+                this.collectNodesFrom(inst.reactorClass.toDefinition,
                     path.append(inst, inst.name))
             }
         }

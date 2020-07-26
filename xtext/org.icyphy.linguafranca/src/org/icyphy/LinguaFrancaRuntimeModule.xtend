@@ -21,22 +21,22 @@ import org.eclipse.xtext.resource.containers.StateBasedContainerManager
  */
 class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
 	
-	override Class<? extends IContainer.Manager> bindIContainer$Manager() {
-        return StateBasedContainerManager;
-    }
-    
-   override Class<? extends IAllContainersState.Provider> bindIAllContainersState$Provider() {
-		LinguaFrancaStateManagerProvider;
-	}
-	
-	def Class<? extends IResourceDescription.Manager> bindIResourceDescription$Manager() {
-        LinguaFrancaResourceDescriptionManager;
-    }
+//	override Class<? extends IContainer.Manager> bindIContainer$Manager() {
+//        return StateBasedContainerManager;
+//    }
+//    
+//   override Class<? extends IAllContainersState.Provider> bindIAllContainersState$Provider() {
+//		LinguaFrancaStateManagerProvider;
+//	}
+//	
+//	def Class<? extends IResourceDescription.Manager> bindIResourceDescription$Manager() {
+//        LinguaFrancaResourceDescriptionManager;
+//    }
     
 		
     /** Establish a binding to our custom resource description strategy. */
     def Class<? extends IDefaultResourceDescriptionStrategy> bindIDefaultResourceDescriptionStrategy() {
-        DefaultResourceDescriptionStrategy
+        LinguaFrancaResourceDescriptionStrategy
     }
     
     /** Establish a binding to our custom global scope provider. */
@@ -44,10 +44,10 @@ class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
         LinguaFrancaGlobalScopeProvider;
     }
     
-    /** Establish a binding to a helper that checks that names are unique. */
-    def Class<? extends INamesAreUniqueValidationHelper> bindNamesAreUniqueValidationHelper() {
-        LinguaFrancaNamesAreUniqueValidationHelper;
-    }
+//    /** Establish a binding to a helper that checks that names are unique. */
+//    def Class<? extends INamesAreUniqueValidationHelper> bindNamesAreUniqueValidationHelper() {
+//        LinguaFrancaNamesAreUniqueValidationHelper;
+//    }
     
     
 }

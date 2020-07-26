@@ -26,6 +26,8 @@
  ***************/
 package org.icyphy.validation
 
+import com.google.inject.Inject
+import com.google.inject.Provider
 import java.util.ArrayList
 import java.util.Arrays
 import java.util.HashSet
@@ -37,6 +39,9 @@ import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
+import org.eclipse.xtext.resource.IContainer
+import org.eclipse.xtext.resource.IResourceDescriptions
+import org.eclipse.xtext.resource.XtextResourceSet
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
 import org.icyphy.Targets
@@ -52,9 +57,11 @@ import org.icyphy.linguaFranca.Deadline
 import org.icyphy.linguaFranca.Host
 import org.icyphy.linguaFranca.IPV4Host
 import org.icyphy.linguaFranca.IPV6Host
+import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.NamedHost
@@ -76,13 +83,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
-import com.google.inject.Inject
-import org.eclipse.xtext.resource.IContainer
-import org.eclipse.xtext.resource.IResourceDescriptions
-import org.icyphy.linguaFranca.LinguaFrancaPackage
-import com.google.inject.Provider
-import org.eclipse.xtext.resource.XtextResourceSet
-import org.icyphy.linguaFranca.Import
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -153,12 +153,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
                 if (reactor.eResource.URI != other.eResource.URI) {
                     // This means distinct files (all reactors in same file have same URI).
-                    val p1 = (reactor.eContainer as Model).package
-                    val p2 = (other.eContainer as Model).package
-                    if (p1 == p2 && reactor.name == other.name) {
-                        error('''Duplicate reactor '«reactor.name»' in package (see «other.eResource.URI»)''', LinguaFrancaPackage.Literals.REACTOR__NAME,
-                            GLOBALLY_DUPLICATE_NAME)
-                    }
+//                    val p1 = (reactor.eContainer as Model).package
+//                    val p2 = (other.eContainer as Model).package
+//                    if (p1 == p2 && reactor.name == other.name) {
+//                        error('''Duplicate reactor '«reactor.name»' in package (see «other.eResource.URI»)''', LinguaFrancaPackage.Literals.REACTOR__NAME,
+//                            GLOBALLY_DUPLICATE_NAME)
+//                    }
                 }
 
             }
@@ -167,11 +167,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check
     def checkImport(Import imp) {
-        if (imp.importedNamespace !== null) {
+        //if (imp.importedNamespace !== null) {
             // .*
             // Check if 
             //resourceSetProvider.get.classpathUriResolver.resolve()
-        }
+        //}
     }
 
     // //////////////////////////////////////////////////
@@ -393,7 +393,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkInstantiation(Instantiation instantiation) {
         checkName(instantiation.name, Literals.INSTANTIATION__NAME)
-        if (instantiation.reactorClass.isMain || instantiation.reactorClass.isFederated) {
+        if (instantiation.reactorClass.toDefinition.isMain || instantiation.reactorClass.toDefinition.isFederated) {
             error(
                 "Cannot instantiate a main (or federated) reactor: " +
                     instantiation.reactorClass.name,
@@ -720,13 +720,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkReactor(Reactor reactor) {
-        checkName(reactor.name, Literals.REACTOR__NAME)
+        checkName(reactor.name, Literals.REACTOR_DECL__NAME)
         
         // C++ reactors may not be called 'preamble'
         if (this.target == Targets.CPP && reactor.name.equalsIgnoreCase("preamble")) {
             error(
                 "Reactor cannot be named '" + reactor.name + "'",
-                Literals.REACTOR__NAME
+                Literals.REACTOR_DECL__NAME
             )
         }
         
@@ -753,13 +753,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             var conflicts = new HashSet()
             
             // Detect input conflicts
-            checkConflict(superClass.inputs, reactor.inputs, variables, conflicts)
+            checkConflict(superClass.toDefinition.inputs, reactor.inputs, variables, conflicts)
             // Detect output conflicts
-            checkConflict(superClass.outputs, reactor.outputs, variables, conflicts)
+            checkConflict(superClass.toDefinition.outputs, reactor.outputs, variables, conflicts)
             // Detect output conflicts
-            checkConflict(superClass.actions, reactor.actions, variables, conflicts)
+            checkConflict(superClass.toDefinition.actions, reactor.actions, variables, conflicts)
             // Detect conflicts
-            for (timer : superClass.timers) {
+            for (timer : superClass.toDefinition.timers) {
                 if (timer.hasNameConflict(variables.filter[it | !reactor.timers.contains(it)])) {
                     conflicts.add(timer)
                 } else {

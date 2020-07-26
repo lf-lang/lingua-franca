@@ -1,7 +1,6 @@
 target C;
-package org.icyphy.component;
 
-reactor TestDouble(expected:double[](1.0, 2.0, 3.0, 4.0)) {
+reactor TestDouble(expected:double[](1.0, 1.0, 1.0, 1.0)) {
     input in:double;
     state count:int(0);
     reaction(in) {=
