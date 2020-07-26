@@ -1365,7 +1365,7 @@ class ASTUtils {
      * @true true if the reactor uses generics
      */
     def static boolean isGeneric(Reactor r) {
-        var Reactor defn
+        var Reactor defn = r
         
         return defn?.typeParms.length != 0;
     }
