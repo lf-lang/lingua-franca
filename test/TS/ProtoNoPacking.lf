@@ -1,0 +1,46 @@
+/** This example creates a Protocol Buffer message and passes it to
+ *  another reactor without packing and unpacking. This demonstrates
+ *  that local communication, within one shared-memory machine, need
+ *  not incur the overhead of packing and unpacking.
+ *
+ *  To run this example first install the protocol buffers compiler
+ *  from https://github.com/protocolbuffers/protobuf. It is also
+ *  available from homebrew on a Mac via 
+ * 
+ *       $ brew install protobuf
+ * 
+ *  Building protobuf from source is slow, so avoid doing that
+ *  if possible.
+ *
+ */
+target TypeScript;
+import ProtoHelloWorld.proto;
+
+reactor SourceProto {
+    output out:ProtoHelloWorld.ProtoHelloWorld;
+    reaction(startup) -> out {=
+        // The contents of a compiled proto file are imported in
+        // TypeScript as "import * as <.protoFileName>". So the constructor
+        // for class ProtoHelloWorld from the file ProtoHelloWorld.proto is 
+        // ProtoHelloWorld.ProtoHelloWorld()
+        let helloObject = new ProtoHelloWorld.ProtoHelloWorld();
+        helloObject.setName("Hello World");
+        helloObject.setNumber(42);
+        out = helloObject;
+    =}
+}
+
+reactor SinkProto {
+    input x:ProtoHelloWorld.ProtoHelloWorld;
+    reaction(x) {=
+        if (x !== undefined) {
+            console.log(`Received: name=${x.getName()}, number=${x.getNumber()}.`)
+        }
+    =}
+}
+
+main reactor ProtoNoPacking {
+	s = new SourceProto();
+	d = new SinkProto();
+	s.out -> d.x;
+}
