@@ -53,6 +53,11 @@ import org.icyphy.linguaFranca.Variable
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.InferredType
 import org.icyphy.linguaFranca.Reaction
+import java.nio.file.Files
+import java.nio.file.Paths
+import org.icyphy.linguaFranca.Import
+import org.eclipse.emf.ecore.resource.ResourceSet
+import org.eclipse.emf.common.util.URI
 
 /** Generator for TypeScript target.
  *
@@ -77,20 +82,41 @@ class TypeScriptGenerator extends GeneratorBase {
     // Set of acceptable import targets includes only TypeScript.
     val acceptableTargetSet = newHashSet('TypeScript')
     
-    // Target filename.
-    var tsFilename = filename + ".ts"
-    var jsFilename = filename + ".js"
-    var configPath = File.separator + "lib" + File.separator + "TS"
-    var projectPath = directory + File.separator + filename
-    var reactorTSPath = File.separator + "lib" + File.separator +
-        "TS" + File.separator + "reactor-ts"
-    var srcGenPath = projectPath + File.separator + "src"
-    var outPath = projectPath + File.separator + "dist"
-    var reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
-        + "core" + File.separator
-    var tscPath = directory + File.separator + "node_modules" +  File.separator 
-        + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
+    // Path to the generated project directory
+    var String projectPath
     
+    // Path to reactor-ts files
+    var String reactorTSPath
+    
+    // Path to the src directory
+    var String srcGenPath
+    
+    // Path to the output dist directory
+    var String outPath
+    
+    // Path to a default configuration files
+    var String configPath
+    
+    // Path to core reactor-ts files
+    var String reactorTSCorePath
+    
+    // Path to the tsc command within the node modules directory
+    var String tscPath
+    
+    // Array of .proto filenames in the root directory.
+    var HashSet<String> protoFiles = new HashSet<String>()
+    
+    // FIXME: The CGenerator expects these next two paths to be
+    // relative to the directory, not the project folder
+    // so for now I just left it that way. A different
+    // directory structure for RTI and TS code may be
+    // preferable.
+        
+    // Path to src-gen directory for C code
+    var String cSrcGenPath
+    
+    // Path to bin directory for compiled C code
+    var String cOutPath
     
     // List of validly typed parameters of the main reactor for 
     // custom command line arguments
@@ -107,36 +133,24 @@ class TypeScriptGenerator extends GeneratorBase {
         Resource resource,
         IFileSystemAccess2 fsa,
         IGeneratorContext context
-    ) {        
+    ) {
         super.doGenerate(resource, fsa, context)
+        
+        // Set variables for paths
+        analyzePaths()
+        
+        // Generate imports for protocol buffer definitions
+        // Note that the preamble is generated as part of
+        // super.doGenerate.
+        generateProtoPreamble()
+        
+        // Generate command line argument processing code
+        generateCLAProcessing()
            
         // Generate code for each reactor. 
         for (r : reactors) {
            r.generateReactor()
         }
-
-        // FIXME: These important files are defined above in two places
-        
-        // Important files and directories
-        tsFilename = filename + ".ts"
-        jsFilename = filename + ".js"
-        projectPath = directory + File.separator + filename
-        reactorTSPath = File.separator + "lib" + File.separator +
-            "TS" + File.separator + "reactor-ts"
-        srcGenPath = projectPath + File.separator + "src"
-        outPath = projectPath + File.separator + "dist"
-        
-        // FIXME: The CGenerator expects these paths to be
-        // relative to the directory, not the project folder
-        // so for now I just left it that way. A different
-        // directory structure for RTI and TS code may be
-        // preferable.
-        var cSrcGenPath = directory + File.separator + "src-gen"
-        var cOutPath = directory + File.separator + "bin"
-        reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
-            + "core" + File.separator
-        tscPath = directory + File.separator + "node_modules" +  File.separator 
-        + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
         
         // Create output directories if they don't yet exist
         var dir = new File(projectPath)
@@ -200,16 +214,13 @@ class TypeScriptGenerator extends GeneratorBase {
         // Copy the required library files into the src directory
         // so they may be compiled as part of the TypeScript project.
         // This requires that the TypeScript submodule has been installed.
-        copyReactorTSCoreFile(srcGenPath, "reactor.ts")
-        copyReactorTSCoreFile(srcGenPath, "federation.ts")
-        copyReactorTSCoreFile(srcGenPath, "cli.ts")
-        copyReactorTSCoreFile(srcGenPath, "command-line-args.d.ts")
-        copyReactorTSCoreFile(srcGenPath, "command-line-usage.d.ts")
-        copyReactorTSCoreFile(srcGenPath, "microtime.d.ts")
-        copyReactorTSCoreFile(srcGenPath, "nanotimer.d.ts")
-        copyReactorTSCoreFile(srcGenPath, "time.ts")
-        copyReactorTSCoreFile(srcGenPath, "ulog.d.ts")
-        copyReactorTSCoreFile(srcGenPath, "util.ts")
+        var reactorTSCoreFiles = newArrayList("reactor.ts", "federation.ts",
+            "cli.ts", "command-line-args.d.ts", "command-line-usage.d.ts", 
+            "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts", "util.ts")
+
+        for (file : reactorTSCoreFiles) {
+            copyReactorTSCoreFile(srcGenPath, file)
+        }
         
         // Only run npm install if we had to copy over the default package.json.
         var boolean runNpmInstall
@@ -248,6 +259,31 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         
         refreshProject()
+        
+        // Invoke the protocol buffers compiler on all .proto files in the project directory
+        // Assumes protoc compiler has been installed on this machine
+        
+        // First test if the project directory contains any .proto files
+        if (protoFiles.size != 0) {
+            // Working example: protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --js_out=import_style=commonjs,binary:./generated --ts_out=./generated *.proto
+            
+            // FIXME: Should we include protoc as a submodule? If so, how to invoke it?
+            // protoc is commonly installed in /usr/local/bin, which sadly is not by
+            // default on the PATH for a Mac.
+            var protocCommand = newArrayList()
+            protocCommand.addAll("protoc",
+                "--plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts",
+                "--js_out=import_style=commonjs,binary:" + outPath,
+                "--ts_out=" + srcGenPath
+            )
+            protocCommand.addAll(protoFiles)
+            println("Compiling imported .proto files with command: " + protocCommand.join(" "))
+            executeCommand(protocCommand, directory)
+            // FIXME: report errors from this command.
+        } else {
+            println("No .proto files have been imported. Skipping protocol buffer compilation.")
+        }
+        
 
         // Invoke the compiler on the generated code.
         
@@ -275,7 +311,7 @@ class TypeScriptGenerator extends GeneratorBase {
             var babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
             // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
             var compileCommand = newArrayList(babelPath, "src",
-                "--out-dir", "dist", "--extensions", ".ts")
+                "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts")
             println("Compiling with command: " + compileCommand.join(" "))
             if (executeCommand(compileCommand, projectPath) !== 0) {
                 reportError("Compiler failed.")
@@ -307,7 +343,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
             for (file : files) {
                 copyFileFromClassPath(
-                    File.separator + "lib" + File.separator + "C" + File.separator + file,
+                    File.separator + "lib" + File.separator + "core" + File.separator + file,
                     cSrcGenPath + File.separator + file
                 )
             }
@@ -325,6 +361,29 @@ class TypeScriptGenerator extends GeneratorBase {
  
     override String getTargetReference(Parameter param) {
         return '''this.«param.name».get()'''
+    }
+    
+    /** Open a non-Lingua Franca import file at the specified URI
+     *  in the specified resource set. Throw an exception if the
+     *  file import is not supported. This class imports .proto files
+     *  and runs, if possible, the protoc protocol buffer code generator
+     *  to produce the required .d.ts and .js files.
+     *  @param importStatement The original import statement (used for error reporting).
+     *  @param resourceSet The resource set in which to find the file.
+     *  @param resolvedURI The URI to import.
+     */
+    override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
+        // Unfortunately, the resolvedURI appears to be useless for ordinary files
+        // (non-xtext files). Use the original importStatement.importURI
+        if (importStatement.importURI.endsWith(".proto")) {
+            // Add this file to the list of protocol buffer files to import.
+            protoFiles.add(importStatement.importURI)
+        } else {
+            return reportError(importStatement, "Unsupported imported file type: "
+                + importStatement.importURI
+            )
+        }
+        return "OK"
     }
  
     // //////////////////////////////////////////
@@ -973,7 +1032,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 this.util.sendRTITimedMessage(buf, «receivingFed.id», «receivingPortID»);
             }
         '''
-    }
+    } 
        
 
     /** Generate preamble code that appears in the code generated
@@ -981,9 +1040,14 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     override generatePreamble() {
         super.generatePreamble
-        pr(preamble)
+        pr(preamble) 
         pr("") 
-        
+    }
+    
+    /**
+     * Generate the code for processing command line arguments 
+     */
+    private def generateCLAProcessing() {
         // Need to get the main reactor's parameters so they can be made
         // command line arguments
         var Reactor mainReactor
@@ -1156,6 +1220,7 @@ class TypeScriptGenerator extends GeneratorBase {
         '''
         
         pr(setParameters)
+        
     }
     
     /**
@@ -1218,6 +1283,48 @@ class TypeScriptGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Private methods.
+    
+    private def analyzePaths() {
+        // Important files and directories
+        projectPath = directory + File.separator + filename
+        reactorTSPath = File.separator + "lib" + File.separator +
+            "TS" + File.separator + "reactor-ts"
+        srcGenPath = projectPath + File.separator + "src"
+        outPath = projectPath + File.separator + "dist"
+        configPath = File.separator + "lib" + File.separator + "TS"
+        
+        // FIXME: The CGenerator expects these paths to be
+        // relative to the directory, not the project folder
+        // so for now I just left it that way. A different
+        // directory structure for RTI and TS code may be
+        // preferable.
+        cSrcGenPath = directory + File.separator + "src-gen"
+        cOutPath = directory + File.separator + "bin"
+        reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
+            + "core" + File.separator
+        tscPath = directory + File.separator + "node_modules" +  File.separator 
+        + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
+    }
+    
+    /**
+     * Generate the part of the preamble that is determined
+     * by imports to .proto files in the root directory
+     */
+     private def generateProtoPreamble() {
+        pr("// Imports for protocol buffers")
+        // Generate imports for .proto files
+        for (protoImport : protoFiles) {
+            // Remove the .proto suffix
+            var protoName = protoImport.substring(0, protoImport.length - 6)
+            var protoFileName = protoName + "_pb"
+            var protoImportLine = '''
+                import * as «protoName» from ".«File.separator»«protoFileName»"
+            '''
+            pr(protoImportLine)  
+        }
+        pr("")  
+     }  
+    
     
     /** Look for a "logging" target property and return
      *  the appropriate logging level. This level is a
