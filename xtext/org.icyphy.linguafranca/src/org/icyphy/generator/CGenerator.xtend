@@ -2639,13 +2639,21 @@ class CGenerator extends GeneratorBase {
                         // If the port is a multiport, then we need to create an entry for each
                         // individual port.
                         if (port.isMultiport) {
+                            // If the width is given as a numeric constant, then add that constant
+                            // to the output count. Otherwise, assume it is a reference to one or more parameters.
+                            val widthSpec = multiportWidthSpecInC(port, nameOfSelfStruct)
+                            try {
+                                val widthNumber = Integer.decode(widthSpec)
+                                outputCount += widthNumber
+                            } catch (NumberFormatException ex) {
+                                widthExpressions.add(widthSpec)
+                            }
                             pr(initialization, '''
-                                for (int i = 0; i < «port.multiportWidthExpression»; i++) {
+                                for (int i = 0; i < «widthSpec»; i++) {
                                     «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index» + i]
                                             = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i].is_present;
                                 }
                             ''')
-                            widthExpressions.add(port.multiportWidthExpression)
                         } else {
                             pr(initialization, '''
                                 «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index»]
@@ -2655,8 +2663,6 @@ class CGenerator extends GeneratorBase {
                         }
                     }
                 }
-                // FIXME FIXME: width expressions that refer to parameters will need to be prefixed with «nameOfSelfStruct»->
-                // Also, could add all the integers here.
                 var outputCountExpr = '' + outputCount
                 if (widthExpressions.size > 0) {
                     outputCountExpr += ' + ' + widthExpressions.join(' + ')
@@ -2684,7 +2690,7 @@ class CGenerator extends GeneratorBase {
             // If the port is a multiport, create an array.
             if (input.isMultiport) {
                 pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->__«input.name»__width = «input.multiportWidthExpression»;
+                    «nameOfSelfStruct»->__«input.name»__width = «multiportWidthSpecInC(input, nameOfSelfStruct)»;
                     // Allocate memory for multiport inputs.
                     «nameOfSelfStruct»->__«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->__«input.name»__width); 
                     // Set inputs by default to an always absent default input.
@@ -2894,6 +2900,38 @@ class CGenerator extends GeneratorBase {
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
     
+    /**
+     * If the argument is a multiport, return a string that is a valid
+     * C expression consisting of an (optional) integer added to any number of
+     * parameter references on the specified self struct.
+     * @param port The port.
+     * @return The width expression for a multiport or an empty string if it is
+     *  not a multiport.
+     */
+    protected def String multiportWidthSpecInC(Port port, String selfStructName) {
+        var result = new StringBuilder()
+        var count = 0
+        if (port.widthSpec !== null) {
+            if (!port.widthSpec.ofVariableLength) {
+                for (term : port.widthSpec.terms) {
+                    if (term.parameter !== null) {
+                        result.append(selfStructName)
+                        result.append('->')
+                        result.append(getTargetReference(term.parameter))
+                    } else {
+                        count += term.width
+                    }
+                }
+            }
+        }
+        if (count > 0) {
+            if (result.length > 0) {
+                result.append(' + ')
+            }
+            result.append(count)
+        }
+        return result.toString
+    }
     
     protected def getInitializer(StateVar state, ReactorInstance parent) {
         var list = new LinkedList<String>();
