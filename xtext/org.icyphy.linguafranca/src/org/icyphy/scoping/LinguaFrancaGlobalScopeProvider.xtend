@@ -83,29 +83,44 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
                 }
                 return uniqueImportURIs
             }
-
+            
+            /**
+             * 
+             */
             def LinkedHashSet<URI> collectImportUris(Resource resource, LinkedHashSet<URI> uniqueImportURIs) {
-                val resourceDescription = descriptionManager.getResourceDescription(resource)
-                val models = resourceDescription.getExportedObjectsByType(LinguaFrancaPackage.Literals.MODEL)
-                
-                models.forEach[
-                    val userData = getUserData(LinguaFrancaResourceDescriptionStrategy.INCLUDES)
-                    if (userData !== null) {
-                        SPLITTER.split(userData).forEach[uri |
-                            var includedUri = URI.createURI(uri)
-                            val uriExtension = includedUri?.fileExtension
-                            if (uriExtension !== null && uriExtension.equalsIgnoreCase('lf')) {
-                                includedUri = includedUri.resolve(resource.URI)
-                                if(uniqueImportURIs.add(includedUri)) {
-                                    collectImportUris(resource.getResourceSet().getResource(includedUri, true), uniqueImportURIs)
-                                }
-                            }
-                        ]
-                    }
-                ]
-                
+                for (imported : getImportedResources(resource, uniqueImportURIs)) {
+                    collectImportUris(imported, uniqueImportURIs)
+                }
                 return uniqueImportURIs
             }
         });
+    }
+    
+    def getImportedResources(Resource resource) {
+        return getImportedResources(resource, newLinkedHashSet)
+    }
+        
+    protected def getImportedResources(Resource resource, LinkedHashSet<URI> uniqueImportURIs) {
+        val resourceDescription = descriptionManager.getResourceDescription(resource)
+        val models = resourceDescription.getExportedObjectsByType(LinguaFrancaPackage.Literals.MODEL)
+        val resources = new LinkedHashSet<Resource>()
+        
+        models.forEach[
+            val userData = getUserData(LinguaFrancaResourceDescriptionStrategy.INCLUDES)
+            if (userData !== null) {
+                SPLITTER.split(userData).forEach[uri |
+                    var includedUri = URI.createURI(uri)
+                    val uriExtension = includedUri?.fileExtension
+                    if (uriExtension !== null && uriExtension.equalsIgnoreCase('lf')) {
+                        includedUri = includedUri.resolve(resource.URI)
+                        if(uniqueImportURIs.add(includedUri)) {
+                            resources.add(resource.getResourceSet().getResource(includedUri, true))
+                        }
+                    }
+                ]
+            }
+        ]
+        
+        return resources
     }
 }

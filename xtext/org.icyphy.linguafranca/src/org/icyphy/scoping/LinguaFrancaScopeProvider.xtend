@@ -106,7 +106,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
     protected def getScopeForImportedReactor(ImportedReactor context,
         EReference reference) {
 
-        val importedURI = URI.createURI((context.eContainer as Import).importURI).resolve(context.eResource.URI)
+        val importedURI = URI.createURI((context.eContainer as Import).importURI ?: "").resolve(context.eResource.URI)
 
         return new FilteringScope(super.getScope(context, reference), [ iod |
             iod.EObjectURI.toString.split('#').get(0).equals(importedURI.toString)

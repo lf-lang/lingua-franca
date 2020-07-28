@@ -4,7 +4,7 @@
 // Print is done with it.
 target Cpp;
 
-import ArrayPrint.lf;
+import Source, Print from "ArrayPrint.lf";
 
 reactor Scale(scale:int(2)) {
     input in:int[3];

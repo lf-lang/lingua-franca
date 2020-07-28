@@ -6,7 +6,8 @@
 
 target Cpp;
 
-import ArrayScale.lf;
+import Scale from "ArrayScale.lf";
+import Source, Print from "ArrayPrint.lf";
 
 main reactor ArrayParallel {
     s = new Source();
