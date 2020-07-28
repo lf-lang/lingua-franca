@@ -1,11 +1,9 @@
 // Check that a state variable can be a statically initialized struct
-target Cpp;
-
+target Cpp {
+    files: include/hello.h
+};
 public preamble {=
-    struct Hello {
-        std::string name;
-        int value;
-    };
+    #include "hello.h"
 =}
 
 main reactor StructAsState {

@@ -1,7 +1,10 @@
 // Source directly sends an implicitly dynamically created object
-target Cpp;
-
-//import StructAsState.lf; // FIXME: this no longer also imports the definition of Hello
+target Cpp {
+    files: include/hello.h
+};
+public preamble {=
+    #include "hello.h"
+=}
 
 reactor Source {
     output out:Hello;
