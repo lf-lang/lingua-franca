@@ -2,10 +2,15 @@
 // each of which want to modify it.
 // NOTE: Ideally, only one copy would be made, but this requires
 // is currently not supported by the C++ runtime.
-target Cpp;
-
-import Scale from "StructScale.lf"; // FIXME: this no longer imports the definition of Hello 
+target Cpp {
+    files: include/hello.h
+};
+import Scale from "StructScale.lf"; 
 import Source, Print from "StructPrint.lf"
+
+public preamble {=
+    #include "hello.h"
+=}
 
 main reactor ArrayParallel {
     s = new Source();

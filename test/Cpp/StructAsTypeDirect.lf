@@ -1,7 +1,13 @@
 // Source directly sends an implicitly dynamically created object
-target Cpp;
+target Cpp {
+    files: include/hello.h
+};
 
-import Print from "StructPrint.lf"; // FIXME: this no longer also imports the definition of Hello
+import Print from "StructPrint.lf";
+
+public preamble {=
+    #include "hello.h"
+=}
 
 reactor DirectSource {
     output out:Hello;
