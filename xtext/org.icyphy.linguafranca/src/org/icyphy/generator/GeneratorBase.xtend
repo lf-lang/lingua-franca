@@ -470,16 +470,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // This must be done before desugaring delays below.
         resource.analyzeFederates            
     }
-    
-    /**
-     * Find connections that have a delay associated with them and reroute them via
-     * a generated delay reactor.
-     * @param resource The AST.
-     */
-    def void insertGeneratedDelays(Resource resource) {
-        resource.insertGeneratedDelays(this)
-    }
-    
+
     /**
      * Generate code from the Lingua Franca model contained by the specified resource.
      * 
@@ -498,40 +489,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         analyzeModel(resource, fsa, context)
 
-
-        
-        // Collect a list of reactors defined in this resource and (non-main)
-        // reactors defined in imported resources.
-        reactors = newLinkedList
-        
-        // Next process all the imports to find reactors defined in the imports.
-        //processImports(resource)
-        
         // Replace connections in this resources that are annotated with the 
         // "after" keyword by ones that go through a delay reactor. 
-        resource.insertGeneratedDelays()
-        
+        resource.insertGeneratedDelays(this)
 
-        // Recursively generate reactor class code from their definitions
-        // NOTE: We do not generate code for the main reactor here
-        // because that code needs to be customized for federates in
-        // a distributed execution.  Subclasses are required to
-        // generate the main reactor code.
-        // FIXME: It may be better to also not generate code for
-        // non-main reactors that are not instantiated in a particular
-        // federate. But it seems harmless to generate it since a good
-        // compiler will remove it anyway as dead code.
-        
-//        for (inst : resource.allContents.toIterable.filter(Instantiation)) {
-//            inst.collectClasses
-//        }
-//        
-//        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-//            if (!reactor.isMain && !reactor.isFederated) {
-//                reactors.add(reactor)
-//            }
-//        }
-    
+        // Collect a list of reactors defined in this resource and (non-main)
+        // reactors defined in imported resources.
         val graph = new PrecedenceGraph<ReactorDecl>()
         for (inst : resource.allContents.toIterable.filter(Instantiation)) {
             // Build a dependency graph
@@ -1080,7 +1043,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         for (r : this.reactors ?: emptyList) {
             models.add(r.toDefinition.eContainer as Model)
         }
-        
+        // FIXME: preambles should also be printed in correct order. (see topological sort in doGenerate
         for (m : models) {
             for (p : m.preambles) {
                 pr(p.code.toText)
