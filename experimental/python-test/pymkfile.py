@@ -62,4 +62,6 @@ for arg in sys.argv[1:]:
     print("%s.o: %s.c\n\tgcc %s.c -fPIC -c $(PYINC) $(OPTS)" \
         % (arg, arg, arg))
 
-print("clean:\n\trm -f $(PROGRAMS) *.o *.pyc core")
+print("clean:")
+for arg in sys.argv[1:]:
+    print("\trm -f %s.so *.o *.pyc core" % arg)
