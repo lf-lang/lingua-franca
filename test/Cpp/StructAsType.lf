@@ -1,7 +1,7 @@
 // Source produces a statically allocated struct and sends a copy.
 target Cpp;
 
-import StructPrint.lf; // this also imports the definition of Hello
+import Print from "StructPrint.lf"; // this also imports the definition of Hello
 
 reactor StaticSource {
     output out:Hello;

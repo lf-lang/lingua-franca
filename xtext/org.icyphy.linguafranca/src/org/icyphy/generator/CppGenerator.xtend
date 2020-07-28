@@ -55,6 +55,8 @@ import java.util.stream.IntStream
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Port
 import org.icyphy.ASTUtils
+import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
+import com.google.inject.Inject
 
 /** Generator for C++ target.
  * 
@@ -63,6 +65,10 @@ import org.icyphy.ASTUtils
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class CppGenerator extends GeneratorBase {
+
+    @Inject
+    LinguaFrancaGlobalScopeProvider scopeProvider;
+    
 
     // Set of acceptable import targets includes only Cpp.
     val acceptableTargetSet = newHashSet('Cpp')
@@ -156,7 +162,7 @@ class CppGenerator extends GeneratorBase {
                 r.toDefinition.generateReactorSource)
         }
 
-        for (r : importedResources.keySet) {
+        for (r : resource?.resourceSet?.resources ?: emptyList) {
             fsa.generateFile(filename + File.separator + r.preambleSourceFile,
                 r.generatePreambleSource)
             fsa.generateFile(filename + File.separator + r.preambleHeaderFile,
@@ -587,7 +593,7 @@ class CppGenerator extends GeneratorBase {
         #include <array>
 
         #include "reactor-cpp/reactor-cpp.hh"
-        «FOR i : importedResources.get(r) BEFORE "// include the preambles from imported resource \n"»
+        «FOR i : scopeProvider?.getImportedResources(r) ?: emptyList BEFORE "// include the preambles from imported resource \n"»
             #include "«i.preambleHeaderFile»"
         «ENDFOR»
         

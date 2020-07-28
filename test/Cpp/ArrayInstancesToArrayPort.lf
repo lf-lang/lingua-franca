@@ -1,5 +1,4 @@
 target Cpp;
-
 reactor Source(id:unsigned(0)) {
     output out:unsigned;
     

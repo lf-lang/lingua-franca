@@ -1,7 +1,7 @@
 target Cpp {
     timeout: 2 sec
 };
-import Threaded.lf;
+import Computation from "Threaded.lf";
 
 reactor Print {
     input in:int;
