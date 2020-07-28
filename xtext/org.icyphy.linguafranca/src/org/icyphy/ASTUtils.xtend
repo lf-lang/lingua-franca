@@ -33,9 +33,14 @@ import java.util.LinkedList
 import java.util.List
 import java.util.Set
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.TerminalRule
 import org.eclipse.xtext.nodemodel.ILeafNode
+import org.eclipse.xtext.nodemodel.impl.CompositeNode
+import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.eclipse.xtext.resource.XtextResource
 import org.icyphy.generator.FederateInstance
 import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
@@ -60,12 +65,6 @@ import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Variable
-import org.eclipse.emf.ecore.EObject
-import org.eclipse.xtext.resource.XtextResource
-import org.eclipse.xtext.nodemodel.impl.CompositeNode
-import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
-import org.eclipse.xtext.TerminalRule
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -594,65 +593,7 @@ class ASTUtils {
             return clone
         }
     }
-    
-    //// Utility functions supporting multiports.
-    
-    /**
-     * Return the string '[N]', '[]', or ''.
-     * The first is returned if the variable is a multiport with fixed width;
-     * N is the width of the multiport.
-     * The second is returned if the variable is a multiport of variable width.
-     * The third is returned in all other cases.
-     * @param port The port.
-     * @return The array specification for a multiport.
-     */
-    def static String multiportArraySpec(Variable variable) {
-        if (variable instanceof Port) {
-            if (variable.arraySpec !== null) {
-                if (variable.arraySpec.ofVariableLength) {
-                    return '[]'
-                } else {
-                    return '[' + variable.arraySpec.length + ']'
-                }
-            } else {
-                return ''
-            }
-        }
-        return ''
-    }
-    
-    /**
-     * If the argument is a multiport, return its width.
-     * Return -1 if it is variable width multiport.
-     * If the argument is a port but not a multiport, return -2.
-     * In all other cases, return 0.
-     * @param port The port.
-     * @return The width of a multiport, or -1 if it is variable width.
-     */
-    def static int multiportWidth(Variable variable) {
-        if (variable instanceof Port) {
-            if (variable.arraySpec !== null) {
-                if (variable.arraySpec.ofVariableLength) {
-                    return -1
-                } else {
-                    return variable.arraySpec.length
-                }
-            } else {
-                return -2
-            }
-        }
-        return 0
-    }
-    
-    /**
-     * Return true if the specified port is a multiport.
-     * @param port The port.
-     * @return True if the port is a multiport.
-     */
-    def static boolean isMultiport(Port port) {
-        port.arraySpec !== null
-    }
-    
+        
     ////////////////////////////////
     //// Utility functions for supporting inheritance
     
@@ -1200,7 +1141,10 @@ class ASTUtils {
         if (p !== null && p.isOfTimeType) {
             val init = p.init.get(0)
             if (init.time !== null) {
-                return new TimeValue(init.time.interval, init.time.unit)    
+                return new TimeValue(init.time.interval, init.time.unit)
+            } else if (init.parameter !== null) {
+                // Parameter value refers to another parameter.
+                return getInitialTimeValue(init.parameter) 
             } else {
                 return new TimeValue(0, TimeUnit.NONE)
             }
