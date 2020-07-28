@@ -710,17 +710,22 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 void schedule_output_reactions(reaction_t* reaction) {
     // If the reaction produced outputs, put the resulting triggered
     // reactions into the reaction queue.
+    // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
     for(int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
+            // printf("DEBUG: Output %d has been produced.\n", i);
             trigger_t** triggerArray = (reaction->triggers)[i];
+            // printf("DEBUG: There are %d trigger arrays associated with output %d.\n", reaction->triggered_sizes[i], i);
             for (int j=0; j < reaction->triggered_sizes[i]; j++) {
                 trigger_t* trigger = triggerArray[j];
                 if (trigger != NULL) {
+                    // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* reaction = trigger->reactions[k];
                         if (reaction != NULL) {
                             // Do not enqueue this reaction twice.
                             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                                // printf("DEBUG: Enqueing reaction %p.\n", reaction);
                                 pqueue_insert(reaction_q, reaction);
                             }
                         }
@@ -728,7 +733,7 @@ void schedule_output_reactions(reaction_t* reaction) {
                 }
             }
         }
-	}
+    }
 }
 
 /**
