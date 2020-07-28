@@ -7,3 +7,7 @@ reactor Count {
         SET(out, self->count++);
     =}
 }
+
+reactor Foo {
+    
+}

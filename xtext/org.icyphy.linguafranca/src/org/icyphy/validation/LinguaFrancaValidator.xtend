@@ -83,6 +83,8 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.ImportedReactor
+import org.icyphy.linguaFranca.ReactorDecl
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -133,45 +135,69 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
 
-    @Inject
-    IContainer.Manager containerManager;
-    @Inject
-    IResourceDescriptions resourceDescriptions
-    @Inject
-    Provider<XtextResourceSet> resourceSetProvider;
+//    @Inject
+//    IContainer.Manager containerManager;
+//    @Inject
+//    IResourceDescriptions resourceDescriptions
+//    @Inject
+//    Provider<XtextResourceSet> resourceSetProvider;
+//
+//    @Check
+//    def checkReactorGloballyUnique(Reactor reactor) {
+//
+//        var greeting_description = resourceDescriptions.getResourceDescription(reactor.eResource.URI)
+//        var visibleContainers = containerManager.getVisibleContainers(greeting_description, resourceDescriptions)
+//        System.out.println("Visible containers are " + visibleContainers)
+//
+//        for (visibleContainer : visibleContainers) {
+//            for (otherDescription : visibleContainer.getExportedObjectsByType(LinguaFrancaPackage.Literals.REACTOR)) {
+//                val other = resourceSetProvider.get.getEObject(otherDescription.EObjectURI, true) as Reactor
+//
+//                if (reactor.eResource.URI != other.eResource.URI) {
+//                    // This means distinct files (all reactors in same file have same URI).
+////                    val p1 = (reactor.eContainer as Model).package
+////                    val p2 = (other.eContainer as Model).package
+////                    if (p1 == p2 && reactor.name == other.name) {
+////                        error('''Duplicate reactor '«reactor.name»' in package (see «other.eResource.URI»)''', LinguaFrancaPackage.Literals.REACTOR__NAME,
+////                            GLOBALLY_DUPLICATE_NAME)
+////                    }
+//                }
+//
+//            }
+//        }
+//    }
+
+    def boolean isUnused(ImportedReactor reactor) {
+        val instantiations = reactor.eResource.allContents.filter(Instantiation)
+        val subclasses = reactor.eResource.allContents.filter(Reactor)
+        if (instantiations.
+            forall[it.reactorClass !== reactor && it.reactorClass !== reactor.reactorClass] &&
+            subclasses.forall [
+                it.superClasses.forall [
+                    it !== reactor && it !== reactor.reactorClass
+                ]
+            ]) {
+            return true
+        }
+        return false
+    }
 
     @Check
-    def checkReactorGloballyUnique(Reactor reactor) {
-
-        var greeting_description = resourceDescriptions.getResourceDescription(reactor.eResource.URI)
-        var visibleContainers = containerManager.getVisibleContainers(greeting_description, resourceDescriptions)
-        System.out.println("Visible containers are " + visibleContainers)
-
-        for (visibleContainer : visibleContainers) {
-            for (otherDescription : visibleContainer.getExportedObjectsByType(LinguaFrancaPackage.Literals.REACTOR)) {
-                val other = resourceSetProvider.get.getEObject(otherDescription.EObjectURI, true) as Reactor
-
-                if (reactor.eResource.URI != other.eResource.URI) {
-                    // This means distinct files (all reactors in same file have same URI).
-//                    val p1 = (reactor.eContainer as Model).package
-//                    val p2 = (other.eContainer as Model).package
-//                    if (p1 == p2 && reactor.name == other.name) {
-//                        error('''Duplicate reactor '«reactor.name»' in package (see «other.eResource.URI»)''', LinguaFrancaPackage.Literals.REACTOR__NAME,
-//                            GLOBALLY_DUPLICATE_NAME)
-//                    }
-                }
-
-            }
+    def checkImportedReactor(ImportedReactor reactor) {
+        if (reactor.unused) {
+            warning("Unused reactor class.",
+                Literals.IMPORTED_REACTOR__REACTOR_CLASS)
         }
     }
 
     @Check
     def checkImport(Import imp) {
-        //if (imp.importedNamespace !== null) {
-            // .*
-            // Check if 
-            //resourceSetProvider.get.classpathUriResolver.resolve()
-        //}
+        for (reactor : imp.reactorClasses) {
+            if (!reactor.unused) {
+                return
+            }
+        }
+        warning("Unused import.", Literals.IMPORT__IMPORT_URI)
     }
 
     // //////////////////////////////////////////////////

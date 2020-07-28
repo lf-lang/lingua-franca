@@ -36,13 +36,21 @@ import org.eclipse.xtext.scoping.Scopes
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
+import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.ImportedReactor
+import org.eclipse.xtext.resource.IResourceDescription
+import org.eclipse.emf.common.util.URI
+import org.eclipse.xtext.scoping.impl.FilteringScope
+import org.eclipse.xtext.scoping.impl.ImportUriResolver
+
 /**
  * This class enforces custom rules. In particular, it resolves references to 
  * parameters, ports, actions, and timers. Ports can be referenced across at
@@ -57,7 +65,16 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 
     @Inject
     SimpleNameProvider nameProvider
-
+    
+//    @Inject
+//    IResourceDescription.Manager descriptionManager;
+//
+//    @Inject
+//    ImportUriResolver uriResolver
+    
+    /**
+     * 
+     */
     protected enum RefType {
         NULL,
         TRIGGER,
@@ -67,29 +84,112 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
         CLEFT,
         CRIGHT
     }
-
+    
+    /**
+     * 
+     */
     override getScope(EObject context, EReference reference) {
         switch (context) {
             VarRef: return getScopeForVarRef(context, reference)
             Assignment: return getScopeForAssignment(context, reference)
+            Instantiation: return getScopeForReactorDecl(context, reference)
+            Reactor: return getScopeForReactorDecl(context, reference)
+            ImportedReactor: return getScopeForImportedReactor(context, reference)
         }
         return super.getScope(context, reference);
     }
+    
+    /**
+     * Filter out candidates that do not originate from the file listed in
+     * this particular import statement.
+     */
+    protected def getScopeForImportedReactor(ImportedReactor context,
+        EReference reference) {
+
+        val importedURI = URI.createURI((context.eContainer as Import).importURI).resolve(context.eResource.URI)
+
+        return new FilteringScope(super.getScope(context, reference), [ iod |
+            iod.EObjectURI.toString.split('#').get(0).equals(importedURI.toString)
+        ])
+    }
+    
+    /**
+     * 
+     */
+    protected def getScopeForReactorDecl(EObject obj, EReference reference) {
+        var Model model
+        val locals = newLinkedList
+        
+        // Find the local Model
+        if (obj.eContainer instanceof Model) {
+            model = obj.eContainer as Model
+        } else if (obj.eContainer.eContainer instanceof Model) {
+            model = obj.eContainer.eContainer as Model
+        } else {
+             // Empty list
+        }
+        
+        // Collect eligible candidates, all of which are local (i.e., not in other files).
+        model.reactors?.forEach[locals.add(it)]
+        model.imports?.forEach [
+            it.reactorClasses?.forEach [
+                (it.name !== null) ? locals.add(it);
+                (it.reactorClass !== null) ? locals.add(it.reactorClass)
+            ]
+        ]
+        return Scopes.scopeFor(locals)
+    }
+        
+//    def getScopeForReactor(Reactor reactor, EReference reference) {
+//        if (reference == LinguaFrancaPackage.IMPORTED_REACTOR__REACTOR_CLASS) {
+//            // FIXME: find in resource set a model and extract its reactors
+//            return super.getScope(reactor, reference)
+//        }
+//        return super.getScope(reactor, reference)
+//    }
+    
+    
+//    protected def getScopeForReactorDecl(ReactorDecl decl, EReference reference) {
+//        
+////        val candidates = newLinkedList
+//        
+//        if (decl instanceof Reactor) {
+//            return super.getScope(decl, reference)
+//        }
+//        val locals = newLinkedList
+////        
+//        val model = decl.eContainer.eContainer as Model
+////        
+//        model.reactors.forEach[locals.add(it)]
+//        model.imports.forEach[it.reactorClasses.forEach[locals.add(it); locals.add(it.reactorClass)]]
+////        super.getScope(decl, reference).getElements(nameProvider.
+////                    getFullyQualifiedName(decl)).filter[found | locals.exists[it.name == found.name]].forEach[candidates.add(it.EObjectOrProxy)]
+////        val x = super.getScope(decl, reference);
+////        return x
+//        return Scopes.scopeFor(locals)
+//        
+////        if (reference == LinguaFrancaPackage.Literals.REACTOR__SUPER_CLASSES) {
+////            
+////        }
+////        
+////        Scopes.scopeFor(candidates)
+//    }
 
     protected def getScopeForAssignment(Assignment assignment,
         EReference reference) {
-
-        val candidates = new ArrayList<EObject>()
+        
         if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__LHS) {
-            return Scopes.scopeFor(
-                (assignment.eContainer as Instantiation).reactorClass.toDefinition.
-                    parameters)
+            val defn = (assignment.eContainer as Instantiation).reactorClass.toDefinition
+            if (defn !== null) {
+                return Scopes.scopeFor(defn.parameters)
+            }
+            
         }
         if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__RHS) {
             return Scopes.scopeFor(
                 (assignment.eContainer.eContainer as Reactor).parameters)
         }
-        return Scopes.scopeFor(candidates)
+        return Scopes.scopeFor(newLinkedList)
     }
 
     protected def getScopeForVarRef(VarRef variable, EReference reference) {
@@ -102,7 +202,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
             if (variable.eContainer.eContainer instanceof Reactor) {
                 reactor = variable.eContainer.eContainer as Reactor
             } else {
-                return Scopes.scopeFor([])
+                return Scopes.scopeFor(newLinkedList)
             }
 
             if (variable.eContainer instanceof Deadline) {
@@ -129,21 +229,23 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
                 val instanceName = nameProvider.
                     getFullyQualifiedName(variable.container)
                 val instances = reactor.instantiations
+                
                 for (instance : instances) {
-                    if (instanceName !== null &&
+                    val defn = instance.reactorClass.toDefinition
+                    if (defn !== null && instanceName !== null &&
                         instance.name.equals(instanceName.toString)) {
                         if (type === RefType.TRIGGER ||
                             type === RefType.SOURCE || type === RefType.CLEFT) {
                             return Scopes.scopeFor(
-                                instance.reactorClass.toDefinition.outputs)
+                                defn.outputs)
                         } else if (type === RefType.EFFECT ||
                             type === RefType.DEADLINE ||
                             type === RefType.CRIGHT) {
-                            return Scopes.scopeFor(instance.reactorClass.toDefinition.inputs)
+                            return Scopes.scopeFor(defn.inputs)
                         }
                     }
                 }
-                return Scopes.scopeFor(candidates) // empty set
+                return Scopes.scopeFor(candidates) // Empty list
             } else { // Resolve local reference
                 switch (type) {
                     case RefType.TRIGGER: {

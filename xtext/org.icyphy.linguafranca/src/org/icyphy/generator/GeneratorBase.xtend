@@ -1076,7 +1076,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         prComment(sourceFile)
         val models = new HashSet<Model>
         for (r : this.reactors ?: emptyList) {
-            models.add(r.eContainer as Model)
+            models.add(r.toDefinition.eContainer as Model)
         }
         
         for (m : models) {
