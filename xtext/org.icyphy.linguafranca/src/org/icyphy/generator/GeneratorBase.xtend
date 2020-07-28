@@ -175,7 +175,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * A list of Reactor definitions in the main resource, including non-main 
      * reactors defined in imported resources.
      */
-    protected var List<ReactorDecl> reactors = newLinkedList // FIXME: Each 
+    protected var List<ReactorDecl> reactors = newLinkedList 
+    
+    /**
+     * The set of resources referenced reactor classes reside in.
+     */
+    protected var Set<Resource> resources = newHashSet
     
     /**
      * The file containing the main source code.
@@ -226,12 +231,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
-    
-    /**
-     * A map of all resources to the set of resource they import.
-     * These are Eclipse eCore views of the files.
-     */
-    protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
@@ -539,6 +538,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             collectDeclarations(inst, graph)
         }
         this.reactors = graph.nodesOrderedDescending
+        
+        for (r : this.reactors) {
+            this.resources.add(r.eResource)
+        }
         
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
@@ -1127,65 +1130,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         indentation.put(builder, buffer.toString)
     }
 
-    
-//    /**
-//     * Open an import at the Lingua Franca file at the specified URI in the
-//     * specified resource, find all non-main reactors, and add them to the
-//     * {@link #GeneratorBase.reactors reactors}.
-//     *  @param importStatement The import statement.
-//     *  @param resourceSet The resource set in which to find the file.
-//     *  @param resolvedURI The URI to import.
-//     *  @return The imported resource or null if the import fails.
-//     */
-//    protected def openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
-//        val importResource = resourceSet?.getResource(resolvedURI, true);
-//        if (importResource === null) {
-//            reportError(importStatement, "Cannot find import file: " + resolvedURI)
-//            return null
-//        } else {
-//            // Make sure the target of the import is acceptable.
-//            var targetOK = (acceptableTargets === null)
-//            var offendingTarget = ""
-//            for (target : importResource.allContents.toIterable.filter(Target)) {
-//                for (acceptableTarget : acceptableTargets ?: emptyList()) {
-//                    if (acceptableTarget.equalsIgnoreCase(target.name)) {
-//                        targetOK = true
-//                    }
-//                }
-//                if (!targetOK) offendingTarget = target.name
-//            }
-//            if (!targetOK) {
-//                reportError(importStatement, "Import target " + offendingTarget
-//                    + " is not an acceptable target in import "
-//                    + importResource.getURI
-//                    + ". Acceptable targets are: "
-//                    + acceptableTargets.join(", ")
-//                )
-//                return null
-//            } else {
-//                // Temporarily change the sourceFile variable to point to the
-//                // import file. Then change it back.
-//                val previousSourceFile = sourceFile
-//                sourceFile = importResource.toPath
-//                try {
-//                    // Process any imports that the import has.
-//                    processImports(importResource)
-//                    // Add each reactor contained by the import to the list of reactors,
-//                    // unless it is a main reactor.
-//                    for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-//                        if (!reactor.isMain && !reactor.isFederated) {
-//                            println("Including imported reactor: " + reactor.name)
-//                            reactors.add(reactor)
-//                        }
-//                    }
-//                } finally {
-//                    sourceFile = previousSourceFile
-//                }
-//            }
-//        }
-//        return importResource
-//    }
-
     /**
      * Append the specified text plus a final newline to the current
      * code buffer.
@@ -1286,72 +1230,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         pr(code, '// ' + comment);
     }
 
-//    /**
-//     * Process any imports included in the resource defined by the specified
-//     * resource. This will open the import, check for compatibility, and find
-//     * and any reactors the import defines that are not main reactors. If the
-//     * target is not acceptable to this generator, as reported by
-//     * acceptableTargets, report an error, ignore the import and continue.
-//     * @param resource The resource (file) that may contain import statements.
-//     */
-//    protected def void processImports(Resource resource) {
-//        // if the resource is in the recursion stack, then there is a cycle in the imports
-//        if (importRecursionStack.contains(resource)) {
-//            cyclicImports = true
-//            throw new Exception("There is a dependency cycle in the import statements!")
-//        }
-//        
-//        // abort if the resource was visited already
-//        if (importedResources.keySet.contains(resource)) {
-//            return
-//        }
-//        
-//        // Replace connections in this resources that are annotated with the 
-//        // "after" keyword by ones that go through a delay reactor. 
-//        resource.insertGeneratedDelays()
-//        
-//        // add resource to imported resources and to the recoursion stack
-//        importedResources.put(resource, new HashSet<Resource>())        
-//        importRecursionStack.add(resource);
-//
-//        for (importStatement : resource.allContents.toIterable.filter(Import)) {
-//            // Resolve the import as a URI relative to the current resource's URI.
-//            val URI currentURI = resource?.getURI;
-//            val URI importedURI = URI?.createFileURI(importStatement?.importedNamespace);
-//            val URI resolvedURI = importedURI?.resolve(currentURI);
-//            //val ResourceSet resourceSet = resource?.resourceSet;
-//            
-//            // Check for self import.
-//            if (resolvedURI.equals(currentURI)) {
-//                reportError(importStatement,
-//                    "Recursive imports are not permitted: " + importStatement.importedNamespace)
-//                return
-//            }
-//            try {
-//            	System.out.println(importStatement.importedNamespace)
-////                if (importStatement.importURI.endsWith(".lf")) {
-////                    // Handle Lingua Franca imports.
-////                    val imported = openLFImport(importStatement, resourceSet, resolvedURI)
-////                    if (imported !== null) {
-////                        importedResources.get(resource).add(imported)
-////                    }
-////                } else {
-////                    // Handle other supported imports (if any).
-////                    // FIXME: Error!
-////                }
-//            } catch (Exception ex) {
-//                reportError(
-//                    importStatement,
-//                    "Import error: " + importStatement.importedNamespace +
-//                    "\nException message: " + ex.message
-//                )
-//            }
-//        }
-//        
-//        // remove this resource from the recursion stack
-//        importRecursionStack.remove(resource);
-//    }
-        
     /**
      * Parsed error message from a compiler is returned here.
      */

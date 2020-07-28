@@ -162,7 +162,7 @@ class CppGenerator extends GeneratorBase {
                 r.toDefinition.generateReactorSource)
         }
 
-        for (r : resource?.resourceSet?.resources ?: emptyList) {
+        for (r : this.resources ?: emptyList) {
             fsa.generateFile(filename + File.separator + r.preambleSourceFile,
                 r.generatePreambleSource)
             fsa.generateFile(filename + File.separator + r.preambleHeaderFile,
@@ -876,7 +876,7 @@ class CppGenerator extends GeneratorBase {
           «FOR r : reactors»
               «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile»«ENDIF»
           «ENDFOR»
-          «FOR r : importedResources.keySet»
+          «FOR r : resources»
               «r.preambleSourceFile»
           «ENDFOR»
         )
