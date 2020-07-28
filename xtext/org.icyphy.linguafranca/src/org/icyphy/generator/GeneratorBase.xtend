@@ -29,6 +29,7 @@ package org.icyphy.generator
 
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
 import java.nio.file.Files
@@ -71,10 +72,10 @@ import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import java.io.FileOutputStream
 
 /**
  * Generator base class for shared code between code generators.
@@ -1786,6 +1787,62 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return param.name
     }
     
+    //// Utility functions supporting multiports.
+    
+    /**
+     * If the argument is a multiport, return a list of strings
+     * describing the width of the port, and otherwise, return null.
+     * If the list is empty, then the width is variable (specified
+     * as '[]'). Otherwise, it is a list of integers and/or parameter
+     * references obtained by getTargetReference().
+     * @param port The port.
+     * @return The width specification for a multiport or null if it is
+     *  not a multiport.
+     */
+    protected def List<String> multiportWidthSpec(Variable variable) {
+        var result = null as LinkedList<String>
+        if (variable instanceof Port) {
+            if (variable.widthSpec !== null) {
+                result = new LinkedList<String>()
+                if (!variable.widthSpec.ofVariableLength) {
+                    for (term : variable.widthSpec.terms) {
+                        if (term.parameter !== null) {
+                            result.add(getTargetReference(term.parameter))
+                        } else {
+                            result.add('' + term.width)
+                        }
+                    }
+                }
+            }
+        }
+        return result
+    }
+            
+    /**
+     * If the argument is a multiport, then return a string that
+     * gives the width as an expression, and otherwise, return null.
+     * The string will be empty if the width is variable (specified
+     * as '[]'). Otherwise, if is a single term or a sum of terms
+     * (separated by '+'), where each term is either an integer
+     * or a parameter reference in the target language.
+     */
+    protected def String multiportWidthExpression(Variable variable) {
+        val spec = multiportWidthSpec(variable)
+        if (spec !== null) {
+            return spec.join(' + ')
+        }
+        return null
+    }
+    
+    /**
+     * Return true if the specified port is a multiport.
+     * @param port The port.
+     * @return True if the port is a multiport.
+     */
+    protected def boolean isMultiport(Port port) {
+        port.widthSpec !== null
+    }
+    
     ////////////////////////////////////////////////////
     //// Private functions
     
@@ -2229,6 +2286,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
         return v.toText 
     }
+    
+    
 
     enum Mode {
         STANDALONE,

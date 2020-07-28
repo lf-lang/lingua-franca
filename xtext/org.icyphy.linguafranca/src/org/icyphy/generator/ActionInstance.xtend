@@ -65,7 +65,7 @@ class ActionInstance extends TriggerInstance<Variable> {
         if (definition.minDelay !== null) {
             if (definition.minDelay.parameter !== null) {
                 val parm = definition.minDelay.parameter
-                this.minDelay = parent.lookupLocalParameter(parm).init.get(0).
+                this.minDelay = parent.lookupParameterInstance(parm).init.get(0).
                     getTimeValue
             } else {
                 this.minDelay = definition.minDelay.timeValue
@@ -74,7 +74,7 @@ class ActionInstance extends TriggerInstance<Variable> {
         if (definition.minInterArrival !== null) {
             if (definition.minInterArrival.parameter !== null) {
                 val parm = definition.minInterArrival.parameter
-                this.minInterArrival = parent.lookupLocalParameter(parm).init.
+                this.minInterArrival = parent.lookupParameterInstance(parm).init.
                     get(0).getTimeValue
             } else {
                 this.minInterArrival = definition.minInterArrival.timeValue
