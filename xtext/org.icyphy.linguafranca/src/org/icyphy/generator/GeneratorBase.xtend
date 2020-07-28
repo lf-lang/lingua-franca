@@ -539,7 +539,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             collectDeclarations(inst, graph)
         }
         this.reactors = graph.nodesOrderedDescending
-        println(this.reactors)
         
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.

@@ -998,7 +998,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Extend the return type for commandLineArgs
         var clTypeExtension = new StringJoiner(", ")
         
-        for (parameter : mainReactor.parameters) {
+        for (parameter : mainReactor?.parameters ?: emptyList) {
             var String customArgType = null;
             var String customTypeLabel = null;
             var paramType = parameter.targetType
