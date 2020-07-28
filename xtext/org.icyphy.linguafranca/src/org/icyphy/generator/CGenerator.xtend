@@ -210,20 +210,6 @@ import static extension org.icyphy.ASTUtils.*
  *   the number of the reaction, starting with 0. The fields are:
  *   * ___reaction_i: The struct that is put onto the reaction queue to
  *     execute the reaction (see reactor.h in the C library).
- *   * ___reaction_i_outputs_are_present: An array of pointers to the
- *     __out_is_present fields of each output `out` that may be set by
- *     this reaction. This array also includes pointers to the _is_present
- *     fields of inputs of contained reactors to which this reaction writes.
- *     This array is set up by the constructor.
- *   * ___reaction_i_num_outputs: The size of the previous array.
- *   * ___reaction_i_triggers: This is an array of arrays of pointers
- *     to trigger_t structs. The first level array has one entry for
- *     each effect of the reaction that is a port (actions are ignored).
- *     Each such entry is an array containing pointers to trigger structs for
- *     downstream inputs.
- *   * ___reaction_i_triggered_sizes: An array indicating the size of
- *     each array in ___reaction_i_triggers. The size of this array is
- *     the number of ports that are effects of this reaction.
  * 
  *  * Timers: For each timer t, there is are two fields in the self struct:
  *    * ___t_trigger: The trigger_t struct for this timer (see reactor.h).
@@ -1324,32 +1310,34 @@ class CGenerator extends GeneratorBase {
         
         // Next handle inputs.
         for (input : reactor.allInputs) {
-            // If the port is a multiport, create an array.
-            var arraySpec = input.multiportArraySpec
-            
-            pr(input, body, '''
-                «variableStructType(input, reactor)»* __«input.name»«arraySpec»;
-                // Default input (in case it does not get connected)
-                «variableStructType(input, reactor)» __default__«input.name»;
-            ''')
-            if (input.arraySpec === null) {
+            // If the port is a multiport, the input field is an array of
+            // pointers that will be allocated separately for each instance
+            // because the sizes may be different. Otherwise, it is a simple
+            // pointer.
+            if (input.isMultiport) {
+                pr(input, body, '''
+                    // Multiport input array will be malloc'd later.
+                    «variableStructType(input, reactor)»** __«input.name»;
+                    int __«input.name»__width;
+                    // Default input (in case it does not get connected)
+                    «variableStructType(input, reactor)» __default__«input.name»;
+                ''')
+                // Add to the destructor code to free the malloc'd memory.
+                pr(input, destructorCode, '''
+                    free(self->__«input.name»);
+                ''')
+            } else {
+                pr(input, body, '''
+                    «variableStructType(input, reactor)»* __«input.name»;
+                    // width of -2 indicates that it is not a multiport.
+                    int __«input.name»__width;
+                    // Default input (in case it does not get connected)
+                    «variableStructType(input, reactor)» __default__«input.name»;
+                ''')
                 pr(input, constructorCode, '''
                     // Set input by default to an always absent default input.
                     self->__«input.name» = &self->__default__«input.name»;
                 ''')
-            } else {
-                // input is a multiport. Need to set defaults in case it
-                // remains unconnected.
-                if (input.arraySpec.ofVariableLength) {
-                    reportError(input, "Variable width multiports not supported.")
-                } else {
-                    pr(input, constructorCode, '''
-                        // Set inputs by default to an always absent default input.
-                        for (int i = 0; i < «input.arraySpec.length»; i++) {
-                            self->__«input.name»[i] = &self->__default__«input.name»;
-                        }
-                    ''')
-                }
             }
         }
 
@@ -1377,12 +1365,24 @@ class CGenerator extends GeneratorBase {
 
         // Next handle outputs.
         for (output : reactor.allOutputs) {
-            // If the port is a multiport, create an array.
-            var arraySpec = output.multiportArraySpec
-            
-            pr(output, body, '''
-                «variableStructType(output, reactor)» __«output.name»«arraySpec»;
-            ''')
+            // If the port is a multiport, create an array to be allocated
+            // at instantiation.
+            if (output.isMultiport) {
+                pr(output, body, '''
+                    // Array of output ports.
+                    «variableStructType(output, reactor)»* __«output.name»;
+                    int __«output.name»__width;
+                ''')
+                // Add to the destructor code to free the malloc'd memory.
+                pr(output, destructorCode, '''
+                    free(self->__«output.name»);
+                ''')
+            } else {
+                pr(output, body, '''
+                    «variableStructType(output, reactor)» __«output.name»;
+                    int __«output.name»__width;
+                ''')
+            }
         }
         
         // If there are contained reactors that either receive inputs
@@ -1511,7 +1511,7 @@ class CGenerator extends GeneratorBase {
         }
         
         // Next, generate the fields needed for each reaction.
-        generateReactionAndTriggerStructs(body, reactor, constructorCode, federate)
+        generateReactionAndTriggerStructs(body, reactor, constructorCode, destructorCode, federate)
         
         if (body.length > 0) {
             pr('''
@@ -1532,16 +1532,21 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Generate the fields of the self struct and statements for the constructor
-     * to create an initialize a reaction_t struct for each reaction in the
+     * to create and initialize a reaction_t struct for each reaction in the
      * specified reactor and a trigger_t struct for each trigger (input, action,
      * timer, or output of a contained reactor).
      * @param body The place to put the code for the self struct.
      * @param reactor The reactor.
      * @param constructorCode The place to put the constructor code.
+     * @param constructorCode The place to put the destructor code.
      * @param federate The federate instance, or null if there is no federation.
      */
     protected def void generateReactionAndTriggerStructs(
-        StringBuilder body, Reactor reactor, StringBuilder constructorCode, FederateInstance federate
+        StringBuilder body, 
+        Reactor reactor, 
+        StringBuilder constructorCode, 
+        StringBuilder destructorCode, 
+        FederateInstance federate
     ) {
         var reactionCount = 0;
         // Iterate over reactions and create initialize the reaction_t struct
@@ -1558,34 +1563,6 @@ class CGenerator extends GeneratorBase {
                 // Create the reaction_t struct.
                 pr(reaction, body, '''reaction_t ___reaction_«reactionCount»;''')
 
-                // Count the output ports and inputs of contained reactors that
-                // may be set by this reactor. This ignores actions in the effects.
-                // Also generate the constructor code to initialize the
-                // _outputs_are_present array for the reaction.
-                var outputCount = 0;
-                for (effect : reaction.effects) {
-                    if (effect.variable instanceof Port) {
-                        // Create the entry in the _outputs_are_present array for this port.
-                        // If the port is a multiport, then we need to create an entry for each
-                        // individual port.
-                        // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
-                        val port = effect.variable as Port
-                        if (!port.isMultiport) {
-                            pr(constructorCode, '''
-                                self->__reaction_«reactionCount»_outputs_are_present[«outputCount»] = &self->__«ASTUtils.toText(effect)».is_present;
-                            ''')
-                            outputCount++
-                        } else {
-                            pr(constructorCode, '''
-                                for (int i = 0; i < «port.multiportWidth»; i++) {
-                                    self->__reaction_«reactionCount»_outputs_are_present[«outputCount» + i]
-                                            = &self->__«ASTUtils.toText(effect)»[i].is_present;
-                                }
-                            ''')
-                            outputCount += port.multiportWidth
-                        }
-                    }
-                }
                 // Create the map of triggers to reactions.
                 for (trigger : reaction.triggers) {
                     // trigger may not be a VarRef (it could be "startup" or "shutdown").
@@ -1609,14 +1586,16 @@ class CGenerator extends GeneratorBase {
                     }
                 }
 
-                pr(constructorCode, '''
-                    self->__reaction_«reactionCount»_num_outputs = «outputCount»;
-                ''')
-                pr(body, '''
-                    bool* __reaction_«reactionCount»_outputs_are_present[«outputCount»];
-                    int __reaction_«reactionCount»_num_outputs;
-                    trigger_t** __reaction_«reactionCount»_triggers[«outputCount»];
-                    int __reaction_«reactionCount»_triggered_sizes[«outputCount»];
+                pr(destructorCode, '''
+                    if (self->___reaction_«reactionCount».output_produced != NULL) {
+                        free(self->___reaction_«reactionCount».output_produced);
+                    }
+                    if (self->___reaction_«reactionCount».triggers != NULL) {
+                        free(self->___reaction_«reactionCount».triggers);
+                    }
+                    if (self->___reaction_«reactionCount».triggered_sizes != NULL) {
+                        free(self->___reaction_«reactionCount».triggered_sizes);
+                    }
                 ''')
 
                 var deadlineFunctionPointer = "NULL"
@@ -1636,10 +1615,6 @@ class CGenerator extends GeneratorBase {
                 pr(reaction, constructorCode, '''
                     self->___reaction_«reactionCount».function = «reactionFunctionName(reactor, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
-                    self->___reaction_«reactionCount».num_outputs = «outputCount»;
-                    self->___reaction_«reactionCount».output_produced = self->__reaction_«reactionCount»_outputs_are_present;
-                    self->___reaction_«reactionCount».triggered_sizes = self->__reaction_«reactionCount»_triggered_sizes;
-                    self->___reaction_«reactionCount».triggers = self->__reaction_«reactionCount»_triggers;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
                 ''')
 
@@ -1652,7 +1627,7 @@ class CGenerator extends GeneratorBase {
         // Next, create and initialize the trigger_t objects.
         // Start with the timers.
         for (timer : reactor.allTimers) {
-            createTriggerT(body, timer, triggerMap, constructorCode)
+            createTriggerT(body, timer, triggerMap, constructorCode, destructorCode)
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->___«timer.name».is_physical = false;
             // self->___«timer.name».drop = false;
@@ -1664,7 +1639,7 @@ class CGenerator extends GeneratorBase {
 
         // Next handle actions.
         for (action : reactor.allActions) {
-            createTriggerT(body, action, triggerMap, constructorCode)
+            createTriggerT(body, action, triggerMap, constructorCode, destructorCode)
             var isPhysical = "true";
             if (action.origin == ActionOrigin.LOGICAL) {
                 isPhysical = "false";
@@ -1687,73 +1662,51 @@ class CGenerator extends GeneratorBase {
 
         // Next handle inputs.
         for (input : reactor.inputs) {            
-            createTriggerT(body, input, triggerMap, constructorCode)
+            createTriggerT(body, input, triggerMap, constructorCode, destructorCode)
         }
     }
     
     /**
-     * Define the trigger_t object on the self struct, and array of
+     * Define the trigger_t object on the self struct, an array of
      * reaction_t pointers pointing to reactions triggered by this variable,
      * and initialize the pointers in the array in the constructor.
      * @param body The place to write the self struct entries.
-     * @param variable The trigger variable (Timer, Action, or Port).
+     * @param variable The trigger variable (Timer, Action, or Input).
      * @param triggerMap A map from Variables to a list of the reaction indices
      *  triggered by the variable.
      * @param constructorCode The place to write the constructor code.
+     * @param destructorCode The place to write the destructor code.
      */
     private def void createTriggerT(
         StringBuilder body, 
         Variable variable,
         HashMap<Variable, LinkedList<Integer>> triggerMap,
-        StringBuilder constructorCode
+        StringBuilder constructorCode,
+        StringBuilder destructorCode
     ) {
-        prSourceLineNumber(body, variable)
-        
-        // To support multiports.
-        var arraySpec = variable.multiportArraySpec
-        
-        // NOTE: This used to be a pointer to a static global variable, but
-        // to better support mutations, the trigger_t struct is now part of the
-        // self struct.
-        pr(body, "trigger_t ___" + variable.name + arraySpec + ";")
-        // Set generic defaults for the trigger_t struct.
-        // Since the self struct is allocated using calloc, there is no need to set:
-        // self->___«variable.name».token = NULL;
-        // self->___«variable.name».is_present = false;
-        // If the variable is a multiport, then there will be a for loop
-        // surrounding this to set each element of the array of triggers.
-        var indexSpec = ''
-        if (arraySpec != '') {
-            indexSpec = '[i]'
-            // FIXME: here, the multiport width is assumed to be a property
-            // of the class definition of the reactor, not the instance.
-            // So there isn't any way to parameterize the width currently.
-            // Perhaps the width should be a field on the self struct.
-            pr(variable, constructorCode, '''
-                for (int i = 0; i < «variable.multiportWidth»; i++) {
-            ''')
-            indent(constructorCode)
-        }
+        // variable is a port, a timer, or an action.
+        pr(variable, body, '''
+            trigger_t ___«variable.name»;
+        ''')
         pr(variable, constructorCode, '''
-            self->___«variable.name»«indexSpec».scheduled = NEVER;
+            self->___«variable.name».scheduled = NEVER;
         ''')
         // Generate the reactions triggered table.
         val reactionsTriggered = triggerMap.get(variable)
         if (reactionsTriggered !== null) {
-            prSourceLineNumber(body, variable)
-            pr(body, '''reaction_t* ___«variable.name»_reactions[«reactionsTriggered.size»]«arraySpec»;''')
+            pr(variable, body, '''reaction_t* ___«variable.name»_reactions[«reactionsTriggered.size»];''')
             var count = 0
-            for (reactionTriggered: reactionsTriggered) {
+            for (reactionTriggered : reactionsTriggered) {
                 prSourceLineNumber(constructorCode, variable)
-                pr(constructorCode, '''
-                    self->___«variable.name»_reactions[«count»]«indexSpec» = &self->___reaction_«reactionTriggered»;
+                pr(variable, constructorCode, '''
+                    self->___«variable.name»_reactions[«count»] = &self->___reaction_«reactionTriggered»;
                 ''')
                 count++
             }
             // Set up the trigger_t struct's pointer to the reactions.
-            pr(constructorCode, '''
-                self->___«variable.name»«indexSpec».reactions = &self->___«variable.name»_reactions[0]«indexSpec»;
-                self->___«variable.name»«indexSpec».number_of_reactions = «count»;
+            pr(variable, constructorCode, '''
+                self->___«variable.name».reactions = &self->___«variable.name»_reactions[0];
+                self->___«variable.name».number_of_reactions = «count»;
             ''')
         }
         if (variable instanceof Input) {
@@ -1766,17 +1719,12 @@ class CGenerator extends GeneratorBase {
             // self->___«input.name».drop = false;
             // If the input type is 'void', we need to avoid generating the code
             // 'sizeof(void)', which some compilers reject.
-            val size = (rootType == 'void')? '0' : '''sizeof(«rootType»)'''
+            val size = (rootType == 'void') ? '0' : '''sizeof(«rootType»)'''
             pr(constructorCode, '''
-                self->___«variable.name»«indexSpec».element_size = «size»;
+                self->___«variable.name».element_size = «size»;
             ''')
         }
-        if (arraySpec != '') {
-            unindent(constructorCode)
-            pr(variable, constructorCode, "}")
-        }
-    }
-    
+    }    
     
     /**
      * If any reaction in the specified reactor is triggered by startup,
@@ -2547,16 +2495,9 @@ class CGenerator extends GeneratorBase {
      *  @return The name of the trigger struct.
      */
     static def triggerStructName(TriggerInstance<Variable> instance) {
-        var index = ''
-        if (instance instanceof PortInstance) {
-            if (instance.multiportIndex >= 0) {
-                index = '[' + instance.multiportIndex + ']'
-            }
-        }
         return selfStructName(instance.parent) 
                 + '->___'
                 + instance.name
-                + index
     }
     
     /** Return a reference to the trigger_t struct for the specified output
@@ -2649,6 +2590,112 @@ class CGenerator extends GeneratorBase {
             } else {
                 pr(initializeTriggerObjects, '''
                     «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
+                ''')
+            }
+        }
+        
+        // Once parameters are done, we can allocate memory for any multiports.
+        // Allocate memory for outputs.
+        for (output : reactorClass.outputs) {
+            // If the port is a multiport, create an array.
+            if (output.isMultiport) {
+                pr(initializeTriggerObjects, '''
+                    «nameOfSelfStruct»->__«output.name»__width = «output.multiportWidthExpression»;
+                    // Allocate memory for multiport output.
+                    «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactorClass)»*)malloc(sizeof(«variableStructType(output, reactorClass)») * «nameOfSelfStruct»->__«output.name»__width); 
+                ''')
+            } else {
+                pr(initializeTriggerObjects, '''
+                    // width of -2 indicates that it is not a multiport.
+                    «nameOfSelfStruct»->__«output.name»__width = -2;
+                ''')
+            }
+        }
+
+        // For each reaction, allocate the arrays that will be used to
+        // trigger downstream reactions.
+        var reactionCount = 0
+        for (reaction : reactorClass.allReactions) {
+            if (federate === null || federate.containsReaction(reactorClass, reaction)) {
+                // Count the output ports and inputs of contained reactors that
+                // may be set by this reactor. This ignores actions in the effects.
+                // Collect initialization statements for the output_produced array for the reaction
+                // to point to the is_present field of the appropriate output.
+                // These statements must be inserted after the array is malloc'd,
+                // but we construct them while we are counting outputs.
+                var outputCount = 0;
+                val widthExpressions = new LinkedList<String>()
+                val initialization = new StringBuilder()
+                for (effect : reaction.effects) {
+                    if (effect.variable instanceof Port) {
+                        // Create an expression for the starting index of the output_produced array.
+                        var index = '' + outputCount
+                        if (widthExpressions.size > 0) {
+                            index += ' + ' + widthExpressions.join(' + ')
+                        }
+                        // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
+                        val port = effect.variable as Port
+                        // Create the entry in the output_produced array for this port.
+                        // If the port is a multiport, then we need to create an entry for each
+                        // individual port.
+                        if (port.isMultiport) {
+                            pr(initialization, '''
+                                for (int i = 0; i < «port.multiportWidthExpression»; i++) {
+                                    «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index» + i]
+                                            = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i].is_present;
+                                }
+                            ''')
+                            widthExpressions.add(port.multiportWidthExpression)
+                        } else {
+                            pr(initialization, '''
+                                «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index»]
+                                        = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)».is_present;
+                            ''')
+                            outputCount++
+                        }
+                    }
+                }
+                // FIXME FIXME: width expressions that refer to parameters will need to be prefixed with «nameOfSelfStruct»->
+                // Also, could add all the integers here.
+                var outputCountExpr = '' + outputCount
+                if (widthExpressions.size > 0) {
+                    outputCountExpr += ' + ' + widthExpressions.join(' + ')
+                }
+                pr(initializeTriggerObjects, '''
+                    // Total number of outputs produced by the reaction.
+                    «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs = «outputCountExpr»;
+                    // Allocate arrays for triggering downstream reactions.
+                    if («nameOfSelfStruct»->___reaction_«reactionCount».num_outputs > 0) {
+                        «nameOfSelfStruct»->___reaction_«reactionCount».output_produced = (bool**)malloc(sizeof(bool*) * «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs);
+                        «nameOfSelfStruct»->___reaction_«reactionCount».triggers = (trigger_t***)malloc(sizeof(trigger_t**) * «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs);
+                        «nameOfSelfStruct»->___reaction_«reactionCount».triggered_sizes = (int*)malloc(sizeof(int) * «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs);
+                    }
+                    // Initialize the output_produced array.
+                    «initialization.toString»
+                ''')
+            }
+            // Increment the reactionCount even if the reaction is not in the federate
+            // so that reaction indices are consistent across federates.
+            reactionCount++
+        }
+        
+        // Next, allocate memory for input multiports. 
+        for (input : reactorClass.inputs) {
+            // If the port is a multiport, create an array.
+            if (input.isMultiport) {
+                pr(initializeTriggerObjects, '''
+                    «nameOfSelfStruct»->__«input.name»__width = «input.multiportWidthExpression»;
+                    // Allocate memory for multiport inputs.
+                    «nameOfSelfStruct»->__«input.name» = («variableStructType(input, reactorClass)»**)malloc(sizeof(«variableStructType(input, reactorClass)»*) * «nameOfSelfStruct»->__«input.name»__width); 
+                    // Set inputs by default to an always absent default input.
+                    for (int i = 0; i < «nameOfSelfStruct»->__«input.name»__width; i++) {
+                        «nameOfSelfStruct»->__«input.name»[i] = &«nameOfSelfStruct»->__default__«input.name»;
+                    }
+                ''')
+            } else {
+                pr(initializeTriggerObjects, '''
+                    // width of -2 indicates that it is not a multiport.
+                    «nameOfSelfStruct»->__«input.name»__width = -2;
                 ''')
             }
         }
@@ -2814,7 +2861,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         // Handle reaction local deadlines.
-        var reactionCount = 0
+        reactionCount = 0
         for (reaction : instance.reactions) {
             if (federate === null || federate.containsReaction(
                 instance.definition.reactorClass,
@@ -3577,12 +3624,12 @@ class CGenerator extends GeneratorBase {
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
-        if (!input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
+        if (!input.isMutable && !inputType.isTokenType && !input.isMultiport) {
             // Non-mutable, non-multiport, primitive type.
             pr(builder, '''
                 «structType»* «input.name» = self->__«input.name»;
             ''')
-        } else if (input.isMutable && !inputType.isTokenType && input.multiportWidth <= 0) {
+        } else if (input.isMutable && !inputType.isTokenType && !input.isMultiport) {
             // Mutable, non-multiport, primitive type.
             pr(builder, '''
                 // Mutable input, so copy the input into a temporary variable.
@@ -3590,7 +3637,7 @@ class CGenerator extends GeneratorBase {
                 «structType» __tmp_«input.name» = *(self->__«input.name»);
                 «structType»* «input.name» = &__tmp_«input.name»;
             ''')
-        } else if (!input.isMutable && inputType.isTokenType && input.multiportWidth <= 0) {
+        } else if (!input.isMutable && inputType.isTokenType && !input.isMultiport) {
             // Non-mutable, non-multiport, token type.
             pr(builder, '''
                 «structType»* «input.name» = self->__«input.name»;
@@ -3601,7 +3648,7 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')
-        } else if (input.isMutable && inputType.isTokenType && input.multiportWidth <= 0) {
+        } else if (input.isMutable && inputType.isTokenType && !input.isMultiport) {
             // Mutable, non-multiport, token type.
             pr(builder, '''
                 // Mutable input, so copy the input struct into a temporary variable.
@@ -3624,7 +3671,7 @@ class CGenerator extends GeneratorBase {
                     «input.name»->length = 0;
                 }
             ''')            
-        } else if (!input.isMutable && input.multiportWidth > 0) {
+        } else if (!input.isMutable && input.isMultiport) {
             // Non-mutable, multiport, primitive or token type.
             pr(builder, '''
                 «structType»** «input.name» = self->__«input.name»;
@@ -3634,9 +3681,9 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 // Mutable multiport input, so copy the input structs
                 // into an array of temporary variables on the stack.
-                «structType» __tmp_«input.name»[«input.multiportWidth»];
-                «structType»* «input.name»[«input.multiportWidth»];
-                for (int i = 0; i < «input.multiportWidth»; i++) {
+                «structType» __tmp_«input.name»[«input.multiportWidthExpression»];
+                «structType»* «input.name»[«input.multiportWidthExpression»];
+                for (int i = 0; i < «input.multiportWidthExpression»; i++) {
                     «input.name»[i] = &__tmp_«input.name»[i];
                     __tmp_«input.name»[i] = *(self->__«input.name»[i]);
                     // If necessary, copy the tokens.
@@ -3663,9 +3710,9 @@ class CGenerator extends GeneratorBase {
             pr(builder, '''
                 // Mutable multiport input, so copy the input structs
                 // into an array of temporary variables on the stack.
-                «structType» __tmp_«input.name»[«input.multiportWidth»];
-                «structType»* «input.name»[«input.multiportWidth»];
-                for (int i = 0; i < «input.multiportWidth»; i++) {
+                «structType» __tmp_«input.name»[«input.multiportWidthExpression»];
+                «structType»* «input.name»[«input.multiportWidthExpression»];
+                for (int i = 0; i < «input.multiportWidthExpression»; i++) {
                     «input.name»[i]  = &__tmp_«input.name»[i];
                     // Copy the struct, which includes the value.
                     __tmp_«input.name»[i] = *(self->__«input.name»[i]);
@@ -3676,7 +3723,7 @@ class CGenerator extends GeneratorBase {
         // for a variable-width multiport, which is not currently supported.
         // It will be -2 if it is not multiport.
         pr(builder, '''
-            int «input.name»_width = «input.multiportWidth»;
+            int «input.name»_width = self->__«input.name»__width;
         ''')
     }
     
@@ -3753,17 +3800,15 @@ class CGenerator extends GeneratorBase {
                 ''')
             } else {
                 pr(builder, '''
-                    «outputStructType»* «output.name»[«output.multiportWidth»];
-                    for(int i=0; i < «output.multiportWidth»; i++) {
+                    «outputStructType»* «output.name»[«output.multiportWidthExpression»];
+                    for(int i=0; i < «output.multiportWidthExpression»; i++) {
                          «output.name»[i] = &(self->__«output.name»[i]);
                     }
                 ''')
             }
-            // Set the _width variable for all cases. This will be -1
-            // for a variable-width multiport, which is not currently supported.
-            // It will be -2 if it is not multiport.
+            // Set the _width variable.
             pr(builder, '''
-                int «output.name»_width = «output.multiportWidth»;
+                int «output.name»_width = self->__«output.name»__width;
             ''')
         }
     }

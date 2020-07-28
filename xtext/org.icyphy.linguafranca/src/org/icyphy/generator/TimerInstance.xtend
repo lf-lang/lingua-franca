@@ -60,7 +60,7 @@ class TimerInstance extends TriggerInstance<Variable> {
         if (definition.offset !== null) {
             if (definition.offset.parameter !== null) {
                 val parm = definition.offset.parameter
-                this.offset = parent.lookupLocalParameter(parm).init.get(0).
+                this.offset = parent.lookupParameterInstance(parm).init.get(0).
                     getTimeValue
             } else {
                 this.offset = definition.offset.timeValue
@@ -69,7 +69,7 @@ class TimerInstance extends TriggerInstance<Variable> {
         if (definition.period !== null) {
             if (definition.period.parameter !== null) {
                 val parm = definition.period.parameter
-                this.period = parent.lookupLocalParameter(parm).init.get(0).
+                this.period = parent.lookupParameterInstance(parm).init.get(0).
                     getTimeValue
             } else {
                 this.period = definition.period.timeValue

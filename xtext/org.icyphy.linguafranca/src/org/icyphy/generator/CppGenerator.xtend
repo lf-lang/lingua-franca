@@ -245,18 +245,34 @@ class CppGenerator extends GeneratorBase {
             «n.declare»
         «ENDFOR»
     '''
-
+    
+    /**
+     * If the argument is a multiport with width given as an integer,
+     * then return that integer. Otherwise, through an exception for
+     * now. FIXME: Support parameters for widths.
+     * @param port The port. 
+     */
+    protected def int multiportWidth(Port port) {
+        val spec = multiportWidthSpec(port)
+        if (spec !== null && spec.length === 1) {
+            if(port.widthSpec.terms.get(0).parameter === null) {
+                return port.widthSpec.terms.get(0).width
+            }
+        }
+        throw new Exception("Only integer valued multiport widths are supported for now.")
+    }
+    
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-            «IF i.arraySpec !== null»
-                std::array<reactor::Input<«i.targetType»>, «i.arraySpec.length»> «i.name»{{«FOR id : IntStream.range(0, i.arraySpec.length).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
+            «IF i.isMultiport»
+                std::array<reactor::Input<«i.targetType»>, «i.multiportWidthExpression»> «i.name»{{«FOR id : IntStream.range(0, i.multiportWidth).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
             «ELSE»
                 reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
             «ENDIF»
         «ENDFOR»
         «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-            «IF o.arraySpec !== null»
-                std::array<reactor::Output<«o.targetType»>, «o.arraySpec.length»> «o.name»{{«FOR id : IntStream.range(0, o.arraySpec.length).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
+            «IF o.isMultiport»
+                std::array<reactor::Output<«o.targetType»>, «o.multiportWidthExpression»> «o.name»{{«FOR id : IntStream.range(0, o.multiportWidth).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
             «ELSE»
                 reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
             «ENDIF»
@@ -350,7 +366,7 @@ class CppGenerator extends GeneratorBase {
         if (t instanceof VarRef) {
         	if (t.variable instanceof Port) {
                 val p = t.variable as Port
-                if (p.arraySpec !== null) {
+                if (p.widthSpec !== null) {
                     return '''
                         for (unsigned i = 0; i < «t.name».size(); i++) {
                         	«n.name».declare_trigger(&«t.name»[i]);
@@ -391,7 +407,7 @@ class CppGenerator extends GeneratorBase {
     
     def declareDependency(Reaction n, VarRef v) {
         val p = v.variable as Port
-        if (p.arraySpec !== null) {
+        if (p.widthSpec !== null) {
             return '''
                 for (unsigned i = 0; i < «v.name».size(); i++) {
                     «n.name».declare_dependency(&«v.name»[i]);
@@ -410,7 +426,7 @@ class CppGenerator extends GeneratorBase {
 
     def declareAntidependency(Reaction n, VarRef v) {
         val p = v.variable as Port
-        if (p.arraySpec !== null) {
+        if (p.widthSpec !== null) {
             return '''
                 for (unsigned i = 0; i < «v.name».size(); i++) {
                     «n.name».declare_antidependency(&«v.name»[i]);
@@ -664,20 +680,20 @@ class CppGenerator extends GeneratorBase {
                 }
             '''
         } else if (leftContainer !== null && leftContainer.arraySpec !== null &&
-            rightPort.arraySpec !== null) {
+            rightPort.widthSpec !== null) {
             return '''
                 for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
                   «leftContainer.name»[i].«leftPort.name».bind_to(&«c.rightPort.name»[i]);
                 }
             '''
-        } else if (leftPort.arraySpec !== null && rightContainer !== null &&
+        } else if (leftPort.widthSpec !== null && rightContainer !== null &&
             rightContainer.arraySpec !== null) {
             return '''
                 for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
                   «c.leftPort.name»[i].bind_to(&«rightContainer.name»[i].«rightPort.name»);
                 }
             '''
-        } else if (leftPort.arraySpec !== null) {
+        } else if (leftPort.widthSpec !== null) {
             return '''
                 for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
                   «c.leftPort.name»[i].bind_to(&«c.rightPort.name»[i]);

@@ -44,17 +44,35 @@ class MultiportInstance extends PortInstance {
     new(Port definition, ReactorInstance parent, GeneratorBase generator) {
         super(definition, parent)
         
-        if (definition.arraySpec === null) {
+        if (definition.widthSpec === null) {
             throw new Exception("Port appears to not be a multiport: " + definition.name)
         }
         
-        if (definition.arraySpec.ofVariableLength) {
+        if (definition.widthSpec.ofVariableLength) {
             generator.reportError(definition,
                     "Variable-width multiports not supported (yet): " + definition.name)
+            return
         }
         
-        // FIXME: What if the width is a parameter?
-        val width = definition.arraySpec.length
+        // The width may be given by a parameter or even sum of parameters.
+        var width = 0
+        for (term : definition.widthSpec.terms) {
+            if (term.parameter !== null) {
+                val parameterValue = parent.lookupParameterValue(term.parameter)
+                // Only a Literal is supported.
+                if (parameterValue instanceof String) {
+                    // This could throw NumberFormatException
+                    width += Integer.decode(parameterValue)
+                } else {
+                    generator.reportError(definition,
+                        "Width of a multiport must be given as an integer. It is: "
+                        + parameterValue
+                    )
+                }
+            } else {
+                width += term.width
+            }
+        }
         
         for (var i = 0; i < width; i++) {
             val instancePort = new PortInstance(definition, parent, i, this)

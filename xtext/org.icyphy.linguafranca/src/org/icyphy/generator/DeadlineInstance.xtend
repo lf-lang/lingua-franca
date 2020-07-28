@@ -57,7 +57,7 @@ class DeadlineInstance {
         if (definition.delay !== null) {
             val parm = definition.delay.parameter
             if (parm !== null) {
-                this.maxDelay = reaction.parent.lookupLocalParameter(parm).init.
+                this.maxDelay = reaction.parent.lookupParameterInstance(parm).init.
                     get(0).getTimeValue
             } else {
                 this.maxDelay = definition.delay.timeValue
