@@ -4,7 +4,6 @@
 // It modifies it and passes it to Print. It gets freed after
 // Print is done with it.
 target C {files: ["include/hello.h"]};
-import StructScalePrint from "StructPrint.lf";
 
 // expected parameter is for testing.
 reactor TestInput(expected:int(42)) {

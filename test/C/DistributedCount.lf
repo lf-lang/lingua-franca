@@ -10,9 +10,10 @@ target C {
     coordination: centralized
 };
 
-import Count from "lib/Count.lf";
+import Count as Foo from "lib/Count.lf"; // Foo as Bar 
+//import TestDouble from "lib/Test.lf" // FIXME: Move this to unit test
 
-reactor DistrubutedCountPrint {
+reactor DistrubutedCountPrint extends Foo {
     input in:int;
     state c:int(1);
     reaction(in) {=
@@ -38,6 +39,7 @@ reactor DistrubutedCountPrint {
 
 federated reactor DistributedCountMain at localhost {
     c = new Count();
+    //x = new Bar();
     p = new DistrubutedCountPrint();
     c.out -> p.in after 200 msec;    // Indicating a 'logical' connection.
 }

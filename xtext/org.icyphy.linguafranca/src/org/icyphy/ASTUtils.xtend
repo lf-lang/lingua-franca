@@ -1372,6 +1372,8 @@ class ASTUtils {
     
     
     def static Reactor toDefinition(ReactorDecl r) {
+        if (r === null)
+            return null
         if (r instanceof Reactor) {
             return r
         } else if (r instanceof ImportedReactor) {
