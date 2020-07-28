@@ -57,7 +57,7 @@ print(maketemplate % configopts)
 
 # Generate the rest of the Makefile
 for arg in sys.argv[1:]:
-    print("%s: %s.o\n\tgcc %s.o -shared $(LIBS) $(PYLIB) -o %s" \
+    print("%s: %s.o\n\tgcc %s.o -shared $(LIBS) $(PYLIB) -o %s.so" \
         % (arg, arg, arg, arg))
     print("%s.o: %s.c\n\tgcc %s.c -fPIC -c $(PYINC) $(OPTS)" \
         % (arg, arg, arg))
