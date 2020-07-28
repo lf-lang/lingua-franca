@@ -538,7 +538,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             collectDeclarations(inst, graph)
         }
         this.reactors = graph.nodesOrderedDescending
-        
+        this.resources.add(resource)
         for (r : this.reactors) {
             this.resources.add(r.eResource)
         }
