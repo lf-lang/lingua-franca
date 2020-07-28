@@ -1,14 +1,14 @@
- // Check multiport output to multiport input.
- // Destination port is wider than sending port.
+// Check multiport output to multiport input.
+// Destination port is wider than sending port.
 target C {
     timeout: 2 sec,
-    threads: 4,
     fast: true
 }; 
 reactor Source {
     output[2] out:int;
     reaction(startup) -> out {=
         for(int i = 0; i < out_width; i++) {
+            printf("Source sending %d.\n", i);
             SET(out[i], i);
         }
     =}
