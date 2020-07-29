@@ -29,7 +29,6 @@ package org.icyphy.scoping
 
 import com.google.inject.Inject
 import java.util.ArrayList
-import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.xtext.naming.SimpleNameProvider
@@ -64,6 +63,8 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
     @Inject
     SimpleNameProvider nameProvider
     
+    @Inject
+    LinguaFrancaGlobalScopeProvider scopeProvider;
     /**
      * Enumerate of the kinds of references.
      */
@@ -100,8 +101,8 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
      */
     protected def getScopeForImportedReactor(ImportedReactor context,
         EReference reference) {
-        // FIXME: use our custom resolve method instead.
-        val importedURI = URI.createURI((context.eContainer as Import).importURI ?: "").resolve(context.eResource.URI)
+        val importedURI = scopeProvider.resolve(
+            (context.eContainer as Import).importURI ?: "", context.eResource)
         
         // Filter out candidates that originate from a different resource.
         return new FilteringScope(super.getScope(context, reference), [ iod |

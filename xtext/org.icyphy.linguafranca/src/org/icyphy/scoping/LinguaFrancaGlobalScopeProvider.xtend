@@ -55,6 +55,10 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
     static final Splitter SPLITTER = Splitter.on(
         LinguaFrancaResourceDescriptionStrategy.DELIMITER);
 
+    static final String IMPORTED_URIS = "IMPORTED_URIS"
+    
+    static final String IMPORTED_RESOURCES = "IMPORTED_RESOURCES"
+    
     @Inject
     IResourceDescription.Manager descriptionManager;
 
@@ -66,8 +70,8 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
      * included for compilation.
      */
     override protected getImportedUris(Resource resource) {
-        return cache.get(LinguaFrancaGlobalScopeProvider.getSimpleName(),
-            resource, new Provider<LinkedHashSet<URI>>() {
+        return cache.get(IMPORTED_URIS, resource,
+            new Provider<LinkedHashSet<URI>>() {
                 /**
                  * Collect unique URIs in case the cache is not populated yet.
                  */
@@ -97,9 +101,17 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
             });
     }
 
+    /**
+     * Return the resources imported by the given resource.
+     * @param resource The resource to return the imported resources of.
+     */
     def getImportedResources(Resource resource) {
-        // FIXME: Use cache like getImportedUris()
-        return getImportedResources(resource, null)
+        return cache.get(IMPORTED_RESOURCES, resource,
+            new Provider<LinkedHashSet<Resource>>() {
+                override get() {
+                    getImportedResources(resource, null)
+                }
+            });
     }
 
     /**
@@ -118,6 +130,8 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
             // resolve relative to the directory in which it is found.
             // (2) Look for package description files try to resolve relative
             // to the paths it includes.
+            // FIXME: potentially use a cache here to speed things up.
+            // See OnChangeEvictingCache
             return uriObj
         }
     }
