@@ -29,14 +29,17 @@ package org.icyphy.scoping
 
 import com.google.inject.Inject
 import java.util.ArrayList
+import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.xtext.naming.SimpleNameProvider
 import org.eclipse.xtext.scoping.Scopes
+import org.eclipse.xtext.scoping.impl.FilteringScope
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
 import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
@@ -45,11 +48,6 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.ImportedReactor
-import org.eclipse.xtext.resource.IResourceDescription
-import org.eclipse.emf.common.util.URI
-import org.eclipse.xtext.scoping.impl.FilteringScope
-import org.eclipse.xtext.scoping.impl.ImportUriResolver
 
 /**
  * This class enforces custom rules. In particular, it resolves references to 
@@ -66,14 +64,8 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
     @Inject
     SimpleNameProvider nameProvider
     
-//    @Inject
-//    IResourceDescription.Manager descriptionManager;
-//
-//    @Inject
-//    ImportUriResolver uriResolver
-    
     /**
-     * 
+     * Enumerate of the kinds of references.
      */
     protected enum RefType {
         NULL,
@@ -86,7 +78,10 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
     }
     
     /**
-     * 
+     * Depending on the provided context, construct the appropriate scope
+     * for the given reference.
+     * @param context The AST node in which a to-be-resolved reference occurs.
+     * @param reference The reference to resolve.
      */
     override getScope(EObject context, EReference reference) {
         switch (context) {
@@ -105,9 +100,10 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
      */
     protected def getScopeForImportedReactor(ImportedReactor context,
         EReference reference) {
-
+        // FIXME: use our custom resolve method instead.
         val importedURI = URI.createURI((context.eContainer as Import).importURI ?: "").resolve(context.eResource.URI)
-
+        
+        // Filter out candidates that originate from a different resource.
         return new FilteringScope(super.getScope(context, reference), [ iod |
             iod.EObjectURI.toString.split('#').get(0).equals(importedURI.toString)
         ])
@@ -115,6 +111,8 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
     
     /**
      * 
+     * @param obj Instantiation or Reactor that has a ReactorDecl to resolve.
+     * @param reference The reference to link to a ReactorDecl node.
      */
     protected def getScopeForReactorDecl(EObject obj, EReference reference) {
         var Model model
@@ -132,49 +130,19 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
         // Collect eligible candidates, all of which are local (i.e., not in other files).
         model.reactors?.forEach[locals.add(it)]
         model.imports?.forEach [
+            // Either point to the import statement (if it is renamed)
+            // or directly to the reactor definition.
             it.reactorClasses?.forEach [
-                (it.name !== null) ? locals.add(it);
+                (it.name !== null) ? locals.add(it) : 
                 (it.reactorClass !== null) ? locals.add(it.reactorClass)
             ]
         ]
         return Scopes.scopeFor(locals)
     }
-        
-//    def getScopeForReactor(Reactor reactor, EReference reference) {
-//        if (reference == LinguaFrancaPackage.IMPORTED_REACTOR__REACTOR_CLASS) {
-//            // FIXME: find in resource set a model and extract its reactors
-//            return super.getScope(reactor, reference)
-//        }
-//        return super.getScope(reactor, reference)
-//    }
-    
-    
-//    protected def getScopeForReactorDecl(ReactorDecl decl, EReference reference) {
-//        
-////        val candidates = newLinkedList
-//        
-//        if (decl instanceof Reactor) {
-//            return super.getScope(decl, reference)
-//        }
-//        val locals = newLinkedList
-////        
-//        val model = decl.eContainer.eContainer as Model
-////        
-//        model.reactors.forEach[locals.add(it)]
-//        model.imports.forEach[it.reactorClasses.forEach[locals.add(it); locals.add(it.reactorClass)]]
-////        super.getScope(decl, reference).getElements(nameProvider.
-////                    getFullyQualifiedName(decl)).filter[found | locals.exists[it.name == found.name]].forEach[candidates.add(it.EObjectOrProxy)]
-////        val x = super.getScope(decl, reference);
-////        return x
-//        return Scopes.scopeFor(locals)
-//        
-////        if (reference == LinguaFrancaPackage.Literals.REACTOR__SUPER_CLASSES) {
-////            
-////        }
-////        
-////        Scopes.scopeFor(candidates)
-//    }
 
+    /**
+     * 
+     */
     protected def getScopeForAssignment(Assignment assignment,
         EReference reference) {
         
@@ -192,6 +160,9 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
         return Scopes.scopeFor(newLinkedList)
     }
 
+    /**
+     * 
+     */
     protected def getScopeForVarRef(VarRef variable, EReference reference) {
         if (reference == LinguaFrancaPackage.Literals.VAR_REF__VARIABLE) {
             // Resolve hierarchical reference
