@@ -10,7 +10,7 @@ main reactor Import {
 	a = new X();
 	b = new Y();
 	c = new Z();
-
+	
 	reaction(t) -> a.x {=
 		SET(a.x, 42); 
 	=}
