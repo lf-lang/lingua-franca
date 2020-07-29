@@ -493,6 +493,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
+        // The following "analysis" has hidden in it AST transformations.
+        // FIXME: We should factor them out and rename the following method
+        // parseTargetProperties or something along those lines. 
         analyzeModel(resource, fsa, context)
 
         // Replace connections in this resources that are annotated with the 
@@ -503,21 +506,34 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // reactors defined in imported resources.
         val graph = new PrecedenceGraph<Reactor>()
         for (inst : resource.allContents.toIterable.filter(Instantiation)) {
-            // Build a dependency graph
+            // Recursively build a dependency graph, starting from the
+            // instantiations in the main file. Cross references will guide
+            // the search also through imported files.
             collectDeclarations(inst, graph)
         }
+        // Topologically sort the instantiations such that all of a reactor's
+        // dependencies occur earlier in the sorted list or reactors.
         this.reactors = graph.nodesOrderedDescending
+        // Add to the known resources the resource that is the main file.
         this.resources.add(resource)
+        // Add to the known resources all imported files.
         for (r : this.reactors) {
             this.resources.add(r.eResource)
         }
         
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
-        generatePreamble()
+        generatePreamble() // FIXME: Move this elsewhere.
     }
     
-    def void collectDeclarations(Instantiation instantiation, PrecedenceGraph<Reactor> graph) {
+    /**
+     * Traverse the AST and build a precedence graph to relate the encountered
+     * instantiations. Also map each reactor to all declarations associated
+     * with it.
+     * @param instantiation
+     * @param graph
+     */
+    private def void collectDeclarations(Instantiation instantiation, PrecedenceGraph<Reactor> graph) {
         val decl = instantiation.reactorClass
         val reactor = decl.toDefinition
         val container = instantiation.eContainer as Reactor
