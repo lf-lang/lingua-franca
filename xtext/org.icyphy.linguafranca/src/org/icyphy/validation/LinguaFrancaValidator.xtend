@@ -26,8 +26,6 @@
  ***************/
 package org.icyphy.validation
 
-import com.google.inject.Inject
-import com.google.inject.Provider
 import java.util.ArrayList
 import java.util.Arrays
 import java.util.HashSet
@@ -39,9 +37,6 @@ import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
-import org.eclipse.xtext.resource.IContainer
-import org.eclipse.xtext.resource.IResourceDescriptions
-import org.eclipse.xtext.resource.XtextResourceSet
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
 import org.icyphy.Targets
@@ -58,10 +53,10 @@ import org.icyphy.linguaFranca.Host
 import org.icyphy.linguaFranca.IPV4Host
 import org.icyphy.linguaFranca.IPV6Host
 import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
-import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.NamedHost
@@ -83,8 +78,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.ImportedReactor
-import org.icyphy.linguaFranca.ReactorDecl
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -134,38 +127,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     static val hostOrFQNRegex = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$"
 
     public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
-
-//    @Inject
-//    IContainer.Manager containerManager;
-//    @Inject
-//    IResourceDescriptions resourceDescriptions
-//    @Inject
-//    Provider<XtextResourceSet> resourceSetProvider;
-//
-//    @Check
-//    def checkReactorGloballyUnique(Reactor reactor) {
-//
-//        var greeting_description = resourceDescriptions.getResourceDescription(reactor.eResource.URI)
-//        var visibleContainers = containerManager.getVisibleContainers(greeting_description, resourceDescriptions)
-//        System.out.println("Visible containers are " + visibleContainers)
-//
-//        for (visibleContainer : visibleContainers) {
-//            for (otherDescription : visibleContainer.getExportedObjectsByType(LinguaFrancaPackage.Literals.REACTOR)) {
-//                val other = resourceSetProvider.get.getEObject(otherDescription.EObjectURI, true) as Reactor
-//
-//                if (reactor.eResource.URI != other.eResource.URI) {
-//                    // This means distinct files (all reactors in same file have same URI).
-////                    val p1 = (reactor.eContainer as Model).package
-////                    val p2 = (other.eContainer as Model).package
-////                    if (p1 == p2 && reactor.name == other.name) {
-////                        error('''Duplicate reactor '«reactor.name»' in package (see «other.eResource.URI»)''', LinguaFrancaPackage.Literals.REACTOR__NAME,
-////                            GLOBALLY_DUPLICATE_NAME)
-////                    }
-//                }
-//
-//            }
-//        }
-//    }
 
     def boolean isUnused(ImportedReactor reactor) {
         val instantiations = reactor.eResource.allContents.filter(Instantiation)
