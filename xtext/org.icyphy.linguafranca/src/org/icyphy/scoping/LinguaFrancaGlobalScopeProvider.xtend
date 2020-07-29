@@ -99,20 +99,35 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
     def getImportedResources(Resource resource) {
         return getImportedResources(resource, newLinkedHashSet)
     }
-        
+    
+    /**
+     * Resolve a resource identifier.
+     * 
+     * @param uriStr resource identifier to resolve.
+     * @param resource resource to (initially) resolve it relative to.
+     */
+    protected def URI resolve(String uriStr, Resource resource) {
+        var uriObj = URI.createURI(uriStr)
+        val uriExtension = uriObj?.fileExtension
+        if (uriExtension !== null && uriExtension.equalsIgnoreCase('lf')) {
+            uriObj = uriObj.resolve(resource.URI)
+            // FIXME: If this doesn't work, try other things:
+            // (1) Look for a .project file up the file structure and try to resolve relative to the directory in which it is found.
+            // (2) Look for package description files try to resolve relative to the paths it includes.
+            return uriObj
+        }
+    }
+    
     protected def getImportedResources(Resource resource, LinkedHashSet<URI> uniqueImportURIs) {
         val resourceDescription = descriptionManager.getResourceDescription(resource)
         val models = resourceDescription.getExportedObjectsByType(LinguaFrancaPackage.Literals.MODEL)
         val resources = new LinkedHashSet<Resource>()
-        
         models.forEach[
             val userData = getUserData(LinguaFrancaResourceDescriptionStrategy.INCLUDES)
             if (userData !== null) {
                 SPLITTER.split(userData).forEach[uri |
-                    var includedUri = URI.createURI(uri)
-                    val uriExtension = includedUri?.fileExtension
-                    if (uriExtension !== null && uriExtension.equalsIgnoreCase('lf')) {
-                        includedUri = includedUri.resolve(resource.URI)
+                    var includedUri = uri.resolve(resource)
+                    if (includedUri !== null) {
                         if(uniqueImportURIs.add(includedUri)) {
                             resources.add(resource.getResourceSet().getResource(includedUri, true))
                         }
