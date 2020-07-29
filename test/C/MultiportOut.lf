@@ -1,4 +1,4 @@
- // Check multiport capabilities on Outputs.
+// Check multiport capabilities on Outputs.
 target C {
     timeout: 2 sec,
     threads: 4,

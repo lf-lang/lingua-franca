@@ -44,7 +44,7 @@ class PortInstance extends TriggerInstance<Variable> {
      *  @param parent The parent.
      */
     new(Port definition, ReactorInstance parent) {
-        this(definition, parent, -1)
+        this(definition, parent, -1, null)
     }
     
     /** Create a runtime instance from the specified definition
@@ -54,13 +54,15 @@ class PortInstance extends TriggerInstance<Variable> {
      *  @param parent The parent.
      *  @param index The index, or -1 to specify that this is not
      *   in a multiport.
+     *  @param multiport The containing multiport, or null if none.
      */
-    new(Port definition, ReactorInstance parent, int index) {
+    new(Port definition, ReactorInstance parent, int index, MultiportInstance multiport) {
         super(definition, parent)
         
         if (parent === null) {
             throw new Exception('Cannot create a PortInstance with no parent.')
         }
+        this.multiport = multiport
         this.index = index
     }
      
@@ -136,4 +138,10 @@ class PortInstance extends TriggerInstance<Variable> {
      * a multiport array.
      */
     protected int index
+    
+    /**
+     * The enclosing MultiportInstance or null if this is not in a
+     * multiport.
+     */
+    protected MultiportInstance multiport = null
 }

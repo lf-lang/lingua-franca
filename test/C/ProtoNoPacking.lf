@@ -18,8 +18,13 @@
  *  that executables are installed within the PATH. On a Mac, this is
  *  typically at /usr/local/bin.
  */
+<<<<<<< HEAD
 target C {protobufs: ProtoHelloWorld.proto};
 
+=======
+target C;
+import ProtoHelloWorld.proto;
+>>>>>>> master
 reactor SourceProto {
     output out:ProtoHelloWorld;
     reaction(startup) -> out {=

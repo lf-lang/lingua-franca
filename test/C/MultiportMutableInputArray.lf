@@ -54,14 +54,17 @@ reactor Scale(scale:int(2)) {
     mutable input[2] in:int[];
     output[2] out:int[];
     reaction(in) -> out {=
-        for(int j = 0; j < 2; j++) {
+        for(int j = 0; j < in_width; j++) {
             for(int i = 0; i < in[j]->length; i++) {
-                in[j]->value[i] *= self->scale;
+                if (in[j]->is_present) {
+                    in[j]->value[i] *= self->scale;
+                }
             }
             SET_TOKEN(out[j], in[j]->token);
         }
     =}
 }
+
 main reactor ArrayScale {
     s = new Source();
     c = new Scale();

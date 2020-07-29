@@ -84,6 +84,9 @@ import static extension org.icyphy.ASTUtils.*
  * * A constructor function for each reactor class. This is used to create
  *   a new instance of the reactor.
  * 
+ * * A destructor function for each reactor class. This frees all dynamically
+ *   allocated memory associated with an instance of the class.
+ * 
  * After these, the main generated function is `__initialize_trigger_objects()`.
  * This function creates the instances of reactors (using their constructors)
  * and makes connections between them.
@@ -229,6 +232,13 @@ import static extension org.icyphy.ASTUtils.*
  * * Triggers: For each Timer, Action, Input, and Output of a contained
  *   reactor that triggers reactions, there will be a trigger_t struct
  *   on the self struct with name `___t`, where t is the name of the trigger.
+ * 
+ * ## Destructor
+ * 
+ * For each reactor class, this generator will create a constructor function named
+ * `delete_r`, where `r` is the reactor class name. This function takes a self
+ * struct for the class as an argument and frees all dynamically allocated memory
+ * for the instance of the class. 
  * 
  * ## Connections Between Reactors
  * 
@@ -1048,6 +1058,7 @@ class CGenerator extends GeneratorBase {
      * * A "self" struct type definition (see the class documentation above).
      * * A function for each reaction.
      * * A constructor for creating an instance.
+     * * A destructor for deleting an instance.
      * 
      * If the reactor is the main reactor, then
      * the generated code may be customized. Specifically,
@@ -1086,10 +1097,12 @@ class CGenerator extends GeneratorBase {
             // Some of the following methods create lines of code that need to
             // go into the constructor.  Collect those lines of code here:
             val constructorCode = new StringBuilder()
+            val destructorCode = new StringBuilder()
             generateAuxiliaryStructs(reactor, federate)
-            generateSelfStruct(reactor, federate, constructorCode)
+            generateSelfStruct(reactor, federate, constructorCode, destructorCode)
             generateReactions(reactor, federate)
             generateConstructor(reactor, federate, constructorCode)
+            generateDestructor(reactor, federate, destructorCode)
         } else {
             // Wrapper for existing constructor.
             pr('''
@@ -1121,6 +1134,40 @@ class CGenerator extends GeneratorBase {
                 «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
                 «constructorCode.toString»
                 return self;
+            }
+        ''')
+    }
+
+    /**
+     * Generate a destructor for the specified reactor in the specified federate.
+     * @param decl AST node that represents the declaration of the reactor.
+     * @param federate A federate name, or null to unconditionally generate.
+     * @param destructorCode Lines of code previously generated that need to
+     *  go into the destructor.
+     */
+    protected def generateDestructor(
+        ReactorDecl decl, FederateInstance federate, StringBuilder destructorCode
+    ) {
+        // Append to the destructor code freeing the trigger arrays for each reaction.
+        var reactor = decl.toDefinition
+        var reactionCount = 0
+        for (reaction : reactor.reactions) {
+            if (federate === null || federate.containsReaction(reactor, reaction)) {
+                pr(destructorCode, '''
+                    for(int i = 0; i < self->___reaction_«reactionCount».num_outputs; i++) {
+                        free(self->___reaction_«reactionCount».triggers[i]);
+                    }
+                ''')
+            }
+            // Increment the reaction count even if not in the federate for consistency.
+            reactionCount++;
+        }
+        
+        val structType = selfStructType(decl)
+        pr('''
+            void delete_«decl.name»(«structType»* self) {
+                «destructorCode.toString»
+                free(self);
             }
         ''')
     }
@@ -1272,9 +1319,15 @@ class CGenerator extends GeneratorBase {
      * @param federate A federate name, or null to unconditionally generate.
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
+     * @param destructorCode Place to put lines of code that need to
+     *  go into the destructor.
      */
     protected def generateSelfStruct(
-        ReactorDecl decl, FederateInstance federate, StringBuilder constructorCode
+        ReactorDecl decl,
+        FederateInstance federate,
+        StringBuilder constructorCode,
+        StringBuilder destructorCode
+
     ) {
         val reactor = decl.toDefinition
         val selfType = selfStructType(reactor)
@@ -2791,9 +2844,8 @@ class CGenerator extends GeneratorBase {
                         «reactionStructName».deadline = «timeInTargetLanguage(deadline)»;
                     ''')
                 }
-
             }
-            // Increment the reaction count even if not in the federate for conistency.
+            // Increment the reaction count even if not in the federate for consistency.
             reactionCount++;
         }
         for (child : instance.children) {
@@ -3295,6 +3347,9 @@ class CGenerator extends GeneratorBase {
      */
     private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
+        // For destinations that are multiports, need to count channels
+        // in case there is more than one connection.
+        var destinationChannelCount = new HashMap<PortInstance,Integer>()
         for (source : instance.destinations.keySet) {
             // If the source is an input port, find the ultimate source,
             // which could be the input port if it is written to by a reaction
@@ -3310,8 +3365,13 @@ class CGenerator extends GeneratorBase {
                 || eventualSource.dependsOnReactions.size > 0
             ) {
                 val destinations = instance.destinations.get(source)
+                // For multiports, need to count the channels in case there are multiple
+                // destinations.
+                var sourceChannelCount = 0
                 for (destination : destinations) {
                     // If the destination is an output, then skip this step.
+                    // Outputs are handled by finding the transitive closure
+                    // (finding the eventual inputs).
                     if (destination.isInput) {
                         var comment = ''
                         if (source !== eventualSource) {
@@ -3321,38 +3381,101 @@ class CGenerator extends GeneratorBase {
                             destination.definition as TypedVariable,
                             destination.parent.definition.reactorClass
                         )
-                        // If the source or destination (or both) is a multiport, then
-                        // we need an iterative connection here over the minimum of the widths of
-                        // the two multiports.
-                        var srcIndex = ""
-                        var dstIndex = ""
-                        var width = 0
+                        // There are four cases, depending on whether the source or
+                        // destination or both are multiports.
                         if (eventualSource instanceof MultiportInstance) {
-                            // Source is a multiport.
-                            srcIndex = "[i]"
-                            width = eventualSource.instances.size
-                            if (!(destination instanceof MultiportInstance)) {
-                                reportError(destination.definition, "Cannot connect a multiport to a single port")
+                            // Source is a multiport. 
+                            // Number of available channels:
+                            var width = eventualSource.instances.size - sourceChannelCount
+                            // If there are no more available channels, there is nothing to do.
+                            if (width > 0) {
+                                if (destination instanceof MultiportInstance) {
+                                    // Source and destination are both multiports.
+                                    // First, get the first available destination channel.
+                                    var destinationChannel = destinationChannelCount.get(destination)
+                                    if (destinationChannel === null) {
+                                        destinationChannel = 0
+                                        destinationChannelCount.put(destination, 1)
+                                    } else {
+                                        // Add the width of the source to the index of the destination's
+                                        // next available channel. This may be out of bounds for the
+                                        // destination.
+                                        destinationChannelCount.put(destination, destinationChannel + width)
+                                    }
+                                    // There will be nothing to do if the destination channel index
+                                    // is out of bounds.
+                                    if (destinationChannel < destination.instances.size) {
+                                        // There is at least one available channel at the destination.
+                                        // The number of connections now will be the minimum of the
+                                        // source width and the number of remaining channels at the
+                                        // destination.
+                                        if (destination.instances.size - destinationChannel < width) {
+                                            width = destination.instances.size - destinationChannel
+                                        }
+                                        // Finally, we can generate the code to make the connections.
+                                        pr('''
+                                            // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                            int j = «sourceChannelCount»;
+                                            for (int i = «destinationChannel»; i < «destinationChannel» + «width»; i++) {
+                                                «destinationReference(destination)»[i]
+                                                    = («destStructType»*)&«sourceReference(eventualSource)»[j++];
+                                            }
+                                        ''')
+                                        sourceChannelCount += width
+                                    } else {
+                                        pr('''
+                                            // No destination channels available for connection from
+                                            // «source.getFullName»«comment» to input port «destination.getFullName».
+                                        ''')
+                                    }
+                                } else {
+                                    // Source is a multiport, destination is a single port.
+                                    pr('''
+                                        // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                        «destinationReference(destination)»
+                                                = («destStructType»*)&«sourceReference(eventualSource)»[«sourceChannelCount»];
+                                    ''')
+                                    sourceChannelCount++
+                                }
+                            } else {
+                                pr('''
+                                    // No source channels available for connection from
+                                    // «source.getFullName»«comment» to input port «destination.getFullName».
+                                ''')
                             }
-                        }
-                        if (destination instanceof MultiportInstance) {
-                            // Destination is a multiport.
-                            dstIndex = "[i]"
-                            if (destination.instances.size < width) {
-                                width = destination.instances.size
+                        } else if (destination instanceof MultiportInstance) {
+                            // Source is a single port, Destination is a multiport.
+                            // First, get the first available destination channel.
+                            var destinationChannel = destinationChannelCount.get(destination)
+                            if (destinationChannel === null) {
+                                destinationChannel = 0
+                                destinationChannelCount.put(destination, 1)
+                            } else {
+                                // Add the width of the source to the index of the destination's
+                                // next available channel. This may be out of bounds for the
+                                // destination.
+                                destinationChannelCount.put(destination, destinationChannel + 1)
                             }
-                        }
-                        if (width > 0) {
-                            pr('''for (int i = 0; i < «width»; i++) {''')
-                            indent()
-                        }
-                        pr('''
-                            // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                            «destinationReference(destination)»«dstIndex» = («destStructType»*)&«sourceReference(eventualSource)»«srcIndex»;
-                        ''')
-                        if (width > 0) {
-                            unindent()
-                            pr("}")
+                            // There will be nothing to do if the destination channel index
+                            // is out of bounds.
+                            if (destinationChannel < destination.instances.size) {
+                                pr('''
+                                    // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                    «destinationReference(destination)»[«destinationChannel»]
+                                            = («destStructType»*)&«sourceReference(eventualSource)»;
+                                ''')
+                            } else {
+                                pr('''
+                                    // No destination channels available for connection from
+                                    // «source.getFullName»«comment» to input port «destination.getFullName».
+                                ''')
+                            }
+                        } else {
+                            // Both ports are single ports.
+                            pr('''
+                                // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                «destinationReference(destination)» = («destStructType»*)&«sourceReference(eventualSource)»;
+                            ''')
                         }
                     }
                 }

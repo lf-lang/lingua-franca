@@ -12,7 +12,7 @@ reactor Source {
 }
 
 reactor Sink {
-    input[5] in:unsigned;
+    input[4] in:unsigned;
     reaction (in) {=
         for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {

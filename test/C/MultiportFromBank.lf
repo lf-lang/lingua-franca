@@ -34,7 +34,7 @@ reactor Destination {
 }
 
 main reactor MultiportFromBank {
-    a = new[4] Source();
+    a = new[3] Source();
     b = new Destination();
     a.out -> b.in;
 }
