@@ -281,13 +281,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // Make sure that if either side of the connection has an arraySpec
         // (has the form port[i]), then the port is defined as a multiport.
         if (connection.rightPort.variableArraySpec !== null &&
-                (connection.rightPort.variable as Port).arraySpec === null) {
+                (connection.rightPort.variable as Port).widthSpec === null) {
             error("Port is not a multiport: " + connection.rightPort.toText,
                 Literals.CONNECTION__RIGHT_PORT
             )
         }
         if (connection.leftPort.variableArraySpec !== null &&
-                (connection.leftPort.variable as Port).arraySpec === null) {
+                (connection.leftPort.variable as Port).widthSpec === null) {
             error("Port is not a multiport: " + connection.leftPort.toText,
                 Literals.CONNECTION__RIGHT_PORT
             )
@@ -315,7 +315,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (c !== connection &&
                 connection.rightPort.container === c.rightPort.container &&
                 connection.rightPort.variable === c.rightPort.variable &&
-                (c.rightPort.variable as Port).arraySpec === null) {
+                (c.rightPort.variable as Port).widthSpec === null) {
                 error(
                     "Cannot connect: Port named '" + c.rightPort.variable.name +
                         "' may only be connected to a single upstream port.",

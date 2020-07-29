@@ -125,8 +125,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate inputs for this reactor instance
+
         for (inputDecl : definition.reactorClass.toDefinition.allInputs) {
-            if (inputDecl.arraySpec === null) {
+            if (inputDecl.widthSpec === null) {
                 this.inputs.add(new PortInstance(inputDecl, this))
             } else {
                 this.inputs.add(new MultiportInstance(inputDecl, this, generator))
@@ -135,7 +136,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Instantiate outputs for this reactor instance
         for (outputDecl : definition.reactorClass.toDefinition.allOutputs) {
-            if (outputDecl.arraySpec === null) {
+            if (outputDecl.widthSpec === null) {
                 this.outputs.add(new PortInstance(outputDecl, this))
             } else {
                 this.outputs.add(new MultiportInstance(outputDecl, this, generator))
@@ -237,7 +238,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             assignLevels(graph)
             // Traverse the graph again, now starting from the leaves,
             // to set the chain IDs.
-            assignChainIDs(graph, false) // FIXME: Temporarily disabled this.
+            assignChainIDs(graph, true)
 
             // Propagate any declared deadline upstream.
             propagateDeadlines()
@@ -318,7 +319,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         '''INTERNAL ERROR 1: Port «portInstance.getFullName» should have had incremented its channel or bank index.''')
                     } else {
                         val memberReactor = reactor.bankMembers.get(nextBank - 1)
-                        val port = memberReactor.lookupLocalPort(portReference.variable as Port)
+                        val port = memberReactor.lookupPortInstance(portReference.variable as Port)
                         val portIdx = nextPortTable.get(port)?:0
                         if (portIdx <= 0) {
                             // This should not occur.
@@ -402,7 +403,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             memberReactor = reactor.bankMembers.get(bankIdx)
         }
         
-        var portInstance = memberReactor.lookupLocalPort(portReference.variable as Port)
+        var portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
         
         if (portInstance === null) {
             generator.reportError(portReference, "No such port.")
@@ -439,7 +440,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     // Get the bank member reactor.
                     memberReactor = reactor.bankMembers.get(bankIdx)
                     // Have a new port instance.
-                    portInstance = memberReactor.lookupLocalPort(portReference.variable as Port)
+                    portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
                     // This should also be a multiport.
                     nextPortTable.put(portInstance, 1)
                     return (portInstance as MultiportInstance).getInstance(0)
@@ -638,71 +639,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         this.definition.name
     }
 
-    /** Return the parameter instance within this reactor 
-     *  instance corresponding to the specified parameter definition.
-     *  @param parameter The parameter as an AST node.
-     *  @return The corresponding parameter instance or null if the
-     *   action does not belong to this reactor.
-     */
-    def getParameterInstance(Parameter parameter) {
-        for (paramInstance : parameters) {
-            if (paramInstance.definition === parameter) {
-                return paramInstance
-            }
-        }
-    }
-
-    /** Return the reaction instance within this reactor 
-     *  instance corresponding to the specified reaction.
-     *  @param reaction The reaction as an AST node.
-     *  @return The corresponding reaction instance or null if the
-     *   reaction does not belong to this reactor.
-     */
-    def getReactionInstance(Reaction reaction) {
-        for (reactionInstance : reactions) {
-            if (reactionInstance.definition === reaction) {
-                return reactionInstance
-            }
-        }
-    }
-
-    /** Given a reference to a port belonging to this reactor
-     *  instance, return the port instance.
-     *  Return null if there is no such instance.
-     *  @param reference The port reference.
-     *  @return A port instance, or null if there is none.
-     */
-    def getPortInstance(VarRef reference) {
-        if (!(reference.variable instanceof Port)) {
-            // Trying to resolve something that is not a port
-            return null
-        }
-        if (reference.container === null) {
-            // Handle local reference
-            return lookupLocalPort(reference.variable as Port)
-        } else {
-            // Handle hierarchical reference
-            var containerInstance = this.
-                getChildReactorInstance(reference.container)
-            if (containerInstance === null) return null
-            return containerInstance.lookupLocalPort(reference.variable as Port)
-        }
-    }
-
-    /** Return the timer instance within this reactor 
-     *  instance corresponding to the specified timer reference.
-     *  @param timer The timer as an AST node.
-     *  @return The corresponding timer instance or null if the
-     *   timer does not belong to this reactor.
-     */
-    def getTimerInstance(Timer timer) {
-        for (timerInstance : timers) {
-            if (timerInstance.name.equals(timer.name)) {
-                return timerInstance
-            }
-        }
-    }
-
     /** Return the trigger instances (input ports, timers, and actions
      *  that trigger reactions) belonging to this reactor instance.
      *  @return The trigger instances belonging to this reactor instance.
@@ -729,6 +665,55 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
     
+    ///////////////////////////////////////////////////
+    //// Methods for finding instances in this reactor given an AST node.
+    
+    /** 
+     * Given a parameter definition, return the parameter instance
+     * corresponding to that definition, or null if there is
+     * no such instance.
+     * @param parameter The parameter definition (a syntactic object in the AST).
+     * @return A parameter instance, or null if there is none.
+     */
+    def ParameterInstance lookupParameterInstance(Parameter parameter) {
+        return this.parameters.findFirst [
+            it.definition === parameter
+        ]
+    }
+    
+    /**
+     * Given a parameter definition for this reactor, return the value
+     * of the parameter. If the parameter is overridden when instantiating
+     * this reactor, use that value. Otherwise, use the default value
+     * in the reactor definition. If either value references another
+     * parameter, then follow that parameter until the value no longer
+     * references another parameter. The value may be a Time, String,
+     * or Code.
+     * @param parameter The parameter definition (a syntactic object in the AST).
+     * @return A value, or null if the parameter or its value is not found.
+     */
+    def Object lookupParameterValue(Parameter parameter) {
+        val instance = lookupParameterInstance(parameter)
+        if (instance.init.length === 0) return null
+        var value = instance.init.get(0)
+        if (value.parameter !== null) {
+            // References another parameter. Could be a parameter of this
+            // reactor or of this reactor's parent.  Try this reactor first.
+            var candidate = lookupParameterValue(value.parameter)
+            if (candidate !== null) return candidate
+            // Try the parent next.
+            if (parent !== null) {
+                candidate = parent.lookupParameterValue(value.parameter)
+                if (candidate !== null) return candidate
+            }
+            // No luck.
+            return null
+        }
+        if (value.literal !== null) return value.literal
+        if (value.time !== null) return value.time
+        if (value.code !== null) return value.code
+    }
+
     /** 
      * Given a port definition, return the port instance
      * corresponding to that definition, or null if there is
@@ -736,7 +721,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param port The port definition (a syntactic object in the AST).
      * @return A port instance, or null if there is none.
      */
-    def PortInstance lookupLocalPort(Port port) {
+    def PortInstance lookupPortInstance(Port port) {
         // Search one of the inputs and outputs sets.
         var LinkedList<PortInstance> ports = null
         if (port instanceof Input) {
@@ -752,18 +737,58 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         null
     }
 
-    /** 
-     * Given a parameter definition, return the parameter instance
-     * corresponding to that definition, or null if there is
-     * no such instance.
-     * @param port The parameter definition (a syntactic object in the AST).
-     * @return A parameter instance, or null if there is none.
+    /** Given a reference to a port belonging to this reactor
+     *  instance, return the port instance.
+     *  Return null if there is no such instance.
+     *  @param reference The port reference.
+     *  @return A port instance, or null if there is none.
      */
-    def ParameterInstance lookupLocalParameter(Parameter parameter) {
-        return this.parameters.findFirst [
-            it.definition === parameter
-        ]
+    def lookupPortInstance(VarRef reference) {
+        if (!(reference.variable instanceof Port)) {
+            // Trying to resolve something that is not a port
+            return null
+        }
+        if (reference.container === null) {
+            // Handle local reference
+            return lookupPortInstance(reference.variable as Port)
+        } else {
+            // Handle hierarchical reference
+            var containerInstance = this.
+                getChildReactorInstance(reference.container)
+            if (containerInstance === null) return null
+            return containerInstance.lookupPortInstance(reference.variable as Port)
+        }
     }
+
+    /** Return the reaction instance within this reactor 
+     *  instance corresponding to the specified reaction.
+     *  @param reaction The reaction as an AST node.
+     *  @return The corresponding reaction instance or null if the
+     *   reaction does not belong to this reactor.
+     */
+    def lookupReactionInstance(Reaction reaction) {
+        for (reactionInstance : reactions) {
+            if (reactionInstance.definition === reaction) {
+                return reactionInstance
+            }
+        }
+    }
+    
+    /** Return the timer instance within this reactor 
+     *  instance corresponding to the specified timer reference.
+     *  @param timer The timer as an AST node.
+     *  @return The corresponding timer instance or null if the
+     *   timer does not belong to this reactor.
+     */
+    def lookupTimerInstance(Timer timer) {
+        for (timerInstance : timers) {
+            if (timerInstance.name.equals(timer.name)) {
+                return timerInstance
+            }
+        }
+    }
+
+    
 
     /** Return the main reactor, which is the top-level parent.
      *  @return The top-level parent.

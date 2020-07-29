@@ -70,7 +70,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
         return -1;
     }
-    // printf("DEBUG: schedule_copy: Allocating memory for payload (token value): %p\n", container);
+    // printf("DEBUG: schedule_copy: Allocating memory for payload (token value): %p\n", trigger);
     // Initialize token with an array size of length and a reference count of 0.
     token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.

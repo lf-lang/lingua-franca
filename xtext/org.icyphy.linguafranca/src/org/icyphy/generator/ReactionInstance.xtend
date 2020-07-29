@@ -65,7 +65,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
         for (TriggerRef trigger : definition.triggers) {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
-                    var portInstance = parent.getPortInstance(trigger)
+                    var portInstance = parent.lookupPortInstance(trigger)
                     this.dependsOnPorts.add(portInstance)
                     portInstance.dependentReactions.add(this)
                     this.triggers.add(portInstance)
@@ -76,7 +76,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     actionInstance.dependentReactions.add(this)
                     this.dependsOnActions.add(actionInstance)
                 } else if (trigger.variable instanceof Timer) {
-                    var timerInstance = parent.getTimerInstance(
+                    var timerInstance = parent.lookupTimerInstance(
                         trigger.variable as Timer)
                     this.triggers.add(timerInstance)
                     timerInstance.dependentReactions.add(this)
@@ -96,7 +96,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
         // Next handle the ports that this reaction reads.
         for (source : definition.sources) {
             if (source.variable instanceof Port) {
-                var portInstance = parent.getPortInstance(source)
+                var portInstance = parent.lookupPortInstance(source)
                 this.dependsOnPorts.add(portInstance)
                 this.reads.add(portInstance)
                 portInstance.dependentReactions.add(this)
@@ -106,7 +106,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
         // Finally, handle the effects.
         for (effect : definition.effects) {
             if (effect.variable instanceof Port) {
-                var portInstance = parent.getPortInstance(effect)
+                var portInstance = parent.lookupPortInstance(effect)
                 if (portInstance instanceof MultiportInstance) {
                     for (multiportInstance : portInstance.instances) {
                         this.dependentPorts.add(multiportInstance)
