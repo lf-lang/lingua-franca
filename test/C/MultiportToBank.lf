@@ -6,9 +6,9 @@ target C {
     fast: true
 }; 
 reactor Source {
-    output[4] out:int;
+    output[3] out:int;
     reaction(startup) -> out {=
-        for(int i = 0; i < 4; i++) {
+        for(int i = 0; i < out_width; i++) {
             SET(out[i], i);
         }
     =}
@@ -33,7 +33,7 @@ reactor Destination(bank_position:int(0)) {
     =}
 }
 
-main reactor MultiportToMultiport { 
+main reactor MultiportToBank { 
     a = new Source();
     b = new[3] Destination();
     a.out -> b.in;
