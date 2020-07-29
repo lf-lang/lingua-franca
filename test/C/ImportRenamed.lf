@@ -1,11 +1,13 @@
 // This tests the ability to import a reactor definition
 // that itself imports a reactor definition.
 target C;
-import Imported as X from "Imported.lf";
+import Imported as X from "Imported.lf"
+import Imported as Y from "Imported.lf"
 
 main reactor Import {
 	timer t;
 	a = new X();
+	b = new Y();
 	reaction(t) -> a.x {=
 		SET(a.x, 42); 
 	=}

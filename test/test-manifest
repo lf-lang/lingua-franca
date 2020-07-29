@@ -59,6 +59,7 @@ Hierarchy2.lf
 Import.lf
 ImportComposition.lf
 ImportThreaded.lf
+ImportRenamed.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf

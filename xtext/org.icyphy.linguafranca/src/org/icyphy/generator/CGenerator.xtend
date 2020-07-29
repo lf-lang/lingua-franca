@@ -365,14 +365,13 @@ class CGenerator extends GeneratorBase {
         super.doGenerate(resource, fsa, context)
         
         // Perform AST transformation on reactors that reference startup or shutdown.
-        val definitions = new HashSet<Reactor>()
         
         // Generate code for each reactor. If the reactor already has been handled, set
         // the parameter aliasOnly to true.
         for (r : reactors) {
-            val defn = r.toDefinition
-            r.generateReactorFederated(null, definitions.contains(defn))
-            definitions.add(defn)
+            for (d : reactorToDecl.get(r)) {
+                d.generateReactorFederated(null)
+            }
         }
         
         // Create the output directories if they don't yet exist.
@@ -443,7 +442,7 @@ class CGenerator extends GeneratorBase {
         
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
-                generateReactorFederated(this.mainDef.reactorClass, federate, false)
+                generateReactorFederated(this.mainDef.reactorClass, federate)
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.
@@ -1069,7 +1068,7 @@ class CGenerator extends GeneratorBase {
      * @param federate A federate name, or null to unconditionally generate.
      * @param aliasOnly True if this declaration already has been handled, false otherwise.
      */
-    def generateReactorFederated(ReactorDecl reactor, FederateInstance federate, boolean aliasOnly) {
+    def generateReactorFederated(ReactorDecl reactor, FederateInstance federate) {
         // FIXME: Currently we're not reusing definitions for declarations that point to the same definition.
         
         val defn = reactor.toDefinition
@@ -1080,37 +1079,26 @@ class CGenerator extends GeneratorBase {
             pr("// =============== START reactor class " + defn.name + " as " + reactor.name)
         }
         
-        if (!aliasOnly) {
-            // This should only happen once per definition.
-            
-            // Run AST transformation that creates timer and action for startup
-            // and shutdown, if they occur in any of the reaction interfaces.
-            reactor.toDefinition.handleStartupAndShutdown
+        // Perform AST transformation that creates timer and action for startup
+        // and shutdown, if they occur in any of the reaction interfaces.
+        reactor.toDefinition.handleStartupAndShutdown
 
-            // Preamble code contains state declarations with static initializers.
-            for (p : defn.preambles ?: emptyList) {
-                pr("// *********** From the preamble, verbatim:")
-                prSourceLineNumber(p.code)
-                pr(p.code.toText)
-                pr("\n// *********** End of preamble.")
-            }
-            // Some of the following methods create lines of code that need to
-            // go into the constructor.  Collect those lines of code here:
-            val constructorCode = new StringBuilder()
-            val destructorCode = new StringBuilder()
-            generateAuxiliaryStructs(reactor, federate)
-            generateSelfStruct(reactor, federate, constructorCode, destructorCode)
-            generateReactions(reactor, federate)
-            generateConstructor(reactor, federate, constructorCode)
-            generateDestructor(reactor, federate, destructorCode)
-        } else {
-            // Wrapper for existing constructor.
-            pr('''
-                «selfStructType(defn)»* new_«reactor.name»() {
-                    return new_«defn.name»();
-                }
-            ''')
+        // Preamble code contains state declarations with static initializers.
+        for (p : defn.preambles ?: emptyList) {
+            pr("// *********** From the preamble, verbatim:")
+            prSourceLineNumber(p.code)
+            pr(p.code.toText)
+            pr("\n// *********** End of preamble.")
         }
+        // Some of the following methods create lines of code that need to
+        // go into the constructor.  Collect those lines of code here:
+        val constructorCode = new StringBuilder()
+        val destructorCode = new StringBuilder()
+        generateAuxiliaryStructs(reactor, federate)
+        generateSelfStruct(reactor, federate, constructorCode, destructorCode)
+        generateReactions(reactor, federate)
+        generateConstructor(reactor, federate, constructorCode)
+        generateDestructor(reactor, federate, destructorCode)
 
         pr("// =============== END reactor class " + reactor.name)
         pr("")
@@ -1330,7 +1318,7 @@ class CGenerator extends GeneratorBase {
 
     ) {
         val reactor = decl.toDefinition
-        val selfType = selfStructType(reactor)
+        val selfType = selfStructType(decl)
         
         // Construct the typedef for the "self" struct.
         // First, create a type name for the self struct.
@@ -1500,13 +1488,13 @@ class CGenerator extends GeneratorBase {
             for (variable : structs.get(containedReactor)) {
                 if (variable instanceof Input) {
                     pr(variable, body, '''
-                        «variableStructType(variable, containedReactor.reactorClass.toDefinition)» «variable.name»;
+                        «variableStructType(variable, containedReactor.reactorClass)» «variable.name»;
                     ''')
                 } else {
                     // Must be an output entry.
                     // Outputs are pointers to the source of data.
                     pr(variable, body, '''
-                        «variableStructType(variable, containedReactor.reactorClass.toDefinition)»* «variable.name»;
+                        «variableStructType(variable, containedReactor.reactorClass)»* «variable.name»;
                         trigger_t «variable.name»_trigger;
                     ''')
                     val triggered = reactionsTriggered.get(variable)
@@ -1546,7 +1534,7 @@ class CGenerator extends GeneratorBase {
         }
         
         // Next, generate the fields needed for each reaction.
-        generateReactionAndTriggerStructs(body, reactor, constructorCode, federate)
+        generateReactionAndTriggerStructs(body, decl, constructorCode, federate)
         
         if (body.length > 0) {
             pr('''
@@ -1577,9 +1565,10 @@ class CGenerator extends GeneratorBase {
      * @param federate The federate instance, or null if there is no federation.
      */
     protected def void generateReactionAndTriggerStructs(
-        StringBuilder body, Reactor reactor, StringBuilder constructorCode, FederateInstance federate
+        StringBuilder body, ReactorDecl decl, StringBuilder constructorCode, FederateInstance federate
     ) {
         var reactionCount = 0;
+        val reactor = decl.toDefinition
         // Iterate over reactions and create initialize the reaction_t struct
         // on the self struct. Also, collect a map from triggers to the reactions
         // that are triggered by that trigger. Also, collect a set of sources
@@ -1658,7 +1647,7 @@ class CGenerator extends GeneratorBase {
                 var deadlineFunctionPointer = "NULL"
                 if (reaction.deadline !== null) {
                     // The following has to match the name chosen in generateReactions
-                    val deadlineFunctionName = reactor.name.toLowerCase + '_deadline_function' + reactionCount
+                    val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionCount
                     deadlineFunctionPointer = "&" + deadlineFunctionName
                 }
 
@@ -1670,7 +1659,7 @@ class CGenerator extends GeneratorBase {
                 // self->___reaction_«reactionCount».running = false;
                 // self->___reaction_«reactionCount».deadline = 0LL;
                 pr(reaction, constructorCode, '''
-                    self->___reaction_«reactionCount».function = «reactionFunctionName(reactor, reactionCount)»;
+                    self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».num_outputs = «outputCount»;
                     self->___reaction_«reactionCount».output_produced = self->__reaction_«reactionCount»_outputs_are_present;
@@ -1965,10 +1954,10 @@ class CGenerator extends GeneratorBase {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
                     generatePortVariablesInReaction(reactionInitialization,
-                        fieldsForStructsForContainedReactors, trigger, reactor)
+                        fieldsForStructsForContainedReactors, trigger, decl)
                 } else if (trigger.variable instanceof Action) {
                     generateActionVariablesInReaction(
-                        reactionInitialization, trigger.variable as Action, reactor
+                        reactionInitialization, trigger.variable as Action, decl
                     )
                     actionsAsTriggers.add(trigger.variable as Action);
                 }
@@ -1979,20 +1968,20 @@ class CGenerator extends GeneratorBase {
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs. 
             for (input : reactor.inputs) {
-                generateInputVariablesInReaction(reactionInitialization, input, reactor)
+                generateInputVariablesInReaction(reactionInitialization, input, decl)
             }
         }
         // Define argument for non-triggering inputs.
         for (VarRef src : reaction.sources ?: emptyList) {
             if (src.variable instanceof Port) {
-                generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src, reactor)
+                generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src, decl)
             } else if (src.variable instanceof Action) {
                 // It's a bit odd to read but not be triggered by an action, but
                 // OK, I guess we allow it.
                 generateActionVariablesInReaction(
                     reactionInitialization,
                     src.variable as Action,
-                    reactor
+                    decl
                 )
                 actionsAsTriggers.add(src.variable as Action);
             }
@@ -2010,12 +1999,12 @@ class CGenerator extends GeneratorBase {
                     // If it has already appeared as trigger, do not redefine it.
                     if (!actionsAsTriggers.contains(effect.variable)) {
                         pr(reactionInitialization, '''
-                            «variableStructType(effect.variable, reactor)»* «effect.variable.name» = &self->__«effect.variable.name»;
+                            «variableStructType(effect.variable, decl)»* «effect.variable.name» = &self->__«effect.variable.name»;
                         ''')
                     }
                 } else {
                     if (effect.variable instanceof Output) {
-                        generateOutputVariablesInReaction(reactionInitialization, effect.variable as Output, reactor)
+                        generateOutputVariablesInReaction(reactionInitialization, effect.variable as Output, decl)
                     } else if (effect.variable instanceof Input) {
                         // It is the input of a contained reactor.
                         generateVariablesForSendingToContainedReactors(
@@ -2062,7 +2051,7 @@ class CGenerator extends GeneratorBase {
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = reactor.name.toLowerCase + '_deadline_function' + reactionIndex
+            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
 
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
@@ -3563,9 +3552,9 @@ class CGenerator extends GeneratorBase {
     private def generateActionVariablesInReaction(
         StringBuilder builder,
         Action action,
-        Reactor reactor
+        ReactorDecl decl
     ) {
-        val structType = variableStructType(action, reactor)
+        val structType = variableStructType(action, decl)
         // If the action has a type, create variables for accessing the value.
         val type = action.inferredType
         // Pointer to the token_t sent as the payload in the trigger.
@@ -3604,9 +3593,9 @@ class CGenerator extends GeneratorBase {
     private def generateInputVariablesInReaction(
         StringBuilder builder,
         Input input,
-        Reactor reactor
+        ReactorDecl decl
     ) {
-        val structType = variableStructType(input, reactor)
+        val structType = variableStructType(input, decl)
         val inputType = input.inferredType
         // Create the local variable whose name matches the input name.
         // If the input has not been declared mutable, then this is a pointer
@@ -3736,10 +3725,10 @@ class CGenerator extends GeneratorBase {
         StringBuilder builder,
         HashMap<Instantiation,StringBuilder> structs,
         VarRef port,
-        Reactor reactor
+        ReactorDecl decl
     ) {
         if (port.variable instanceof Input) {
-            generateInputVariablesInReaction(builder, port.variable as Input, reactor)
+            generateInputVariablesInReaction(builder, port.variable as Input, decl)
         } else {
             // port is an output of a contained reactor.
             val output = port.variable as Output
@@ -3774,13 +3763,13 @@ class CGenerator extends GeneratorBase {
     private def generateOutputVariablesInReaction(
         StringBuilder builder,
         Output output,
-        Reactor reactor
+        ReactorDecl decl
     ) {
         if (output.type === null) {
             reportError(output,
                 "Output is required to have a type: " + output.name)
         } else {
-            val outputStructType = variableStructType(output, reactor)
+            val outputStructType = variableStructType(output, decl)
             // Unfortunately, for the SET macros to work out-of-the-box for
             // multiports, we need an array of *pointers* to the output structs,
             // but what we have on the self struct is an array of output structs.

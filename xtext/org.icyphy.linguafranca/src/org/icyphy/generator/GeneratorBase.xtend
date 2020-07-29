@@ -78,6 +78,7 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.ReactorDecl
+import com.google.common.collect.HashMultimap
 
 /**
  * Generator base class for shared code between code generators.
@@ -175,13 +176,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * A list of Reactor definitions in the main resource, including non-main 
      * reactors defined in imported resources.
      */
-    protected var List<ReactorDecl> reactors = newLinkedList 
+    protected var List<Reactor> reactors = newLinkedList 
     
     /**
      * The set of resources referenced reactor classes reside in.
      */
     protected var Set<Resource> resources = newHashSet
     
+    /**
+     * Map from reactor classes to their declarations.
+     */
+    protected val reactorToDecl = HashMultimap.<Reactor, ReactorDecl>create
+
     /**
      * The file containing the main source code.
      * This is the Eclipse eCore view of the file, which is distinct
@@ -495,7 +501,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Collect a list of reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
-        val graph = new PrecedenceGraph<ReactorDecl>()
+        val graph = new PrecedenceGraph<Reactor>()
         for (inst : resource.allContents.toIterable.filter(Instantiation)) {
             // Build a dependency graph
             collectDeclarations(inst, graph)
@@ -511,15 +517,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         generatePreamble()
     }
     
-    def void collectDeclarations(Instantiation instantiation, PrecedenceGraph<ReactorDecl> graph) {
-        val reactor = instantiation.reactorClass
+    def void collectDeclarations(Instantiation instantiation, PrecedenceGraph<Reactor> graph) {
+        val decl = instantiation.reactorClass
+        val reactor = decl.toDefinition
         val container = instantiation.eContainer as Reactor
+        
+        this.reactorToDecl.put(reactor, decl)
+
         if (!container.isMain && !container.isFederated) {
             graph.addEdge(container, reactor)
         } else {
             graph.addNode(reactor)
         }
-        for (inst : reactor.toDefinition.instantiations) {
+        for (inst : reactor.instantiations) {
             inst.collectDeclarations(graph)
         }
     }
