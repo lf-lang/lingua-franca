@@ -31,7 +31,6 @@ addons:
 #  - DISPLAY=:99.0  
 #before_install:
 # - sh -e /etc/init.d/xvfb start - sleep 10  
->>>>>>> master
 script:    
  - export CC=/usr/bin/gcc-7
  - export CXX=/usr/bin/g++-7
