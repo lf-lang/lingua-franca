@@ -1,11 +1,11 @@
 // This tests the ability to import a reactor definition
 // that itself imports a reactor definition.
 target C;
-import test.shared.ForeignImport.*;
+import Imported as X from "Imported.lf";
 
 main reactor Import {
 	timer t;
-	a = new ForeignImport();
+	a = new X();
 	reaction(t) -> a.x {=
 		SET(a.x, 42); 
 	=}
