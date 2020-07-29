@@ -1,5 +1,28 @@
 /* Custom global scope provider for Lingua Franca. */
 
+/*************
+ * Copyright (c) 2019, The University of California at Berkeley.
+
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.icyphy.scoping
 
 import org.eclipse.xtext.scoping.impl.ImportUriGlobalScopeProvider
@@ -16,90 +39,69 @@ import org.eclipse.xtext.util.IResourceScopeCache
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.LinguaFrancaResourceDescriptionStrategy
 
-/** Global scope provider designed to limit global scope to the current
- * project directory.
+/**
+ * Global scope provider that limits access to only those files that were
+ * explicitly imported.
+ * 
+ * Adapted from from Xtext manual, Chapter 8.7.
+ * @see https://www.eclipse.org/Xtext/documentation/2.6.0/Xtext%20Documentation.pdf
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
-    // Note: Adapted from Xtext manual.
-    // See https://www.eclipse.org/Xtext/documentation/2.6.0/Xtext%20Documentation.pdf Chapter 8.7
-    static final Splitter SPLITTER = Splitter.on(LinguaFrancaResourceDescriptionStrategy.DELIMITER);
-    
-//    @Inject
-//    IContainer.Manager containerManager;
+
+    /**
+     * Splitter used to process user-data annotations of Model nodes.
+     */
+    static final Splitter SPLITTER = Splitter.on(
+        LinguaFrancaResourceDescriptionStrategy.DELIMITER);
 
     @Inject
     IResourceDescription.Manager descriptionManager;
 
-//    /* Access to resources are constrained in Xtext by the container manager, which is language specific.
-//     * Therefore, the first step in acquiring the resource is to get its corresponding container. 
-//     * This function returns a list of containers that contain a specific resource.
-//     * @param resource
-//     * @return A list of visible containers that have access to the resource. 
-//     */
-//    override List<IContainer> getVisibleContainers(Resource resource) {
-//        // Get the contents of the resource in the form of an ISelectable that holds the imported names
-//        // from a given resource.
-//        val description = descriptionManager.getResourceDescription(resource);
-//        // A flat index that contains all resource descriptions
-//        val resourceDescriptions = getResourceDescriptions(resource);
-//
-//        // Cache management for faster retrieval of visible containers
-//        val cacheKey = getCacheKey("VisibleContainers",
-//            resource.getResourceSet());
-//        val cache = new OnChangeEvictingCache().getOrCreate(resource);
-//        var result = cache.get(cacheKey as Object);
-//        if (result === null) {
-//            // If a resource's container is not in cache, actually use the container manager.
-//            result = containerManager.getVisibleContainers(description,
-//                resourceDescriptions);
-//            if (resourceDescriptions instanceof IResourceDescription.Event.Source) {
-//                val eventSource = resourceDescriptions as Source;
-//                var delegatingEventSource = new DelegatingEventSource(
-//                    eventSource);
-//                delegatingEventSource.addListeners(
-//                    Lists.newArrayList(
-//                        Iterables.filter(result,
-//                            IResourceDescription.Event.Listener)));
-//                delegatingEventSource.initialize();
-//                cache.addCacheListener(delegatingEventSource);
-//            }
-//            cache.set(cacheKey, result);
-//        }
-//        return result;
-//    }
-    
     @Inject
     IResourceScopeCache cache;
 
+    /**
+     * Return the set of URI objects pointing to the resources that must be
+     * included for compilation.
+     */
     override protected getImportedUris(Resource resource) {
-        return cache.get(LinguaFrancaGlobalScopeProvider.getSimpleName(), resource, new Provider<LinkedHashSet<URI>>() {
-            override get() {
-                val uniqueImportURIs = collectImportUris(resource, new LinkedHashSet<URI>(5))
+        return cache.get(LinguaFrancaGlobalScopeProvider.getSimpleName(),
+            resource, new Provider<LinkedHashSet<URI>>() {
+                /**
+                 * Collect unique URIs in case the cache is not populated yet.
+                 */
+                override get() {
+                    val uniqueImportURIs = collectImportUris(resource,
+                        new LinkedHashSet<URI>(5))
 
-                val uriIter = uniqueImportURIs.iterator()
-                while(uriIter.hasNext()) {
-                    if (!EcoreUtil2.isValidUri(resource, uriIter.next()))
-                        uriIter.remove()
+                    val uriIter = uniqueImportURIs.iterator()
+                    while (uriIter.hasNext()) {
+                        if (!EcoreUtil2.isValidUri(resource, uriIter.next()))
+                            uriIter.remove()
+                    }
+                    return uniqueImportURIs
                 }
-                return uniqueImportURIs
-            }
-            
-            /**
-             * 
-             */
-            def LinkedHashSet<URI> collectImportUris(Resource resource, LinkedHashSet<URI> uniqueImportURIs) {
-                for (imported : getImportedResources(resource, uniqueImportURIs)) {
-                    collectImportUris(imported, uniqueImportURIs)
+
+                /**
+                 * Helper method to recursively collect unique URIs.
+                 */
+                def LinkedHashSet<URI> collectImportUris(Resource resource,
+                    LinkedHashSet<URI> uniqueImportURIs) {
+                    for (imported : getImportedResources(resource,
+                        uniqueImportURIs)) {
+                        collectImportUris(imported, uniqueImportURIs)
+                    }
+                    return uniqueImportURIs
                 }
-                return uniqueImportURIs
-            }
-        });
+            });
     }
-    
+
     def getImportedResources(Resource resource) {
-        return getImportedResources(resource, newLinkedHashSet)
+        // FIXME: Use cache like getImportedUris()
+        return getImportedResources(resource, null)
     }
-    
+
     /**
      * Resolve a resource identifier.
      * 
@@ -112,30 +114,47 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         if (uriExtension !== null && uriExtension.equalsIgnoreCase('lf')) {
             uriObj = uriObj.resolve(resource.URI)
             // FIXME: If this doesn't work, try other things:
-            // (1) Look for a .project file up the file structure and try to resolve relative to the directory in which it is found.
-            // (2) Look for package description files try to resolve relative to the paths it includes.
+            // (1) Look for a .project file up the file structure and try to
+            // resolve relative to the directory in which it is found.
+            // (2) Look for package description files try to resolve relative
+            // to the paths it includes.
             return uriObj
         }
     }
-    
-    protected def getImportedResources(Resource resource, LinkedHashSet<URI> uniqueImportURIs) {
-        val resourceDescription = descriptionManager.getResourceDescription(resource)
-        val models = resourceDescription.getExportedObjectsByType(LinguaFrancaPackage.Literals.MODEL)
+
+    /**
+     * Return the resources imported by a given resource, excluding those
+     * already discovered and therefore are present in the given set of
+     * import URIs.
+     * 
+     * @param resource The resource to analyze.
+     * @param uniqueImportURIs The set of discovered import URIs 
+     */
+    protected def getImportedResources(Resource resource,
+        LinkedHashSet<URI> uniqueImportURIs) {
+        val resourceDescription = descriptionManager.
+            getResourceDescription(resource)
+        val models = resourceDescription.getExportedObjectsByType(
+            LinguaFrancaPackage.Literals.MODEL)
         val resources = new LinkedHashSet<Resource>()
-        models.forEach[
-            val userData = getUserData(LinguaFrancaResourceDescriptionStrategy.INCLUDES)
+        models.forEach [
+            val userData = getUserData(
+                LinguaFrancaResourceDescriptionStrategy.INCLUDES)
             if (userData !== null) {
-                SPLITTER.split(userData).forEach[uri |
+                SPLITTER.split(userData).forEach [ uri |
+                    // Attempt to resolve the URI
                     var includedUri = uri.resolve(resource)
                     if (includedUri !== null) {
-                        if(uniqueImportURIs.add(includedUri)) {
-                            resources.add(resource.getResourceSet().getResource(includedUri, true))
+                        if (uniqueImportURIs === null ||
+                            uniqueImportURIs.add(includedUri)) {
+                            resources.add(
+                                resource.getResourceSet().getResource(
+                                    includedUri, true))
                         }
                     }
                 ]
             }
         ]
-        
         return resources
     }
 }
