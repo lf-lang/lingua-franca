@@ -141,10 +141,10 @@ Target:
 ;
 
 Input:
-    mutable?='mutable'? 'input' (arraySpec=ArraySpec)? name=ID (':' type=Type)? ';';
+    mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';';
 
 Output:
-    'output' (arraySpec=ArraySpec)? name=ID (':' type=Type)? ';';
+    'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';';
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -282,6 +282,11 @@ Type:
 ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
     
+WidthSpec:
+    ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
+    
+WidthTerm:
+    width=INT | parameter=[Parameter];
 
 IPV4Host:
     (user=Kebab '@')? addr=IPV4Addr (':' port=INT)?
@@ -447,6 +452,8 @@ Token:
     '=' |
     // Asterisk
     '*' |
+    // Sums (for width expressions)
+    '+' |
     // Percentage
     '%'
 ;

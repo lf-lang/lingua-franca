@@ -1,0 +1,44 @@
+/** This example demonstrates a very simple use of protocol buffers
+ *  within a reactor. It encodes and decodes a very simple protocol
+ *  buffer definition in Person.proto. This reactor is heavily
+ *  based on the examples at https://github.com/protobuf-c/protobuf-c/wiki/Examples.
+ *  This example just packs and unpacks a message.
+ *
+ *  To run this example first install the protocol buffers compiler
+ *  from https://github.com/protocolbuffers/protobuf. It is also
+ *  available from homebrew on a Mac via 
+ * 
+ *       $ brew install protobuf
+ * 
+ *  Building protobuf from source is slow, so avoid doing that
+ *  if possible.
+ * 
+ *  The code generator assumes
+ *  that executables are installed within the PATH. On a Mac, this is
+ *  typically at /usr/local/bin.
+ */
+
+target TypeScript;
+import Person.proto;
+
+main reactor HelloProtocolBuffers {
+	reaction(startup) {=
+        // The contents of a compiled proto file are imported in
+        // TypeScript as "import * as <.protoFileName>". So the constructor
+        // for class Person from the file Person.proto is 
+        // Person.Person()
+		let person = new Person.Person();
+		person.setName("Lingua Franca");
+		person.setId(1);
+		person.setEmail("eal@berkeley.edu");
+		
+		// Pack the message into buffer.
+        let binPerson = person.serializeBinary();
+        
+        // Now unpack the message from buffer.
+        let unpacked = Person.Person.deserializeBinary(binPerson);
+        
+        // Extract and print the unpacked message.
+        console.log(`Name: ${unpacked.getName()}`)
+	=}
+}

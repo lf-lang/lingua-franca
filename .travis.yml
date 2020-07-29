@@ -16,15 +16,26 @@ before_install:
   - nvm install 10.4.0
 addons:
   apt:
+    update: true
     sources:
       - sourceline: 'ppa:ubuntu-toolchain-r/test'
     packages:
       - gcc-7
       - g++-7
       - libprotobuf-dev
+<<<<<<< HEAD
       - libprotobuf-c-dev
 #      - protobuf-compiler
       - protobuf-c-compiler
+=======
+      - protobuf-compiler
+      - protobuf-c-compiler
+#env:  
+# global:  
+#  - DISPLAY=:99.0  
+#before_install:
+# - sh -e /etc/init.d/xvfb start - sleep 10  
+>>>>>>> master
 script:    
  - export CC=/usr/bin/gcc-7
  - export CXX=/usr/bin/g++-7

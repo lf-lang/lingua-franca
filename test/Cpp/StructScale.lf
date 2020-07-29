@@ -13,7 +13,6 @@ public preamble {=
 =}
 
 reactor Scale(scale:int(2)) {
-    // Mutable keyword indicates that this reactor wants a writable copy of the input.
     input in:Hello;
     
     output out:Hello;
