@@ -98,9 +98,6 @@ class TypeScriptGenerator extends GeneratorBase {
     // Path to the tsc command within the node modules directory
     var String tscPath
     
-    // Array of .proto filenames in the root directory.
-    var HashSet<String> protoFiles = new HashSet<String>()
-    
     // FIXME: The CGenerator expects these next two paths to be
     // relative to the directory, not the project folder
     // so for now I just left it that way. A different
@@ -271,7 +268,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--js_out=import_style=commonjs,binary:" + outPath,
                 "--ts_out=" + srcGenPath
             )
-            protocCommand.addAll(protoFiles)
+            protocCommand.addAll(protoFiles.fold(newLinkedList, [list, file | list.add(file.name); list]))
             println("Compiling imported .proto files with command: " + protocCommand.join(" "))
             executeCommand(protocCommand, directory)
             // FIXME: report errors from this command.
@@ -1285,12 +1282,16 @@ class TypeScriptGenerator extends GeneratorBase {
      private def generateProtoPreamble() {
         pr("// Imports for protocol buffers")
         // Generate imports for .proto files
-        for (protoImport : protoFiles) {
-            // Remove the .proto suffix
-            var protoName = protoImport.substring(0, protoImport.length - 6)
-            var protoFileName = protoName + "_pb"
+        for (file : protoFiles) {
+            // Remove any extension the file name may have.
+            var name = file.name
+            val dot = name.lastIndexOf('.')
+            if (dot > 0) {
+                name = name.substring(0, dot)
+            }
+            // FIXME: this will break when there are dots in the name.
             var protoImportLine = '''
-                import * as «protoName» from ".«File.separator»«protoFileName»"
+                import * as «name» from ".«File.separator»«name»_pb"
             '''
             pr(protoImportLine)  
         }

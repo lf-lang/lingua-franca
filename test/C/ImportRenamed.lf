@@ -4,7 +4,6 @@ target C;
 import Imported as X from "Imported.lf"
 import Imported as Y from "Imported.lf"
 import ImportedAgain as Z from "ImportedAgain.lf"
-
 main reactor Import {
 	timer t;
 	a = new X();

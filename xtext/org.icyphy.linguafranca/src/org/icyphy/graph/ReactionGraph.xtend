@@ -54,7 +54,7 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
      */
     new (Model model) {
         // Find the main reactor.
-        this(model.reactors.findFirst[main])
+        this(model.reactors.findFirst[main || federated])
     }
     
     /**
