@@ -38,6 +38,9 @@ import org.eclipse.xtext.resource.IResourceDescription
 import org.eclipse.xtext.util.IResourceScopeCache
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.LinguaFrancaResourceDescriptionStrategy
+import java.io.File
+import java.nio.file.Paths
+import java.nio.file.Path
 
 /**
  * Global scope provider that limits access to only those files that were
@@ -114,6 +117,29 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
             });
     }
 
+    /** Resolve a resource identifier relative to a path
+     * 
+     * @param uriStr resource identifier to resolve.
+     * @param rootStr the root 
+     */
+     def URI resolve(String uriStr, String rootStr)
+     {
+        var uriObj = URI.createURI(uriStr)
+        
+        var path = rootStr + uriStr
+        
+        var Path absPath = Paths.get(path).normalize() 
+        
+        var File f = new File(absPath.toString)
+        if(f.exists && f.isFile)
+        {
+            return URI.createFileURI(f.getAbsolutePath)
+        }  
+        
+        
+        return null;
+     }
+
     /**
      * Resolve a resource identifier.
      * 
@@ -124,7 +150,26 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         var uriObj = URI.createURI(uriStr)
         val uriExtension = uriObj?.fileExtension
         if (uriExtension !== null && uriExtension.equalsIgnoreCase('lf')) {
-            uriObj = uriObj.resolve(resource.URI)
+            try
+            {           
+                uriObj = uriObj.resolve(resource.URI)
+                var File f = new File(uriObj.path)
+                if(f.exists && f.isFile)
+                {
+                    return uriObj
+                }             
+                                
+                uriObj = resolve(uriStr, "/tmp/linguafranca/test/")
+                if(uriObj !== null)
+                {
+                    return uriObj
+                }
+            }
+            catch (Exception e)
+            {
+                System.err.println("Got null exception imported object " + e.toString);
+            }
+            
             // FIXME: If this doesn't work, try other things:
             // (1) Look for a .project file up the file structure and try to
             // resolve relative to the directory in which it is found.
@@ -132,10 +177,13 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
             // to the paths it includes.
             // FIXME: potentially use a cache here to speed things up.
             // See OnChangeEvictingCache
-            return uriObj
+            
+            System.err.println("Cannot find " + uriStr);
+            return null
         }
     }
-
+    
+    
     /**
      * Return the resources imported by a given resource, excluding those
      * already discovered and therefore are present in the given set of
@@ -151,24 +199,32 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         val models = resourceDescription.getExportedObjectsByType(
             LinguaFrancaPackage.Literals.MODEL)
         val resources = new LinkedHashSet<Resource>()
-        models.forEach [
-            val userData = getUserData(
-                LinguaFrancaResourceDescriptionStrategy.INCLUDES)
-            if (userData !== null) {
-                SPLITTER.split(userData).forEach [ uri |
-                    // Attempt to resolve the URI
-                    var includedUri = uri.resolve(resource)
-                    if (includedUri !== null) {
-                        if (uniqueImportURIs === null ||
-                            uniqueImportURIs.add(includedUri)) {
-                            resources.add(
-                                resource.getResourceSet().getResource(
-                                    includedUri, true))
+        try
+        {
+            models.forEach [
+                val userData = getUserData(
+                    LinguaFrancaResourceDescriptionStrategy.INCLUDES)
+                if (userData !== null) {
+                    SPLITTER.split(userData).forEach [ uri |
+                        // Attempt to resolve the URI
+                        var includedUri = uri.resolve(resource)
+                        if (includedUri !== null) {
+                            if (uniqueImportURIs === null ||
+                                uniqueImportURIs.add(includedUri)) {
+                                resources.add(
+                                    resource.getResourceSet().getResource(
+                                        includedUri, true))
+                            }
                         }
-                    }
-                ]
-            }
-        ]
+                    ]
+                }
+            ]
+        
+        }
+        catch (Exception e)
+        {
+            System.err.println(uniqueImportURIs.toString + " not found.")
+        }
         return resources
     }
 }
