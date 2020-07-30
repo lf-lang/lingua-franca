@@ -1,9 +1,9 @@
 // This is used by the test for the ability to import a reactor definition
 // that itself imports a reactor definition.
 target C;
-import Imported from "Imported.lf"
+//import Imported from "Imported.lf"
 reactor ImportedAgain {
-	y = new Imported();
+	//y = new Imported(); // FIXME: Address this bug
 	input x:int;
 	reaction(x) {=
         printf("Received: %d.\n", x->value);
