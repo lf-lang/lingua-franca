@@ -13,8 +13,9 @@
  *  if possible.
  *
  */
-target TypeScript;
-import ProtoHelloWorld.proto;
+target TypeScript {
+    protobufs: ProtoHelloWorld.proto
+};
 
 reactor SourceProto {
     output out:ProtoHelloWorld.ProtoHelloWorld;

@@ -354,8 +354,13 @@ class CGenerator extends GeneratorBase {
         
         // Generate code for each reactor. If the reactor already has been handled, set
         // the parameter aliasOnly to true.
+        val names = newHashSet
         for (r : reactors) {
             for (d : reactorToDecl.get(r)) {
+                if (!names.add(d.name)) {
+                    // Report duplicate declaration.
+                    reportError("Multiple declarations for reactor class '" + d.name + "'.")
+                }
                 d.generateReactorFederated(null)
             }
         }
@@ -2326,20 +2331,6 @@ class CGenerator extends GeneratorBase {
         compileLibraries.add('-l')
         compileLibraries.add('protobuf-c')
     }
-
-//    /**
-//     * Open an import at the Lingua Franca file at the specified URI in the
-//     * specified resource, find all non-main reactors, and add them to the
-//     * {@link #GeneratorBase.reactors reactors}.
-//     * @param importStatement The import statement.
-//     * @param resourceSet The resource set in which to find the file.
-//     * @param resolvedURI The URI to import.
-//     * @return The imported resource or null if the import fails.
-//     */
-//    override openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
-//        prSourceLineNumber(importStatement)
-//        super.openLFImport(importStatement, resourceSet, resolvedURI)
-//    }
     
     /**
      * Return a string for referencing the struct with the value and is_present
