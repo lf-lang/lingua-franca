@@ -41,6 +41,8 @@ import org.icyphy.LinguaFrancaResourceDescriptionStrategy
 import java.io.File
 import java.nio.file.Paths
 import java.nio.file.Path
+import java.util.ArrayList
+import java.nio.file.Files
 
 /**
  * Global scope provider that limits access to only those files that were
@@ -116,17 +118,69 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
                 }
             });
     }
+    
+    
+    /** 
+     * Recursively moves up the hierarchy to find a .project file
+     * starting from the current path.
+     * 
+     * @param currPath the initial path to move up from
+     */
+    def String findProjectRoot(Path currPath)
+    {
+        var f = new File(currPath+"/.project")
+        if(f.exists && f.isFile)
+        {
+            return currPath.toString
+        }
+        else
+        {
+            if(currPath.parent !== null && currPath.parent !== currPath)
+            {
+                findProjectRoot(currPath.parent)
+            }
+            else
+            {
+                return null
+            }
+        }
+    }
+    
+    /**
+     * Recursively moves up the directory hierarchy to find a .project
+     * file starting from the resource's path.
+     * 
+     * @param resource resource to initially base the search upon.
+     */
+    def ArrayList<String> findProjectPaths(Resource resource)
+    {
+        var paths = new ArrayList<String>()
+        
+        // Handle .project first
+        
+        var currPath = Paths.get(resource.URI.path).normalize()
+        
+        val String root = findProjectRoot(currPath)
+        
+        if(root !== null)
+        {
+            paths.add(root)
+        }
+        
+        // FIXME: Handle .classpath
+        
+        return paths;
+    }
 
-    /** Resolve a resource identifier relative to a path
+    /** 
+     * Resolve a resource identifier relative to a path
      * 
      * @param uriStr resource identifier to resolve.
      * @param rootStr the root 
      */
      def URI resolve(String uriStr, String rootStr)
-     {
-        var uriObj = URI.createURI(uriStr)
-        
-        var path = rootStr + uriStr
+     {        
+        var path = rootStr + File.separator + uriStr
         
         var Path absPath = Paths.get(path).normalize() 
         
@@ -151,18 +205,28 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         val uriExtension = uriObj?.fileExtension
         if (uriExtension !== null && uriExtension.equalsIgnoreCase('lf')) {
             try
-            {           
+            {   
+                // This resolve works best for URLs and filenames alike        
                 uriObj = uriObj.resolve(resource.URI)
                 var File f = new File(uriObj.path)
                 if(f.exists && f.isFile)
                 {
                     return uriObj
                 }             
-                                
-                uriObj = resolve(uriStr, "/tmp/linguafranca/test/")
-                if(uriObj !== null)
-                {
-                    return uriObj
+                
+                var viablePaths = new ArrayList<String>();
+                
+                viablePaths.add("/tmp/linguafranca/test/")
+                viablePaths.addAll(findProjectPaths(resource))
+                
+                
+                for(path : viablePaths) 
+                {               
+                    uriObj = resolve(uriStr, path)
+                    if(uriObj !== null)
+                    {
+                        return uriObj
+                    }                    
                 }
             }
             catch (Exception e)
