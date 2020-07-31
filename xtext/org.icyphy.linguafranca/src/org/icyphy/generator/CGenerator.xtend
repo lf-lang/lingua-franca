@@ -2596,7 +2596,7 @@ class CGenerator extends GeneratorBase {
             // If the port is a multiport, create an array.
             if (output.isMultiport) {
                 pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->__«output.name»__width = «output.multiportWidthExpression»;
+                    «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, nameOfSelfStruct)»;
                     // Allocate memory for multiport output.
                     «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactorClass)»*)malloc(sizeof(«variableStructType(output, reactorClass)») * «nameOfSelfStruct»->__«output.name»__width); 
                 ''')
@@ -3855,17 +3855,17 @@ class CGenerator extends GeneratorBase {
                     «outputStructType»* «output.name» = &self->__«output.name»;
                 ''')
             } else {
+                // Set the _width variable.
                 pr(builder, '''
-                    «outputStructType»* «output.name»[«output.multiportWidthExpression»];
-                    for(int i=0; i < «output.multiportWidthExpression»; i++) {
+                    int «output.name»_width = self->__«output.name»__width;
+                ''')
+                pr(builder, '''
+                    «outputStructType»* «output.name»[«output.name»_width];
+                    for(int i=0; i < «output.name»_width; i++) {
                          «output.name»[i] = &(self->__«output.name»[i]);
                     }
                 ''')
             }
-            // Set the _width variable.
-            pr(builder, '''
-                int «output.name»_width = self->__«output.name»__width;
-            ''')
         }
     }
 
@@ -3889,6 +3889,7 @@ class CGenerator extends GeneratorBase {
             structBuilder = new StringBuilder
             structs.put(definition, structBuilder)
         }
+        // FIXME FIXME: Handle multiports
         val inputStructType = variableStructType(input, definition.reactorClass)
         pr(structBuilder, '''
             «inputStructType»* «input.name»;

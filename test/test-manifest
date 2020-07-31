@@ -78,6 +78,7 @@ MultiportToBankHierarchy.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
+MultiportToMultiportParameter.lf
 MultiportToMultiportArray.lf
 MultiportToPort.lf
 NativeListsAndTimes.lf
