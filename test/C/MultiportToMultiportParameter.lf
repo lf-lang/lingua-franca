@@ -1,0 +1,48 @@
+ // Check multiport output to multiport input.
+ // Destination port is wider than sending port.
+target C {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source(width:int(1)) {
+    timer t(0, 200 msec);
+    output[width] out:int;
+    state s:int(0);
+    reaction(t) -> out {=
+        for(int i = 0; i < out_width; i++) {
+            printf("Before SET, out[%d]->is_present has value %d\n", i, out[i]->is_present);
+            SET(out[i], self->s++);
+            printf("AFTER set, out[%d]->is_present has value %d\n", i, out[i]->is_present);
+            printf("AFTER set, out[%d]->value has value %d\n", i, out[i]->value);
+        }
+    =}
+}
+reactor Destination(width:int(1)) {
+    state s:int(6);
+    input[width] in:int; // Width is one larger than that of the source.
+    reaction(in) {=
+        int sum = 0;
+        for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) sum += in[i]->value;
+        }
+        printf("Sum of received: %d.\n", sum);
+        if (sum != self->s) {
+            printf("ERROR: Expected %d.\n", self->s);
+            exit(1);
+        }
+        self->s += 16;
+    =}
+    reaction(shutdown) {=
+        if (self->s <= 6) {
+            fprintf(stderr, "ERROR: Destination received no input!\n");
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+main reactor MultiportParameterized(width:int(4)) { 
+    a = new Source(width = width);
+    b = new Destination(width = width);
+    a.out -> b.in;
+}
