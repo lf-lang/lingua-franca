@@ -21,7 +21,7 @@ reactor Computation {
         SET(out, in->value);
     =}
 }
-reactor Destination(width:int(4)) {
+reactor Destination(width:int(1)) {
     state s:int(0);
     input[width] in:int;
     reaction(in) {=
@@ -45,17 +45,19 @@ reactor Destination(width:int(4)) {
     =}
 }
 
-main reactor ScatterGather { 
+main reactor MultiportIn { 
     a = new Source();
     t1 = new Computation();
     t2 = new Computation();
     t3 = new Computation();
     t4 = new Computation();
-    b = new Destination();
+    b = new Destination(width = 4);
     a.out -> t1.in;
     a.out -> t2.in;
     a.out -> t3.in;
-    a.out -> t4.in; 
+    a.out -> t4.in;
+    // FIXME: Syntax should be:
+    //  t1.out || t2.out || t3.out || t4.out = b.in;
     t1.out -> b.in[0];
     t2.out -> b.in[1];
     t3.out -> b.in[2];
