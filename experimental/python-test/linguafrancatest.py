@@ -56,7 +56,6 @@
 # Python.
 import ctypes
 import LinguaFranca
-import inspect
 
 # Function aliases
 start = LinguaFranca.start
@@ -64,21 +63,12 @@ SET = LinguaFranca.SET
 
 
 def react(port, number):
-    # print(type(carrier))
-
-    # Get variables
-    #my_local_carrier = my_carrier.from_address(carrier)
-    #my_local_port_instance = my_port_instance.from_address(my_local_carrier.my_port_instance)
-
     # Test the values after
     print("Value before SET: " + str(port.value))
 
-    # Local change
-    # my_local_carrier.a_number = my_local_carrier.a_number * 2
-
     # Call the SET function in test.c
-    port.value *= 2
-    #LinguaFranca.SET(port, number)
+    #port.value *= 2
+    SET(port, number)
 
     # Test the values after    
     print("Value after SET: " + str(port.value))
