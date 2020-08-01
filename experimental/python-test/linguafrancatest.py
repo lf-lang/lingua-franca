@@ -61,14 +61,21 @@ import LinguaFranca
 start = LinguaFranca.start
 SET = LinguaFranca.SET
 
-
+#
+#  A function representing a reaction written by the user
+#
+# @param port A port instance of Python type port_instance
+#        defined in the LinguaFranca module
+# @param number For demonstration purposes only. In reality,
+#        the port.value is most likely going to be set by the user.
 def react(port, number):
     # Test the values after
     print("Value before SET: " + str(port.value))
 
-    # Call the SET function in test.c
     # FIXME: port.value can be set directly here
-    #port.value *= 2
+    port.value += 2
+
+    # Call the SET function in LinguaFranca.c
     SET(port, number + port.value)
 
     # Test the values after    
@@ -78,11 +85,12 @@ def react(port, number):
 
 # The main function
 def main():
-
     # Call start() from test.c
     start()
     start()
 
+# As is customary in Python programs, the main() function
+# should only be executed if the main module is active.
 if __name__=="__main__":
     main()
 
