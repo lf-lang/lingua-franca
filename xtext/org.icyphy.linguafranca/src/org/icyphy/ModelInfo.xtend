@@ -30,6 +30,8 @@ package org.icyphy
 import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
+import org.icyphy.graph.InstantiationGraph
+import org.icyphy.graph.ReactionGraph
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Deadline
 import org.icyphy.linguaFranca.Instantiation
@@ -39,10 +41,6 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Import
-import org.eclipse.emf.ecore.resource.Resource
-import org.icyphy.graph.ReactionGraph
-import org.icyphy.graph.PrecedenceGraph
 
 /**
  * A helper class for analyzing the AST.
@@ -54,7 +52,7 @@ class ModelInfo {
      * Data structure for tracking dependencies between reactor classes. An 
      * instantiation of class A inside of class B implies that B depends on A.
      */
-    public PrecedenceGraph<Reactor> instantiationGraph
+    public InstantiationGraph instantiationGraph
     
     /**
      * A mapping from reactors to the sites of their instantiation.
@@ -102,7 +100,7 @@ class ModelInfo {
     def update(Model model) {
         this.model = model
         
-        this.analyzeInstantiations()        
+        this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {
             this.reactionGraph = new ReactionGraph(this.model)    
@@ -118,56 +116,6 @@ class ModelInfo {
         if (target == Targets.C) {
             this.collectOverflowingNodes()
         }
-                
-    }
-    
-    private def void collectImports(Resource resource, Set<Resource> visited) {
-        for (import : resource.allContents.toIterable.filter(Import).filter [
-            it.importURI.endsWith(".lf") // Treating non-lf files as opaque.
-        ]) {
-            // Resolve the import as a URI relative to the current resource's URI.
-            //val URI currentURI = resource?.getURI;
-            //val URI importedURI = URI?.createFileURI(import.);
-            //System.out.println(importedURI);
-            //val URI resolvedURI = importedURI?.resolve(currentURI);
-            
-            val importResource = import.importURI;
-            System.out.println(importResource);
-            
-            // Continue recursion if not already visited.
-//            if (!visited.contains(importResource)) {
-//                visited.add(importResource)
-//                collectImports(importResource, visited)
-//            }
-        }
-    }
-    
-    /**
-     * Update the instantiation map, which is used in subsequent AST traversals,
-     * create a new instantiation graph, and report cycles if it has any.
-     */
-    private def analyzeInstantiations() {
-        this.instantiationMap = new HashMap()
-        this.instantiationGraph = new PrecedenceGraph()
-        
-        val resources = new HashSet<Resource>()
-        resources.add(model.eResource)
-        collectImports(model.eResource, resources)
-        
-        for (resource : resources) {
-            for (instantiation : resource.allContents.toIterable.filter(
-                Instantiation)) {
-                var set = this.instantiationMap.get(instantiation.reactorClass)
-                if (set === null)
-                    set = new HashSet<Instantiation>()
-                set.add(instantiation)
-                this.instantiationMap.put(instantiation.reactorClass.toDefinition, set)
-                this.instantiationGraph.addEdge(
-                    (instantiation.eContainer as Reactor),
-                    instantiation.reactorClass.toDefinition)
-            }
-        }
-        this.instantiationGraph.detectCycles()    
     }
 
     /**
