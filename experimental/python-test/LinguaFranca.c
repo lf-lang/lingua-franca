@@ -13,7 +13,10 @@
 #define FUNC_NAME "react"
 #define MODULE "linguafrancatest"
 
-/* Define the port instance that is passed around.*/
+/* 
+ * Define the port instance that is passed around.
+ * This is a native Python object definition in CPython.
+ */
 typedef struct {
     PyObject_HEAD
     int value;
@@ -21,6 +24,10 @@ typedef struct {
     int num_destinations;
 }  port_instance_object;
 
+/*
+ * The members of a port instance, used later to define
+ * a native Python type.
+ */
 static PyMemberDef port_instance_members[] = {
     {"value", T_INT, offsetof(port_instance_object, value), 0, "Value of the port"},
     {"is_present", T_BOOL, offsetof(port_instance_object, is_present), 0, "Check if value is present at current logical time"},
@@ -28,6 +35,10 @@ static PyMemberDef port_instance_members[] = {
     {NULL}  /* Sentinel */
 };
 
+/*
+ * The definition of the port_instance_t type as
+ * a native Python type in CPython.
+ */
 static PyTypeObject port_instance_t = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "port_instance",
@@ -41,8 +52,8 @@ static PyTypeObject port_instance_t = {
 
 /* 
  * This function acts as the main loop of the C library.
- * First, it loads the MODULE, and then looks up function
- * FUNC_NAME in MODULE. Finally, it creates a my_port_instance
+ * First, it loads the Python MODULE (see above), and then looks up function
+ * FUNC_NAME (see above) in MODULE. Finally, it creates a port_instance_object
  * and passes its pointer, as well as a_number to FUNC_NAME.
  */
 static PyObject* py_start(PyObject *self, PyObject *args)
@@ -66,7 +77,7 @@ static PyObject* py_start(PyObject *self, PyObject *args)
     
     port_instance_object * pyValue;
 
-    // Used for the interpreter
+    // Used for spawning a new interpreter
     //PyThreadState *threadState;
 
     if(Py_IsInitialized())
@@ -82,15 +93,10 @@ static PyObject* py_start(PyObject *self, PyObject *args)
         printf("Initialized Python interpreter.\n");
     }
     
-    // Set the file name to be loaded as a module
+    // Decode the MODULE name into a filesystem compatible string
     pFileName = PyUnicode_DecodeFSDefault(MODULE);
     
-    //PyRun_SimpleString("import sys");
-    //PyRun_SimpleString("sys.path.append(\".\")");
-    //PyRun_SimpleString("sys.path.append(\"/home/soroosh\")");
-
-
-    //printf("%ls\n",Py_GetPath());
+    // Set the Python search path to be the current working directory
     char cwd[PATH_MAX];
     if( getcwd(cwd, sizeof(cwd)) == NULL)
     {
@@ -103,13 +109,17 @@ static PyObject* py_start(PyObject *self, PyObject *args)
     mbstowcs(&wcwd, cwd, PATH_MAX);
 
     Py_SetPath(wcwd);
-    //printf("%ls\n",Py_GetPath());
     
-    // Load the module from test.py
+    // Import MODULE from linguafrancatest.py
     pModule = PyImport_Import(pFileName);
 
     // Free the memory occupied by pFileName
     // (not sure why the example does this here)
+    // Overall, we need to be careful with PyObject
+    // pointers. There are two types of operations represented by the followin macros:
+    // Py_INCREF(obj) that increments a PyObject *'s reference count
+    // Py_INCREF(obj) that decrements a PyObject *'s reference count
+    // See: https://docs.python.org/3/extending/extending.html#reference-counts
     Py_DECREF(pFileName);
 
     // Check if the module was correctly loaded
@@ -135,7 +145,7 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 
             // Get a Python handle as a PyObject *
             // FIXME: PyCapsules are apparently safer than void *
-            pyValue = PyObject_New( port_instance_object, &port_instance_t);
+            pyValue = PyObject_New(port_instance_object, &port_instance_t);
 
             pyValue->value = 42;
             pyValue->is_present = false;
@@ -143,12 +153,14 @@ static PyObject* py_start(PyObject *self, PyObject *args)
             
             printf("Set port instance values\n");
             
-            // Pass the pValue by reference to the argument list
+            /* Pass the pValue and pyValue by reference to the argument list */
+            // pArgs takes ownership of pyValue here.
             PyTuple_SetItem(pArgs, 0, pyValue);
             
                         
             pValue = PyLong_FromLong(a_number);
             
+            // pArgs takes ownership of pValue here.
             PyTuple_SetItem(pArgs, 1, pValue);
 
             
@@ -156,7 +168,7 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 
 
             // Call the react() function with arguments pArgs
-            // The output will be returned to pValue
+            // The output will be returned to rValue
             rValue = PyObject_CallObject(pFunc, pArgs);
 
             // Check if the function is executed correctly
@@ -202,6 +214,8 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 
 
             // Free pArgs (or rather decrement its reference count)
+            // Py_DECREF(pValue);
+            // Py_DECREF(pyValue);
             Py_DECREF(pArgs);
         }
         else
@@ -234,7 +248,6 @@ static PyObject* py_start(PyObject *self, PyObject *args)
         Py_FinalizeEx();        
     }
     
-
     printf("Done with start()\n");
 
     PyGILState_Release(s);
