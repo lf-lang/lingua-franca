@@ -252,16 +252,10 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "O|l" ,&port, &val))
         return NULL;
-    //PyArg_ParseTuple(args, "O&d", &port, &val);
-
-    // if (size != sizeof(port_instance_object)) {
-    //     PyErr_SetString(PyExc_TypeError, "wrong buffer size");
-    //     return NULL;
-    // }
+    
     port->value = val;
-
-    //port->value = val;
-    //port->is_present = true;
+    port->is_present = true;
+    
     Py_INCREF(Py_None);
     return Py_None;
 }
