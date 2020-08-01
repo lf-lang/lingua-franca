@@ -67,8 +67,9 @@ def react(port, number):
     print("Value before SET: " + str(port.value))
 
     # Call the SET function in test.c
+    # FIXME: port.value can be set directly here
     #port.value *= 2
-    SET(port, number)
+    SET(port, number + port.value)
 
     # Test the values after    
     print("Value after SET: " + str(port.value))
