@@ -53,8 +53,9 @@ Then use `setup.py` to create the LinguaFranca module:
     python3 setup.py build
 
 This will create a `LinguaFranca****.so` in  `build/lib.***`. Copy the generated library to the `python-test` folder. For example, on my machine with Python 3.6:
-
-    mv build/lib.linux-x86_64-3.6/LinguaFranca.cpython-36m-x86_64-linux-gnu.so LinguaFranca.so
+```bash
+~/lingua-franca/experimental/python-test$ mv build/lib.linux-x86_64-3.6/LinguaFranca.cpython-36m-x86_64-linux-gnu.so LinguaFranca.so
+```
 
 Proceed to running the main file:
 
