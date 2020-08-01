@@ -238,6 +238,9 @@ static PyObject* py_start(PyObject *self, PyObject *args)
     printf("Done with start()\n");
 
     PyGILState_Release(s);
+
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static PyObject* py_SET(PyObject *self, PyObject *args)
@@ -245,17 +248,13 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
     port_instance_object *port;
     size_t size;
     int *val;
-    
-    static char *kwlist[] = {"value", "is_present", "num_destinations", NULL};
-
-    printf("Parsing arguments");
 
     if (!PyArg_ParseTuple(args, "O|l" ,&port, &val))
         return NULL;
     
     port->value = val;
     port->is_present = true;
-    
+
     Py_INCREF(Py_None);
     return Py_None;
 }
