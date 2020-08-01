@@ -15,9 +15,9 @@ reactor Source {
         }
 	=}
 }
-reactor Destination {
+reactor Destination(width:int(4)) {
 	state s:int(6);
-	input[4] in:int; // Width is one larger than that of the source.
+	input[width] in:int; // Width is one larger than that of the source.
 	reaction(in) {=
 		int sum = 0;
 		for (int i = 0; i < in_width; i++) {
@@ -38,8 +38,8 @@ reactor Destination {
         printf("Success.\n");
     =}
 }
-reactor Container {
-    input[4] in:int;
+reactor Container(width:int(4)) {
+    input[width] in:int;
     dst = new Destination();
     in -> dst.in;
 }
