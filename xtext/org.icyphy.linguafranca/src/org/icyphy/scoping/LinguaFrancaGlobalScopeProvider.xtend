@@ -38,11 +38,6 @@ import org.eclipse.xtext.resource.IResourceDescription
 import org.eclipse.xtext.util.IResourceScopeCache
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.LinguaFrancaResourceDescriptionStrategy
-import java.io.File
-import java.nio.file.Paths
-import java.nio.file.Path
-import java.util.ArrayList
-import java.nio.file.Files
 
 /**
  * Global scope provider that limits access to only those files that were
@@ -118,81 +113,6 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
                 }
             });
     }
-    
-    
-    /** 
-     * Recursively moves up the hierarchy to find a .project file
-     * starting from the current path.
-     * 
-     * @param currPath the initial path to move up from
-     */
-    def String findProjectRoot(Path currPath)
-    {
-        var f = new File(currPath+"/.project")
-        if(f.exists && f.isFile)
-        {
-            return currPath.toString
-        }
-        else
-        {
-            if(currPath.parent !== null && currPath.parent !== currPath)
-            {
-                findProjectRoot(currPath.parent)
-            }
-            else
-            {
-                return null
-            }
-        }
-    }
-    
-    /**
-     * Recursively moves up the directory hierarchy to find a .project
-     * file starting from the resource's path.
-     * 
-     * @param resource resource to initially base the search upon.
-     */
-    def ArrayList<String> findProjectPaths(Resource resource)
-    {
-        var paths = new ArrayList<String>()
-        
-        // Handle .project first
-        
-        var currPath = Paths.get(resource.URI.path).normalize()
-        
-        val String root = findProjectRoot(currPath)
-        
-        if(root !== null)
-        {
-            paths.add(root)
-        }
-        
-        // FIXME: Handle .classpath
-        
-        return paths;
-    }
-
-    /** 
-     * Resolve a resource identifier relative to a path
-     * 
-     * @param uriStr resource identifier to resolve.
-     * @param rootStr the root 
-     */
-     def URI resolve(String uriStr, String rootStr)
-     {        
-        var path = rootStr + File.separator + uriStr
-        
-        var Path absPath = Paths.get(path).normalize() 
-        
-        var File f = new File(absPath.toString)
-        if(f.exists && f.isFile)
-        {
-            return URI.createFileURI(f.getAbsolutePath)
-        }  
-        
-        
-        return null;
-     }
 
     /**
      * Resolve a resource identifier.
@@ -204,36 +124,7 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         var uriObj = URI.createURI(uriStr)
         val uriExtension = uriObj?.fileExtension
         if (uriExtension !== null && uriExtension.equalsIgnoreCase('lf')) {
-            try
-            {   
-                // This resolve works best for URLs and filenames alike        
-                uriObj = uriObj.resolve(resource.URI)
-                var File f = new File(uriObj.path)
-                if(f.exists && f.isFile)
-                {
-                    return uriObj
-                }             
-                
-                var viablePaths = new ArrayList<String>();
-                
-                viablePaths.add("/tmp/linguafranca/test/")
-                viablePaths.addAll(findProjectPaths(resource))
-                
-                
-                for(path : viablePaths) 
-                {               
-                    uriObj = resolve(uriStr, path)
-                    if(uriObj !== null)
-                    {
-                        return uriObj
-                    }                    
-                }
-            }
-            catch (Exception e)
-            {
-                System.err.println("Got null exception imported object " + e.toString);
-            }
-            
+            uriObj = uriObj.resolve(resource.URI)
             // FIXME: If this doesn't work, try other things:
             // (1) Look for a .project file up the file structure and try to
             // resolve relative to the directory in which it is found.
@@ -241,13 +132,10 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
             // to the paths it includes.
             // FIXME: potentially use a cache here to speed things up.
             // See OnChangeEvictingCache
-            
-            System.err.println("Cannot find " + uriStr);
-            return null
+            return uriObj
         }
     }
-    
-    
+
     /**
      * Return the resources imported by a given resource, excluding those
      * already discovered and therefore are present in the given set of
@@ -263,32 +151,24 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         val models = resourceDescription.getExportedObjectsByType(
             LinguaFrancaPackage.Literals.MODEL)
         val resources = new LinkedHashSet<Resource>()
-        try
-        {
-            models.forEach [
-                val userData = getUserData(
-                    LinguaFrancaResourceDescriptionStrategy.INCLUDES)
-                if (userData !== null) {
-                    SPLITTER.split(userData).forEach [ uri |
-                        // Attempt to resolve the URI
-                        var includedUri = uri.resolve(resource)
-                        if (includedUri !== null) {
-                            if (uniqueImportURIs === null ||
-                                uniqueImportURIs.add(includedUri)) {
-                                resources.add(
-                                    resource.getResourceSet().getResource(
-                                        includedUri, true))
-                            }
+        models.forEach [
+            val userData = getUserData(
+                LinguaFrancaResourceDescriptionStrategy.INCLUDES)
+            if (userData !== null) {
+                SPLITTER.split(userData).forEach [ uri |
+                    // Attempt to resolve the URI
+                    var includedUri = uri.resolve(resource)
+                    if (includedUri !== null) {
+                        if (uniqueImportURIs === null ||
+                            uniqueImportURIs.add(includedUri)) {
+                            resources.add(
+                                resource.getResourceSet().getResource(
+                                    includedUri, true))
                         }
-                    ]
-                }
-            ]
-        
-        }
-        catch (Exception e)
-        {
-            System.err.println(uniqueImportURIs.toString + " not found.")
-        }
+                    }
+                ]
+            }
+        ]
         return resources
     }
 }
