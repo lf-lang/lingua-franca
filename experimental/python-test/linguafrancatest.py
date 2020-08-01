@@ -54,7 +54,6 @@
 # This file was named linguafrancatest instead of test
 # to avoid conflict with the universal test module in
 # Python.
-import ctypes
 import LinguaFranca
 
 # Function aliases
