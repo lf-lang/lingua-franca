@@ -135,11 +135,11 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 
             // Get a Python handle as a PyObject *
             // FIXME: PyCapsules are apparently safer than void *
-            pyValue = (port_instance_object *) port_instance_t.tp_new(&port_instance_t, NULL, NULL);
+            pyValue = PyObject_New( port_instance_object, &port_instance_t);
 
-            ((port_instance_object *)pyValue)->value = 42;
-            ((port_instance_object *)pyValue)->is_present = false;
-            ((port_instance_object *)pyValue)->num_destinations = 1;
+            pyValue->value = 42;
+            pyValue->is_present = false;
+            pyValue->num_destinations = 1;
             
             printf("Set port instance values\n");
             
@@ -240,29 +240,30 @@ static PyObject* py_start(PyObject *self, PyObject *args)
     PyGILState_Release(s);
 }
 
-static PyObject* py_SET(PyObject *self, PyObject *args, PyObject *kwds)
+static PyObject* py_SET(PyObject *self, PyObject *args)
 {
     port_instance_object *port;
     size_t size;
-    int val;
+    int *val;
     
     static char *kwlist[] = {"value", "is_present", "num_destinations", NULL};
 
     printf("Parsing arguments");
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
-                                     &port))
-        return -1;
+    if (!PyArg_ParseTuple(args, "O|l" ,&port, &val))
+        return NULL;
     //PyArg_ParseTuple(args, "O&d", &port, &val);
 
     // if (size != sizeof(port_instance_object)) {
     //     PyErr_SetString(PyExc_TypeError, "wrong buffer size");
     //     return NULL;
     // }
-    port->value = 4;
+    port->value = val;
 
     //port->value = val;
     //port->is_present = true;
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 
