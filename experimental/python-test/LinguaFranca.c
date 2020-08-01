@@ -14,8 +14,7 @@
 #define MODULE "linguafrancatest"
 
 /* 
- * Define the port instance that is passed around.
- * This is a native Python object definition in CPython.
+ * The contents of a port_instance.
  */
 typedef struct {
     PyObject_HEAD
@@ -25,7 +24,7 @@ typedef struct {
 }  port_instance_object;
 
 /*
- * The members of a port instance, used later to define
+ * The members of a port_instance, used to define
  * a native Python type.
  */
 static PyMemberDef port_instance_members[] = {
@@ -36,12 +35,12 @@ static PyMemberDef port_instance_members[] = {
 };
 
 /*
- * The definition of the port_instance_t type as
- * a native Python type in CPython.
+ * The definition of port_instance type object.
+ * Used to describe how port_instance behaves.
  */
 static PyTypeObject port_instance_t = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "port_instance",
+    .tp_name = "LinguaFranca.port_instance",
     .tp_doc = "port_instance objects",
     .tp_basicsize = sizeof(port_instance_object),
     .tp_itemsize = 0,
@@ -297,6 +296,8 @@ PyMODINIT_FUNC
 PyInit_LinguaFranca(void)
 {
     PyObject *m;
+
+    // Initialize the port_instance type
     if (PyType_Ready(&port_instance_t) < 0)
         return NULL;
     m = PyModule_Create(&LinguaFranca);
@@ -304,6 +305,7 @@ PyInit_LinguaFranca(void)
     if (m == NULL)
         return NULL;
 
+    // Add the port_instance type to the module's dictionary
     Py_INCREF(&port_instance_t);
     if (PyModule_AddObject(m, "port_instance", (PyObject *) &port_instance_t) < 0) {
         Py_DECREF(&port_instance_t);
