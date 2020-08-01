@@ -2,7 +2,11 @@
 * Example adapted from https://docs.python.org/3/extending/embedding.html
 */
 #include <stdio.h>
+
+#define PY_SSIZE_T_CLEAN
+
 #include <Python.h>
+#include <structmember.h>
 #include <stdbool.h>
 #include <unistd.h>
 
@@ -11,19 +15,29 @@
 
 /* Define the port instance that is passed around.*/
 typedef struct {
+    PyObject_HEAD
     int value;
     bool is_present;
     int num_destinations;
-}  port_instance_t;
+}  port_instance_object;
 
-/* 
- * Define a carrier that holds a value and a pointer
- *  to a port or action instance.
- */
-typedef struct {
-    void * port_action_instance;
-    int value;
-} carrier_t;
+static PyMemberDef port_instance_members[] = {
+    {"value", T_INT, offsetof(port_instance_object, value), 0, "Value of the port"},
+    {"is_present", T_BOOL, offsetof(port_instance_object, is_present), 0, "Check if value is present at current logical time"},
+    {"num_destinations", T_INT, offsetof(port_instance_object, num_destinations), 0, "Number of destinations"},
+    {NULL}  /* Sentinel */
+};
+
+static PyTypeObject port_instance_t = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "port_instance",
+    .tp_doc = "port_instance objects",
+    .tp_basicsize = sizeof(port_instance_object),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+    .tp_members = port_instance_members,
+};
 
 /* 
  * This function acts as the main loop of the C library.
@@ -31,7 +45,7 @@ typedef struct {
  * FUNC_NAME in MODULE. Finally, it creates a my_port_instance
  * and passes its pointer, as well as a_number to FUNC_NAME.
  */
-void start()
+static PyObject* py_start(PyObject *self, PyObject *args)
 {
     // Ensure that no one else is using the interpreter
     PyGILState_STATE s = PyGILState_Ensure();
@@ -47,9 +61,13 @@ void start()
     PyObject *pArgs;
     // Temporary variable to hold individual arguments
     PyObject *pValue;
+    
+    PyObject *rValue;
+    
+    port_instance_object * pyValue;
 
     // Used for the interpreter
-    PyThreadState *threadState;
+    //PyThreadState *threadState;
 
     if(Py_IsInitialized())
     {
@@ -103,43 +121,56 @@ void start()
         // and if it is callable
         if (pFunc && PyCallable_Check(pFunc))
         {
-            // Initialize the port instance
-            port_instance_t my_port_instance = {42, false, 1};
-            
+
             int a_number = 420;
             
             printf("Attempting to call function react.\n");
 
-            // Set up the carrier
-            carrier_t my_carrier = { (void *) &my_port_instance, a_number };
 
             // Create a tuple with size equal to
             // the number of arguments to the react function (=1)
-            pArgs = PyTuple_New(1);
+            pArgs = PyTuple_New(2);
 
             printf("Creating a PyObject from carrier pointer\n");
 
             // Get a Python handle as a PyObject *
             // FIXME: PyCapsules are apparently safer than void *
-            pValue = PyLong_FromVoidPtr((void *) &my_carrier);
+            pyValue = (port_instance_object *) port_instance_t.tp_new(&port_instance_t, NULL, NULL);
 
+            ((port_instance_object *)pyValue)->value = 42;
+            ((port_instance_object *)pyValue)->is_present = false;
+            ((port_instance_object *)pyValue)->num_destinations = 1;
+            
+            printf("Set port instance values\n");
+            
             // Pass the pValue by reference to the argument list
-            PyTuple_SetItem(pArgs, 0, pValue);
+            PyTuple_SetItem(pArgs, 0, pyValue);
+            
+                        
+            pValue = PyLong_FromLong(a_number);
+            
+            PyTuple_SetItem(pArgs, 1, pValue);
+
+            
+            printf("Added all variables\n");
+
 
             // Call the react() function with arguments pArgs
             // The output will be returned to pValue
-            pValue = PyObject_CallObject(pFunc, pArgs);
+            rValue = PyObject_CallObject(pFunc, pArgs);
 
             // Check if the function is executed correctly
-            if (pValue != NULL)
+            if (rValue != NULL)
             {
-                printf("I called %s and got %ld.\n", FUNC_NAME , PyLong_AsLong(pValue));
-                Py_DECREF(pValue);
+                printf("I called %s and got %ld.\n", FUNC_NAME , PyLong_AsLong(rValue));
+                Py_DECREF(rValue);
             }
             else {
                 // If the function call fails, print an error
                 // message and get rid of the PyObjects
                 Py_DECREF(pFunc);
+                Py_DECREF(pValue);
+                Py_DECREF(pyValue);
                 Py_DECREF(pModule);
                 PyErr_Print();
                 fprintf(stderr, "Calling react failed.\n");
@@ -149,19 +180,21 @@ void start()
         
             // Call the react() function AGAIN with arguments pArgs
             // The output will be returned to pValue
-            pValue = PyObject_CallObject(pFunc, pArgs);
+            rValue = PyObject_CallObject(pFunc, pArgs);
 
             // Check if the function is executed correctly
-            if (pValue != NULL)
+            if (rValue != NULL)
             {
-                printf("I called %s and got %ld.\n", FUNC_NAME , PyLong_AsLong(pValue));
-                Py_DECREF(pValue);
+                printf("I called %s and got %ld.\n", FUNC_NAME , PyLong_AsLong(rValue));
+                Py_DECREF(rValue);
             }
             else {
                 // If the function call fails, print an error
                 // message and get rid of the PyObjects
                 Py_DECREF(pFunc);
                 Py_DECREF(pModule);
+                Py_DECREF(pValue);
+                Py_DECREF(pyValue);
                 PyErr_Print();
                 fprintf(stderr, "Calling react failed.\n");
                 exit(0);
@@ -181,7 +214,7 @@ void start()
             fprintf(stderr, "Function %s was not found or is not callable.\n", FUNC_NAME);
         }
         Py_XDECREF(pFunc);
-        Py_DECREF(pModule);    
+        Py_DECREF(pModule); 
     }
     else {
         PyErr_Print();
@@ -207,9 +240,70 @@ void start()
     PyGILState_Release(s);
 }
 
-void SET(void *out, int val)
+static PyObject* py_SET(PyObject *self, PyObject *args, PyObject *kwds)
 {
-    port_instance_t *port = (port_instance_t *) out;
-    port->is_present = true;
-    port->value = val;
+    port_instance_object *port;
+    size_t size;
+    int val;
+    
+    static char *kwlist[] = {"value", "is_present", "num_destinations", NULL};
+
+    printf("Parsing arguments");
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist,
+                                     &port))
+        return -1;
+    //PyArg_ParseTuple(args, "O&d", &port, &val);
+
+    // if (size != sizeof(port_instance_object)) {
+    //     PyErr_SetString(PyExc_TypeError, "wrong buffer size");
+    //     return NULL;
+    // }
+    port->value = 4;
+
+    //port->value = val;
+    //port->is_present = true;
 }
+
+
+/*
+ * Bind Python function names to our C functions
+ */
+static PyMethodDef LinguaFranca_methods[] = {
+  {"start", py_start, METH_VARARGS, NULL},
+  {"SET", py_SET, METH_VARARGS, NULL},
+  {NULL, NULL, 0, NULL}
+};
+
+static PyModuleDef LinguaFranca = {
+    PyModuleDef_HEAD_INIT,
+    "LinguaFranca",
+    "LinguaFranca Python Module",
+    -1,
+    LinguaFranca_methods
+};
+
+/*
+ * Python calls this to let us initialize our module
+ */
+PyMODINIT_FUNC
+PyInit_LinguaFranca(void)
+{
+    PyObject *m;
+    if (PyType_Ready(&port_instance_t) < 0)
+        return NULL;
+    m = PyModule_Create(&LinguaFranca);
+
+    if (m == NULL)
+        return NULL;
+
+    Py_INCREF(&port_instance_t);
+    if (PyModule_AddObject(m, "port_instance", (PyObject *) &port_instance_t) < 0) {
+        Py_DECREF(&port_instance_t);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    return m;
+}
+
