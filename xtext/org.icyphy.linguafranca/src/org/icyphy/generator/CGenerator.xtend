@@ -356,7 +356,7 @@ class CGenerator extends GeneratorBase {
         // the parameter aliasOnly to true.
         val names = newHashSet
         for (r : reactors) {
-            for (d : reactorToDecl.get(r)) {
+            for (d : this.instantiationGraph.getDeclarations(r)) {
                 if (!names.add(d.name)) {
                     // Report duplicate declaration.
                     reportError("Multiple declarations for reactor class '" + d.name + "'.")
