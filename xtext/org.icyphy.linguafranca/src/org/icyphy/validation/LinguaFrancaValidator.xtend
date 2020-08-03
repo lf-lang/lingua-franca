@@ -153,6 +153,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check
     def checkImport(Import imp) {
+        if (imp.reactorClasses.get(0).toDefinition.eResource.errors.size > 0) {
+            error("Error loading resource.", Literals.IMPORT__IMPORT_URI)
+        }
+
         for (reactor : imp.reactorClasses) {
             if (!reactor.unused) {
                 return
@@ -380,7 +384,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkInstantiation(Instantiation instantiation) {
         checkName(instantiation.name, Literals.INSTANTIATION__NAME)
-        if (instantiation.reactorClass.toDefinition.isMain || instantiation.reactorClass.toDefinition.isFederated) {
+        val reactor = instantiation.reactorClass.toDefinition
+        if (reactor.isMain || reactor.isFederated) {
             error(
                 "Cannot instantiate a main (or federated) reactor: " +
                     instantiation.reactorClass.name,
@@ -390,12 +395,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         
         // Report error if this instantiation is part of a cycle.
         // FIXME: improve error message.
+        // FIXME: Also report if there exists a cycle within.
         if (this.info.instantiationGraph.cycles.size > 0) {
             for (cycle : this.info.instantiationGraph.cycles) {
-                if (cycle.contains(instantiation.eContainer as Reactor) && cycle.contains(instantiation.reactorClass)) {
+                val container = instantiation.eContainer as Reactor
+                if (cycle.contains(container) && cycle.contains(reactor)) {
                     error(
                         "Instantiation is part of a cycle: " +
-                            instantiation.reactorClass.name,
+                            cycle.fold(newArrayList, [ list, r |
+                                list.add(r.name);
+                                list
+                            ]).join(', ') + ".",
                         Literals.INSTANTIATION__REACTOR_CLASS
                     )
                 }
@@ -553,6 +563,9 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(NORMAL)
     def checkModel(Model model) {
         info.update(model)
+        if (info.instantiationGraph.hasCycles) {
+            error("Cyclic dependencies between instantiations.", Literals.MODEL__TARGET)
+        }
     }
 
     @Check(FAST)
@@ -957,6 +970,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
         }
+    }
+
+    override error(String message, EStructuralFeature feature) {
+        super.error(message, feature)
+        // If this error is related to a feature in an imported model,
+        // FIXME
     }
 
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "

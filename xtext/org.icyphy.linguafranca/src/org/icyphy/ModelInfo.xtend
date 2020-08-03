@@ -89,7 +89,6 @@ class ModelInfo {
      */
     public ReactionGraph reactionGraph
     
-    // FIXME: Potentially also move the name uniqueness checks here to ensure global uniqueness.
     // FIXME: If a there is a cyclic instantiation somewhere inside an imported file, report an error
     // on the import statement; establish a mapping for this.
 

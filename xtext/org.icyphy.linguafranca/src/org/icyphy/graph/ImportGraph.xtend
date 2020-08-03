@@ -37,49 +37,14 @@ import org.icyphy.linguaFranca.ReactorDecl
 import static extension org.icyphy.ASTUtils.*
 import org.eclipse.emf.ecore.resource.Resource
 import java.util.List
+import org.icyphy.linguaFranca.ImportedReactor
 
 /**
  * A graph with vertices that are instantiations and edges that denote
  * dependencies between them.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class InstantiationGraph extends PrecedenceGraph<Reactor> {
-
-    /**
-     * A mapping from reactors to the sites of their instantiation.
-     */
-    protected val reactorToInstantiation = HashMultimap.<Reactor, Instantiation>create
-    
-    /**
-     * A mapping from reactor classes to their declarations.
-     */
-    protected val reactorToDecl = HashMultimap.<Reactor, ReactorDecl>create
-    
-    protected val flaggedReactors = newHashSet
-    
-    /**
-     * Return the instantiations that point to a given reactor definition.
-     */
-    def Set<Instantiation> getInstantiations(Reactor definition) {
-        return this.reactorToInstantiation.get(definition)
-    }
-    
-    /**
-     * Return the instantiations that point to a given reactor definition.
-     */
-    def Set<ReactorDecl> getDeclarations(Reactor definition) {
-        return this.reactorToDecl.get(definition)
-    }
-    
-    /**
-     * Return the reactor definitions referenced by instantiations in this graph
-     * ordered topologically. Each reactor in the returned list is preceded by
-     * any reactors that it may instantiate.
-     */
-    def List<Reactor> getReactors() {
-        return this.nodesInTopologicalOrder
-    }
-    
+class ImportGraph extends PrecedenceGraph<Reactor> {
     /**
      * Construct an instantiation graph based on the given AST and, if the
      * detectCycles argument is true, run Tarjan's algorithm to detect cyclic
@@ -87,13 +52,11 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * @param resource The resource associated with the AST.
      * @param detectCycles Whether or not to detect cycles.
      */
-    new (Resource resource, boolean detectCycles) {
-        val instantiations = resource.allContents.toIterable.filter(
-            Instantiation)
-        for (i : instantiations) {
-            i.buildGraph(newHashSet)
+    new (Resource resource) {
+        val imports = resource.allContents.toIterable.filter(ImportedReactor)
+        for (i : imports) {
+            //i.buildGraph(newHashSet)
         }
-        detectCycles? this.detectCycles()
     }
     
     /**
@@ -106,7 +69,7 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
      new (Model model, boolean detectCycles) {
         for (r : model.reactors) {
             for (i : r.instantiations) {
-                i.buildGraph(newHashSet)
+                //i.buildGraph(newHashSet)
             }
         }
         detectCycles? this.detectCycles()
@@ -120,24 +83,24 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * @param instantiation
      * @param graph
      */
-    private def void buildGraph(Instantiation instantiation,
-        Set<Instantiation> visited) {
-        val decl = instantiation.reactorClass
-        val reactor = decl.toDefinition
-        val container = instantiation.eContainer as Reactor
-
-        if (visited.add(instantiation)) {
-            this.reactorToInstantiation.put(reactor, instantiation)
-            this.reactorToDecl.put(reactor, decl)
-
-            if (!container.isMain && !container.isFederated) { // FIXME: Why exclude these?
-                this.addEdge(container, reactor)
-            } else {
-                this.addNode(reactor)
-            }
-            for (inst : reactor.instantiations) {
-                inst.buildGraph(visited)
-            }
-        }
-    }
+//    private def void buildGraph(ImportedReactor imported,
+//        Set<Instantiation> visited) {
+//        val decl = imported.reactorClass
+//        val reactor = decl.toDefinition
+//        val container = instantiation.eContainer as Reactor
+//
+//        if (visited.add(instantiation)) {
+//            this.reactorToInstantiation.put(reactor, instantiation)
+//            this.reactorToDecl.put(reactor, decl)
+//
+//            if (!container.isMain && !container.isFederated) {
+//                this.addEdge(container, reactor)
+//            } else {
+//                this.addNode(reactor)
+//            }
+//            for (inst : reactor.instantiations) {
+//                inst.buildGraph(visited)
+//            }
+//        }
+//    }
 }

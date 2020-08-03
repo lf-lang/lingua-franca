@@ -56,12 +56,13 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.InferredType
 import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
-import org.icyphy.graph.PrecedenceGraph
+import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
@@ -75,10 +76,6 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
-import org.icyphy.linguaFranca.Model
-import org.icyphy.linguaFranca.ReactorDecl
-import com.google.common.collect.HashMultimap
-
 
 import static extension org.icyphy.ASTUtils.*
 
@@ -178,18 +175,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * A list of Reactor definitions in the main resource, including non-main 
      * reactors defined in imported resources.
      */
-    protected var List<Reactor> reactors = newLinkedList 
+    protected var List<Reactor> reactors = newLinkedList // FIXME: derived from instantiationGraph 
     
     /**
      * The set of resources referenced reactor classes reside in.
      */
-    protected var Set<Resource> resources = newHashSet
+    protected var Set<Resource> resources = newHashSet // FIXME: derived from instantiationGraph
     
     /**
-     * Map from reactor classes to their declarations.
+     * Graph that tracks dependencies between instantiations.
      */
-    protected val reactorToDecl = HashMultimap.<Reactor, ReactorDecl>create
-
+    protected var InstantiationGraph instantiationGraph
+    
     /**
      * The file containing the main source code.
      * This is the Eclipse eCore view of the file, which is distinct
@@ -506,16 +503,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Collect a list of reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
-        val graph = new PrecedenceGraph<Reactor>()
-        for (inst : resource.allContents.toIterable.filter(Instantiation)) {
-            // Recursively build a dependency graph, starting from the
-            // instantiations in the main file. Cross references will guide
-            // the search also through imported files.
-            collectDeclarations(inst, graph)
-        }
+        instantiationGraph = new InstantiationGraph(resource, false)
+
         // Topologically sort the instantiations such that all of a reactor's
         // dependencies occur earlier in the sorted list or reactors.
-        this.reactors = graph.nodesOrderedDescending
+        this.reactors = instantiationGraph.nodesInTopologicalOrder
         // Add to the known resources the resource that is the main file.
         this.resources.add(resource)
         // Add to the known resources all imported files.
@@ -526,30 +518,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere.
-    }
-    
-    /**
-     * Traverse the AST and build a precedence graph to relate the encountered
-     * instantiations. Also map each reactor to all declarations associated
-     * with it.
-     * @param instantiation
-     * @param graph
-     */
-    private def void collectDeclarations(Instantiation instantiation, PrecedenceGraph<Reactor> graph) {
-        val decl = instantiation.reactorClass
-        val reactor = decl.toDefinition
-        val container = instantiation.eContainer as Reactor
-        
-        this.reactorToDecl.put(reactor, decl)
-
-        if (!container.isMain && !container.isFederated) {
-            graph.addEdge(container, reactor)
-        } else {
-            graph.addNode(reactor)
-        }
-        for (inst : reactor.instantiations) {
-            inst.collectDeclarations(graph)
-        }
     }
     
     /**

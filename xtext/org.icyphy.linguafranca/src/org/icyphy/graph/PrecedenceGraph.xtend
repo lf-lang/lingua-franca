@@ -26,21 +26,24 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.graph
 
+import java.util.HashMap
+import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
-import java.util.Stack
 import java.util.Set
-import java.util.HashSet
-import java.util.HashMap
+import java.util.Stack
 
 /** 
- * Elaboration of `DirectedGraph` that stores nodes in a wrapper used
- * for annotations. It reports whether there are cyclic dependencies
- * present in the graph.
+ * Elaboration of `DirectedGraph` that is capable of identifying strongly
+ * connected components and topologically sorting its nodes.
+ * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class PrecedenceGraph<T> extends DirectedGraph<T> {
 
+    /**
+     * Annotations used during the execution of Tarjan's algorithm.
+     */
     var annotations = new NodeAnnotations<T>()
 
     /**
@@ -57,14 +60,31 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
      */
     var isSorted = false
     
+    /**
+     * Index used in Tarjan's algorithm.
+     */
     var index = 0
     
+    /**
+     * After analysis has completed, this list contains all nodes in reverse
+     * topological order.
+     */
     var List<T> sortedNodes = emptyList
     
+    /**
+     * Stack used in Tarjan's algorithm.
+     */
     var Stack<T> stack = new Stack()
     
-    var List<Set<T>> cycles = emptyList
+    /**
+     * After analysis has completed, this list contains all all sets of nodes
+     * that are part of the same strongly connected component.
+     */
+    protected var List<Set<T>> cycles = emptyList
 
+    /**
+     * Invalidate cached analysis due to changes in the graph structure.
+     */
     override graphChanged() {
         this.cycleAnalysisDone = false
         this.isSorted = false
@@ -77,6 +97,9 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
         
     }
     
+    /**
+     * Topologically sort the nodes in the graph.
+     */
     private def void sortNodes() {
         
         if (!this.isSorted) {
@@ -98,15 +121,19 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
         }
     }
     
-    
-    def void visit(T node) {
+    /**
+     * Recursively visit all nodes reachable from the given node; after all
+     * those nodes have been visited add the current node to a list which will
+     * be sorted in reverse order.
+     */
+    private def void visit(T node) {
         val annotation = this.annotations.get(node)
         if (annotation.hasPermMark) {
             return
         }
         if (annotation.hasTempMark) {
             // Not a DAG.
-            throw new Error("Cycle found.")
+            throw new Error("Cannot order nodes due to cycle in the graph.")
         }
         annotation.hasTempMark = true
         for (dep : this.getEffects(node)) {
@@ -132,10 +159,14 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
                 if (this.annotations.get(node).index == -1) {
                     this.strongConnect(node)
                 }
-            }    
+            }
+            this.cycleAnalysisDone = true
         }
     }
     
+    /**
+     * Report whether this graph has any cycles in it.
+     */
     def hasCycles() {
         this.detectCycles
         if (this.cycles.size > 0) {
@@ -144,6 +175,9 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
         return false
     }
     
+    /**
+     * Return a list of strongly connected components that exist in this graph.
+     */
     def getCycles() {
         this.detectCycles
         return this.cycles
@@ -163,16 +197,18 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
         for (dep : this.getOrigins(node)) {
             val depAnnotation = this.annotations.get(dep)
             if (depAnnotation.onStack) {
-                annotation.lowLink = Math.min(annotation.lowLink, depAnnotation.index)
+                annotation.lowLink = Math.min(annotation.lowLink,
+                    depAnnotation.index)
                 if (node.equals(dep)) {
                     annotation.selfLoop = true
                 }
             } else if (depAnnotation.index == -1) {
-                strongConnect(dep)    
-                annotation.lowLink = Math.min(annotation.lowLink, depAnnotation.lowLink)
-            } 
+                strongConnect(dep)
+                annotation.lowLink = Math.min(annotation.lowLink,
+                    depAnnotation.lowLink)
+            }
         }
-        
+
         if (annotation.lowLink == annotation.index) {
             var scc = new HashSet()
             var T dep = null
@@ -180,25 +216,36 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
                 dep = this.stack.pop()
                 this.annotations.get(dep).onStack = false
                 scc.add(dep)
-            } while(!node.equals(dep))
+            } while (!node.equals(dep))
             // Only report self loops or cycles with two or more nodes.
             if (scc.size > 1 || annotation.selfLoop)
                 this.cycles.add(scc)
-        }   
+        }
     }
     
-    def nodesOrderedAscending() {
+    /**
+     * Return the nodes of this graph in reverse topological order. Each node
+     * in the returned list is succeeded by the nodes that it depends on.
+     */
+    def nodesInReverseTopologicalOrder() {
         this.sortNodes()
         this.sortedNodes
     }
     
-    def nodesOrderedDescending() {
+    /**
+     * Return the nodes of this graph in reverse topological order. Each node
+     * in the returned list is preceded by the nodes that it depends on.
+     */
+    def nodesInTopologicalOrder() {
         this.sortNodes()
         this.sortedNodes.reverse
     }
     
 }
-
+/**
+ * Maps a node in the graph to its annotation. 
+ * Creates a new annotation if no annotation exists.
+ */
 class NodeAnnotations<T> {
     var annotations = new HashMap<T, NodeAnnotation>
     
@@ -218,11 +265,9 @@ class NodeAnnotations<T> {
 }
 
 /**
- * Node to be used in
- * {@link #AnnotatedDependencyGraph AnnotatedDependencyGraph}.
+ * Note annotations used in Tarjan's algorithm for finding strongly connected
+ * components.
  * 
- * In particular, this is a helper class for its implementation
- * of Tarjan's algorithm for finding strongly connected components.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class NodeAnnotation {

@@ -103,11 +103,15 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
         EReference reference) {
         val importedURI = scopeProvider.resolve(
             (context.eContainer as Import).importURI ?: "", context.eResource)
-        
-        // Filter out candidates that originate from a different resource.
-        return new FilteringScope(super.getScope(context, reference), [ iod |
-            iod.EObjectURI.toString.split('#').get(0).equals(importedURI.toString)
-        ])
+        if (importedURI !== null) {
+            // Filter out candidates that originate from a different resource.
+            return new FilteringScope(
+                super.getScope(context, reference), [ iod |
+                    iod.EObjectURI.toString.split('#').get(0).equals(
+                        importedURI.toString)
+                ])
+        }
+        return Scopes.scopeFor(newLinkedList)
     }
     
     /**
