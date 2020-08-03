@@ -58,7 +58,7 @@ static PyTypeObject port_instance_t = {
 static PyObject* py_start(PyObject *self, PyObject *args)
 {
     // Ensure that no one else is using the interpreter
-    PyGILState_STATE s = PyGILState_Ensure();
+    //PyGILState_STATE s = PyGILState_Ensure();
 
     // Set if the interpreter is already initialized
     int is_initialized = 0;
@@ -79,18 +79,18 @@ static PyObject* py_start(PyObject *self, PyObject *args)
     // Used for spawning a new interpreter
     //PyThreadState *threadState;
 
-    if(Py_IsInitialized())
-    {
-        printf("Python interpreter is already initialized.\n");
-        //threadState = Py_NewInterpreter();
-        is_initialized = 1;
-    }
-    else
-    {
-        // Initialize the Python interpreter
-        Py_InitializeEx(0);
+    // if(Py_IsInitialized())
+    // {
+    //     printf("Python interpreter is already initialized.\n");
+    //     //threadState = Py_NewInterpreter();
+    //     is_initialized = 1;
+    // }
+    // else
+    // {
+    //     // Initialize the Python interpreter
+        Py_Initialize();
         printf("Initialized Python interpreter.\n");
-    }
+    //}
     
     // Decode the MODULE name into a filesystem compatible string
     pFileName = PyUnicode_DecodeFSDefault(MODULE);
@@ -236,20 +236,20 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 
     // Undo Py_Initialize()
 
-    if(is_initialized)
-    {
-        //Py_EndInterpreter(threadState);
-    }
-    else
-    {
+    // if(is_initialized)
+    // {
+    //     //Py_EndInterpreter(threadState);
+    // }
+    // else
+    // {
         // Necessary in standalone mode for this library
         // Not necesasry when start() is called from Python code.
-        Py_FinalizeEx();        
-    }
+        //Py_Finalize();        
+    //}
     
     printf("Done with start()\n");
 
-    PyGILState_Release(s);
+    //PyGILState_Release(s);
 
     Py_INCREF(Py_None);
     return Py_None;
