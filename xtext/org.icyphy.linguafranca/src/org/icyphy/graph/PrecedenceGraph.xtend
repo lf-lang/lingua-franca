@@ -27,10 +27,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.graph
 
 import java.util.HashMap
-import java.util.HashSet
+import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
-import java.util.Set
 import java.util.Stack
 
 /** 
@@ -80,7 +79,7 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
      * After analysis has completed, this list contains all all sets of nodes
      * that are part of the same strongly connected component.
      */
-    protected var List<Set<T>> cycles = emptyList
+    protected var List<LinkedHashSet<T>> cycles = emptyList
 
     /**
      * Invalidate cached analysis due to changes in the graph structure.
@@ -210,7 +209,7 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
         }
 
         if (annotation.lowLink == annotation.index) {
-            var scc = new HashSet()
+            var scc = new LinkedHashSet()
             var T dep = null
             do {
                 dep = this.stack.pop()

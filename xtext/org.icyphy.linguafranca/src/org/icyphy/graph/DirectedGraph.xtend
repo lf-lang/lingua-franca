@@ -26,10 +26,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.graph
 
-import java.util.HashMap
-import java.util.HashSet
-import java.util.Map
-import java.util.Set
+import java.util.LinkedHashMap
+import java.util.LinkedHashSet
 import java.util.List
 
 /** 
@@ -41,12 +39,12 @@ class DirectedGraph<T> implements Graph<T> {
     /**
      * Adjacency map from vertices to their downstream neighbors.
      */
-    var Map<T, Set<T>> originToEffects = new HashMap();
+    var LinkedHashMap<T, LinkedHashSet<T>> originToEffects = new LinkedHashMap();
     
     /**
      * Adjacency map from vertices to their upstream neighbors.
      */
-    var Map<T, Set<T>> effectToOrigins = new HashMap();
+    var LinkedHashMap<T, LinkedHashSet<T>> effectToOrigins = new LinkedHashMap();
     
     
     /**
@@ -106,10 +104,10 @@ class DirectedGraph<T> implements Graph<T> {
     override void addNode(T node) {
         this.graphChanged()
         if (!effectToOrigins.containsKey(node)) {
-            this.effectToOrigins.put(node, new HashSet<T>())    
+            this.effectToOrigins.put(node, new LinkedHashSet<T>())    
         }
         if (!originToEffects.containsKey(node)) {
-            this.originToEffects.put(node, new HashSet<T>())
+            this.originToEffects.put(node, new LinkedHashSet<T>())
         }
     }
     
@@ -138,11 +136,11 @@ class DirectedGraph<T> implements Graph<T> {
         var effects = this.originToEffects.get(origin)
         var origins = this.effectToOrigins.get(effect)
         if (effects === null) {
-            effects = new HashSet()
+            effects = newLinkedHashSet
             this.originToEffects.put(origin, effects)
         }
         if (origins === null) {
-            origins = new HashSet()
+            origins =  newLinkedHashSet
             this.effectToOrigins.put(effect, origins)
         }
         effects.add(effect)
@@ -186,10 +184,10 @@ class DirectedGraph<T> implements Graph<T> {
     def copy() {
         val graph = new DirectedGraph<T>()
         for (entry : this.effectToOrigins.entrySet) {
-            graph.effectToOrigins.put(entry.key, new HashSet(entry.value))    
+            graph.effectToOrigins.put(entry.key, new LinkedHashSet(entry.value))    
         }
         for (entry : this.originToEffects.entrySet) {
-            graph.originToEffects.put(entry.key, new HashSet(entry.value))    
+            graph.originToEffects.put(entry.key, new LinkedHashSet(entry.value))    
         }
         return graph
     }
@@ -200,7 +198,7 @@ class DirectedGraph<T> implements Graph<T> {
      * @param srcMap The adjacency map to copy edges from.
      * @param dstMap The adjacency map to copy edges to.
      */
-    private def void mirror(Map<T, Set<T>> srcMap, Map<T, Set<T>> dstMap) {
+    private def void mirror(LinkedHashMap<T, LinkedHashSet<T>> srcMap, LinkedHashMap<T, LinkedHashSet<T>> dstMap) {
         if (srcMap !== null && dstMap !== null) {
             for (node : srcMap.keySet) {
                 val srcEdges = srcMap.get(node)
@@ -234,8 +232,8 @@ class DirectedGraph<T> implements Graph<T> {
      * Return the set of nodes that have no neighbors listed in the given
      * adjacency map.
      */
-    private def independentNodes(Map<T, Set<T>> adjacencyMap) {
-        var independent = new HashSet<T>()
+    private def independentNodes(LinkedHashMap<T, LinkedHashSet<T>> adjacencyMap) {
+        var independent = new LinkedHashSet<T>()
         for (node : this.nodes) {
             val neighbors = adjacencyMap.get(node)
             if (neighbors === null || neighbors.size == 0) {
@@ -290,7 +288,7 @@ class DirectedGraph<T> implements Graph<T> {
      * Return the nodes in this graph.
      */
     override nodes() {
-        val nodes = new HashSet()
+        val nodes = newLinkedHashSet
         nodes.addAll(this.effectToOrigins.keySet)
         nodes.addAll(this.originToEffects.keySet)
         return nodes.toList
