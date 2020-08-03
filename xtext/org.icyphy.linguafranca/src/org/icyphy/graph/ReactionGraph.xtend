@@ -88,15 +88,53 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
         
         // Add edges implied by connections.
         if (reactor.allConnections !== null) {
-            for (c : reactor.connections) {
+            for (c : reactor.allConnections) {
                 // Ignore connections with delays because delays break cycles.
                 if (c.delay === null) {
-                    this.addEdge(new InstanceBinding(c.rightPort.variable,
-                        path.append(c.rightPort.container,
-                            c.rightPort.container?.name)),
-                        new InstanceBinding(c.leftPort.variable,
-                            path.append(c.leftPort.container,
-                                c.leftPort.container?.name)))
+                    // For parallel connections, whether a dependency actually exists
+                    // depends on the widths. Here, if the width cannot be inferred, we
+                    // pessimistically assume a dependency exists.
+                    var rightPort = c.rightPorts.get(0)
+                    var remainingRightPorts = rightPort.multiportWidth
+                    // If any port returns width -1, then the width cannot be determined
+                    // and we will pessimistically make all remaining connections.
+                    var pessimistic = (remainingRightPorts < 0)
+                    var rightPortCount = 0
+                    for (leftPort : c.leftPorts) {
+                        var remainingLeftPorts = leftPort.multiportWidth
+                        pessimistic = pessimistic || (remainingLeftPorts < 0)
+                        addEdge(leftPort, rightPort, path)
+                        // How many ports were connected by this edge?
+                        var connected = (remainingLeftPorts < remainingRightPorts) ? remainingLeftPorts : remainingRightPorts
+                        remainingLeftPorts -= connected
+                        remainingRightPorts -= connected
+                        if (pessimistic) {
+                            var remainingRightPortCount = rightPortCount + 1
+                            while (remainingRightPortCount < c.rightPorts.length) {
+                                addEdge(leftPort, c.rightPorts.get(remainingRightPortCount++), path)
+                            }
+                        } else {
+                            // If this left port needs more right ports to fill out its
+                            // connections, establish those edges as well.
+                            while (remainingLeftPorts > 0) {
+                                rightPortCount++
+                                rightPort = c.rightPorts.get(rightPortCount)
+                                remainingRightPorts = rightPort.multiportWidth
+                                pessimistic = pessimistic || (remainingRightPorts < 0)
+                                addEdge(leftPort, rightPort, path)
+                                // How many ports were connected by this edge?
+                                connected = (remainingLeftPorts < remainingRightPorts) ? remainingLeftPorts : remainingRightPorts
+                                remainingLeftPorts -= connected
+                                remainingRightPorts -= connected
+                            }
+                            if (remainingRightPorts === 0) {
+                                rightPortCount++
+                                rightPort = c.rightPorts.get(rightPortCount)
+                                remainingRightPorts = rightPort.multiportWidth
+                                pessimistic = pessimistic || (remainingRightPorts < 0)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -145,6 +183,24 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
                     path.append(inst, inst.name))
             }
         }
+    }
+    /**
+     * Add an edge from the specified leftPort to the specified rightPort.
+     * @param leftPort The left port.
+     * @param rightPort The right port.
+     * @param path The breadcrumb trail.
+     */
+    def addEdge(VarRef leftPort, VarRef rightPort, BreadCrumbTrail<Instantiation> path) {
+        this.addEdge(
+            new InstanceBinding(
+                rightPort.variable,
+                path.append(rightPort.container, rightPort.container?.name)
+            ),
+            new InstanceBinding(
+                leftPort.variable,
+                path.append(leftPort.container, leftPort.container?.name)
+            )
+        )
     }
 }
 

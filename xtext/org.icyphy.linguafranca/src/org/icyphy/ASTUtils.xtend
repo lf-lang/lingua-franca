@@ -67,6 +67,7 @@ import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.WidthSpec
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -100,7 +101,8 @@ class ASTUtils {
             for (connection : container.connections) {
                 if (connection.delay !== null) {
                     val parent = connection.eContainer as Reactor
-                    val type = (connection.rightPort.variable as Port).type
+                    // Assume all the types are the same, so just use the first on the right.
+                    val type = (connection.rightPorts.get(0).variable as Port).type
                     val delayClass = getDelayClass(type, delayClasses, container, resource, generator)
                     val generic = generator.supportsGenerics
                             ? InferredType.fromAST(type).toText
@@ -164,10 +166,10 @@ class ASTUtils {
         input.variable = delayClass.inputs.get(0)
         output.container = delayInstance
         output.variable = delayClass.outputs.get(0)
-        upstream.leftPort = connection.leftPort
-        upstream.rightPort = input
-        downstream.leftPort = output
-        downstream.rightPort = connection.rightPort
+        upstream.leftPorts.addAll(connection.leftPorts)
+        upstream.rightPorts.add(input)
+        downstream.leftPorts.add(output)
+        downstream.rightPorts.addAll(connection.rightPorts)
 
         connections.add(upstream)
         connections.add(downstream)
@@ -401,7 +403,8 @@ class ASTUtils {
         GeneratorBase generator
     ) {
         val factory = LinguaFrancaFactory.eINSTANCE
-        var type = (connection.rightPort.variable as Port).type.copy
+        // Assume all the types are the same, so just use the first on the right.
+        var type = (connection.rightPorts.get(0).variable as Port).type.copy
         val action = factory.createAction
         val triggerRef = factory.createVarRef
         val effectRef = factory.createVarRef
@@ -449,10 +452,14 @@ class ASTUtils {
         effectRef.variable = action
 
         // Establish references to the involved ports.
-        inRef.container = connection.leftPort.container
-        inRef.variable = connection.leftPort.variable
-        outRef.container = connection.rightPort.container
-        outRef.variable = connection.rightPort.variable
+        // FIXME: This does not support parallel connections yet!!
+        if (connection.leftPorts.length > 1 || connection.rightPorts.length > 1) {
+            throw new UnsupportedOperationException("FIXME: Parallel connections are not yet supported between federates.")
+        }
+        inRef.container = connection.leftPorts.get(0).container
+        inRef.variable = connection.leftPorts.get(0).variable
+        outRef.container = connection.rightPorts.get(0).container
+        outRef.variable = connection.rightPorts.get(0).variable
 
         // Add the action to the reactor.
         parent.actions.add(action)
@@ -1168,6 +1175,88 @@ class ASTUtils {
         }
     }
     
+    /**
+     * Get a non-negative integer value of a parameter.
+     * Return -1 if the parameter value is not a non-negative integer
+     * of if the value cannot be determined for any reason.
+     * @param parameter The parameter.
+     * @return The parameter's non-negative integer value or -1
+     *  if the value cannot be determined or it is not a non-negative integer.
+     */
+    def static int intValue(Parameter parameter) {
+        // For some reason (?) parameter values can be tuples.
+        // Here, we just sum the elements.
+        var result = 0
+        for (value : parameter.init) {
+            if (value.literal !== null) {
+                try {
+                    val candidate = Integer.decode(value.literal)
+                    if (candidate < 0) return -1
+                    result += candidate
+                } catch (NumberFormatException ex) {
+                    return -1
+                }
+            } else if (value.parameter !== null) {
+                val candidate = intValue(value.parameter)
+                if (candidate < 0) return -1
+                result += candidate
+            }
+        }
+        return result
+    }
+    
+    /**
+     * If the argument is a reference to a multiport, return its width.
+     * If the argument is a reference to the port of a bank of reactors,
+     * then multiply this width by the width of the bank. The widths are
+     * calculated by adding together each term in the width specification.
+     * If a term refers to a parameter, then the value of that parameter
+     * is used. If that parameter refers to another parameter, than the
+     * reference is followed until an integer value is found.
+     * If the width cannot be determined for any reason, or if the
+     * reference is not to a port, -1 is returned.
+     * If the reference is a port but not a multiport, then 1 is returned.
+     * @param reference A reference to a port.
+     * @return The width of a port or -1 if it cannot be determined.
+     */
+    def static int multiportWidth(VarRef reference) {
+        if (reference.variable instanceof Port) {
+            var bankWidth = 1
+            if (reference.container !== null) {
+                bankWidth = width(reference.container.widthSpec)
+            }
+            if (reference.variable instanceof Port) {
+                return bankWidth * width((reference.variable as Port).widthSpec)
+            }
+        }
+        return -1
+    }    
+
+    /**
+     * Given the specification of the width of either a bank of reactors
+     * or a multiport, return the width. This is
+     * calculated by adding together each term in the width specification.
+     * If a term refers to a parameter, then the value of that parameter
+     * is used. If that parameter refers to another parameter, than the
+     * reference is followed until an integer value is found.
+     * If argument is null, return 1.
+     * If the width cannot be determined for any other reason, -1 is returned.
+     * @param widthSpec The width specification.
+     * @return The width or -1 if it cannot be determined.
+     */
+    def static int width(WidthSpec widthSpec) {
+        if(widthSpec === null) return 1
+        var result = 0
+        if(widthSpec.ofVariableLength) return -1
+        for (term : widthSpec.terms) {
+            if (term.parameter !== null) {
+                result += intValue(term.parameter)
+            } else {
+                result += term.width
+            }
+        }
+        return result
+    }
     
     /**
      * Report whether a state variable has been initialized or not.
