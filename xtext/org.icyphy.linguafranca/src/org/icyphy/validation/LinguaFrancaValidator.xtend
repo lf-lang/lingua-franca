@@ -31,6 +31,7 @@ import java.util.Arrays
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Set
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
@@ -128,26 +129,21 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
 
-    def boolean isUnused(ImportedReactor reactor) {
-        val instantiations = reactor.eResource.allContents.filter(Instantiation)
-        val subclasses = reactor.eResource.allContents.filter(Reactor)
-        if (instantiations.
-            forall[it.reactorClass !== reactor && it.reactorClass !== reactor.reactorClass] &&
-            subclasses.forall [
-                it.superClasses.forall [
-                    it !== reactor && it !== reactor.reactorClass
-                ]
-            ]) {
-            return true
-        }
-        return false
-    }
-
     @Check
     def checkImportedReactor(ImportedReactor reactor) {
         if (reactor.unused) {
             warning("Unused reactor class.",
                 Literals.IMPORTED_REACTOR__REACTOR_CLASS)
+        }
+
+        if (info.instantiationGraph.hasCycles) {
+            val cycleSet = newHashSet
+            info.instantiationGraph.cycles.forEach[forEach[cycleSet.add(it)]]
+            if (dependsOnCycle(reactor.toDefinition, cycleSet, newHashSet)) {
+                error("Imported reactor" + reactor.toDefinition.name +
+                    "has cyclic instantiation in it.",
+                    Literals.IMPORTED_REACTOR__REACTOR_CLASS)
+            }
         }
     }
 
@@ -187,6 +183,54 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
 
     }
+
+    /**
+     * Report whether a given reactor has dependencies on a cyclic
+     * instantiation pattern. This means the reactor has an instantiation
+     * in it -- directly or in one of its contained reactors -- that is 
+     * self-referential.
+     * @param reactor The reactor definition to find out whether it has any
+     * dependencies on cyclic instantiations.
+     * @param cycleSet The set of all reactors that are part of an
+     * instantiation cycle.
+     * @param visited The set of nodes already visited in this graph traversal.
+     */
+    private def boolean dependsOnCycle(Reactor reactor, Set<Reactor> cycleSet,
+        Set<Reactor> visited) {
+        val origins = info.instantiationGraph.getOrigins(reactor)
+        if (visited.contains(reactor)) {
+            return false
+        } else {
+            visited.add(reactor)
+            if (origins.exists[cycleSet.contains(it)] || origins.exists [
+                it.dependsOnCycle(cycleSet, visited)
+            ]) {
+                // Reached a cycle.
+                return true
+            }
+        }
+        return false
+    }
+    
+    /**
+     * Report whether a given imported reactor is used in this resource or not.
+     * @param reactor The imported reactor to check whether it is used.
+     */
+    private def boolean isUnused(ImportedReactor reactor) {
+        val instantiations = reactor.eResource.allContents.filter(Instantiation)
+        val subclasses = reactor.eResource.allContents.filter(Reactor)
+        if (instantiations.
+            forall[it.reactorClass !== reactor && it.reactorClass !== reactor.reactorClass] &&
+            subclasses.forall [
+                it.superClasses.forall [
+                    it !== reactor && it !== reactor.reactorClass
+                ]
+            ]) {
+            return true
+        }
+        return false
+    }
+    
 
     // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
@@ -563,9 +607,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(NORMAL)
     def checkModel(Model model) {
         info.update(model)
-        if (info.instantiationGraph.hasCycles) {
-            error("Cyclic dependencies between instantiations.", Literals.MODEL__TARGET)
-        }
     }
 
     @Check(FAST)
@@ -971,13 +1012,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
     }
-
-    override error(String message, EStructuralFeature feature) {
-        super.error(message, feature)
-        // If this error is related to a feature in an imported model,
-        // FIXME
-    }
-
+        
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
     static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
