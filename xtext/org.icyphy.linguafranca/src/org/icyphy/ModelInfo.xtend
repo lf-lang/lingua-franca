@@ -53,11 +53,6 @@ class ModelInfo {
      * instantiation of class A inside of class B implies that B depends on A.
      */
     public InstantiationGraph instantiationGraph
-    
-    /**
-     * A mapping from reactors to the sites of their instantiation.
-     */
-    public HashMap<Reactor, Set<Instantiation>> instantiationMap = new HashMap()
 
     /**
      * The AST that the info gather in this class pertains to.
@@ -89,9 +84,6 @@ class ModelInfo {
      */
     public ReactionGraph reactionGraph
     
-    // FIXME: If a there is a cyclic instantiation somewhere inside an imported file, report an error
-    // on the import statement; establish a mapping for this.
-
     /**
      * Redo all analysis based on the given model.
      * @param model the model to analyze.
@@ -102,7 +94,7 @@ class ModelInfo {
         this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {
-            this.reactionGraph = new ReactionGraph(this.model)    
+            this.reactionGraph = new ReactionGraph(this.model)
         }
         
         // Find the target. A target must exist because the grammar requires it.
@@ -175,7 +167,7 @@ class ModelInfo {
 
         // Iterate over the instantiations of the reactor in which the
         // current parameter was found.
-        for (instantiation : this.instantiationMap.get(
+        for (instantiation : this.instantiationGraph.getInstantiations(
             current.eContainer as Reactor) ?: emptySet) {
             // Only visit each instantiation once per deadline to avoid cycles.
             if (!visited.contains(instantiation)) {

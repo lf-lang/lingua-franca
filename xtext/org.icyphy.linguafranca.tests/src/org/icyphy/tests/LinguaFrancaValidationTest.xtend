@@ -396,9 +396,9 @@ class LinguaFrancaValidationTest {
             }
         ''')
         model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
-            null, 'Instantiation is part of a cycle: Contained')
+            null, 'Instantiation is part of a cycle: Contained, Intermediate.')
         model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
-            null, 'Instantiation is part of a cycle: Intermediate')
+            null, 'Instantiation is part of a cycle: Contained, Intermediate.')
     }
     
     /**
