@@ -4,7 +4,7 @@ target C {
     fast: true,
     files: ["include/hello.h"]
 };
-reactor YetAnotherSource {
+reactor Source {
     output out:hello_t*;
     timer t(0, 1 sec);
     state s:int(0);
@@ -19,7 +19,7 @@ reactor YetAnotherSource {
     =}
 }
 // expected parameter is for testing.
-reactor YetAnotherPrint {
+reactor Print {
     input in:hello_t*;
     state s:int(0);
     reaction(in) {=
@@ -38,7 +38,7 @@ reactor YetAnotherPrint {
     =}
 }
 main reactor YetAnotherDelayStruct {
-    s = new YetAnotherSource();
-    p = new YetAnotherPrint();
+    s = new Source();
+    p = new Print();
     s.out -> p.in after 1500 msec;
 }

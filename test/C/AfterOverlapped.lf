@@ -5,7 +5,7 @@ target C {
 };
 import Count from "lib/Count.lf";
 
-reactor AOTest {
+reactor Test {
     input c:int;
     state i:int(0);
     state received:int(0);
@@ -37,6 +37,6 @@ reactor AOTest {
 }
 main reactor AfterOverlapped {
     count = new Count();
-    test = new AOTest();
+    test = new Test();
     count.out -> test.c after 2 sec;
 }

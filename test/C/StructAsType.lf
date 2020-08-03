@@ -6,7 +6,7 @@ preamble {=
 	#include "hello.h"
 =}
 
-reactor StructAsTypeSomething {
+reactor Source {
     output out:hello_t;
     
     reaction(startup) -> out {=
@@ -22,7 +22,7 @@ reactor StructAsTypeSomething {
     =}
 }
 // expected parameter is for testing.
-reactor StructAsTypePrint(expected:int(42)) {
+reactor Print(expected:int(42)) {
     input in:hello_t;
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value.name, in->value.value);
@@ -33,7 +33,7 @@ reactor StructAsTypePrint(expected:int(42)) {
     =}
 }
 main reactor StructAsType {
-    s = new StructAsTypeSomething();
-    p = new StructAsTypePrint();
+    s = new Source();
+    p = new Print();
     s.out -> p.in;
 }

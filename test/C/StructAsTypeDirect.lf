@@ -6,7 +6,7 @@ preamble {=
 	#include "hello.h"
 =}
 
-reactor StructAsTypeDirectSource {
+reactor Source {
     output out:hello_t;
     reaction(startup) -> out {=
         out->value.name = "Earth";
@@ -15,7 +15,7 @@ reactor StructAsTypeDirectSource {
     =}
 }
 // expected parameter is for testing.
-reactor StructAsTypeDirectPrint(expected:int(42)) {
+reactor Print(expected:int(42)) {
     input in:hello_t;
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value.name, in->value.value);
@@ -26,7 +26,7 @@ reactor StructAsTypeDirectPrint(expected:int(42)) {
     =}
 }
 main reactor StructAsArrayType {
-    s = new StructAsTypeDirectSource();
-    p = new StructAsTypeDirectPrint();
+    s = new Source();
+    p = new Print();
     s.out -> p.in;
 }
