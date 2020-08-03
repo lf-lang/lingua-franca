@@ -64,4 +64,4 @@ Proceed to running the main file:
 
 ## Build using setuptools
 As a third alternative, the `setup.py.setuptools` is provided which uses setup tools instead of distutils to build the `.so` file.
-Simply replace setup.py with `setup.py.setuptools` and the rest would be similar to the previous procedures.
+Please replace setup.py and the rest would be similar to the previous procedures.
