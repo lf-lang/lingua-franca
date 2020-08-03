@@ -4,8 +4,8 @@
 // It then does nothing further with it. This test checks
 // that the memory gets freed automatically even with the mutable input.
 target C;
-import ArrayPrintSource, ArrayPrintPrint from "ArrayPrint.lf";
-import ArrayScaleScale from "ArrayScale.lf";
+import Source, Print from "ArrayPrint.lf";
+import Scale from "ArrayScale.lf";
 
 reactor Free(scale:int(2)) {
     mutable input in:int[];
@@ -16,10 +16,10 @@ reactor Free(scale:int(2)) {
     =}
 }
 main reactor ArrayFree {
-    s = new ArrayPrintSource();
+    s = new Source();
     c = new Free();
-    c2 = new ArrayScaleScale();
-    p = new ArrayPrintPrint(scale = 2);
+    c2 = new Scale();
+    p = new Print(scale = 2);
     s.out -> c.in;
     s.out -> c2.in;
     c2.out -> p.in;

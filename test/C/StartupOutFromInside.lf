@@ -1,6 +1,6 @@
 target C;
 
-reactor SOFIBar {
+reactor Bar {
     output out:int;
     reaction(startup) -> out {=
         SET(out, 42);
@@ -8,7 +8,7 @@ reactor SOFIBar {
 }
 
 main reactor StartupOutFromInside {
-    bar = new SOFIBar();
+    bar = new Bar();
     reaction(startup) bar.out {=
         printf("Output from bar: %d\n", bar.out->value);
         if (bar.out->value != 42) {

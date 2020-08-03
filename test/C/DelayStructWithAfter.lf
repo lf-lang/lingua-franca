@@ -5,7 +5,7 @@ preamble {=
 	#include "hello.h"
 =}
 
-reactor DSWASource {
+reactor Source {
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
@@ -17,7 +17,7 @@ reactor DSWASource {
     =}
 }
 // expected parameter is for testing.
-reactor DSWAPrint(expected:int(42)) {
+reactor Print(expected:int(42)) {
     input in:hello_t*;
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
@@ -27,8 +27,8 @@ reactor DSWAPrint(expected:int(42)) {
         }
     =}
 }
-main reactor DelayStruct {
-    s = new DSWASource();
-    p = new DSWAPrint();
+main reactor DelayStructWithAfter {
+    s = new Source();
+    p = new Print();
     s.out -> p.in after 100 msec;
 }

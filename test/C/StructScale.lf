@@ -19,7 +19,7 @@ reactor TestInput(expected:int(42)) {
     =}
 }
 
-reactor StructScalePrint(scale:int(2)) {
+reactor Print(scale:int(2)) {
     // Mutable keyword indicates that this reactor wants a writable copy of the input.
     mutable input in:hello_t*;
     
@@ -31,8 +31,8 @@ reactor StructScalePrint(scale:int(2)) {
 }
 
 main reactor StructScale {
-    s = new StructScalePrint();
-    c = new StructScalePrint();
+    s = new Print();
+    c = new Print();
     p = new TestInput(expected=84);
     s.out -> c.in;
     c.out -> p.in;

@@ -12,7 +12,7 @@ reactor SendsPointer  {
     =}
 }
 // expected parameter is for testing.
-reactor AnotherPrint(expected:int(42)) {
+reactor Print(expected:int(42)) {
     input in:int_pointer;
     reaction(in) {=
         printf("Received: %d\n", *in->value);
@@ -24,6 +24,6 @@ reactor AnotherPrint(expected:int(42)) {
 }
 main reactor SendsPointerTest {
     s = new SendsPointer();
-    p = new AnotherPrint();
+    p = new Print();
     s.out -> p.in;
 }

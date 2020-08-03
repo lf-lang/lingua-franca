@@ -17,7 +17,7 @@ reactor DelayPointer(delay:time(100 msec)) {
         schedule_token(a, self->delay, in->token);
     =}
 }
-reactor DelayStructSource {
+reactor Source {
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
@@ -29,7 +29,7 @@ reactor DelayStructSource {
     =}
 }
 // expected parameter is for testing.
-reactor DelayStructPrint(expected:int(42)) {
+reactor Print(expected:int(42)) {
     input in:hello_t*;
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
@@ -39,10 +39,10 @@ reactor DelayStructPrint(expected:int(42)) {
         }
     =}
 }
-main reactor DelayStruct2 {
-    s = new DelayStructSource();
+main reactor DelayStruct {
+    s = new Source();
     d = new DelayPointer();
-    p = new DelayStructPrint();
+    p = new Print();
     s.out -> d.in;
     d.out -> p.in;
 }

@@ -6,7 +6,7 @@ target C {files: ["include/hello.h"]};
 //import StructScale.lf;
 
 reactor Check(expected:int(42)) {
-    input in:hello_t*; // FIXME: Same problem as noted in StructScale
+    input in:hello_t*;
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
         if (in->value->value != self->expected) {
@@ -16,7 +16,7 @@ reactor Check(expected:int(42)) {
     =}
 }
 
-reactor StructParallelPrint(scale:int(2)) {
+reactor Print(scale:int(2)) {
     // Mutable keyword indicates that this reactor wants a writable copy of the input.
     mutable input in:hello_t*;
     
@@ -29,9 +29,9 @@ reactor StructParallelPrint(scale:int(2)) {
 
 
 main reactor StructParallel {
-    s = new StructParallelPrint();
-    c1 = new StructParallelPrint();
-    c2 = new StructParallelPrint(scale = 3);
+    s = new Print();
+    c1 = new Print();
+    c2 = new Print(scale = 3);
     p1 = new Check(expected = 84);
     p2 = new Check(expected = 126);
     s.out -> c1.in;

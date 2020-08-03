@@ -3,6 +3,7 @@
 target C {
 	threads: 2	
 };
+
 import Imported from "Imported.lf";
 
 main reactor ImportThreaded {

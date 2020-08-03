@@ -1,6 +1,6 @@
 // Illustration of SET_TOKEN() in the wiki.
 target C;
-reactor SetTokenSource {
+reactor Source {
     output out:int*;
     logical action a:int;
     reaction(startup) -> a {=
@@ -11,7 +11,7 @@ reactor SetTokenSource {
     =}
 }
 // expected parameter is for testing.
-reactor SetTokenPrint(expected:int(42)) {
+reactor Print(expected:int(42)) {
     input in:int*;
     reaction(in) {=
         printf("Received %d\n", *(in->value));
@@ -22,7 +22,7 @@ reactor SetTokenPrint(expected:int(42)) {
     =}
 }
 main reactor SetToken {
-    s = new SetTokenSource();
-    p = new SetTokenPrint();
+    s = new Source();
+    p = new Print();
     s.out -> p.in;
 }
