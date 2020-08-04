@@ -64,7 +64,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** Count of the number of chains seen so far. */
     int branchCount = 1
     
-        /** Create a runtime instance from the specified definition
+   /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent, or null for the main rector.
@@ -73,7 +73,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         // If the reactor is being instantiated with new[width], then pass -2
         // to the constructor, otherwise pass -1.
-        this(definition, parent, generator, (definition.arraySpec !== null)? -2 : -1)
+        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
     }
 
     /** Create a runtime instance from the specified definition
@@ -94,10 +94,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // each individual reactor in the bank and skip the rest of the
         // initialization for this reactor instance.
         if (reactorIndex === -2) {
-            if (definition.arraySpec.ofVariableLength) {
+            if (definition.widthSpec.ofVariableLength) {
                 throw new Exception("Banks of reactors with variable length are not supported.")
             }
-            var width = definition.arraySpec.length
+            var width = definition.widthSpec.width
             this.bankMembers = new ArrayList<ReactorInstance>(width)
             for (var index = 0; index < width; index++) {
                 var childInstance = new ReactorInstance(definition, parent, generator, index)
