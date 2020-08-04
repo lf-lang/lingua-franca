@@ -1,6 +1,6 @@
 target Cpp;
 
-import DelayInt.lf;
+import Test from "DelayInt.lf";
 
 reactor GenericDelay<T>(delay:time(0)) {
     output out:T;

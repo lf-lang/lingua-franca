@@ -16,17 +16,18 @@ Require-Bundle: org.eclipse.xtext,
  org.eclipse.xtend.lib;bundle-version="2.14.0",
  org.antlr.runtime;bundle-version="[3.2.0,3.2.1)"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
-Export-Package: org.icyphy.linguaFranca,
- org.icyphy.validation,
- org.icyphy.linguaFranca.impl,
- org.icyphy.parser.antlr,
- org.icyphy.scoping,
+Export-Package: org.icyphy,
  org.icyphy.generator,
- org.icyphy.serializer,
- org.icyphy.parser.antlr.internal,
- org.icyphy,
+ org.icyphy.graph,
+ org.icyphy.linguaFranca,
+ org.icyphy.linguaFranca.impl,
  org.icyphy.linguaFranca.util,
- org.icyphy.services
+ org.icyphy.parser.antlr,
+ org.icyphy.parser.antlr.internal,
+ org.icyphy.scoping,
+ org.icyphy.serializer,
+ org.icyphy.services,
+ org.icyphy.validation
 Import-Package: org.apache.log4j,
  org.eclipse.core.resources,
  org.eclipse.core.runtime;version="3.5.0"

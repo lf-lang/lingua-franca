@@ -348,10 +348,15 @@ public enum Targets {
          */
         COMPILER("compiler", Arrays.asList(Targets.ALL)),
         /**
-         * Directive to let the execution engine run as fast as possible (and
+         * Directive to let the execution engine allow logical time to elapse
+         * faster than physical time.
          */
         FAST("fast", Arrays.asList(Targets.ALL)),
-        
+        /**
+         * Directive to stage particular files on the class path to be
+         * processed by the code generator.
+         */
+        FILES("files", Arrays.asList(Targets.ALL)),
         /**
          * Flags to be passed on to the target compiler.
          */
@@ -363,7 +368,8 @@ public enum Targets {
         COORDINATION("coordination", Arrays.asList(Targets.C, Targets.CCpp)),
         
         /**
-         * FIXME
+         * Directive to let the execution engine remain active also if there
+         * are no more events in the event queue.
          */
         KEEPALIVE("keepalive", Arrays.asList(Targets.ALL)),
         
@@ -381,7 +387,11 @@ public enum Targets {
          * Directive to disable validation of reactor rules at runtime.
          */
         NO_RUNTIME_VALIDATION("no-runtime-validation", Arrays.asList(Targets.CPP)),
-        
+        /**
+         * Directive for specifying .proto files that need to be compiled and their
+         * code included in the sources.
+         */
+        PROTOBUFS("protobufs", Arrays.asList(Targets.C, Targets.TS)),
         /**
          * Directive to specify the number of threads.
          */

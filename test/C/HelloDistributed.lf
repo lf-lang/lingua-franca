@@ -37,6 +37,9 @@ reactor Destination {
     =}
 }
 federated reactor HelloDistributed at localhost:15046 {
+    reaction(startup) {=
+        printf("Printing something in federated reactor.\n");
+    =}
     s = new Source();      // Reactor s is in federate Source
     d = new Destination(); // Reactor d is in federate Destination
     s.out -> d.in;         // This version preserves the timestamp.

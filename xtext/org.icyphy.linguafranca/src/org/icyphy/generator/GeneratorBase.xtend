@@ -50,17 +50,19 @@ import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.InferredType
+import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
+import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
-import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
@@ -76,6 +78,8 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import org.eclipse.xtext.resource.XtextResource
+import org.eclipse.xtext.validation.CheckMode
 
 /**
  * Generator base class for shared code between code generators.
@@ -118,10 +122,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var code = new StringBuilder
     
     /** Additional sources to add to the compile command if appropriate. */
-    protected var compileAdditionalSources = null as ArrayList<String>
+    protected var List<String> compileAdditionalSources = newArrayList
     
     /** Additional libraries to add to the compile command using the "-l" command-line option. */
-    protected var compileLibraries = null as ArrayList<String>
+    protected var List<String> compileLibraries = newArrayList
 
     /**
      * Path to the directory containing the .lf file.
@@ -173,7 +177,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * A list of Reactor definitions in the main resource, including non-main 
      * reactors defined in imported resources.
      */
-    protected var List<Reactor> reactors
+    protected var List<Reactor> reactors = newLinkedList // FIXME: derived from instantiationGraph 
+    
+    /**
+     * The set of resources referenced reactor classes reside in.
+     */
+    protected var Set<Resource> resources = newHashSet // FIXME: derived from instantiationGraph
+    
+    /**
+     * Graph that tracks dependencies between instantiations.
+     */
+    protected var InstantiationGraph instantiationGraph
     
     /**
      * The file containing the main source code.
@@ -224,12 +238,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
-    
-    /**
-     * A map of all resources to the set of resource they import.
-     * These are Eclipse eCore views of the files.
-     */
-    protected var importedResources = new HashMap<Resource, Set<Resource>>;
     
     ////////////////////////////////////////////
     //// Target properties, if they are included.
@@ -302,6 +310,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected boolean targetFast = false
     
     /**
+     * List of files to be copied to src-gen.
+     */
+    protected List<File> targetFiles = newLinkedList
+    
+    /**
+     * List of proto files to be processed by the code generator.
+     */
+    protected List<File> protoFiles = newLinkedList
+    
+    /**
+     * Contents of $LF_CLASSPATH, if it was set.
+     */
+    protected String classpath
+    
+    /**
      * The value of the keepalive target parameter, or false if there is none.
      */
     protected boolean targetKeepalive
@@ -344,15 +367,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     var indentation = new HashMap<StringBuilder, String>()
     
-    /**
-     * Recursion stack used to detect cycles in imports.
-     */
-    var importRecursionStack = new HashSet<Resource>();
-    
-    /**
-     * A flag indicating whether a cycle was found while processing imports.
-     */
-    var cyclicImports = false;
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -370,7 +384,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def void analyzeModel(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
-        generatorErrorsOccurred = false
+        
+        this.resource = resource
+        
+        // Clear any markers that may have been created by a previous build.
+        // Markers mark problems in the Eclipse IDE when running in integrated mode.
+        clearMarkers()
+        
+        generatorErrorsOccurred = false // FIXME: do this in clearMarkers?
+        
+        // Figure out the file name for the target code from the source file name.
+        resource.analyzeResource
         
         var target = resource.findTarget
         targetName = target.name
@@ -387,6 +411,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetFast = true
                         }
+                    case TargetProperties.FILES.name:
+                        this.targetFiles.addAll(this.collectFiles(param.value))
+                    case TargetProperties.PROTOBUFS.name: 
+                        this.protoFiles.addAll(this.collectFiles(param.value))
                     case "flags":
                         targetCompilerFlags = param.value.literal.withoutQuotes
                     case "no-compile":
@@ -442,13 +470,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
         }
         
-        this.resource = resource
-        // Figure out the file name for the target code from the source file name.
-        resource.analyzeResource
-        
-        // Clear any markers that may have been created by a pervious build.
-        // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        clearMarkers()
         
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.
@@ -457,16 +478,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // This must be done before desugaring delays below.
         resource.analyzeFederates            
     }
-    
-    /**
-     * Find connections that have a delay associated with them and reroute them via
-     * a generated delay reactor.
-     * @param resource The AST.
-     */
-    def void insertGeneratedDelays(Resource resource) {
-        resource.insertGeneratedDelays(this)
-    }
-    
+
     /**
      * Generate code from the Lingua Franca model contained by the specified resource.
      * 
@@ -483,45 +495,52 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
+        // The following "analysis" has hidden in it AST transformations.
+        // FIXME: We should factor them out and rename the following method
+        // parseTargetProperties or something along those lines. 
         analyzeModel(resource, fsa, context)
 
-        // First, produce any preamble code that the code generator needs
-        // to produce before anything else goes into the code generated files.
-        generatePreamble()
+        // Replace connections in this resources that are annotated with the 
+        // "after" keyword by ones that go through a delay reactor. 
+        resource.insertGeneratedDelays(this)
+        
         
         // Collect a list of reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
-        reactors = newLinkedList
-        
-        // Next process all the imports to find reactors defined in the imports.
-        processImports(resource)
-        
-        // Replace connections in this resources that are annotated with the 
-        // "after" keyword by ones that go through a delay reactor. 
-        resource.insertGeneratedDelays()
-        
-        // Abort compilation if a dependency cycle was detected while 
-        // processing imports. If compilation would continue, dependency
-        // cycles between reactor instantiations across files could lead
-        // to a stack overflow!
-        if (cyclicImports) {
-            throw new Exception("Aborting compilation due to dependency cycles in imports!") 
-        }
+        instantiationGraph = new InstantiationGraph(resource, false)
 
-        // Recursively generate reactor class code from their definitions
-        // NOTE: We do not generate code for the main reactor here
-        // because that code needs to be customized for federates in
-        // a distributed execution.  Subclasses are required to
-        // generate the main reactor code.
-        // FIXME: It may be better to also not generate code for
-        // non-main reactors that are not instantiated in a particular
-        // federate. But it seems harmless to generate it since a good
-        // compiler will remove it anyway as dead code.
-        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
-            if (!reactor.isMain && !reactor.isFederated) {
-                reactors.add(reactor)
+        // Topologically sort the instantiations such that all of a reactor's
+        // dependencies occur earlier in the sorted list or reactors.
+        this.reactors = instantiationGraph.nodesInTopologicalOrder
+        // Add to the known resources the resource that is the main file.
+        this.resources.add(resource)
+        // Add to the known resources all imported files.
+        for (r : this.reactors) {
+            this.resources.add(r.eResource)
+        }
+        // FIXME: This is just a proof of concept. What to do instead:
+        // - use reportError
+        // - report at node that represents import through which this resource
+        // was (transitively) reached; we need an ImportGraph for this resource
+        // reached.
+        // Alternatively: only validate the individual reactors that are imported
+        // This would allow importing a reactor from a file that has issues.
+        // Probably not the best idea.
+        for (r : this.resources) {
+            if (r !== this.resource) {
+                val issues = (r as XtextResource).resourceServiceProvider.
+                    resourceValidator.validate(r, CheckMode.ALL, null)
+                if (issues.size > 0) {
+                    println('''Issues found in «r.URI.toFileString».''')
+                    println(issues.join("\n"))
+                    return
+                }
             }
         }
+        
+        // First, produce any preamble code that the code generator needs
+        // to produce before anything else goes into the code generated files.
+        generatePreamble() // FIXME: Move this elsewhere.
     }
     
     /**
@@ -626,20 +645,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }    
         }
         return "0" // FIXME: do this or throw exception?
-    }
-
-    /**
-     * Remove quotation marks surrounding the specified string.
-     */
-    def withoutQuotes(String s) {
-        var result = s
-        if (s.startsWith("\"") || s.startsWith("\'")) {
-            result = s.substring(1)
-        }
-        if (result.endsWith("\"") || result.endsWith("\'")) {
-            result = result.substring(0, result.length - 1)
-        }
-        result
     }
     
     
@@ -812,12 +817,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val flags = targetCompilerFlags.split(' ')
         compileCommand.addAll(flags)
         compileCommand.add(relativeSrcFilename)
-        if (compileAdditionalSources !== null) {
-            compileCommand.addAll(compileAdditionalSources)
-        }
-        if (compileLibraries !== null) {
-            compileCommand.addAll(compileLibraries)
-        }
+        compileCommand.addAll(compileAdditionalSources)
+        compileCommand.addAll(compileLibraries)
+        
         // Only set the output file name if it hasn't already been set
         // using a target property or command line flag.
         if (compileCommand.forall[it.trim != "-o"]) {
@@ -1053,9 +1055,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Generate any preamble code that appears in the code generated
      * file before anything else.
      */
-    protected def generatePreamble() {
+    protected def void generatePreamble() {
         prComment("Code generated by the Lingua Franca compiler from file:")
         prComment(sourceFile)
+        val models = new HashSet<Model>
+        for (r : this.reactors ?: emptyList) {
+            models.add(r.toDefinition.eContainer as Model)
+        }
+        // FIXME: preambles should also be printed in correct order. (see topological sort in doGenerate
+        for (m : models) {
+            for (p : m.preambles) {
+                pr(p.code.toText)
+            }
+        }
     }
 
     /**
@@ -1098,82 +1110,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             buffer.append(' ');
         }
         indentation.put(builder, buffer.toString)
-    }
-
-    /**
-     * Open a non-Lingua Franca import file at the specified URI
-     * in the specified resource set. Throw an exception if the
-     * file import is not supported. This base class always throws
-     * an exception because the only supported imports, by default,
-     * are Lingua Franca files.
-     * @param importStatement The original import statement (used for error reporting).
-     * @param resourceSet The resource set in which to find the file.
-     * @param resolvedURI The URI to import.
-     */
-    protected def openForeignImport(
-        Import importStatement, ResourceSet resourceSet, URI resolvedURI
-    ) {
-        reportError(importStatement, "Unsupported imported file type: "
-            + importStatement.importURI
-        )
-    }
-    
-    /**
-     * Open an import at the Lingua Franca file at the specified URI in the
-     * specified resource, find all non-main reactors, and add them to the
-     * {@link #GeneratorBase.reactors reactors}.
-     *  @param importStatement The import statement.
-     *  @param resourceSet The resource set in which to find the file.
-     *  @param resolvedURI The URI to import.
-     *  @return The imported resource or null if the import fails.
-     */
-    protected def openLFImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
-        val importResource = resourceSet?.getResource(resolvedURI, true);
-        if (importResource === null) {
-            reportError(importStatement, "Cannot find import file: " + resolvedURI)
-            return null
-        } else {
-            // Make sure the target of the import is acceptable.
-            var targetOK = (acceptableTargets === null)
-            var offendingTarget = ""
-            for (target : importResource.allContents.toIterable.filter(Target)) {
-                for (acceptableTarget : acceptableTargets ?: emptyList()) {
-                    if (acceptableTarget.equalsIgnoreCase(target.name)) {
-                        targetOK = true
-                    }
-                }
-                if (!targetOK) offendingTarget = target.name
-            }
-            if (!targetOK) {
-                reportError(importStatement, "Import target " + offendingTarget
-                    + " is not an acceptable target in import "
-                    + importResource.getURI
-                    + ". Acceptable targets are: "
-                    + acceptableTargets.join(", ")
-                )
-                return null
-            } else {
-                // Temporarily change the sourceFile variable to point to the
-                // import file. Then change it back.
-                val previousSourceFile = sourceFile
-                sourceFile = importResource.toPath
-                try {
-                    // Process any imports that the import has.
-                    processImports(importResource)
-                    // Add each reactor contained by the import to the list of reactors,
-                    // unless it is a main reactor.
-                    for (reactor : importResource.allContents.toIterable.filter(Reactor)) {
-                        if (!reactor.isMain && !reactor.isFederated) {
-                            println("Including imported reactor: " + reactor.name)
-                            reactors.add(reactor)
-                        }
-                    }
-                } finally {
-                    sourceFile = previousSourceFile
-                }
-            }
-        }
-        return importResource
     }
 
     /**
@@ -1276,71 +1212,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         pr(code, '// ' + comment);
     }
 
-    /**
-     * Process any imports included in the resource defined by the specified
-     * resource. This will open the import, check for compatibility, and find
-     * and any reactors the import defines that are not main reactors. If the
-     * target is not acceptable to this generator, as reported by
-     * acceptableTargets, report an error, ignore the import and continue.
-     * @param resource The resource (file) that may contain import statements.
-     */
-    protected def void processImports(Resource resource) {
-        // if the resource is in the recursion stack, then there is a cycle in the imports
-        if (importRecursionStack.contains(resource)) {
-            cyclicImports = true
-            throw new Exception("There is a dependency cycle in the import statements!")
-        }
-        
-        // abort if the resource was visited already
-        if (importedResources.keySet.contains(resource)) {
-            return
-        }
-        
-        // Replace connections in this resources that are annotated with the 
-        // "after" keyword by ones that go through a delay reactor. 
-        resource.insertGeneratedDelays()
-        
-        // add resource to imported resources and to the recoursion stack
-        importedResources.put(resource, new HashSet<Resource>())        
-        importRecursionStack.add(resource);
-
-        for (importStatement : resource.allContents.toIterable.filter(Import)) {
-            // Resolve the import as a URI relative to the current resource's URI.
-            val URI currentURI = resource?.getURI;
-            val URI importedURI = URI?.createFileURI(importStatement.importURI);
-            val URI resolvedURI = importedURI?.resolve(currentURI);
-            val ResourceSet resourceSet = resource?.resourceSet;
-            
-            // Check for self import.
-            if (resolvedURI.equals(currentURI)) {
-                reportError(importStatement,
-                    "Recursive imports are not permitted: " + importStatement.importURI)
-                return
-            }
-            try {
-                if (importStatement.importURI.endsWith(".lf")) {
-                    // Handle Lingua Franca imports.
-                    val imported = openLFImport(importStatement, resourceSet, resolvedURI)
-                    if (imported !== null) {
-                        importedResources.get(resource).add(imported)
-                    }
-                } else {
-                    // Handle other supported imports (if any).
-                    openForeignImport(importStatement, resourceSet, resolvedURI)
-                }
-            } catch (Exception ex) {
-                reportError(
-                    importStatement,
-                    "Import error: " + importStatement.importURI +
-                    "\nException message: " + ex.message
-                )
-            }
-        }
-        
-        // remove this resource from the recursion stack
-        importRecursionStack.remove(resource);
-    }
-        
     /**
      * Parsed error message from a compiler is returned here.
      */
@@ -1461,6 +1332,88 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 )
             }
         }
+    }
+
+    /**
+     * Given the right-hand side of a target property, return a list with all
+     * the files that the property lists.
+     * 
+     * Arrays are traversed, so files are collected recursively. If elements
+     * are found that do not denote files or denote files that cannot be found,
+     * warnings are reported.
+     * @param value The right-hand side of a target property.
+     */
+    def List<File> collectFiles(Element value) {
+        var allFound = true;
+        val files = newLinkedList
+        var filename = ""
+        if (value.array !== null) {
+            for (element : value.array.elements) {
+                files.addAll(element.collectFiles)
+            }
+            return files
+        } else if (value.literal !== null) {
+            filename = value.literal.withoutQuotes
+        } else if (value.id !== "") {
+            filename = value.id
+        } else {
+            this.
+                reportWarning(
+                    value, '''Expected a string, path, or array but found something else.''')
+        }
+        val file = filename.findFile
+        if (file !== null) {
+            files.add(file)
+        } else {
+            // Warn that file hasn't been found.
+            allFound = false
+            this.reportWarning(value, '''Could not find «filename».''')
+        }
+
+        if (!allFound && this.classpath.isNullOrEmpty) {
+            // Report that LF_CLASSPATH hasn't been set 
+            // and something hasn't been found.
+            this.reportWarning(value,
+                "LF_CLASSPATH environment variable is not set.")
+        }
+
+        return files
+    }
+
+    /**
+     * Search for a given file name in the current directory.
+     * If not found, search in directories in LF_CLASSPATH.
+     * The first file found will be returned.
+     * 
+     * @param fileName The file name or relative path + file name
+     * in plain string format
+     * @return A Java file or null if not found
+     */
+     def File findFile(String fileName) {
+
+        var File foundFile;
+
+        // Check in local directory
+        foundFile = new File(this.directory + '/' + fileName);
+        if (foundFile.exists && foundFile.isFile) {
+            return foundFile;
+        }
+
+        // Check in LF_CLASSPATH
+        // Load all the resources in LF_CLASSPATH if it is set.
+        this.classpath = System.getenv("LF_CLASSPATH");
+        if (this.classpath !== null) {
+            var String[] paths = this.classpath.split(
+                System.getProperty("path.separator"));
+            for (String path : paths) {
+                foundFile = new File(path + '/' + fileName);
+                if (foundFile.exists && foundFile.isFile) {
+                    return foundFile;
+                }
+            }
+        }
+        // Not found.
+        return null;
     }
 
     /**
@@ -1899,27 +1852,29 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        if (mainDef === null || !mainDef.reactorClass.isFederated) {
+        val mainDefn = this.mainDef?.reactorClass.toDefinition
+        
+        if (this.mainDef === null || !mainDefn.isFederated) {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, this)
             federates.add(federateInstance)
             federateByName.put("", federateInstance)
             federateByID.put(0, federateInstance)
         } else {            
-            if (mainDef.reactorClass.host !== null) {
+            if (mainDefn.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
-                if (mainDef.reactorClass.host.addr !== null) {
-                    federationRTIProperties.put('host', mainDef.reactorClass.host.addr)                
+                if (mainDefn.host.addr !== null) {
+                    federationRTIProperties.put('host', mainDefn.host.addr)                
                 }
                 // Get the port information, if specified.
                 // If not specified, this defaults to 14045
-                if (mainDef.reactorClass.host.port !== 0) {
-                    federationRTIProperties.put('port', mainDef.reactorClass.host.port)                
+                if (mainDefn.host.port !== 0) {
+                    federationRTIProperties.put('port', mainDefn.host.port)                
                 }
                 // Get the user information, if specified.
-                if (mainDef.reactorClass.host.user !== null) {
-                    federationRTIProperties.put('user', mainDef.reactorClass.host.user)                
+                if (mainDefn.host.user !== null) {
+                    federationRTIProperties.put('user', mainDefn.host.user)                
                 }
                 // Get the directory information, if specified.
                 /* FIXME
@@ -1930,7 +1885,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             
             // Create a FederateInstance for each top-level reactor.
-            for (instantiation : mainDef.reactorClass.allInstantiations) {
+            for (instantiation : mainDefn.allInstantiations) {
                 // Assign an integer ID to the federate.
                 var federateID = federates.length
                 // Add the federate name to the list of names.
@@ -1980,7 +1935,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // AST with an action (which inherits the delay) and two reactions.
             // The action will be physical.
             var connectionsToRemove = new LinkedList<Connection>()
-            for (connection : mainDef.reactorClass.connections) {
+            for (connection : mainDefn.connections) {
                 var leftFederate = federateByReactor.get(connection.leftPort.container.name)
                 var rightFederate = federateByReactor.get(connection.rightPort.container.name)
                 if (leftFederate !== rightFederate) {
@@ -2033,7 +1988,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             for (connection : connectionsToRemove) {
                 // Remove the original connection for the parent.
-                mainDef.reactorClass.connections.remove(connection)
+                mainDefn.connections.remove(connection)
             }
         }
     }

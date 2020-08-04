@@ -48,6 +48,7 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -57,6 +58,7 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.ReactorDecl
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
@@ -155,7 +157,7 @@ class ASTUtils {
         val input = factory.createVarRef
         val output = factory.createVarRef
         
-        val delayClass = delayInstance.reactorClass
+        val delayClass = delayInstance.reactorClass.toDefinition
         
         // Establish references to the involved ports.
         input.container = delayInstance
@@ -605,7 +607,7 @@ class ASTUtils {
     def static List<Action> allActions(Reactor definition) {
         val result = new LinkedList<Action>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allActions)
+            result.addAll(base.toDefinition.allActions)
         }
         result.addAll(definition.actions)
         return result
@@ -619,7 +621,7 @@ class ASTUtils {
     def static List<Connection> allConnections(Reactor definition) {
         val result = new LinkedList<Connection>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allConnections)
+            result.addAll(base.toDefinition.allConnections)
         }
         result.addAll(definition.connections)
         return result
@@ -633,7 +635,7 @@ class ASTUtils {
     def static List<Input> allInputs(Reactor definition) {
         val result = new LinkedList<Input>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allInputs)
+            result.addAll(base.toDefinition.allInputs)
         }
         result.addAll(definition.inputs)
         return result
@@ -647,7 +649,7 @@ class ASTUtils {
     def static List<Instantiation> allInstantiations(Reactor definition) {
         val result = new LinkedList<Instantiation>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allInstantiations)
+            result.addAll(base.toDefinition.allInstantiations)
         }
         result.addAll(definition.instantiations)
         return result
@@ -661,7 +663,7 @@ class ASTUtils {
     def static List<Output> allOutputs(Reactor definition) {
         val result = new LinkedList<Output>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allOutputs)
+            result.addAll(base.toDefinition.allOutputs)
         }
         result.addAll(definition.outputs)
         return result
@@ -675,7 +677,7 @@ class ASTUtils {
     def static List<Parameter> allParameters(Reactor definition) {
         val result = new LinkedList<Parameter>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allParameters)
+            result.addAll(base.toDefinition.allParameters)
         }
         result.addAll(definition.parameters)
         return result
@@ -689,7 +691,7 @@ class ASTUtils {
     def static List<Reaction> allReactions(Reactor definition) {
         val result = new LinkedList<Reaction>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allReactions)
+            result.addAll(base.toDefinition.allReactions)
         }
         result.addAll(definition.reactions)
         return result
@@ -703,7 +705,7 @@ class ASTUtils {
     def static List<StateVar> allStateVars(Reactor definition) {
         val result = new LinkedList<StateVar>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allStateVars)
+            result.addAll(base.toDefinition.allStateVars)
         }
         result.addAll(definition.stateVars)
         return result
@@ -717,7 +719,7 @@ class ASTUtils {
     def static List<Timer> allTimers(Reactor definition) {
         val result = new LinkedList<Timer>()
         for (base : definition.superClasses?:emptyList) {
-            result.addAll(base.allTimers)
+            result.addAll(base.toDefinition.allTimers)
         }
         result.addAll(definition.timers)
         return result
@@ -1306,10 +1308,22 @@ class ASTUtils {
      * @param r the reactor to check 
      * @true true if the reactor uses generics
      */
-    def static isGeneric(Reactor r) {
-        return r.typeParms.length != 0;
+    def static boolean isGeneric(Reactor r) {
+        var Reactor defn = r
+        
+        return defn?.typeParms.length != 0;
     }
     
+    
+    def static Reactor toDefinition(ReactorDecl r) {
+        if (r === null)
+            return null
+        if (r instanceof Reactor) {
+            return r
+        } else if (r instanceof ImportedReactor) {
+            return r.reactorClass
+        }
+    }
     /**
      * Retrieve a specific annotation in a JavaDoc style comment associated with the given model element in the AST.
      * 
@@ -1338,7 +1352,14 @@ class ASTUtils {
                                 line = node.text
                             }
                         } else if ("ML_COMMENT".equals(rule.name)) {
-                            line = node.text.split("\n").filterNull.findFirst[contains(key)]
+                            var found = false
+                            for (str : node.text.split("\n")) {
+                                if (!found && str.contains(key)) {
+                                    line = str
+                                }
+                            }
+                            // This is shorter but causes a warning:
+                            //line = node.text.split("\n").filterNull.findFirst[it.contains(key)]
                         }
                         if (line !== null) {
                             var value = line.substring(line.indexOf(key) + key.length).trim()
@@ -1353,6 +1374,20 @@ class ASTUtils {
             }
         }
         return null
+    }
+    
+    /**
+     * Remove quotation marks surrounding the specified string.
+     */
+    static def withoutQuotes(String s) {
+        var result = s
+        if (s.startsWith("\"") || s.startsWith("\'")) {
+            result = s.substring(1)
+        }
+        if (result.endsWith("\"") || result.endsWith("\'")) {
+            result = result.substring(0, result.length - 1)
+        }
+        result
     }
     
     /**

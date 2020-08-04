@@ -28,17 +28,12 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.util.HashMap
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.ReactorDecl
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor
@@ -319,8 +314,9 @@ class CCppGenerator extends CGenerator {
      * @param federate A federate name, or null to unconditionally generate.
      */
     override generateAuxiliaryStructs(
-        Reactor reactor, FederateInstance federate
+        ReactorDecl decl, FederateInstance federate
     ) {
+        val reactor = decl.toDefinition
         // First, handle inputs.
         for (input : reactor.allInputs) {
             if (input.inferredType.isTokenType) {

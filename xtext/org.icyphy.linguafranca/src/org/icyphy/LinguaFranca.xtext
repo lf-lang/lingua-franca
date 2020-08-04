@@ -58,9 +58,22 @@ Model:
 /**
  * Import declaration.
  */
-Import:
-    'import' importURI=Path ';'
-    ;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?;
+
+ReactorDecl: Reactor | ImportedReactor;
+
+ImportedReactor: reactorClass=[Reactor] ('as' name=ID)?;
+
+//Import:
+//    'import' ((importedNamespace=QualifiedNameWithWildcard ('as' alias=ID)?) | importURI=STRING) ';'
+//;
+    
+
+QualifiedName:
+    ID ('.' ID)*;
+    
+QualifiedNameWithWildcard:
+    QualifiedName '.*'?;
 
 /**
  * Declaration of a reactor class.
@@ -70,7 +83,7 @@ Reactor:
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
-    ('extends' (superClasses+=[Reactor] (',' superClasses+=[Reactor])*))?
+    ('extends' (superClasses+=[ReactorDecl] (',' superClasses+=[ReactorDecl])*))?
     '{'
     (     (preambles+=Preamble)
         | (stateVars+=StateVar)
@@ -191,7 +204,7 @@ Preamble:
 
 Instantiation:
     name=ID '=' 'new' (arraySpec=ArraySpec)?
-    reactorClass=[Reactor] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
+    reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
     ')' ('at' host=Host)? ';';
 
@@ -214,7 +227,7 @@ Element:
     | array=Array
     | literal=Literal 
     | (time=INT unit=TimeUnit) 
-    | id=ID;
+    | id=Path;
 
 ///////// Pieces
 TypedVariable:
@@ -276,15 +289,15 @@ WidthTerm:
     width=INT | parameter=[Parameter];
 
 IPV4Host:
-    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)? // ('/' dir=Directory)?
+    (user=Kebab '@')? addr=IPV4Addr (':' port=INT)?
 ;
 
 IPV6Host:
-    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?) // ('/' dir=Directory)?
+    ('[' (user=Kebab '@')? addr=IPV6Addr ']' (':' port=INT)?)
 ;
 
 NamedHost:
-    (user=Kebab '@')? addr=HostName (':' port=INT)? // ('/' dir=Directory)?
+    (user=Kebab '@')? addr=HostName (':' port=INT)?
 ;
 
 Host:
@@ -365,12 +378,15 @@ Code:
 ;
 
 // The following cannot be terminal because it overlaps ID.
-Path: 
-    ID ('.' ID)*;
+//Path: 
+//    ID ('.' ID)*;
     
+FSName: 
+    (ID | '.' | '_')+
+;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
-Directory:
-    (ID ':\\')? ('\\' | '/')? ID (('\\' | '/') ID)*
+Path:
+    (FSName ':\\')? ('\\' | '/')? FSName (('\\' | '/') FSName)*
 ;
 
 /////////// Enums
@@ -407,7 +423,7 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | 'at' |
+    'new' | 'federated' | 'at' | 'as' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
@@ -424,8 +440,12 @@ Token:
     '[' | ']' | '<' | '>' | '[]' |
     // Punctuation
     ':' | ';' | ',' | '.' | '::' |
+    // Slashes
+    ':\\' | '\\' | '/' |
     // Hyphen
     '-' |
+    // Underscore
+    '_' |
     // Arrow
     '->' | 
     // Assignment

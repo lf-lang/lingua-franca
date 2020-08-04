@@ -10,7 +10,7 @@ target C {
     coordination: centralized
 };
 
-import Count.lf;
+import Count from "lib/Count.lf";
 
 reactor Print {
     input in:int;
@@ -36,7 +36,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount at localhost {
+federated reactor DistributedCountMain at localhost {
     c = new Count();
     p = new Print();
     c.out -> p.in after 200 msec;    // Indicating a 'logical' connection.

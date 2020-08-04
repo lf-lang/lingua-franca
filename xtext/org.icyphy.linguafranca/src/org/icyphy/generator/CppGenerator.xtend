@@ -55,6 +55,8 @@ import java.util.stream.IntStream
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Port
 import org.icyphy.ASTUtils
+import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
+import com.google.inject.Inject
 
 /** Generator for C++ target.
  * 
@@ -63,6 +65,10 @@ import org.icyphy.ASTUtils
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class CppGenerator extends GeneratorBase {
+
+    @Inject
+    LinguaFrancaGlobalScopeProvider scopeProvider;
+    
 
     // Set of acceptable import targets includes only Cpp.
     val acceptableTargetSet = newHashSet('Cpp')
@@ -127,7 +133,7 @@ class CppGenerator extends GeneratorBase {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
         super.doGenerate(resource, fsa, context)
-        mainReactor = this.mainDef?.reactorClass
+        mainReactor = this.mainDef?.reactorClass.toDefinition
 
         if (mainReactor === null) {
             // No main reactor. Nothing to do.
@@ -149,14 +155,14 @@ class CppGenerator extends GeneratorBase {
             fsa.getAbsolutePath('''/«filename»/__include__/CLI/CLI11.hpp'''))
 
         for (r : reactors) {
-            fsa.generateFile(filename + File.separator + r.headerFile,
-                r.generateReactorHeader)
-            val implFile = r.isGeneric ? r.headerImplFile : r.sourceFile
+            fsa.generateFile(filename + File.separator + r.toDefinition.headerFile,
+                r.toDefinition.generateReactorHeader)
+            val implFile = r.toDefinition.isGeneric ? r.toDefinition.headerImplFile : r.toDefinition.sourceFile
             fsa.generateFile(filename + File.separator + implFile,
-                r.generateReactorSource)
+                r.toDefinition.generateReactorSource)
         }
 
-        for (r : importedResources.keySet) {
+        for (r : this.resources ?: emptyList) {
             fsa.generateFile(filename + File.separator + r.preambleSourceFile,
                 r.generatePreambleSource)
             fsa.generateFile(filename + File.separator + r.preambleHeaderFile,
@@ -221,7 +227,7 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def templateInstance(Instantiation i) '''
-        «i.reactorClass.name»«IF i.reactorClass.isGeneric»<«FOR t : i.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»
+        «i.reactorClass.name»«IF i.reactorClass.toDefinition.isGeneric»<«FOR t : i.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»
     '''
 
     def declareInstances(Reactor r) '''
@@ -330,7 +336,7 @@ class CppGenerator extends GeneratorBase {
 
     def includeInstances(Reactor r) '''
         «FOR i : r.instantiations AFTER '\n'»
-            #include "«i.reactorClass.headerFile»"
+            #include "«i.reactorClass.toDefinition.headerFile»"
         «ENDFOR»
     '''
 
@@ -523,11 +529,11 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializerList(Instantiation i) '''
-        {"«i.name»", this«FOR p : i.reactorClass.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
+        {"«i.name»", this«FOR p : i.reactorClass.toDefinition.parameters», «p.getTargetInitializer(i)»«ENDFOR»}
     '''
 
     def initializerList(Instantiation i, Integer id) '''
-        {"«i.name»_«id»", this«FOR p : i.reactorClass.parameters», «IF p.name == "id"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
+        {"«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "id"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
     '''
 
     def initializeInstances(Reactor r) '''
@@ -603,7 +609,7 @@ class CppGenerator extends GeneratorBase {
         #include <array>
 
         #include "reactor-cpp/reactor-cpp.hh"
-        «FOR i : importedResources.get(r) BEFORE "// include the preambles from imported resource \n"»
+        «FOR i : scopeProvider?.getImportedResources(r) ?: emptyList BEFORE "// include the preambles from imported resource \n"»
             #include "«i.preambleHeaderFile»"
         «ENDFOR»
         
@@ -884,9 +890,9 @@ class CppGenerator extends GeneratorBase {
         add_executable(«filename»
           main.cc
           «FOR r : reactors»
-              «IF !r.isGeneric»«r.sourceFile»«ENDIF»
+              «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile»«ENDIF»
           «ENDFOR»
-          «FOR r : importedResources.keySet»
+          «FOR r : resources»
               «r.preambleSourceFile»
           «ENDFOR»
         )

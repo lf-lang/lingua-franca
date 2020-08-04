@@ -19,7 +19,6 @@ reactor GeneratedDelay {
     SET(y_out, self->y_state);
   =}
 }
-
 reactor Source {
     output out:int;
     timer t;
@@ -28,6 +27,7 @@ reactor Source {
         SET(out, 1);
     =} 
 }
+
 reactor Sink {
 	input in:int;
 	reaction(in) {=

@@ -27,9 +27,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy
 
-import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
+import org.icyphy.graph.InstantiationGraph
+import org.icyphy.graph.ReactionGraph
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Deadline
 import org.icyphy.linguaFranca.Instantiation
@@ -39,9 +40,6 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Target
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Import
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.emf.common.util.URI
 
 /**
  * A helper class for analyzing the AST.
@@ -53,12 +51,7 @@ class ModelInfo {
      * Data structure for tracking dependencies between reactor classes. An 
      * instantiation of class A inside of class B implies that B depends on A.
      */
-    public AnnotatedDependencyGraph<Reactor> instantiationGraph
-    
-    /**
-     * A mapping from reactors to the sites of their instantiation.
-     */
-    public HashMap<Reactor, Set<Instantiation>> instantiationMap = new HashMap()
+    public InstantiationGraph instantiationGraph
 
     /**
      * The AST that the info gather in this class pertains to.
@@ -89,12 +82,7 @@ class ModelInfo {
      * Data structure for tracking dependencies between reactions.
      */
     public ReactionGraph reactionGraph
-
     
-    // FIXME: Potentially also move the name uniqueness checks here to ensure global uniqueness.
-    // FIXME: If a there is a cyclic instantiation somewhere inside an imported file, report an error
-    // on the import statement; establish a mapping for this.
-
     /**
      * Redo all analysis based on the given model.
      * @param model the model to analyze.
@@ -102,10 +90,10 @@ class ModelInfo {
     def update(Model model) {
         this.model = model
         
-        this.analyzeInstantiations()        
+        this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {
-            this.reactionGraph = new ReactionGraph(this.model)    
+            this.reactionGraph = new ReactionGraph(this.model)
         }
         
         // Find the target. A target must exist because the grammar requires it.
@@ -118,52 +106,6 @@ class ModelInfo {
         if (target == Targets.C) {
             this.collectOverflowingNodes()
         }
-                
-    }
-    
-    private def void collectImports(Resource resource, Set<Resource> visited) {
-        for (import : resource.allContents.toIterable.filter(Import).filter [
-            it.importURI.endsWith(".lf") // Treating non-lf files as opaque.
-        ]) {
-            // Resolve the import as a URI relative to the current resource's URI.
-            val URI currentURI = resource?.getURI;
-            val URI importedURI = URI?.createFileURI(import.importURI);
-            val URI resolvedURI = importedURI?.resolve(currentURI);
-            val importResource = resource.resourceSet?.getResource(resolvedURI, true);
-            
-            // Continue recursion if not already visited.
-            if (!visited.contains(importResource)) {
-                visited.add(importResource)
-                collectImports(importResource, visited)
-            }
-        }
-    }
-    
-    /**
-     * Update the instantiation map, which is used in subsequent AST traversals,
-     * create a new instantiation graph, and report cycles if it has any.
-     */
-    private def analyzeInstantiations() {
-        this.instantiationMap = new HashMap()
-        this.instantiationGraph = new AnnotatedDependencyGraph()
-        
-        val resources = new HashSet<Resource>()
-        resources.add(model.eResource)
-        collectImports(model.eResource, resources)
-        
-        for (resource : resources) {
-            for (instantiation : resource.allContents.toIterable.filter(Instantiation)) {
-                var set = this.instantiationMap.get(instantiation.reactorClass)
-                if (set === null)
-                    set = new HashSet<Instantiation>()
-                set.add(instantiation)
-                this.instantiationMap.put(instantiation.reactorClass, set)
-                this.instantiationGraph.addEdge(
-                    new AnnotatedNode(instantiation.eContainer as Reactor),
-                    new AnnotatedNode(instantiation.reactorClass))
-            }
-        }
-        this.instantiationGraph.detectCycles()    
     }
 
     /**
@@ -224,7 +166,7 @@ class ModelInfo {
 
         // Iterate over the instantiations of the reactor in which the
         // current parameter was found.
-        for (instantiation : this.instantiationMap.get(
+        for (instantiation : this.instantiationGraph.getInstantiations(
             current.eContainer as Reactor) ?: emptySet) {
             // Only visit each instantiation once per deadline to avoid cycles.
             if (!visited.contains(instantiation)) {

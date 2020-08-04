@@ -3,9 +3,23 @@
 // copying, it just gets ownership of the original struct.
 // It modifies it and passes it to Print. It gets freed after
 // Print is done with it.
-target C;
-import StructPrint.lf;
-reactor Scale(scale:int(2)) {
+target C {files: ["include/hello.h"]};
+
+// expected parameter is for testing.
+reactor TestInput(expected:int(42)) {
+    
+    input in:hello_t*;
+    
+    reaction(in) {=
+        printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
+        if (in->value->value != self->expected) {
+            printf("ERROR: Expected value to be %d.\n", self->expected);
+            exit(1);
+        }
+    =}
+}
+
+reactor Print(scale:int(2)) {
     // Mutable keyword indicates that this reactor wants a writable copy of the input.
     mutable input in:hello_t*;
     
@@ -17,9 +31,9 @@ reactor Scale(scale:int(2)) {
 }
 
 main reactor StructScale {
-    s = new StructPrint();
-    c = new Scale();
-    p = new Print(expected=84);
+    s = new Print();
+    c = new Print();
+    p = new TestInput(expected=84);
     s.out -> c.in;
     c.out -> p.in;
 }

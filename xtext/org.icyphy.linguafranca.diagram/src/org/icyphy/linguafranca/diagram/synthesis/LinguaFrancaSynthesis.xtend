@@ -44,7 +44,7 @@ import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.emf.ecore.EObject
 import org.icyphy.ASTUtils
-import org.icyphy.BreadCrumbTrail
+import org.icyphy.graph.BreadCrumbTrail
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Connection
@@ -68,6 +68,7 @@ import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensi
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import static extension org.icyphy.ASTUtils.*
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -518,7 +519,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Transform instances
 		for (entry : reactor.instantiations.indexed) {
 			val instance = entry.value
-			val rNodes = instance.reactorClass.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors, allReactorNodes)
+			val rNodes = instance.reactorClass.toDefinition.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors, allReactorNodes)
 			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, reactor.instantiations.size - entry.key)
 			nodes += rNodes
 		}

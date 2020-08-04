@@ -1,6 +1,7 @@
 // This tests the use of the "polymorphic" delay reactor on a struct.
 // It delays by a logical time any pointer datatype.
-target C;
+target C {files: ["include/hello.h"]};
+
 reactor DelayPointer(delay:time(100 msec)) {
     input in:void*;
     output out:void*;
@@ -17,12 +18,6 @@ reactor DelayPointer(delay:time(100 msec)) {
     =}
 }
 reactor Source {
-    preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.

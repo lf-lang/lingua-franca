@@ -21,7 +21,7 @@ reactor Print(expected:int(42)) {
         }
     =}
 }
-main reactor StructPrint {
+main reactor SetToken {
     s = new Source();
     p = new Print();
     s.out -> p.in;

@@ -1,7 +1,7 @@
 // This tests the ability to import a reactor definition
 // that itself imports a reactor definition.
 target Cpp;
-import Imported.lf;
+import Imported from "Imported.lf";
 main reactor Import {
      timer t;
      a = new Imported();

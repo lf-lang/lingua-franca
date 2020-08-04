@@ -1,14 +1,14 @@
 // Source produces a struct directly, rather than a pointer to
 // a struct.
-target C;
-reactor StructAsType {
-    preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
+target C {files: include/hello.h};
+
+preamble {=
+	#include "hello.h"
+=}
+
+reactor Source {
     output out:hello_t;
+    
     reaction(startup) -> out {=
         // Create the struct on the stack and then copy
         // it to the output as follows:
@@ -32,8 +32,8 @@ reactor Print(expected:int(42)) {
         }
     =}
 }
-main reactor StructPrint {
-    s = new StructAsType();
+main reactor StructAsType {
+    s = new Source();
     p = new Print();
     s.out -> p.in;
 }

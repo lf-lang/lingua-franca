@@ -20,6 +20,7 @@ reactor Source {
         self->iteration++;
     =}
 }
+
 // The scale parameter is just for testing.
 reactor Print(scale:int(1)) {
     input in:int[];
@@ -58,7 +59,7 @@ reactor Print(scale:int(1)) {
         }
     =}
 }
-main reactor DelayArray {
+main reactor DelayArrayWithAfter {
     s = new Source();
     p = new Print();
     s.out -> p.in after 1500 msec;

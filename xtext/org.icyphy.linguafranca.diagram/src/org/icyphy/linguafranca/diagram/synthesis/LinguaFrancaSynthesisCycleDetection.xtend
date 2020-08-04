@@ -8,8 +8,8 @@ import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import java.util.Map
 import java.util.function.Consumer
 import org.eclipse.elk.graph.properties.Property
-import org.icyphy.BreadCrumbTrail
-import org.icyphy.ReactionGraph
+import org.icyphy.graph.BreadCrumbTrail
+import org.icyphy.graph.ReactionGraph
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Reactor

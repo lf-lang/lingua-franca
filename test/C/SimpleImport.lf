@@ -1,5 +1,6 @@
 target C;
-import HelloWorld.lf;
+import HelloWorld from "HelloWorld.lf";
+
 main reactor SimpleImport {
     a = new HelloWorld();
     b = new HelloWorld();

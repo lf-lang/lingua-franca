@@ -36,6 +36,7 @@ import java.util.StringJoiner
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.icyphy.InferredType
 import org.icyphy.Targets.LoggingLevels
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
@@ -43,6 +44,7 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.TimeUnit
@@ -51,13 +53,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.InferredType
-import org.icyphy.linguaFranca.Reaction
-import java.nio.file.Files
-import java.nio.file.Paths
-import org.icyphy.linguaFranca.Import
-import org.eclipse.emf.ecore.resource.ResourceSet
-import org.eclipse.emf.common.util.URI
 
 /** Generator for TypeScript target.
  *
@@ -103,9 +98,6 @@ class TypeScriptGenerator extends GeneratorBase {
     // Path to the tsc command within the node modules directory
     var String tscPath
     
-    // Array of .proto filenames in the root directory.
-    var HashSet<String> protoFiles = new HashSet<String>()
-    
     // FIXME: The CGenerator expects these next two paths to be
     // relative to the directory, not the project folder
     // so for now I just left it that way. A different
@@ -149,7 +141,7 @@ class TypeScriptGenerator extends GeneratorBase {
            
         // Generate code for each reactor. 
         for (r : reactors) {
-           r.generateReactor()
+           r.toDefinition.generateReactor()
         }
         
         // Create output directories if they don't yet exist
@@ -183,7 +175,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // Build the instantiation tree if a main reactor is present.
             if (this.mainDef !== null) {
                 // Generate main instance, if there is one.
-                generateReactorFederated(this.mainDef.reactorClass, federate)
+                generateReactorFederated(this.mainDef.reactorClass.toDefinition, federate)
                 generateReactorInstance(this.mainDef)
                 generateRuntimeStart(this.mainDef) 
             }
@@ -276,7 +268,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--js_out=import_style=commonjs,binary:" + outPath,
                 "--ts_out=" + srcGenPath
             )
-            protocCommand.addAll(protoFiles)
+            protocCommand.addAll(protoFiles.fold(newLinkedList, [list, file | list.add(file.name); list]))
             println("Compiling imported .proto files with command: " + protocCommand.join(" "))
             executeCommand(protocCommand, directory)
             // FIXME: report errors from this command.
@@ -361,29 +353,6 @@ class TypeScriptGenerator extends GeneratorBase {
  
     override String getTargetReference(Parameter param) {
         return '''this.«param.name».get()'''
-    }
-    
-    /** Open a non-Lingua Franca import file at the specified URI
-     *  in the specified resource set. Throw an exception if the
-     *  file import is not supported. This class imports .proto files
-     *  and runs, if possible, the protoc protocol buffer code generator
-     *  to produce the required .d.ts and .js files.
-     *  @param importStatement The original import statement (used for error reporting).
-     *  @param resourceSet The resource set in which to find the file.
-     *  @param resolvedURI The URI to import.
-     */
-    override openForeignImport(Import importStatement, ResourceSet resourceSet, URI resolvedURI) {
-        // Unfortunately, the resolvedURI appears to be useless for ordinary files
-        // (non-xtext files). Use the original importStatement.importURI
-        if (importStatement.importURI.endsWith(".proto")) {
-            // Add this file to the list of protocol buffer files to import.
-            protoFiles.add(importStatement.importURI)
-        } else {
-            return reportError(importStatement, "Unsupported imported file type: "
-                + importStatement.importURI
-            )
-        }
-        return "OK"
     }
  
     // //////////////////////////////////////////
@@ -482,7 +451,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // reactor class, find the matching parameter assignments in
         // the reactor instance, and write the corresponding parameter
         // value as an argument for the TypeScript constructor
-        for (parameter : childReactor.reactorClass.parameters) {
+        for (parameter : childReactor.reactorClass.toDefinition.parameters) {
             childReactorArguments.add(parameter.getTargetInitializer(childReactor))
         }
         
@@ -924,7 +893,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // be undefined if the command line argument wasn't specified. Otherwise
         // use undefined in the constructor.
         var mainReactorParams = new StringJoiner(", ")
-        for (parameter : defn.reactorClass.parameters) {
+        for (parameter : defn.reactorClass.toDefinition.parameters) {
             
             if (customCLArgs.contains(parameter)) {
                 mainReactorParams.add("__CL" + parameter.name)
@@ -1064,7 +1033,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Extend the return type for commandLineArgs
         var clTypeExtension = new StringJoiner(", ")
         
-        for (parameter : mainReactor.parameters) {
+        for (parameter : mainReactor?.parameters ?: emptyList) {
             var String customArgType = null;
             var String customTypeLabel = null;
             var paramType = parameter.targetType
@@ -1313,12 +1282,16 @@ class TypeScriptGenerator extends GeneratorBase {
      private def generateProtoPreamble() {
         pr("// Imports for protocol buffers")
         // Generate imports for .proto files
-        for (protoImport : protoFiles) {
-            // Remove the .proto suffix
-            var protoName = protoImport.substring(0, protoImport.length - 6)
-            var protoFileName = protoName + "_pb"
+        for (file : protoFiles) {
+            // Remove any extension the file name may have.
+            var name = file.name
+            val dot = name.lastIndexOf('.')
+            if (dot > 0) {
+                name = name.substring(0, dot)
+            }
+            // FIXME: this will break when there are dots in the name.
             var protoImportLine = '''
-                import * as «protoName» from ".«File.separator»«protoFileName»"
+                import * as «name» from ".«File.separator»«name»_pb"
             '''
             pr(protoImportLine)  
         }

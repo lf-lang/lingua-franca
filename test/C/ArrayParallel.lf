@@ -3,7 +3,8 @@
 // NOTE: Ideally, only one copy would be made, but this requires
 // modifying the precedence graph between reactions.
 target C;
-import ArrayScale.lf;
+import Scale from "ArrayScale.lf";
+import Source, Print from "ArrayPrint.lf"
 
 main reactor ArrayParallel {
     s = new Source();

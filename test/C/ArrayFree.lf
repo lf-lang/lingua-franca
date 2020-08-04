@@ -4,7 +4,8 @@
 // It then does nothing further with it. This test checks
 // that the memory gets freed automatically even with the mutable input.
 target C;
-import ArrayScale.lf;
+import Source, Print from "ArrayPrint.lf";
+import Scale from "ArrayScale.lf";
 
 reactor Free(scale:int(2)) {
     mutable input in:int[];
