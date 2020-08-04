@@ -669,32 +669,42 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		// Transform connections
 		for (Connection connection : reactor.connections?:emptyList) {
-			val source = if (connection.leftPort?.container !== null) {
-				outputPorts.get(connection.leftPort.container, connection.leftPort.variable)
-			} else if (parentInputPorts.containsKey(connection.leftPort?.variable)) {
-				parentInputPorts.get(connection.leftPort.variable)
-			}
-			val target = if (connection.rightPort?.container !== null) {
-				inputPorts.get(connection.rightPort.container, connection.rightPort.variable)
-			} else if (parentOutputPorts.containsKey(connection.rightPort?.variable)) {
-				parentOutputPorts.get(connection.rightPort.variable)
-			}
-			val edge = createIODependencyEdge(connection)
-			if (connection.delay !== null) {
-				edge.addCenterEdgeLabel(connection.delay.toText) => [
-					associateWith(connection.delay)
-					if (connection.physical) {
-						applyOnEdgePysicalDelayStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
-					} else {
-						applyOnEdgeDelayStyle()
-					}
-				]
-			} else if (connection.physical) {
-				edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
-			}
-			if (source !== null && target !== null) {
-				edge.connect(source, target)
-			}
+		    for (leftPort : connection.leftPorts) {
+		        for (rightPort : connection.rightPorts) {
+                    val source = if (leftPort?.container !== null) {
+                            outputPorts.get(leftPort.container, leftPort.variable)
+                        } else if (parentInputPorts.containsKey(leftPort?.variable)) {
+                            parentInputPorts.get(leftPort.variable)
+                        }
+                    val target = if (rightPort?.container !== null) {
+                            inputPorts.get(rightPort.container, rightPort.variable)
+                        } else if (parentOutputPorts.containsKey(rightPort?.variable)) {
+                            parentOutputPorts.get(rightPort.variable)
+                        }
+                    val edge = createIODependencyEdge(connection)
+                    if (leftPort.multiportWidth > 1 || rightPort.multiportWidth > 1) {
+                        // FIXME: It would be nice to have a thicker line for multiport connections.
+                        // The following does not work, however.
+                        // edge.setLineWidth(3f)
+                    }
+                    if (connection.delay !== null) {
+                        edge.addCenterEdgeLabel(connection.delay.toText) => [
+                            associateWith(connection.delay)
+                            if (connection.physical) {
+                                applyOnEdgePysicalDelayStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
+                            } else {
+                                applyOnEdgeDelayStyle()
+                            }
+                        ]
+                    } else if (connection.physical) {
+                        edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
+                            reactor.primary ? Colors.WHITE : Colors.GRAY_95)
+                    }
+                    if (source !== null && target !== null) {
+                        edge.connect(source, target)
+                    }
+                }
+		    }
 		}
 		
 		// Add startup/shutdown
