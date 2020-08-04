@@ -140,8 +140,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             val cycleSet = newHashSet
             info.instantiationGraph.cycles.forEach[forEach[cycleSet.add(it)]]
             if (dependsOnCycle(reactor.toDefinition, cycleSet, newHashSet)) {
-                error("Imported reactor" + reactor.toDefinition.name +
-                    "has cyclic instantiation in it.",
+                error("Imported reactor '" + reactor.toDefinition.name +
+                    "' has cyclic instantiation in it.",
                     Literals.IMPORTED_REACTOR__REACTOR_CLASS)
             }
         }
@@ -150,9 +150,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check
     def checkImport(Import imp) {
         if (imp.reactorClasses.get(0).toDefinition.eResource.errors.size > 0) {
-            error("Error loading resource.", Literals.IMPORT__IMPORT_URI)
+            error("Error loading resource.", Literals.IMPORT__IMPORT_URI) // FIXME: print specifics.
+            return
         }
-
+        
+        // FIXME: report error if resource cannot be resolved.
+        
         for (reactor : imp.reactorClasses) {
             if (!reactor.unused) {
                 return

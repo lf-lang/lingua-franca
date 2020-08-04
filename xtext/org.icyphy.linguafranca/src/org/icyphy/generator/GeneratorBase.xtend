@@ -78,6 +78,8 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import org.eclipse.xtext.resource.XtextResource
+import org.eclipse.xtext.validation.CheckMode
 
 /**
  * Generator base class for shared code between code generators.
@@ -384,14 +386,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             IGeneratorContext context) {
         
         this.resource = resource
+        
+        
         // Figure out the file name for the target code from the source file name.
         resource.analyzeResource
-        
-        // Clear any markers that may have been created by a pervious build.
-        // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        clearMarkers()
-        
-        generatorErrorsOccurred = false
         
         var target = resource.findTarget
         targetName = target.name
@@ -492,15 +490,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
-        // The following "analysis" has hidden in it AST transformations.
-        // FIXME: We should factor them out and rename the following method
-        // parseTargetProperties or something along those lines. 
-        analyzeModel(resource, fsa, context)
-
-        // Replace connections in this resources that are annotated with the 
-        // "after" keyword by ones that go through a delay reactor. 
-        resource.insertGeneratedDelays(this)
-
+        // Clear any markers that may have been created by a previous build.
+        // Markers mark problems in the Eclipse IDE when running in integrated mode.
+        clearMarkers()
+        
+        generatorErrorsOccurred = false // FIXME: do this in clearMarkers?
+        
         // Collect a list of reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
         instantiationGraph = new InstantiationGraph(resource, false)
@@ -514,6 +509,34 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         for (r : this.reactors) {
             this.resources.add(r.eResource)
         }
+        // FIXME: This is just a proof of concept. What to do instead:
+        // - use reportError
+        // - report at node that represents import through which this resource
+        // was (transitively) reached; we need an ImportGraph for this resource
+        // reached.
+        // Alternatively: only validate the individual reactors that are imported
+        // This would allow importing a reactor from a file that has issues.
+        // Probably not the best idea.
+        for (r : this.resources) {
+            if (r !== this.resource) {
+                val issues = (r as XtextResource).resourceServiceProvider.
+                    resourceValidator.validate(r, CheckMode.ALL, null)
+                if (issues.size > 0) {
+                    println('''Issues found in «r.URI.toFileString».''')
+                    println(issues.join("\n"))
+                    return
+                }
+            }
+        }
+        // The following "analysis" has hidden in it AST transformations.
+        // FIXME: We should factor them out and rename the following method
+        // parseTargetProperties or something along those lines. 
+        analyzeModel(resource, fsa, context)
+
+        // Replace connections in this resources that are annotated with the 
+        // "after" keyword by ones that go through a delay reactor. 
+        resource.insertGeneratedDelays(this)
+
         
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
