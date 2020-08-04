@@ -27,7 +27,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy
 
-import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
 import org.icyphy.graph.InstantiationGraph
