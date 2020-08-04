@@ -61,6 +61,11 @@ static PyObject* py_start(PyObject *self, PyObject *args)
     // Set if the interpreter is already initialized
     int is_initialized = 0;
 
+    if(Py_IsInitialized())
+    {
+        is_initialized = 1;
+    }
+
     printf("Starting the function start()\n");
 
     // Necessary PyObject variables to load the react() function from test.py
@@ -222,6 +227,12 @@ static PyObject* py_start(PyObject *self, PyObject *args)
     }
     
     printf("Done with start()\n");
+
+    if(is_initialized == 0)
+    {
+        /* We are the first to initilize the Pyton interpreter. Destroy it when done. */
+        Py_FinalizeEx();
+    }
 
     Py_INCREF(Py_None);
     return Py_None;
