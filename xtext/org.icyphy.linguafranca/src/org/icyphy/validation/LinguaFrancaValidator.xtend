@@ -63,7 +63,6 @@ import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.NamedHost
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
