@@ -387,6 +387,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         this.resource = resource
         
+        // Clear any markers that may have been created by a previous build.
+        // Markers mark problems in the Eclipse IDE when running in integrated mode.
+        clearMarkers()
+        
+        generatorErrorsOccurred = false // FIXME: do this in clearMarkers?
         
         // Figure out the file name for the target code from the source file name.
         resource.analyzeResource
@@ -490,11 +495,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
         
-        // Clear any markers that may have been created by a previous build.
-        // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        clearMarkers()
+        // The following "analysis" has hidden in it AST transformations.
+        // FIXME: We should factor them out and rename the following method
+        // parseTargetProperties or something along those lines. 
+        analyzeModel(resource, fsa, context)
+
+        // Replace connections in this resources that are annotated with the 
+        // "after" keyword by ones that go through a delay reactor. 
+        resource.insertGeneratedDelays(this)
         
-        generatorErrorsOccurred = false // FIXME: do this in clearMarkers?
         
         // Collect a list of reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
@@ -528,15 +537,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 }
             }
         }
-        // The following "analysis" has hidden in it AST transformations.
-        // FIXME: We should factor them out and rename the following method
-        // parseTargetProperties or something along those lines. 
-        analyzeModel(resource, fsa, context)
-
-        // Replace connections in this resources that are annotated with the 
-        // "after" keyword by ones that go through a delay reactor. 
-        resource.insertGeneratedDelays(this)
-
         
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
