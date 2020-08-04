@@ -117,8 +117,7 @@ class Main {
     }
     
     /**
-     * Load resources, read in the code, parse it, validate it, and, finally,
-     * invoke the code generator.
+     * Load resource, validate it, and, invoke the code generator.
      */
     def protected runGenerator(String string, Properties properties) {
         // Load the resource
@@ -134,14 +133,6 @@ class Main {
         }
 
         val resource = set.getResource(URI.createFileURI(fileName), true)
-
-        // Read the code
-        val code = new StringBuilder();
-        val reader = new BufferedReader(new FileReader(fileName));
-        var String line;
-        while ((line = reader.readLine()) !== null) {
-            code.append(line).append("\n");
-        }
 
         // Validate the resource
         val issues = validator.validate(resource, CheckMode.ALL,
