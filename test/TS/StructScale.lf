@@ -4,7 +4,7 @@
 // It modifies it and passes it to Print. It gets freed after
 // Print is done with it.
 target TypeScript;
-import StructPrint.lf;
+import Print, Source from "StructPrint.lf";
 
 reactor Scale(scale:number(2)) {
     // Mutable keyword indicates that this reactor wants a writable copy of the input.

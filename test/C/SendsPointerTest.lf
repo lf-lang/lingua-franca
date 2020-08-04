@@ -1,10 +1,10 @@
 // Source produces a dynamically allocated struct, which it passes
 // to Print. Reference counting ensures that the struct is freed.
 target C;
+preamble {=
+    typedef int* int_pointer;
+=}
 reactor SendsPointer  {
-    preamble {=
-        typedef int* int_pointer;
-    =}
     output out:int_pointer;
     reaction(startup) -> out {=
         static int my_constant = 42;

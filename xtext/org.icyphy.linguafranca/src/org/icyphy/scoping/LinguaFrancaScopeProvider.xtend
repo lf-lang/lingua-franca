@@ -33,14 +33,20 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.xtext.naming.SimpleNameProvider
 import org.eclipse.xtext.scoping.Scopes
+import org.eclipse.xtext.scoping.impl.FilteringScope
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
+import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.VarRef
+
+import static extension org.icyphy.ASTUtils.*
 
 /**
  * This class enforces custom rules. In particular, it resolves references to 
@@ -56,7 +62,12 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
 
     @Inject
     SimpleNameProvider nameProvider
-
+    
+    @Inject
+    LinguaFrancaGlobalScopeProvider scopeProvider;
+    /**
+     * Enumerate of the kinds of references.
+     */
     protected enum RefType {
         NULL,
         TRIGGER,
@@ -66,31 +77,97 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
         CLEFT,
         CRIGHT
     }
-
+    
+    /**
+     * Depending on the provided context, construct the appropriate scope
+     * for the given reference.
+     * @param context The AST node in which a to-be-resolved reference occurs.
+     * @param reference The reference to resolve.
+     */
     override getScope(EObject context, EReference reference) {
         switch (context) {
             VarRef: return getScopeForVarRef(context, reference)
             Assignment: return getScopeForAssignment(context, reference)
+            Instantiation: return getScopeForReactorDecl(context, reference)
+            Reactor: return getScopeForReactorDecl(context, reference)
+            ImportedReactor: return getScopeForImportedReactor(context, reference)
         }
         return super.getScope(context, reference);
     }
+    
+    /**
+     * Filter out candidates that do not originate from the file listed in
+     * this particular import statement.
+     */
+    protected def getScopeForImportedReactor(ImportedReactor context,
+        EReference reference) {
+        val importedURI = scopeProvider.resolve(
+            (context.eContainer as Import).importURI ?: "", context.eResource)
+        if (importedURI !== null) {
+            // Filter out candidates that originate from a different resource.
+            return new FilteringScope(
+                super.getScope(context, reference), [ iod |
+                    iod.EObjectURI.toString.split('#').get(0).equals(
+                        importedURI.toString)
+                ])
+        }
+        return Scopes.scopeFor(newLinkedList)
+    }
+    
+    /**
+     * 
+     * @param obj Instantiation or Reactor that has a ReactorDecl to resolve.
+     * @param reference The reference to link to a ReactorDecl node.
+     */
+    protected def getScopeForReactorDecl(EObject obj, EReference reference) {
+        var Model model
+        val locals = newLinkedList
+        
+        // Find the local Model
+        if (obj.eContainer instanceof Model) {
+            model = obj.eContainer as Model
+        } else if (obj.eContainer.eContainer instanceof Model) {
+            model = obj.eContainer.eContainer as Model
+        } else {
+             // Empty list
+        }
+        
+        // Collect eligible candidates, all of which are local (i.e., not in other files).
+        model.reactors?.forEach[locals.add(it)]
+        model.imports?.forEach [
+            // Either point to the import statement (if it is renamed)
+            // or directly to the reactor definition.
+            it.reactorClasses?.forEach [
+                (it.name !== null) ? locals.add(it) : 
+                (it.reactorClass !== null) ? locals.add(it.reactorClass)
+            ]
+        ]
+        return Scopes.scopeFor(locals)
+    }
 
+    /**
+     * 
+     */
     protected def getScopeForAssignment(Assignment assignment,
         EReference reference) {
-
-        val candidates = new ArrayList<EObject>()
+        
         if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__LHS) {
-            return Scopes.scopeFor(
-                (assignment.eContainer as Instantiation).reactorClass.
-                    parameters)
+            val defn = (assignment.eContainer as Instantiation).reactorClass.toDefinition
+            if (defn !== null) {
+                return Scopes.scopeFor(defn.parameters)
+            }
+            
         }
         if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__RHS) {
             return Scopes.scopeFor(
                 (assignment.eContainer.eContainer as Reactor).parameters)
         }
-        return Scopes.scopeFor(candidates)
+        return Scopes.scopeFor(newLinkedList)
     }
 
+    /**
+     * 
+     */
     protected def getScopeForVarRef(VarRef variable, EReference reference) {
         if (reference == LinguaFrancaPackage.Literals.VAR_REF__VARIABLE) {
             // Resolve hierarchical reference
@@ -101,7 +178,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
             if (variable.eContainer.eContainer instanceof Reactor) {
                 reactor = variable.eContainer.eContainer as Reactor
             } else {
-                return Scopes.scopeFor([])
+                return Scopes.scopeFor(newLinkedList)
             }
 
             if (variable.eContainer instanceof Deadline) {
@@ -128,21 +205,23 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
                 val instanceName = nameProvider.
                     getFullyQualifiedName(variable.container)
                 val instances = reactor.instantiations
+                
                 for (instance : instances) {
-                    if (instanceName !== null &&
+                    val defn = instance.reactorClass.toDefinition
+                    if (defn !== null && instanceName !== null &&
                         instance.name.equals(instanceName.toString)) {
                         if (type === RefType.TRIGGER ||
                             type === RefType.SOURCE || type === RefType.CLEFT) {
                             return Scopes.scopeFor(
-                                instance.reactorClass.outputs)
+                                defn.outputs)
                         } else if (type === RefType.EFFECT ||
                             type === RefType.DEADLINE ||
                             type === RefType.CRIGHT) {
-                            return Scopes.scopeFor(instance.reactorClass.inputs)
+                            return Scopes.scopeFor(defn.inputs)
                         }
                     }
                 }
-                return Scopes.scopeFor(candidates) // empty set
+                return Scopes.scopeFor(candidates) // Empty list
             } else { // Resolve local reference
                 switch (type) {
                     case RefType.TRIGGER: {

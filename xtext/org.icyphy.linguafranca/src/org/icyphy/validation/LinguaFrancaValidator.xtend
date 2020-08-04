@@ -31,6 +31,7 @@ import java.util.Arrays
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Set
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
@@ -52,6 +53,8 @@ import org.icyphy.linguaFranca.Deadline
 import org.icyphy.linguaFranca.Host
 import org.icyphy.linguaFranca.IPV4Host
 import org.icyphy.linguaFranca.IPV6Host
+import org.icyphy.linguaFranca.Import
+import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
@@ -90,13 +93,6 @@ import static extension org.icyphy.ASTUtils.*
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
-    var reactorClasses = newHashSet()
-    var parameters = newHashSet()
-    var inputs = newHashSet()
-    var outputs = newHashSet()
-    var timers = newHashSet()
-    var actions = newHashSet()
-    var allNames = newHashSet() // Names of contained objects must be unique.
     var Targets target;
 
     var info = new ModelInfo()
@@ -131,6 +127,43 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     static val hostOrFQNRegex = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$"
 
+    public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
+
+    @Check
+    def checkImportedReactor(ImportedReactor reactor) {
+        if (reactor.unused) {
+            warning("Unused reactor class.",
+                Literals.IMPORTED_REACTOR__REACTOR_CLASS)
+        }
+
+        if (info.instantiationGraph.hasCycles) {
+            val cycleSet = newHashSet
+            info.instantiationGraph.cycles.forEach[forEach[cycleSet.add(it)]]
+            if (dependsOnCycle(reactor.toDefinition, cycleSet, newHashSet)) {
+                error("Imported reactor '" + reactor.toDefinition.name +
+                    "' has cyclic instantiation in it.",
+                    Literals.IMPORTED_REACTOR__REACTOR_CLASS)
+            }
+        }
+    }
+
+    @Check
+    def checkImport(Import imp) {
+        if (imp.reactorClasses.get(0).toDefinition.eResource.errors.size > 0) {
+            error("Error loading resource.", Literals.IMPORT__IMPORT_URI) // FIXME: print specifics.
+            return
+        }
+        
+        // FIXME: report error if resource cannot be resolved.
+        
+        for (reactor : imp.reactorClasses) {
+            if (!reactor.unused) {
+                return
+            }
+        }
+        warning("Unused import.", Literals.IMPORT__IMPORT_URI)
+    }
+
     // //////////////////////////////////////////////////
     // // Helper functions for checks to be performed on multiple entities
     // Check the name of a feature for illegal substrings.
@@ -154,24 +187,58 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     }
 
+    /**
+     * Report whether a given reactor has dependencies on a cyclic
+     * instantiation pattern. This means the reactor has an instantiation
+     * in it -- directly or in one of its contained reactors -- that is 
+     * self-referential.
+     * @param reactor The reactor definition to find out whether it has any
+     * dependencies on cyclic instantiations.
+     * @param cycleSet The set of all reactors that are part of an
+     * instantiation cycle.
+     * @param visited The set of nodes already visited in this graph traversal.
+     */
+    private def boolean dependsOnCycle(Reactor reactor, Set<Reactor> cycleSet,
+        Set<Reactor> visited) {
+        val origins = info.instantiationGraph.getOrigins(reactor)
+        if (visited.contains(reactor)) {
+            return false
+        } else {
+            visited.add(reactor)
+            if (origins.exists[cycleSet.contains(it)] || origins.exists [
+                it.dependsOnCycle(cycleSet, visited)
+            ]) {
+                // Reached a cycle.
+                return true
+            }
+        }
+        return false
+    }
+    
+    /**
+     * Report whether a given imported reactor is used in this resource or not.
+     * @param reactor The imported reactor to check whether it is used.
+     */
+    private def boolean isUnused(ImportedReactor reactor) {
+        val instantiations = reactor.eResource.allContents.filter(Instantiation)
+        val subclasses = reactor.eResource.allContents.filter(Reactor)
+        if (instantiations.
+            forall[it.reactorClass !== reactor && it.reactorClass !== reactor.reactorClass] &&
+            subclasses.forall [
+                it.superClasses.forall [
+                    it !== reactor && it !== reactor.reactorClass
+                ]
+            ]) {
+            return true
+        }
+        return false
+    }
+    
+
     // //////////////////////////////////////////////////
     // // Functions to set up data structures for performing checks.
     // FAST ensures that these checks run whenever a file is modified.
-    // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).
-    @Check(FAST)
-    def reset(Model model) {
-        reactorClasses.clear()
-    }
-
-    @Check(FAST)
-    def resetSets(Reactor reactor) {
-        parameters.clear()
-        inputs.clear()
-        outputs.clear()
-        timers.clear()
-        actions.clear()
-        allNames.clear()
-    }
+    // Alternatives are NORMAL (when saving) and EXPENSIVE (only when right-click, validate).    
 
     // //////////////////////////////////////////////////
     // // The following checks are in alphabetical order.
@@ -184,15 +251,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.ACTION__ORIGIN
             )
         }
-
-        if (allNames.contains(action.name)) {
-            error(
-                UNIQUENESS_MESSAGE + action.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        actions.add(action.name);
-        allNames.add(action.name)
     }
 
     @Check(FAST)
@@ -354,14 +412,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkInput(Input input) {
         checkName(input.name, Literals.VARIABLE__NAME)
-        if (allNames.contains(input.name)) {
-            error(
-                UNIQUENESS_MESSAGE + input.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        inputs.add(input.name)
-        allNames.add(input.name)
         if (target.requiresTypes) {
             if (input.type === null) {
                 error("Input must have a type.", Literals.TYPED_VARIABLE__TYPE)
@@ -381,14 +431,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkInstantiation(Instantiation instantiation) {
         checkName(instantiation.name, Literals.INSTANTIATION__NAME)
-        if (allNames.contains(instantiation.name)) {
-            error(
-                UNIQUENESS_MESSAGE + instantiation.name,
-                Literals.INSTANTIATION__NAME
-            )
-        }
-        allNames.add(instantiation.name)
-        if (instantiation.reactorClass.isMain || instantiation.reactorClass.isFederated) {
+        val reactor = instantiation.reactorClass.toDefinition
+        if (reactor.isMain || reactor.isFederated) {
             error(
                 "Cannot instantiate a main (or federated) reactor: " +
                     instantiation.reactorClass.name,
@@ -398,12 +442,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         
         // Report error if this instantiation is part of a cycle.
         // FIXME: improve error message.
+        // FIXME: Also report if there exists a cycle within.
         if (this.info.instantiationGraph.cycles.size > 0) {
             for (cycle : this.info.instantiationGraph.cycles) {
-                if (cycle.contains(instantiation.eContainer as Reactor) && cycle.contains(instantiation.reactorClass)) {
+                val container = instantiation.eContainer as Reactor
+                if (cycle.contains(container) && cycle.contains(reactor)) {
                     error(
                         "Instantiation is part of a cycle: " +
-                            instantiation.reactorClass.name,
+                            cycle.fold(newArrayList, [ list, r |
+                                list.add(r.name);
+                                list
+                            ]).join(', ') + ".",
                         Literals.INSTANTIATION__REACTOR_CLASS
                     )
                 }
@@ -551,14 +600,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkOutput(Output output) {
         checkName(output.name, Literals.VARIABLE__NAME)
-        if (allNames.contains(output.name)) {
-            error(
-                UNIQUENESS_MESSAGE + output.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        outputs.add(output.name);
-        allNames.add(output.name)
         if (this.target.requiresTypes) {
             if (output.type === null) {
                 error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE)
@@ -574,14 +615,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkParameter(Parameter param) {
         checkName(param.name, Literals.PARAMETER__NAME)
-        if (allNames.contains(param.name)) {
-            error(
-                UNIQUENESS_MESSAGE + param.name,
-                Literals.PARAMETER__NAME
-            )
-        }
-        parameters.add(param.name)
-        allNames.add(param.name)
 
         if (param.init.exists[it.parameter !== null]) {
             // Initialization using parameters is forbidden.
@@ -731,20 +764,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkReactor(Reactor reactor) {
-        checkName(reactor.name, Literals.REACTOR__NAME)
-        if (reactorClasses.contains(reactor.name)) {
-            error(
-                "Names of reactor classes must be unique: " + reactor.name,
-                Literals.REACTOR__NAME
-            )
-        }
-        reactorClasses.add(reactor.name);
+        checkName(reactor.name, Literals.REACTOR_DECL__NAME)
         
         // C++ reactors may not be called 'preamble'
         if (this.target == Targets.CPP && reactor.name.equalsIgnoreCase("preamble")) {
             error(
                 "Reactor cannot be named '" + reactor.name + "'",
-                Literals.REACTOR__NAME
+                Literals.REACTOR_DECL__NAME
             )
         }
         
@@ -771,13 +797,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             var conflicts = new HashSet()
             
             // Detect input conflicts
-            checkConflict(superClass.inputs, reactor.inputs, variables, conflicts)
+            checkConflict(superClass.toDefinition.inputs, reactor.inputs, variables, conflicts)
             // Detect output conflicts
-            checkConflict(superClass.outputs, reactor.outputs, variables, conflicts)
+            checkConflict(superClass.toDefinition.outputs, reactor.outputs, variables, conflicts)
             // Detect output conflicts
-            checkConflict(superClass.actions, reactor.actions, variables, conflicts)
+            checkConflict(superClass.toDefinition.actions, reactor.actions, variables, conflicts)
             // Detect conflicts
-            for (timer : superClass.timers) {
+            for (timer : superClass.toDefinition.timers) {
                 if (timer.hasNameConflict(variables.filter[it | !reactor.timers.contains(it)])) {
                     conflicts.add(timer)
                 } else {
@@ -874,14 +900,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkState(StateVar stateVar) {
         checkName(stateVar.name, Literals.STATE_VAR__NAME)
-        if (allNames.contains(stateVar.name)) {
-            error(
-                UNIQUENESS_MESSAGE + stateVar.name,
-                Literals.STATE_VAR__NAME
-            )
-        }
-        inputs.add(stateVar.name);
-        allNames.add(stateVar.name)
 
         if (stateVar.isOfTimeType) {
             // If the state is declared to be a time,
@@ -979,14 +997,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkTimer(Timer timer) {
         checkName(timer.name, Literals.VARIABLE__NAME)
-        if (allNames.contains(timer.name)) {
-            error(
-                UNIQUENESS_MESSAGE + timer.name,
-                Literals.VARIABLE__NAME
-            )
-        }
-        timers.add(timer.name);
-        allNames.add(timer.name)
     }
     
     @Check(FAST)
@@ -1005,8 +1015,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
     }
-
-    static val UNIQUENESS_MESSAGE = "Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: "
+        
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
     static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "

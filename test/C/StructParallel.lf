@@ -2,15 +2,38 @@
 // each of which want to modify it.
 // NOTE: Ideally, only one copy would be made, but this requires
 // modifying the precedence graph between reactions.
-target C;
-import StructScale.lf;
+target C {files: ["include/hello.h"]};
+//import StructScale.lf;
 
-main reactor ArrayParallel {
-    s = new StructPrint();
-    c1 = new Scale();
-    c2 = new Scale(scale = 3);
-    p1 = new Print(expected = 84);
-    p2 = new Print(expected = 126);
+reactor Check(expected:int(42)) {
+    input in:hello_t*;
+    reaction(in) {=
+        printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
+        if (in->value->value != self->expected) {
+            printf("ERROR: Expected value to be %d.\n", self->expected);
+            exit(1);
+        }
+    =}
+}
+
+reactor Print(scale:int(2)) {
+    // Mutable keyword indicates that this reactor wants a writable copy of the input.
+    mutable input in:hello_t*;
+    
+    output out:hello_t*;
+    reaction(in) -> out {=
+        in->value->value *= self->scale;
+        SET_TOKEN(out, in->token);
+    =}
+}
+
+
+main reactor StructParallel {
+    s = new Print();
+    c1 = new Print();
+    c2 = new Print(scale = 3);
+    p1 = new Check(expected = 84);
+    p2 = new Check(expected = 126);
     s.out -> c1.in;
     s.out -> c2.in;
     c1.out -> p1.in;

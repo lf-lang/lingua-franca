@@ -1,12 +1,11 @@
 // This tests delaying a struct using after.
-target C;
+target C {files: include/hello.h};
+
+preamble {=
+	#include "hello.h"
+=}
+
 reactor Source {
-    preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
     output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
@@ -28,7 +27,7 @@ reactor Print(expected:int(42)) {
         }
     =}
 }
-main reactor DelayStruct {
+main reactor DelayStructWithAfter {
     s = new Source();
     p = new Print();
     s.out -> p.in after 100 msec;

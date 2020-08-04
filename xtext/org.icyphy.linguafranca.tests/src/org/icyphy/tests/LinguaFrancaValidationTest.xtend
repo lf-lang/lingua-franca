@@ -83,7 +83,7 @@ class LinguaFrancaValidationTest {
      * Ensure that duplicate identifiers for actions reported.
      */
     @Test
-    def void unresolvedReactorReference() {
+    def void duplicateVariable() {
         parseWithoutError('''
             target TypeScript;
             main reactor Foo {
@@ -91,7 +91,7 @@ class LinguaFrancaValidationTest {
                 physical action bar;
             }
         ''').assertError(LinguaFrancaPackage::eINSTANCE.action, null,
-            'Names of contained objects (inputs, outputs, actions, timers, parameters, state, and reactors) must be unique: bar')
+        "Duplicate Variable 'bar' in Reactor 'Foo'")
     }
     
     /**
@@ -396,9 +396,9 @@ class LinguaFrancaValidationTest {
             }
         ''')
         model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
-            null, 'Instantiation is part of a cycle: Contained')
+            null, 'Instantiation is part of a cycle: Contained, Intermediate.')
         model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
-            null, 'Instantiation is part of a cycle: Intermediate')
+            null, 'Instantiation is part of a cycle: Contained, Intermediate.')
     }
     
     /**

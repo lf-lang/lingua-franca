@@ -1,9 +1,10 @@
 // This is used by the test for the ability to import a reactor definition
 // that itself imports a reactor definition.
 target C;
-import ImportedAgain.lf;
+import ImportedAgain from "./ImportedAgain.lf"
 reactor Imported {
-	input x:int;
+    
+    input x:int;
 	a = new ImportedAgain();
 	reaction(x) -> a.x {=
 		SET(a.x, x->value); 

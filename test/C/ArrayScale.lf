@@ -4,7 +4,7 @@
 // It modifies it and passes it to Print. It gets freed after
 // Print is done with it.
 target C;
-import ArrayPrint.lf;
+import Print, Source from "ArrayPrint.lf";
 
 reactor Scale(scale:int(2)) {
     mutable input in:int[];
@@ -16,6 +16,7 @@ reactor Scale(scale:int(2)) {
         SET_TOKEN(out, in->token);
     =}
 }
+
 main reactor ArrayScale {
     s = new Source();
     c = new Scale();

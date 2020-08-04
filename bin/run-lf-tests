@@ -55,14 +55,18 @@ else
                 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
                 echo "================================================================================";
                 eval "$offset""bin/lfc ""$p";
+                if [ $? -ne 0 ]; then
+                    failed="$name $failed"
+                    continue
+                fi
                 echo "================================================================================";
                 if [ $1 == "Cpp" ]; then
                     command="bin/$name"
                 elif [ $1 == "C" ]; then
                     command="bin/$name"
-	        elif [ $1 == "CCpp" ]; then
+	            elif [ $1 == "CCpp" ]; then
                     command="bin/$name"
-	        elif [ $1 == "TS" ]; then
+	            elif [ $1 == "TS" ]; then
                     command="node ${name}/dist/${name}"".js"
                 else
                     echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";
