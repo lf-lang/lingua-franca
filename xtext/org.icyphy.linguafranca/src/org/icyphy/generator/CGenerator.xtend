@@ -658,19 +658,17 @@ class CGenerator extends GeneratorBase {
         }
         // Restore the base filename.
         filename = baseFilename
-        
-        // In case we are in Eclipse, make sure the generated code is visible.
-        refreshProject()
-        
+                
         if (!targetNoCompile) {
             compileCode()
         } else {
             println("Exiting before invoking target compiler.")
         }
-        
-        
+                
         writeCleanCode(filename)
         
+        // In case we are in Eclipse, make sure the generated code is visible.
+        refreshProject()
     }
     
     /** Overwrite the generated code after compile with a
