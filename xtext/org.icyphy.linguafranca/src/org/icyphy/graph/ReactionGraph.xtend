@@ -127,7 +127,7 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
                                 remainingLeftPorts -= connected
                                 remainingRightPorts -= connected
                             }
-                            if (remainingRightPorts === 0) {
+                            if (remainingRightPorts === 0 && rightPortCount < c.rightPorts.length - 1) {
                                 rightPortCount++
                                 rightPort = c.rightPorts.get(rightPortCount)
                                 remainingRightPorts = rightPort.multiportWidth

@@ -232,8 +232,8 @@ class CppGenerator extends GeneratorBase {
 
     def declareInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
-            «IF i.arraySpec !== null»
-                std::array<«i.templateInstance», «i.arraySpec.length»> «i.name»;
+            «IF i.widthSpec !== null»
+                std::array<«i.templateInstance», «i.widthSpec.width»> «i.name»;
             «ELSE»
                 «i.templateInstance» «i.name»;
             «ENDIF»
@@ -538,8 +538,8 @@ class CppGenerator extends GeneratorBase {
 
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            «IF i.arraySpec !== null»
-                , «i.name»{{«FOR id : IntStream.range(0, i.arraySpec.length).toArray SEPARATOR ", "»«i.initializerList(id)»«ENDFOR»}}
+            «IF i.widthSpec !== null»
+                , «i.name»{{«FOR id : IntStream.range(0, i.widthSpec.width).toArray SEPARATOR ", "»«i.initializerList(id)»«ENDFOR»}}
             «ELSE»
                 , «i.name»«i.initializerList»
             «ENDIF»
@@ -673,40 +673,70 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def generate(Connection c) {
-        val leftContainer = c.leftPort.container
-        val rightContainer = c.rightPort.container
-        val leftPort = c.leftPort.variable as Port
-        val rightPort = c.rightPort.variable as Port
-
-        if (leftContainer !== null && leftContainer.arraySpec !== null &&
-            rightContainer !== null && rightContainer.arraySpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
-                  «leftContainer.name»[i].«leftPort.name».bind_to(&«rightContainer.name»[i].«rightPort.name»);
+        val result = new StringBuffer()
+        var rightPort = c.rightPorts.get(0)
+        var rightPortCount = 1
+        // The index will go from zero to mulitportWidth - 1.
+        var rightPortIndex = 0
+        var rightWidth = rightPort.multiportWidth
+        var rightContainer = rightPort.container
+        for (leftPort : c.leftPorts) {
+            var leftPortIndex = 0
+            val leftContainer = leftPort.container
+            val leftWidth = leftPort.multiportWidth
+            while (leftPortIndex < leftWidth) {
+                // Figure out how many bindings to do.
+                var remainingLeftPorts = leftWidth - leftPortIndex
+                var remainingRightPorts = rightWidth - rightPortIndex
+                var min = (remainingRightPorts < remainingLeftPorts)?
+                        remainingRightPorts : remainingLeftPorts
+                // If the left or right port is a port in a bank of reactors,
+                // then we need to construct the index for the bank.
+                // Start with the left port.
+                var leftBankArrayIndex = ''
+                var leftPortArrayIndex = ''
+                if (leftContainer !== null && leftContainer.widthSpec !== null) {
+                    // The left port is within a bank of reactors.
+                    val leftBankWidth = leftContainer.widthSpec.width
+                    leftBankArrayIndex = '''[(«leftPortIndex» + i) / «leftBankWidth»]'''
+                    if ((leftPort.variable as Port).widthSpec !== null) {
+                        leftPortArrayIndex = '''[(«leftPortIndex» + i) % «leftBankWidth»]'''
+                    }
+                } else if ((leftPort.variable as Port).widthSpec !== null) {
+                    // The left port is not within a bank of reactors but is a multiport.
+                    leftPortArrayIndex = '''[(«leftPortIndex» + i)]'''
                 }
-            '''
-        } else if (leftContainer !== null && leftContainer.arraySpec !== null &&
-            rightPort.widthSpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
-                  «leftContainer.name»[i].«leftPort.name».bind_to(&«c.rightPort.name»[i]);
+                // Next, do the right port.
+                var rightBankArrayIndex = ''
+                var rightPortArrayIndex = ''
+                if (rightContainer !== null && rightContainer.widthSpec !== null) {
+                    // The right port is within a bank of reactors.
+                    val rightBankWidth = rightContainer.widthSpec.width
+                    rightBankArrayIndex = '''[(«rightPortIndex» + i) / «rightBankWidth»]'''
+                    if ((rightPort.variable as Port).widthSpec !== null) {
+                        rightPortArrayIndex = '''[(«rightPortIndex» + i) % «rightBankWidth»]'''
+                    }
+                } else if ((rightPort.variable as Port).widthSpec !== null) {
+                    // The right port is not within a bank of reactors but is a multiport.
+                    rightPortArrayIndex = '''[(«leftPortIndex» + i)]'''
                 }
-            '''
-        } else if (leftPort.widthSpec !== null && rightContainer !== null &&
-            rightContainer.arraySpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
-                  «c.leftPort.name»[i].bind_to(&«rightContainer.name»[i].«rightPort.name»);
+                result.append('''
+                    for (unsigned i = 0; i < «min»; i++) {
+                        «leftContainer.name»«leftBankArrayIndex».«leftPort.name»«leftPortArrayIndex»
+                                .bind_to(&«rightContainer.name»«rightBankArrayIndex».«rightPort.name»«rightPortArrayIndex»);
+                    }
+                ''')
+                leftPortIndex += min
+                rightPortIndex += min
+                if (rightPortIndex == rightPort.multiportWidth) {
+                    // Get the next right port. Here we rely on the validator to
+                    // have checked that the connection is balanced.
+                    rightPort = c.rightPorts.get(rightPortCount++)
+                    rightWidth = rightPort.multiportWidth
+                    rightPortIndex = 0
+                    rightContainer = rightPort.container
                 }
-            '''
-        } else if (leftPort.widthSpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
-                  «c.leftPort.name»[i].bind_to(&«c.rightPort.name»[i]);
-                }
-            '''
-        } else {
-            return '''«c.leftPort.name».bind_to(&«c.rightPort.name»);'''
+            }
         }
     }
 

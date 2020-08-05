@@ -547,18 +547,27 @@ class TypeScriptGenerator extends GeneratorBase {
         // Next handle connections
         for (connection : reactor.connections) {
             var leftPortName = ""
-            if (connection.leftPort.container !== null) {
-                leftPortName += connection.leftPort.container.name + "."
+            // FIXME: This is not yet supporting parallel connections.
+            if (connection.leftPorts.length > 1) {
+                reportError(connection, "FIXME: parallel connections are not yet supported in the TypeScript target.")
+            } else {
+                if (connection.leftPorts.get(0).container !== null) {
+                    leftPortName += connection.leftPorts.get(0).container.name + "."
+                }
+                leftPortName += connection.leftPorts.get(0).variable.name
             }
-            leftPortName += connection.leftPort.variable.name 
-            
             var rightPortName = ""
-            if (connection.rightPort.container !== null) {
-                rightPortName += connection.rightPort.container.name + "."
+            if (connection.leftPorts.length > 1) {
+                reportError(connection, "FIXME: parallel connections are not yet supported in the TypeScript target.")
+            } else {
+                if (connection.rightPorts.get(0).container !== null) {
+                    rightPortName += connection.rightPorts.get(0).container.name + "."
+                }
+                rightPortName += connection.rightPorts.get(0).variable.name 
             }
-            rightPortName += connection.rightPort.variable.name 
-            
-            pr(reactorConstructor, "this._connect(this." + leftPortName + ", this." + rightPortName + ");")
+            if (leftPortName != "" && rightPortName != "") {
+                pr(reactorConstructor, "this._connect(this." + leftPortName + ", this." + rightPortName + ");")
+            }
         }
         
         // If the app is federated, register its
