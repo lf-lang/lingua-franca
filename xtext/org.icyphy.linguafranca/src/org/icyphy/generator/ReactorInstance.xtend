@@ -162,46 +162,31 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // Unfortunately, we have to do some complicated things here
         // to support multiport-to-multiport, multiport-to-bank,
         // and bank-to-multiport communication.  The principle being followed is:
-        
-        // In each connection statement, make as many connections as possible until
-        // either the source ports or the destination ports have been used up.
-        // If either is not used up, then subsequent connection statements will
-        // pick up where this one left off.  If the source connection is used up,
-        // then subsequent connection statements from this same source will start
-        // over from the beginning.
-        
-        // The above principle is realized by the nextPort() function.
-
-        // If after all connections in a reactor have been made, there remain
-        // either destination ports or source ports that have not been used up,
-        // issue a warning. Despite the warning, the generated code will run.
-        // An output channel that has no corresponding input channel simply
-        // results in discarding the data. An input channel that has no
-        // corresponding output channel will always have its `is_present`
-        // field evaluate to false.
+        // In each connection statement, for each port instance on the left,
+        // as obtained by the nextPort() function, connect to the next available
+        // port on the right, as obtained by the nextPort() function.
         for (connection : definition.reactorClass.toDefinition.allConnections) {
-            // Always check first whether there is a destination instance
-            // ready to receive before checking whether there is a source
-            // instance ready to send so that we can warn when not all sources
-            // are connected (and hence data may be lost).
-            var dstInstance = nextPort(connection.rightPort)
-            if (dstInstance !== null) {
-                var srcInstance = nextPort(connection.leftPort)
-                while (dstInstance !== null && srcInstance !== null) {
-                    connectPortInstances(connection, srcInstance, dstInstance)
-                    dstInstance = nextPort(connection.rightPort)
-                    if (dstInstance !== null) {
-                        srcInstance = nextPort(connection.leftPort)
+            var rightPort = connection.rightPorts.get(0)
+            var rightPortCount = 1
+            for (leftPort : connection.leftPorts) {
+                var leftPortInstance = nextPort(leftPort)
+                while (leftPortInstance !== null) {
+                    var rightPortInstance = nextPort(rightPort)
+                    if (rightPortInstance === null) {
+                        // We have run out of right ports. We may have also run out of
+                        // left ports, so get a new right port only if there is one.
+                        // We rely on the validator to ensure that the connection is balanced.
+                        if (rightPortCount < connection.rightPorts.length) {
+                            rightPort = connection.rightPorts.get(rightPortCount++)
+                            rightPortInstance = nextPort(rightPort)
+                        }
                     }
+                    // rightPortInstance should not be null, but to ensure no NPE, we check anyway.
+                    if (rightPortInstance !== null) {
+                        connectPortInstances(connection, leftPortInstance, rightPortInstance)
+                    }
+                    leftPortInstance = nextPort(leftPort)
                 }
-            }
-            // It is possible for dstInstance to be non-null here, which means
-            // that a destination was found where there was no corresponding source.
-            // Need to reverse the incrementing of the multiport channel and/or bank index.
-            // Otherwise, the next connection to use this destination may skip over
-            // a channel and/or bank.
-            if (dstInstance !== null) {
-                reverseIncrement(connection.rightPort, dstInstance)
             }
         }
         
@@ -287,70 +272,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * For the specified port reference, if it is a multiport, decrement
-     * the multiport bank tracker by one. If it is also in a bank and the
-     * decrement drops below zero, then decrement the bank also.
-     * If it is a single port in a bank, then mark it unused and,
-     * if it is also in a bank, decrement the bank counter.
-     * @param portReference The reference to the port in a connect statement.
-     * @param portInstance The port instance that was found (a single port).
-     */
-    def reverseIncrement(VarRef portReference, PortInstance portInstance) {
-        if (portInstance.multiport !== null) {
-            // Port is in a multiport.
-            var portIndex = nextPortTable.get(portInstance.multiport)?:0
-            if (portIndex > 0) {
-                nextPortTable.put(portInstance.multiport, portIndex - 1)
-            } else {
-                // The portIndex is 0.
-                // The port must be in a bank, so we have to decrement the bank count.
-                var nextBank = nextBankTable.get(portReference) ?: 0
-                if (nextBank > 0) {
-                    nextBankTable.put(portReference, nextBank - 1)
-                    // Have to also find the channel reference for the port in the
-                    // previous bank and decrement that.
-                    var reactor = this
-                    if (portReference.container !== null) {
-                        reactor = getChildReactorInstance(portReference.container)
-                    }
-                    if (reactor.bankMembers === null) {
-                        // This should not occur.
-                        generator.reportWarning(portReference,
-                        '''INTERNAL ERROR 1: Port «portInstance.getFullName» should have had incremented its channel or bank index.''')
-                    } else {
-                        val memberReactor = reactor.bankMembers.get(nextBank - 1)
-                        val port = memberReactor.lookupPortInstance(portReference.variable as Port)
-                        val portIdx = nextPortTable.get(port)?:0
-                        if (portIdx <= 0) {
-                            // This should not occur.
-                            generator.reportWarning(
-                                portReference, '''INTERNAL ERROR 2: Port «portInstance.getFullName» should have had incremented its channel or bank index.''')
-                        } else {
-                            nextPortTable.put(port, portIdx - 1)
-                        }
-                    }
-                } else {
-                    // Bank index and multiport channel are both 0.
-                    // This should not occur.
-                    generator.reportWarning(portReference,
-                    '''INTERNAL ERROR 3: Port «portInstance.getFullName» should have had incremented its channel or bank index.''')
-                }
-            }
-        } else if (!portReference.isSource) {
-            // Not a multiport.
-            // Port may have been marked used when it was not.
-            nextPortTable.put(portInstance, 0)
-        }
-    }
-    
-    /**
      * Given a VarRef for either the left or the right side of a connection
      * statement within this reactor instance, return the next available port instance
      * for that connection. If there are no more available ports, return null.
-     * To realize a connection statement, make connections until one side or
-     * the other of the connection statement causes this method to return null.
      * 
-     * If this reactor is not a bank of reactors and the
+     * This handles parallel connections like `a.out || b.out -> c.in || d.in`.
+     * Each VarRef on each side may also refer to a port of this reactor, as in
+     * `in1 || in2 -> b.in`.
+     * To realize such connection statements, make connections until one side or
+     * the other of the connection statement causes this method to return null,
+     * then proceed to the next port on that side.
+     * 
+     * If the reactor is not a bank of reactors and the
      * port is not a multiport, then the returned port instance will simply
      * be the port referenced, which may be a port of this reactor or a port
      * of a contained reactor, unless that same port was returned by the previous
@@ -360,7 +293,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * in the multiport, returning a new port each time it is called, until all ports
      * in the multiport have been returned. Then it will return null.
      * 
-     * If this reactor is a bank of reactors, the this method will iterate through
+     * If the reactor is a bank of reactors, then this method will iterate through
      * the bank, returning a new port each time it is called, until all ports in all
      * banks are exhausted, at which time it will return null.
      * 
@@ -462,12 +395,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             var portIndex = nextPortTable.get(portInstance)?:0
             if (portIndex > 0) {
                 // Port has been used.
+                // If it is a source, reset the nextPortTable so it can be reused.
+                if (portReference.isSource) {
+                    nextPortTable.put(portInstance, 0)
+                }
                 return null
             }
-            // Mark this port used if it is not a source.
-            if (!portReference.isSource) {
-                nextPortTable.put(portInstance, 1)
-            }
+            nextPortTable.put(portInstance, 1)
             return portInstance
         }
     }
@@ -490,14 +424,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param dstInstance The destination instance (the right port).
      */
     def connectPortInstances(Connection connection, PortInstance srcInstance, PortInstance dstInstance) {
-        if (srcInstance === null) {
-            generator.reportError(connection.leftPort, "Invalid port.")
-            return
-        }
-        if (dstInstance === null) {
-            generator.reportError(connection.rightPort, "Invalid port.")
-            return
-        }
         srcInstance.dependentPorts.add(dstInstance)
         if (dstInstance.dependsOnPort !== null && dstInstance.dependsOnPort !== srcInstance) {
             generator.reportError(
@@ -505,6 +431,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 "dstInstance port " + dstInstance.getFullName + " is already connected to " +
                     dstInstance.dependsOnPort.getFullName
             )
+            return
         }
         dstInstance.dependsOnPort = srcInstance
         var dstInstances = this.destinations.get(srcInstance)

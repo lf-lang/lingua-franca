@@ -683,9 +683,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         }
                     val edge = createIODependencyEdge(connection)
                     if (leftPort.multiportWidth > 1 || rightPort.multiportWidth > 1) {
-                        // FIXME: It would be nice to have a thicker line for multiport connections.
-                        // The following does not work, however.
-                        // edge.setLineWidth(3f)
+                        // Render multiport connections and bank connections in bold.
+                        edge.KRendering.setLineWidth(3f)
                     }
                     if (connection.delay !== null) {
                         edge.addCenterEdgeLabel(connection.delay.toText) => [

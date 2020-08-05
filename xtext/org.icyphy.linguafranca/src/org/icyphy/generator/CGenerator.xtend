@@ -1368,28 +1368,6 @@ class CGenerator extends GeneratorBase {
             }
         }
 
-        // Find output ports that receive data from inside reactors
-        // and put them into a HashMap for future use.
-        var outputToContainedOutput = new HashMap<Output, VarRef>();
-        for (connection : reactor.connections) {
-            // If the connection has the form c.x -> y, then it's what we are looking for.
-            if (connection.rightPort.container === null &&
-                connection.leftPort.container !== null) {
-                if (connection.rightPort.variable instanceof Output) {
-                    outputToContainedOutput.put(
-                        connection.rightPort.variable as Output,
-                        connection.leftPort
-                    )
-                } else {
-                    reportError(
-                        connection,
-                        "Expected an output port but got " +
-                            connection.rightPort.variable.name
-                    )
-                }
-            }
-        }
-
         // Next handle outputs.
         for (output : reactor.allOutputs) {
             // If the port is a multiport, create an array to be allocated

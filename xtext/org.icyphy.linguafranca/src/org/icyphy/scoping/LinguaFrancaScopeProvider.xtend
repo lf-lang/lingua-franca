@@ -194,9 +194,9 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
                 }
             } else if (variable.eContainer instanceof Connection) {
                 val conn = variable.eContainer as Connection
-                if (conn.leftPort === variable) {
+                if (conn.leftPorts.contains(variable)) {
                     type = RefType.CLEFT
-                } else if (conn.rightPort === variable) {
+                } else if (conn.rightPorts.contains(variable)) {
                     type = RefType.CRIGHT
                 }
             }
