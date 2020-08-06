@@ -56,6 +56,5 @@ main reactor MultiportIn {
     a.out -> t2.in;
     a.out -> t3.in;
     a.out -> t4.in;
-    // FIXME: Syntax should be:
-    t1.out || t2.out || t3.out || t4.out -> b.in; 
+    t1.out || t2.out || t3.out || t4.out -> b.in;
 }

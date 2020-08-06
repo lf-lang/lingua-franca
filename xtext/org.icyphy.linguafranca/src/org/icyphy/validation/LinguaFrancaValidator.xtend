@@ -28,6 +28,7 @@ package org.icyphy.validation
 
 import java.util.ArrayList
 import java.util.Arrays
+import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
@@ -333,8 +334,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // Make sure that the total width of the left side of the connection
         // matches the total width of the right side.
         var leftWidth = 0
+        var leftPortMultiset = new HashMap<Parameter, Integer>()
+        var leftBankMultiset = new HashMap<Parameter, Integer>()
         for (port : connection.leftPorts) {
-            val width = port.multiportWidth
+            val width = port.multiportWidth(leftPortMultiset, leftBankMultiset)
             if (width < 0) {
                 error("Cannot determine the width of port " + port.variable.name,
                         Literals.CONNECTION__LEFT_PORTS)
@@ -343,8 +346,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
         var rightWidth = 0
+        var rightPortMultiset = new HashMap<Parameter, Integer>()
+        var rightBankMultiset = new HashMap<Parameter, Integer>()
         for (port : connection.rightPorts) {
-            val width = port.multiportWidth
+            val width = port.multiportWidth(rightPortMultiset, rightBankMultiset)
             if (width < 0) {
                 error("Cannot determine the width of port " + port.variable.name,
                         Literals.CONNECTION__RIGHT_PORTS)
@@ -353,7 +358,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
         
-        if (leftWidth != rightWidth) {
+        if (leftWidth != rightWidth || !leftPortMultiset.equals(rightPortMultiset) || !leftBankMultiset.equals(rightBankMultiset)) {
             error('''Left width «leftWidth» does not match right width «rightWidth»''',
                 Literals.CONNECTION__LEFT_PORTS
             )

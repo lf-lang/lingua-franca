@@ -77,7 +77,7 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
      * is kept track of using a bread crumb trail.
      * 
      * @param reactor A reactor class definition.
-     * @param instantiation The instantiation to bind the graph nodes to.
+     * @param path The instantiations to bind the graph nodes to.
      */
     def void collectNodesFrom(Reactor reactor, BreadCrumbTrail<Instantiation> path) {
                 
