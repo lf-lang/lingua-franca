@@ -31,7 +31,6 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
-import java.util.Map
 import java.util.Set
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
@@ -1175,222 +1174,32 @@ class ASTUtils {
             return new TimeValue(0, TimeUnit.NONE)
         }
     }
-    
+        
     /**
-     * Attempt to get a non-negative integer value of a parameter in
-     * the context of the specified instantiation of a reactor.
-     * Parameter values can be tuples, so here, we assume that the
-     * intended value is a the sum of the elements.
-     * Each element may be a literal or a reference to a parameter.
-     * For each literal, attempt to parse it as an integer and add
-     * the result to the returned value. If the element is instead
-     * a parameter, then check the instantiation for an override of
-     * the parameter value. If the override itself refers to another
-     * parameter, then add that parameter to the multiset. Hence, if
-     * indeed the parameter has an integer value, that value will be
-     * the sum of the returned value and the values of each of the
-     * parameters added to the multiset. Those values cannot be determined
-     * here because they may be overridden in any instance of the
-     * reactor containing the specified instantiation.
-     * If after calling this the multiset is empty, then the returned
-     * value is the actual integer value.
-     * Return -1 if any term of the parameter is not a non-negative integer.
+     * If the parameter has a literal integer value, then return that value.
+     * Otherwise, return -1.
      * @param parameter The parameter.
-     * @param reactorInstantiation The reactor instantiation or null if it
-     *  is not known
-     * @param multiset An empty multiset, which will be realized
-     *  as a map from parameters that appear in the multiset to the
-     *  number of appearances.
-     * @return The parameter's non-negative integer value or -1
-     *  if the value cannot be determined or it is not a non-negative integer.
-     */
-    def static int intValue(
-        Parameter parameter, 
-        Instantiation reactorInstantiation,
-        Map<Parameter, Integer> multiset
-    ) {
-        // For some reason (?) parameter values can be tuples.
-        // Here, we just sum the elements.
-        var result = 0
-        for (value : parameter.init) {
-            if (value.literal !== null) {
-                try {
-                    val candidate = Integer.decode(value.literal)
-                    if (candidate < 0) return -1
-                    result += candidate
-                } catch (NumberFormatException ex) {
-                    return -1
-                }
-            } else if (value.parameter !== null) {
-                // Check for an override.  
-                val assignment = reactorInstantiation?.parameters.findFirst[it.lhs === value.parameter]
-                if (assignment === null) {
-                    // There is no override, so we can use the default value.
-                    // In case that simply refers to another parameter of the same reactor,
-                    // call this function recursively.
-                    result += intValue(value.parameter, reactorInstantiation, multiset)
-                } else {
-                    // There is an override.
-                    // The right-hand side of the override may be a tuple,
-                    // so sum those elements.
-                    for (term : assignment.rhs) {
-                        if (term.literal !== null) {
-                            try {
-                                val candidate = Integer.decode(value.literal)
-                                if(candidate < 0) return -1
-                                result += candidate
-                            } catch (NumberFormatException ex) {
-                                return -1
-                            }
-                        } else if (value.parameter !== null) {
-                            // The override refers to a parameter of the container.
-                            // We cannot know the value of that parameter because we
-                            // don't have an instantiation for the container.
-                            var multisetEntry = multiset.get(value.parameter)
-                            if (multisetEntry === null) {
-                                multiset.put(value.parameter, 1)
-                            } else {
-                                multiset.put(value.parameter, multisetEntry + 1)
-                            }
-                        }
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-        return result
-    }
-
-    /**
-     * Attempt to get the width of the specified port in
-     * the context of the specified instantiation of a reactor.
-     * If the port is not a multiport and not in a bank of reactors,
-     * then return 1. Otherwise, the result will be the width of
-     * the bank of reactors multiplied by the width of the port.
-     * The width may be a sum of terms which may be given as
-     * literals or as references to parameters. The literals will
-     * be parsed and added to the returned result. If the integer value
-     * of the specified parameters can be determined, then that too will
-     * be added to the returned result. Otherwise, the parameter will
-     * will be added to the multiset. Hence, if
-     * indeed the width has an integer value, that value will be
-     * the sum of the returned value and the values of each of the
-     * parameters added to the multiset. Those values cannot be determined
-     * here because they may be overridden in any instance of the
-     * reactor containing the specified instantiation.
-     * The second multiset will contain parameters whose values are
-     * needed to determine the width of the bank of reactors.
-     * If after calling this both multisets are empty, then the returned
-     * value is the actual integer width.
-     * Return -1 if any term is not a non-negative integer.
-     * @param reference A reference to a port of the specified reactor
-     *  or some reactor that it contains.
-     * @param reactorInstantiation The reactor instantiation.
-     * @param portWidthMultiset An empty multiset, which will be realized
-     *  as a map from parameters that appear in the multiset to the
-     *  number of appearances.
-     * @param bankWidthMultiset An empty multiset, which will be realized
-     *  as a map from parameters that appear in the multiset to the
-     *  number of appearances.
-     * @return The width of a port or -1 if it cannot be determined.
-     */
-    def static int multiportWidth(
-        VarRef reference,
-        Map<Parameter, Integer> portWidthMultiset,
-        Map<Parameter, Integer> bankWidthMultiset
-    ) {
-        if (reference.variable instanceof Port) {
-            var bankWidth = 1
-            var reactorInstantiation = null as Instantiation
-            if (reference.container !== null) {
-                reactorInstantiation = reference.container
-                bankWidth = width(reference.container.widthSpec, reactorInstantiation, bankWidthMultiset)
-            }
-            if (reference.variable instanceof Port) {
-                return bankWidth * width((reference.variable as Port).widthSpec, reactorInstantiation, portWidthMultiset)
-            }
-        }
-        return -1
-    }    
-    
-    /**
-     * Given the specification of the width of either a bank of reactors
-     * or a multiport, return the width. This is
-     * calculated by adding together each term in the width specification.
-     * If a term refers to a parameter, then the value of that parameter
-     * is used. If that parameter refers to another parameter, than the
-     * reference is followed until an integer value is found.
-     * If argument is null, return 1.
-     * If the width cannot be determined for any other reason, -1 is returned.
-     * @param widthSpec The width specification.
-     * @param reactorInstantiation The reactor instantiation or null if it is not known.
-     * @param multiset An empty multiset, which will be realized
-     *  as a map from parameters that appear in the multiset to the
-     *  number of appearances.
-     * @return The width or -1 if it cannot be determined.
-     */
-    def static int width(
-        WidthSpec widthSpec,
-        Instantiation reactorInstantiation,
-        Map<Parameter, Integer> multiset
-    ) {
-        if(widthSpec === null) return 1
-        var result = 0
-        if(widthSpec.ofVariableLength) return -1
-        for (term : widthSpec.terms) {
-            if (term.parameter !== null) {
-                result += intValue(term.parameter, reactorInstantiation, multiset)
-            } else {
-                result += term.width
-            }
-        }
-        return result
-    }
-    
-    // FIXME: Get rid of bogus intValue, width, and multiportWidth below and fix users of it.
-    
-    /**
-     * Get a non-negative integer value of a parameter.
-     * Return -1 if the parameter value is not a non-negative integer
-     * or if the value cannot be determined for any reason.
-     * @param parameter The parameter.
-     * @return The parameter's non-negative integer value or -1
-     *  if the value cannot be determined or it is not a non-negative integer.
+     * @return The parameter's integer value or -1
+     *  if the value cannot be determined or it is not an integer.
      */
     def static int intValue(Parameter parameter) {
-        // For some reason (?) parameter values can be tuples.
-        // Here, we just sum the elements.
-        var result = 0
-        for (value : parameter.init) {
-            if (value.literal !== null) {
-                try {
-                    val candidate = Integer.decode(value.literal)
-                    if (candidate < 0) return -1
-                    result += candidate
-                } catch (NumberFormatException ex) {
-                    return -1
-                }
-            } else if (value.parameter !== null) {
-                val candidate = intValue(value.parameter)
-                if (candidate < 0) return -1
-                result += candidate
-            }
+        // Parameter values can be tuples, which are not integers.
+        if (parameter.init.length !== 1) return -1
+        val value = parameter.init.get(0)
+        if (value.literal !== null) {
+            try {
+                return Integer.decode(value.literal)
+            } catch (NumberFormatException ex) {}
         }
-        return result
+        return -1
     }
     
     /**
-     * If the argument is a reference to a multiport, return its width.
-     * If the argument is a reference to the port of a bank of reactors,
-     * then multiply this width by the width of the bank. The widths are
-     * calculated by adding together each term in the width specification.
-     * If a term refers to a parameter, then the value of that parameter
-     * is used. If that parameter refers to another parameter, than the
-     * reference is followed until an integer value is found.
-     * If the width cannot be determined for any reason, or if the
-     * reference is not to a port, -1 is returned.
-     * If the reference is a port but not a multiport, then 1 is returned.
+     * Return the width of the port reference if it can be determined
+     * and otherwise return -1.  The width can be determined if the
+     * port is not a multiport in a bank of reactors (the width will 1)
+     * or if the width of the multiport and/or the bank is given by a
+     * literal constant.
      * @param reference A reference to a port.
      * @return The width of a port or -1 if it cannot be determined.
      */
@@ -1399,35 +1208,32 @@ class ASTUtils {
             var bankWidth = 1
             if (reference.container !== null) {
                 bankWidth = width(reference.container.widthSpec)
+                if (bankWidth < 0) return -1
             }
-            if (reference.variable instanceof Port) {
-                return bankWidth * width((reference.variable as Port).widthSpec)
-            }
+            val portWidth = width((reference.variable as Port).widthSpec)
+            if (portWidth > 0) return portWidth * bankWidth
         }
         return -1
     }    
 
     /**
      * Given the specification of the width of either a bank of reactors
-     * or a multiport, return the width. This is
-     * calculated by adding together each term in the width specification.
-     * If a term refers to a parameter, then the value of that parameter
-     * is used. If that parameter refers to another parameter, than the
-     * reference is followed until an integer value is found.
-     * If argument is null, return 1.
-     * If the width cannot be determined for any other reason, -1 is returned.
+     * or a multiport, return the width if it can be determined and otherwise
+     * return -1. The width can be determined if it is given by one or more
+     * literal constants or if the widthSpec is null (it is not a multiport
+     * or reactor bank).
      * @param widthSpec The width specification.
      * @return The width or -1 if it cannot be determined.
      */
     def static int width(WidthSpec widthSpec) {
-        if(widthSpec === null) return 1
+        if (widthSpec === null) return 1
         var result = 0
-        if(widthSpec.ofVariableLength) return -1
+        if (widthSpec.ofVariableLength) return -1
         for (term : widthSpec.terms) {
-            if (term.parameter !== null) {
-                result += intValue(term.parameter)
-            } else {
+            if (term.parameter === null) {
                 result += term.width
+            } else {
+                return -1
             }
         }
         return result

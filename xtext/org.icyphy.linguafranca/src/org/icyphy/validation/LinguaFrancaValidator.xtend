@@ -28,7 +28,6 @@ package org.icyphy.validation
 
 import java.util.ArrayList
 import java.util.Arrays
-import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
@@ -77,6 +76,7 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
+import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
 
@@ -295,6 +295,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // FIXME": similar checks for decl/init
         // Specifically for C: list can only be literal or time lists
     }
+    
+    @Check(FAST)
+    def checkWidthSpec(WidthSpec widthSpec) {
+        for (term : widthSpec.terms) {
+            if (term.parameter === null) {
+                if (term.width < 0) {
+                    error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
+                }
+            }
+        }
+    }
 
     @Check(FAST)
     def checkConnection(Connection connection) {
@@ -331,34 +342,35 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }        
         
-        // Make sure that the total width of the left side of the connection
-        // matches the total width of the right side.
+        // Check whether the total width of the left side of the connection
+        // matches the total width of the right side. This cannot be determined
+        // here if the width is not given as a constant. In that case, it is up
+        // to the code generator to check it.
         var leftWidth = 0
-        var leftPortMultiset = new HashMap<Parameter, Integer>()
-        var leftBankMultiset = new HashMap<Parameter, Integer>()
         for (port : connection.leftPorts) {
-            val width = port.multiportWidth(leftPortMultiset, leftBankMultiset)
-            if (width < 0) {
-                error("Cannot determine the width of port " + port.variable.name,
-                        Literals.CONNECTION__LEFT_PORTS)
+            val width = port.multiportWidth
+            if (width < 0 || leftWidth < 0) {
+                // Cannot determine the width of the left ports.
+                leftWidth = -1
             } else {
                 leftWidth += width
             }
         }
         var rightWidth = 0
-        var rightPortMultiset = new HashMap<Parameter, Integer>()
-        var rightBankMultiset = new HashMap<Parameter, Integer>()
         for (port : connection.rightPorts) {
-            val width = port.multiportWidth(rightPortMultiset, rightBankMultiset)
-            if (width < 0) {
-                error("Cannot determine the width of port " + port.variable.name,
-                        Literals.CONNECTION__RIGHT_PORTS)
+            val width = port.multiportWidth
+            if (width < 0 || rightWidth < 0) {
+                // Cannot determine the width of the left ports.
+                rightWidth = -1
             } else {
                 rightWidth += width
             }
         }
         
-        if (leftWidth != rightWidth || !leftPortMultiset.equals(rightPortMultiset) || !leftBankMultiset.equals(rightBankMultiset)) {
+        if (leftWidth !== -1 && rightWidth !== -1 && leftWidth != rightWidth) {
+            // FIXME: The second argument should be Literals.CONNECTION, but
+            // stupidly, xtext will not accept that. There seems to be no way to
+            // report an error for the whole connection statement.
             error('''Left width «leftWidth» does not match right width «rightWidth»''',
                 Literals.CONNECTION__LEFT_PORTS
             )

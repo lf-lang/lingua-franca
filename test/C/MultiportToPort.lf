@@ -37,6 +37,5 @@ main reactor MultiportToPort {
     a = new Source();
     b1 = new Destination();
     b2 = new Destination(expected = 1);
-    a.out -> b1.in;  // Channel 0 of a.out to b1.in.
-    a.out -> b2.in;  // Channel 1 of a.out to b2.in.
+    a.out -> b1.in || b2.in;
 }
