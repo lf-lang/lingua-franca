@@ -458,7 +458,7 @@ Token:
     // Sums (for width expressions)
     '+' |
     // Percentage
-    '%'
+    '%' |
     // Parallel connections
     '||'
 ;

@@ -230,6 +230,7 @@ class CppGenerator extends GeneratorBase {
         «i.reactorClass.name»«IF i.reactorClass.toDefinition.isGeneric»<«FOR t : i.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»
     '''
 
+    // FIXME: Does not support parameter values for widths.
     def declareInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
             «IF i.widthSpec !== null»
@@ -536,6 +537,7 @@ class CppGenerator extends GeneratorBase {
         {"«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "id"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
     '''
 
+    // FIXME: Does not support parameter values for widths.
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
             «IF i.widthSpec !== null»
@@ -678,11 +680,13 @@ class CppGenerator extends GeneratorBase {
         var rightPortCount = 1
         // The index will go from zero to mulitportWidth - 1.
         var rightPortIndex = 0
+        // FIXME: Does not support parameter values for widths.
         var rightWidth = rightPort.multiportWidth
         var rightContainer = rightPort.container
         for (leftPort : c.leftPorts) {
             var leftPortIndex = 0
             val leftContainer = leftPort.container
+            // FIXME: Does not support parameter values for widths.
             val leftWidth = leftPort.multiportWidth
             while (leftPortIndex < leftWidth) {
                 // Figure out how many bindings to do.
@@ -697,6 +701,7 @@ class CppGenerator extends GeneratorBase {
                 var leftPortArrayIndex = ''
                 if (leftContainer !== null && leftContainer.widthSpec !== null) {
                     // The left port is within a bank of reactors.
+                    // FIXME: Does not support parameter values for widths.
                     val leftBankWidth = leftContainer.widthSpec.width
                     leftBankArrayIndex = '''[(«leftPortIndex» + i) / «leftBankWidth»]'''
                     if ((leftPort.variable as Port).widthSpec !== null) {
@@ -711,6 +716,7 @@ class CppGenerator extends GeneratorBase {
                 var rightPortArrayIndex = ''
                 if (rightContainer !== null && rightContainer.widthSpec !== null) {
                     // The right port is within a bank of reactors.
+                    // FIXME: Does not support parameter values for widths.
                     val rightBankWidth = rightContainer.widthSpec.width
                     rightBankArrayIndex = '''[(«rightPortIndex» + i) / «rightBankWidth»]'''
                     if ((rightPort.variable as Port).widthSpec !== null) {
@@ -728,10 +734,12 @@ class CppGenerator extends GeneratorBase {
                 ''')
                 leftPortIndex += min
                 rightPortIndex += min
+                // FIXME: Does not support parameter values for widths.
                 if (rightPortIndex == rightPort.multiportWidth) {
                     // Get the next right port. Here we rely on the validator to
                     // have checked that the connection is balanced.
                     rightPort = c.rightPorts.get(rightPortCount++)
+                    // FIXME: Does not support parameter values for widths.
                     rightWidth = rightPort.multiportWidth
                     rightPortIndex = 0
                     rightContainer = rightPort.container

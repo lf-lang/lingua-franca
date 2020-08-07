@@ -34,6 +34,8 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+import org.eclipse.emf.ecore.EObject
+import org.icyphy.graph.DirectedGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
@@ -45,9 +47,9 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.graph.DirectedGraph
 
 /**
  * Representation of a runtime instance of a reactor.
@@ -97,7 +99,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (definition.widthSpec.ofVariableLength) {
                 throw new Exception("Banks of reactors with variable length are not supported.")
             }
-            var width = definition.widthSpec.width
+            var width = parent.width(definition.widthSpec, definition.widthSpec)
             this.bankMembers = new ArrayList<ReactorInstance>(width)
             for (var index = 0; index < width; index++) {
                 var childInstance = new ReactorInstance(definition, parent, generator, index)
@@ -592,6 +594,79 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
     
+    /**
+     * For the specified parameter, if its value is a positive integer, return
+     * that value. Otherwise, report an error and return 0.
+     * @param parameter The parameter.
+     * @param errorReportingObject If an error occurs, report the error
+     *  on this object in the AST.
+     */
+    def int intParameterValue(Parameter parameter, EObject errorReportingObject) {
+        // For some reason (?) parameter values can be tuples.
+        // Here, we just sum the elements.
+        var result = 0
+        for (value : parameter.init) {
+            if (value.literal !== null) {
+                try {
+                    var candidate = Integer.decode(value.literal)
+                    if (candidate <= 0) {
+                        generator.reportError(
+                            errorReportingObject,
+                            '''Parameter «parameter.name» does not have a positive value: «candidate».'''
+                        )
+                        candidate = 0
+                    }
+                    result += candidate
+                } catch (NumberFormatException ex) {
+                    generator.reportError(
+                        errorReportingObject,
+                        '''Parameter «parameter.name» does not have an integer value.'''
+                    )
+                }
+            } else if (value.parameter !== null) {
+                // Parameter value is not a literal.
+                // Check for an override.  
+                val assignment = definition.parameters.findFirst[it.lhs === value.parameter]
+                if (assignment === null) {
+                    // There is no override, so we can use the default value.
+                    // In case that simply refers to another parameter of the same reactor,
+                    // call this function recursively.
+                    result += intParameterValue(value.parameter, errorReportingObject)
+                } else {
+                    // There is an override.
+                    // The right-hand side of the override may be a tuple,
+                    // so sum those elements.
+                    for (term : assignment.rhs) {
+                        if (term.literal !== null) {
+                            try {
+                                var candidate = Integer.decode(value.literal)
+                                if (candidate <= 0) {
+                                    generator.reportError(
+                                        errorReportingObject,
+                                        '''Non-positive value: «candidate».'''
+                                    )
+                                    candidate = 0
+                                }
+                                result += candidate
+                            } catch (NumberFormatException ex) {
+                                generator.reportError(
+                                    errorReportingObject,
+                                    '''Value «value.literal» is not an integer.'''
+                                )
+                            }
+                        } else if (value.parameter !== null) {
+                            // The override refers to a parameter of the parent.
+                            result += parent.intParameterValue(value.parameter, errorReportingObject)
+                        }
+                    }
+                }
+            } else {
+                return -1
+            }
+        }
+        return result
+    }
+    
     ///////////////////////////////////////////////////
     //// Methods for finding instances in this reactor given an AST node.
     
@@ -748,6 +823,30 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         result
     }
 
+    /**
+     * For the specified width specification, return the width.
+     * This may be for a bank of reactors within this reactor instance or
+     * for a port of this reactor instance. If the argument is null, there
+     * is no width specification, so return 1. Otherwise, evaluate the
+     * width value by determining the value of any referenced parameters.
+     * @param widthSpec The width specification.
+     * @param errorReportingObject If an error occurs, report the error
+     *  on this object in the AST.
+     */
+    def width(WidthSpec widthSpec, EObject errorReportingObject) {
+        if (widthSpec === null) return 1
+        var result = 0
+        for (term : widthSpec.terms) {
+            if (term.parameter !== null) {
+                result += intParameterValue(term.parameter, errorReportingObject)
+            } else {
+                // The validator has checked for positive integers here.
+                result += term.width
+            }
+        }
+        return result
+    }
+    
     // ////////////////////////////////////////////////////
     // // Protected fields.
     

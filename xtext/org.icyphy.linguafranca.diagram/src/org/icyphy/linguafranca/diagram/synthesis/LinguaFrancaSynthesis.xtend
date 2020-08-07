@@ -682,7 +682,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                             parentOutputPorts.get(rightPort.variable)
                         }
                     val edge = createIODependencyEdge(connection)
-                    if (leftPort.multiportWidth > 1 || rightPort.multiportWidth > 1) {
+                    if (leftPort.multiportWidth !== 1 || rightPort.multiportWidth !== 1) {
                         // Render multiport connections and bank connections in bold.
                         edge.KRendering.setLineWidth(3f)
                     }

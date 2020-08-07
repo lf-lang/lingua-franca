@@ -1,4 +1,4 @@
-// This is a version fo the Threaded test that uses a multiport input at the destination.
+// This is a version of the Threaded test that uses a multiport input at the destination.
 // Its purpose is to test multiport inputs.
 target C {
     timeout: 2 sec,
@@ -45,7 +45,7 @@ reactor Destination(width:int(1)) {
     =}
 }
 
-main reactor MultiportIn { 
+main reactor MultiportIn {
     a = new Source();
     t1 = new Computation();
     t2 = new Computation();
