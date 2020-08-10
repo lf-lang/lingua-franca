@@ -680,6 +680,7 @@ class CppGenerator extends GeneratorBase {
         var rightPortCount = 1
         // The index will go from zero to mulitportWidth - 1.
         var rightPortIndex = 0
+        // FIXME: Check for matching widths with parallel connections.
         // FIXME: Does not support parameter values for widths.
         var rightWidth = rightPort.multiportWidth
         var rightContainer = rightPort.container
@@ -697,45 +698,59 @@ class CppGenerator extends GeneratorBase {
                 // If the left or right port is a port in a bank of reactors,
                 // then we need to construct the index for the bank.
                 // Start with the left port.
-                var leftBankArrayIndex = ''
+                var leftContainerRef = ''
                 var leftPortArrayIndex = ''
-                if (leftContainer !== null && leftContainer.widthSpec !== null) {
-                    // The left port is within a bank of reactors.
-                    // FIXME: Does not support parameter values for widths.
-                    val leftBankWidth = leftContainer.widthSpec.width
-                    leftBankArrayIndex = '''[(«leftPortIndex» + i) / «leftBankWidth»]'''
-                    if ((leftPort.variable as Port).widthSpec !== null) {
-                        leftPortArrayIndex = '''[(«leftPortIndex» + i) % «leftBankWidth»]'''
+                if (leftContainer !== null) {
+                    if (leftContainer.widthSpec !== null) {
+                        // The left port is within a bank of reactors.
+                        // FIXME: Does not support parameter values for widths.
+                        val leftBankWidth = leftContainer.widthSpec.width
+                        leftContainerRef = '''«leftContainer.name»[(«leftPortIndex» + i) / «leftBankWidth»].'''
+                        if ((leftPort.variable as Port).widthSpec !== null) {
+                            leftPortArrayIndex = '''[(«leftPortIndex» + i) % «leftBankWidth»]'''
+                        }
+                    } else {
+                        leftContainerRef = '''«leftContainer.name».'''
+                        if ((leftPort.variable as Port).widthSpec !== null) {
+                            leftPortArrayIndex = '''[«leftPortIndex» + i]'''
+                        }
                     }
                 } else if ((leftPort.variable as Port).widthSpec !== null) {
                     // The left port is not within a bank of reactors but is a multiport.
-                    leftPortArrayIndex = '''[(«leftPortIndex» + i)]'''
+                    leftPortArrayIndex = '''[«leftPortIndex» + i)]'''
                 }
                 // Next, do the right port.
-                var rightBankArrayIndex = ''
+                var rightContainerRef = ''
                 var rightPortArrayIndex = ''
-                if (rightContainer !== null && rightContainer.widthSpec !== null) {
-                    // The right port is within a bank of reactors.
-                    // FIXME: Does not support parameter values for widths.
-                    val rightBankWidth = rightContainer.widthSpec.width
-                    rightBankArrayIndex = '''[(«rightPortIndex» + i) / «rightBankWidth»]'''
-                    if ((rightPort.variable as Port).widthSpec !== null) {
-                        rightPortArrayIndex = '''[(«rightPortIndex» + i) % «rightBankWidth»]'''
+                if (rightContainer !== null) {
+                    if (rightContainer.widthSpec !== null) {
+                        // The right port is within a bank of reactors.
+                        // FIXME: Does not support parameter values for widths.
+                        val rightBankWidth = rightContainer.widthSpec.width
+                        rightContainerRef = '''«rightContainer.name»[(«rightPortIndex» + i) / «rightBankWidth»].'''
+                        if ((rightPort.variable as Port).widthSpec !== null) {
+                            rightPortArrayIndex = '''[(«rightPortIndex» + i) % «rightBankWidth»]'''
+                        }
+                    } else {
+                        rightContainerRef = '''«rightContainer.name».'''
+                        if ((rightPort.variable as Port).widthSpec !== null) {
+                            rightPortArrayIndex = '''[«rightPortIndex» + i]'''
+                        }
                     }
                 } else if ((rightPort.variable as Port).widthSpec !== null) {
                     // The right port is not within a bank of reactors but is a multiport.
-                    rightPortArrayIndex = '''[(«leftPortIndex» + i)]'''
+                    rightPortArrayIndex = '''[«rightPortIndex» + i)]'''
                 }
                 result.append('''
                     for (unsigned i = 0; i < «min»; i++) {
-                        «leftContainer.name»«leftBankArrayIndex».«leftPort.name»«leftPortArrayIndex»
-                                .bind_to(&«rightContainer.name»«rightBankArrayIndex».«rightPort.name»«rightPortArrayIndex»);
+                        «leftContainerRef»«leftPort.variable.name»«leftPortArrayIndex»
+                                .bind_to(&«rightContainerRef»«rightPort.variable.name»«rightPortArrayIndex»);
                     }
                 ''')
                 leftPortIndex += min
                 rightPortIndex += min
                 // FIXME: Does not support parameter values for widths.
-                if (rightPortIndex == rightPort.multiportWidth) {
+                if (rightPortIndex == rightPort.multiportWidth && rightPortCount < c.rightPorts.length) {
                     // Get the next right port. Here we rely on the validator to
                     // have checked that the connection is balanced.
                     rightPort = c.rightPorts.get(rightPortCount++)
@@ -746,6 +761,7 @@ class CppGenerator extends GeneratorBase {
                 }
             }
         }
+        return result.toString
     }
 
     def generateReactorSource(Reactor r) '''
