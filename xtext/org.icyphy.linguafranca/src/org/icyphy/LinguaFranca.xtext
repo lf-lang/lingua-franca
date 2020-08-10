@@ -248,7 +248,7 @@ Effect:
 
 VarRef:
     variable=[Variable]
-    | container=[Instantiation] (containerArraySpec=ArraySpec)? '.' variable=[Variable];
+    | container=[Instantiation] '.' variable=[Variable];
 
 Assignment:
     (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
@@ -286,7 +286,7 @@ ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
     
 WidthSpec:
-    ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
+    ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('||' terms+=WidthTerm)* ']';
     
 WidthTerm:
     width=INT | parameter=[Parameter];
@@ -455,8 +455,6 @@ Token:
     '=' |
     // Asterisk
     '*' |
-    // Sums (for width expressions)
-    '+' |
     // Percentage
     '%' |
     // Parallel connections
