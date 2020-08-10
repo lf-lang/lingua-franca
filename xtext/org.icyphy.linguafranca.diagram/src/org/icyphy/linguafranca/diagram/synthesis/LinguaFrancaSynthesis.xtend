@@ -12,6 +12,7 @@ import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.KRendering
+import de.cau.cs.kieler.klighd.krendering.LineCap
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
@@ -67,8 +68,8 @@ import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensi
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
-import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 import static extension org.icyphy.ASTUtils.*
+import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -684,7 +685,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     val edge = createIODependencyEdge(connection)
                     if (leftPort.multiportWidth !== 1 || rightPort.multiportWidth !== 1) {
                         // Render multiport connections and bank connections in bold.
-                        edge.KRendering.setLineWidth(3f)
+                        edge.KRendering.setLineWidth(2.2f)
+                        edge.KRendering.setLineCap(LineCap.CAP_SQUARE)
                     }
                     if (connection.delay !== null) {
                         edge.addCenterEdgeLabel(connection.delay.toText) => [
