@@ -5,12 +5,12 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source {
+reactor Source(width:int(1)) {
     timer t(0, 200 msec);
-    output[4] out:int;
+    output[width] out:int;
     state s:int(0);
     reaction(t) -> out {=
-        for(int i = 0; i < 4; i++) {
+        for(int i = 0; i < out_width; i++) {
             printf("Before SET, out[%d]->is_present has value %d\n", i, out[i]->is_present);
             SET(out[i], self->s++);
             printf("AFTER set, out[%d]->is_present has value %d\n", i, out[i]->is_present);
@@ -42,7 +42,7 @@ reactor Destination {
     =}
 }
 main reactor MultiportToMultiport { 
-    a = new Source();
+    a = new Source(width = 4);
     b = new Destination();
     a.out -> b.in;
 }
