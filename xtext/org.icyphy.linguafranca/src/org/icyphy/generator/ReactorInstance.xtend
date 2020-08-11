@@ -180,14 +180,20 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         if (rightPortCount < connection.rightPorts.length) {
                             rightPort = connection.rightPorts.get(rightPortCount++)
                             rightPortInstance = nextPort(rightPort)
+                        } else {
+                            rightPortInstance = null
+                            generator.reportWarning(leftPort,
+                                    "Source is wider than the destination. Outputs will be lost.")
                         }
                     }
-                    // rightPortInstance should not be null, but to ensure no NPE, we check anyway.
+                    // Do not make a connection if there is no new right port.
                     if (rightPortInstance !== null) {
                         connectPortInstances(connection, leftPortInstance, rightPortInstance)
                     }
                     leftPortInstance = nextPort(leftPort)
                 }
+                // At this point, leftPortInstance is null.
+                // Go to the next left port if there is one.
             }
         }
         
