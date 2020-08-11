@@ -703,8 +703,6 @@ class CppGenerator extends GeneratorBase {
                 if (leftContainer !== null) {
                     if (leftContainer.widthSpec !== null) {
                         // The left port is within a bank of reactors.
-                        // FIXME: Does not support parameter values for widths.
-                        val leftBankWidth = leftContainer.widthSpec.width
                         var leftMultiportWidth = 1
                         if ((leftPort.variable as Port).widthSpec !== null) {
                             // The left port is also a multiport.
