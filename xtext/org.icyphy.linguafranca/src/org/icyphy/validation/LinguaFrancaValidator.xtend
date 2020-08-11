@@ -371,7 +371,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             // FIXME: The second argument should be Literals.CONNECTION, but
             // stupidly, xtext will not accept that. There seems to be no way to
             // report an error for the whole connection statement.
-            error('''Left width «leftWidth» does not match right width «rightWidth»''',
+            warning('''Left width «leftWidth» does not match right width «rightWidth»''',
                 Literals.CONNECTION__LEFT_PORTS
             )
         }
