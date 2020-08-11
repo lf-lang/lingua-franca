@@ -970,12 +970,14 @@ class CppGenerator extends GeneratorBase {
         var makeCmd = newArrayList()
         var cmakeCmd = newArrayList()
 
-        val srcPath = fsa.getAbsolutePath('''/«filename»''')
-        val installPath = fsa.getAbsolutePath("/..")
-        val buildPath = fsa.getAbsolutePath('''/../build/«filename»''')
+        val srcGenPath = fsa.getAbsolutePath('/')
+        val rootPath = srcGenPath.substring(0, srcGenPath.length() - "/src-gen".length())
 
-        val reactorCppPath = fsa.getAbsolutePath("/../build/reactor-cpp")
-
+        val srcPath = fsa.getAbsolutePath('''«filename»/''')
+        val installPath = rootPath
+        val buildPath = '''«rootPath»/build/«filename»'''
+        val reactorCppPath = '''«rootPath»/build/reactor-cpp'''
+        
         // Make sure cmake is found in the PATH.
         var cmakeTest = newArrayList()
         var cmake = "cmake"
@@ -1029,14 +1031,8 @@ class CppGenerator extends GeneratorBase {
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
-                println(
-                    "Generated source code is in " + directory +
-                        File.separator + "src-gen" + File.separator + filename
-                )
-                println(
-                    "Compiled binary is in " + directory + File.separator +
-                        "bin" + File.separator + filename
-                )
+                println('''Generated source code is in «srcPath»''')
+                println('''Compiled binary is in «installPath»/bin/«filename»''')
             } else {
                 reportError("make terminated with an error code!")
             }
