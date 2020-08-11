@@ -195,6 +195,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 // At this point, leftPortInstance is null.
                 // Go to the next left port if there is one.
             }
+            // We are out of left ports.
+            // Make sure we are out of right ports also.
+            if (nextPort(rightPort) !== null) {
+                generator.reportWarning(rightPort, "Unconnected ports on the right.")
+            }
         }
         
         // Check for dangling inputs or outputs and issue a warning.
