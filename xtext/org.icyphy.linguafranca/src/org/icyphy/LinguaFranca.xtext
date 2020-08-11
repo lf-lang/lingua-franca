@@ -258,10 +258,25 @@ Assignment:
  */
 Parameter:
     name=ID (':' (type=Type))? 
-    (parens+='(' (init+=Value 
+    (parens+='(' (init+=Value                   // FIXME: rename Value to Expr
             (','  init+=Value)*)? parens+=')'
     )?
 ;
+
+Sum :
+    terms+=Difference ('+' terms+=Difference)*;
+
+Difference:
+    terms+=Product ('-' terms +=Product)*;
+
+Product:
+    terms+=Quotient ('*' terms+=Quotient)*;
+
+Quotient:
+    terms+=Expr ('/' terms += Expr)*;
+
+Expr :
+  Value | '(' Sum ')';
 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
