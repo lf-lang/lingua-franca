@@ -361,7 +361,7 @@ class LinguaFrancaValidationTest {
                 src.out -> sink.in;
             }
         ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
-            "Cannot connect: Port named 'in' may only be connected to a single upstream port.")
+            "Cannot connect: Port named 'in' may only appear once on the right side of a connection.")
     }
     
     /**
