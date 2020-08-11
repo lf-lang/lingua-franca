@@ -155,7 +155,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             this.actions.add(new ActionInstance(actionDecl, this))
         }
 
-        
         // Populate destinations map and the connectivity information
         // in the port instances.
         // Note that this can only happen _after_ the children and 
@@ -177,7 +176,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     if (rightPortInstance === null) {
                         // We have run out of right ports. We may have also run out of
                         // left ports, so get a new right port only if there is one.
-                        // We rely on the validator to ensure that the connection is balanced.
+                        // We do not rely on the validator to ensure that the connection is balanced.
                         if (rightPortCount < connection.rightPorts.length) {
                             rightPort = connection.rightPorts.get(rightPortCount++)
                             rightPortInstance = nextPort(rightPort)
@@ -244,6 +243,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Check for dangling connections.
      */
+    // FIXME identifies only dangling inputs
     def checkForDanglingConnections() {
         // First, check that each bank index is either 0 (allowed for sources)
         // or equals the width of the bank, meaning all banks were used.
@@ -266,8 +266,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (portInstance instanceof MultiportInstance) {
                 if (nextPort != 0 && nextPort < portInstance.width) {
                     // Not all the ports were used.
-                    generator.reportWarning(portInstance.definition,
-                            "Not all port channels are connected.")
+                    generator.reportWarning(portInstance.parent.definition,
+                            "Not all multiport input channels are connected.")
                 }
             }
         }
