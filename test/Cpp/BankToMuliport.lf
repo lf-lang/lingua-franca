@@ -29,7 +29,7 @@ reactor Sink {
     =}
 }
 
-main reactor ArrayReactorInstances {
+main reactor BankToMultiport {
     source = new[4] Source();
     sink = new Sink();
     source.out -> sink.in;

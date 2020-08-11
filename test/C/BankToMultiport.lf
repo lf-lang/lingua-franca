@@ -9,17 +9,19 @@ reactor Source(bank_position:int(0)) {
     =}
 }
 
-reactor Sink {
-    input[4] in:int;
+reactor Sink(width:int(4)) {
+    input[width] in:int;
     state received:bool(false);
     
     reaction (in) {=
         for (int i = 0; i < in_width; i++) {
-            printf("Received %d\n", in[i]->value);
-            self->received = true;
-            if (in[i]->value != i) {
-                fprintf(stderr, "ERROR: expected %d\n", i);
-                exit(1);    
+            if (in[i]->is_present) {
+                printf("Received on channel %d: %d\n", i, in[i]->value);
+                self->received = true;
+                if (in[i]->value != i) {
+                    fprintf(stderr, "ERROR: expected %d\n", i);
+                    exit(1); 
+                }   
             }
         }
     =}
@@ -31,8 +33,8 @@ reactor Sink {
     =}
 }
 
-main reactor ArrayInstancesToArrayPort {
-    source = new[4] Source();
-    sink = new Sink();
+main reactor BankToMultiport(width:int(5)) {
+    source = new[width] Source();
+    sink = new Sink(width = width);
     source.out -> sink.in;
 }

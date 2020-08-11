@@ -11,11 +11,11 @@ AsyncCallbackDrop.lf
 ArrayAsParameter.lf
 ArrayAsType.lf
 ArrayFree.lf
-ArrayInstancesToArrayPort.lf
 ArrayParallel.lf
 ArrayPrint.lf
 ArrayScale.lf
 BankToBank.lf
+BankToMultiport.lf
 Composition.lf
 CompositionAfter.lf
 CompositionGain.lf
