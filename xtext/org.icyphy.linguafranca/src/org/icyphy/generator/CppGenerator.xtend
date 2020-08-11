@@ -705,10 +705,14 @@ class CppGenerator extends GeneratorBase {
                         // The left port is within a bank of reactors.
                         // FIXME: Does not support parameter values for widths.
                         val leftBankWidth = leftContainer.widthSpec.width
-                        leftContainerRef = '''«leftContainer.name»[(«leftPortIndex» + i) / «leftBankWidth»].'''
+                        var leftMultiportWidth = 1
                         if ((leftPort.variable as Port).widthSpec !== null) {
-                            leftPortArrayIndex = '''[(«leftPortIndex» + i) % «leftBankWidth»]'''
+                            // The left port is also a multiport.
+                            // FIXME: Does not support parameter values for widths.
+                            leftMultiportWidth = (leftPort.variable as Port).widthSpec.width
+                            leftPortArrayIndex = '''[(«leftPortIndex» + i) % «leftMultiportWidth»]'''
                         }
+                        leftContainerRef = '''«leftContainer.name»[(«leftPortIndex» + i) / «leftMultiportWidth»].'''
                     } else {
                         leftContainerRef = '''«leftContainer.name».'''
                         if ((leftPort.variable as Port).widthSpec !== null) {
