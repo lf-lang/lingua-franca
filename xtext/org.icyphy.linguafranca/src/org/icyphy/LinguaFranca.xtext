@@ -459,17 +459,15 @@ Token:
     // Punctuation
     ':' | ';' | ',' | '.' | '::' |
     // Slashes
-    ':\\' | '\\' | '/' |
-    // Hyphen
-    '-' |
+    ':\\' | '\\' |
+    // Arithmetic
+    '+' | '-' | '*' | '/' |
     // Underscore
     '_' |
     // Arrow
     '->' | 
     // Assignment
     '=' |
-    // Asterisk
-    '*' |
     // Percentage
     '%' |
     // Parallel connections
