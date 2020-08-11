@@ -9,14 +9,22 @@ reactor Source(id:unsigned(0)) {
 
 reactor Sink {
     input[4] in:unsigned;
+    state received:bool(false);
     
     reaction (in) {=
         for (unsigned i; i < in.size(); i++) {
+            received = true;
             std::cout << "Received " << *in[i].get() << '\n';
             if (*in[i].get() != i) {
                 std::cerr << "Error: expected " << i << "!\n";
                 exit(1);    
             }
+        }
+    =}
+    reaction (shutdown) {=
+        if (!received) {
+            std::cerr << "Error: received no input!\n";
+            exit(2);    
         }
     =}
 }
