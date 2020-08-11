@@ -15,6 +15,7 @@ ArrayParallel.lf
 ArrayPrint.lf
 ArrayScale.lf
 BankToBank.lf
+BankToBankMultiport.lf
 BankToMultiport.lf
 Composition.lf
 CompositionAfter.lf
