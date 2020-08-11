@@ -16,7 +16,7 @@ reactor Destination(width:int(2)) {
     reaction (in) {=
         for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {
-                printf("Received %d\n", in[i]->value);
+                printf("Received on channel %d: %d\n", i, in[i]->value);
                 // NOTE: For testing purposes, this assumes the specific
                 // widths instantiated below.
                 if (in[i]->value != i % 3) {
@@ -31,6 +31,6 @@ reactor Destination(width:int(2)) {
 main reactor MultiportToMultiport2 {
     a1 = new Source(width = 3);
     a2 = new Source(width = 2);
-    b = new Destination(width = 1);
+    b = new Destination(width = 5);
     a1.out || a2.out -> b.in;
 }
