@@ -94,6 +94,7 @@ ReadOutputOfContainedReactor.lf
 Schedule.lf
 ScheduleValue.lf
 ScheduleLogicalAction.lf
+SelfLoop.lf
 SendingInside.lf
 SendingInside2.lf
 SendingInsideThreaded.lf
