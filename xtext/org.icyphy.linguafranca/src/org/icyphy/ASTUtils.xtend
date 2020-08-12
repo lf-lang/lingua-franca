@@ -1240,6 +1240,30 @@ class ASTUtils {
     }
     
     /**
+     * Given the specification of the width of either a bank of reactors
+     * or a multiport, return a textual representation of the width or
+     * "UNKNOWN" if the width is variable. The textual representation may be
+     * a literal integer, a parameter name, or a sum of parameter
+     * names and/or literal integers. If the argument is null,
+     * return "1".
+     * @param widthSpec The width specification.
+     * @return A textual representation of the width.
+     */
+    def static String widthSpecification(WidthSpec widthSpec) {
+        if (widthSpec === null) return "1"
+        var result = new LinkedList<String>
+        if (widthSpec.ofVariableLength) return "UNKNOWN"
+        for (term : widthSpec.terms) {
+            if (term.parameter === null) {
+                result.add(term.width.toString)
+            } else {
+                result.add(term.parameter.name)
+            }
+        }
+        return result.join(" + ")
+    }
+
+    /**
      * Report whether a state variable has been initialized or not.
      * @param v The state variable to be checked.
      * @return True if the variable was initialized, false otherwise.
