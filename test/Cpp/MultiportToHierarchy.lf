@@ -1,0 +1,53 @@
+ // Check multiport output to multiport input, where the latter is a hierarchical reactor.
+ // Note that the destination reactor has width wider than the sender, so one input is dangling.
+target Cpp {
+    timeout: 2 sec,
+    threads: 1,
+    fast: true
+}; 
+reactor Source {
+	timer t(0, 200 msec);
+	output[4] out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+        for(int i = 0; i < 4; i++) {
+            out[i].set(s++);
+        }
+	=}
+}
+reactor Destination(width:int(4)) {
+	state s:int(6);
+    // FIXME: Replace '4' with 'width'
+	input[4] in:int;
+	reaction(in) {=
+		int sum = 0;
+		for (int i = 0; i < in.size(); i++) {
+            if (in[i].is_present()) sum += *in[i].get();
+        }
+		std::cout << "Sum of received: " << sum << ".\n";
+		if (sum != s) {
+			std::cerr << "ERROR: Expected " << s << ".\n";
+			exit(1);
+		}
+		s += 16;
+	=}
+	reaction(shutdown) {=
+        if (s <= 6) {
+            std::cerr << "ERROR: Destination received no input!\n";
+            exit(1);
+        }
+        std::cout << "Success.\n";
+    =}
+}
+reactor Container(width:int(4)) {
+    // FIXME: Replace '4' with 'width'
+    input[4] in:int;
+    dst = new Destination();
+    in -> dst.in;
+}
+
+main reactor MultiportToHierarchy  { 
+	a = new Source();
+	b = new Container();
+	a.out -> b.in;
+}

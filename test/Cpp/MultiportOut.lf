@@ -1,0 +1,62 @@
+// Check multiport capabilities on Outputs.
+target Cpp {
+    timeout: 2 sec,
+    threads: 1,
+    fast: true
+}; 
+reactor Source {
+	timer t(0, 200 msec);
+	output[4] out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+        for(int i = 0; i < 4; i++) {
+            out[i].set(s);
+        }
+   	    s++;
+	=}
+}
+reactor Computation {
+	input in:int;
+	output out:int;
+	reaction(in) -> out {=
+        // No need to sleep for this test.
+        // struct timespec sleep_time = {(time_t) 0, (long)200000000};
+		// struct timespec remaining_time;
+		// nanosleep(&sleep_time, &remaining_time);
+		out.set(*in.get());
+	=}
+}
+reactor Destination {
+	state s:int(0);
+	input[4] in:int;
+	reaction(in) {=
+		int sum = 0;
+		for (int i = 0; i < in.size(); i++) {
+            if (in[i].is_present()) sum += *in[i].get();
+        }
+		std::cout << "Sum of received: " << sum << ".\n";
+		if (sum != s) {
+			std::cerr << "ERROR: Expected " << s << ".\n";
+			exit(1);
+		}
+		s += 4;
+	=}
+	reaction(shutdown) {=
+        if (s == 0) {
+            std::cerr << "ERROR: Destination received no input!\n";
+            exit(1);
+        }
+        std::cout << "Success.\n";
+    =}
+}
+
+main reactor ThreadedMultiport { 
+	a = new Source();
+	t1 = new Computation();
+	t2 = new Computation();
+	t3 = new Computation();
+	t4 = new Computation();
+	b = new Destination();
+	a.out -> t1.in || t2.in || t3.in || t4.in;
+	t1.out || t2.out  || t3.out || t4.out -> b.in;
+}
