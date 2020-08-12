@@ -1,0 +1,41 @@
+// Check multiport output to multiport input.
+// Destination port is wider than sending port.
+target Cpp {
+    timeout: 2 sec,
+    fast: true
+}; 
+reactor Source {
+    output[2] out:int;
+    reaction(startup) -> out {=
+        for(int i = 0; i < out.size(); i++) {
+            std::cout << "Source sending " << i << ".\n";
+            out[i].set(i);
+        }
+    =}
+}
+reactor Destination(expected:int(0)) {
+    input in:int;
+    state received:bool(false);
+    reaction(in) {=
+        std::cout << "Received: " << *in.get() << ".\n";
+        received = true;
+        if (*in.get() != expected) {
+            std::cerr << "ERROR: Expected " << expected << ".\n";
+            exit(1);
+        }
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            std::cerr << "ERROR: Destination received no input!\n";
+            exit(1);
+        }
+        std::cout << "Success.\n";
+    =}
+}
+
+main reactor MultiportToPort { 
+    a = new Source();
+    b1 = new Destination();
+    b2 = new Destination(expected = 1);
+    a.out -> b1.in || b2.in;
+}
