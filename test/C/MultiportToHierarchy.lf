@@ -17,7 +17,7 @@ reactor Source {
 }
 reactor Destination(width:int(4)) {
 	state s:int(6);
-	input[width] in:int; // Width is one larger than that of the source.
+	input[width] in:int;
 	reaction(in) {=
 		int sum = 0;
 		for (int i = 0; i < in_width; i++) {
