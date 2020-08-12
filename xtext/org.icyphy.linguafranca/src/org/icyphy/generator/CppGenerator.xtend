@@ -234,7 +234,7 @@ class CppGenerator extends GeneratorBase {
     def declareInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
             «IF i.widthSpec !== null»
-                std::array<«i.templateInstance», «i.widthSpec.width»> «i.name»;
+                std::array<«i.templateInstance», «i.widthSpec.widthSpecification»> «i.name»;
             «ELSE»
                 «i.templateInstance» «i.name»;
             «ENDIF»
@@ -534,7 +534,7 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializerList(Instantiation i, Integer id) '''
-        {"«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "id"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
+        {"«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "bank_position"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
     '''
 
     // FIXME: Does not support parameter values for widths.
@@ -727,12 +727,14 @@ class CppGenerator extends GeneratorBase {
                 if (rightContainer !== null) {
                     if (rightContainer.widthSpec !== null) {
                         // The right port is within a bank of reactors.
-                        // FIXME: Does not support parameter values for widths.
-                        val rightBankWidth = rightContainer.widthSpec.width
-                        rightContainerRef = '''«rightContainer.name»[(«rightPortIndex» + i) / «rightBankWidth»].'''
+                        var rightMultiportWidth = 1
                         if ((rightPort.variable as Port).widthSpec !== null) {
-                            rightPortArrayIndex = '''[(«rightPortIndex» + i) % «rightBankWidth»]'''
+                            // The right port is also a multiport.
+                            // FIXME: Does not support parameter values for widths.
+                            rightMultiportWidth = (rightPort.variable as Port).widthSpec.width
+                            rightPortArrayIndex = '''[(«rightPortIndex» + i) % «rightMultiportWidth»]'''
                         }
+                        rightContainerRef = '''«rightContainer.name»[(«rightPortIndex» + i) / «rightMultiportWidth»].'''
                     } else {
                         rightContainerRef = '''«rightContainer.name».'''
                         if ((rightPort.variable as Port).widthSpec !== null) {
