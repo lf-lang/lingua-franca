@@ -719,7 +719,7 @@ class CppGenerator extends GeneratorBase {
                     }
                 } else if ((leftPort.variable as Port).widthSpec !== null) {
                     // The left port is not within a bank of reactors but is a multiport.
-                    leftPortArrayIndex = '''[«leftPortIndex» + i)]'''
+                    leftPortArrayIndex = '''[«leftPortIndex» + i]'''
                 }
                 // Next, do the right port.
                 var rightContainerRef = ''
@@ -743,7 +743,7 @@ class CppGenerator extends GeneratorBase {
                     }
                 } else if ((rightPort.variable as Port).widthSpec !== null) {
                     // The right port is not within a bank of reactors but is a multiport.
-                    rightPortArrayIndex = '''[«rightPortIndex» + i)]'''
+                    rightPortArrayIndex = '''[«rightPortIndex» + i]'''
                 }
                 result.append('''
                     for (unsigned i = 0; i < «min»; i++) {
