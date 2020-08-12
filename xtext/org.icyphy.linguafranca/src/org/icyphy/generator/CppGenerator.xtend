@@ -266,20 +266,20 @@ class CppGenerator extends GeneratorBase {
                 return port.widthSpec.terms.get(0).width
             }
         }
-        throw new Exception("Only integer valued multiport widths are supported for now.")
+        throw new Exception("Only multiport widths with literal integer values are supported for now.")
     }
     
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
             «IF i.isMultiport»
-                std::array<reactor::Input<«i.targetType»>, «i.multiportWidthExpression»> «i.name»{{«FOR id : IntStream.range(0, i.multiportWidth).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
+                std::array<reactor::Input<«i.targetType»>, «calcPortWidth(i)»> «i.name»{{«FOR id : IntStream.range(0, calcPortWidth(i)).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
             «ELSE»
                 reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
             «ENDIF»
         «ENDFOR»
         «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
             «IF o.isMultiport»
-                std::array<reactor::Output<«o.targetType»>, «o.multiportWidthExpression»> «o.name»{{«FOR id : IntStream.range(0, o.multiportWidth).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
+                std::array<reactor::Output<«o.targetType»>, «calcPortWidth(o)»> «o.name»{{«FOR id : IntStream.range(0, calcPortWidth(o)).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
             «ELSE»
                 reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
             «ENDIF»
@@ -673,6 +673,38 @@ class CppGenerator extends GeneratorBase {
     def templateLine(Reactor r) '''
         template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>
     '''
+    
+    /**
+     * Calculate the width of a multiport.
+     * FIXME: This currently
+     * throws an exception if the width depends on a parameter value.
+     * If the width depends on a parameter value, then this method
+     * will need to determine that parameter for each instance, not
+     * just class definition of the containing reactor.
+     */
+    def int calcPortWidth(VarRef port) {
+        val result = port.multiportWidth
+        if (result < 0) {
+            throw new Exception("Only multiport widths with literal integer values are supported for now.")
+        }
+        return result
+    }
+
+    /**
+     * Calculate the width of a multiport.
+     * FIXME: This currently
+     * throws an exception if the width depends on a parameter value.
+     * If the width depends on a parameter value, then this method
+     * will need to determine that parameter for each instance, not
+     * just class definition of the containing reactor.
+     */
+    def int calcPortWidth(Port port) {
+        val result = port.widthSpec.width
+        if (result < 0) {
+            throw new Exception("Only multiport widths with literal integer values are supported for now.")
+        }
+        return result
+    }
 
     def generate(Connection c) {
         val result = new StringBuffer()
@@ -681,14 +713,12 @@ class CppGenerator extends GeneratorBase {
         // The index will go from zero to mulitportWidth - 1.
         var rightPortIndex = 0
         // FIXME: Check for matching widths with parallel connections.
-        // FIXME: Does not support parameter values for widths.
-        var rightWidth = rightPort.multiportWidth
+        var rightWidth = calcPortWidth(rightPort)
         var rightContainer = rightPort.container
         for (leftPort : c.leftPorts) {
             var leftPortIndex = 0
             val leftContainer = leftPort.container
-            // FIXME: Does not support parameter values for widths.
-            val leftWidth = leftPort.multiportWidth
+            val leftWidth = calcPortWidth(leftPort)
             while (leftPortIndex < leftWidth) {
                 // Figure out how many bindings to do.
                 var remainingLeftPorts = leftWidth - leftPortIndex
@@ -706,8 +736,7 @@ class CppGenerator extends GeneratorBase {
                         var leftMultiportWidth = 1
                         if ((leftPort.variable as Port).widthSpec !== null) {
                             // The left port is also a multiport.
-                            // FIXME: Does not support parameter values for widths.
-                            leftMultiportWidth = (leftPort.variable as Port).widthSpec.width
+                            leftMultiportWidth = calcPortWidth(leftPort.variable as Port)
                             leftPortArrayIndex = '''[(«leftPortIndex» + i) % «leftMultiportWidth»]'''
                         }
                         leftContainerRef = '''«leftContainer.name»[(«leftPortIndex» + i) / «leftMultiportWidth»].'''
@@ -731,7 +760,7 @@ class CppGenerator extends GeneratorBase {
                         if ((rightPort.variable as Port).widthSpec !== null) {
                             // The right port is also a multiport.
                             // FIXME: Does not support parameter values for widths.
-                            rightMultiportWidth = (rightPort.variable as Port).widthSpec.width
+                            rightMultiportWidth = calcPortWidth(rightPort.variable as Port)
                             rightPortArrayIndex = '''[(«rightPortIndex» + i) % «rightMultiportWidth»]'''
                         }
                         rightContainerRef = '''«rightContainer.name»[(«rightPortIndex» + i) / «rightMultiportWidth»].'''
@@ -753,13 +782,11 @@ class CppGenerator extends GeneratorBase {
                 ''')
                 leftPortIndex += min
                 rightPortIndex += min
-                // FIXME: Does not support parameter values for widths.
-                if (rightPortIndex == rightPort.multiportWidth && rightPortCount < c.rightPorts.length) {
+                if (rightPortIndex == calcPortWidth(rightPort) && rightPortCount < c.rightPorts.length) {
                     // Get the next right port. Here we rely on the validator to
                     // have checked that the connection is balanced.
                     rightPort = c.rightPorts.get(rightPortCount++)
-                    // FIXME: Does not support parameter values for widths.
-                    rightWidth = rightPort.multiportWidth
+                    rightWidth = calcPortWidth(rightPort)
                     rightPortIndex = 0
                     rightContainer = rightPort.container
                 }
