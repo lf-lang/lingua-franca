@@ -13,20 +13,20 @@ reactor Source {
         }
     =}
 }
-reactor Destination(bank_position:int(0)) {
+reactor Destination(instance:int(0)) {
     input in:int;
     state received:bool(false);
     reaction(in) {=
-        std::cout << "Destination " << bank_position << " received " << *in.get() << ".\n";
-        if (bank_position != *in.get()) {
-            std::cerr << "ERROR: Expected " << bank_position << ".\n";
+        std::cout << "Destination " << instance << " received " << *in.get() << ".\n";
+        if (instance != *in.get()) {
+            std::cerr << "ERROR: Expected " << instance << ".\n";
             exit(1);
         }
         received = true;
     =}
     reaction(shutdown) {=
         if (!received) {
-            std::cerr << "ERROR: Destination " << bank_position << " received no input!\n";
+            std::cerr << "ERROR: Destination " << instance << " received no input!\n";
             exit(1);
         }
         std::cout << "Success.\n";

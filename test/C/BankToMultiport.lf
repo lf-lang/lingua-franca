@@ -1,11 +1,11 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
 target C;
 
-reactor Source(bank_position:int(0)) {
+reactor Source(instance:int(0)) {
     output out:int;
     
     reaction (startup) -> out {=
-        SET(out, self->bank_position);
+        SET(out, self->instance);
     =}
 }
 

@@ -1,10 +1,10 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
 target Cpp;
-reactor Source(bank_position:unsigned(0)) {
+reactor Source(instance:unsigned(0)) {
     output out:unsigned;
     
     reaction (startup) -> out {=
-        out.set(bank_position);
+        out.set(instance);
     =}
 }
 

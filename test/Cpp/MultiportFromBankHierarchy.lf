@@ -5,10 +5,10 @@ target Cpp {
     threads: 1,
     fast: true
 }; 
-reactor Source(bank_position:int(0)) {
+reactor Source(instance:int(0)) {
     output out:int;
     reaction(startup) -> out {=
-        out.set(bank_position);
+        out.set(instance);
     =}
 }
 reactor Container {
