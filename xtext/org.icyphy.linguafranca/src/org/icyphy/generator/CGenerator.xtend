@@ -2518,16 +2518,16 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
-            // If the reactor has a parameter named "bank_position", set it.
+            // If the reactor has a parameter named "instance", set it.
             for (parameter : reactorClass.toDefinition.allParameters) {
-                if (parameter.name == "bank_position"
+                if (parameter.name == "instance"
                     && getTargetType(parameter.inferredType) == "int"
                 ) {
-                    // Override the default parameter value for bank_position.
+                    // Override the default parameter value for instance.
                     // This needs to be at the end or it will be overwrittend
                     // with the default parameter value.
                     pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->bank_position = «instance.bankIndex»;
+                        «nameOfSelfStruct»->instance = «instance.bankIndex»;
                     ''')
                 }
             }

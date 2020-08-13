@@ -3,29 +3,29 @@ target Cpp {
     timeout: 2 sec,
     fast: true
 };
-reactor Source(bank_position:int(0)) {
+reactor Source(instance:int(0)) {
 	timer t(0, 200 msec);
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
         out.set(s);
-   	    s += bank_position;
+   	    s += instance;
 	=}
 }
-reactor Destination(bank_position:int(0)) {
+reactor Destination(instance:int(0)) {
 	state s:int(0);
 	input in:int;
 	reaction(in) {=
-		std::cout << "Destination " << bank_position << " received: " << *in.get() << "\n";
+		std::cout << "Destination " << instance << " received: " << *in.get() << "\n";
 		if (*in.get() != s) {
 			std::cerr << "ERROR: Expected " << s << ".\n";
 			exit(1);
 		}
-		s += bank_position;
+		s += instance;
 	=}
 	reaction(shutdown) {=
-        if (s == 0 && bank_position != 0) {
-            std::cerr << "ERROR: Destination " << bank_position << " received no input!\n";
+        if (s == 0 && instance != 0) {
+            std::cerr << "ERROR: Destination " << instance << " received no input!\n";
             exit(1);
         }
         std::cout << "Success.\n";

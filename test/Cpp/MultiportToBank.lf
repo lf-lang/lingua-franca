@@ -10,13 +10,13 @@ reactor Source {
     =}
 }
 
-reactor Sink(bank_position:unsigned(0)) {
+reactor Sink(instance:unsigned(0)) {
     input in:unsigned;
     
     reaction (in) {=
         std::cout << "Received " << *in.get() << '\n';
-        if (*in.get() != bank_position) {
-            std::cerr << "Error: expected " << bank_position << "!\n";
+        if (*in.get() != instance) {
+            std::cerr << "Error: expected " << instance << "!\n";
             // exit(1);
         }
     =}

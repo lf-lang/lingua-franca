@@ -4,29 +4,29 @@ target C {
     fast: true,
     threads: 4
 }; 
-reactor Source(bank_position:int(0)) {
+reactor Source(instance:int(0)) {
 	timer t(0, 200 msec);
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
         SET(out, self->s);
-   	    self->s += self->bank_position;
+   	    self->s += self->instance;
 	=}
 }
-reactor Destination(bank_position:int(0)) {
+reactor Destination(instance:int(0)) {
 	state s:int(0);
 	input in:int;
 	reaction(in) {=
-		printf("Destination %d received: %d.\n", self->bank_position, in->value);
+		printf("Destination %d received: %d.\n", self->instance, in->value);
 		if (in->value != self->s) {
 			printf("ERROR: Expected %d.\n", self->s);
 			exit(1);
 		}
-		self->s += self->bank_position;
+		self->s += self->instance;
 	=}
 	reaction(shutdown) {=
-        if (self->s == 0 && self->bank_position != 0) {
-            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_position);
+        if (self->s == 0 && self->instance != 0) {
+            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->instance);
             exit(1);
         }
         printf("Success.\n");

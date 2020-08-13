@@ -4,10 +4,10 @@ target Cpp {
     timeout: 2 sec,
     fast: true
 }; 
-reactor Source(bank_position:int(0)) {
+reactor Source(instance:int(0)) {
     output out:int;
     reaction(startup) -> out {=
-        out.set(bank_position);
+        out.set(instance);
     =}
 }
 reactor Destination {

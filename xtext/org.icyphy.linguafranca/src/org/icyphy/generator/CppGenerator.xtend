@@ -534,7 +534,7 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializerList(Instantiation i, Integer id) '''
-        {"«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "bank_position"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
+        {"«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "instance"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
     '''
 
     // FIXME: Does not support parameter values for widths.
