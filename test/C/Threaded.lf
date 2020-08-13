@@ -7,8 +7,10 @@
 // in about 225 msec.
 // NOTE: This is the non-threaded version, showing that without threads, this takes more
 // than 800 msec to complete 200 msec of logical time.
+// See ThreadedMultiport for a parameterized version of this.
 target C {
-    timeout: 2 sec
+    timeout: 2 sec,
+    flags: "" // Disable compiler optimization so that TakeTime actually takes time.
 };
 
 reactor Source {
@@ -24,14 +26,18 @@ reactor Computation {
 	input in:int;
 	output out:int;
 	reaction(in) -> out {=
-		struct timespec sleep_time = {(time_t) 0, (long)200000000};
-		struct timespec remaining_time;
-		nanosleep(&sleep_time, &remaining_time);
-		SET(out, in->value);
+        // struct timespec sleep_time = {(time_t) 0, (long)200000000};
+        // struct timespec remaining_time;
+        // nanosleep(&sleep_time, &remaining_time);
+        int offset = 0;
+        for (int i = 0; i < 100000000; i++) {
+            offset++;
+        }
+        SET(out, in->value + offset);
 	=}
 }
 reactor Destination {
-	state s:int(0);
+    state s:int(400000000);
 	input in1:int;
 	input in2:int;
 	input in3:int;
