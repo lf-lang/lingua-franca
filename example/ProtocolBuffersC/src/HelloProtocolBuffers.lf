@@ -22,7 +22,6 @@
 //$ ./a.out
 
 target C {
-    flags: "src-gen/hello_string.pb-c.c -l protobuf-c",
     protobufs: hello_string.proto
 };
 
