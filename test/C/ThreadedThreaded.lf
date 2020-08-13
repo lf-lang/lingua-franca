@@ -5,8 +5,10 @@
 // since in every 200 msec cycle it has 800 msec of work to do.
 // On a quad-core machine, however, it does pretty well, completing 800 msec of work
 // in about 225 msec.
+// See ThreadedMultiport for a parameterized version of this.
 target C {
     timeout: 2 sec,
+    flags: "", // Disable compiler optimization so that TakeTime actually takes time.
     threads: 4
 };
 reactor Source {
