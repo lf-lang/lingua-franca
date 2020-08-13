@@ -22,14 +22,12 @@
 //$ ./a.out
 
 target C {
-    flags: "src-gen/hello_string.pb-c.c -l protobuf-c"
+    flags: "src-gen/hello_string.pb-c.c -l protobuf-c",
+    protobufs: hello_string.proto
 };
-import hello_string.proto;
+
 main reactor HelloProtocolBuffers {
 	
-	preamble {=
-		#include "hello_string.pb-c.h"
-	=}
 	timer t;
 	reaction(t) {=
 		HelloString pack_msg = HELLO_STRING__INIT; 	// Macro to create the protocol buffer
