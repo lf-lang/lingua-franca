@@ -613,7 +613,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  on this object in the AST.
      */
     def int intParameterValue(Parameter parameter, EObject errorReportingObject) {
-        // For some reason (?) parameter values can be tuples.
+        // Parameter values can be tuples.
         // Here, we just sum the elements.
         var result = 0
         for (value : parameter.init) {
