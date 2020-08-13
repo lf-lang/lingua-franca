@@ -65,8 +65,8 @@ target C {
     timeout: 10 secs
 };
  
-import MQTTPublisher.lf;
-import MQTTSubscriber.lf;
+import MQTTPublisher from "MQTTPublisher.lf";
+import MQTTSubscriber from "MQTTSubscriber.lf";
 
 /**
  * Reactor that generates a sequence of messages, one per second.
