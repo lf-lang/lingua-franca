@@ -1176,25 +1176,6 @@ class ASTUtils {
     }
         
     /**
-     * If the parameter has a literal integer value, then return that value.
-     * Otherwise, return -1.
-     * @param parameter The parameter.
-     * @return The parameter's integer value or -1
-     *  if the value cannot be determined or it is not an integer.
-     */
-    def static int intValue(Parameter parameter) {
-        // Parameter values can be tuples, which are not integers.
-        if (parameter.init.length !== 1) return -1
-        val value = parameter.init.get(0)
-        if (value.literal !== null) {
-            try {
-                return Integer.decode(value.literal)
-            } catch (NumberFormatException ex) {}
-        }
-        return -1
-    }
-    
-    /**
      * Return the width of the port reference if it can be determined
      * and otherwise return -1.  The width can be determined if the
      * port is not a multiport in a bank of reactors (the width will 1)
