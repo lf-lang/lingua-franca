@@ -3,7 +3,7 @@ target C {
     threads: 4
 };
 
-import Computation from "Threaded.lf";
+import TakeTime from "Threaded.lf";
 
 reactor Print {
     input in:int;
@@ -30,10 +30,10 @@ main reactor Pipeline {
     timer t(0, 200 msec);
     state count:int(0);
     
-    c1 = new Computation();
-    c2 = new Computation();
-    c3 = new Computation();
-    c4 = new Computation();
+    c1 = new TakeTime();
+    c2 = new TakeTime();
+    c3 = new TakeTime();
+    c4 = new TakeTime();
     p = new Print();
     
     reaction(t) -> c1.in {=
