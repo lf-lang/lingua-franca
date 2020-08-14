@@ -12,7 +12,6 @@ target C {
     timeout: 2 sec,
     flags: "" // Disable compiler optimization so that TakeTime actually takes time.
 };
-
 reactor Source {
 	timer t(0, 200 msec);
 	output out:int;
@@ -22,50 +21,40 @@ reactor Source {
 		self->s++;
 	=}
 }
-reactor Computation {
+reactor TakeTime {
 	input in:int;
 	output out:int;
 	reaction(in) -> out {=
-        // struct timespec sleep_time = {(time_t) 0, (long)200000000};
-        // struct timespec remaining_time;
-        // nanosleep(&sleep_time, &remaining_time);
-        int offset = 0;
-        for (int i = 0; i < 100000000; i++) {
-            offset++;
-        }
-        SET(out, in->value + offset);
+		// struct timespec sleep_time = {(time_t) 0, (long)200000000};
+		// struct timespec remaining_time;
+		// nanosleep(&sleep_time, &remaining_time);
+		int offset = 0;
+		for (int i = 0; i < 100000000; i++) {
+		    offset++;
+		}
+		SET(out, in->value + offset);
 	=}
 }
-reactor Destination {
-    state s:int(400000000);
-	input in1:int;
-	input in2:int;
-	input in3:int;
-	input in4:int;
-	reaction(in1, in2, in3, in4) {=
-		int sum = in1->value + in2->value + in3->value + in4->value;
+reactor Destination(width:int(4)) {
+	state s:int(400000000);
+	input[width] in:int;
+	reaction(in) {=
+		int sum = 0;
+		for (int i = 0; i < in_width; i++) {
+            sum += in[i]->value;
+        }
 		printf("Sum of received: %d.\n", sum);
 		if (sum != self->s) {
 			printf("ERROR: Expected %d.\n", self->s);
 			exit(1);
 		}
-		self->s += 4;
+		self->s += in_width;
 	=}
 }
-
-main reactor ScatterGather {
+main reactor ThreadedThreaded(width:int(4)) {
 	a = new Source();
-	t1 = new Computation();
-	t2 = new Computation();
-	t3 = new Computation();
-	t4 = new Computation();
-	b = new Destination();
-	a.out -> t1.in;
-	a.out -> t2.in;
-	a.out -> t3.in;
-	a.out -> t4.in;
-	t1.out -> b.in1;
-	t2.out -> b.in2;
-	t3.out -> b.in3;
-	t4.out -> b.in4;
+	t = new[width] TakeTime();
+	(a.out)+ -> t.in;
+    b = new Destination(width = width);
+	t.out -> b.in;
 }

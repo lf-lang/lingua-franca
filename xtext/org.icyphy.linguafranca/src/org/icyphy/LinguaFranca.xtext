@@ -209,7 +209,8 @@ Instantiation:
     ')' ('at' host=Host)? ';';
 
 Connection:
-    leftPorts += VarRef (',' leftPorts += VarRef)*
+    ((leftPorts += VarRef (',' leftPorts += VarRef)*)
+    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
     ('after' delay=Value)? ';';
