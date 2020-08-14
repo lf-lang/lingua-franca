@@ -167,38 +167,44 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // as obtained by the nextPort() function, connect to the next available
         // port on the right, as obtained by the nextPort() function.
         for (connection : definition.reactorClass.toDefinition.allConnections) {
-            var rightPort = connection.rightPorts.get(0)
-            var rightPortCount = 1
-            for (leftPort : connection.leftPorts) {
-                var leftPortInstance = nextPort(leftPort)
-                while (leftPortInstance !== null) {
-                    var rightPortInstance = nextPort(rightPort)
-                    if (rightPortInstance === null) {
-                        // We have run out of right ports. We may have also run out of
-                        // left ports, so get a new right port only if there is one.
+            var leftPort = connection.leftPorts.get(0)
+            var leftPortCount = 1
+            for (rightPort : connection.rightPorts) {
+                var rightPortInstance = nextPort(rightPort)
+                while (rightPortInstance !== null) {
+                    var leftPortInstance = nextPort(leftPort)
+                    if (leftPortInstance === null) {
+                        // We have run out of left ports. We may have also run out of
+                        // right ports, so get a new left port only if there is one.
                         // We do not rely on the validator to ensure that the connection is balanced.
-                        if (rightPortCount < connection.rightPorts.length) {
-                            rightPort = connection.rightPorts.get(rightPortCount++)
-                            rightPortInstance = nextPort(rightPort)
+                        if (leftPortCount < connection.leftPorts.length) {
+                            leftPort = connection.leftPorts.get(leftPortCount++)
+                            leftPortInstance = nextPort(leftPort)
                         } else {
-                            rightPortInstance = null
-                            generator.reportWarning(leftPort,
-                                    "Source is wider than the destination. Outputs will be lost.")
+                            // If left ports are to be iterated, then start over here.
+                            if (connection.isIterated) {
+                                leftPort = connection.leftPorts.get(0)
+                                leftPortCount = 1
+                                leftPortInstance = nextPort(leftPort)
+                            } else {
+                                leftPortInstance = null
+                                generator.reportWarning(rightPort, "Unconnected ports on the right.")
+                            }
                         }
                     }
-                    // Do not make a connection if there is no new right port.
-                    if (rightPortInstance !== null) {
+                    // Do not make a connection if there is no new left port.
+                    if (leftPortInstance !== null) {
                         connectPortInstances(connection, leftPortInstance, rightPortInstance)
                     }
-                    leftPortInstance = nextPort(leftPort)
+                    rightPortInstance = nextPort(rightPort)
                 }
-                // At this point, leftPortInstance is null.
-                // Go to the next left port if there is one.
+                // At this point, rightPortInstance is null.
+                // Go to the next right port if there is one.
             }
-            // We are out of left ports.
-            // Make sure we are out of right ports also.
-            if (nextPort(rightPort) !== null) {
-                generator.reportWarning(rightPort, "Unconnected ports on the right.")
+            // We are out of right ports.
+            // Make sure we are out of left ports also.
+            if (nextPort(leftPort) !== null || leftPortCount < connection.leftPorts.length - 1) {
+                generator.reportWarning(leftPort, "Source is wider than the destination. Outputs will be lost.")
             }
         }
         
