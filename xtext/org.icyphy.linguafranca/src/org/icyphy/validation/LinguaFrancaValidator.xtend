@@ -378,12 +378,23 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         
         if (leftWidth !== -1 && rightWidth !== -1 && leftWidth != rightWidth) {
-            // FIXME: The second argument should be Literals.CONNECTION, but
-            // stupidly, xtext will not accept that. There seems to be no way to
-            // report an error for the whole connection statement.
-            warning('''Left width «leftWidth» does not match right width «rightWidth»''',
-                Literals.CONNECTION__LEFT_PORTS
-            )
+            if (connection.isIterated) {
+                if (rightWidth % leftWidth != 0) {
+                    // FIXME: The second argument should be Literals.CONNECTION, but
+                    // stupidly, xtext will not accept that. There seems to be no way to
+                    // report an error for the whole connection statement.
+                    warning('''Left width «leftWidth» does not divide right width «rightWidth»''',
+                            Literals.CONNECTION__LEFT_PORTS
+                    )
+                }
+            } else {
+                // FIXME: The second argument should be Literals.CONNECTION, but
+                // stupidly, xtext will not accept that. There seems to be no way to
+                // report an error for the whole connection statement.
+                warning('''Left width «leftWidth» does not match right width «rightWidth»''',
+                        Literals.CONNECTION__LEFT_PORTS
+                )
+            }
         }
         
         val reactor = connection.eContainer as Reactor
