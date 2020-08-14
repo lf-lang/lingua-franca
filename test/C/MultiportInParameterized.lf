@@ -56,7 +56,7 @@ main reactor MultiportIn {
     a.out -> t2.in;
     a.out -> t3.in;
     a.out -> t4.in;
-    t1.out || t2.out || t3.out || t4.out -> b.in;
+    t1.out, t2.out, t3.out, t4.out -> b.in;
     // I.e.:
     // t1.out -> b.in[0];
     // t2.out -> b.in[1];

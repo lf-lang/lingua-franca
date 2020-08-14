@@ -209,9 +209,9 @@ Instantiation:
     ')' ('at' host=Host)? ';';
 
 Connection:
-    leftPorts += VarRef ('||' leftPorts += VarRef)*
+    leftPorts += VarRef (',' leftPorts += VarRef)*
     ('->' | physical?='~>') 
-    rightPorts += VarRef ('||' rightPorts += VarRef)*
+    rightPorts += VarRef (',' rightPorts += VarRef)*
     ('after' delay=Value)? ';';
     
 /////////// For target parameters
@@ -301,7 +301,7 @@ ArraySpec:
     ofVariableLength?='[]' | '[' length=INT ']';
     
 WidthSpec:
-    ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('||' terms+=WidthTerm)* ']';
+    ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
     
 WidthTerm:
     width=INT | parameter=[Parameter];
@@ -469,7 +469,5 @@ Token:
     // Assignment
     '=' |
     // Percentage
-    '%' |
-    // Parallel connections
-    '||'
+    '%'
 ;
