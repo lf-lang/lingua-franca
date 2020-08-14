@@ -57,6 +57,6 @@ main reactor ThreadedMultiport {
 	t3 = new Computation();
 	t4 = new Computation();
 	b = new Destination();
-	a.out -> t1.in || t2.in || t3.in || t4.in;
-	t1.out || t2.out  || t3.out || t4.out -> b.in;
+	a.out -> t1.in, t2.in, t3.in, t4.in;
+	t1.out, t2.out, t3.out, t4.out -> b.in;
 }
