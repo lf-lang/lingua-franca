@@ -5,10 +5,10 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source(instance:int(0)) {
+reactor Source(instance:int(0), check_override:int(0)) {
     output out:int;
     reaction(startup) -> out {=
-        SET(out, self->instance);
+        SET(out, self->instance * self->check_override);
     =}
 }
 reactor Destination {
@@ -34,7 +34,7 @@ reactor Destination {
 }
 
 main reactor MultiportFromBank {
-    a = new[3] Source();
+    a = new[3] Source(check_override = 1);
     b = new Destination();
     a.out -> b.in;
 }
