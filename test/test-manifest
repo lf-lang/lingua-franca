@@ -76,6 +76,7 @@ MultiportMutableInputArray.lf
 MultiportOut.lf
 MultiportToBank.lf
 MultiportToBankHierarchy.lf
+MultiportToBankInferred.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
