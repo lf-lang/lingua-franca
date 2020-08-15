@@ -484,6 +484,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.INPUT__MUTABLE
             )
         }
+        
+        // Variable width multiports are not supported (yet?).
+        if (input.widthSpec !== null && input.widthSpec.ofVariableLength) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC)
+        }
     }
 
     @Check(FAST)
@@ -515,6 +520,13 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     )
                 }
             }
+        }
+        // Variable width multiports are not supported (yet?).
+        if (instantiation.widthSpec !== null 
+                && instantiation.widthSpec.ofVariableLength
+                && this.target != Targets.C
+        ) {
+            error("Variable-width banks are not supported.", Literals.PORT__WIDTH_SPEC)
         }
     }
 
@@ -662,6 +674,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (output.type === null) {
                 error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE)
             }
+        }
+        
+        // Variable width multiports are not supported (yet?).
+        if (output.widthSpec !== null && output.widthSpec.ofVariableLength) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC)
         }
     }
 

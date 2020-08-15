@@ -96,20 +96,27 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // each individual reactor in the bank and skip the rest of the
         // initialization for this reactor instance.
         if (reactorIndex === -2) {
-            if (definition.widthSpec.ofVariableLength) {
-                throw new Exception("Banks of reactors with variable length are not supported.")
+            // If the bank width is variable, then we have to wait until the first connection
+            // before instantiating the children.
+            var width = if (definition.widthSpec.ofVariableLength) {
+                parent.varBankWidth(definition)
+            } else {
+                parent.width(definition.widthSpec, definition.widthSpec)
             }
-            var width = parent.width(definition.widthSpec, definition.widthSpec)
-            this.bankMembers = new ArrayList<ReactorInstance>(width)
-            for (var index = 0; index < width; index++) {
-                var childInstance = new ReactorInstance(definition, parent, generator, index)
-                this.bankMembers.add(childInstance)
-                childInstance.bank = this
-                childInstance.bankIndex = index
+            if (width > 0) {
+                this.bankMembers = new ArrayList<ReactorInstance>(width)
+                for (var index = 0; index < width; index++) {
+                    var childInstance = new ReactorInstance(definition, parent, generator, index)
+                    this.bankMembers.add(childInstance)
+                    childInstance.bank = this
+                    childInstance.bankIndex = index
+                }
+            } else {
+                generator.reportError(definition, "Cannot infer width.")
             }
             return
         }
-
+        
         // Apply overrides and instantiate parameters for this reactor instance.
         for (parameter : definition.reactorClass.toDefinition.allParameters) {
             this.parameters.add(new ParameterInstance(parameter, this))
@@ -249,6 +256,85 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // FIXME: also record number of reactions.
             // We can use this to set the sizes of the queues.
         }
+    }
+    
+    /**
+     * For the specified contained bank of reactors with variable width,
+     * return its width found by iterating over the connections of this reactor
+     * and inferring the required width. If the width cannot be inferred,
+     * report an error and return 0.
+     * @param bank A bank of reactors.
+     * @return The inferred width of the bank of reactors, or 0 if it cannot be determined.
+     */
+    def varBankWidth(Instantiation bank) {
+        var result = 0
+        for (connection : definition.reactorClass.toDefinition.allConnections) {
+            var found = 0
+            // First, check to see whether either side of the connection refers to this bank.
+            var leftVariableWidth = null as Instantiation
+            var leftWidth = 0
+            for (leftPort : connection.leftPorts) {
+                if (leftPort.container !== null
+                    && leftPort.container.widthSpec !== null 
+                    && leftPort.container.widthSpec.ofVariableLength
+                ) {
+                    if (connection.isIterated) {
+                        generator.reportError(connection, 
+                                "Iterated connection cannot contain a variable-width bank of reactors.")
+                    } else if (leftVariableWidth !== null) {
+                        generator.reportError(connection, 
+                                "Connection cannot contain more than one variable-width bank of reactors.")
+                    } else {
+                        leftVariableWidth = leftPort.container
+                        // Set found to -1 if this bank was found on the left.
+                        if (leftVariableWidth === bank) found = -1
+                    }
+                } else {
+                    leftWidth += width(leftPort.container.widthSpec, connection)
+                            * width((leftPort.variable as Port).widthSpec, connection)
+                }
+            }
+            var rightVariableWidth = null as Instantiation
+            var rightWidth = 0
+            for (rightPort : connection.rightPorts) {
+                if (rightPort.container !== null
+                    && rightPort.container.widthSpec !== null 
+                    && rightPort.container.widthSpec.ofVariableLength
+                ) {
+                    if (leftVariableWidth !== null || rightVariableWidth !== null) {
+                        generator.reportError(connection, 
+                                "Connection cannot contain more than one variable-width bank of reactors.")
+                    } else {
+                        rightVariableWidth = rightPort.container
+                        // Set found to 1 if this bank was found on the right.
+                        if (rightVariableWidth === bank) found = 1
+                    }
+                } else {
+                    rightWidth += width(rightPort.container.widthSpec, connection)
+                            * width((rightPort.variable as Port).widthSpec, connection)
+                }
+            }
+            if (found !== 0) {
+                var width = if (found < 0) {
+                    // bank was found on the left
+                    rightWidth - leftWidth
+                } else {
+                    // bank was found on the right.
+                    leftWidth - rightWidth
+                }
+                // Found a variable width reactor.
+                if (width <= 0) {
+                    generator.reportError(connection, 
+                            "Variable-width bank of reactors does not have a positive width.")
+                } else if (result != 0 && width != result) {
+                    generator.reportError(connection, 
+                            "Variable-width bank of reactors has more than one possible width.")
+                } else {
+                    result = width
+                }
+            }
+        }
+        return result
     }
     
     /** Data structure used by nextPort() to keep track of the next available bank. */

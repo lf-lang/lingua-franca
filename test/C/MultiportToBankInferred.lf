@@ -1,0 +1,38 @@
+ // Check multiport output to bank of recipients where the width of the bank is inferred.
+target C {
+    timeout: 2 sec,
+    fast: true
+}; 
+reactor Source {
+    output[3] out:int;
+    reaction(startup) -> out {=
+        for(int i = 0; i < out_width; i++) {
+            SET(out[i], i);
+        }
+    =}
+}
+reactor Destination(instance:int(0)) {
+    input in:int;
+    state received:bool(false);
+    reaction(in) {=
+        printf("Destination %d received %d.\n", self->instance, in->value);
+        if (self->instance != in->value) {
+            printf("ERROR: Expected %d.\n", self->instance);
+            exit(1);
+        }
+        self->received = true;
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->instance);
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor MultiportToBank { 
+    a = new Source();
+    b = new[] Destination(); // Width of the bank will be inferred.
+    a.out -> b.in;
+}
