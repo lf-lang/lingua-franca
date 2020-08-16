@@ -107,7 +107,13 @@ class ASTUtils {
                     val generic = generator.supportsGenerics
                             ? InferredType.fromAST(type).toText
                             : ""
-                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic)
+                    // If the left or right has a multiport or bank, then create a bank
+                    // of delays with an inferred width.
+                    // FIXME: If the connection already uses an inferred width on
+                    // the left or right, then this will fail because you cannot
+                    // have an inferred width on both sides.
+                    val isWide = connection.isWide
+                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic, isWide)
 
                     // Stage the new connections for insertion into the tree.
                     var connections = newConnections.get(parent)
@@ -140,6 +146,29 @@ class ASTUtils {
                 reactor.instantiations.add(instantiation)
             ]
         ]
+    }
+    
+    /**
+     * Return true if any port on the left or right of the connection invoves
+     * a bank of reactors or a multiport.
+     * @param connection The connection.
+     */
+    private static def boolean isWide(Connection connection) {
+        for (leftPort : connection.leftPorts) {
+            if ((leftPort.variable as Port).widthSpec !== null
+                || leftPort.container?.widthSpec !== null
+            ) {
+                return true
+            }
+        }
+        for (rightPort : connection.rightPorts) {
+            if ((rightPort.variable as Port).widthSpec !== null
+                || rightPort.container?.widthSpec !== null
+            ) {
+                return true
+            }
+        }
+        return false
     }
     
     /**
@@ -192,17 +221,22 @@ class ASTUtils {
      * @param delayClass The class to create an instantiation for
      * @param value A time interval corresponding to the desired delay
      * @param generic A string that denotes the appropriate type parameter, 
-     * which should be null or empty if the target does not support generics. 
+     *  which should be null or empty if the target does not support generics.
+     * @param isWide True to create a variable-width width specification.
      */
     private static def Instantiation getDelayInstance(Reactor delayClass, 
-            Value time, String generic) {
+            Value time, String generic, boolean isWide) {
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
         if (!generic.isNullOrEmpty) {
             val typeParm = factory.createTypeParm
             typeParm.literal = generic
             delayInstance.typeParms.add(typeParm)
-            
+        }
+        if (isWide) {
+            val widthSpec = factory.createWidthSpec
+            delayInstance.widthSpec = widthSpec
+            widthSpec.ofVariableLength = true
         }
         val delay = factory.createAssignment
         delay.lhs = delayClass.parameters.get(0)

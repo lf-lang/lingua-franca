@@ -1,0 +1,40 @@
+// Test multiport to multiport connections.
+// See also MultiportToMultiport.
+target C;
+
+reactor Source(width:int(2)) {
+    output[width] out:int;
+    reaction (startup) -> out {=
+        for (int i = 0; i < out_width; i++) {
+            SET(out[i], i);
+        }
+    =}
+}
+ 
+reactor Destination(width:int(2)) {
+    input[width] in:unsigned;
+    reaction (in) {=
+        for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) {
+                printf("Received on channel %d: %d\n", i, in[i]->value);
+                // NOTE: For testing purposes, this assumes the specific
+                // widths instantiated below.
+                if (in[i]->value != i % 3) {
+                    fprintf(stderr, "ERROR: expected %d!\n", i % 3);
+                    exit(1);
+                }
+            }
+        }
+        if (get_elapsed_logical_time() != SEC(1)) {
+            printf("ERROR: Expected to receive input after one second.\n");
+            exit(2);
+        }
+    =}
+}
+
+main reactor MultiportToMultiport2After {
+    a1 = new Source(width = 3);
+    a2 = new Source(width = 2);
+    b = new Destination(width = 5);
+    a1.out, a2.out -> b.in after 1 sec;
+}

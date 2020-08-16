@@ -16,6 +16,7 @@ ArrayPrint.lf
 ArrayScale.lf
 BankToBank.lf
 BankToBankMultiport.lf
+BankToBankMultiportAfter.lf
 BankToMultiport.lf
 Composition.lf
 CompositionAfter.lf
@@ -68,6 +69,7 @@ MovingAverage.lf
 MultipleContained.lf
 MultiportFromBank.lf
 MultiportFromBankHierarchy.lf
+MultiportFromBankHierarchyAfter.lf
 MultiportFromHierarchy.lf
 MultiportIn.lf
 MultiportInParameterized.lf
@@ -75,11 +77,12 @@ MultiportMutableInput.lf
 MultiportMutableInputArray.lf
 MultiportOut.lf
 MultiportToBank.lf
+MultiportToBankAfter.lf
 MultiportToBankHierarchy.lf
-MultiportToBankInferred.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
+MultiportToMultiport2After.lf
 MultiportToMultiportParameter.lf
 MultiportToMultiportArray.lf
 MultiportToPort.lf

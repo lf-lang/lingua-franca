@@ -290,8 +290,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         if (leftVariableWidth === bank) found = -1
                     }
                 } else {
-                    leftWidth += width(leftPort.container.widthSpec, connection)
-                            * width((leftPort.variable as Port).widthSpec, connection)
+                    var reactorInstance = this
+                    if (leftPort.container !== null) {
+                        reactorInstance = getChildReactorInstance(leftPort.container)
+                    }
+                    leftWidth += reactorInstance.width(leftPort.container.widthSpec, connection)
+                            * reactorInstance.width((leftPort.variable as Port).widthSpec, connection)
                 }
             }
             var rightVariableWidth = null as Instantiation
@@ -310,8 +314,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                         if (rightVariableWidth === bank) found = 1
                     }
                 } else {
-                    rightWidth += width(rightPort.container.widthSpec, connection)
-                            * width((rightPort.variable as Port).widthSpec, connection)
+                    var reactorInstance = this
+                    if (rightPort.container !== null) {
+                        reactorInstance = getChildReactorInstance(rightPort.container)
+                    }
+                    rightWidth += reactorInstance.width(rightPort.container.widthSpec, connection)
+                            * reactorInstance.width((rightPort.variable as Port).widthSpec, connection)
                 }
             }
             if (found !== 0) {
@@ -707,8 +715,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def int intParameterValue(Parameter parameter, EObject errorReportingObject) {
         // Parameter values can be tuples.
         // Here, we just sum the elements.
+        var values = parameter.init
+        
+        // Check for an override.  
+        val override = definition.parameters.findFirst[it.lhs === parameter]
+        if (override !== null) {
+            values = override.rhs
+        }
+        
         var result = 0
-        for (value : parameter.init) {
+        for (value : values) {
             if (value.literal !== null) {
                 try {
                     var candidate = Integer.decode(value.literal)
