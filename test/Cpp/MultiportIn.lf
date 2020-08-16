@@ -1,6 +1,6 @@
 // This is a version fo the Threaded test that uses a multiport input at the destination.
 // Its purpose is to test multiport inputs.
-target C {
+target Cpp {
     timeout: 2 sec,
     fast: true
 };
@@ -10,15 +10,14 @@ reactor Source {
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-		SET(out, self->s);
-		self->s++;
+		out.set(s++);
 	=}
 }
 reactor Computation {
 	input in:int;
 	output out:int;
 	reaction(in) -> out {=
-		SET(out, in->value);
+		out.set(*in.get());
 	=}
 }
 reactor Destination {
@@ -26,22 +25,22 @@ reactor Destination {
 	input[4] in:int;
 	reaction(in) {=
 		int sum = 0;
-		for (int i = 0; i < in_width; i++) {
-		    sum += in[i]->value;
+		for (int i = 0; i < in.size(); i++) {
+		    sum += *in[i].get();
         } 
-		printf("Sum of received: %d.\n", sum);
-		if (sum != self->s) {
-			printf("ERROR: Expected %d.\n", self->s);
+		std::cout << "Sum of received: " << sum << ".\n";
+		if (sum != s) {
+			std::cerr << "ERROR: Expected " << s << ".\n";
 			exit(1);
 		}
-		self->s += 4;
+		s += 4;
 	=}
     reaction(shutdown) {=
-        if (self->s == 0) {
-            fprintf(stderr, "ERROR: Destination received no input!\n");
+        if (s == 0) {
+            std::cerr << "ERROR: Destination received no input!\n";
             exit(1);
         }
-        printf("Success.\n");
+        std::cout << "Success.\n";
     =}
 }
 

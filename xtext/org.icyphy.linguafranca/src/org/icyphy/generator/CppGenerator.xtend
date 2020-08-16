@@ -230,10 +230,11 @@ class CppGenerator extends GeneratorBase {
         «i.reactorClass.name»«IF i.reactorClass.toDefinition.isGeneric»<«FOR t : i.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»
     '''
 
+    // FIXME: Does not support parameter values for widths.
     def declareInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
-            «IF i.arraySpec !== null»
-                std::array<«i.templateInstance», «i.arraySpec.length»> «i.name»;
+            «IF i.widthSpec !== null»
+                std::array<«i.templateInstance», «i.widthSpecification»> «i.name»;
             «ELSE»
                 «i.templateInstance» «i.name»;
             «ENDIF»
@@ -265,20 +266,20 @@ class CppGenerator extends GeneratorBase {
                 return port.widthSpec.terms.get(0).width
             }
         }
-        throw new Exception("Only integer valued multiport widths are supported for now.")
+        throw new Exception("Only multiport widths with literal integer values are supported for now.")
     }
     
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
             «IF i.isMultiport»
-                std::array<reactor::Input<«i.targetType»>, «i.multiportWidthExpression»> «i.name»{{«FOR id : IntStream.range(0, i.multiportWidth).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
+                std::array<reactor::Input<«i.targetType»>, «calcPortWidth(i)»> «i.name»{{«FOR id : IntStream.range(0, calcPortWidth(i)).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
             «ELSE»
                 reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
             «ENDIF»
         «ENDFOR»
         «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
             «IF o.isMultiport»
-                std::array<reactor::Output<«o.targetType»>, «o.multiportWidthExpression»> «o.name»{{«FOR id : IntStream.range(0, o.multiportWidth).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
+                std::array<reactor::Output<«o.targetType»>, «calcPortWidth(o)»> «o.name»{{«FOR id : IntStream.range(0, calcPortWidth(o)).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
             «ELSE»
                 reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
             «ENDIF»
@@ -533,13 +534,14 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def initializerList(Instantiation i, Integer id) '''
-        {"«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "id"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
+        {"«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "instance"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»}
     '''
 
+    // FIXME: Does not support parameter values for widths.
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            «IF i.arraySpec !== null»
-                , «i.name»{{«FOR id : IntStream.range(0, i.arraySpec.length).toArray SEPARATOR ", "»«i.initializerList(id)»«ENDFOR»}}
+            «IF i.widthSpec !== null»
+                , «i.name»{{«FOR id : IntStream.range(0, i.widthSpec.width).toArray SEPARATOR ", "»«i.initializerList(id)»«ENDFOR»}}
             «ELSE»
                 , «i.name»«i.initializerList»
             «ENDIF»
@@ -671,43 +673,128 @@ class CppGenerator extends GeneratorBase {
     def templateLine(Reactor r) '''
         template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>
     '''
+    
+    /**
+     * Calculate the width of a multiport.
+     * FIXME: This currently
+     * throws an exception if the width depends on a parameter value.
+     * If the width depends on a parameter value, then this method
+     * will need to determine that parameter for each instance, not
+     * just class definition of the containing reactor.
+     */
+    def int calcPortWidth(Port port) {
+        val result = port.widthSpec.width
+        if (result < 0) {
+            throw new Exception("Only multiport widths with literal integer values are supported for now.")
+        }
+        return result
+    }
 
     def generate(Connection c) {
-        val leftContainer = c.leftPort.container
-        val rightContainer = c.rightPort.container
-        val leftPort = c.leftPort.variable as Port
-        val rightPort = c.rightPort.variable as Port
-
-        if (leftContainer !== null && leftContainer.arraySpec !== null &&
-            rightContainer !== null && rightContainer.arraySpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
-                  «leftContainer.name»[i].«leftPort.name».bind_to(&«rightContainer.name»[i].«rightPort.name»);
+        val result = new StringBuffer()
+        var leftPort = c.leftPorts.get(0)
+        var leftPortCount = 1
+        // The index will go from zero to mulitportWidth - 1.
+        var leftPortIndex = 0
+        // FIXME: Support parameterized widths and check for matching widths with parallel connections.
+        var leftWidth = leftPort.portWidth(c)
+        var leftContainer = leftPort.container
+        var rightPortCount = 0
+        for (rightPort : c.rightPorts) {
+            rightPortCount++
+            var rightPortIndex = 0
+            val rightContainer = rightPort.container
+            val rightWidth = rightPort.portWidth(c)
+            while (rightPortIndex < rightWidth) {
+                // Figure out how many bindings to do.
+                var remainingRightPorts = rightWidth - rightPortIndex
+                var remainingLeftPorts = leftWidth - leftPortIndex
+                var min = (remainingRightPorts < remainingLeftPorts)?
+                        remainingRightPorts : remainingLeftPorts
+                // If the right or left port is a port in a bank of reactors,
+                // then we need to construct the index for the bank.
+                // Start with the right port.
+                var rightContainerRef = ''
+                var rightPortArrayIndex = ''
+                if (rightContainer !== null) {
+                    if (rightContainer.widthSpec !== null) {
+                        // The right port is within a bank of reactors.
+                        var rightMultiportWidth = 1
+                        if ((rightPort.variable as Port).widthSpec !== null) {
+                            // The right port is also a multiport.
+                            rightMultiportWidth = calcPortWidth(rightPort.variable as Port)
+                            rightPortArrayIndex = '''[(«rightPortIndex» + i) % «rightMultiportWidth»]'''
+                        }
+                        rightContainerRef = '''«rightContainer.name»[(«rightPortIndex» + i) / «rightMultiportWidth»].'''
+                    } else {
+                        rightContainerRef = '''«rightContainer.name».'''
+                        if ((rightPort.variable as Port).widthSpec !== null) {
+                            rightPortArrayIndex = '''[«rightPortIndex» + i]'''
+                        }
+                    }
+                } else if ((rightPort.variable as Port).widthSpec !== null) {
+                    // The right port is not within a bank of reactors but is a multiport.
+                    rightPortArrayIndex = '''[«rightPortIndex» + i]'''
                 }
-            '''
-        } else if (leftContainer !== null && leftContainer.arraySpec !== null &&
-            rightPort.widthSpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «leftContainer.name».size(); i++) {
-                  «leftContainer.name»[i].«leftPort.name».bind_to(&«c.rightPort.name»[i]);
+                // Next, do the left port.
+                var leftContainerRef = ''
+                var leftPortArrayIndex = ''
+                if (leftContainer !== null) {
+                    if (leftContainer.widthSpec !== null) {
+                        // The left port is within a bank of reactors.
+                        var leftMultiportWidth = 1
+                        if ((leftPort.variable as Port).widthSpec !== null) {
+                            // The left port is also a multiport.
+                            // FIXME: Does not support parameter values for widths.
+                            leftMultiportWidth = calcPortWidth(leftPort.variable as Port)
+                            leftPortArrayIndex = '''[(«leftPortIndex» + i) % «leftMultiportWidth»]'''
+                        }
+                        leftContainerRef = '''«leftContainer.name»[(«leftPortIndex» + i) / «leftMultiportWidth»].'''
+                    } else {
+                        leftContainerRef = '''«leftContainer.name».'''
+                        if ((leftPort.variable as Port).widthSpec !== null) {
+                            leftPortArrayIndex = '''[«leftPortIndex» + i]'''
+                        }
+                    }
+                } else if ((leftPort.variable as Port).widthSpec !== null) {
+                    // The left port is not within a bank of reactors but is a multiport.
+                    leftPortArrayIndex = '''[«leftPortIndex» + i]'''
                 }
-            '''
-        } else if (leftPort.widthSpec !== null && rightContainer !== null &&
-            rightContainer.arraySpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
-                  «c.leftPort.name»[i].bind_to(&«rightContainer.name»[i].«rightPort.name»);
+                result.append('''
+                    for (unsigned i = 0; i < «min»; i++) {
+                        «leftContainerRef»«leftPort.variable.name»«leftPortArrayIndex»
+                                .bind_to(&«rightContainerRef»«rightPort.variable.name»«rightPortArrayIndex»);
+                    }
+                ''')
+                rightPortIndex += min
+                leftPortIndex += min
+                if (leftPortIndex == leftPort.portWidth(c)) {
+                    if (leftPortCount < c.leftPorts.length) {
+                        // Get the next left port. Here we rely on the validator to
+                        // have checked that the connection is balanced, which it does only
+                        // when widths are given as literal constants.
+                        leftPort = c.leftPorts.get(leftPortCount++)
+                        leftWidth = leftPort.portWidth(c)
+                        leftPortIndex = 0
+                        leftContainer = leftPort.container
+                    } else {
+                        // We have run out of left ports.
+                        // If the connection is a broadcast connection,
+                        // then start over.
+                        if (c.isIterated) {
+                            leftPort = c.leftPorts.get(0)
+                            leftPortCount = 1
+                            leftWidth = leftPort.portWidth(c)
+                            leftPortIndex = 0
+                            leftContainer = leftPort.container
+                        } else if (rightPortCount < c.rightPorts.length || rightPortIndex < rightWidth - 1) {
+                            c.reportWarning("More right ports than left ports. Some right ports will be unconnected.")
+                        }
+                    }
                 }
-            '''
-        } else if (leftPort.widthSpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «c.leftPort.name».size(); i++) {
-                  «c.leftPort.name»[i].bind_to(&«c.rightPort.name»[i]);
-                }
-            '''
-        } else {
-            return '''«c.leftPort.name».bind_to(&«c.rightPort.name»);'''
+            }
         }
+        return result.toString
     }
 
     def generateReactorSource(Reactor r) '''

@@ -12,6 +12,7 @@ import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.KRendering
+import de.cau.cs.kieler.klighd.krendering.LineCap
 import de.cau.cs.kieler.klighd.krendering.LineStyle
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions
@@ -67,8 +68,8 @@ import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensi
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
-import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 import static extension org.icyphy.ASTUtils.*
+import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -669,32 +670,42 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		// Transform connections
 		for (Connection connection : reactor.connections?:emptyList) {
-			val source = if (connection.leftPort?.container !== null) {
-				outputPorts.get(connection.leftPort.container, connection.leftPort.variable)
-			} else if (parentInputPorts.containsKey(connection.leftPort?.variable)) {
-				parentInputPorts.get(connection.leftPort.variable)
-			}
-			val target = if (connection.rightPort?.container !== null) {
-				inputPorts.get(connection.rightPort.container, connection.rightPort.variable)
-			} else if (parentOutputPorts.containsKey(connection.rightPort?.variable)) {
-				parentOutputPorts.get(connection.rightPort.variable)
-			}
-			val edge = createIODependencyEdge(connection)
-			if (connection.delay !== null) {
-				edge.addCenterEdgeLabel(connection.delay.toText) => [
-					associateWith(connection.delay)
-					if (connection.physical) {
-						applyOnEdgePysicalDelayStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
-					} else {
-						applyOnEdgeDelayStyle()
-					}
-				]
-			} else if (connection.physical) {
-				edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
-			}
-			if (source !== null && target !== null) {
-				edge.connect(source, target)
-			}
+		    for (leftPort : connection.leftPorts) {
+		        for (rightPort : connection.rightPorts) {
+                    val source = if (leftPort?.container !== null) {
+                            outputPorts.get(leftPort.container, leftPort.variable)
+                        } else if (parentInputPorts.containsKey(leftPort?.variable)) {
+                            parentInputPorts.get(leftPort.variable)
+                        }
+                    val target = if (rightPort?.container !== null) {
+                            inputPorts.get(rightPort.container, rightPort.variable)
+                        } else if (parentOutputPorts.containsKey(rightPort?.variable)) {
+                            parentOutputPorts.get(rightPort.variable)
+                        }
+                    val edge = createIODependencyEdge(connection)
+                    if (leftPort.multiportWidth !== 1 || rightPort.multiportWidth !== 1) {
+                        // Render multiport connections and bank connections in bold.
+                        edge.KRendering.setLineWidth(2.2f)
+                        edge.KRendering.setLineCap(LineCap.CAP_SQUARE)
+                    }
+                    if (connection.delay !== null) {
+                        edge.addCenterEdgeLabel(connection.delay.toText) => [
+                            associateWith(connection.delay)
+                            if (connection.physical) {
+                                applyOnEdgePysicalDelayStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
+                            } else {
+                                applyOnEdgeDelayStyle()
+                            }
+                        ]
+                    } else if (connection.physical) {
+                        edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
+                            reactor.primary ? Colors.WHITE : Colors.GRAY_95)
+                    }
+                    if (source !== null && target !== null) {
+                        edge.connect(source, target)
+                    }
+                }
+		    }
 		}
 		
 		// Add startup/shutdown

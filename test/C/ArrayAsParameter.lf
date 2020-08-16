@@ -2,7 +2,7 @@
 // to Print. The length of the array has to also be a parameter because
 // C arrays do not encode their own length.
 target C;
-reactor Source(sequence:int[]({= {0, 1, 2} =}), n_sequence:int(3)) {
+reactor Source(sequence:int[](0, 1, 2), n_sequence:int(3)) {
     output out:int;
     state count:int(0);
     logical action next;
@@ -35,7 +35,7 @@ reactor Print {
     =}
 }
 main reactor ArrayAsParameter {
-    s = new Source(sequence={= {1, 2, 3, 4} =}, n_sequence=4);
+    s = new Source(sequence = (1, 2, 3, 4), n_sequence=4);
     p = new Print();
     s.out -> p.in;
 }

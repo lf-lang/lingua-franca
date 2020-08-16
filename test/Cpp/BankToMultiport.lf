@@ -1,9 +1,10 @@
+// Test bank of reactors to multiport input with id parameter in the bank.
 target Cpp;
-reactor Source(id:unsigned(0)) {
+reactor Source(instance:unsigned(0)) {
     output out:unsigned;
     
     reaction (startup) -> out {=
-        out.set(id);
+        out.set(instance);
     =}
 }
 
@@ -12,7 +13,7 @@ reactor Sink {
     state received:bool(false);
     
     reaction (in) {=
-        for (unsigned i; i < in.size(); i++) {
+        for (unsigned i = 0; i < in.size(); i++) {
             received = true;
             std::cout << "Received " << *in[i].get() << '\n';
             if (*in[i].get() != i) {
@@ -29,7 +30,7 @@ reactor Sink {
     =}
 }
 
-main reactor ArrayReactorInstances {
+main reactor BankToMultiport {
     source = new[4] Source();
     sink = new Sink();
     source.out -> sink.in;

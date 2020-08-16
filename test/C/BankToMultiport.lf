@@ -1,0 +1,40 @@
+// Test bank of reactors to multiport input with id parameter in the bank.
+target C;
+
+reactor Source(instance:int(0)) {
+    output out:int;
+    
+    reaction (startup) -> out {=
+        SET(out, self->instance);
+    =}
+}
+
+reactor Sink(width:int(4)) {
+    input[width] in:int;
+    state received:bool(false);
+    
+    reaction (in) {=
+        for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) {
+                printf("Received on channel %d: %d\n", i, in[i]->value);
+                self->received = true;
+                if (in[i]->value != i) {
+                    fprintf(stderr, "ERROR: expected %d\n", i);
+                    exit(1); 
+                }   
+            }
+        }
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            fprintf(stderr, "ERROR: Sink received no data\n");
+            exit(1);    
+        }
+    =}
+}
+
+main reactor BankToMultiport(width:int(5)) {
+    source = new[width] Source();
+    sink = new Sink(width = width);
+    source.out -> sink.in;
+}

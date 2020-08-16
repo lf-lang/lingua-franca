@@ -1,15 +1,15 @@
 // Check multiport output to multiport input.
 // Destination port is wider than sending port.
-target C {
+target Cpp {
     timeout: 2 sec,
     fast: true
 }; 
 reactor Source {
     output[2] out:int;
     reaction(startup) -> out {=
-        for(int i = 0; i < out_width; i++) {
-            printf("Source sending %d.\n", i);
-            SET(out[i], i);
+        for(int i = 0; i < out.size(); i++) {
+            std::cout << "Source sending " << i << ".\n";
+            out[i].set(i);
         }
     =}
 }
@@ -17,19 +17,19 @@ reactor Destination(expected:int(0)) {
     input in:int;
     state received:bool(false);
     reaction(in) {=
-        printf("Received: %d.\n", in->value);
-        self->received = true;
-        if (in->value != self->expected) {
-            printf("ERROR: Expected %d.\n", self->expected);
+        std::cout << "Received: " << *in.get() << ".\n";
+        received = true;
+        if (*in.get() != expected) {
+            std::cerr << "ERROR: Expected " << expected << ".\n";
             exit(1);
         }
     =}
     reaction(shutdown) {=
-        if (!self->received) {
-            fprintf(stderr, "ERROR: Destination received no input!\n");
+        if (!received) {
+            std::cerr << "ERROR: Destination received no input!\n";
             exit(1);
         }
-        printf("Success.\n");
+        std::cout << "Success.\n";
     =}
 }
 

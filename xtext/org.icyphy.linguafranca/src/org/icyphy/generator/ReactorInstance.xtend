@@ -34,6 +34,8 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+import org.eclipse.emf.ecore.EObject
+import org.icyphy.graph.DirectedGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
@@ -45,9 +47,9 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
+import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.graph.DirectedGraph
 
 /**
  * Representation of a runtime instance of a reactor.
@@ -64,7 +66,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** Count of the number of chains seen so far. */
     int branchCount = 1
     
-        /** Create a runtime instance from the specified definition
+   /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent, or null for the main rector.
@@ -73,7 +75,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         // If the reactor is being instantiated with new[width], then pass -2
         // to the constructor, otherwise pass -1.
-        this(definition, parent, generator, (definition.arraySpec !== null)? -2 : -1)
+        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
     }
 
     /** Create a runtime instance from the specified definition
@@ -94,20 +96,27 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // each individual reactor in the bank and skip the rest of the
         // initialization for this reactor instance.
         if (reactorIndex === -2) {
-            if (definition.arraySpec.ofVariableLength) {
-                throw new Exception("Banks of reactors with variable length are not supported.")
+            // If the bank width is variable, then we have to wait until the first connection
+            // before instantiating the children.
+            var width = if (definition.widthSpec.ofVariableLength) {
+                parent.varBankWidth(definition)
+            } else {
+                parent.width(definition.widthSpec, definition.widthSpec)
             }
-            var width = definition.arraySpec.length
-            this.bankMembers = new ArrayList<ReactorInstance>(width)
-            for (var index = 0; index < width; index++) {
-                var childInstance = new ReactorInstance(definition, parent, generator, index)
-                this.bankMembers.add(childInstance)
-                childInstance.bank = this
-                childInstance.bankIndex = index
+            if (width > 0) {
+                this.bankMembers = new ArrayList<ReactorInstance>(width)
+                for (var index = 0; index < width; index++) {
+                    var childInstance = new ReactorInstance(definition, parent, generator, index)
+                    this.bankMembers.add(childInstance)
+                    childInstance.bank = this
+                    childInstance.bankIndex = index
+                }
+            } else {
+                generator.reportError(definition, "Cannot infer width.")
             }
             return
         }
-
+        
         // Apply overrides and instantiate parameters for this reactor instance.
         for (parameter : definition.reactorClass.toDefinition.allParameters) {
             this.parameters.add(new ParameterInstance(parameter, this))
@@ -153,7 +162,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             this.actions.add(new ActionInstance(actionDecl, this))
         }
 
-        
         // Populate destinations map and the connectivity information
         // in the port instances.
         // Note that this can only happen _after_ the children and 
@@ -162,46 +170,48 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // Unfortunately, we have to do some complicated things here
         // to support multiport-to-multiport, multiport-to-bank,
         // and bank-to-multiport communication.  The principle being followed is:
-        
-        // In each connection statement, make as many connections as possible until
-        // either the source ports or the destination ports have been used up.
-        // If either is not used up, then subsequent connection statements will
-        // pick up where this one left off.  If the source connection is used up,
-        // then subsequent connection statements from this same source will start
-        // over from the beginning.
-        
-        // The above principle is realized by the nextPort() function.
-
-        // If after all connections in a reactor have been made, there remain
-        // either destination ports or source ports that have not been used up,
-        // issue a warning. Despite the warning, the generated code will run.
-        // An output channel that has no corresponding input channel simply
-        // results in discarding the data. An input channel that has no
-        // corresponding output channel will always have its `is_present`
-        // field evaluate to false.
+        // In each connection statement, for each port instance on the left,
+        // as obtained by the nextPort() function, connect to the next available
+        // port on the right, as obtained by the nextPort() function.
         for (connection : definition.reactorClass.toDefinition.allConnections) {
-            // Always check first whether there is a destination instance
-            // ready to receive before checking whether there is a source
-            // instance ready to send so that we can warn when not all sources
-            // are connected (and hence data may be lost).
-            var dstInstance = nextPort(connection.rightPort)
-            if (dstInstance !== null) {
-                var srcInstance = nextPort(connection.leftPort)
-                while (dstInstance !== null && srcInstance !== null) {
-                    connectPortInstances(connection, srcInstance, dstInstance)
-                    dstInstance = nextPort(connection.rightPort)
-                    if (dstInstance !== null) {
-                        srcInstance = nextPort(connection.leftPort)
+            var leftPort = connection.leftPorts.get(0)
+            var leftPortCount = 1
+            for (rightPort : connection.rightPorts) {
+                var rightPortInstance = nextPort(rightPort)
+                while (rightPortInstance !== null) {
+                    var leftPortInstance = nextPort(leftPort)
+                    if (leftPortInstance === null) {
+                        // We have run out of left ports. We may have also run out of
+                        // right ports, so get a new left port only if there is one.
+                        // We do not rely on the validator to ensure that the connection is balanced.
+                        if (leftPortCount < connection.leftPorts.length) {
+                            leftPort = connection.leftPorts.get(leftPortCount++)
+                            leftPortInstance = nextPort(leftPort)
+                        } else {
+                            // If left ports are to be iterated, then start over here.
+                            if (connection.isIterated) {
+                                leftPort = connection.leftPorts.get(0)
+                                leftPortCount = 1
+                                leftPortInstance = nextPort(leftPort)
+                            } else {
+                                leftPortInstance = null
+                                generator.reportWarning(rightPort, "Unconnected ports on the right.")
+                            }
+                        }
                     }
+                    // Do not make a connection if there is no new left port.
+                    if (leftPortInstance !== null) {
+                        connectPortInstances(connection, leftPortInstance, rightPortInstance)
+                    }
+                    rightPortInstance = nextPort(rightPort)
                 }
+                // At this point, rightPortInstance is null.
+                // Go to the next right port if there is one.
             }
-            // It is possible for dstInstance to be non-null here, which means
-            // that a destination was found where there was no corresponding source.
-            // Need to reverse the incrementing of the multiport channel and/or bank index.
-            // Otherwise, the next connection to use this destination may skip over
-            // a channel and/or bank.
-            if (dstInstance !== null) {
-                reverseIncrement(connection.rightPort, dstInstance)
+            // We are out of right ports.
+            // Make sure we are out of left ports also.
+            if (nextPort(leftPort) !== null || leftPortCount < connection.leftPorts.length - 1) {
+                generator.reportWarning(leftPort, "Source is wider than the destination. Outputs will be lost.")
             }
         }
         
@@ -248,6 +258,93 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
+    /**
+     * For the specified contained bank of reactors with variable width,
+     * return its width found by iterating over the connections of this reactor
+     * and inferring the required width. If the width cannot be inferred,
+     * report an error and return 0.
+     * @param bank A bank of reactors.
+     * @return The inferred width of the bank of reactors, or 0 if it cannot be determined.
+     */
+    def varBankWidth(Instantiation bank) {
+        var result = 0
+        for (connection : definition.reactorClass.toDefinition.allConnections) {
+            var found = 0
+            // First, check to see whether either side of the connection refers to this bank.
+            var leftVariableWidth = null as Instantiation
+            var leftWidth = 0
+            for (leftPort : connection.leftPorts) {
+                if (leftPort.container !== null
+                    && leftPort.container.widthSpec !== null 
+                    && leftPort.container.widthSpec.ofVariableLength
+                ) {
+                    if (connection.isIterated) {
+                        generator.reportError(connection, 
+                                "Iterated connection cannot contain a variable-width bank of reactors.")
+                    } else if (leftVariableWidth !== null) {
+                        generator.reportError(connection, 
+                                "Connection cannot contain more than one variable-width bank of reactors.")
+                    } else {
+                        leftVariableWidth = leftPort.container
+                        // Set found to -1 if this bank was found on the left.
+                        if (leftVariableWidth === bank) found = -1
+                    }
+                } else {
+                    var reactorInstance = this
+                    if (leftPort.container !== null) {
+                        reactorInstance = getChildReactorInstance(leftPort.container)
+                    }
+                    leftWidth += reactorInstance.width(leftPort.container.widthSpec, connection)
+                            * reactorInstance.width((leftPort.variable as Port).widthSpec, connection)
+                }
+            }
+            var rightVariableWidth = null as Instantiation
+            var rightWidth = 0
+            for (rightPort : connection.rightPorts) {
+                if (rightPort.container !== null
+                    && rightPort.container.widthSpec !== null 
+                    && rightPort.container.widthSpec.ofVariableLength
+                ) {
+                    if (leftVariableWidth !== null || rightVariableWidth !== null) {
+                        generator.reportError(connection, 
+                                "Connection cannot contain more than one variable-width bank of reactors.")
+                    } else {
+                        rightVariableWidth = rightPort.container
+                        // Set found to 1 if this bank was found on the right.
+                        if (rightVariableWidth === bank) found = 1
+                    }
+                } else {
+                    var reactorInstance = this
+                    if (rightPort.container !== null) {
+                        reactorInstance = getChildReactorInstance(rightPort.container)
+                    }
+                    rightWidth += reactorInstance.width(rightPort.container.widthSpec, connection)
+                            * reactorInstance.width((rightPort.variable as Port).widthSpec, connection)
+                }
+            }
+            if (found !== 0) {
+                var width = if (found < 0) {
+                    // bank was found on the left
+                    rightWidth - leftWidth
+                } else {
+                    // bank was found on the right.
+                    leftWidth - rightWidth
+                }
+                // Found a variable width reactor.
+                if (width <= 0) {
+                    generator.reportError(connection, 
+                            "Variable-width bank of reactors does not have a positive width.")
+                } else if (result != 0 && width != result) {
+                    generator.reportError(connection, 
+                            "Variable-width bank of reactors has more than one possible width.")
+                } else {
+                    result = width
+                }
+            }
+        }
+        return result
+    }
+    
     /** Data structure used by nextPort() to keep track of the next available bank. */
     var nextBankTable = new HashMap<VarRef,Integer>()
 
@@ -257,6 +354,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Check for dangling connections.
      */
+    // FIXME identifies only dangling inputs
     def checkForDanglingConnections() {
         // First, check that each bank index is either 0 (allowed for sources)
         // or equals the width of the bank, meaning all banks were used.
@@ -279,67 +377,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (portInstance instanceof MultiportInstance) {
                 if (nextPort != 0 && nextPort < portInstance.width) {
                     // Not all the ports were used.
-                    generator.reportWarning(portInstance.definition,
-                            "Not all port channels are connected.")
+                    generator.reportWarning(portInstance.parent.definition,
+                            "Not all multiport input channels are connected.")
                 }
             }
-        }
-    }
-    
-    /**
-     * For the specified port reference, if it is a multiport, decrement
-     * the multiport bank tracker by one. If it is also in a bank and the
-     * decrement drops below zero, then decrement the bank also.
-     * If it is a single port in a bank, then mark it unused and,
-     * if it is also in a bank, decrement the bank counter.
-     * @param portReference The reference to the port in a connect statement.
-     * @param portInstance The port instance that was found (a single port).
-     */
-    def reverseIncrement(VarRef portReference, PortInstance portInstance) {
-        if (portInstance.multiport !== null) {
-            // Port is in a multiport.
-            var portIndex = nextPortTable.get(portInstance.multiport)?:0
-            if (portIndex > 0) {
-                nextPortTable.put(portInstance.multiport, portIndex - 1)
-            } else {
-                // The portIndex is 0.
-                // The port must be in a bank, so we have to decrement the bank count.
-                var nextBank = nextBankTable.get(portReference) ?: 0
-                if (nextBank > 0) {
-                    nextBankTable.put(portReference, nextBank - 1)
-                    // Have to also find the channel reference for the port in the
-                    // previous bank and decrement that.
-                    var reactor = this
-                    if (portReference.container !== null) {
-                        reactor = getChildReactorInstance(portReference.container)
-                    }
-                    if (reactor.bankMembers === null) {
-                        // This should not occur.
-                        generator.reportWarning(portReference,
-                        '''INTERNAL ERROR 1: Port «portInstance.getFullName» should have had incremented its channel or bank index.''')
-                    } else {
-                        val memberReactor = reactor.bankMembers.get(nextBank - 1)
-                        val port = memberReactor.lookupPortInstance(portReference.variable as Port)
-                        val portIdx = nextPortTable.get(port)?:0
-                        if (portIdx <= 0) {
-                            // This should not occur.
-                            generator.reportWarning(
-                                portReference, '''INTERNAL ERROR 2: Port «portInstance.getFullName» should have had incremented its channel or bank index.''')
-                        } else {
-                            nextPortTable.put(port, portIdx - 1)
-                        }
-                    }
-                } else {
-                    // Bank index and multiport channel are both 0.
-                    // This should not occur.
-                    generator.reportWarning(portReference,
-                    '''INTERNAL ERROR 3: Port «portInstance.getFullName» should have had incremented its channel or bank index.''')
-                }
-            }
-        } else if (!portReference.isSource) {
-            // Not a multiport.
-            // Port may have been marked used when it was not.
-            nextPortTable.put(portInstance, 0)
         }
     }
     
@@ -347,10 +388,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * Given a VarRef for either the left or the right side of a connection
      * statement within this reactor instance, return the next available port instance
      * for that connection. If there are no more available ports, return null.
-     * To realize a connection statement, make connections until one side or
-     * the other of the connection statement causes this method to return null.
      * 
-     * If this reactor is not a bank of reactors and the
+     * This handles parallel connections like `a.out || b.out -> c.in || d.in`.
+     * Each VarRef on each side may also refer to a port of this reactor, as in
+     * `in1 || in2 -> b.in`.
+     * To realize such connection statements, make connections until one side or
+     * the other of the connection statement causes this method to return null,
+     * then proceed to the next port on that side.
+     * 
+     * If the reactor is not a bank of reactors and the
      * port is not a multiport, then the returned port instance will simply
      * be the port referenced, which may be a port of this reactor or a port
      * of a contained reactor, unless that same port was returned by the previous
@@ -360,7 +406,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * in the multiport, returning a new port each time it is called, until all ports
      * in the multiport have been returned. Then it will return null.
      * 
-     * If this reactor is a bank of reactors, the this method will iterate through
+     * If the reactor is a bank of reactors, then this method will iterate through
      * the bank, returning a new port each time it is called, until all ports in all
      * banks are exhausted, at which time it will return null.
      * 
@@ -462,12 +508,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             var portIndex = nextPortTable.get(portInstance)?:0
             if (portIndex > 0) {
                 // Port has been used.
+                // If it is a source, reset the nextPortTable so it can be reused.
+                if (portReference.isSource) {
+                    nextPortTable.put(portInstance, 0)
+                }
                 return null
             }
-            // Mark this port used if it is not a source.
-            if (!portReference.isSource) {
-                nextPortTable.put(portInstance, 1)
-            }
+            nextPortTable.put(portInstance, 1)
             return portInstance
         }
     }
@@ -490,14 +537,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param dstInstance The destination instance (the right port).
      */
     def connectPortInstances(Connection connection, PortInstance srcInstance, PortInstance dstInstance) {
-        if (srcInstance === null) {
-            generator.reportError(connection.leftPort, "Invalid port.")
-            return
-        }
-        if (dstInstance === null) {
-            generator.reportError(connection.rightPort, "Invalid port.")
-            return
-        }
         srcInstance.dependentPorts.add(dstInstance)
         if (dstInstance.dependsOnPort !== null && dstInstance.dependsOnPort !== srcInstance) {
             generator.reportError(
@@ -505,6 +544,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 "dstInstance port " + dstInstance.getFullName + " is already connected to " +
                     dstInstance.dependsOnPort.getFullName
             )
+            return
         }
         dstInstance.dependsOnPort = srcInstance
         var dstInstances = this.destinations.get(srcInstance)
@@ -665,6 +705,87 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
     
+    /**
+     * For the specified parameter, if its value is a positive integer, return
+     * that value. Otherwise, report an error and return 0.
+     * @param parameter The parameter.
+     * @param errorReportingObject If an error occurs, report the error
+     *  on this object in the AST.
+     */
+    def int intParameterValue(Parameter parameter, EObject errorReportingObject) {
+        // Parameter values can be tuples.
+        // Here, we just sum the elements.
+        var values = parameter.init
+        
+        // Check for an override.  
+        val override = definition.parameters.findFirst[it.lhs === parameter]
+        if (override !== null) {
+            values = override.rhs
+        }
+        
+        var result = 0
+        for (value : values) {
+            if (value.literal !== null) {
+                try {
+                    var candidate = Integer.decode(value.literal)
+                    if (candidate <= 0) {
+                        generator.reportError(
+                            errorReportingObject,
+                            '''Parameter «parameter.name» does not have a positive value: «candidate».'''
+                        )
+                        candidate = 0
+                    }
+                    result += candidate
+                } catch (NumberFormatException ex) {
+                    generator.reportError(
+                        errorReportingObject,
+                        '''Parameter «parameter.name» does not have an integer value.'''
+                    )
+                }
+            } else if (value.parameter !== null) {
+                // Parameter value is not a literal.
+                // Check for an override.  
+                val assignment = definition.parameters.findFirst[it.lhs === value.parameter]
+                if (assignment === null) {
+                    // There is no override, so we can use the default value.
+                    // In case that simply refers to another parameter of the same reactor,
+                    // call this function recursively.
+                    result += intParameterValue(value.parameter, errorReportingObject)
+                } else {
+                    // There is an override.
+                    // The right-hand side of the override may be a tuple,
+                    // so sum those elements.
+                    for (term : assignment.rhs) {
+                        if (term.literal !== null) {
+                            try {
+                                var candidate = Integer.decode(value.literal)
+                                if (candidate <= 0) {
+                                    generator.reportError(
+                                        errorReportingObject,
+                                        '''Non-positive value: «candidate».'''
+                                    )
+                                    candidate = 0
+                                }
+                                result += candidate
+                            } catch (NumberFormatException ex) {
+                                generator.reportError(
+                                    errorReportingObject,
+                                    '''Value «value.literal» is not an integer.'''
+                                )
+                            }
+                        } else if (value.parameter !== null) {
+                            // The override refers to a parameter of the parent.
+                            result += parent.intParameterValue(value.parameter, errorReportingObject)
+                        }
+                    }
+                }
+            } else {
+                return -1
+            }
+        }
+        return result
+    }
+    
     ///////////////////////////////////////////////////
     //// Methods for finding instances in this reactor given an AST node.
     
@@ -821,6 +942,30 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         result
     }
 
+    /**
+     * For the specified width specification, return the width.
+     * This may be for a bank of reactors within this reactor instance or
+     * for a port of this reactor instance. If the argument is null, there
+     * is no width specification, so return 1. Otherwise, evaluate the
+     * width value by determining the value of any referenced parameters.
+     * @param widthSpec The width specification.
+     * @param errorReportingObject If an error occurs, report the error
+     *  on this object in the AST.
+     */
+    def width(WidthSpec widthSpec, EObject errorReportingObject) {
+        if (widthSpec === null) return 1
+        var result = 0
+        for (term : widthSpec.terms) {
+            if (term.parameter !== null) {
+                result += intParameterValue(term.parameter, errorReportingObject)
+            } else {
+                // The validator has checked for positive integers here.
+                result += term.width
+            }
+        }
+        return result
+    }
+    
     // ////////////////////////////////////////////////////
     // // Protected fields.
     

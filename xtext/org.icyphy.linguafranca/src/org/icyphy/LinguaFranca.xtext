@@ -203,13 +203,17 @@ Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
 
 Instantiation:
-    name=ID '=' 'new' (arraySpec=ArraySpec)?
+    name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
     ')' ('at' host=Host)? ';';
 
 Connection:
-    leftPort=VarRef ('->' | physical?='~>') rightPort=VarRef ('after' delay=Value)? ';';
+    ((leftPorts += VarRef (',' leftPorts += VarRef)*)
+    | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
+    ('->' | physical?='~>') 
+    rightPorts += VarRef (',' rightPorts += VarRef)*
+    ('after' delay=Value)? ';';
     
 /////////// For target parameters
 
@@ -244,8 +248,8 @@ Effect:
     Action | Output;
 
 VarRef:
-    variable=[Variable] (variableArraySpec=ArraySpec)?
-    | container=[Instantiation] (containerArraySpec=ArraySpec)? '.' variable=[Variable] (variableArraySpec=ArraySpec)?;
+    variable=[Variable]
+    | container=[Instantiation] '.' variable=[Variable];
 
 Assignment:
     (lhs=[Parameter] (('=' rhs+=Value) | ( '='? '(' (rhs+=Value(','  rhs+=Value)*)? ')')));
@@ -255,10 +259,25 @@ Assignment:
  */
 Parameter:
     name=ID (':' (type=Type))? 
-    (parens+='(' (init+=Value 
+    (parens+='(' (init+=Value                   // FIXME: rename Value to Expr
             (','  init+=Value)*)? parens+=')'
     )?
 ;
+
+Sum :
+    terms+=Difference ('+' terms+=Difference)*;
+
+Difference:
+    terms+=Product ('-' terms +=Product)*;
+
+Product:
+    terms+=Quotient ('*' terms+=Quotient)*;
+
+Quotient:
+    terms+=Expr ('/' terms += Expr)*;
+
+Expr :
+  Value | '(' Sum ')';
 
 // Time is either a reference to a parameter or an integer value, 
 // a number followed by a unit specification (unless the value is zero). 
@@ -441,19 +460,15 @@ Token:
     // Punctuation
     ':' | ';' | ',' | '.' | '::' |
     // Slashes
-    ':\\' | '\\' | '/' |
-    // Hyphen
-    '-' |
+    ':\\' | '\\' |
+    // Arithmetic
+    '+' | '-' | '*' | '/' |
     // Underscore
     '_' |
     // Arrow
     '->' | 
     // Assignment
     '=' |
-    // Asterisk
-    '*' |
-    // Sums (for width expressions)
-    '+' |
     // Percentage
     '%'
 ;

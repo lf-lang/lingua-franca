@@ -67,6 +67,7 @@ import org.icyphy.linguaFranca.Type
 import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.WidthSpec
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -100,12 +101,19 @@ class ASTUtils {
             for (connection : container.connections) {
                 if (connection.delay !== null) {
                     val parent = connection.eContainer as Reactor
-                    val type = (connection.rightPort.variable as Port).type
+                    // Assume all the types are the same, so just use the first on the right.
+                    val type = (connection.rightPorts.get(0).variable as Port).type
                     val delayClass = getDelayClass(type, delayClasses, container, resource, generator)
                     val generic = generator.supportsGenerics
                             ? InferredType.fromAST(type).toText
                             : ""
-                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic)
+                    // If the left or right has a multiport or bank, then create a bank
+                    // of delays with an inferred width.
+                    // FIXME: If the connection already uses an inferred width on
+                    // the left or right, then this will fail because you cannot
+                    // have an inferred width on both sides.
+                    val isWide = connection.isWide
+                    val delayInstance = getDelayInstance(delayClass, connection.delay, generic, isWide)
 
                     // Stage the new connections for insertion into the tree.
                     var connections = newConnections.get(parent)
@@ -141,6 +149,29 @@ class ASTUtils {
     }
     
     /**
+     * Return true if any port on the left or right of the connection invoves
+     * a bank of reactors or a multiport.
+     * @param connection The connection.
+     */
+    private static def boolean isWide(Connection connection) {
+        for (leftPort : connection.leftPorts) {
+            if ((leftPort.variable as Port).widthSpec !== null
+                || leftPort.container?.widthSpec !== null
+            ) {
+                return true
+            }
+        }
+        for (rightPort : connection.rightPorts) {
+            if ((rightPort.variable as Port).widthSpec !== null
+                || rightPort.container?.widthSpec !== null
+            ) {
+                return true
+            }
+        }
+        return false
+    }
+    
+    /**
      * Take a connection and reroute it via an instance of a generated delay
      * reactor. This method returns a list to new connections to substitute
      * the original one.
@@ -164,10 +195,10 @@ class ASTUtils {
         input.variable = delayClass.inputs.get(0)
         output.container = delayInstance
         output.variable = delayClass.outputs.get(0)
-        upstream.leftPort = connection.leftPort
-        upstream.rightPort = input
-        downstream.leftPort = output
-        downstream.rightPort = connection.rightPort
+        upstream.leftPorts.addAll(connection.leftPorts)
+        upstream.rightPorts.add(input)
+        downstream.leftPorts.add(output)
+        downstream.rightPorts.addAll(connection.rightPorts)
 
         connections.add(upstream)
         connections.add(downstream)
@@ -190,17 +221,22 @@ class ASTUtils {
      * @param delayClass The class to create an instantiation for
      * @param value A time interval corresponding to the desired delay
      * @param generic A string that denotes the appropriate type parameter, 
-     * which should be null or empty if the target does not support generics. 
+     *  which should be null or empty if the target does not support generics.
+     * @param isWide True to create a variable-width width specification.
      */
     private static def Instantiation getDelayInstance(Reactor delayClass, 
-            Value time, String generic) {
+            Value time, String generic, boolean isWide) {
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
         if (!generic.isNullOrEmpty) {
             val typeParm = factory.createTypeParm
             typeParm.literal = generic
             delayInstance.typeParms.add(typeParm)
-            
+        }
+        if (isWide) {
+            val widthSpec = factory.createWidthSpec
+            delayInstance.widthSpec = widthSpec
+            widthSpec.ofVariableLength = true
         }
         val delay = factory.createAssignment
         delay.lhs = delayClass.parameters.get(0)
@@ -401,7 +437,8 @@ class ASTUtils {
         GeneratorBase generator
     ) {
         val factory = LinguaFrancaFactory.eINSTANCE
-        var type = (connection.rightPort.variable as Port).type.copy
+        // Assume all the types are the same, so just use the first on the right.
+        var type = (connection.rightPorts.get(0).variable as Port).type.copy
         val action = factory.createAction
         val triggerRef = factory.createVarRef
         val effectRef = factory.createVarRef
@@ -449,10 +486,14 @@ class ASTUtils {
         effectRef.variable = action
 
         // Establish references to the involved ports.
-        inRef.container = connection.leftPort.container
-        inRef.variable = connection.leftPort.variable
-        outRef.container = connection.rightPort.container
-        outRef.variable = connection.rightPort.variable
+        // FIXME: This does not support parallel connections yet!!
+        if (connection.leftPorts.length > 1 || connection.rightPorts.length > 1) {
+            throw new UnsupportedOperationException("FIXME: Parallel connections are not yet supported between federates.")
+        }
+        inRef.container = connection.leftPorts.get(0).container
+        inRef.variable = connection.leftPorts.get(0).variable
+        outRef.container = connection.rightPorts.get(0).container
+        outRef.variable = connection.rightPorts.get(0).variable
 
         // Add the action to the reactor.
         parent.actions.add(action)
@@ -1167,8 +1208,170 @@ class ASTUtils {
             return new TimeValue(0, TimeUnit.NONE)
         }
     }
+        
+    /**
+     * Return the width of the port reference if it can be determined
+     * and otherwise return -1.  The width can be determined if the
+     * port is not a multiport in a bank of reactors (the width will 1)
+     * or if the width of the multiport and/or the bank is given by a
+     * literal constant.
+     * @param reference A reference to a port.
+     * @return The width of a port or -1 if it cannot be determined.
+     */
+    def static int multiportWidth(VarRef reference) {
+        if (reference.variable instanceof Port) {
+            var bankWidth = 1
+            if (reference.container !== null) {
+                bankWidth = width(reference.container.widthSpec)
+                if (bankWidth < 0) return -1
+            }
+            val portWidth = width((reference.variable as Port).widthSpec)
+            if (portWidth > 0) return portWidth * bankWidth
+        }
+        return -1
+    }    
+
+    /**
+     * Given the specification of the width of either a bank of reactors
+     * or a multiport, return the width if it can be determined and otherwise
+     * return -1. The width can be determined if it is given by one or more
+     * literal constants or if the widthSpec is null (it is not a multiport
+     * or reactor bank).
+     * @param widthSpec The width specification.
+     * @return The width or -1 if it cannot be determined.
+     */
+    def static int width(WidthSpec widthSpec) {
+        if (widthSpec === null) return 1
+        var result = 0
+        if (widthSpec.ofVariableLength) return -1
+        for (term : widthSpec.terms) {
+            if (term.parameter === null) {
+                result += term.width
+            } else {
+                return -1
+            }
+        }
+        return result
+    }
     
+    /**
+     * Calculate the width of a port reference in a connection.
+     * The width will be the product of the bank width and the multiport width,
+     * or 1 if the port is not in a bank and is not a multiport.
+     * This throws an exception if the width depends on a parameter value.
+     * If the width depends on a parameter value, then this method
+     * will need to determine that parameter for each instance, not
+     * just class definition of the containing reactor.
+     */
+    def static int portWidth(VarRef port, Connection c) {
+        val result = port.multiportWidth
+        if (result < 0) {
+            // The port may be in a bank that has variable width,
+            // in which case, we attempt to infer its width.
+            // Specifically, this supports 'after' in multiport and reactor bank connections.
+            if (port.container !== null && port.container.widthSpec !== null && port.container.widthSpec.isOfVariableLength) {
+                // This could be a bank of delays.
+                var leftWidth = 0
+                var rightWidth = 0
+                var leftOrRight = 0
+                for (leftPort : c.leftPorts) {
+                    if (leftPort === port) {
+                        if (leftOrRight !== 0) {
+                            throw new Exception("Multiple ports with variable width on a connection.")
+                        }
+                        // Indicate that the port is on the left.
+                        leftOrRight = -1
+                    } else {
+                        leftWidth += portWidth(leftPort, c)
+                    }
+                }
+                for (rightPort : c.rightPorts) {
+                    if (rightPort === port) {
+                        if (leftOrRight !== 0) {
+                            throw new Exception("Multiple ports with variable width on a connection.")
+                        }
+                        // Indicate that the port is on the right.
+                        leftOrRight = 1
+                    } else {
+                        rightWidth += portWidth(rightPort, c)
+                    }
+                }
+                if (leftOrRight < 0) {
+                    return rightWidth - leftWidth
+                } else if (leftOrRight > 0) {
+                    return leftWidth - rightWidth
+                }
+            }
+            
+            throw new Exception("Cannot determine port width. Only multiport widths with literal integer values are supported for now.")
+        }
+        return result
+    }
     
+    /**
+     * Given an instantiation of a reactor or bank of reactors, return
+     * the width. This will be 1 if this is not a reactor bank. Otherwise,
+     * this will attempt to determine the width. If the width is declared
+     * as a literal constant, it will return that constant. If the width
+     * is specified as a reference to a parameter, this will throw an
+     * exception. If the width is variable, this will find
+     * connections in the enclosing reactor and attempt to infer the
+     * width. If the width cannot be determined, it will throw an exception.
+     * @param instantiation A reactor instantiation.
+     * @return The width, if it can be determined.
+     */
+    def static int widthSpecification(Instantiation instantiation) {
+        if (instantiation.widthSpec === null) return 1
+        if (instantiation.widthSpec.ofVariableLength) {
+            // Attempt to infer the width.
+            for (c : (instantiation.eContainer as Reactor).connections) {
+                var leftWidth = 0
+                var rightWidth = 0
+                var leftOrRight = 0
+                for (leftPort : c.leftPorts) {
+                    if (leftPort.container === instantiation) {
+                        if (leftOrRight !== 0) {
+                            throw new Exception("Multiple ports with variable width on a connection.")
+                        }
+                        // Indicate that the port is on the left.
+                        leftOrRight = -1
+                    } else {
+                        leftWidth += portWidth(leftPort, c)
+                    }
+                }
+                for (rightPort : c.rightPorts) {
+                    if (rightPort.container === instantiation) {
+                        if (leftOrRight !== 0) {
+                            throw new Exception("Multiple ports with variable width on a connection.")
+                        }
+                        // Indicate that the port is on the right.
+                        leftOrRight = 1
+                    } else {
+                        rightWidth += portWidth(rightPort, c)
+                    }
+                }
+                if (leftOrRight < 0) {
+                    return rightWidth - leftWidth
+                } else if (leftOrRight > 0) {
+                    return leftWidth - rightWidth
+                }
+            }
+            // A connection was not found with the instantition.
+            throw new Exception("Cannot determine width.")
+        }
+        var result = 0
+        for (term : instantiation.widthSpec.terms) {
+            if (term.parameter === null) {
+                result += term.width
+            } else {
+                throw new Exception("Cannot determine width for the class because it depends on parameter "
+                    + term.parameter.name
+                )
+            }
+        }
+        return result
+    }
+
     /**
      * Report whether a state variable has been initialized or not.
      * @param v The state variable to be checked.
