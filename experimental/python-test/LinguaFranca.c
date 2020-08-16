@@ -97,7 +97,7 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 
     wchar_t wcwd[PATH_MAX];
 
-    mbstowcs(&wcwd, cwd, PATH_MAX);
+    mbstowcs(wcwd, cwd, PATH_MAX);
 
     Py_SetPath(wcwd);
     
@@ -212,7 +212,7 @@ static PyObject* py_start(PyObject *self, PyObject *args)
         else
         {
             // Function is not found or it is not callable
-            if (PyErr_Occurred)
+            if (PyErr_Occurred())
             {
                 PyErr_Print();
             }
@@ -241,8 +241,7 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 static PyObject* py_SET(PyObject *self, PyObject *args)
 {
     port_instance_object *port;
-    size_t size;
-    int *val;
+    int val;
 
     if (!PyArg_ParseTuple(args, "O|l" ,&port, &val))
         return NULL;
