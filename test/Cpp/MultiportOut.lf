@@ -1,7 +1,7 @@
 // Check multiport capabilities on Outputs.
-target C {
+target Cpp {
     timeout: 2 sec,
-    threads: 4,
+    threads: 1,
     fast: true
 }; 
 reactor Source {
@@ -10,9 +10,9 @@ reactor Source {
 	state s:int(0);
 	reaction(t) -> out {=
         for(int i = 0; i < 4; i++) {
-            SET(out[i], self->s);
+            out[i].set(s);
         }
-   	    self->s++;
+   	    s++;
 	=}
 }
 reactor Computation {
@@ -23,7 +23,7 @@ reactor Computation {
         // struct timespec sleep_time = {(time_t) 0, (long)200000000};
 		// struct timespec remaining_time;
 		// nanosleep(&sleep_time, &remaining_time);
-		SET(out, in->value);
+		out.set(*in.get());
 	=}
 }
 reactor Destination {
@@ -31,22 +31,22 @@ reactor Destination {
 	input[4] in:int;
 	reaction(in) {=
 		int sum = 0;
-		for (int i = 0; i < in_width; i++) {
-            if (in[i]->is_present) sum += in[i]->value;
+		for (int i = 0; i < in.size(); i++) {
+            if (in[i].is_present()) sum += *in[i].get();
         }
-		printf("Sum of received: %d.\n", sum);
-		if (sum != self->s) {
-			printf("ERROR: Expected %d.\n", self->s);
+		std::cout << "Sum of received: " << sum << ".\n";
+		if (sum != s) {
+			std::cerr << "ERROR: Expected " << s << ".\n";
 			exit(1);
 		}
-		self->s += 4;
+		s += 4;
 	=}
 	reaction(shutdown) {=
-        if (self->s == 0) {
-            fprintf(stderr, "ERROR: Destination received no input!\n");
+        if (s == 0) {
+            std::cerr << "ERROR: Destination received no input!\n";
             exit(1);
         }
-        printf("Success.\n");
+        std::cout << "Success.\n";
     =}
 }
 

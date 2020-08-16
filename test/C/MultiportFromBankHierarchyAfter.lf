@@ -5,11 +5,16 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source(instance:int(0), check_override:int(0)) {
+reactor Source(instance:int(0)) {
     output out:int;
     reaction(startup) -> out {=
-        SET(out, self->instance * self->check_override);
+        SET(out, self->instance);
     =}
+}
+reactor Container {
+    output[3] out:int;
+    s = new[3] Source();
+    s.out -> out;
 }
 reactor Destination {
     input[3] in:int;
@@ -22,6 +27,10 @@ reactor Destination {
                 exit(1);
             }
         }
+        if (get_elapsed_logical_time() != SEC(1)) {
+            printf("ERROR: Expected to receive input after one second.\n");
+            exit(2);
+        }
         self->received = true;
     =}
     reaction(shutdown) {=
@@ -33,8 +42,8 @@ reactor Destination {
     =}
 }
 
-main reactor MultiportFromBank {
-    a = new[3] Source(check_override = 1);
+main reactor MultiportFromBankHierarchyAfter {
+    a = new Container();
     b = new Destination();
-    a.out -> b.in;
+    a.out -> b.in after 1 sec;
 }

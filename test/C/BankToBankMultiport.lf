@@ -1,20 +1,16 @@
- // Check multiport output to multiport input.
- // Destination port is wider than sending port.
+ // Check bank of reactors sending to bank of reactors with multiports.
 target C {
     timeout: 2 sec,
-    threads: 4,
-    fast: true
-}; 
+    fast: true,
+    threads: 4
+};
 reactor Source(width:int(1)) {
     timer t(0, 200 msec);
     output[width] out:int;
     state s:int(0);
     reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
-            printf("Before SET, out[%d]->is_present has value %d\n", i, out[i]->is_present);
             SET(out[i], self->s++);
-            printf("AFTER set, out[%d]->is_present has value %d\n", i, out[i]->is_present);
-            printf("AFTER set, out[%d]->value has value %d\n", i, out[i]->value);
         }
     =}
 }
@@ -41,8 +37,8 @@ reactor Destination(width:int(1)) {
         printf("Success.\n");
     =}
 }
-main reactor MultiportToMultiport { 
-    a = new Source(width = 4);
-    b = new Destination(width = 4);
-    a.out -> b.in;
+main reactor BankToBankMultiport(bank_width:int(4)) { 
+	a = new[bank_width] Source(width = 4);
+	b = new[bank_width] Destination(width = 4);
+	a.out -> b.in;
 }

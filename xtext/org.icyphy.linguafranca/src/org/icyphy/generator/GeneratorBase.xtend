@@ -1741,14 +1741,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     //// Utility functions supporting multiports.
-    
+        
     /**
      * If the argument is a multiport, return a list of strings
      * describing the width of the port, and otherwise, return null.
      * If the list is empty, then the width is variable (specified
      * as '[]'). Otherwise, it is a list of integers and/or parameter
      * references obtained by getTargetReference().
-     * @param port The port.
+     * @param variable The port.
      * @return The width specification for a multiport or null if it is
      *  not a multiport.
      */
@@ -1936,8 +1936,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // The action will be physical.
             var connectionsToRemove = new LinkedList<Connection>()
             for (connection : mainDefn.connections) {
-                var leftFederate = federateByReactor.get(connection.leftPort.container.name)
-                var rightFederate = federateByReactor.get(connection.rightPort.container.name)
+                // FIXME: Connections between federates do not support parallel connections.
+                if (connection.leftPorts.length !== 1 || connection.rightPorts.length !== 1) {
+                    val message = "FIXME: Parallel connections between federates are not supported yet."
+                    reportError(connection, message)
+                }
+                var leftFederate = federateByReactor.get(connection.leftPorts.get(0).container.name)
+                var rightFederate = federateByReactor.get(connection.rightPorts.get(0).container.name)
                 if (leftFederate !== rightFederate) {
                     // Connection spans federates.
                     // First, update the dependencies in the FederateInstances.

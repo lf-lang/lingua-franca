@@ -63,7 +63,6 @@ import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.NamedHost
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
@@ -77,6 +76,7 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.Visibility
+import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
 
@@ -295,82 +295,140 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // FIXME": similar checks for decl/init
         // Specifically for C: list can only be literal or time lists
     }
+    
+    @Check(FAST)
+    def checkWidthSpec(WidthSpec widthSpec) {
+        if (this.target != Targets.C && this.target != Targets.CPP) {
+            error("Multiports and banks are currently only supported by the C and Cpp targets.",
+                    Literals.WIDTH_SPEC__TERMS)
+        } else {
+            for (term : widthSpec.terms) {
+                if (term.parameter === null) {
+                    if (term.width < 0) {
+                        error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
+                    }
+                } else {
+                    if (this.target != Targets.C) {
+                        error("Parameterized widths are currently only supported by the C target.", 
+                                Literals.WIDTH_SPEC__TERMS)
+                    }
+                }
+            }
+        }
+    }
 
     @Check(FAST)
     def checkConnection(Connection connection) {
 
         // Report if connection is part of a cycle.
         for (cycle : this.info.reactionGraph.cycles) {
-            val lp = connection.leftPort
-            val rp = connection.rightPort
-            var leftInCycle = false
-            val reactorName = (connection.eContainer as Reactor).name
+            for (lp : connection.leftPorts) {
+                for (rp : connection.rightPorts) {
+                    var leftInCycle = false
+                    val reactorName = (connection.eContainer as Reactor).name
             
-            if ((lp.container === null && cycle.exists [
-                it.node === lp.variable
-            ]) || cycle.exists [
-                (it.node === lp.variable && it.instantiation === lp.container)
-            ]) {
-                leftInCycle = true
-            }
+                    if ((lp.container === null && cycle.exists [
+                        it.node === lp.variable
+                    ]) || cycle.exists [
+                        (it.node === lp.variable && it.instantiation === lp.container)
+                    ]) {
+                        leftInCycle = true
+                    }
 
-            if ((rp.container === null && cycle.exists [
-                it.node === rp.variable
-            ]) || cycle.exists [
-                (it.node === rp.variable && it.instantiation === rp.container)
-            ]) {
-                if (leftInCycle) {
-                    // Only report of _both_ referenced ports are in the cycle.
-                    error('''Connection in reactor «reactorName» creates ''' + 
-                    '''a cyclic dependency between «lp.toText» and ''' +
-                    '''«rp.toText».''', Literals.CONNECTION__DELAY
-                    )
+                    if ((rp.container === null && cycle.exists [
+                        it.node === rp.variable
+                    ]) || cycle.exists [
+                        (it.node === rp.variable && it.instantiation === rp.container)
+                    ]) {
+                        if (leftInCycle) {
+                            // Only report of _both_ referenced ports are in the cycle.
+                            error('''Connection in reactor «reactorName» creates ''' + 
+                                    '''a cyclic dependency between «lp.toText» and ''' +
+                                    '''«rp.toText».''', Literals.CONNECTION__DELAY
+                            )
+                        }
+                    }
                 }
             }
         }        
         
-        // Make sure that if either side of the connection has an arraySpec
-        // (has the form port[i]), then the port is defined as a multiport.
-        if (connection.rightPort.variableArraySpec !== null &&
-                (connection.rightPort.variable as Port).widthSpec === null) {
-            error("Port is not a multiport: " + connection.rightPort.toText,
-                Literals.CONNECTION__RIGHT_PORT
-            )
+        // Check whether the total width of the left side of the connection
+        // matches the total width of the right side. This cannot be determined
+        // here if the width is not given as a constant. In that case, it is up
+        // to the code generator to check it.
+        var leftWidth = 0
+        for (port : connection.leftPorts) {
+            val width = port.multiportWidth
+            if (width < 0 || leftWidth < 0) {
+                // Cannot determine the width of the left ports.
+                leftWidth = -1
+            } else {
+                leftWidth += width
+            }
         }
-        if (connection.leftPort.variableArraySpec !== null &&
-                (connection.leftPort.variable as Port).widthSpec === null) {
-            error("Port is not a multiport: " + connection.leftPort.toText,
-                Literals.CONNECTION__RIGHT_PORT
-            )
+        var rightWidth = 0
+        for (port : connection.rightPorts) {
+            val width = port.multiportWidth
+            if (width < 0 || rightWidth < 0) {
+                // Cannot determine the width of the left ports.
+                rightWidth = -1
+            } else {
+                rightWidth += width
+            }
+        }
+        
+        if (leftWidth !== -1 && rightWidth !== -1 && leftWidth != rightWidth) {
+            if (connection.isIterated) {
+                if (rightWidth % leftWidth != 0) {
+                    // FIXME: The second argument should be Literals.CONNECTION, but
+                    // stupidly, xtext will not accept that. There seems to be no way to
+                    // report an error for the whole connection statement.
+                    warning('''Left width «leftWidth» does not divide right width «rightWidth»''',
+                            Literals.CONNECTION__LEFT_PORTS
+                    )
+                }
+            } else {
+                // FIXME: The second argument should be Literals.CONNECTION, but
+                // stupidly, xtext will not accept that. There seems to be no way to
+                // report an error for the whole connection statement.
+                warning('''Left width «leftWidth» does not match right width «rightWidth»''',
+                        Literals.CONNECTION__LEFT_PORTS
+                )
+            }
         }
         
         val reactor = connection.eContainer as Reactor
         
         // Make sure the right port is not already an effect of a reaction.
-        // FIXME: support multiports.
         for (reaction : reactor.reactions) {
             for (effect : reaction.effects) {
-                if (connection.rightPort.container === effect.container &&
-                    connection.rightPort.variable === effect.variable) {
-                    error(
-                        "Cannot connect: Port named '" + effect.variable.name +
+                for (rightPort : connection.rightPorts) {
+                    if (rightPort.container === effect.container &&
+                            rightPort.variable === effect.variable) {
+                        error("Cannot connect: Port named '" + effect.variable.name +
                             "' is already effect of a reaction.",
-                        Literals.CONNECTION__RIGHT_PORT)
+                            Literals.CONNECTION__RIGHT_PORTS
+                        )
+                    }
                 }
             }
         }
 
         // Check that the right port does not already have some other
-        // upstream connection (unless it is a multiport).
+        // upstream connection.
         for (c : reactor.connections) {
-            if (c !== connection &&
-                connection.rightPort.container === c.rightPort.container &&
-                connection.rightPort.variable === c.rightPort.variable &&
-                (c.rightPort.variable as Port).widthSpec === null) {
-                error(
-                    "Cannot connect: Port named '" + c.rightPort.variable.name +
-                        "' may only be connected to a single upstream port.",
-                    Literals.CONNECTION__RIGHT_PORT)
+            if (c !== connection) {
+                for (thisRightPort : connection.rightPorts) {
+                    for (thatRightPort : c.rightPorts) {
+                        if (thisRightPort.container === thatRightPort.container &&
+                                thisRightPort.variable === thatRightPort.variable) {
+                            error(
+                                "Cannot connect: Port named '" + thisRightPort.variable.name +
+                                    "' may only appear once on the right side of a connection.",
+                                Literals.CONNECTION__RIGHT_PORTS)
+                        }
+                    }
+                }
             }
         }
     }
@@ -426,6 +484,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.INPUT__MUTABLE
             )
         }
+        
+        // Variable width multiports are not supported (yet?).
+        if (input.widthSpec !== null && input.widthSpec.ofVariableLength) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC)
+        }
     }
 
     @Check(FAST)
@@ -456,6 +519,20 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         Literals.INSTANTIATION__REACTOR_CLASS
                     )
                 }
+            }
+        }
+        // Variable width multiports are not supported (yet?).
+        if (instantiation.widthSpec !== null 
+                && instantiation.widthSpec.ofVariableLength
+        ) {
+            if (this.target == Targets.C) {
+                warning("Variable-width banks are for internal use only.",
+                    Literals.INSTANTIATION__WIDTH_SPEC
+                )
+            } else {
+                error("Variable-width banks are not supported.",
+                    Literals.INSTANTIATION__WIDTH_SPEC
+                )
             }
         }
     }
@@ -604,6 +681,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (output.type === null) {
                 error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE)
             }
+        }
+        
+        // Variable width multiports are not supported (yet?).
+        if (output.widthSpec !== null && output.widthSpec.ofVariableLength) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC)
         }
     }
 

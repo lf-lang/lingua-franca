@@ -658,19 +658,17 @@ class CGenerator extends GeneratorBase {
         }
         // Restore the base filename.
         filename = baseFilename
-        
-        // In case we are in Eclipse, make sure the generated code is visible.
-        refreshProject()
-        
+                
         if (!targetNoCompile) {
             compileCode()
         } else {
             println("Exiting before invoking target compiler.")
         }
-        
-        
+                
         writeCleanCode(filename)
         
+        // In case we are in Eclipse, make sure the generated code is visible.
+        refreshProject()
     }
     
     /** Overwrite the generated code after compile with a
@@ -943,8 +941,8 @@ class CGenerator extends GeneratorBase {
                     echo "Copying source files to host «federate.host»"
                     scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
-                    ssh «federate.host» 'cd «path»; «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
+                    echo "Compiling on host «federate.host» using: «this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
+                    ssh «federate.host» 'cd «path»; «this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
                 ''')
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
@@ -983,8 +981,8 @@ class CGenerator extends GeneratorBase {
                 echo "Copying source files to host «target»"
                 scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
-                echo "Compiling on host «target» using: «this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
-                ssh «target» '«this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+                echo "Compiling on host «target» using: «this.targetCompiler» «this.targetCompilerFlags» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                ssh «target» '«this.targetCompiler» «this.targetCompilerFlags» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
             ''')
 
             // Launch the RTI on the remote machine using ssh and screen.
@@ -1367,28 +1365,6 @@ class CGenerator extends GeneratorBase {
                     // Set input by default to an always absent default input.
                     self->__«input.name» = &self->__default__«input.name»;
                 ''')
-            }
-        }
-
-        // Find output ports that receive data from inside reactors
-        // and put them into a HashMap for future use.
-        var outputToContainedOutput = new HashMap<Output, VarRef>();
-        for (connection : reactor.connections) {
-            // If the connection has the form c.x -> y, then it's what we are looking for.
-            if (connection.rightPort.container === null &&
-                connection.leftPort.container !== null) {
-                if (connection.rightPort.variable instanceof Output) {
-                    outputToContainedOutput.put(
-                        connection.rightPort.variable as Output,
-                        connection.leftPort
-                    )
-                } else {
-                    reportError(
-                        connection,
-                        "Expected an output port but got " +
-                            connection.rightPort.variable.name
-                    )
-                }
             }
         }
 
@@ -2542,16 +2518,16 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
-            // If the reactor has a parameter named "bank_position", set it.
+            // If the reactor has a parameter named "instance", set it.
             for (parameter : reactorClass.toDefinition.allParameters) {
-                if (parameter.name == "bank_position"
+                if (parameter.name == "instance"
                     && getTargetType(parameter.inferredType) == "int"
                 ) {
-                    // Override the default parameter value for bank_position.
+                    // Override the default parameter value for instance.
                     // This needs to be at the end or it will be overwrittend
                     // with the default parameter value.
                     pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->bank_position = «instance.bankIndex»;
+                        «nameOfSelfStruct»->instance = «instance.bankIndex»;
                     ''')
                 }
             }

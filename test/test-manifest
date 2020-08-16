@@ -11,11 +11,13 @@ AsyncCallbackDrop.lf
 ArrayAsParameter.lf
 ArrayAsType.lf
 ArrayFree.lf
-ArrayInstancesToArrayPort.lf
 ArrayParallel.lf
 ArrayPrint.lf
 ArrayScale.lf
 BankToBank.lf
+BankToBankMultiport.lf
+BankToBankMultiportAfter.lf
+BankToMultiport.lf
 Composition.lf
 CompositionAfter.lf
 CompositionGain.lf
@@ -67,6 +69,7 @@ MovingAverage.lf
 MultipleContained.lf
 MultiportFromBank.lf
 MultiportFromBankHierarchy.lf
+MultiportFromBankHierarchyAfter.lf
 MultiportFromHierarchy.lf
 MultiportIn.lf
 MultiportInParameterized.lf
@@ -74,10 +77,12 @@ MultiportMutableInput.lf
 MultiportMutableInputArray.lf
 MultiportOut.lf
 MultiportToBank.lf
+MultiportToBankAfter.lf
 MultiportToBankHierarchy.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
+MultiportToMultiport2After.lf
 MultiportToMultiportParameter.lf
 MultiportToMultiportArray.lf
 MultiportToPort.lf
@@ -86,7 +91,6 @@ ParameterizedState.lf
 PeriodicDesugared.lf
 PingPongDistributed.lf
 Pipeline.lf
-PortToBank.lf
 Preamble.lf
 PreambleFile.lf
 ProtoNoPacking.lf
@@ -94,6 +98,7 @@ ReadOutputOfContainedReactor.lf
 Schedule.lf
 ScheduleValue.lf
 ScheduleLogicalAction.lf
+SelfLoop.lf
 SendingInside.lf
 SendingInside2.lf
 SendingInsideThreaded.lf
@@ -114,6 +119,7 @@ StructPrint.lf
 StructScale.lf
 TestForPreviousOutput.lf
 Threaded.lf
+ThreadedMultiport.lf
 ThreadedThreaded.lf
 TimeLimit.lf
 TimeLimitThreaded.lf

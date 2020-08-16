@@ -1,14 +1,14 @@
  // Check multiport output to bank of recipients.
  // Here, the bank is smaller than the width of the sending port.
-target C {
+target Cpp {
     timeout: 2 sec,
-    threads: 4,
+    threads: 1,
     fast: true
 }; 
 reactor Source(instance:int(0)) {
     output out:int;
     reaction(startup) -> out {=
-        SET(out, self->instance);
+        out.set(instance);
     =}
 }
 reactor Container {
@@ -20,21 +20,21 @@ reactor Destination {
     input[3] in:int;
     state received:bool(false);
     reaction(in) {=
-        for (int i = 0; i < in_width; i++) {
-            printf("Destination channel %d received %d.\n", i, in[i]->value);
-            if (i != in[i]->value) {
-                printf("ERROR: Expected %d.\n", i);
+        for (int i = 0; i < in.size(); i++) {
+            std::cout << "Destination channel " << i << " received " << *in[i].get() << ".\n";
+            if (i != *in[i].get()) {
+                std::cerr << "ERROR: Expected " << i << ".\n";
                 exit(1);
             }
         }
-        self->received = true;
+        received = true;
     =}
     reaction(shutdown) {=
-        if (!self->received) {
-            fprintf(stderr, "ERROR: Destination received no input!\n");
+        if (!received) {
+            std::cerr << "ERROR: Destination received no input!\n";
             exit(1);
         }
-        printf("Success.\n");
+        std::cout << "Success.\n";
     =}
 }
 

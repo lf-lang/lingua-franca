@@ -1,5 +1,4 @@
  // Check multiport output to bank of recipients.
- // Here, the bank is smaller than the width of the sending port.
 target C {
     timeout: 2 sec,
     threads: 4,
@@ -13,20 +12,20 @@ reactor Source {
         }
     =}
 }
-reactor Destination(bank_position:int(0)) {
+reactor Destination(instance:int(0)) {
     input in:int;
     state received:bool(false);
     reaction(in) {=
-        printf("Destination %d received %d.\n", self->bank_position, in->value);
-        if (self->bank_position != in->value) {
-            printf("ERROR: Expected %d.\n", self->bank_position);
+        printf("Destination %d received %d.\n", self->instance, in->value);
+        if (self->instance != in->value) {
+            printf("ERROR: Expected %d.\n", self->instance);
             exit(1);
         }
         self->received = true;
     =}
     reaction(shutdown) {=
         if (!self->received) {
-            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_position);
+            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->instance);
             exit(1);
         }
         printf("Success.\n");

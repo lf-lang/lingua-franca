@@ -1,8 +1,8 @@
  // Check multiport output to multiport input, where the latter is a hierarchical reactor.
  // Note that the destination reactor has width wider than the sender, so one input is dangling.
-target C {
+target Cpp {
     timeout: 2 sec,
-    threads: 4,
+    threads: 1,
     fast: true
 }; 
 reactor Source {
@@ -11,35 +11,37 @@ reactor Source {
 	state s:int(0);
 	reaction(t) -> out {=
         for(int i = 0; i < 4; i++) {
-            SET(out[i], self->s++);
+            out[i].set(s++);
         }
 	=}
 }
 reactor Destination(width:int(4)) {
 	state s:int(6);
-	input[width] in:int;
+    // FIXME: Replace '4' with 'width'
+	input[4] in:int;
 	reaction(in) {=
 		int sum = 0;
-		for (int i = 0; i < in_width; i++) {
-            if (in[i]->is_present) sum += in[i]->value;
+		for (int i = 0; i < in.size(); i++) {
+            if (in[i].is_present()) sum += *in[i].get();
         }
-		printf("Sum of received: %d.\n", sum);
-		if (sum != self->s) {
-			printf("ERROR: Expected %d.\n", self->s);
+		std::cout << "Sum of received: " << sum << ".\n";
+		if (sum != s) {
+			std::cerr << "ERROR: Expected " << s << ".\n";
 			exit(1);
 		}
-		self->s += 16;
+		s += 16;
 	=}
 	reaction(shutdown) {=
-        if (self->s <= 6) {
-            fprintf(stderr, "ERROR: Destination received no input!\n");
+        if (s <= 6) {
+            std::cerr << "ERROR: Destination received no input!\n";
             exit(1);
         }
-        printf("Success.\n");
+        std::cout << "Success.\n";
     =}
 }
 reactor Container(width:int(4)) {
-    input[width] in:int;
+    // FIXME: Replace '4' with 'width'
+    input[4] in:int;
     dst = new Destination();
     in -> dst.in;
 }

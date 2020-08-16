@@ -87,7 +87,7 @@ class BreadCrumbTrail<T> {
     
     
     /**
-     * Return a has code based on the string representation of this object.
+     * Return a hash code based on the string representation of this object.
      */
     override hashCode() {
         return this.toString.hashCode;

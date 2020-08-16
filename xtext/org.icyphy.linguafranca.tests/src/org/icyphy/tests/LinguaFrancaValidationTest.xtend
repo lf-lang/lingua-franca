@@ -294,48 +294,48 @@ class LinguaFrancaValidationTest {
     }
     
     /**
-	 * Allow connection to the port of a contained reactor if another port with same name is effect of a reaction.
-	 */
-	@Test
-	def void connectionToEffectPort3() {
-		parseWithoutError('''
-			target C;
-			
-			reactor Foo {
-			    input in:int;
-			}
-			main reactor Bar {
-			    input in:int;
-			    x1 = new Foo();
-			    x2 = new Foo();
-			    in -> x1.in;
-			    reaction(startup) -> x2.in {=                    
-			    =}
-			}
-		''').assertNoErrors()
-	}
+     * Allow connection to the port of a contained reactor if another port with same name is effect of a reaction.
+     */
+    @Test
+    def void connectionToEffectPort3() {
+        parseWithoutError('''
+            target C;
+            
+            reactor Foo {
+                input in:int;
+            }
+            main reactor Bar {
+                input in:int;
+                x1 = new Foo();
+                x2 = new Foo();
+                in -> x1.in;
+                reaction(startup) -> x2.in {=
+                =}
+            }
+        ''').assertNoErrors()
+    }
 
-	/**
-	 * Disallow connection to the port of a contained reactor if the same port is effect of a reaction.
-	 */
-	@Test
-	def void connectionToEffectPort4() {
-		parseWithoutError('''
-			target C;
-			
-			reactor Foo {
-			    input in:int;
-			}
-			main reactor Bar {
-			    input in:int;
-			    x1 = new Foo();
-			    in -> x1.in;
-			    reaction(startup) -> x1.in {=                    
-			    =}
-			}
-		''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
-			"Cannot connect: Port named 'in' is already effect of a reaction.")
-	}
+    /**
+     * Disallow connection to the port of a contained reactor if the same port is effect of a reaction.
+     */
+    @Test
+    def void connectionToEffectPort4() {
+        parseWithoutError('''
+            target C;
+            
+            reactor Foo {
+                input in:int;
+            }
+            main reactor Bar {
+                input in:int;
+                x1 = new Foo();
+                in -> x1.in;
+                reaction(startup) -> x1.in {=
+                =}
+            }
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+            "Cannot connect: Port named 'in' is already effect of a reaction.")
+    }
 	
     /**
      * Disallow connection of multiple ports to the same input port.
@@ -361,7 +361,7 @@ class LinguaFrancaValidationTest {
                 src.out -> sink.in;
             }
         ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
-            "Cannot connect: Port named 'in' may only be connected to a single upstream port.")
+            "Cannot connect: Port named 'in' may only appear once on the right side of a connection.")
     }
     
     /**
@@ -416,7 +416,7 @@ class LinguaFrancaValidationTest {
              }
         ''').assertError(LinguaFrancaPackage::eINSTANCE.value,
             null, "Missing time units. Should be one of " +
-                                TimeUnit.VALUES.filter[it != TimeUnit.NONE])
+            TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }    
     
     /**
