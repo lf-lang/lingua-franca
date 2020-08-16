@@ -1,4 +1,4 @@
- // Check multiport output to bank of recipients where the width of the bank is inferred.
+// Check multiport output to bank of recipients where the width of the bank is inferred.
 target C {
     timeout: 2 sec,
     fast: true
@@ -20,12 +20,16 @@ reactor Destination(instance:int(0)) {
             printf("ERROR: Expected %d.\n", self->instance);
             exit(1);
         }
+        if (get_elapsed_logical_time() != SEC(1)) {
+            printf("ERROR: Expected to receive input after one second.\n");
+            exit(2);
+        }
         self->received = true;
     =}
     reaction(shutdown) {=
         if (!self->received) {
             fprintf(stderr, "ERROR: Destination %d received no input!\n", self->instance);
-            exit(1);
+            exit(3);
         }
         printf("Success.\n");
     =}
@@ -33,6 +37,6 @@ reactor Destination(instance:int(0)) {
 
 main reactor MultiportToBank { 
     a = new Source();
-    b = new[] Destination(); // Width of the bank will be inferred.
-    a.out -> b.in;
+    b = new[3] Destination();
+    a.out -> b.in after 1 sec; // Width of the bank of delays will be inferred.
 }

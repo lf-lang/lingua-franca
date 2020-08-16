@@ -524,9 +524,16 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // Variable width multiports are not supported (yet?).
         if (instantiation.widthSpec !== null 
                 && instantiation.widthSpec.ofVariableLength
-                && this.target != Targets.C
         ) {
-            error("Variable-width banks are not supported.", Literals.PORT__WIDTH_SPEC)
+            if (this.target == Targets.C) {
+                warning("Variable-width banks are for internal use only.",
+                    Literals.INSTANTIATION__WIDTH_SPEC
+                )
+            } else {
+                error("Variable-width banks are not supported.",
+                    Literals.INSTANTIATION__WIDTH_SPEC
+                )
+            }
         }
     }
 
