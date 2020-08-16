@@ -234,7 +234,7 @@ class CppGenerator extends GeneratorBase {
     def declareInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
             «IF i.widthSpec !== null»
-                std::array<«i.templateInstance», «i.widthSpec.widthSpecification»> «i.name»;
+                std::array<«i.templateInstance», «i.widthSpecification»> «i.name»;
             «ELSE»
                 «i.templateInstance» «i.name»;
             «ENDIF»
@@ -682,22 +682,6 @@ class CppGenerator extends GeneratorBase {
      * will need to determine that parameter for each instance, not
      * just class definition of the containing reactor.
      */
-    def int calcPortWidth(VarRef port) {
-        val result = port.multiportWidth
-        if (result < 0) {
-            throw new Exception("Only multiport widths with literal integer values are supported for now.")
-        }
-        return result
-    }
-
-    /**
-     * Calculate the width of a multiport.
-     * FIXME: This currently
-     * throws an exception if the width depends on a parameter value.
-     * If the width depends on a parameter value, then this method
-     * will need to determine that parameter for each instance, not
-     * just class definition of the containing reactor.
-     */
     def int calcPortWidth(Port port) {
         val result = port.widthSpec.width
         if (result < 0) {
@@ -712,15 +696,15 @@ class CppGenerator extends GeneratorBase {
         var leftPortCount = 1
         // The index will go from zero to mulitportWidth - 1.
         var leftPortIndex = 0
-        // FIXME: Support parameterized withds and check for matching widths with parallel connections.
-        var leftWidth = calcPortWidth(leftPort)
+        // FIXME: Support parameterized widths and check for matching widths with parallel connections.
+        var leftWidth = leftPort.portWidth(c)
         var leftContainer = leftPort.container
         var rightPortCount = 0
         for (rightPort : c.rightPorts) {
             rightPortCount++
             var rightPortIndex = 0
             val rightContainer = rightPort.container
-            val rightWidth = calcPortWidth(rightPort)
+            val rightWidth = rightPort.portWidth(c)
             while (rightPortIndex < rightWidth) {
                 // Figure out how many bindings to do.
                 var remainingRightPorts = rightWidth - rightPortIndex
@@ -784,13 +768,13 @@ class CppGenerator extends GeneratorBase {
                 ''')
                 rightPortIndex += min
                 leftPortIndex += min
-                if (leftPortIndex == calcPortWidth(leftPort)) {
+                if (leftPortIndex == leftPort.portWidth(c)) {
                     if (leftPortCount < c.leftPorts.length) {
                         // Get the next left port. Here we rely on the validator to
                         // have checked that the connection is balanced, which it does only
                         // when widths are given as literal constants.
                         leftPort = c.leftPorts.get(leftPortCount++)
-                        leftWidth = calcPortWidth(leftPort)
+                        leftWidth = leftPort.portWidth(c)
                         leftPortIndex = 0
                         leftContainer = leftPort.container
                     } else {
@@ -800,7 +784,7 @@ class CppGenerator extends GeneratorBase {
                         if (c.isIterated) {
                             leftPort = c.leftPorts.get(0)
                             leftPortCount = 1
-                            leftWidth = calcPortWidth(leftPort)
+                            leftWidth = leftPort.portWidth(c)
                             leftPortIndex = 0
                             leftContainer = leftPort.container
                         } else if (rightPortCount < c.rightPorts.length || rightPortIndex < rightWidth - 1) {

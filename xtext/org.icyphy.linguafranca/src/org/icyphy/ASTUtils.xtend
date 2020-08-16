@@ -1255,27 +1255,121 @@ class ASTUtils {
     }
     
     /**
-     * Given the specification of the width of either a bank of reactors
-     * or a multiport, return a textual representation of the width or
-     * "UNKNOWN" if the width is variable. The textual representation may be
-     * a literal integer, a parameter name, or a sum of parameter
-     * names and/or literal integers. If the argument is null,
-     * return "1".
-     * @param widthSpec The width specification.
-     * @return A textual representation of the width.
+     * Calculate the width of a port reference in a connection.
+     * The width will be the product of the bank width and the multiport width,
+     * or 1 if the port is not in a bank and is not a multiport.
+     * This throws an exception if the width depends on a parameter value.
+     * If the width depends on a parameter value, then this method
+     * will need to determine that parameter for each instance, not
+     * just class definition of the containing reactor.
      */
-    def static String widthSpecification(WidthSpec widthSpec) {
-        if (widthSpec === null) return "1"
-        var result = new LinkedList<String>
-        if (widthSpec.ofVariableLength) return "UNKNOWN"
-        for (term : widthSpec.terms) {
+    def static int portWidth(VarRef port, Connection c) {
+        val result = port.multiportWidth
+        if (result < 0) {
+            // The port may be in a bank that has variable width,
+            // in which case, we attempt to infer its width.
+            // Specifically, this supports 'after' in multiport and reactor bank connections.
+            if (port.container !== null && port.container.widthSpec !== null && port.container.widthSpec.isOfVariableLength) {
+                // This could be a bank of delays.
+                var leftWidth = 0
+                var rightWidth = 0
+                var leftOrRight = 0
+                for (leftPort : c.leftPorts) {
+                    if (leftPort === port) {
+                        if (leftOrRight !== 0) {
+                            throw new Exception("Multiple ports with variable width on a connection.")
+                        }
+                        // Indicate that the port is on the left.
+                        leftOrRight = -1
+                    } else {
+                        leftWidth += portWidth(leftPort, c)
+                    }
+                }
+                for (rightPort : c.rightPorts) {
+                    if (rightPort === port) {
+                        if (leftOrRight !== 0) {
+                            throw new Exception("Multiple ports with variable width on a connection.")
+                        }
+                        // Indicate that the port is on the right.
+                        leftOrRight = 1
+                    } else {
+                        rightWidth += portWidth(rightPort, c)
+                    }
+                }
+                if (leftOrRight < 0) {
+                    return rightWidth - leftWidth
+                } else if (leftOrRight > 0) {
+                    return leftWidth - rightWidth
+                }
+            }
+            
+            throw new Exception("Cannot determine port width. Only multiport widths with literal integer values are supported for now.")
+        }
+        return result
+    }
+    
+    /**
+     * Given an instantiation of a reactor or bank of reactors, return
+     * the width. This will be 1 if this is not a reactor bank. Otherwise,
+     * this will attempt to determine the width. If the width is declared
+     * as a literal constant, it will return that constant. If the width
+     * is specified as a reference to a parameter, this will throw an
+     * exception. If the width is variable, this will find
+     * connections in the enclosing reactor and attempt to infer the
+     * width. If the width cannot be determined, it will throw an exception.
+     * @param instantiation A reactor instantiation.
+     * @return The width, if it can be determined.
+     */
+    def static int widthSpecification(Instantiation instantiation) {
+        if (instantiation.widthSpec === null) return 1
+        if (instantiation.widthSpec.ofVariableLength) {
+            // Attempt to infer the width.
+            for (c : (instantiation.eContainer as Reactor).connections) {
+                var leftWidth = 0
+                var rightWidth = 0
+                var leftOrRight = 0
+                for (leftPort : c.leftPorts) {
+                    if (leftPort.container === instantiation) {
+                        if (leftOrRight !== 0) {
+                            throw new Exception("Multiple ports with variable width on a connection.")
+                        }
+                        // Indicate that the port is on the left.
+                        leftOrRight = -1
+                    } else {
+                        leftWidth += portWidth(leftPort, c)
+                    }
+                }
+                for (rightPort : c.rightPorts) {
+                    if (rightPort.container === instantiation) {
+                        if (leftOrRight !== 0) {
+                            throw new Exception("Multiple ports with variable width on a connection.")
+                        }
+                        // Indicate that the port is on the right.
+                        leftOrRight = 1
+                    } else {
+                        rightWidth += portWidth(rightPort, c)
+                    }
+                }
+                if (leftOrRight < 0) {
+                    return rightWidth - leftWidth
+                } else if (leftOrRight > 0) {
+                    return leftWidth - rightWidth
+                }
+            }
+            // A connection was not found with the instantition.
+            throw new Exception("Cannot determine width.")
+        }
+        var result = 0
+        for (term : instantiation.widthSpec.terms) {
             if (term.parameter === null) {
-                result.add(term.width.toString)
+                result += term.width
             } else {
-                result.add(term.parameter.name)
+                throw new Exception("Cannot determine width for the class because it depends on parameter "
+                    + term.parameter.name
+                )
             }
         }
-        return result.join(" + ")
+        return result
     }
 
     /**
