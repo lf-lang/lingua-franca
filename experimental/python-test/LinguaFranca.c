@@ -146,7 +146,7 @@ static PyObject* py_start(PyObject *self, PyObject *args)
             
             /* Pass the pValue and pyValue by reference to the argument list */
             // pArgs takes ownership of pyValue here.
-            PyTuple_SetItem(pArgs, 0, pyValue);
+            PyTuple_SetItem(pArgs, 0, (PyObject *)pyValue);
             
                         
             pValue = PyLong_FromLong(a_number);
@@ -241,9 +241,9 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 static PyObject* py_SET(PyObject *self, PyObject *args)
 {
     port_instance_object *port;
-    int val;
+    long val;
 
-    if (!PyArg_ParseTuple(args, "O|l" ,&port, &val))
+    if (!PyArg_ParseTuple(args, "Ol" ,&port, &val))
         return NULL;
     
     port->value = val;
