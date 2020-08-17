@@ -24,8 +24,8 @@ all: $(PROGRAMS)
 
 # Add the Python library
 configopts['pythonlib'] = '-L' + distutils.sysconfig.get_config_var('LIBPL') \
-+ '/' + \
-distutils.sysconfig.get_config_var('LIBRARY')
++ ' -l' + \
+distutils.sysconfig.get_config_var('LIBRARY').replace('lib', '').replace('.a', '')
 
 
 configopts['pythoninc'] = ''
@@ -39,9 +39,10 @@ for dir in distutils.sysconfig.get_config_var('INCLDIRSTOMAKE').split():
 for dir in distutils.sysconfig.get_config_var('LIBDIR').split():
     configopts['pylibs'] += '-L%s ' % (dir,)
 
+
 configopts['pylibs'] += distutils.sysconfig.get_config_var('MODLIBS') \
         + ' ' + \
-        distutils.sysconfig.get_config_var('LIBS') \
+       distutils.sysconfig.get_config_var('LIBS') \
         + ' ' + \
         distutils.sysconfig.get_config_var('SYSLIBS')
 configopts['pyopt'] = distutils.sysconfig.get_config_var('OPT')
