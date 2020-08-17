@@ -6,6 +6,42 @@ pip3 install .
 
 Please note that both `python3-pip` and `setuptools` must be installed.
 
+Afterwards, you can run the program as:
+```
+python3 linguafrancatest.py
+```
+```
+The expected output is:
+<LinguaFranca.port_instance object at 0xADDRESS>
+4
+Starting the function start()
+Initialized Python interpreter.
+Attempting to call function react.
+Creating a PyObject from carrier pointer
+Set port instance values
+Added all variables
+Value before SET: 42
+Value after SET: 464
+I called react and got 0.
+Value before SET: 464
+Value after SET: 886
+I called react and got 0.
+Done with start()
+Starting the function start()
+Initialized Python interpreter.
+Attempting to call function react.
+Creating a PyObject from carrier pointer
+Set port instance values
+Added all variables
+Value before SET: 42
+Value after SET: 464
+I called react and got 0.
+Value before SET: 464
+Value after SET: 886
+I called react and got 0.
+Done with start()
+```
+
 ## Alternative Build Mechanism
 To generate a Makefile, use
 
@@ -18,36 +54,6 @@ Then you can make and run the program:
 ```
 make
 python3 linguafrancatest.py
-```
-
-This should be the correct output:
-```
-Starting the function start()
-Python interpreter is already initialized.
-Attempting to call function react.
-Creating a PyObject from carrier pointer
-Set port instance values
-Added all variables
-Value before SET: 42
-Value after SET: 464
-I called react and got 0.
-Value before SET: 464
-Value after SET: 886
-I called react and got 0.
-Done with start()
-Starting the function start()
-Python interpreter is already initialized.
-Attempting to call function react.
-Creating a PyObject from carrier pointer
-Set port instance values
-Added all variables
-Value before SET: 42
-Value after SET: 464
-I called react and got 0.
-Value before SET: 464
-Value after SET: 886
-I called react and got 0.
-Done with start()
 ```
 
 If the above procedure doesn't work, first clean the produced outputs by running:
