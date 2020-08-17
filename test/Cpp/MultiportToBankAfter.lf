@@ -1,0 +1,33 @@
+target Cpp;
+
+reactor Source {
+    output[4] out:unsigned;
+    
+    reaction (startup) -> out {=
+        for (unsigned i = 0 ; i < out.size(); i++) {
+            out[i].set(i);
+        }
+    =}
+}
+
+reactor Sink(instance:unsigned(0)) {
+    input in:unsigned;
+    
+    reaction (in) {=
+        std::cout << "Received " << *in.get() << '\n';
+        if (*in.get() != instance) {
+            std::cerr << "Error: expected " << instance << "!\n";
+            exit(1);
+        }
+        if (get_elapsed_logical_time() != 1s) {
+            std::cerr << "ERROR: Expected to receive input after one second.\n";
+            exit(2);
+        }
+    =}
+}
+
+main reactor MultiportToBankAfter {
+    source = new Source();
+    sink = new[4] Sink();
+    source.out -> sink.in after 1 sec; 
+}
