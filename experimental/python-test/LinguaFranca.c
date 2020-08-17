@@ -9,6 +9,16 @@
 #include <structmember.h>
 #include <stdbool.h>
 
+#ifdef _MSC_VER
+ #include <../include/limits.h>
+#include <windows.h>
+#ifndef PATH_MAX
+#define PATH_MAX MAX_PATH
+#endif
+#else
+#include <limits.h>
+#endif
+
 #define FUNC_NAME "react"
 #define MODULE "linguafrancatest"
 
