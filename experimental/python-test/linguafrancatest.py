@@ -84,6 +84,13 @@ def react(port, number):
 
 # The main function
 def main():
+    # Example of port_instance usage and instantiation
+    p = LinguaFranca.port_instance()
+    p.value = 4
+    print(p)
+    print(p.value)
+
+
     # Call start() from test.c
     start()
     start()
