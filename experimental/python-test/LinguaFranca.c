@@ -241,9 +241,9 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 static PyObject* py_SET(PyObject *self, PyObject *args)
 {
     port_instance_object *port;
-    long val;
+    int val;
 
-    if (!PyArg_ParseTuple(args, "Ol" ,&port, &val))
+    if (!PyArg_ParseTuple(args, "Oi" ,&port, &val))
         return NULL;
     
     port->value = val;
