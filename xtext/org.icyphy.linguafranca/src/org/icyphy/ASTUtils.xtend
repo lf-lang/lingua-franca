@@ -1243,7 +1243,9 @@ class ASTUtils {
     def static int width(WidthSpec widthSpec) {
         if (widthSpec === null) return 1
         var result = 0
-        if (widthSpec.ofVariableLength) return -1
+        if (widthSpec.ofVariableLength) {
+            return -1
+        }
         for (term : widthSpec.terms) {
             if (term.parameter === null) {
                 result += term.width

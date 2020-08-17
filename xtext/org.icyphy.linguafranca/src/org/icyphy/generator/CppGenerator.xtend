@@ -541,7 +541,7 @@ class CppGenerator extends GeneratorBase {
     def initializeInstances(Reactor r) '''
         «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
             «IF i.widthSpec !== null»
-                , «i.name»{{«FOR id : IntStream.range(0, i.widthSpec.width).toArray SEPARATOR ", "»«i.initializerList(id)»«ENDFOR»}}
+                , «i.name»{{«FOR id : IntStream.range(0, i.widthSpecification).toArray SEPARATOR ", "»«i.initializerList(id)»«ENDFOR»}}
             «ELSE»
                 , «i.name»«i.initializerList»
             «ENDIF»
