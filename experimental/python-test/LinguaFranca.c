@@ -8,7 +8,6 @@
 #include <Python.h>
 #include <structmember.h>
 #include <stdbool.h>
-#include <unistd.h>
 
 #define FUNC_NAME "react"
 #define MODULE "linguafrancatest"
