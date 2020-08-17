@@ -1,4 +1,12 @@
 ## The Main Build Mechanism
+To build and install the LinguaFranca module, run:
+```
+pip3 install .
+```
+
+Please note that both `python3-pip` and `setuptools` must be installed.
+
+## Alternative Build Mechanism
 To generate a Makefile, use
 
 ```
@@ -42,7 +50,6 @@ I called react and got 0.
 Done with start()
 ```
 
-## Alternative Build Mechanism
 If the above procedure doesn't work, first clean the produced outputs by running:
 ```
 make clean
