@@ -3,6 +3,10 @@ To build and install the LinguaFranca module, run:
 ```
 pip3 install --force-reinstall --upgrade . --user
 ```
+or
+```
+python3 -m pip install --force-reinstall --upgrade . --user
+```
 
 Please note that both `python3-pip` and `setuptools` must be installed.
 
