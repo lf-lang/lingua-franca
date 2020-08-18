@@ -5,7 +5,7 @@ target Cpp {
     no-runtime-validation : true
 };
 
-import Master.lf;
+import Master from "Master.lf";
 
 reactor Ping(count:unsigned(4000)) {
     input start:void;

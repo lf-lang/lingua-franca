@@ -1,6 +1,6 @@
 target Cpp;
 
-reactor Philosopher(id:unsigned(0), count:unsigned(10000), 
+reactor Philosopher(instance:unsigned(0), count:unsigned(10000), 
                     starvation_threshold:unsigned(1000), verbose:bool(false)) {
     input start:void;
     output finished:void;
@@ -17,7 +17,7 @@ reactor Philosopher(id:unsigned(0), count:unsigned(10000),
     
     reaction(start) -> start_eating {=
         if(verbose)
-            std::cout << "Hello! I am philosopher " << id << " and I am very hungry!\n";
+            std::cout << "Hello! I am philosopher " << instance << " and I am very hungry!\n";
         times_eaten = 0;
         times_denied = 0;
         // start eating right away
@@ -32,13 +32,13 @@ reactor Philosopher(id:unsigned(0), count:unsigned(10000),
     reaction(eat) -> done, start_eating, finished {=
         // ... take left and right fork
         if(verbose)
-            std::cout << "Philosopher " << id << " is eating.\n";
+            std::cout << "Philosopher " << instance << " is eating.\n";
         times_eaten++;
         times_denied = 0;
         // ... put forks away
         done.set(); // signal that I am done eating
         if(verbose) 
-            std::cout << "Philosopher " << id << " is thinking.\n";
+            std::cout << "Philosopher " << instance << " is thinking.\n";
         if (times_eaten < count) {
             // Actually, I feel hungry again...
             start_eating.schedule();
@@ -51,7 +51,7 @@ reactor Philosopher(id:unsigned(0), count:unsigned(10000),
     reaction(denied) -> start_eating {=
         times_denied++;
         if (times_denied == starvation_threshold) {
-            std::cout << "Philosopher " << id << " is starving!\n";
+            std::cout << "Philosopher " << instance << " is starving!\n";
         }
 
         // Well, I will just try again...

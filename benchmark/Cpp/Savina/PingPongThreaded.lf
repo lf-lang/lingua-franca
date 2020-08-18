@@ -5,8 +5,8 @@ target Cpp {
     no-runtime-validation : true
 };
 
-import Master.lf;
-import PingPong.lf;
+import Ping, Pong from "PingPong.lf";
+import Master from "Master.lf";
 
 main reactor PingPong(iterations:unsigned(12), count:unsigned(40000)) {
     master = new Master(iterations=iterations);
