@@ -1,7 +1,7 @@
 target Cpp;
 
-import Philosopher.lf;
-import Master.lf;
+import Philosopher from "Philosopher.lf";
+import Master from "Master.lf";
 
 
 reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
@@ -16,9 +16,9 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
          * Try to acquire both forks for a philosopher. Returns true if
          * successful and false otherwise. 
          */
-        bool acquire_forks(ForkArray& forks, unsigned id) {
-            unsigned left = id;
-            unsigned right = (id + 1) % num_philosophers;
+        bool acquire_forks(ForkArray& forks, unsigned instance) {
+            unsigned left = instance;
+            unsigned right = (instance + 1) % num_philosophers;
             if (forks[left] || forks[right]) {
                 // someone else has access to the forks
                 return false;
@@ -34,9 +34,9 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
          * Release the forks acquired by a philosopher. This does not perform
          * any checks!
          */
-         void free_forks(ForkArray& forks, unsigned id) {
-            forks[id] = false; // left
-            forks[(id + 1) % num_philosophers] = false; // right
+         void free_forks(ForkArray& forks, unsigned instance) {
+            forks[instance] = false; // left
+            forks[(instance + 1) % num_philosophers] = false; // right
          }
     =}
     

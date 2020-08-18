@@ -1,7 +1,7 @@
 target Cpp;
 
-import Philosopher.lf;
-import Master.lf;
+import Philosopher from "Philosopher.lf";
+import Master from "Master.lf";
 
 
 reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
@@ -17,9 +17,9 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
          * Try to acquire both forks for a philosopher. Returns true if
          * successful and false otherwise. 
          */
-        bool acquire_forks(ForkArray& forks, unsigned id) {
-            unsigned left = id;
-            unsigned right = (id + 1) % num_philosophers;
+        bool acquire_forks(ForkArray& forks, unsigned instance) {
+            unsigned left = instance;
+            unsigned right = (instance + 1) % num_philosophers;
             if (forks[left] || forks[right]) {
                 // someone else has access to the forks
                 return false;
@@ -35,9 +35,9 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
          * Release the forks acquired by a philosopher. This does not perform
          * any checks!
          */
-         void free_forks(ForkArray& forks, unsigned id) {
-            forks[id] = false; // left
-            forks[(id + 1) % num_philosophers] = false; // right
+         void free_forks(ForkArray& forks, unsigned instance) {
+            forks[instance] = false; // left
+            forks[(instance + 1) % num_philosophers] = false; // right
          }
     =}
     
@@ -53,26 +53,26 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
                                            &p11, &p12, &p13, &p14, &p15, &p16, &p17, &p18, &p19 =});
     
     // FIXME: Can we do this in a loop?
-    p0 = new Philosopher(id=0, count=count, verbose=verbose);
-    p1 = new Philosopher(id=1, count=count, verbose=verbose);
-    p2 = new Philosopher(id=2, count=count, verbose=verbose);
-    p3 = new Philosopher(id=3, count=count, verbose=verbose);
-    p4 = new Philosopher(id=4, count=count, verbose=verbose);
-    p5 = new Philosopher(id=5, count=count, verbose=verbose);
-    p6 = new Philosopher(id=6, count=count, verbose=verbose);
-    p7 = new Philosopher(id=7, count=count, verbose=verbose);
-    p8 = new Philosopher(id=8, count=count, verbose=verbose);
-    p9 = new Philosopher(id=9, count=count, verbose=verbose);
-    p10 = new Philosopher(id=10, count=count, verbose=verbose);
-    p11 = new Philosopher(id=11, count=count, verbose=verbose);
-    p12 = new Philosopher(id=12, count=count, verbose=verbose);
-    p13 = new Philosopher(id=13, count=count, verbose=verbose);
-    p14 = new Philosopher(id=14, count=count, verbose=verbose);
-    p15 = new Philosopher(id=15, count=count, verbose=verbose);
-    p16 = new Philosopher(id=16, count=count, verbose=verbose);
-    p17 = new Philosopher(id=17, count=count, verbose=verbose);
-    p18 = new Philosopher(id=18, count=count, verbose=verbose);
-    p19 = new Philosopher(id=19, count=count, verbose=verbose);
+    p0 = new Philosopher(instance=0, count=count, verbose=verbose);
+    p1 = new Philosopher(instance=1, count=count, verbose=verbose);
+    p2 = new Philosopher(instance=2, count=count, verbose=verbose);
+    p3 = new Philosopher(instance=3, count=count, verbose=verbose);
+    p4 = new Philosopher(instance=4, count=count, verbose=verbose);
+    p5 = new Philosopher(instance=5, count=count, verbose=verbose);
+    p6 = new Philosopher(instance=6, count=count, verbose=verbose);
+    p7 = new Philosopher(instance=7, count=count, verbose=verbose);
+    p8 = new Philosopher(instance=8, count=count, verbose=verbose);
+    p9 = new Philosopher(instance=9, count=count, verbose=verbose);
+    p10 = new Philosopher(instance=10, count=count, verbose=verbose);
+    p11 = new Philosopher(instance=11, count=count, verbose=verbose);
+    p12 = new Philosopher(instance=12, count=count, verbose=verbose);
+    p13 = new Philosopher(instance=13, count=count, verbose=verbose);
+    p14 = new Philosopher(instance=14, count=count, verbose=verbose);
+    p15 = new Philosopher(instance=15, count=count, verbose=verbose);
+    p16 = new Philosopher(instance=16, count=count, verbose=verbose);
+    p17 = new Philosopher(instance=17, count=count, verbose=verbose);
+    p18 = new Philosopher(instance=18, count=count, verbose=verbose);
+    p19 = new Philosopher(instance=19, count=count, verbose=verbose);
         
     // FIXME: Would be great if this can be done for all Philosopher instances at once!
     reaction(start) -> p0.start, p1.start, p2.start, p3.start,

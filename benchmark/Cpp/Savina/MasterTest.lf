@@ -1,6 +1,6 @@
 target Cpp;
 
-import Master.lf;
+import Master from "Master.lf";
 
 main reactor MasterTest(iterations:unsigned(12)) {
     master = new Master(iterations=iterations);
