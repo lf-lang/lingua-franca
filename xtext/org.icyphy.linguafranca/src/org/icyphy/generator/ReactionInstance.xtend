@@ -26,7 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import java.util.HashSet
+import java.util.LinkedHashSet
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Port
@@ -140,25 +140,25 @@ class ReactionInstance extends NamedInstance<Reaction> {
     public long chainID = 0L;
 
     /** The actions that this reaction triggers. */
-    public var dependentActions = new HashSet<ActionInstance>();
+    public var dependentActions = new LinkedHashSet<ActionInstance>();
 
     /** The ports that this reaction may write to. */
-    public var dependentPorts = new HashSet<PortInstance>();
+    public var dependentPorts = new LinkedHashSet<PortInstance>();
 
     /** The reactions that depend on this reaction. */
-    public var dependentReactions = new HashSet<ReactionInstance>();
+    public var dependentReactions = new LinkedHashSet<ReactionInstance>();
 
     /** The actions that this reaction is triggered by. */
-    public var dependsOnActions = new HashSet<ActionInstance>();
+    public var dependsOnActions = new LinkedHashSet<ActionInstance>();
 
     /** The ports that this reaction is triggered by or uses. */
-    public var dependsOnPorts = new HashSet<PortInstance>();
+    public var dependsOnPorts = new LinkedHashSet<PortInstance>();
 
     /** The timers that this reaction is triggered by. */
-    public var dependsOnTimers = new HashSet<TimerInstance>();
+    public var dependsOnTimers = new LinkedHashSet<TimerInstance>();
 
     /** The reactions that this reaction depends on. */
-    public var dependsOnReactions = new HashSet<ReactionInstance>();
+    public var dependsOnReactions = new LinkedHashSet<ReactionInstance>();
 
     /** Deadline for this reaction instance, if declared.*/
     public DeadlineInstance declaredDeadline
@@ -181,18 +181,18 @@ class ReactionInstance extends NamedInstance<Reaction> {
     /**
      * The ports that this reaction reads but that do not trigger it.
      */
-    public var reads = new HashSet<TriggerInstance<Variable>>
+    public var reads = new LinkedHashSet<TriggerInstance<Variable>>
 
     /**
      * The trigger instances (input ports, timers, and actions
      * that trigger reactions) that trigger this reaction.
      */
-    public var triggers = new HashSet<TriggerInstance<Variable>>
+    public var triggers = new LinkedHashSet<TriggerInstance<Variable>>
 
     /**
      * Sources through which this reaction instance has been visited.
      */
-    public var visited = new HashSet<ReactionInstance>
+    public var visited = new LinkedHashSet<ReactionInstance>
 
     /**
      * Return the name of this reaction, which is 'reaction_n',

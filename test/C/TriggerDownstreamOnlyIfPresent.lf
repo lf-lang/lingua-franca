@@ -2,7 +2,8 @@
  * This test checks that a downstream reaction is triggered only if its trigger is present.
  */
 target C {
-    timeout: 1 sec
+    timeout: 1 sec,
+    fast: true
 };
 reactor Source {
     output a:int;
@@ -33,6 +34,7 @@ reactor Destination {
         }
     =}
 }
+
 main reactor TriggerDownstreamOnlyIfPresent {
     s = new[2] Source();
     d = new[2] Destination();
