@@ -20,14 +20,28 @@
 #endif
 
 #define FUNC_NAME "react"
+
+
+#ifndef MODULE_NAME
+#define MODULE_NAME LinguaFranca
+#endif
+
+
+#define CONCAT(x,y) x##y
+#define GEN_NAME(x,y) CONCAT(x,y)
+#define STRINGIFY(X) #X
+#define TOSTRING(x) STRINGIFY(x)
+
+
 #define MODULE "linguafrancatest"
+
 
 /* 
  * The contents of a port_instance.
  */
 typedef struct {
     PyObject_HEAD
-    int value;
+    PyObject* value;
     bool is_present;
     int num_destinations;
 }  port_instance_object;
@@ -37,7 +51,7 @@ typedef struct {
  * a native Python type.
  */
 static PyMemberDef port_instance_members[] = {
-    {"value", T_INT, offsetof(port_instance_object, value), 0, "Value of the port"},
+    {"value", T_OBJECT, offsetof(port_instance_object, value), 0, "Value of the port"},
     {"is_present", T_BOOL, offsetof(port_instance_object, is_present), 0, "Check if value is present at current logical time"},
     {"num_destinations", T_INT, offsetof(port_instance_object, num_destinations), 0, "Number of destinations"},
     {NULL}  /* Sentinel */
@@ -147,7 +161,7 @@ static PyObject* py_start(PyObject *self, PyObject *args)
             // FIXME: PyCapsules are apparently safer than void *
             pyValue = PyObject_New(port_instance_object, &port_instance_t);
 
-            pyValue->value = 42;
+            pyValue->value = PyLong_FromLong(42);
             pyValue->is_present = false;
             pyValue->num_destinations = 1;
             
@@ -249,13 +263,17 @@ static PyObject* py_start(PyObject *self, PyObject *args)
 
 static PyObject* py_SET(PyObject *self, PyObject *args)
 {
-    port_instance_object *port;
-    int val;
+    port_instance_object* port;
+    PyObject* val;
 
-    if (!PyArg_ParseTuple(args, "Oi" ,&port, &val))
+    printf("Parsing objects.\n");
+
+    if (!PyArg_ParseTuple(args, "OO" ,&port, &val))
         return NULL;
     
+    Py_DECREF(port->value);
     port->value = val;
+    Py_INCREF(port->value);
     port->is_present = true;
 
     Py_INCREF(Py_None);
@@ -266,32 +284,32 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
 /*
  * Bind Python function names to our C functions
  */
-static PyMethodDef LinguaFranca_methods[] = {
+static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_start, METH_VARARGS, NULL},
   {"SET", py_SET, METH_VARARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
 
-static PyModuleDef LinguaFranca = {
+static PyModuleDef MODULE_NAME = {
     PyModuleDef_HEAD_INIT,
-    "LinguaFranca",
+    TOSTRING(MODULE_NAME),
     "LinguaFranca Python Module",
     -1,
-    LinguaFranca_methods
+    GEN_NAME(MODULE_NAME,_methods)
 };
 
 /*
  * Python calls this to let us initialize our module
  */
 PyMODINIT_FUNC
-PyInit_LinguaFranca(void)
+GEN_NAME(PyInit_,MODULE_NAME)(void)
 {
     PyObject *m;
 
     // Initialize the port_instance type
     if (PyType_Ready(&port_instance_t) < 0)
         return NULL;
-    m = PyModule_Create(&LinguaFranca);
+    m = PyModule_Create(&MODULE_NAME);
 
     if (m == NULL)
         return NULL;
