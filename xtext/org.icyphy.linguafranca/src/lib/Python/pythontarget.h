@@ -222,7 +222,7 @@ static PyModuleDef MODULE_NAME = {
 /* 
  * 
  */
-static PyObject* __helper_call(string module, string func, PyObject* pArgs)
+static PyObject* invoke_python_function(string module, string func, PyObject* pArgs)
 {
 
     // Set if the interpreter is already initialized
