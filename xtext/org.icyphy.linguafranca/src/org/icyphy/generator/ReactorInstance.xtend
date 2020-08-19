@@ -27,8 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.generator
 
 import java.util.ArrayList
-import java.util.HashMap
-import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -228,8 +226,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (parent === null) {
             // Set of reactions that do not depend on other reactions at
             // a logical time instant.
-            independentReactions = new HashSet<ReactionInstance>()
-            reactionsWithDeadline = new HashSet<ReactionInstance>()
+            independentReactions = new LinkedHashSet<ReactionInstance>()
+            reactionsWithDeadline = new LinkedHashSet<ReactionInstance>()
 
             // Add to the dependsOnReactions and dependentReactions
             // of each reaction instance all the
@@ -346,10 +344,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /** Data structure used by nextPort() to keep track of the next available bank. */
-    var nextBankTable = new HashMap<VarRef,Integer>()
+    var nextBankTable = new LinkedHashMap<VarRef,Integer>()
 
     /** Data structure used by nextPort() to keep track of the next available port. */
-    var nextPortTable = new HashMap<PortInstance,Integer>()
+    var nextPortTable = new LinkedHashMap<PortInstance,Integer>()
     
     /**
      * Check for dangling connections.
@@ -684,7 +682,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  @return The trigger instances belonging to this reactor instance.
      */
     def getTriggers() {
-        var triggers = new HashSet<TriggerInstance<Variable>>
+        var triggers = new LinkedHashSet<TriggerInstance<Variable>>
         for (reaction : this.reactions) {
             triggers.addAll(reaction.triggers)
         }
@@ -697,7 +695,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  @return The trigger instances belonging to this reactor instance.
      */
     def getTriggersAndReads() {
-        var triggers = new HashSet<TriggerInstance<Variable>>
+        var triggers = new LinkedHashSet<TriggerInstance<Variable>>
         for (reaction : this.reactions) {
             triggers.addAll(reaction.triggers)
             triggers.addAll(reaction.reads)
@@ -1006,7 +1004,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected def void addReactionsPortDependsOn(
         PortInstance port,
-        HashSet<ReactionInstance> reactions
+        LinkedHashSet<ReactionInstance> reactions
     ) {
         reactions.addAll(port.dependsOnReactions)
         if (port.dependsOnPort !== null) {
@@ -1021,7 +1019,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected def void addReactionsDependingOnPort(
         PortInstance port,
-        HashSet<ReactionInstance> reactions
+        LinkedHashSet<ReactionInstance> reactions
     ) {
         reactions.addAll(port.dependentReactions)
         for (downstreamPort : port.dependentPorts) {
@@ -1153,7 +1151,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         while (!start.empty) {
             val origin = start.remove(0)
-            val toRemove = new HashSet<ReactionInstance>()
+            val toRemove = new LinkedHashSet<ReactionInstance>()
             // Visit effect nodes.
             for (effect : graph.getEffects(origin)) {
                 // Stage edge between origin and effect for removal.

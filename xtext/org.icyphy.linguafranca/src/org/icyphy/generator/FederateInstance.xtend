@@ -26,8 +26,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import java.util.HashMap
-import java.util.HashSet
+import java.util.LinkedHashMap
+import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
 import org.icyphy.linguaFranca.Action
@@ -76,7 +76,7 @@ class FederateInstance {
     /** Set of names of contained reactors. Note that will be
      *  empty if isSingleton() returns true.
      */
-    public var Set<String> containedReactorNames = new HashSet<String>
+    public var Set<String> containedReactorNames = new LinkedHashSet<String>
     
     /** The host, if specified using the 'at' keyword. */
     public var String host = null
@@ -89,7 +89,7 @@ class FederateInstance {
      *  may be empty, meaning no delay (not even a microstep or 0 delay)
      *  was specified.
      */
-    public var dependsOn = new HashMap<FederateInstance,Set<Value>>()
+    public var dependsOn = new LinkedHashMap<FederateInstance,Set<Value>>()
     
     /** The directory, if specified using the 'at' keyword. */
     public var String dir = null
@@ -102,7 +102,7 @@ class FederateInstance {
      *  may be empty, meaning no delay (not even a microstep or 0 delay)
      *  was specified.
      */
-    public var sendsTo = new HashMap<FederateInstance,Set<Value>>()
+    public var sendsTo = new LinkedHashMap<FederateInstance,Set<Value>>()
     
     /** The user, if specified using the 'at' keyword. */
     public var String user = null
@@ -146,7 +146,7 @@ class FederateInstance {
         if (excludeReactions !== null) {
             return !excludeReactions.contains(reaction)
         }
-        excludeReactions = new HashSet<Reaction>
+        excludeReactions = new LinkedHashSet<Reaction>
         
         // Construct the set of excluded reactions for this federate.
         for (react : reactor.allReactions) {

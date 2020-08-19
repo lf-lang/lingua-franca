@@ -26,7 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import java.util.HashSet
+import java.util.LinkedHashSet
 import org.icyphy.linguaFranca.Variable
 
 /** Instance of a trigger (port, action, or timer).
@@ -52,10 +52,10 @@ class TriggerInstance<T extends Variable> extends NamedInstance<Variable> {
     //// Public Fields
     
     /** Reaction instances that are triggered by this trigger. */
-    public var dependentReactions = new HashSet<ReactionInstance>();
+    public var dependentReactions = new LinkedHashSet<ReactionInstance>();
 
     /** Reaction instances that may send outputs via this port. */
-    public var dependsOnReactions = new HashSet<ReactionInstance>(); // FIXME: Perhaps better to use a TreeSet here
+    public var dependsOnReactions = new LinkedHashSet<ReactionInstance>(); // FIXME: Perhaps better to use a TreeSet here
 
     /////////////////////////////////////////////
     //// Public Methods
