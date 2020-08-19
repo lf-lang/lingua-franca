@@ -32,8 +32,8 @@ import java.math.BigInteger
 import java.nio.file.Files
 import java.util.ArrayList
 import java.util.Collection
-import java.util.HashMap
-import java.util.HashSet
+import java.util.LinkedHashMap
+import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.EObject
@@ -288,7 +288,7 @@ class CGenerator extends GeneratorBase {
     //// Private variables
     
     // Set of acceptable import targets includes only C.
-    val acceptableTargetSet = newHashSet('C')
+    val acceptableTargetSet = newLinkedHashSet('C')
 
     // List of deferred assignments to perform in initialize_trigger_objects.
     // FIXME: Remove this and InitializeRemoteTriggersTable
@@ -354,7 +354,7 @@ class CGenerator extends GeneratorBase {
         
         // Generate code for each reactor. If the reactor already has been handled, set
         // the parameter aliasOnly to true.
-        val names = newHashSet
+        val names = newLinkedHashSet
         for (r : reactors) {
             for (d : this.instantiationGraph.getDeclarations(r)) {
                 if (!names.add(d.name)) {
@@ -1399,11 +1399,11 @@ class CGenerator extends GeneratorBase {
         // the contained reactors.
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
-        val structs = new HashMap<Instantiation,HashSet<TypedVariable>>
+        val structs = new LinkedHashMap<Instantiation,LinkedHashSet<TypedVariable>>
         // For each variable so collected, if the variable is an output
         // of a contained reactor, then collect the indices of the reactions
         // that are triggered by it.
-        val reactionsTriggered = new HashMap<Variable,HashSet<Integer>>
+        val reactionsTriggered = new LinkedHashMap<Variable,LinkedHashSet<Integer>>
         
         var reactionCount = 0
         for (reaction : reactor.allReactions) {
@@ -1417,7 +1417,7 @@ class CGenerator extends GeneratorBase {
                     if (effect.variable instanceof Input) {
                         var struct = structs.get(effect.container)
                         if (struct === null) {
-                            struct = new HashSet<TypedVariable>
+                            struct = new LinkedHashSet<TypedVariable>
                             structs.put(effect.container, struct)
                         }
                         struct.add(effect.variable as Input)
@@ -1430,14 +1430,14 @@ class CGenerator extends GeneratorBase {
                         if (trigger.variable instanceof Output) {
                             var struct = structs.get(trigger.container)
                             if (struct === null) {
-                                struct = new HashSet<TypedVariable>
+                                struct = new LinkedHashSet<TypedVariable>
                                 structs.put(trigger.container, struct)
                             }
                             struct.add(trigger.variable as Output)
 
                             var triggered = reactionsTriggered.get(trigger.variable)
                             if (triggered === null) {
-                                triggered = new HashSet<Integer>
+                                triggered = new LinkedHashSet<Integer>
                                 reactionsTriggered.put(trigger.variable, triggered)
                             }
                             triggered.add(reactionCount)
@@ -1450,7 +1450,7 @@ class CGenerator extends GeneratorBase {
                     if (source.variable instanceof Output) {
                         var struct = structs.get(source.container)
                         if (struct === null) {
-                            struct = new HashSet<TypedVariable>
+                            struct = new LinkedHashSet<TypedVariable>
                             structs.put(source.container, struct)
                         }
                         struct.add(source.variable as Output)
@@ -1560,9 +1560,9 @@ class CGenerator extends GeneratorBase {
         // that are read by reactions but do not trigger reactions.
         // Finally, collect a set of triggers and sources that are outputs
         // of contained reactors. 
-        val triggerMap = new HashMap<Variable,LinkedList<Integer>>()
-        val sourceSet = new HashSet<Variable>()
-        val outputsOfContainedReactors = new HashMap<Variable,Instantiation>
+        val triggerMap = new LinkedHashMap<Variable,LinkedList<Integer>>()
+        val sourceSet = new LinkedHashSet<Variable>()
+        val outputsOfContainedReactors = new LinkedHashMap<Variable,Instantiation>
         for (reaction : reactor.allReactions) {
             if (federate === null || federate.containsReaction(reactor, reaction)) {
                 // Create the reaction_t struct.
@@ -1685,7 +1685,7 @@ class CGenerator extends GeneratorBase {
     private def void createTriggerT(
         StringBuilder body, 
         Variable variable,
-        HashMap<Variable, LinkedList<Integer>> triggerMap,
+        LinkedHashMap<Variable, LinkedList<Integer>> triggerMap,
         StringBuilder constructorCode,
         StringBuilder destructorCode
     ) {
@@ -1857,14 +1857,14 @@ class CGenerator extends GeneratorBase {
         // all be declared as fields of the same struct. Hence, we first
         // collect the fields to be defined in the structs and then
         // generate the structs.
-        var fieldsForStructsForContainedReactors = new HashMap<Instantiation, StringBuilder>
+        var fieldsForStructsForContainedReactors = new LinkedHashMap<Instantiation, StringBuilder>
 
         // Actions may appear twice, first as a trigger, then with the outputs.
         // But we need to declare it only once. Collect in this data structure
         // the actions that are declared as triggered so that if they appear
         // again with the outputs, they are not defined a second time.
         // That second redefinition would trigger a compile error.  
-        var actionsAsTriggers = new HashSet<Action>();
+        var actionsAsTriggers = new LinkedHashSet<Action>();
 
         // Next, add the triggers (input and actions; timers are not needed).
         // This defines a local variable in the reaction function whose
@@ -3389,7 +3389,7 @@ class CGenerator extends GeneratorBase {
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
         // For destinations that are multiports, need to count channels
         // in case there is more than one connection.
-        var destinationChannelCount = new HashMap<PortInstance,Integer>()
+        var destinationChannelCount = new LinkedHashMap<PortInstance,Integer>()
         for (source : instance.destinations.keySet) {
             // If the source is an input port, find the ultimate source,
             // which could be the input port if it is written to by a reaction
@@ -3774,7 +3774,7 @@ class CGenerator extends GeneratorBase {
      */
     private def generatePortVariablesInReaction(
         StringBuilder builder,
-        HashMap<Instantiation,StringBuilder> structs,
+        LinkedHashMap<Instantiation,StringBuilder> structs,
         VarRef port,
         ReactorDecl decl
     ) {
@@ -3856,7 +3856,7 @@ class CGenerator extends GeneratorBase {
      */
     private def generateVariablesForSendingToContainedReactors(
         StringBuilder builder,
-        HashMap<Instantiation,StringBuilder> structs,
+        LinkedHashMap<Instantiation,StringBuilder> structs,
         Instantiation definition,
         Input input
     ) {

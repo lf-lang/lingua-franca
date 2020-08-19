@@ -25,7 +25,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.icyphy.generator
 
-import java.util.HashSet
+import java.util.LinkedHashSet
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
@@ -70,7 +70,7 @@ class PortInstance extends TriggerInstance<Variable> {
     //// Public Fields
 
     /** Set of port instances that receive messages from this port. */
-    public HashSet<PortInstance> dependentPorts = new HashSet<PortInstance>();
+    public LinkedHashSet<PortInstance> dependentPorts = new LinkedHashSet<PortInstance>();
         
     /** Port that sends messages to this port, if there is one. */
     public PortInstance dependsOnPort = null;
@@ -115,7 +115,7 @@ class PortInstance extends TriggerInstance<Variable> {
         // this output port. Do this by building a set of the containers
         // of all dependent ports and reactions. The dependentReactions
         // includes reactions of the container that listen to this port.
-        val destinationReactors = new HashSet<ReactorInstance>()
+        val destinationReactors = new LinkedHashSet<ReactorInstance>()
         for (destinationPort : this.dependentPorts) {
             destinationReactors.add(destinationPort.parent)
         }

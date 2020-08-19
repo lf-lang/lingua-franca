@@ -27,8 +27,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy
 
-import java.util.HashMap
-import java.util.HashSet
+import java.util.LinkedHashMap
+import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
@@ -92,9 +92,9 @@ class ASTUtils {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.
         val oldConnections = new LinkedList<Connection>()
-        val newConnections = new HashMap<Reactor, List<Connection>>()
-        val delayInstances = new HashMap<Reactor, List<Instantiation>>()
-        val delayClasses = new HashSet<Reactor>()
+        val newConnections = new LinkedHashMap<Reactor, List<Connection>>()
+        val delayInstances = new LinkedHashMap<Reactor, List<Instantiation>>()
+        val delayClasses = new LinkedHashSet<Reactor>()
         
         // Iterate over the connections in the tree.
         for (container : resource.allContents.toIterable.filter(Reactor)) {
@@ -538,7 +538,7 @@ class ASTUtils {
      * @param name The name to base the returned identifier on.
      */
     static def getUniqueIdentifier(Reactor reactor, String name) {
-        val vars = new HashSet<String>();
+        val vars = new LinkedHashSet<String>();
         reactor.allActions.forEach[it | vars.add(it.name)]
         reactor.allTimers.forEach[it | vars.add(it.name)]
         reactor.allParameters.forEach[it | vars.add(it.name)]
