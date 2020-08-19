@@ -123,4 +123,6 @@ ThreadedMultiport.lf
 ThreadedThreaded.lf
 TimeLimit.lf
 TimeLimitThreaded.lf
+TriggerDownstreamOnlyIfPresent.lf
+TriggerDownstreamOnlyIfPresent2.lf
 UnconnectedInput.lf

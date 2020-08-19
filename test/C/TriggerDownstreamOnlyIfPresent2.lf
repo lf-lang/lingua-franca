@@ -2,7 +2,8 @@
  * This test checks that a downstream reaction is triggered only if its trigger is present.
  */
 target C {
-    timeout: 1 sec
+    timeout: 1 sec,
+    fast: true
 };
 reactor Source {
     output[2] out:int;
@@ -20,11 +21,12 @@ reactor Destination {
     input in:int;
     reaction(in) {=
         if (!in->is_present) {
-            fprintf(stderr, "Reaction to a triggered even though all inputs are absent!\n");
+            fprintf(stderr, "Reaction to input of triggered even though all inputs are absent!\n");
             exit(1);
         }
     =}
 }
+
 main reactor TriggerDownstreamOnlyIfPresent2 {
     s = new Source();
     d = new[2] Destination();
