@@ -484,6 +484,8 @@ void __pop_events() {
     do {
         event = (event_t*)pqueue_pop(event_q);
 
+        if (event == NULL) continue;
+
         token_t* token = event->token;
 
         // Push the corresponding reactions onto the reaction queue.

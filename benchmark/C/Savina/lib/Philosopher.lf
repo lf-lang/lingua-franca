@@ -1,0 +1,95 @@
+/**
+ * Upon receiving a `start` input, this reactor resets its counts
+ * and send a `hungry` message. It then waits for an `eat` or
+ * `denied` input. If it receives `eat`, then it schedules to send
+ * a `done` message after `eating_time` has elapsed (in logical
+ * time). If it receives a `denied` message, then it schedules to
+ * send a `hungry` message after `thinking_time` has elapsed.
+ * When it sends the `done` message after eating, it schedules to
+ * send a `hungry` message after `thinking_time` has elapsed.
+ * When it has eated a total of `count` times, it sends a `finished`
+ * message.
+ */
+target C;
+
+reactor Philosopher(
+    eating_time:time(1 sec), // (Logical) time spent eating.
+    thinking_time:time(1 sec), // (Logical) time spent thinking.
+    instance:int(0),     // Instance number in a bank of reactors.
+    count:int(10000),    // Having eaten this many times, send finished.
+    starvation_threshold:int(1000), // Print a starvation message when denied this many times.
+    verbose:bool(false)  // Print verbose messages.
+) {
+    input start:bool;
+    output finished:bool;
+    
+    input eat:bool;
+    input denied:bool;
+    output hungry:bool;
+    output done:bool;
+    
+    state times_eaten:int;
+    state times_denied:int;
+ 
+    logical action done_eating;
+    logical action done_thinking;
+    
+    reaction(start) -> hungry {=
+        if(self->verbose) {
+            printf("Hello! I am philosopher %d, and I am very hungry!\n", self->instance);
+        }
+        self->times_eaten = 0;
+        self->times_denied = 0;
+        SET(hungry, true);   
+    =}
+    
+    reaction(done_eating) -> done, finished, done_thinking {=
+        // ... put forks away
+        SET(done, true); // signal that I am done eating
+        if(self->verbose) {
+            printf("Philosopher %d is thinking.\n", self->instance);
+        }
+        if (self->times_eaten < self->count) {
+            schedule(done_thinking, self->thinking_time);
+        } else {
+            // Now I am really not hungry anymore!
+            SET(finished, true);
+        } 
+    =}
+    
+    reaction(done_thinking) -> hungry {=
+        if(self->verbose) {
+            printf("*********** Current time is %lld\n", get_elapsed_logical_time());
+            printf("Philosopher %d is hungry.\n", self->instance);
+        }
+        SET(hungry, true);
+    =}
+    
+    reaction(eat) -> done_eating {=
+        // ... take left and right fork
+        if (!eat->is_present) {
+            fprintf(stderr, "ERROR: reaction to eat triggered with no input.\n");
+        }
+        if(self->verbose) {
+            printf("*********** Current time is %lld\n", get_elapsed_logical_time());
+            printf("Philosopher %d is eating.\n", self->instance);
+        }
+        self->times_eaten++;
+        self->times_denied = 0;
+        schedule(done_eating, self->eating_time);
+    =}
+
+    reaction(denied) -> done_thinking {=
+        self->times_denied++;
+        if (self->times_denied == self->starvation_threshold) {
+            printf("Philosopher %d is starving!\n", self->instance);
+        }
+        if(self->verbose) {
+            printf("*********** Current time is %lld\n", get_elapsed_logical_time());
+            printf("Philosopher %d was denied and is thinking.\n", self->instance);
+        }
+
+        // Well, I will just try again...
+        schedule(done_thinking, self->thinking_time);
+    =}
+}

@@ -1,0 +1,183 @@
+/**
+ * Philosopher benchmark from the Savina benchmark suite for actor languages and frameworks.
+ * The original benchmarks are available at https://github.com/shamsmahmood/savina.
+ * 
+ * This program takes advantage of particular feature of LF to model the timing of the
+ * philosophers.
+ * 
+ * See, Shams Imam and Vivek  Sarkar, "Savina - An Actor Benchmark Suite: Enabling Empirical
+ * Evaluation of Actor Libraries," AGERE! '14: Proceedings of the 4th International Workshop
+ * on Programming based on Actors Agents & Decentralized Control, October 2014, Pages 67–80,
+ * https://doi.org/10.1145/2687357.2687368
+ * 
+ * @author Christian Menard
+ * @author Edward A. Lee
+ */
+target C {
+    fast: true
+};
+
+import Philosopher from "lib/Philosopher.lf";
+import Master from "lib/Master.lf";
+
+
+reactor Arbitrator(
+    num_philosophers:int(20),
+    count:int(10000),
+    verbose:bool(false)
+) {
+    
+    preamble {=
+        /*
+         * Try to acquire both forks for a philosopher. Returns true if
+         * successful and false otherwise. 
+         */
+        bool acquire_forks(bool forks[], int instance, int num_philosophers) {
+            int left = instance;
+            int right = (instance + 1) % num_philosophers;
+            if (forks[left] || forks[right]) {
+                // someone else has access to the forks
+                return false;
+            } else {
+                // Forks are available. Mark them in use.
+                forks[left] = true;
+                forks[right] = true;
+                return true;
+            }
+        }
+
+        /*
+         * Release the forks acquired by a philosopher. This does not perform
+         * any checks!
+         */
+         void free_forks(bool forks[], int instance, int num_philosophers) {
+            forks[instance] = false; // left
+            forks[(instance + 1) % num_philosophers] = false; // right
+         }
+    =}
+    
+    input start:bool;
+    output finished:bool;
+    
+    /** Signal to philosopher to start an iteration. */
+    output[num_philosophers] philosopher_start:bool; 
+    /** Signal from philosopher that it has eaten enough times in the iteration. */
+    input[num_philosophers] philosopher_finished:bool;
+    
+    /** Signal from philosopher that it is ready to eat. */
+    input[num_philosophers] hungry:bool;
+    /** Signal from philosopher that it is done eating. */
+    input[num_philosophers] done:bool;
+    /** Signal to philosopher to start eating. */
+    output[num_philosophers] eat:bool;
+    /** Signal to philosopher to wait. */
+    output[num_philosophers] denied:bool;
+    
+    state forks:bool[];
+    state finished_philosophers:int(0);
+    state arbitration_id:int(0);
+    state retries:int(0);
+    
+    reaction(startup) {=
+        self->forks = calloc(self->num_philosophers, sizeof(bool));
+    =}
+    
+    reaction(start) -> philosopher_start {=
+        if (self->verbose) {
+            printf("Starting the arbitrator\n");
+        }
+        self->finished_philosophers = 0;
+        self->retries = 0;
+
+        // Broadcast a `start` signal to all philosophers.
+        for(int i = 0; i < philosopher_start_width; i++) {
+            SET(philosopher_start[i], true);
+        }
+    =}
+
+    reaction(done) {=
+        for(int i = 0; i < done_width; i++) {
+            if (done[i]->is_present) {
+                if (self->verbose) {
+                    printf("Arbitrator: Philosopher %d signals that they are done eating.\n", i);
+                }
+                free_forks(self->forks, i, self->num_philosophers);
+            }
+        }
+    =}
+        
+    reaction(hungry) -> eat, denied {= 
+        // Iterate over all philosophers, each time starting from a different one.
+        // This arbitration ensures that no philosopher has to starve.
+        for(int i = self->arbitration_id; i < self->arbitration_id + self->num_philosophers; i++) {
+            int j = i % self->num_philosophers;
+            if (hungry[j]->is_present) {
+                if (self->verbose) {
+                    printf("*********** Current time is %lld\n", get_elapsed_logical_time());
+                    printf("Arbitrator: Philosopher %d signals that they are hungry.\n", j);
+                }
+                if (acquire_forks(self->forks, j, self->num_philosophers)) {
+                    if (self->verbose) {
+                        printf("*********** Current time is %lld\n", get_elapsed_logical_time());
+                        printf("Arbitrator tells philosopher %d to eat.\n", j);
+                    }
+                    SET(eat[j], true); 
+                } else {
+                    if (self->verbose) {
+                        printf("*********** Current time is %lld\n", get_elapsed_logical_time());
+                        printf("Arbitrator denies philosopher %d to eat.\n", j);
+                    }
+                    SET(denied[j], true);
+                    self->retries++;
+                }    
+            }
+        }
+        
+        self->arbitration_id++;
+        if (self->arbitration_id == self->num_philosophers) {
+            self->arbitration_id = 0;
+        }
+    =}
+    
+    reaction (philosopher_finished) -> finished {=
+        for(int i = 0; i < philosopher_finished_width; i++) {
+            if (philosopher_finished[i]->is_present) {
+                self->finished_philosophers++;
+            }
+        }
+        
+        if (self->verbose) {
+            printf("Arbitrator: Number of finished philosophers: %d\n", self->finished_philosophers);
+        }
+        
+        if (self->finished_philosophers == self->num_philosophers) {
+            printf("Arbitrator: All philosophers are sated. Number of denials to philosophers: %d\n", self->retries);
+            SET(finished, true);
+        }        
+    =}
+}
+
+main reactor Philosophers(
+    num_philosophers:int(20),
+    iterations:int(12),
+    count:int(10000),
+    eating_time:time(1 sec), // (Logical) time spent eating.
+    thinking_time:time(1 msec), // (Logical) time spent thinking.
+    verbose:bool(false) 
+) {
+    master = new Master(iterations=iterations);
+    
+    arbitrator = new Arbitrator(count=count, verbose=verbose, num_philosophers = num_philosophers);
+    philosophers = new[num_philosophers] Philosopher(count=count, verbose=verbose);
+
+    master.start -> arbitrator.start;
+    arbitrator.finished -> master.finished;
+    
+    arbitrator.philosopher_start -> philosophers.start;
+    philosophers.finished -> arbitrator.philosopher_finished;
+    
+    philosophers.hungry -> arbitrator.hungry;
+    philosophers.done -> arbitrator.done;
+    arbitrator.eat -> philosophers.eat;
+    arbitrator.denied -> philosophers.denied;
+}
