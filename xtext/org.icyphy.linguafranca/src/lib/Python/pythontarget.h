@@ -316,10 +316,14 @@ invoke_python_function(string module, string class, string func, PyObject* pArgs
 
     Py_SetPath(wcwd);
 
+<<<<<<< HEAD
 #ifdef VERBOSE
     printf("Loading module %s in %s.\n", module, cwd);
 #endif
 
+=======
+    // Import MODULE from linguafrancatest.py
+>>>>>>> Added back path setting
     pModule = PyImport_Import(pFileName);
 
 #ifdef VERBOSE
