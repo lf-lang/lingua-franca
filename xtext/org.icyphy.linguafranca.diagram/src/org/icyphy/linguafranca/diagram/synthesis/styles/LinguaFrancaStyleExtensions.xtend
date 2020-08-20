@@ -51,9 +51,9 @@ class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
 	}
 	
 	def boldLineSelectionStyle(KRendering r) {
-		r.selectionLineWidth = 2
+		r.selectionLineWidth = r.lineWidthValue * 2
 	}
-		
+	
 	def boldTextSelectionStyle(KText t) {
 		t.selectionFontBold = true
 	}
