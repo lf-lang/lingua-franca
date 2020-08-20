@@ -382,12 +382,16 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a reactor port.
 	 */
-	def addTrianglePort(KPort port) {
-		port.setSize(8, 8)
+	def addTrianglePort(KPort port, boolean multiport) {
+	    if (multiport) {
+	        port.setSize(7, 7) // compensate for line width
+	    } else {
+	        port.setSize(8, 8)
+	    }
 		port.addPolygon() => [
-			lineWidth = 1
+			lineWidth = multiport ? 2.2f : 1
 			boldLineSelectionStyle()
-			background = Colors.BLACK
+			background = multiport ? Colors.WHITE : Colors.BLACK
 			points += #[
 				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0),
 				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),

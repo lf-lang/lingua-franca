@@ -5,17 +5,18 @@ import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
-import org.eclipse.emf.ecore.EObject
-import org.eclipse.xtext.TerminalRule
-import org.eclipse.xtext.nodemodel.impl.CompositeNode
-import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.eclipse.xtext.resource.XtextResource
 import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Host
+import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.VarRef
+import org.icyphy.linguaFranca.WidthSpec
+
+import static extension org.icyphy.ASTUtils.*
 
 /**
  * Extension class that provides various utility methods for the synthesis.
@@ -65,12 +66,44 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 		return sb.toString
 	}
 	
+    /**
+     * Converts a width spec into readable text
+     */
+    def String toText(WidthSpec spec) {
+        if (spec.ofVariableLength) {
+            return "[]"
+        } else if (spec.width !== -1) {
+            return "[" + spec.width + "]"
+        } else {
+            return spec.terms.join("[", "+", "]")[
+                parameter !== null ? parameter.name : width.toString
+            ]
+        }
+    }
+	
 	/**
 	 * Returns true if the reactor is the primary reactor
 	 */
 	def isPrimary(Reactor reactor) {
 		return reactor.main || reactor.federated
 	}
+	
+    /**
+     * Returns true if the port is a multi port
+     */
+    def boolean isMultiport(VarRef port) {
+        return port.multiportWidth !== 1
+    }
+    def boolean isMultiport(Port port) {
+        return port?.widthSpec !== null ? port.widthSpec.width !== 1 : false
+    }
+	
+    /**
+     * Returns true if the instance is a bank of reactors
+     */
+    def boolean isBank(Instantiation ins) {
+        return ins?.widthSpec !== null ? ins.widthSpec.width !== 1 : false
+    }
 	
 	/**
 	 * Returns true if the reactor as has inner reactions or instances
