@@ -9,6 +9,7 @@ import de.cau.cs.kieler.klighd.krendering.Colors
 import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering
 import de.cau.cs.kieler.klighd.krendering.KPolyline
+import de.cau.cs.kieler.klighd.krendering.KRendering
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory
 import de.cau.cs.kieler.klighd.krendering.KRoundedRectangle
 import de.cau.cs.kieler.klighd.krendering.KText
@@ -25,9 +26,11 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX
 import de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY
+import java.util.List
 import javax.inject.Inject
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.PortSide
+import org.eclipse.xtend.lib.annotations.Data
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
@@ -39,6 +42,7 @@ import org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjus
 import static org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis.*
 
 import static extension de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses.*
+import static extension org.icyphy.ASTUtils.*
 
 /**
  * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
@@ -62,6 +66,9 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
 	
     extension KRenderingFactory = KRenderingFactory.eINSTANCE
+    
+    public static val BANK_FIGURE_X_OFFSET_SUM = 6.0f
+    public static val BANK_FIGURE_Y_OFFSET_SUM = 9.0f
 
 	/**
 	 * Creates the main reactor frame.
@@ -113,18 +120,22 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a reactor node
 	 */
-	def addReactorFigure(KNode node, Reactor reactor, Instantiation instance, String text) {
+	def ReactorFigureComponents addReactorFigure(KNode node, Reactor reactor, Instantiation instance, String text) {
 		val padding = SHOW_HYPERLINKS.booleanValue ? 8 : 6
+		val style = [ KRoundedRectangle r |
+            r.lineWidth = 1
+            r.foreground = Colors.GRAY
+            r.background = Colors.GRAY_95
+            r.boldLineSelectionStyle
+		]
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
-			lineWidth = 1
-			foreground = Colors.GRAY
-			background = Colors.GRAY_95
-			boldLineSelectionStyle
+			style.apply(it)
 		]
 
 		// minimal node size is necessary if no text will be added
-		node.setMinimalNodeSize(2 * figure.cornerWidth, 2 * figure.cornerHeight)
+		val minSize = #[2 * figure.cornerWidth, 2 * figure.cornerHeight]
+		node.setMinimalNodeSize(minSize.get(0), minSize.get(1))
 
 		figure.addRectangle() => [
 			invisible = true
@@ -158,7 +169,50 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			]
 		]
 		
-		return figure
+        if (instance.isBank()) {
+            val bank = newArrayList
+            val container = node.addInvisibleContainerRendering => [
+                val bankWidth = instance.widthSpec.width
+                addRoundedRectangle(8, 8, 1) => [
+                    style.apply(it)
+                    setAreaPlacementData().from(LEFT, BANK_FIGURE_X_OFFSET_SUM, 0, TOP, BANK_FIGURE_Y_OFFSET_SUM, 0).to(RIGHT, 0, 0, BOTTOM, 0, 0)
+                ]
+                if (bankWidth === 3) {
+                    addRoundedRectangle(8, 8, 1) => [
+                        style.apply(it)
+                        setAreaPlacementData().from(LEFT, BANK_FIGURE_X_OFFSET_SUM / 2, 0, TOP, BANK_FIGURE_Y_OFFSET_SUM / 2, 0).to(RIGHT, BANK_FIGURE_X_OFFSET_SUM / 2, 0, BOTTOM, BANK_FIGURE_Y_OFFSET_SUM / 2, 0)
+                    ]
+                } else if (bankWidth !== 2 && bankWidth !== 3) {
+                    addRoundedRectangle(8, 8, 1) => [
+                        style.apply(it)
+                        setAreaPlacementData().from(LEFT, 2 * BANK_FIGURE_X_OFFSET_SUM / 3, 0, TOP, 2 * BANK_FIGURE_Y_OFFSET_SUM / 3, 0).to(RIGHT, BANK_FIGURE_X_OFFSET_SUM / 3, 0, BOTTOM, BANK_FIGURE_Y_OFFSET_SUM / 3, 0)
+                    ]
+                    addRoundedRectangle(8, 8, 1) => [
+                        style.apply(it)
+                        setAreaPlacementData().from(LEFT, BANK_FIGURE_X_OFFSET_SUM / 3, 0, TOP, BANK_FIGURE_Y_OFFSET_SUM / 3, 0).to(RIGHT, 2 * BANK_FIGURE_X_OFFSET_SUM / 3, 0, BOTTOM, 2 * BANK_FIGURE_Y_OFFSET_SUM / 3, 0)
+                    ]
+                }
+                
+                children += figure // move figure into invisible container (add last to be on top)
+                figure.setAreaPlacementData().from(LEFT, 0, 0, TOP, 0, 0).to(RIGHT, BANK_FIGURE_X_OFFSET_SUM, 0, BOTTOM, BANK_FIGURE_Y_OFFSET_SUM, 0)
+                bank.addAll(children)
+                
+                addRectangle() => [
+                    invisible = true
+                    setAreaPlacementData().from(LEFT, 12, 0, BOTTOM, 9, 0).to(RIGHT, 6, 0, BOTTOM, 0.5f, 0)
+                    addText(instance.widthSpec.toText) => [
+                        horizontalAlignment = HorizontalAlignment.LEFT
+                        verticalAlignment = VerticalAlignment.BOTTOM
+                        fontSize = 6
+                        noSelectionStyle
+                        associateWith(instance.widthSpec)
+                    ]
+                ]
+            ]
+            return new ReactorFigureComponents(container, figure, bank)
+        } else {
+            return new ReactorFigureComponents(figure, figure, #[figure])
+        }
 	}
 	
 	/**
@@ -556,4 +610,11 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         ]
     }
 
+}
+
+@Data
+class ReactorFigureComponents {
+    val KContainerRendering outer
+    val KContainerRendering reactor
+    val List<KRendering> figures
 }

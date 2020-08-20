@@ -34,6 +34,7 @@ import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy
 import org.eclipse.elk.alg.layered.options.FixedAlignment
 import org.eclipse.elk.alg.layered.options.LayerConstraint
 import org.eclipse.elk.alg.layered.options.LayeredOptions
+import org.eclipse.elk.core.math.ElkMargin
 import org.eclipse.elk.core.math.ElkPadding
 import org.eclipse.elk.core.math.KVector
 import org.eclipse.elk.core.options.BoxLayouterOptions
@@ -66,6 +67,7 @@ import org.icyphy.linguafranca.diagram.synthesis.action.FilterCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
+import org.icyphy.linguafranca.diagram.synthesis.styles.ReactorFigureComponents
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.ASTUtils.*
@@ -290,14 +292,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 		} else {
 			// Expanded Rectangle
-			node.addReactorFigure(reactor, instance, label) => [
-				associateWith(reactor)
-				setProperty(KlighdProperties.EXPANDED_RENDERING, true)
-				addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+			node.addReactorFigure(reactor, instance, label) => [ ReactorFigureComponents comps |
+				comps.figures.forEach[associateWith(reactor)]
+				comps.outer.setProperty(KlighdProperties.EXPANDED_RENDERING, true)
+				comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
 
 				if (SHOW_HYPERLINKS.booleanValue) {
 					// Collapse button
-					addTextButton(TEXT_HIDE_ACTION) => [
+					comps.reactor.addTextButton(TEXT_HIDE_ACTION) => [
 						setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 0, 0)
 						addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 						addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
@@ -305,7 +307,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				}
 				
 				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactor.parameters.empty) {
-					addRectangle() => [
+					comps.reactor.addRectangle() => [
 						invisible = true
 						if (!SHOW_HYPERLINKS.booleanValue) {
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
@@ -319,24 +321,24 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				}
 				
 				if (recursive) {
-					errorStyle()
+					comps.figures.forEach[errorStyle()]
 				} else {
-					addChildArea()
+					comps.reactor.addChildArea()
 				}
 			]
 
 			// Collapse Rectangle
-			node.addReactorFigure(reactor, instance, label) => [
-				associateWith(reactor)
-				setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
+			node.addReactorFigure(reactor, instance, label) => [ ReactorFigureComponents comps |
+				comps.figures.forEach[associateWith(reactor)]
+				comps.outer.setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
 				if (reactor.hasContent && !recursive) {
-					addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
+					comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
 				}
 
 				if (SHOW_HYPERLINKS.booleanValue) {
 					// Expand button
 					if (reactor.hasContent && !recursive) {
-						addTextButton(TEXT_SHOW_ACTION) => [
+						comps.reactor.addTextButton(TEXT_SHOW_ACTION) => [
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
 							addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
 							addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
@@ -345,7 +347,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				}
 				
 				if (recursive) {
-					errorStyle()
+					comps.figures.forEach[errorStyle()]
 				}
 			]
 			
@@ -353,10 +355,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val inputPorts = <Input, KPort>newHashMap
 			val outputPorts = <Output, KPort>newHashMap
 			for (input : reactor.inputs.reverseView) {
-				inputPorts.put(input, node.addIOPort(input, true, input.isMultiport() || instance.isBank()))
+				inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), instance.isBank()))
 			}
 			for (output : reactor.outputs) {
-				outputPorts.put(output, node.addIOPort(output, false, output.isMultiport() || instance.isBank()))
+				outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), instance.isBank()))
 			}
 
 			// Add content
@@ -893,22 +895,31 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	/**
 	 * Translate an input/output into a port.
 	 */
-	private def addIOPort(KNode node, Port lfPort, boolean input, boolean multiport) {
+	private def addIOPort(KNode node, Port lfPort, boolean input, boolean multiport, boolean bank) {
 		val port = createPort
 		node.ports += port
 		
 		port.associateWith(lfPort)
 		port.setPortSize(6, 6)
 		
+		var offset = multiport || bank ? -2.4 : -3.3
 		if (input) {
 			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
-			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, multiport ? -3.3 : -4.3)
+			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, offset)
 		} else {
+		    if (bank) {// compensate bank figure width
+		        offset -= LinguaFrancaShapeExtensions.BANK_FIGURE_X_OFFSET_SUM
+		    }
 			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, multiport ? -3.3 : -4.3)
+			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, offset)
 		}
 		
-		port.addTrianglePort(multiport)
+		if (bank) {// compensate bank figure height
+            // Does not work yet: https://github.com/eclipse/elk/issues/693
+            node.setLayoutOption(CoreOptions.SPACING_PORTS_SURROUNDING, new ElkMargin(0, 0, -LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
+		}
+		
+		port.addTrianglePort(multiport || bank)
 		
 		var label = lfPort.name
 		if (SHOW_MULTIPORT_WIDTH.booleanValue && lfPort.widthSpec !== null) {
