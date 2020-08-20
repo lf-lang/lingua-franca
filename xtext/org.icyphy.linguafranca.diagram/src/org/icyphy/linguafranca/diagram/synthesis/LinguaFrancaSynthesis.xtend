@@ -821,12 +821,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				associateWith(associate)
 			}
 			addPolyline() => [
-				boldLineSelectionStyle()
 				if (multiport) {
                     // Render multiport connections and bank connections in bold.
                     lineWidth = 2.2f
                     lineCap = LineCap.CAP_SQUARE
 				}
+				boldLineSelectionStyle()
 			]
 		]
 	}
