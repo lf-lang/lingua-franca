@@ -54,12 +54,12 @@ import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction
 import org.icyphy.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction
 import org.icyphy.linguafranca.diagram.synthesis.action.FilterCycleAction
@@ -128,6 +128,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	public static val SynthesisOption SHOW_HYPERLINKS = SynthesisOption.createCheckOption("Expand/Collapse Hyperlinks", false).setCategory(APPEARANCE)
 	public static val SynthesisOption REACTIONS_USE_HYPEREDGES = SynthesisOption.createCheckOption("Bundled Dependencies", false).setCategory(APPEARANCE)
 	public static val SynthesisOption USE_ALTERNATIVE_DASH_PATTERN = SynthesisOption.createCheckOption("Alternative Dependency Line Style", false).setCategory(APPEARANCE)
+    public static val SynthesisOption SHOW_MULTIPORT_WIDTH = SynthesisOption.createCheckOption("Multiport Widths", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_CODE = SynthesisOption.createCheckOption("Reaction Code", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTION_ORDER_EDGES = SynthesisOption.createCheckOption("Reaction Order Edges", false).setCategory(APPEARANCE)
 	public static val SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE)
@@ -148,6 +149,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_HYPERLINKS,
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
+			SHOW_MULTIPORT_WIDTH,
 			SHOW_REACTION_CODE,
 			SHOW_REACTION_ORDER_EDGES,
 			SHOW_REACTOR_HOST,
@@ -351,10 +353,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val inputPorts = <Input, KPort>newHashMap
 			val outputPorts = <Output, KPort>newHashMap
 			for (input : reactor.inputs.reverseView) {
-				inputPorts.put(input, node.addIOPort(input, true))
+				inputPorts.put(input, node.addIOPort(input, true, input.isMultiport() || instance.isBank()))
 			}
 			for (output : reactor.outputs) {
-				outputPorts.put(output, node.addIOPort(output, false))
+				outputPorts.put(output, node.addIOPort(output, false, output.isMultiport() || instance.isBank()))
 			}
 
 			// Add content
@@ -682,12 +684,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         } else if (parentOutputPorts.containsKey(rightPort?.variable)) {
                             parentOutputPorts.get(rightPort.variable)
                         }
-                    val edge = createIODependencyEdge(connection)
-                    if (leftPort.multiportWidth !== 1 || rightPort.multiportWidth !== 1) {
-                        // Render multiport connections and bank connections in bold.
-                        edge.KRendering.setLineWidth(2.2f)
-                        edge.KRendering.setLineCap(LineCap.CAP_SQUARE)
-                    }
+                    val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
                     if (connection.delay !== null) {
                         edge.addCenterEdgeLabel(connection.delay.toText) => [
                             associateWith(connection.delay)
@@ -818,13 +815,18 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		]
 	}
 	
-	private def createIODependencyEdge(Object associate) {
+	private def createIODependencyEdge(Object associate, boolean multiport) {
 		return createEdge => [
 			if (associate !== null) {
 				associateWith(associate)
 			}
 			addPolyline() => [
 				boldLineSelectionStyle()
+				if (multiport) {
+                    // Render multiport connections and bank connections in bold.
+                    lineWidth = 2.2f
+                    lineCap = LineCap.CAP_SQUARE
+				}
 			]
 		]
 	}
@@ -891,23 +893,28 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	/**
 	 * Translate an input/output into a port.
 	 */
-	private def addIOPort(KNode node, Variable variable, boolean input) {
+	private def addIOPort(KNode node, Port lfPort, boolean input, boolean multiport) {
 		val port = createPort
 		node.ports += port
 		
-		port.associateWith(variable)
+		port.associateWith(lfPort)
 		port.setPortSize(6, 6)
 		
 		if (input) {
 			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
-			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -3.0)
+			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, multiport ? -3.3 : -4.3)
 		} else {
 			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, -3.0)
+			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, multiport ? -3.3 : -4.3)
 		}
 		
-		port.addTrianglePort()
-		port.addOutsidePortLabel(variable.name, 8).associateWith(variable)
+		port.addTrianglePort(multiport)
+		
+		var label = lfPort.name
+		if (SHOW_MULTIPORT_WIDTH.booleanValue && lfPort.widthSpec !== null) {
+		    label += lfPort.widthSpec.toText()
+		}
+		port.addOutsidePortLabel(label, 8).associateWith(lfPort)
 
 		return port
 	}
