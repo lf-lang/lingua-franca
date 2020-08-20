@@ -902,7 +902,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		port.associateWith(lfPort)
 		port.setPortSize(6, 6)
 		
-		var offset = multiport || bank ? -2.4 : -3.3
+		var offset = multiport ? -2.4 : -3.3
 		if (input) {
 			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
 			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, offset)
@@ -919,7 +919,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             node.setLayoutOption(CoreOptions.SPACING_PORTS_SURROUNDING, new ElkMargin(0, 0, -LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
 		}
 		
-		port.addTrianglePort(multiport || bank)
+		port.addTrianglePort(multiport)
 		
 		var label = lfPort.name
 		if (SHOW_MULTIPORT_WIDTH.booleanValue && lfPort.widthSpec !== null) {
