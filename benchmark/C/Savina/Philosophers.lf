@@ -162,13 +162,18 @@ main reactor Philosophers(
     iterations:int(12),
     count:int(10000),
     eating_time:time(1 sec), // (Logical) time spent eating.
-    thinking_time:time(1 msec), // (Logical) time spent thinking.
+    thinking_time:time(600 msec), // (Logical) time spent thinking.
     verbose:bool(false) 
 ) {
     master = new Master(iterations=iterations);
     
     arbitrator = new Arbitrator(count=count, verbose=verbose, num_philosophers = num_philosophers);
-    philosophers = new[num_philosophers] Philosopher(count=count, verbose=verbose);
+    philosophers = new[num_philosophers] Philosopher(
+        count=count,
+        verbose=verbose,
+        eating_time=eating_time,
+        thinking_time = thinking_time
+    );
 
     master.start -> arbitrator.start;
     arbitrator.finished -> master.finished;
