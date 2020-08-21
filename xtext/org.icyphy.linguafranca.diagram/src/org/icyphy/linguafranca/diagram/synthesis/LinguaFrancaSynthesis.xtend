@@ -43,6 +43,7 @@ import org.eclipse.elk.core.options.Direction
 import org.eclipse.elk.core.options.PortConstraints
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
+import org.eclipse.elk.core.util.IndividualSpacings
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.emf.ecore.EObject
 import org.icyphy.ASTUtils
@@ -915,8 +916,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		
 		if (bank) {// compensate bank figure height
-            // Does not work yet: https://github.com/eclipse/elk/issues/693
-            // node.setLayoutOption(CoreOptions.SPACING_PORTS_SURROUNDING, new ElkMargin(0, 0, -LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
+		    // https://github.com/eclipse/elk/issues/693
+            val spacing = new IndividualSpacings()
+            spacing.setProperty(CoreOptions.SPACING_PORTS_SURROUNDING, new ElkMargin(0, 0, LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
+            node.setProperty(CoreOptions.SPACING_INDIVIDUAL_OVERRIDE, spacing)
 		}
 		
 		port.addTrianglePort(multiport)
