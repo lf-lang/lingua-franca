@@ -1,11 +1,10 @@
-// This tests the use of the "polymorphic" delay reactor on a struct.
-// It delays by a logical time any pointer datatype.
+// Test delaying a struct pointer type.
 target C {files: ["include/hello.h"]};
 
 reactor DelayPointer(delay:time(100 msec)) {
-    input in:void*;
-    output out:void*;
-    logical action a:void*;
+    input in:hello_t*;
+    output out:hello_t*;
+    logical action a:hello_t*;
     reaction(a) -> out {=
         // Using SET_TOKEN delegates responsibility for
         // freeing the allocated memory downstream.

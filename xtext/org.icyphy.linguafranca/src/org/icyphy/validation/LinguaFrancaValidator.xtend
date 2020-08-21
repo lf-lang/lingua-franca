@@ -63,6 +63,7 @@ import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.NamedHost
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
@@ -350,7 +351,34 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     }
                 }
             }
-        }        
+        }
+        
+        // For the C target, since C has such a weak type system, check that
+        // the types on both sides of every connection match. For other languages,
+        // we leave type compatibility that language's compiler or interpreter.
+        if (this.target == Targets.C) {
+            var type = null as Type
+            for (port : connection.leftPorts) {
+                if (type === null) {
+                    type = (port.variable as Port).type
+                } else {
+                    // Unfortunately, xtext does not generate a suitable equals()
+                    // method for AST types, so we have to manually check the types.
+                    if (!sameType(type, (port.variable as Port).type)) {
+                        error("Types do not match.", Literals.CONNECTION__LEFT_PORTS)
+                    }
+                }
+            }
+            for (port : connection.rightPorts) {
+                if (type === null) {
+                    type = (port.variable as Port).type
+                } else {
+                    if (!sameType(type, (port.variable as Port).type)) {
+                        error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS)
+                    }
+                }
+            }
+        }
         
         // Check whether the total width of the left side of the connection
         // matches the total width of the right side. This cannot be determined
@@ -431,6 +459,36 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 }
             }
         }
+    }
+    
+    /**
+     * Return true if the two types match. Unfortunately, xtext does not
+     * seem to create a suitable equals() method for Type, so we have to
+     * do this manually.
+     */
+    private def boolean sameType(Type type1, Type type2) {
+        // Most common case first.
+        if (type1.id !== null) {
+            if (type1.stars !== null) {
+                if (type2.stars === null) return false
+                if (type1.stars.length != type2.stars.length) return false
+            }
+            return (type1.id.equals(type2.id))
+        }
+        if (type1 === null) {
+            if (type2 === null) return true
+            return false
+        }
+        // Type specification in the grammar is:
+        // (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
+        if (type1.time) {
+            if (!type2.time) return false
+            // Ignore the arraySpec because that is checked when connection
+            // is checked for balance.
+            return true
+        }
+        // Type must be given in a code body.
+        return (type1.code.body.equals(type2?.code?.body))
     }
 
     @Check(FAST)

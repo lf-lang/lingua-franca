@@ -1,10 +1,9 @@
-// This tests the use of the "polymorphic" delay reactor on a struct.
-// It delays by a logical time any pointer datatype.
+// This tests delaying an array type.
 target C;
 reactor DelayPointer(delay:time(100 msec)) {
-    mutable input in:void*;
-    output out:void*;
-    logical action a:void*;
+    mutable input in:int[];
+    output out:int[];
+    logical action a:int[];
     reaction(in) -> a {=
         // mutable input guarantees *in will not be freed.
         schedule_token(a, self->delay, in->token);
