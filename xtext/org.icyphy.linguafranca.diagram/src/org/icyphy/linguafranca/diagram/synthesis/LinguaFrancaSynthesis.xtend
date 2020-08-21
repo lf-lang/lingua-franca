@@ -916,7 +916,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		
 		if (bank) {// compensate bank figure height
             // Does not work yet: https://github.com/eclipse/elk/issues/693
-            node.setLayoutOption(CoreOptions.SPACING_PORTS_SURROUNDING, new ElkMargin(0, 0, -LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
+            // node.setLayoutOption(CoreOptions.SPACING_PORTS_SURROUNDING, new ElkMargin(0, 0, -LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
 		}
 		
 		port.addTrianglePort(multiport)
