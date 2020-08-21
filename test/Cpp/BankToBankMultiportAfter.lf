@@ -1,0 +1,56 @@
+ // Check bank of reactors sending to bank of reactors with multiports.
+target Cpp {
+    timeout: 2 sec,
+    fast: true,
+    threads: 4
+};
+reactor Source(width:int(1)) {
+    timer t(0, 200 msec);
+    // FIXME: replace '4' with 'width'.
+    output[4] out:int;
+    state s:int(0);
+    reaction(t) -> out {=
+        for(int i = 0; i < out.size(); i++) {
+            out[i].set(s++);
+        }
+    =}
+}
+reactor Destination(width:int(1)) {
+    state s:int(6);
+    state iterations:unsigned(0);
+    // FIXME: replace '4' with 'width'.
+    input[4] in:int;
+    reaction(in) {=
+        iterations++;
+        auto lt = get_elapsed_logical_time();
+        auto expected = iterations * 200ms; 
+        if (expected != lt) {
+            std::cerr << "ERROR: Expected logical time to be " << expected << " but got " << lt << '\n';
+            exit(1);
+        }
+        
+        int sum = 0;
+        for (int i = 0; i < in.size(); i++) {
+            if (in[i].is_present()) sum += *in[i].get();
+        }
+        std::cout << "Sum of received: " << sum << '\n';
+        if (sum != s) {
+            std::cerr << "ERROR: Expected " << s << '\n';
+            exit(1);
+        }
+        s += 16;
+    =}
+    reaction(shutdown) {=
+        if (s <= 6) {
+            std::cerr << "ERROR: Destination received no input!\n";
+            exit(1);
+        }
+        std::cout << "Success.\n";
+    =}
+}
+main reactor BankToBankMultiport(bank_width:int(4)) {
+    // FIXME: replace '4' with 'bank_width'. 
+	a = new[4] Source(width = 4);
+	b = new[4] Destination(width = 4);
+	a.out -> b.in after 200 msec;
+}

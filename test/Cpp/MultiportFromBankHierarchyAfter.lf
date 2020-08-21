@@ -1,0 +1,50 @@
+ // Check multiport output to bank of recipients.
+ // Here, the bank is smaller than the width of the sending port.
+target Cpp {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source(instance:int(0)) {
+    output out:int;
+    reaction(startup) -> out {=
+        out.set(instance);
+    =}
+}
+reactor Container {
+    output[3] out:int;
+    s = new[3] Source();
+    s.out -> out;
+}
+reactor Destination {
+    input[3] in:int;
+    state received:bool(false);
+    reaction(in) {=
+        for (int i = 0; i < in.size(); i++) {
+            int value = *in[i].get();
+            std::cout << "Destination channel " << i << " received " << value << '\n';
+            if (i != value) {
+                std::cerr << "ERROR: Expected " << i << '\n';
+                exit(1);
+            }
+        }
+        if (get_elapsed_logical_time() != 1s) {
+            std::cerr << "ERROR: Expected to receive input after one second.\n";
+            exit(2);
+        }
+        received = true;
+    =}
+    reaction(shutdown) {=
+        if (!received) {
+            std::cerr << "ERROR: Destination received no input!\n";
+            exit(1);
+        }
+        std::cout << "Success.\n";
+    =}
+}
+
+main reactor MultiportFromBankHierarchyAfter {
+    a = new Container();
+    b = new Destination();
+    a.out -> b.in after 1 sec;
+}
