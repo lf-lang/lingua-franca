@@ -12,7 +12,7 @@ reactor Source(width:int(2)) {
 }
 
 reactor Destination(width:int(2)) {
-    input[width] in:unsigned;
+    input[width] in:int;
     reaction (in) {=
         for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {

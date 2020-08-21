@@ -1,10 +1,9 @@
-// This is "polymorphic" delay reactor.
-// It delays by a logical time any pointer datatype.
+// Test delaying a pointer type.
 target C;
 reactor DelayPointer(delay:time(100 msec)) {
-    input in:void*;
-    output out:void*;
-    logical action a:void*;
+    input in:int*;
+    output out:int*;
+    logical action a:int*;
     reaction(a) -> out {=
         // Using SET_TOKEN delegates responsibility for
         // freeing the allocated memory downstream.
