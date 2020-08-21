@@ -1,0 +1,54 @@
+// Test multiport to multiport connections.
+// See also MultiportToMultiport.
+target Cpp;
+
+reactor Source2(width:int(2)) {
+    // FIXME: replace '2' with 'width'.
+    output[2] out:int;
+    reaction (startup) -> out {=
+        for (int i = 0; i < out.size(); i++) {
+            out[i].set(i);
+        }
+    =}
+}
+
+// FIXME: Use one Source reactor and parameterize the width
+reactor Source3(width:int(3)) {
+    // FIXME: replace '3' with 'width'.
+    output[3] out:int;
+    reaction (startup) -> out {=
+        for (int i = 0; i < out.size(); i++) {
+            out[i].set(i);
+        }
+    =}
+}
+
+reactor Destination(width:int(2)) {
+    // FIXME: replace '5' with 'width'.
+    input[5] in:int;
+    reaction (in) {=
+        for (int i = 0; i < in.size(); i++) {
+            if (in[i].is_present()) {
+                int value = *in[i].get();
+                std::cout << "Received on channel " << i << ": " << value << '\n';
+                // NOTE: For testing purposes, this assumes the specific
+                // widths instantiated below.
+                if (value != i % 3) {
+                    std::cerr << "ERROR: expected " << i % 3 << '\n';
+                    exit(1);
+                }
+            }
+        }
+        if (get_elapsed_logical_time() != 1s) {
+            std::cerr << "ERROR: Expected to receive input after one second.\n";
+            exit(2);
+        }
+    =}
+}
+
+main reactor MultiportToMultiport2 {
+    a1 = new Source3(width = 3);
+    a2 = new Source2(width = 2);
+    b = new Destination(width = 5);
+    a1.out, a2.out -> b.in after 1 sec;
+}

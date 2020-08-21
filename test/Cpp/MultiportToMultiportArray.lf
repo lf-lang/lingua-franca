@@ -1,0 +1,58 @@
+// Check multiport output to multiport input.
+// Destination port is wider than sending port.
+target Cpp {
+    timeout: 2 sec,
+    fast: true
+}; 
+reactor Source {
+    timer t(0, 200 msec);
+    output[2] out:int[3];
+    state s:int(0);
+    reaction(t) -> out {=
+        for(int i = 0; i < 2; i++) { 
+            // Dynamically allocate a new output array
+            auto a = reactor::make_mutable_value<std::array<int, 3>>();
+            // initialize it
+            (*a)[0] = s++;
+            (*a)[1] = s++;
+            (*a)[2] = s++; 
+            // and send it
+            out[i].set(std::move(a));    
+        }
+    =}
+}
+
+reactor Destination {
+    state s:int(15);
+    input[2] in:int[3];
+    reaction(in) {=
+        int sum = 0;
+        for (int i = 0; i < in.size(); i++) {
+            if (in[i].is_present()) {
+                const auto& a = *in[i].get();
+                for (int j = 0; j < a.size(); j++) {
+                    sum += a[j];
+                }
+            }
+        }
+        std::cout << "Sum of received: " << sum << '\n';
+        if (sum != s) {
+            std::cerr << "ERROR: Expected " << s << '\n';
+            exit(1);
+        }
+        s += 36;
+    =}
+    reaction(shutdown) {=
+        if (s <= 15) {
+            std::cerr << "ERROR: Destination received no input!\n";
+            exit(1);
+        }
+        std::cout << "Success.\n";
+    =}
+}
+
+main reactor MultiportToMultiportArray { 
+    a = new Source();
+    b = new Destination();
+    a.out -> b.in;
+}
