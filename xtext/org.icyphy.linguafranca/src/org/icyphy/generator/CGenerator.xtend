@@ -1070,7 +1070,7 @@ class CGenerator extends GeneratorBase {
         
         // Perform AST transformation that creates timer and action for startup
         // and shutdown, if they occur in any of the reaction interfaces.
-        reactor.toDefinition.handleStartupAndShutdown
+        defn.handleStartupAndShutdown
 
         // Preamble code contains state declarations with static initializers.
         for (p : defn.preambles ?: emptyList) {
@@ -1760,6 +1760,14 @@ class CGenerator extends GeneratorBase {
                 var TriggerRef startupTrigger = null;
                 var TriggerRef shutdownTrigger = null;
                 for (trigger : reaction.triggers) {
+                    // FIXME: The reaction could be one defined in a base class.
+                    // If that base class has been extended by some other reactor that
+                    // has already been processed, then this AST transformation will
+                    // have already occurred, and a Timer named "startup" will have
+                    // been created.  If there is also a reaction to startup in the
+                    // derived class, then a second timer named "startup" will get
+                    // created.  Worse, if the subclass has no reaction to startup,
+                    // then an NPE will occur. This whole design needs to be rethought.
                     if (trigger.isStartup) {
                         startupTrigger = trigger
                         if (timer === null) {
