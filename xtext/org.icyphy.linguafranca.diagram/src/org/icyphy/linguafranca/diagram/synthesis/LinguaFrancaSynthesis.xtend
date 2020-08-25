@@ -514,6 +514,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val inputPorts = HashBasedTable.<Instantiation, Input, KPort>create
 		val outputPorts = HashBasedTable.<Instantiation, Output, KPort>create
 		val reactionNodes = <Reaction, KNode>newHashMap
+        val directConnectionDummyNodes = <KPort, KNode>newHashMap
 		val actionDestinations = HashMultimap.<Action, KPort>create
 		val actionSources = HashMultimap.<Action, KPort>create
 		val timerNodes = <Timer, KNode>newHashMap
@@ -702,7 +703,27 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                             reactor.primary ? Colors.WHITE : Colors.GRAY_95)
                     }
                     if (source !== null && target !== null) {
-                        edge.connect(source, target)
+                        // check for inside loop (direct in -> out connection with delay)
+                        if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
+                            // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
+                            // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
+                            var dummy = createNode()
+                            if (directConnectionDummyNodes.containsKey(target)) {
+                                dummy = directConnectionDummyNodes.get(target)
+                            } else {
+                                nodes += dummy
+                                directConnectionDummyNodes.put(target, dummy)
+                                
+                                dummy.addInvisibleContainerRendering()
+                                dummy.setNodeSize(0, 0)
+                                
+                                val extraEdge = createIODependencyEdge(null, leftPort.isMultiport() || rightPort.isMultiport())
+                                extraEdge.connect(dummy, target)
+                            }
+                            edge.connect(source, dummy)
+                        } else {
+                            edge.connect(source, target)
+                        }
                     }
                 }
 		    }
