@@ -437,36 +437,27 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	 * Creates the visual representation of a reactor port.
 	 */
 	def addTrianglePort(KPort port, boolean multiport) {
-	    if (multiport) {
-	        port.setSize(7, 7) // compensate for line width
-	    } else {
-	        port.setSize(8, 8)
-	    }
+        port.setSize(8, 8)
 		port.addPolygon() => [
 			lineWidth = multiport ? 2.2f : 1
 			boldLineSelectionStyle()
 			background = multiport ? Colors.WHITE : Colors.BLACK
-			points += #[
-				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0),
-				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
-				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
-			]
+			if (multiport) {
+			    // Compensate for line width by making triangle smaller
+			    // Do not adjust by port size because this will affect port distribution and cause offsets between parallel connections 
+    			points += #[
+    				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0.6f , 0),
+    				createKPosition(PositionReferenceX.RIGHT, 1.2f, 0, PositionReferenceY.TOP, 0 , 0.5f),
+    				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0.6f , 0)
+    			]
+    		} else {
+    		    points += #[
+                    createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0),
+                    createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
+                    createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
+                ]
+    		}
 		]
-	}
-	
-	/**
-	 * Reverses the arrow direction of a triangle port.
-	 */
-	def reverseTrianglePort(KPort port) {
-		val poly = port.KRendering
-		if (poly instanceof KPolyline) {
-			poly.points.clear
-			poly.points += #[
-				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.TOP, 0 , 0),
-				createKPosition(PositionReferenceX.LEFT, 0, 0, PositionReferenceY.TOP, 0 , 0.5f),
-				createKPosition(PositionReferenceX.RIGHT, 0, 0, PositionReferenceY.BOTTOM, 0 , 0)
-			]
-		}
 	}
 	
 	/**

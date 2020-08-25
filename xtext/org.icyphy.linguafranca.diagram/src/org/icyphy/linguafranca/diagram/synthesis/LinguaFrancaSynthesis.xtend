@@ -903,14 +903,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		port.associateWith(lfPort)
 		port.setPortSize(6, 6)
 		
-		var offset = multiport ? -2.4 : -3.3
 		if (input) {
+            // multiports are smaller by an offset at the right, hence compensate in inputs
+            val offset = multiport ? -3.4 : -3.3
 			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.WEST)
 			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, offset)
 		} else {
-		    if (bank) {// compensate bank figure width
-		        offset -= LinguaFrancaShapeExtensions.BANK_FIGURE_X_OFFSET_SUM
-		    }
+		    var offset = (multiport ? -2.6 : -3.3) // multiports are smaller
+		    offset = bank ? offset - LinguaFrancaShapeExtensions.BANK_FIGURE_X_OFFSET_SUM : offset // compensate bank figure width
 			port.setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
 			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, offset)
 		}
