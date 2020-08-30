@@ -221,6 +221,10 @@ static PyModuleDef MODULE_NAME = {
 
 //////////////////////////////////////////////////////////////
 /////////////  Python Helper Functions
+/*
+ *
+ */
+
 
 /* 
  * 
@@ -294,6 +298,7 @@ static PyObject* invoke_python_function(string module, string class, string func
         }
 
         // Get the class
+        Py_INCREF(pDict);
         pClass = PyDict_GetItemString(pDict, class);
         if(pClass == NULL){
             PyErr_Print();
@@ -301,7 +306,7 @@ static PyObject* invoke_python_function(string module, string class, string func
             return 1;
         }
 
-        //Py_DECREF(pDict);
+        Py_DECREF(pDict);
 
 #ifdef VERBOSE
         printf("Loading function %s.\n", func);
