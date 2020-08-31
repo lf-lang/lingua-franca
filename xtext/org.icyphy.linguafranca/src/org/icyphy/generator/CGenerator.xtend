@@ -2621,7 +2621,13 @@ class CGenerator extends GeneratorBase {
                         if (port.isMultiport) {
                             // If the width is given as a numeric constant, then add that constant
                             // to the output count. Otherwise, assume it is a reference to one or more parameters.
-                            val widthSpec = multiportWidthSpecInC(port, nameOfSelfStruct)
+                            // Caution: If port belongs to a contained reactor, the self struct needs to be that
+                            // of the contained reactor instance, not this container.
+                            var selfStruct = nameOfSelfStruct
+                            if (effect.container !== null) {
+                                selfStruct = selfStructName(instance.getChildReactorInstance(effect.container))
+                            }
+                            val widthSpec = multiportWidthSpecInC(port, selfStruct)
                             try {
                                 val widthNumber = Integer.decode(widthSpec)
                                 outputCount += widthNumber
@@ -2656,6 +2662,8 @@ class CGenerator extends GeneratorBase {
                         «nameOfSelfStruct»->___reaction_«reactionCount».triggers = (trigger_t***)malloc(sizeof(trigger_t**) * «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs);
                         «nameOfSelfStruct»->___reaction_«reactionCount».triggered_sizes = (int*)malloc(sizeof(int) * «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs);
                     }
+                ''')
+                pr(initializeTriggerObjectsEnd, '''
                     // Initialize the output_produced array.
                     «initialization.toString»
                 ''')
