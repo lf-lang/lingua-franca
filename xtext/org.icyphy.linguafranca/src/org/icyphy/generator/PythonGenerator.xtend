@@ -394,8 +394,25 @@ class PythonGenerator extends CGenerator {
      */
     override includeTargetLanguageHeaders()
     {
-        pr('''#define MODULE_NAME LinguaFranca_«filename»''')    	
+        pr('''#define MODULE_NAME LinguaFranca«filename»''')    	
         pr('#include "pythontarget.h"')
+    }
+    
+    /** Add necessary source files specific to the target language.  */
+    override includeTargetLanguageSourceFiles()
+    {
+        if (targetThreads > 0) {
+            // Set this as the default in the generated code,
+            // but only if it has not been overridden on the command line.
+            pr(startTimers, '''
+                if (number_of_threads == 0) {
+                   number_of_threads = «targetThreads»;
+                }
+            ''')
+        }
+        if (federates.length > 1) {
+            pr("#include \"core/federate.c\"")
+        }
     }
 
     /** Generate C code from the Lingua Franca model contained by the
@@ -431,19 +448,16 @@ class PythonGenerator extends CGenerator {
         }
     }
     
-        
-    
-    /** Return the function name for specified reaction of the
-     *  specified reactor.
+     /** Return the function name in Python
      *  @param reactor The reactor
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
      */
-    override reactionFunctionName(ReactorDecl reactor, int reactionIndex) {
+    def pythonReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
           "reaction_function_" + reactionIndex
     }
     
-    
+        
     /** Generate a reaction function definition for a reactor.
      *  This function has a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
@@ -468,12 +482,20 @@ class PythonGenerator extends CGenerator {
         // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(decl, reactionIndex)
         
+        // Generate the function name in Python
+        val pythonFunctionName = pythonReactionFunctionName(decl, reactionIndex);
+        
                
         // Next, add the triggers (input and actions; timers are not needed).
+        // TODO: handle triggers
         for (TriggerRef trigger : reaction.triggers ?: emptyList) {
             if (trigger instanceof VarRef) {
-                pr(pyObjectDescriptor, "O")
-                pr(pyObjects, '''(PyObject *)«trigger.variable.name»''')
+                if (trigger.variable instanceof Port) {
+                    pyObjectDescriptor.append("O")
+                    pyObjects.append(''',(PyObject *)*self->__«trigger.variable.name»''')
+                } else if (trigger.variable instanceof Action) {
+                    // TODO: handle actions
+                }
             }
         }
         if (reaction.triggers === null || reaction.triggers.size === 0) {
@@ -481,22 +503,22 @@ class PythonGenerator extends CGenerator {
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs. 
             for (input : reactor.inputs) {
-                pr(pyObjectDescriptor, "O")
-                pr(pyObjects, '''(PyObject *)«input.name»''')                
+                pyObjectDescriptor.append("O")
+                pyObjects.append(''',(PyObject *)*self->__«input.name»''')                
             }
         }
         
         // Next add non-triggering inputs.
         for (VarRef src : reaction.sources ?: emptyList) {
-            pr(pyObjectDescriptor, "O")
-            pr(pyObjects, '''(PyObject *)«src.variable.name»''')
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''',(PyObject *)*self->__«src.variable.name»''')
         }
         
         // Finally handle effects
         if (reaction.effects !== null) {
             for (effect : reaction.effects) {
-                pr(pyObjectDescriptor, "O")
-                pr(pyObjects, '''(PyObject *)«effect.variable.name»''')
+                pyObjectDescriptor.append("O")
+                pyObjects.append(''',(PyObject *)self->__«effect.variable.name»''')
             }
         }
 
@@ -506,7 +528,7 @@ class PythonGenerator extends CGenerator {
         pr(structType + "* self = (" + structType + "*)instance_args;")
         // Code verbatim from 'reaction'
         prSourceLineNumber(reaction.code)
-        pr('''invoke_python_function("__main__", "«reactor.name.toLowerCase»", "«functionName»", Py_BuildValue("(«pyObjectDescriptor»)", «pyObjects»));''')
+        pr('''invoke_python_function("__main__", "«reactor.name.toLowerCase»", "«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
         unindent()
         pr("}")
         
