@@ -457,6 +457,9 @@ class PythonGenerator extends CGenerator {
         val reactor = decl.toDefinition
         // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
         val StringBuilder pyObjectDescriptor = new StringBuilder()
+
+        // Define the "self" struct.
+        var structType = selfStructType(decl)
         
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
         // Each input must be cast to (PyObject *)
@@ -496,9 +499,32 @@ class PythonGenerator extends CGenerator {
                 pr(pyObjects, '''(PyObject *)«effect.variable.name»''')
             }
         }
-        
-        
+
+        pr('void ' + functionName + '(void* instance_args) {')
+        indent()
+
+        pr(structType + "* self = (" + structType + "*)instance_args;")
+        // Code verbatim from 'reaction'
+        prSourceLineNumber(reaction.code)
         pr('''invoke_python_function("__main__", "«reactor.name.toLowerCase»", "«functionName»", Py_BuildValue("(«pyObjectDescriptor»)", «pyObjects»));''')
+        unindent()
+        pr("}")
+        
+        // Now generate code for the deadline violation function, if there is one.
+        if (reaction.deadline !== null) {
+            // The following name has to match the choice in generateReactionInstances
+            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
+
+            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            indent();
+            //pr(reactionInitialization.toString)
+            // Code verbatim from 'deadline'
+            //prSourceLineNumber(reaction.deadline.code)
+            //pr(reaction.deadline.code.toText)
+            // TODO: Handle deadlines
+            unindent()
+            pr("}")
+        }
     }
     
     
