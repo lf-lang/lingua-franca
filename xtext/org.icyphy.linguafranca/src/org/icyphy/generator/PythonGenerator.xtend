@@ -44,6 +44,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Reactor
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor
@@ -291,7 +292,7 @@ class PythonGenerator extends CGenerator {
     *
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
-	val generic_port_type =  "generic_port_instance_struct"
+	val generic_port_type =  "generic_port_instance_struct*"
 
     /** 
     * Special template struct for ports with dynamically allocated
@@ -308,7 +309,7 @@ class PythonGenerator extends CGenerator {
     *
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
-	val generic_port_type_with_token = "generic_instance_with_token_struct"
+	val generic_port_type_with_token = "generic_instance_with_token_struct*"
     
    ////////////////////////////////////////////
     //// Public methods
@@ -331,46 +332,35 @@ class PythonGenerator extends CGenerator {
     override generateAuxiliaryStructs(
         ReactorDecl decl, FederateInstance federate
     ) {
-               val reactor = decl.toDefinition
+        val reactor = decl.toDefinition
         // First, handle inputs.
         for (input : reactor.allInputs) {
-            var token = ''
             if (input.inferredType.isTokenType) {
-                token = '''
-                    token_t* token;
-                    int length;
-                '''
+                pr(input, code, '''
+                    typedef «generic_port_type_with_token» «variableStructType(input, reactor)»;
+                ''')
             }
-            pr(input, code, '''
-                typedef struct {
-                    PyObject_HEAD
-                    «input.valueDeclaration»
-                    bool is_present;
-                    int num_destinations;
-                    «token»
-                } «variableStructType(input, decl)»;
-            ''')
+            else
+            {
+                pr(input, code, '''
+                   typedef «generic_port_type» «variableStructType(input, reactor)»;
+                ''')                
+            }
             
         }
         // Next, handle outputs.
         for (output : reactor.allOutputs) {
-            var token = ''
             if (output.inferredType.isTokenType) {
-                 token = '''
-                    token_t* token;
-                    int length;
-                 '''
+                 pr(output, code, '''
+                    typedef «generic_port_type_with_token» «variableStructType(output, reactor)»;
+                 ''')
             }
-            pr(output, code, '''
-                typedef struct {
-                    PyObject_HEAD
-                    «output.valueDeclaration»
-                    bool is_present;
-                    int num_destinations;
-                    «token»
-                } «variableStructType(output, decl)»;
-            ''')
-
+            else
+            {
+                pr(output, code, '''
+                    typedef «generic_port_type» «variableStructType(output, reactor)»;
+                ''')
+            }
         }
         // Finally, handle actions.
         // The very first item on this struct needs to be
@@ -379,15 +369,13 @@ class PythonGenerator extends CGenerator {
         for (action : reactor.allActions) {
             pr(action, code, '''
                 typedef struct {
-                    PyObject_HEAD
                     trigger_t* trigger;
                     «action.valueDeclaration»
                     bool is_present;
                     bool has_value;
                     token_t* token;
-                } «variableStructType(action, decl)»;
+                } «variableStructType(action, reactor)»;
             ''')
-            
         }
     }
     
@@ -443,6 +431,18 @@ class PythonGenerator extends CGenerator {
         }
     }
     
+        
+    
+    /** Return the function name for specified reaction of the
+     *  specified reactor.
+     *  @param reactor The reactor
+     *  @param reactionIndex The reaction index.
+     *  @return The function name for the reaction.
+     */
+    override reactionFunctionName(ReactorDecl reactor, int reactionIndex) {
+          "reaction_function_" + reactionIndex
+    }
+    
     
     /** Generate a reaction function definition for a reactor.
      *  This function has a single argument that is a void* pointing to
@@ -454,7 +454,106 @@ class PythonGenerator extends CGenerator {
      */
     override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         
-        super.generateReaction(reaction, decl, reactionIndex)
+        val reactor = decl.toDefinition
+        // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
+        val StringBuilder pyObjectDescriptor = new StringBuilder()
+        
+        // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
+        // Each input must be cast to (PyObject *)
+        val StringBuilder pyObjects = new StringBuilder()
+        
+        // Create a unique function name for each reaction.
+        val functionName = reactionFunctionName(decl, reactionIndex)
+        
+               
+        // Next, add the triggers (input and actions; timers are not needed).
+        for (TriggerRef trigger : reaction.triggers ?: emptyList) {
+            if (trigger instanceof VarRef) {
+                pr(pyObjectDescriptor, "O")
+                pr(pyObjects, '''(PyObject *)«trigger.variable.name»''')
+            }
+        }
+        if (reaction.triggers === null || reaction.triggers.size === 0) {
+            // No triggers are given, which means react to any input.
+            // Declare an argument for every input.
+            // NOTE: this does not include contained outputs. 
+            for (input : reactor.inputs) {
+                pr(pyObjectDescriptor, "O")
+                pr(pyObjects, '''(PyObject *)«input.name»''')                
+            }
+        }
+        
+        // Next add non-triggering inputs.
+        for (VarRef src : reaction.sources ?: emptyList) {
+            pr(pyObjectDescriptor, "O")
+            pr(pyObjects, '''(PyObject *)«src.variable.name»''')
+        }
+        
+        // Finally handle effects
+        if (reaction.effects !== null) {
+            for (effect : reaction.effects) {
+                pr(pyObjectDescriptor, "O")
+                pr(pyObjects, '''(PyObject *)«effect.variable.name»''')
+            }
+        }
+        
+        
+        pr('''invoke_python_function("__main__", "«reactor.name.toLowerCase»", "«functionName»", Py_BuildValue("(«pyObjectDescriptor»)", «pyObjects»));''')
     }
+    
+    
+    /**
+     * Generate a constructor for the specified reactor in the specified federate.
+     * @param reactor The parsed reactor data structure.
+     * @param federate A federate name, or null to unconditionally generate.
+     * @param constructorCode Lines of code previously generated that need to
+     *  go into the constructor.
+     */
+    override generateConstructor(
+        ReactorDecl decl, FederateInstance federate, StringBuilder constructorCode
+    ) {
+        val structType = selfStructType(decl)
+        val StringBuilder portsAndTriggers = new StringBuilder()
+        
+        val reactor = decl.toDefinition
+        
+        // Initialize actions in Python
+        for (action : reactor.allActions) {
+            // TODO
+        }
+        
+        // Next handle inputs.
+        for (input : reactor.allInputs) {
+           if (input.isMultiport) {
+               // TODO
+           }
+           else
+           {
+                // TODO
+           }
+        }
+        
+        // Next handle outputs.
+        for (output : reactor.allOutputs) {
+            if (output.isMultiport) {
+                // TODO
+            } else {
+                pr(output, portsAndTriggers, '''
+                    self->__«output.name» =  PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
+                ''')
+            }
+        }
+        
+        pr('''
+            «structType»* new_«reactor.name»() {
+                «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
+                «constructorCode.toString»
+                «portsAndTriggers.toString»
+                return self;
+            }
+        ''')
+    }
+
+
     
 }

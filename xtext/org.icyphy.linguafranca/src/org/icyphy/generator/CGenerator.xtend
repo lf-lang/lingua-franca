@@ -4051,7 +4051,7 @@ class CGenerator extends GeneratorBase {
     // For example, for "foo[]", the first match will be "foo".
     static final Pattern arrayPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\[\\]\\s*$");
     
-    static var DISABLE_REACTION_INITIALIZATION_MARKER
+    protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
     public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
