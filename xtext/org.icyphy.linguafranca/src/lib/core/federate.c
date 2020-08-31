@@ -133,7 +133,7 @@ void send_via_rti_timed(unsigned int port, unsigned int federate, size_t length,
     encode_ll(current_time, &(buffer[9]));
     // printf("DEBUG: Federate %d sending message with timestamp %lld.\n", __my_fed_id, current_time - start_time);
 
-    // Use a mutex lock to prevent multiple threads from simulatenously sending.
+    // Use a mutex lock to prevent multiple threads from simultaneously sending.
     // printf("DEBUG: Federate %d pthread_mutex_lock send_via_rti_timed\n", __my_fed_id);
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
