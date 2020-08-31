@@ -129,9 +129,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "OO" ,&port, &val))
         return NULL;
     
-    Py_DECREF(port->value);
     _LF_SET(port, val);
-    Py_INCREF(port->value);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -162,6 +160,53 @@ static PyMemberDef port_instance_members[] = {
 };
 
 /*
+ *
+ */
+static void
+port_instance_dealloc(generic_port_instance_struct *self)
+{
+    Py_XDECREF(self->value);
+    Py_TYPE(self)->tp_free((PyObject *) self);
+}
+
+static PyObject *
+port_intance_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    generic_port_instance_struct *self;
+    self = (generic_port_instance_struct *) type->tp_alloc(type, 0);
+    if (self != NULL) {
+        self->value = NULL;
+        self->is_present = false;
+        self->num_destinations = 0;
+    }
+    
+    return (PyObject *) self;
+}
+
+static int
+port_instance_init(generic_port_instance_struct *self, PyObject *args, PyObject *kwds)
+{
+    static char *kwlist[] = {"value", "is_present", "num_destinations", NULL};
+    PyObject *value = NULL, *tmp;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Opi", kwlist,
+                                     &value, &self->is_present,
+                                     &self->num_destinations))
+    {
+        return -1;
+    }
+
+    if (value){
+        tmp = self->value;
+        Py_INCREF(value);
+        self->value = value;
+        Py_XDECREF(tmp);
+    }
+
+    return 0;
+}
+
+/*
  * The definition of port_instance type object.
  * Used to describe how port_instance behaves.
  */
@@ -172,7 +217,9 @@ static PyTypeObject port_instance_t = {
     .tp_basicsize = sizeof(generic_port_instance_struct),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
+    .tp_new = port_intance_new,
+    .tp_init = (initproc) port_instance_init,
+    .tp_dealloc = (destructor) port_instance_dealloc,
     .tp_members = port_instance_members,
 };
 
@@ -181,7 +228,7 @@ static PyTypeObject port_instance_t = {
  * a native Python type.
  */
 static PyMemberDef port_instance_token_members[] = {
-    {"value", T_OBJECT, offsetof(generic_port_instance_with_token_struct, value), 0, "Value of the port"},
+    {"value", T_OBJECT_EX, offsetof(generic_port_instance_with_token_struct, value), 0, "Value of the port"},
     {"is_present", T_BOOL, offsetof(generic_port_instance_with_token_struct, is_present), 0, "Check if value is present at current logical time"},
     {"num_destinations", T_INT, offsetof(generic_port_instance_with_token_struct, num_destinations), 0, "Number of destinations"},
     {NULL}  /* Sentinel */
@@ -221,15 +268,11 @@ static PyModuleDef MODULE_NAME = {
 
 //////////////////////////////////////////////////////////////
 /////////////  Python Helper Functions
-/*
- *
- */
-
-
 /* 
  * 
  */
-static PyObject* invoke_python_function(string module, string class, string func, PyObject* pArgs)
+static PyObject*
+invoke_python_function(string module, string class, string func, PyObject* pArgs)
 {
 
     // Set if the interpreter is already initialized
