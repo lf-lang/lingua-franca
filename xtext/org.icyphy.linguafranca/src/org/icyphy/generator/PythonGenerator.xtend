@@ -45,6 +45,7 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.StateVar
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor
@@ -318,12 +319,74 @@ class PythonGenerator extends CGenerator {
     ////////////////////////////////////////////
     //// Protected methods
     
-    def generatePythonFiles()
-    {
-        
+    def String getTargetInitializer(StateVar state) {
+        '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
-     /**
+    /*
+     * Generate a Python class for a given reactor
+     * @param decl The reactor class
+     */
+    def generatePythonReactorClass(ReactorDecl decl)  '''
+        «val reactor = decl.toDefinition»
+        class _«reactor.name»:
+        «FOR stateVar : reactor.allStateVars»
+            «'    '»«stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
+        «ENDFOR»
+        
+        «FOR reaction : reactor.allReactions»
+            «var reactionIndex = 0»
+                def «pythonReactionFunctionName(reactionIndex++)»:
+                    «reaction.code.toText»
+                    return 0
+        «ENDFOR»
+        '''
+    
+    /*
+     * Generate the Python code constructed from reactor classes and user-written classes.
+     * @return the code body 
+     */
+    def generatePythonCode() '''
+       import LinguaFranca«filename»
+       import sys
+       
+       # Function aliases
+       start = LinguaFrancaComposition.start
+       SET = LinguaFrancaComposition.SET
+       
+       «FOR reactor : reactors BEFORE '# Reactor classes\n' AFTER '\n'»
+           «generatePythonReactorClass(reactor)»
+           
+           «reactor.name» = _«reactor.name»()
+           
+       «ENDFOR»
+       
+       # The main function
+       def main():
+           start()
+       
+       # As is customary in Python programs, the main() function
+       # should only be executed if the main module is active.
+       if __name__=="__main__":
+           main()
+       '''
+    
+    def generatePythonSetupFile() '''
+    
+    '''
+    
+    /**
+     * Generate the necessary Python files
+     * @param fsa The file system access (used to write the result).
+     * 
+     */
+    def generatePythonFiles(IFileSystemAccess2 fsa)
+    {
+        fsa.generateFile(filename + ".py", generatePythonCode)
+        fsa.generateFile("setup.py", generatePythonSetupFile)
+    }
+    
+    /**
      * Generate the aliases for inputs, outputs, and struct type definitions for 
      * actions of the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
@@ -426,8 +489,8 @@ class PythonGenerator extends CGenerator {
             IGeneratorContext context) {
                 // Always use the non-threaded version
                 targetThreads = 0;
-                generatePythonFiles();
             	super.doGenerate(resource, fsa, context);
+                generatePythonFiles(fsa);
             }
             
     
@@ -453,7 +516,7 @@ class PythonGenerator extends CGenerator {
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
      */
-    def pythonReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
+    def pythonReactionFunctionName(int reactionIndex) {
           "reaction_function_" + reactionIndex
     }
     
@@ -483,7 +546,7 @@ class PythonGenerator extends CGenerator {
         val functionName = reactionFunctionName(decl, reactionIndex)
         
         // Generate the function name in Python
-        val pythonFunctionName = pythonReactionFunctionName(decl, reactionIndex);
+        val pythonFunctionName = pythonReactionFunctionName(reactionIndex);
         
                
         // Next, add the triggers (input and actions; timers are not needed).
