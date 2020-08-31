@@ -7,9 +7,10 @@ reactor Source(period:time(2 sec)) {
 	timer t(1 sec, period);
 	state count:int(0);
 	reaction(t) -> y {=
-		(self->count)++;
-		printf("Source sending %d.\n", self->count);
-		SET(y, self->count);
+        self.count += 1
+        print("Source sending " + str(self.count))
+        #print("y value is " + str(y.value))
+        SET(y, self.count)
 	=}
 }
 
@@ -17,17 +18,15 @@ reactor Test {
 	input x:int;
 	state count:int(0);
 	reaction(x) {=
-		(self->count)++;
-		printf("Received %d\n", x->value);
-		if (x->value != self->count) { 
-			fprintf(stderr, "FAILURE: Expected %d\n", self->count);
-			exit(1); 
-		}
+        self.count += 1
+        print("Recieved " + str(x.value))
+        if (x.value != self.count):
+            sys.stderr.write("FAILURE: Expected " + str(self.count) + "\n")
+            exit(1)
 	=}
 	reaction(shutdown) {=
-	    if (self->count == 0) {
-	        fprintf(stderr, "FAILURE: No data received.\n");
-	    }
+        if(self.count == 0):
+            sys.stderr.write("FAILURE: No data received.\n")
 	=}
 }
 main reactor Composition {
