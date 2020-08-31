@@ -14,7 +14,7 @@ typedef struct {
     token_t* token;
 } test_shutdown_t;
 typedef struct {
-    PyObject* count;
+    int count;
     test_shutdown_t __shutdown;
     generic_port_instance_struct** __x;
 //**********************************************
@@ -53,8 +53,9 @@ test_self_t* new_Test() {
     test_self_t* self = (test_self_t*)calloc(1, sizeof(test_self_t));
     self->__shutdown.trigger = &self->___shutdown;
     
+    //**********************************************
     self->__x = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-
+    //**********************************************
 
     // Set input by default to an always absent default input.
     self->___reaction_0.function = testreaction_function_0;
@@ -128,7 +129,6 @@ source_self_t* new_Source() {
     source_self_t* self = (source_self_t*)calloc(1, sizeof(source_self_t));
 
     //**********************************************
-    //self->__y = new_port_intance(&port_instance_t, INT);
     self->__y = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
     //**********************************************
 

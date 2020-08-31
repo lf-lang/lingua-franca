@@ -6,7 +6,7 @@ start = LinguaFrancaComposition.start
 SET = LinguaFrancaComposition.SET
 
 class _test:
-    count:int = 0
+    count = 0
 
     def reaction_function_0(self, x, x_width):
         self.count += 1
@@ -22,7 +22,7 @@ class _test:
         return 0
 
 class _source:
-    count:int = 0
+    count = 0
 
     def reaction_function_0(self, y):
         self.count += 1
