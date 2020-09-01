@@ -110,8 +110,10 @@ class PythonGenerator extends CGenerator {
     ////////////////////////////////////////////
     //// Protected methods
     
-    /*
+    /**
      * Generate parameters for a reaction function
+     * @param decl Reactor declaration
+     * @param reaction The reaction to be used to generate parameters for
      */
     def generatePythonReactionParameters(ReactorDecl decl, Reaction reaction)
     {
@@ -150,7 +152,7 @@ class PythonGenerator extends CGenerator {
         
       }
     
-    /*
+    /**
      * Handle initialization for state variable
      * @param state a state variable
      */
@@ -158,7 +160,7 @@ class PythonGenerator extends CGenerator {
         '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
-    /*
+    /**
      * Generate a Python class for a given reactor
      * @param decl The reactor class
      */
@@ -178,7 +180,7 @@ class PythonGenerator extends CGenerator {
         «ENDFOR»
         '''
     
-    /*
+    /**
      * Generate the Python code constructed from reactor classes and user-written classes.
      * @return the code body 
      */
@@ -207,6 +209,11 @@ class PythonGenerator extends CGenerator {
            main()
        '''
     
+    /**
+     * Generate the setup.py required to compile and install the module.
+     * Currently, the package name is based on filename which does not support sharing the setup.py for multiple .lf files.
+     * TODO: use an alternative package name (possibly based on folder name)
+     */
     def generatePythonSetupFile() '''
     from setuptools import setup, Extension
     
@@ -242,7 +249,7 @@ class PythonGenerator extends CGenerator {
         
     }
     
-    /*
+    /**
      * Return the necessary command to compile and install the current module
      */
      def pythonCompileCommand() {
@@ -252,14 +259,26 @@ class PythonGenerator extends CGenerator {
          
          return compileCommand
      
-     }
+    }
     
+    /**
+     * Execute the command that compiles and installs the current Python module
+     */
     def pythonCompileCode()
     {
         executeCommand(pythonCompileCommand, directory + File.separator + "src-gen")
     }
     
-    /** Invoke pip on the generated code. */
+    /**
+     * Python always uses heap memory for ports 
+     */
+     override getStackPortMember(String portName, String member){
+         portName.getHeapPortMember(member)
+     }
+    
+    /**
+     * Invoke pip on the generated code.
+     */
     override compileCode() {
         // If there is more than one federate, compile each one.
         //var fileToCompile = "" // base file name.
