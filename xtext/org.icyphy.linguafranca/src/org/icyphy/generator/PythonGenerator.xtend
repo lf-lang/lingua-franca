@@ -319,6 +319,50 @@ class PythonGenerator extends CGenerator {
     ////////////////////////////////////////////
     //// Protected methods
     
+    /*
+     * Generate parameters for a reaction function
+     */
+    def generatePythonReactionParameters(ReactorDecl decl, Reaction reaction)
+    {
+        var StringBuilder parameters = new StringBuilder();
+        val reactor = decl.toDefinition
+        
+        for (TriggerRef trigger : reaction.triggers ?:emptyList)
+        {
+            if (trigger instanceof VarRef)
+            {
+                if (trigger.variable instanceof Port)
+                {  
+                    parameters.append("," + trigger.variable.name)
+                }
+                else if (trigger.variable instanceof Action)
+                {
+                }
+            }
+        }
+        if (reaction.triggers === null || reaction.triggers.size === 0)
+        {
+             for (input : reactor.inputs ?:emptyList) {
+                parameters.append(", " + input.name)
+            }
+        }
+        for (src : reaction.sources ?:emptyList)
+        {
+                parameters.append(", " + src.variable.name)
+        }
+        for (effect : reaction.effects ?:emptyList)
+        {
+                parameters.append(", " + effect.variable.name)
+        }
+        
+        return parameters
+        
+      }
+    
+    /*
+     * Handle initialization for state variable
+     * @param state a state variable
+     */
     def String getTargetInitializer(StateVar state) {
         '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
@@ -334,11 +378,12 @@ class PythonGenerator extends CGenerator {
             «'    '»«stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
         «ENDFOR»
         
+         «var reactionIndex = 0»
         «FOR reaction : reactor.allReactions»
-            «var reactionIndex = 0»
-                def «pythonReactionFunctionName(reactionIndex++)»:
-                    «reaction.code.toText»
-                    return 0
+               def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
+                   «reaction.code.toText»
+                   return 0
+           «{reactionIndex = reactionIndex+1; ""}»
         «ENDFOR»
         '''
     
@@ -351,8 +396,8 @@ class PythonGenerator extends CGenerator {
        import sys
        
        # Function aliases
-       start = LinguaFrancaComposition.start
-       SET = LinguaFrancaComposition.SET
+       start = LinguaFranca«filename».start
+       SET = LinguaFranca«filename».SET
        
        «FOR reactor : reactors BEFORE '# Reactor classes\n' AFTER '\n'»
            «generatePythonReactorClass(reactor)»
@@ -509,6 +554,16 @@ class PythonGenerator extends CGenerator {
                 srcGenPath + File.separator + file
             )
         }
+        
+        // Copy the C target header.
+        // This will also overwrite previous versions.
+        var cTargetFiles = newArrayList("ctarget.h");
+        for (file : cTargetFiles) {
+            copyFileFromClassPath(
+                "/" + "lib" + "/" + "C" + "/" + file,
+                srcGenPath + File.separator + file
+            )
+        }
     }
     
      /** Return the function name in Python
@@ -591,7 +646,7 @@ class PythonGenerator extends CGenerator {
         pr(structType + "* self = (" + structType + "*)instance_args;")
         // Code verbatim from 'reaction'
         prSourceLineNumber(reaction.code)
-        pr('''invoke_python_function("__main__", "«reactor.name.toLowerCase»", "«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+        pr('''invoke_python_function("__main__", "«reactor.name»", "«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
         unindent()
         pr("}")
         
