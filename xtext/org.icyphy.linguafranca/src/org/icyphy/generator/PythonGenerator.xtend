@@ -427,8 +427,23 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonFiles(IFileSystemAccess2 fsa)
     {
-        fsa.generateFile(filename + ".py", generatePythonCode)
-        fsa.generateFile("setup.py", generatePythonSetupFile)
+        var srcGenPath = directory + File.separator + "src-gen"
+        
+        var file = new File(srcGenPath + File.separator + filename + ".py")
+        if (file.exists) {
+            file.delete
+        }
+        writeSourceCodeToFile(generatePythonCode.toString.bytes, srcGenPath + File.separator + filename + ".py")
+        
+        file = new File(srcGenPath + File.separator + "setup.py")
+        if (file.exists) {
+            // Append
+        }
+        else {
+            // Create
+            writeSourceCodeToFile("".bytes, srcGenPath + File.separator + "setup.py")        
+        }
+        
     }
     
     /**
@@ -534,14 +549,7 @@ class PythonGenerator extends CGenerator {
             IGeneratorContext context) {
                 // Always use the non-threaded version
                 targetThreads = 0;
-            	try
-            	{
-            	   super.doGenerate(resource, fsa, context);
-            	}
-            	catch (Exception ex)
-            	{
-            	    System.err.println()
-            	}
+            	super.doGenerate(resource, fsa, context);
                 generatePythonFiles(fsa);
             }
             
