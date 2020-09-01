@@ -67,8 +67,8 @@ class PythonGenerator extends CGenerator {
 	new () {
         super()
         // set defaults
-        this.targetCompiler = "gcc"
-        this.targetCompilerFlags = "-O2"// -Wall -Wconversion"
+        this.targetCompiler = "python3"
+        this.targetCompilerFlags = "-m pip install ."// -Wall -Wconversion"
     }
 	
     /** 
@@ -208,7 +208,12 @@ class PythonGenerator extends CGenerator {
        '''
     
     def generatePythonSetupFile() '''
+    from setuptools import setup, Extension
     
+    linguafranca«filename»module = Extension("LinguaFranca«filename»", ["«filename».c"])
+    
+    setup(name="LinguaFranca«filename»", version="1.0",
+            ext_modules = [linguafranca«filename»module] )
     '''
     
     /**
@@ -232,9 +237,46 @@ class PythonGenerator extends CGenerator {
         }
         else {
             // Create
-            writeSourceCodeToFile("".bytes, srcGenPath + File.separator + "setup.py")        
+            writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, srcGenPath + File.separator + "setup.py")        
         }
         
+    }
+    
+    /*
+     * Return the necessary command to compile and install the current module
+     */
+     def pythonCompileCommand() {
+         
+         var compileCommand = newArrayList
+         compileCommand.add("python3 -m pip install .")
+         
+         return compileCommand
+     
+     }
+    
+    def pythonCompileCode()
+    {
+        executeCommand(pythonCompileCommand, directory + File.separator + "src-gen")
+    }
+    
+    /** Invoke pip on the generated code. */
+    override compileCode() {
+        // If there is more than one federate, compile each one.
+        //var fileToCompile = "" // base file name.
+        /*for (federate : federates) {
+            // Empty string means no federates were defined, so we only
+            // compile one file.
+            if (!federate.isSingleton) {
+                fileToCompile = filename + '_' + federate.name
+            }*/
+        //executeCommand(pythonCompileCommand, directory + File.separator + "src-gen")
+        //}
+        // Also compile the RTI files if there is more than one federate.
+        /*if (federates.length > 1) {
+            compileRTI()
+        }*/
+        // TODO: add support for compiling federates
+        return 0
     }
     
     /**
@@ -339,9 +381,10 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
                 // Always use the non-threaded version
-                targetThreads = 0;
-            	super.doGenerate(resource, fsa, context);
-                generatePythonFiles(fsa);
+                targetThreads = 0
+            	super.doGenerate(resource, fsa, context)
+                generatePythonFiles(fsa)
+                pythonCompileCode
             }
             
     
