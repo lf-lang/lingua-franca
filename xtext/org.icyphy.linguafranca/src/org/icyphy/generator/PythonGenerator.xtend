@@ -534,7 +534,14 @@ class PythonGenerator extends CGenerator {
             IGeneratorContext context) {
                 // Always use the non-threaded version
                 targetThreads = 0;
-            	super.doGenerate(resource, fsa, context);
+            	try
+            	{
+            	   super.doGenerate(resource, fsa, context);
+            	}
+            	catch (Exception ex)
+            	{
+            	    System.err.println()
+            	}
                 generatePythonFiles(fsa);
             }
             
