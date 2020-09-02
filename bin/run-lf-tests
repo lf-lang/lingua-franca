@@ -69,7 +69,7 @@ else
 	            elif [ $1 == "TS" ]; then
                     command="node ${name}/dist/${name}"".js"
                 elif [ $1 == "Python" ]; then
-                    command="python3 src-gen/${name}"".py"
+                    command="python3 src-gen/${name}/${name}"".py"
                 else
                     echo "Unknown target. Valid targets are: \"Cpp\", \"CCpp\", \"TS\", \"Python\", and \"C\".";
                     exit 1;

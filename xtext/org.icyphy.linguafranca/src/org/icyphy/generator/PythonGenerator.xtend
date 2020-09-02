@@ -284,22 +284,26 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonFiles(IFileSystemAccess2 fsa)
     {
-        var srcGenPath = directory + File.separator + "src-gen"
+        var srcGenPath = getSrcGenPath()
         
         var file = new File(srcGenPath + File.separator + filename + ".py")
         if (file.exists) {
             file.delete
         }
+        // Create the necessary directories
+        if (!file.getParentFile().exists())
+            file.getParentFile().mkdirs();
         writeSourceCodeToFile(generatePythonCode.toString.bytes, srcGenPath + File.separator + filename + ".py")
         
+        // Handle Python setup
         file = new File(srcGenPath + File.separator + "setup.py")
         if (file.exists) {
             // Append
+            file.delete
         }
-        else {
-            // Create
-            writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, srcGenPath + File.separator + "setup.py")        
-        }
+            
+        // Create the setup file
+        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, srcGenPath + File.separator + "setup.py")        
         
     }
     
@@ -320,13 +324,27 @@ class PythonGenerator extends CGenerator {
      */
     def pythonCompileCode()
     {
-        executeCommand(pythonCompileCommand, directory + File.separator + "src-gen")
+        executeCommand(pythonCompileCommand, getSrcGenPath)
+    }
+    
+    /**
+     * Returns the desired source gen. path
+     */
+    override getSrcGenPath() {
+          directory + File.separator + "src-gen" + File.separator + filename
+    }
+     
+    /**
+     * Returns the desired output path
+     */
+    override getBinGenPath() {
+          directory + File.separator + "src-gen" + File.separator + filename
     }
     
     /**
      * Python always uses heap memory for ports 
      */
-     override getStackPortMember(String portName, String member){
+    override getStackPortMember(String portName, String member){
          portName.getHeapPortMember(member)
      }
     
@@ -466,7 +484,7 @@ class PythonGenerator extends CGenerator {
      */        
     override copyTargetFiles()
     {    	
-        var srcGenPath = directory + File.separator + "src-gen"
+        var srcGenPath = getSrcGenPath()
     	// Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h");
