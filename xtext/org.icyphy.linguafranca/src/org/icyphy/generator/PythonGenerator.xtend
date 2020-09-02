@@ -46,6 +46,7 @@ import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.Parameter
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -176,6 +177,14 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
+     * Handle initialization for parameters
+     * @param state a state variable
+     */
+    def String getTargetInitializer(Parameter state) {
+        '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
+    }
+    
+    /**
      * Generate a Python class for a given reactor
      * @param decl The reactor class
      */
@@ -183,6 +192,10 @@ class PythonGenerator extends CGenerator {
         «val reactor = decl.toDefinition»
         «FOR stateVar : reactor.allStateVars»
             «'    '»«stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
+        «ENDFOR»
+        
+        «FOR param : reactor.allParameters»
+            «'    '»«param.name»:«param.targetType» = «param.targetInitializer»
         «ENDFOR»
         
         «var reactionIndex = 0»
