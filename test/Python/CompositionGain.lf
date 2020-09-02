@@ -1,0 +1,29 @@
+// This tests send data through a contained reactor.
+target Python;
+reactor Gain {
+    input gainin:int;
+    output y:int;
+    reaction(gainin) -> y {=
+        print("Gain received " + str(gainin.value))
+        SET(y, gainin.value * 2)
+    =}
+}
+reactor Wrapper {
+    input x:int;
+    output y:int;
+    gain = new Gain();
+    x -> gain.gainin;
+    gain.y -> y;
+}
+main reactor ImportComposition {
+    wrapper = new Wrapper();
+    reaction(startup) -> wrapper.x {=
+        SET(wrapper_x, 42)
+    =}
+    reaction(wrapper.y) {=
+        print("Received " + str(wrapper_y.value))
+        if (wrapper_y.value != 42 * 2):
+            sys.stderr.write("ERROR: Received value should have been ", str(42 * 2))
+            exit(2)
+    =}
+}
