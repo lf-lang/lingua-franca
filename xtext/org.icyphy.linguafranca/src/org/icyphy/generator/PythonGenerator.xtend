@@ -180,8 +180,8 @@ class PythonGenerator extends CGenerator {
      * Handle initialization for parameters
      * @param state a state variable
      */
-    def String getTargetInitializer(Parameter state) {
-        '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
+    def String getTargetInitializer(Parameter par) {
+        '''«FOR init : par.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
     /**

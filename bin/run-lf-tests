@@ -68,8 +68,10 @@ else
                     command="bin/$name"
 	            elif [ $1 == "TS" ]; then
                     command="node ${name}/dist/${name}"".js"
+                elif [ $1 == "Python" ]; then
+                    command="python3 src-gen/${name}"".py"
                 else
-                    echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";
+                    echo "Unknown target. Valid targets are: \"Cpp\", \"CCpp\", \"TS\", \"Python\", and \"C\".";
                     exit 1;
                 fi
                 echo "Executing command:"$command;
