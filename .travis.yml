@@ -20,6 +20,8 @@ addons:
     sources:
       - sourceline: 'ppa:ubuntu-toolchain-r/test'
     packages:
+      - python3
+      - python3-pip
       - gcc-7
       - g++-7
       - libprotobuf-dev
