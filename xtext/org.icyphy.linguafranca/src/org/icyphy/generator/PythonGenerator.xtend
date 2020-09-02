@@ -185,7 +185,7 @@ class PythonGenerator extends CGenerator {
             «'    '»«stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
         «ENDFOR»
         
-         «var reactionIndex = 0»
+        «var reactionIndex = 0»
         «FOR reaction : reactor.allReactions»
                def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
                    «reaction.code.toText»
@@ -227,7 +227,9 @@ class PythonGenerator extends CGenerator {
        
        «FOR reactor : reactors BEFORE '# Reactor classes\n' AFTER '\n'»
            «FOR d : this.instantiationGraph.getDeclarations(reactor)»
-            «d.generateAndInstantiatePythonReactorClass»
+            «IF !reactor.allReactions.isEmpty»
+                «d.generateAndInstantiatePythonReactorClass»
+           «ENDIF»
            «ENDFOR»
        «ENDFOR»
        
