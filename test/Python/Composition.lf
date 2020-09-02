@@ -1,6 +1,9 @@
 // This test connects a simple counting source to tester
 // that checks against its own count.
-target Python;
+target Python {
+    fast: true,
+    timeout: 10 sec
+};
 
 reactor Source(period:time(2 sec)) {
 	output y:int;
