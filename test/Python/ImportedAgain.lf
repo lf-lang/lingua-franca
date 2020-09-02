@@ -1,0 +1,14 @@
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target Python;
+//import Imported from "Imported.lf"
+reactor ImportedAgain {
+	//y = new Imported(); // FIXME: Address this bug
+	input x:int;
+	reaction(x) {=
+        print("Received: " + str(x.value))
+        if (x.value != 42):
+            print("ERROR: Expected input to be 42. Got: " + x.value)
+            exit(1)
+	=}
+}
