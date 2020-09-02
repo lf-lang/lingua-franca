@@ -126,17 +126,25 @@ class PythonGenerator extends CGenerator {
             {
                 if (trigger.variable instanceof Port)
                 {  
-                    parameters.append("," + trigger.variable.name)
+                    if(trigger.variable instanceof Input)
+                    {
+                        parameters.append(''', «trigger.variable.name», «trigger.variable.name»_width''')
+                    } else {
+                        // FIXME: not using proper "."
+                        parameters.append(''', «trigger.container.name»_«trigger.variable.name»''')
+                    }
+                        
                 }
                 else if (trigger.variable instanceof Action)
                 {
+                    // TODO: handle actions
                 }
             }
         }
         if (reaction.triggers === null || reaction.triggers.size === 0)
         {
              for (input : reactor.inputs ?:emptyList) {
-                parameters.append(", " + input.name)
+                parameters.append(''', «input.name», «input.name»_width''')
             }
         }
         for (src : reaction.sources ?:emptyList)
@@ -145,7 +153,14 @@ class PythonGenerator extends CGenerator {
         }
         for (effect : reaction.effects ?:emptyList)
         {
-                parameters.append(", " + effect.variable.name)
+            if(effect.variable instanceof Input)
+            {
+                // FIXME: not using proper "."
+                parameters.append(''', «effect.container.name»_«effect.variable.name»''')  
+            }
+            else{
+                parameters.append(", " + effect.variable.name)                
+            }
         }
         
         return parameters
@@ -166,7 +181,6 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonReactorClass(ReactorDecl decl)  '''
         «val reactor = decl.toDefinition»
-        class _«reactor.name»:
         «FOR stateVar : reactor.allStateVars»
             «'    '»«stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
         «ENDFOR»
@@ -179,6 +193,25 @@ class PythonGenerator extends CGenerator {
            «{reactionIndex = reactionIndex+1; ""}»
         «ENDFOR»
         '''
+        
+    /**
+     * Generate and instantiate all Python classes
+     * @param decl The reactor's declaration
+     */
+    def generateAndInstantiatePythonReactorClass(ReactorDecl decl) '''
+        «var className = ""»
+        «IF decl instanceof Reactor»
+            «{className = decl.name; ""}»
+        «ELSE»
+            «{className = decl.toDefinition.name; ""}»    
+        «ENDIF»
+        
+        class _«className»:
+        
+        «generatePythonReactorClass(decl)»
+                    
+        «className» = _«className»()    
+    '''
     
     /**
      * Generate the Python code constructed from reactor classes and user-written classes.
@@ -193,11 +226,17 @@ class PythonGenerator extends CGenerator {
        SET = LinguaFranca«filename».SET
        
        «FOR reactor : reactors BEFORE '# Reactor classes\n' AFTER '\n'»
-           «generatePythonReactorClass(reactor)»
-           
-           «reactor.name» = _«reactor.name»()
-           
+           «FOR d : this.instantiationGraph.getDeclarations(reactor)»
+            «d.generateAndInstantiatePythonReactorClass»
+           «ENDFOR»
        «ENDFOR»
+       
+       «IF !this.mainDef.reactorClass.toDefinition.allReactions.isEmpty»
+           # The main reactor class
+           «IF this.mainDef !== null»
+               «mainDef.reactorClass.generateAndInstantiatePythonReactorClass»
+           «ENDIF»
+       «ENDIF»
        
        # The main function
        def main():
@@ -477,8 +516,7 @@ class PythonGenerator extends CGenerator {
         for (TriggerRef trigger : reaction.triggers ?: emptyList) {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
-                    pyObjectDescriptor.append("O")
-                    pyObjects.append(''',(PyObject *)*self->__«trigger.variable.name»''')
+                    generatePortVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, trigger, decl)
                 } else if (trigger.variable instanceof Action) {
                     // TODO: handle actions
                 }
@@ -489,22 +527,40 @@ class PythonGenerator extends CGenerator {
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs. 
             for (input : reactor.inputs) {
-                pyObjectDescriptor.append("O")
-                pyObjects.append(''',(PyObject *)*self->__«input.name»''')                
+                generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, input, decl)              
             }
         }
         
         // Next add non-triggering inputs.
         for (VarRef src : reaction.sources ?: emptyList) {
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''',(PyObject *)*self->__«src.variable.name»''')
+            if(src.variable instanceof Port)
+            {
+                generatePortVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, src, decl)
+            } else if (src.variable instanceof Action) {
+                //TODO: handle actions
+            }
         }
         
         // Finally handle effects
         if (reaction.effects !== null) {
             for (effect : reaction.effects) {
-                pyObjectDescriptor.append("O")
-                pyObjects.append(''',(PyObject *)self->__«effect.variable.name»''')
+                if(effect.variable instanceof Action)
+                {
+                    // TODO: handle action
+                } else {
+                    if (effect.variable instanceof Output) {
+                        generateOutputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, effect.variable as Output, decl)
+                    } else if (effect.variable instanceof Input ) {
+                        // It is the input of a contained reactor.
+                        generateVariablesForSendingToContainedReactors(pyObjectDescriptor, pyObjects, effect.container, effect.variable as Input, decl)                
+                    } else {
+                        reportError(
+                            reaction,
+                            "In generateReaction(): " + effect.variable.name + " is neither an input nor an output."
+                        )
+                    }
+                
+                }
             }
         }
 
@@ -550,7 +606,8 @@ class PythonGenerator extends CGenerator {
         val StringBuilder portsAndTriggers = new StringBuilder()
         
         val reactor = decl.toDefinition
-        
+  
+                
         // Initialize actions in Python
         for (action : reactor.allActions) {
             // TODO
@@ -563,7 +620,9 @@ class PythonGenerator extends CGenerator {
            }
            else
            {
-                // TODO
+                pr(input, portsAndTriggers, '''
+                    self->__«input.name» =  PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
+                ''')
            }
         }
         
@@ -578,6 +637,23 @@ class PythonGenerator extends CGenerator {
             }
         }
         
+        // Handle outputs of contained reactors
+        for (reaction : reactor.allReactions)
+        {
+            for (effect : reaction.effects ?:emptyList)
+            {
+                if(effect.variable instanceof Input)
+                {
+                    pr(effect.variable , portsAndTriggers, '''
+                        self->__«effect.container.name».«effect.variable.name» =  PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
+                    ''')
+                }
+                else {
+                    // Do nothing
+                }
+            }
+        }
+            
         pr('''
             «structType»* new_«reactor.name»() {
                 «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
@@ -588,6 +664,149 @@ class PythonGenerator extends CGenerator {
         ''')
     }
 
-
+    /** Generate into the specified string builder the code to
+     *  send local variables for ports to a Python reaction function
+     *  from the "self" struct. The port may be an input of the
+     *  reactor or an output of a contained reactor. The second
+     *  argument provides, for each contained reactor, a place to
+     *  write the declaration of the output of that reactor that
+     *  is triggering reactions.
+     *  @param builder The string builder into which to write the code.
+     *  @param structs A map from reactor instantiations to a place to write
+     *   struct fields.
+     *  @param port The port.
+     *  @param reactor The reactor.
+     */
+    private def generatePortVariablesToSendToPythonReaction(
+        StringBuilder pyObjectDescriptor,
+        StringBuilder pyObjects,
+        VarRef port,
+        ReactorDecl decl        
+    )
+    {
+        if(port.variable instanceof Input)
+        {
+            generateInputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, port.variable as Input, decl)
+        }
+        else
+        {
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''', (PyObject *)self->__«port.container.name».«port.variable.name»''')
+        }
+    }
+    
+    /** Generate into the specified string builder the code to
+     *  send local variables for output ports to a Python reaction function
+     *  from the "self" struct.
+     *  @param builder The string builder into which to write the code.
+     *  @param structs A map from reactor instantiations to a place to write
+     *   struct fields.
+     *  @param output The output port.
+     *  @param decl The reactor declaration.
+     */
+    private def generateOutputVariablesToSendToPythonReaction(
+        StringBuilder pyObjectDescriptor,
+        StringBuilder pyObjects,
+        Output output,
+        ReactorDecl decl        
+    )
+    {
+         if (output.type === null) {
+            reportError(output,
+                "Output is required to have a type: " + output.name)
+        } else {
+            val outputStructType = variableStructType(output, decl)
+            // Unfortunately, for the SET macros to work out-of-the-box for
+            // multiports, we need an array of *pointers* to the output structs,
+            // but what we have on the self struct is an array of output structs.
+            // So we have to handle multiports specially here a construct that
+            // array of pointers.
+            if (!output.isMultiport) {
+                pyObjectDescriptor.append("O")
+                pyObjects.append(''', (PyObject *)self->__«output.name»''')
+            } else {
+                // Set the _width variable.                
+                pyObjectDescriptor.append("O")
+                pyObjects.append(''', (PyObject *)self->__«output.name»''')
+                
+                // TODO: handle multiports
+                /*pr(builder, '''
+                    «outputStructType»* «output.name»[«output.name»_width];
+                    for(int i=0; i < «output.name»_width; i++) {
+                         «output.name»[i] = &(self->__«output.name»[i]);
+                    }
+                ''')*/
+                
+                pyObjectDescriptor.append("i")
+                pyObjects.append(''', self->__«output.name»__width''')
+            }
+        }
+    }
+    
+    /** Generate into the specified string builder the code to
+     *  pass local variables for sending data to an input
+     *  of a contained reaction (e.g. for a deadline violation).
+     *  @param builder The string builder.
+     *  @param definition AST node defining the reactor within which this occurs
+     *  @param input Input of the contained reactor.
+     */
+    private def generateVariablesForSendingToContainedReactors(
+        StringBuilder pyObjectDescriptor,
+        StringBuilder pyObjects,
+        Instantiation definition,
+        Input input,
+        ReactorDecl decl        
+    )
+    {
+        // TODO: handle multiports
+        pyObjectDescriptor.append("O")
+        pyObjects.append(''', (PyObject *)self->__«definition.name».«input.name»''')
+    }
+    
+    /** Generate into the specified string builder the code to
+     *  send local variables for input ports to a Python reaction function
+     *  from the "self" struct.
+     *  @param builder The string builder into which to write the code.
+     *  @param structs A map from reactor instantiations to a place to write
+     *   struct fields.
+     *  @param input The input port.
+     *  @param reactor The reactor.
+     */
+    private def generateInputVariablesToSendToPythonReaction(
+        StringBuilder pyObjectDescriptor,
+        StringBuilder pyObjects,
+        Input input,
+        ReactorDecl decl        
+    )
+    {        
+        // Create the local variable whose name matches the input name.
+        // If the input has not been declared mutable, then this is a pointer
+        // to the upstream output. Otherwise, it is a copy of the upstream output,
+        // which nevertheless points to the same token and value (hence, as done
+        // below, we have to use writable_copy()). There are 8 cases,
+        // depending on whether the input is mutable, whether it is a multiport,
+        // and whether it is a token type.
+        // Easy case first.
+        if (!input.isMutable && !input.isMultiport) {
+            // Non-mutable, non-multiport, primitive type.
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''', (PyObject *)*self->__«input.name»''')
+        } else if (input.isMutable && !input.isMultiport) {
+            // Mutable, non-multiport, primitive type.
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''', (PyObject *)*self->__«input.name»''')
+        } else if (!input.isMutable && input.isMultiport) {
+            // Non-mutable, multiport, primitive.
+            // TODO: support multiports
+        } else {
+            // Mutable, multiport, primitive type
+            // TODO: support multiports
+        }
+        // Set the _width variable for all cases. This will be -1
+        // for a variable-width multiport, which is not currently supported.
+        // It will be -2 if it is not multiport.
+        pyObjectDescriptor.append("i")
+        pyObjects.append(''', self->__«input.name»__width''')
+    }
     
 }

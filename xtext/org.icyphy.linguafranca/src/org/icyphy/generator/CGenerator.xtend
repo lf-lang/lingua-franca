@@ -2651,15 +2651,6 @@ class CGenerator extends GeneratorBase {
                             } catch (NumberFormatException ex) {
                                 widthExpressions.add(widthSpec)
                             }
-<<<<<<< HEAD
-=======
-                            pr(initialization, '''
-                                for (int i = 0; i < «widthSpec»; i++) {
-                                    «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index» + i]
-                                            = &«nameOfSelfStruct»->«getStackPortMember('''__«ASTUtils.toText(effect)»[i]''', "is_present")»;
-                                }
-                            ''')
->>>>>>> First successful code generation for Composition
                         } else {
                             pr(initialization, '''
                                 «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index»]
@@ -2872,8 +2863,12 @@ class CGenerator extends GeneratorBase {
                             «nameOfSelfStruct»->__«port.parent.name».«port.name»«portIndex»num_destinations = «numDestinations»;
 =======
                         pr(initializeTriggerObjects, '''
+<<<<<<< HEAD
                             «nameOfSelfStruct»->«getStackPortMember('''__«port.parent.name»''', getStackPortMember(port.name, "num_destinations").toString)» = «numDestinations»;
 >>>>>>> First successful code generation for Composition
+=======
+                            «nameOfSelfStruct»->__«port.parent.name».«getStackPortMember(port.name, "num_destinations")» = «numDestinations»;
+>>>>>>> Added support for contained reactors
                         ''')
                     }
                 }
