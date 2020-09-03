@@ -47,6 +47,8 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Type
+import java.util.ArrayList
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -121,6 +123,7 @@ class PythonGenerator extends CGenerator {
         var StringBuilder parameters = new StringBuilder();
         val reactor = decl.toDefinition
         
+        // Handle triggers
         for (TriggerRef trigger : reaction.triggers ?:emptyList)
         {
             if (trigger instanceof VarRef)
@@ -142,6 +145,8 @@ class PythonGenerator extends CGenerator {
                 }
             }
         }
+        
+        // Handle non-triggering inputs
         if (reaction.triggers === null || reaction.triggers.size === 0)
         {
              for (input : reactor.inputs ?:emptyList) {
@@ -152,6 +157,8 @@ class PythonGenerator extends CGenerator {
         {
                 parameters.append(", " + src.variable.name)
         }
+        
+        // Handle effects
         for (effect : reaction.effects ?:emptyList)
         {
             if(effect.variable instanceof Input)
@@ -162,6 +169,12 @@ class PythonGenerator extends CGenerator {
             else{
                 parameters.append(", " + effect.variable.name)                
             }
+        }
+        
+        // Handle parameters        
+        for (param : reactor.allParameters)
+        {
+           parameters.append(", " + param.name)
         }
         
         return parameters
@@ -176,42 +189,12 @@ class PythonGenerator extends CGenerator {
         '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
-    /**
-     * Handle initialization for parameters
-     * @param state a state variable
-     */
-    def String getTargetInitializer(Parameter par) {
-        '''«FOR init : par.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
-    }
-    
-    /**
-     * Generate a Python class for a given reactor
-     * @param decl The reactor class
-     */
-    def generatePythonReactorClass(ReactorDecl decl)  '''
-        «val reactor = decl.toDefinition»
-        «FOR stateVar : reactor.allStateVars»
-            «'    '»«stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
-        «ENDFOR»
-        
-        «FOR param : reactor.allParameters»
-            «'    '»«param.name»:«param.targetType» = «param.targetInitializer»
-        «ENDFOR»
-        
-        «var reactionIndex = 0»
-        «FOR reaction : reactor.allReactions»
-               def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
-                   «reaction.code.toText»
-                   return 0
-           «{reactionIndex = reactionIndex+1; ""}»
-        «ENDFOR»
-        '''
         
     /**
-     * Generate and instantiate all Python classes
+     * Generate a Python class corresponding to decl
      * @param decl The reactor's declaration
      */
-    def generateAndInstantiatePythonReactorClass(ReactorDecl decl) '''
+    def generatePythonReactorClass(ReactorDecl decl) '''
         «var className = ""»
         «IF decl instanceof Reactor»
             «{className = decl.name; ""}»
@@ -221,16 +204,120 @@ class PythonGenerator extends CGenerator {
         
         class _«className»:
         
-        «generatePythonReactorClass(decl)»
-                    
-        «className» = _«className»()    
+        «val reactor = decl.toDefinition»
+        «FOR stateVar : reactor.allStateVars»
+            «'    '»«stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
+        «ENDFOR»
+        
+        «var reactionIndex = 0»
+        «FOR reaction : reactor.allReactions»
+                def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
+                    «reaction.code.toText»
+                    return 0
+            «{reactionIndex = reactionIndex+1; ""}»
+        «ENDFOR»
     '''
+    /**
+     * Helper function for class instantiation in Python
+     * @param instance The reactor instance to be instantiated
+     * @param pythonClassesInstantiation The class instantiations are appended to this string builder
+     * @param federate The federate instance for the reactor instance
+     */
+    def generatePythonClassInstantiation(ReactorInstance instance, StringBuilder pythonClassesInstantiation, FederateInstance federate)
+    {
+        var instantiatedClasses = new ArrayList<String>()
+        generatePythonClassInstantiation(instance, pythonClassesInstantiation, federate, instantiatedClasses)
+    }
+    
+    /**
+     * Instantiate classes in Python.
+     * Instances are always instantiated as a list of className = [_className, _className, ...] depending on the size of the bank.
+     * If there is no bank or the size is 1, the instance would be generated as className = [_className]
+     * @param instance The reactor instance to be instantiated
+     * @param pythonClassesInstantiation The class instantiations are appended to this string builder
+     * @param federate The federate instance for the reactor instance
+     * @param instantiatedClasses A list of visited instances to avoid generating duplicates
+     */
+    def void generatePythonClassInstantiation(ReactorInstance instance, StringBuilder pythonClassesInstantiation,
+        FederateInstance federate, ArrayList<String> instantiatedClasses) {
+        // If this is not the main reactor and is not in the federate, nothing to do.
+        if (instance !== this.main && !reactorBelongsToFederate(instance, federate)) {
+            return
+        }
+
+        val className = instance.definition.reactorClass.name
+
+        // Invalid use of the function
+        if (instantiatedClasses === null) {
+            return
+        }
+
+        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
+            if (reactorBelongsToFederate(instance, federate) && instance.bankMembers !== null &&
+                !instantiatedClasses.contains(className)) {
+                // If this reactor is a placeholder for a bank of reactors, then generate
+                // a list of instances of reactors and return.         
+                pythonClassesInstantiation.
+                    append('''«className»s = [_«className»() for i in range(«instance.bankMembers.size»)]
+                    ''')
+                instantiatedClasses.add(className)
+                return
+            } else if (!instantiatedClasses.contains(className) &&
+                !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
+                pythonClassesInstantiation.append('''«className»s = [_«className»()]
+                ''')
+                instantiatedClasses.add(className)
+            }
+
+        }
+
+        for (child : instance.children) {
+            generatePythonClassInstantiation(child, pythonClassesInstantiation, federate, instantiatedClasses)
+        }
+    }
+    
+    /**
+     * Generate all Python classes if they have a reaction
+     * @param federate The federate instance used to generate classes
+     */
+    def generatePythonReactorClasses(FederateInstance federate) {
+        
+        var StringBuilder pythonClasses = new StringBuilder()
+        var StringBuilder pythonClassesInstantiation = new StringBuilder()
+        
+        // Generate the main reactor class if there are reactions
+        if (!this.mainDef.reactorClass.toDefinition.allReactions.isEmpty) {
+            pythonClasses.append("# The main reactor class")
+            if (this.mainDef !== null) {
+                pythonClasses.append(mainDef.reactorClass.generatePythonReactorClass)
+            }
+        }
+
+        // Generate other reactor classes if they have reactions
+        for (reactor : reactors)
+        {
+            // Generate the reactor classes in Python only if they have a reaction
+            if(!reactor.toDefinition.allReactions.isEmpty)
+            {
+                pythonClasses.append(reactor.generatePythonReactorClass())
+            }
+        }
+        
+        // Instantiate generated classes
+        this.main.generatePythonClassInstantiation(pythonClassesInstantiation, federate)
+
+        '''«pythonClasses»
+        
+        ''' +
+        '''«pythonClassesInstantiation»
+        '''
+    }
     
     /**
      * Generate the Python code constructed from reactor classes and user-written classes.
      * @return the code body 
      */
-    def generatePythonCode() '''
+    def generatePythonCode(FederateInstance federate) '''
        import LinguaFranca«filename»
        from LinguaFrancaBase.constants import * #Useful constants
        from LinguaFrancaBase.functions import * #Useful helper functions
@@ -240,20 +327,7 @@ class PythonGenerator extends CGenerator {
        start = LinguaFranca«filename».start
        SET = LinguaFranca«filename».SET
        
-       «FOR reactor : reactors BEFORE '# Reactor classes\n' AFTER '\n'»
-           «FOR d : this.instantiationGraph.getDeclarations(reactor)»
-            «IF !reactor.allReactions.isEmpty»
-                «d.generateAndInstantiatePythonReactorClass»
-           «ENDIF»
-           «ENDFOR»
-       «ENDFOR»
-       
-       «IF !this.mainDef.reactorClass.toDefinition.allReactions.isEmpty»
-           # The main reactor class
-           «IF this.mainDef !== null»
-               «mainDef.reactorClass.generateAndInstantiatePythonReactorClass»
-           «ENDIF»
-       «ENDIF»
+       «generatePythonReactorClasses(federate)»
        
        # The main function
        def main():
@@ -285,7 +359,7 @@ class PythonGenerator extends CGenerator {
      * @param fsa The file system access (used to write the result).
      * 
      */
-    def generatePythonFiles(IFileSystemAccess2 fsa)
+    def generatePythonFiles(IFileSystemAccess2 fsa, FederateInstance federate)
     {
         var srcGenPath = getSrcGenPath()
         
@@ -296,7 +370,7 @@ class PythonGenerator extends CGenerator {
         // Create the necessary directories
         if (!file.getParentFile().exists())
             file.getParentFile().mkdirs();
-        writeSourceCodeToFile(generatePythonCode.toString.bytes, srcGenPath + File.separator + filename + ".py")
+        writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, srcGenPath + File.separator + filename + ".py")
         
         // Handle Python setup
         file = new File(srcGenPath + File.separator + "setup.py")
@@ -477,7 +551,7 @@ class PythonGenerator extends CGenerator {
                 // Always use the non-threaded version
                 targetThreads = 0
             	super.doGenerate(resource, fsa, context)
-                generatePythonFiles(fsa)
+                generatePythonFiles(fsa, null)
                 pythonCompileCode
             }
             
@@ -546,6 +620,8 @@ class PythonGenerator extends CGenerator {
         // Generate the function name in Python
         val pythonFunctionName = pythonReactionFunctionName(reactionIndex);
         
+        // Indicates if the reactor is in a bank
+        var isBank = false
                
         // Next, add the triggers (input and actions; timers are not needed).
         // TODO: handle triggers
@@ -577,7 +653,7 @@ class PythonGenerator extends CGenerator {
             }
         }
         
-        // Finally handle effects
+        // Next, handle effects
         if (reaction.effects !== null) {
             for (effect : reaction.effects) {
                 if(effect.variable instanceof Action)
@@ -599,6 +675,19 @@ class PythonGenerator extends CGenerator {
                 }
             }
         }
+        
+        // Finally, handle parameters        
+        for (param : reactor.allParameters)
+        {
+            generateParametersToSendToPythonReaction(pyObjectDescriptor, pyObjects, param, decl)
+            if(param.name == "instance"
+                && getTargetType(param.inferredType) == "int"
+            )
+            {
+                // The reactor is in a bank
+                isBank = true
+            }
+        }
 
         pr('void ' + functionName + '(void* instance_args) {')
         indent()
@@ -606,7 +695,13 @@ class PythonGenerator extends CGenerator {
         pr(structType + "* self = (" + structType + "*)instance_args;")
         // Code verbatim from 'reaction'
         prSourceLineNumber(reaction.code)
-        pr('''invoke_python_function("__main__", "«reactor.name»", "«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+        if(isBank) {
+            // The reaction is in a reactor that belongs to a bank of reactors
+            pr('''invoke_python_function("__main__", "«reactor.name»s", self->instance ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+        }
+        else {
+            pr('''invoke_python_function("__main__", "«reactor.name»s", 0 ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+        }
         unindent()
         pr("}")
         
@@ -843,6 +938,43 @@ class PythonGenerator extends CGenerator {
         // It will be -2 if it is not multiport.
         pyObjectDescriptor.append("i")
         pyObjects.append(''', self->__«input.name»__width''')
+    }
+    
+    private def generateParametersToSendToPythonReaction(
+        StringBuilder pyObjectDescriptor,
+        StringBuilder pyObjects,
+        Parameter param,
+        ReactorDecl decl
+    )
+    {
+        pyObjectDescriptor.append(param.targetType.pyBuildValueArgumentType)
+        pyObjects.append(''', self->«param.name»''')
+    }
+    
+    private def pyBuildValueArgumentType(String type)
+    {
+        switch(type)
+        {
+            case "int": "i"
+            case "string": "s"
+            case "char": "b"
+            case "short int": "h"
+            case "long": "l"
+            case "unsigned char": "B"
+            case "unsigned short int": "H"
+            case "unsigned int": "I"
+            case "unsigned long": "k"
+            case "long long": "L"
+            case "interval_t": "L"
+            case "unsigned long long": "K"
+            case "double": "d"
+            case "float": "f"
+            case "Py_complex": "D"
+            case "Py_complex*": "D"
+            case "Py_Object": "O"
+            case "Py_Object*": "O"
+            default: "O"
+        }
     }
     
 }

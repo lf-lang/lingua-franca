@@ -443,7 +443,7 @@ public enum Targets {
         /**
          * Directive to specify the number of threads.
          */
-        THREADS("threads", Arrays.asList(Targets.C, Targets.CPP, Targets.CCpp)),
+        THREADS("threads", Arrays.asList(Targets.C, Targets.CPP, Targets.CCpp, Targets.Python)),
         
         /**
          * Directive to specify the execution timeout.

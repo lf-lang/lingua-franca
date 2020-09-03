@@ -309,7 +309,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
-        if (this.target != Targets.C && this.target != Targets.CPP) {
+        if (this.target != Targets.C && this.target != Targets.CPP && this.target != Targets.Python) {
             error("Multiports and banks are currently only supported by the C and Cpp targets.",
                     Literals.WIDTH_SPEC__TERMS)
         } else {
@@ -319,7 +319,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                     }
                 } else {
-                    if (this.target != Targets.C) {
+                    if (this.target != Targets.C && this.target != Targets.Python) {
                         error("Parameterized widths are currently only supported by the C target.", 
                                 Literals.WIDTH_SPEC__TERMS)
                     }
