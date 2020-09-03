@@ -1,0 +1,38 @@
+ // Check bank of reactors sending to bank of reactors.
+target Python {
+    timeout: 2 sec,
+    fast: true,
+    threads: 4
+}; 
+reactor Source(instance:int(0)) {
+	timer t(0, 200 msec);
+	output out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+        SET(out, self.s)
+        self.s += instance
+	=}
+}
+reactor Destination(instance:int(0)) {
+	state s:int(0);
+	input _in:int;
+	reaction(_in) {=
+        print("Destination %d received: " + str(instance) + str(_in.value))
+        if (_in.value != self.s):
+            sys.stderr.write("ERROR: Expected " + str(self.s))
+            exit(1)
+        self.s += instance
+	=}
+	reaction(shutdown) {=
+        if self.s == 0 and instance != 0:
+            sys.stderr.write("ERROR: Destination " + instance + " received no input!")
+            exit(1)
+        print("Success.")
+    =}
+}
+
+main reactor BankToBank(width:int(4)) { 
+	a = new[width] Source();
+	b = new[width] Destination();
+	a.out -> b._in;
+}

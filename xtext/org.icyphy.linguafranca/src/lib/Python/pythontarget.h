@@ -268,11 +268,18 @@ static PyModuleDef MODULE_NAME = {
 
 //////////////////////////////////////////////////////////////
 /////////////  Python Helper Functions
-/* 
- * 
+/** 
+ * Invoke a Python func in class[instance_id] from module.
+ * Class instances in generate Python code are always in a list.
+ * @param module The Python module to load the function from. In embedded mode, it should
+ *               be set to "__main__"
+ * @param class The name of the list of classes in the generated Python code
+ * @param instance_id The element number in the list of classes. class[instance_id] points to a class instance
+ * @param func The reaction functino to be called
+ * @param pArgs the PyList of arguments to be sent to function func()
  */
 static PyObject*
-invoke_python_function(string module, string class, string func, PyObject* pArgs)
+invoke_python_function(string module, string class, int instance_id, string func, PyObject* pArgs)
 {
 
     // Set if the interpreter is already initialized
@@ -288,7 +295,7 @@ invoke_python_function(string module, string class, string func, PyObject* pArgs
 #endif
 
     // Necessary PyObject variables to load the react() function from test.py
-    PyObject *pFileName, *pModule, *pDict, *pClass, *pFunc;
+    PyObject *pFileName, *pModule, *pDict, *pClasses, *pClass, *pFunc;
 
     PyObject *rValue;
 
@@ -336,20 +343,30 @@ invoke_python_function(string module, string class, string func, PyObject* pArgs
         if(pDict == NULL)
         {
             PyErr_Print();
-            fprintf(stderr, "Failed to load contents of module %s", module);
+            fprintf(stderr, "Failed to load contents of module %s.\n", module);
             return 1;
         }
 
-        // Get the class
+        // Convert the class name to a PyObject
+        PyObject* list_name = PyUnicode_DecodeFSDefault(class);
+
+        // Get the class list
         Py_INCREF(pDict);
-        pClass = PyDict_GetItemString(pDict, class);
-        if(pClass == NULL){
+        pClasses = PyDict_GetItem(pDict, list_name);
+        if(pClasses == NULL){
             PyErr_Print();
-            fprintf(stderr, "Failed to load class %s in module %s", class, module);
+            fprintf(stderr, "Failed to load class list \"%s\" in module %s.\n", class, module);
             return 1;
         }
 
         Py_DECREF(pDict);
+
+        pClass = PyList_GetItem(pClasses, instance_id);
+        if(pClass == NULL){
+            PyErr_Print();
+            fprintf(stderr, "Failed to load class \"%s[%d]\" in module %s.\n", class, instance_id, module);
+            return 1;
+        }
 
 #ifdef VERBOSE
         printf("Loading function %s.\n", func);
