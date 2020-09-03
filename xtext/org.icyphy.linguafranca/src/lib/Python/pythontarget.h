@@ -268,9 +268,9 @@ static PyModuleDef MODULE_NAME = {
 //////////////////////////////////////////////////////////////
 /////////////  Python Helper Functions
 /**
- * A helper function to generate a list of ports to be sent to a Python reaction.
+ * A helper function to generate a list of input ports to be sent to a Python reaction.
  */
-PyObject* make_port_list(generic_port_instance_struct*** port_array, size_t size)
+PyObject* make_input_port_list(generic_port_instance_struct*** port_array, size_t size)
 {
 #ifdef VERBOSE
     printf("Port width is %d.\n", size);
@@ -286,6 +286,24 @@ PyObject* make_port_list(generic_port_instance_struct*** port_array, size_t size
     return list;
 }
 
+/**
+ * A helper function to generate a list of output ports to be sent to a Python reaction.
+ */
+PyObject* make_output_port_list(generic_port_instance_struct** port_array, size_t size)
+{
+#ifdef VERBOSE
+    printf("Port width is %d.\n", size);
+#endif
+    PyObject *list = PyList_New(size);
+    for (size_t i = 0; i != size; ++i) {
+        if(PyList_SetItem(list, i, (PyObject*)port_array[i]) == -1)
+        {
+            fprintf(stderr, "Error setting list value.\n");
+        }
+    }
+
+    return list;
+}
 
 /** 
  * Invoke a Python func in class[instance_id] from module.
