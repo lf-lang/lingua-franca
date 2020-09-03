@@ -232,6 +232,8 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonCode() '''
        import LinguaFranca«filename»
+       from LinguaFrancaBase.constants import * #Useful constants
+       from LinguaFrancaBase.functions import * #Useful helper functions
        import sys
        
        # Function aliases
@@ -274,7 +276,8 @@ class PythonGenerator extends CGenerator {
     linguafranca«filename»module = Extension("LinguaFranca«filename»", ["«filename».c"])
     
     setup(name="LinguaFranca«filename»", version="1.0",
-            ext_modules = [linguafranca«filename»module] )
+            ext_modules = [linguafranca«filename»module],
+            install_requires=['LinguaFrancaBase'],)
     '''
     
     /**
