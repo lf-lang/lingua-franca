@@ -2574,11 +2574,7 @@ class CGenerator extends GeneratorBase {
         for (output : reactorClass.toDefinition.outputs) {
             // If the port is a multiport, create an array.
             if (output.isMultiport) {
-                pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
-                    // Allocate memory for multiport output.
-                    «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactorClass)»*)malloc(sizeof(«variableStructType(output, reactorClass)») * «nameOfSelfStruct»->__«output.name»__width); 
-                ''')
+                initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, reactorClass)
             } else {
                 pr(initializeTriggerObjects, '''
                     // width of -2 indicates that it is not a multiport.
@@ -2954,6 +2950,20 @@ class CGenerator extends GeneratorBase {
         generateStartTimeStep(instance, federate)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
+    }
+    
+    /**
+     * A function used to generate initalization code for an output multiport
+     * @param builder The generated code is put into builder
+     * @param output The output port to be initialized
+     * @name
+     */
+    def initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorDecl reactor) {
+        pr(builder, '''
+            «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
+            // Allocate memory for multiport output.
+            «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(«variableStructType(output, reactor)») * «nameOfSelfStruct»->__«output.name»__width); 
+        ''')
     }
     
     /**

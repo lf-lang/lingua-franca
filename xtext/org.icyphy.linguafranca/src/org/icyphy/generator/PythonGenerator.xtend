@@ -167,7 +167,15 @@ class PythonGenerator extends CGenerator {
                 parameters.append(''', «effect.container.name»_«effect.variable.name»''')  
             }
             else{
-                parameters.append(", " + effect.variable.name)                
+                parameters.append(", " + effect.variable.name)
+                if (effect.variable instanceof Port)
+                {
+                    if(isMultiport(effect.variable as Port))
+                    {
+                        // Handle multiports           
+                        parameters.append(''', «effect.variable.name»_width''')
+                    }
+                }           
             }
         }
         
@@ -757,11 +765,7 @@ class PythonGenerator extends CGenerator {
         // Next handle outputs.
         for (output : reactor.allOutputs) {
             if (output.isMultiport) {
-                pr(output, portsAndTriggers, '''
-                    for ( int __i=0 ; __i<self->__«output.name»__width ; __i++) {
-                        self->__«output.name»[__i] = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-                    }
-                ''')
+
             } else {
                 pr(output, portsAndTriggers, '''
                     self->__«output.name» =  PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
@@ -794,6 +798,24 @@ class PythonGenerator extends CGenerator {
                 return self;
             }''')
 
+    }
+    
+    /**
+     * A function used to generate initalization code for an output multiport
+     * @param builder The generated code is put into builder
+     * @param output The output port to be initialized
+     * @name
+     */
+    override initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorDecl reactor) {
+        pr(builder, '''
+            «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, nameOfSelfStruct)»;
+            // Allocate memory for multiport output.
+            «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(PyObject *) * «nameOfSelfStruct»->__«output.name»__width);
+            
+            for ( int __i=0 ; __i<«nameOfSelfStruct»->__«output.name»__width ; __i++) {
+                «nameOfSelfStruct»->__«output.name»[__i] = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
+            }
+        ''')
     }
 
     /** Generate into the specified string builder the code to
@@ -859,7 +881,7 @@ class PythonGenerator extends CGenerator {
             } else {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', make_port_list((generic_port_instance_struct ***)&(self->__«output.name»),self->__«output.name»__width) ''')
+                pyObjects.append(''', make_output_port_list((generic_port_instance_struct **)self->__«output.name»,self->__«output.name»__width) ''')
                 
                 
                 pyObjectDescriptor.append("i")
@@ -925,7 +947,7 @@ class PythonGenerator extends CGenerator {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
             pyObjectDescriptor.append("O")            
-            pyObjects.append(''', make_port_list((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
+            pyObjects.append(''', make_input_port_list((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
         } else {
             // Mutable, multiport, primitive type
             // TODO: support mutable multiports
