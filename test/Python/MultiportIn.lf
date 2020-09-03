@@ -1,0 +1,60 @@
+// This is a version fo the Threaded test that uses a multiport input at the destination.
+// Its purpose is to test multiport inputs.
+target Python {
+    timeout: 2 sec,
+    fast: true
+};
+
+reactor Source {
+	timer t(0, 200 msec);
+	output out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+		SET(out, self.s)
+		self.s+=1
+	=}
+}
+reactor Computation {
+	input _in:int;
+	output out:int;
+	reaction(_in) -> out {=
+		SET(out, _in.value)
+	=}
+}
+reactor Destination {
+	state s:int(0);
+	input[4] _in:int;
+	reaction(_in) {=
+		sum = 0
+		for i in range(0,_in_width):
+		    sum += _in[i].value
+
+		print("Sum of received: " + str(sum))
+		if sum != self.s:
+			sys.stderr.write("ERROR: Expected " + str(self.s))
+			exit(1)
+
+		self.s += 4
+	=}
+    reaction(shutdown) {=
+        if self.s == 0:
+            sys.stderr.write("ERROR: Destination received no input!")
+            exit(1)
+
+        print("Success.")
+    =}
+}
+
+main reactor MultiportIn { 
+	a = new Source();
+	t1 = new Computation();
+	t2 = new Computation();
+	t3 = new Computation();
+	t4 = new Computation();
+	b = new Destination();
+	a.out -> t1._in;
+	a.out -> t2._in;
+	a.out -> t3._in;
+	a.out -> t4._in;
+	t1.out, t2.out, t3.out, t4.out -> b._in;
+}

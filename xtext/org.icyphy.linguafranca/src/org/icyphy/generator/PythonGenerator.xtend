@@ -522,22 +522,22 @@ class PythonGenerator extends CGenerator {
         pr('#include "pythontarget.h"')
     }
     
-    /** Add necessary source files specific to the target language.  */
-    override includeTargetLanguageSourceFiles()
-    {
-        if (targetThreads > 0) {
-            // Set this as the default in the generated code,
-            // but only if it has not been overridden on the command line.
-            pr(startTimers, '''
-                if (number_of_threads == 0) {
-                   number_of_threads = «targetThreads»;
-                }
-            ''')
-        }
-        if (federates.length > 1) {
-            pr("#include \"core/federate.c\"")
-        }
-    }
+//    /** Add necessary source files specific to the target language.  */
+//    override includeTargetLanguageSourceFiles()
+//    {
+//        if (targetThreads > 0) {
+//            // Set this as the default in the generated code,
+//            // but only if it has not been overridden on the command line.
+//            pr(startTimers, '''
+//                if (number_of_threads == 0) {
+//                   number_of_threads = «targetThreads»;
+//                }
+//            ''')
+//        }
+//        if (federates.length > 1) {
+//            pr("#include \"core/federate.c\"")
+//        }
+//    }
 
     /** Generate C code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -549,7 +549,6 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
                 // Always use the non-threaded version
-                targetThreads = 0
             	super.doGenerate(resource, fsa, context)
                 generatePythonFiles(fsa, null)
                 pythonCompileCode
@@ -738,6 +737,7 @@ class PythonGenerator extends CGenerator {
         
         val reactor = decl.toDefinition
   
+
                 
         // Initialize actions in Python
         for (action : reactor.allActions) {
@@ -751,16 +751,17 @@ class PythonGenerator extends CGenerator {
            }
            else
            {
-                pr(input, portsAndTriggers, '''
-                    self->__«input.name» =  PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-                ''')
            }
         }
         
         // Next handle outputs.
         for (output : reactor.allOutputs) {
             if (output.isMultiport) {
-                // TODO
+                pr(output, portsAndTriggers, '''
+                    for ( int __i=0 ; __i<self->__«output.name»__width ; __i++) {
+                        self->__«output.name»[__i] = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
+                    }
+                ''')
             } else {
                 pr(output, portsAndTriggers, '''
                     self->__«output.name» =  PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
@@ -784,15 +785,15 @@ class PythonGenerator extends CGenerator {
                 }
             }
         }
-            
+        
         pr('''
             «structType»* new_«reactor.name»() {
                 «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
                 «constructorCode.toString»
                 «portsAndTriggers.toString»
                 return self;
-            }
-        ''')
+            }''')
+
     }
 
     /** Generate into the specified string builder the code to
@@ -858,15 +859,8 @@ class PythonGenerator extends CGenerator {
             } else {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', (PyObject *)self->__«output.name»''')
+                pyObjects.append(''', make_port_list((generic_port_instance_struct ***)&(self->__«output.name»),self->__«output.name»__width) ''')
                 
-                // TODO: handle multiports
-                /*pr(builder, '''
-                    «outputStructType»* «output.name»[«output.name»_width];
-                    for(int i=0; i < «output.name»_width; i++) {
-                         «output.name»[i] = &(self->__«output.name»[i]);
-                    }
-                ''')*/
                 
                 pyObjectDescriptor.append("i")
                 pyObjects.append(''', self->__«output.name»__width''')
@@ -924,14 +918,17 @@ class PythonGenerator extends CGenerator {
             pyObjects.append(''', (PyObject *)*self->__«input.name»''')
         } else if (input.isMutable && !input.isMultiport) {
             // Mutable, non-multiport, primitive type.
+            // TODO: handle mutable
             pyObjectDescriptor.append("O")
             pyObjects.append(''', (PyObject *)*self->__«input.name»''')
         } else if (!input.isMutable && input.isMultiport) {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
+            pyObjectDescriptor.append("O")            
+            pyObjects.append(''', make_port_list((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
         } else {
             // Mutable, multiport, primitive type
-            // TODO: support multiports
+            // TODO: support mutable multiports
         }
         // Set the _width variable for all cases. This will be -1
         // for a variable-width multiport, which is not currently supported.
