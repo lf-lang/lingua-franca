@@ -47,7 +47,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Python.h>
 #include <structmember.h>
 #include "ctarget.h"
-#include "core/reactor.c"
 
 #ifdef _MSC_VER
 #include <../include/limits.h>
@@ -268,6 +267,26 @@ static PyModuleDef MODULE_NAME = {
 
 //////////////////////////////////////////////////////////////
 /////////////  Python Helper Functions
+/**
+ * A helper function to generate a list of ports to be sent to a Python reaction.
+ */
+PyObject* make_port_list(generic_port_instance_struct*** port_array, size_t size)
+{
+#ifdef VERBOSE
+    printf("Port width is %d.\n", size);
+#endif
+    PyObject *list = PyList_New(size);
+    for (size_t i = 0; i != size; ++i) {
+        if(PyList_SetItem(list, i, (PyObject*)*port_array[i]) == -1)
+        {
+            fprintf(stderr, "Error setting list value.\n");
+        }
+    }
+
+    return list;
+}
+
+
 /** 
  * Invoke a Python func in class[instance_id] from module.
  * Class instances in generate Python code are always in a list.
