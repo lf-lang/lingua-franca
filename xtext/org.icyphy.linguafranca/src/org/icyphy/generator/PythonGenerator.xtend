@@ -229,6 +229,7 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Generate initialization code put at the beginning of the reaction before user code
+     * @param reaction The reaction to generate initialization code for
      */
     def getPythonInitializaitons(Reaction reaction) {
         var StringBuilder inits = new StringBuilder();        
@@ -350,6 +351,8 @@ class PythonGenerator extends CGenerator {
             }
         }
 
+        pythonClasses.append("\n")
+        pythonClasses.append("# Generated Python classes")
         // Generate other reactor classes if they have reactions
         for (reactor : reactors)
         {
@@ -365,6 +368,8 @@ class PythonGenerator extends CGenerator {
 
         '''«pythonClasses»
         
+        ''' +
+        '''# Instantiate classes
         ''' +
         '''«pythonClassesInstantiation»
         '''
