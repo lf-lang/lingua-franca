@@ -1,0 +1,44 @@
+ // Check multiport output to bank of recipients.
+ // Here, the bank is smaller than the width of the sending port.
+target Python {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source(instance:int(0)) {
+    output out:int;
+    reaction(startup) -> out {=
+        SET(out, instance)
+    =}
+}
+reactor Container {
+    output[3] out:int;
+    s = new[3] Source();
+    s.out -> out;
+}
+reactor Destination {
+    input[3] _in:int;
+    state received:bool(0);
+    reaction(_in) {=
+        for i in range(_in_width):
+            print("Destination channel " + str(i) + " received " + str(_in[i].value));
+            if i != _in[i].value:
+                sys.stderr.write("ERROR: Expected "+ str(i) + ".\n")
+                exit(1)
+
+        self.received = True
+    =}
+    reaction(shutdown) {=
+        if self.received is not True:
+            sys.stderr.write("ERROR: Destination received no input!\n")
+            exit(1)
+
+        print("Success.\n")
+    =}
+}
+
+main reactor MultiportFromBank {
+    a = new Container();
+    b = new Destination();
+    a.out -> b._in;
+}
