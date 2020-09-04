@@ -134,6 +134,44 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
     return Py_None;
 }
 
+/** 
+ * Return the elapsed physical time in nanoseconds.
+ */
+instant_t get_elapsed_logical_time();
+static PyObject* py_get_elapsed_logical_time(PyObject *self, PyObject *args)
+{
+    return PyLong_FromLong(get_elapsed_logical_time());
+}
+
+/** 
+ * Return the elapsed physical time in nanoseconds.
+ */
+instant_t get_logical_time();
+static PyObject* py_get_logical_time(PyObject *self, PyObject *args)
+{
+    return PyLong_FromLong(get_logical_time());
+}
+
+/** 
+ * Return the elapsed physical time in nanoseconds.
+ */
+instant_t get_physical_time();
+static PyObject* py_get_physical_time(PyObject *self, PyObject *args)
+{
+    return PyLong_FromLong(get_physical_time());
+}
+
+/** 
+ * Return the elapsed physical time in nanoseconds.
+ */
+instant_t get_elapsed_physical_time();
+static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args)
+{
+    return PyLong_FromLong(get_elapsed_physical_time());
+}
+
+
+
 //////////////////////////////////////////////////////////////
 ///////////// Main function callable from Python code
 static PyObject* py_main(PyObject *self, PyObject *args)
@@ -254,6 +292,10 @@ static PyTypeObject port_instance_token_t = {
 static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_main, METH_VARARGS, NULL},
   {"SET", py_SET, METH_VARARGS, NULL},
+  {"get_elapsed_logical_time", py_get_elapsed_logical_time, METH_NOARGS, NULL},
+  {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
+  {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
+  {"get_elapsed_physical_time", py_get_elapsed_physical_time, METH_NOARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
 
