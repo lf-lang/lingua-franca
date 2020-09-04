@@ -1,0 +1,61 @@
+// Check for speedup of multithreaded execution on multicore machines.
+// Each instance of TakeTime takes 200 ms to transport the input to the output.
+// Four of them are instantiated.
+// Note that without parallel execution, there is no way this can keep up with real time
+// since in every 200 msec cycle it has 800 msec of work to do.
+// On a quad-core machine, however, it does pretty well, completing 800 msec of work
+// in about 225 msec.
+// NOTE: This is the non-threaded version, showing that without threads, this takes more
+// than 800 msec to complete 200 msec of logical time.
+// See ThreadedMultiport for a parameterized version of this.
+target Python {
+    timeout: 20 sec
+};
+reactor Source {
+	timer t(0, 200 msec);
+	output out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+		SET(out, self.s)
+		self.s+=1
+	=}
+}
+reactor TakeTime(instance:int(0)) {
+	input _in:int;
+	output out:int;
+	reaction(_in) -> out {=
+        print("instance " + str(instance) + " recieved " + str(_in.value))
+
+        offset:int = 0
+        for i in range(100000000):
+            offset+=1
+        
+        _out:int = _in.value + offset
+        SET(out, _out)
+
+        print("instance " + str(instance) + " outputting " + str(out.value))
+	=}
+}
+reactor Destination(width:int(4)) {
+	state s:int(400000000);
+	input[width] _in:int;
+	reaction(_in) {=
+		sum = 0
+		for i in range(_in_width):
+            print("_in[" + str(i) + "]=" + str(_in[i].value))
+            sum += _in[i].value
+
+		print("Sum of received: " + str(sum))
+		if sum != self.s:
+			sys.stderr.write("ERROR: Expected " + str(self.s))
+			exit(1)
+		self.s += _in_width
+	=}
+}
+main reactor ThreadedThreaded(width:int(4)) {
+	a = new Source();
+	t = new[width] TakeTime();
+	(a.out)+ -> t._in;
+    b = new Destination(width = width);
+	t.out -> b._in;
+}
