@@ -220,11 +220,60 @@ class PythonGenerator extends CGenerator {
         «var reactionIndex = 0»
         «FOR reaction : reactor.allReactions»
                 def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
+                    «reaction.pythonInitializaitons»
                     «reaction.code.toText»
                     return 0
             «{reactionIndex = reactionIndex+1; ""}»
         «ENDFOR»
     '''
+    
+    /**
+     * Generate initialization code put at the beginning of the reaction before user code
+     */
+    def getPythonInitializaitons(Reaction reaction) {
+        var StringBuilder inits = new StringBuilder();        
+        // Handle triggers
+        for (TriggerRef trigger : reaction.triggers ?:emptyList)
+        {
+            if (trigger instanceof VarRef)
+            {
+                if (trigger.variable instanceof Port)
+                {  
+                    if(trigger.variable instanceof Input)
+                    {
+                        
+                    } else {
+                        // Handle contained reactors' ports
+                        inits.append('''«trigger.container.name» = Make''')
+                        inits.append('''«trigger.container.name».«trigger.variable.name» = «trigger.container.name»_«trigger.variable.name»''')
+                    }
+                        
+                }
+                else if (trigger.variable instanceof Action)
+                {
+                    // TODO: handle actions
+                }
+            }
+        }
+        
+        // Handle effects
+        for (effect : reaction.effects ?:emptyList)
+        {
+            if(effect.variable instanceof Input)
+            {
+                inits.append('''«effect.container.name» = Make
+                ''')
+                inits.append('''«effect.container.name».«effect.variable.name» = «effect.container.name»_«effect.variable.name»''')  
+            }
+            else{
+                // Do nothing          
+            }
+        }
+        
+        return inits
+        
+    }
+    
     /**
      * Helper function for class instantiation in Python
      * @param instance The reactor instance to be instantiated
@@ -329,6 +378,7 @@ class PythonGenerator extends CGenerator {
        import LinguaFranca«filename»
        from LinguaFrancaBase.constants import * #Useful constants
        from LinguaFrancaBase.functions import * #Useful helper functions
+       from LinguaFrancaBase.classes import * #Useful classes
        import sys
        
        # Function aliases

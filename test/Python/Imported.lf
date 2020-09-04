@@ -7,6 +7,6 @@ reactor Imported {
     input x:int;
 	a = new ImportedAgain();
 	reaction(x) -> a.x {=
-		SET(a_x, x.value)
+		SET(a.x, x.value)
 	=} 
 }
