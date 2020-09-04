@@ -1002,10 +1002,12 @@ class PythonGenerator extends CGenerator {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
             pyObjectDescriptor.append("O")            
-            pyObjects.append(''', make_input_port_list((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
+            pyObjects.append(''', make_input_port_tuple((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
         } else {
             // Mutable, multiport, primitive type
             // TODO: support mutable multiports
+            pyObjectDescriptor.append("O")            
+            pyObjects.append(''', make_input_port_list((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
         }
         // Set the _width variable for all cases. This will be -1
         // for a variable-width multiport, which is not currently supported.

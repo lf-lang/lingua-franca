@@ -276,8 +276,8 @@ PyObject* make_input_port_list(generic_port_instance_struct*** port_array, size_
     printf("Port width is %d.\n", size);
 #endif
     PyObject *list = PyList_New(size);
-    for (size_t i = 0; i != size; ++i) {
-        if(PyList_SetItem(list, i, (PyObject*)*port_array[i]) == -1)
+    for (size_t i = 0; i != size; i++) {
+        if(PyList_SET_ITEM(list, i, (PyObject*)*port_array[i]) == -1)
         {
             fprintf(stderr, "Error setting list value.\n");
         }
@@ -295,8 +295,46 @@ PyObject* make_output_port_list(generic_port_instance_struct** port_array, size_
     printf("Port width is %d.\n", size);
 #endif
     PyObject *list = PyList_New(size);
-    for (size_t i = 0; i != size; ++i) {
-        if(PyList_SetItem(list, i, (PyObject*)port_array[i]) == -1)
+    for (size_t i = 0; i != size; i++) {
+        if(PyList_SET_ITEM(list, i, (PyObject*)port_array[i]) == -1)
+        {
+            fprintf(stderr, "Error setting list value.\n");
+        }
+    }
+
+    return list;
+}
+
+/**
+ * A helper function to generate an immutable tuple of input ports to be sent to a Python reaction.
+ */
+PyObject* make_input_port_tuple(generic_port_instance_struct*** port_array, size_t size)
+{
+#ifdef VERBOSE
+    printf("Port width is %d.\n", size);
+#endif
+    PyObject *list = PyTuple_New(size);
+    for (size_t i = 0; i != size; i++) {
+        if(PyTuple_SET_ITEM(list, i, (PyObject*)*port_array[i]) == -1)
+        {
+            fprintf(stderr, "Error setting list value.\n");
+        }
+    }
+
+    return list;
+}
+
+/**
+ * A helper function to generate an immutable tuple of output ports to be sent to a Python reaction.
+ */
+PyObject* make_output_port_tuple(generic_port_instance_struct** port_array, size_t size)
+{
+#ifdef VERBOSE
+    printf("Port width is %d.\n", size);
+#endif
+    PyObject *list = PyTuple_New(size);
+    for (size_t i = 0; i != size; i++) {
+        if(PyTuple_SET_ITEM(list, i, (PyObject*)port_array[i]) == -1)
         {
             fprintf(stderr, "Error setting list value.\n");
         }
@@ -421,7 +459,7 @@ invoke_python_function(string module, string class, int instance_id, string func
         if (pFunc && PyCallable_Check(pFunc))
         {
 #ifdef VERBOSE
-            printf("Attempting to call function.\n");
+            printf("Attempting to call function %s from class %s[%d].\n", func , class, instance_id);
 #endif
 
 
