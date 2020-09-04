@@ -380,16 +380,12 @@ class PythonGenerator extends CGenerator {
      * @return the code body 
      */
     def generatePythonCode(FederateInstance federate) '''
-       import LinguaFranca«filename»
+       from LinguaFranca«filename» import *
        from LinguaFrancaBase.constants import * #Useful constants
        from LinguaFrancaBase.functions import * #Useful helper functions
        from LinguaFrancaBase.classes import * #Useful classes
        import sys
-       
-       # Function aliases
-       start = LinguaFranca«filename».start
-       SET = LinguaFranca«filename».SET
-       
+              
        «generatePythonReactorClasses(federate)»
        
        # The main function
