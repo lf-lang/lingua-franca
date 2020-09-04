@@ -1,3 +1,5 @@
+# Lingua Franca Base
+
 This package contains the following two modules:
 
 functions.py which contains some useful functions used in Lingua Franca programs
