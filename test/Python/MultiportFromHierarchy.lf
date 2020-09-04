@@ -1,0 +1,54 @@
+ // Check multiport output to multiport input, where the former is a hierarchical reactor.
+target Python {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source {
+	timer t(0, 200 msec);
+	output[4] out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+        for i in range(4):
+            SET(out[i], self.s)
+            self.s = self.s + 1
+	=}
+}
+reactor Destination {
+	state s:int(6);
+	input[4] _in:int;
+	reaction(_in) {=
+		sm:int = 0
+		for i in range(_in_width):
+            if (_in[i].is_present):
+                sm += _in[i].value
+		print("Sum of received: " + str(sm))
+		if (sm != self.s):
+			sys.stderr.write("ERROR: Expected " + str(self.s) + ".\n")
+			exit(1)
+		self.s += 16
+	=}
+	reaction(shutdown) {=
+        if self.s <= 6:
+            sys.stderr.write("ERROR: Destination received no input!\n")
+            exit(1)
+        print("Success.")
+    =}
+}
+reactor Container {
+    output[4] out:int;
+    src = new InsideContainer();
+    src.out -> out;
+}
+
+reactor InsideContainer {
+    output[4] out:int;
+    src = new Source();
+    src.out -> out;
+}
+
+main reactor MultiportFromHierarchy  { 
+	a = new Container();
+	b = new Destination();
+	a.out -> b._in;
+}
