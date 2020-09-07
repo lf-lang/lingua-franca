@@ -978,6 +978,60 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     /**
+     * Creates a ProcessBuilder for a given command.
+     * 
+     * This method makes sure that the given command is executable,
+     * It first tries to find the command with 'which cmake'. If that
+     * fails, it tries again with bash. n case this fails again,
+     * it returns null. Otherwise, a correctly constructed ProcessBuilder
+     * object is returned. 
+     * 
+     * @param cmd The command to be executed
+     * @return A ProcessBuilder object if the command was found or null otherwise.
+     */
+    protected def createCommand(String cmd) {
+        return createCommand(cmd, #[])
+    }
+    
+    /**
+     * Creates a ProcessBuilder for a given command and its arguments.
+     * 
+     * This method makes sure that the given command is executable,
+     * It first tries to find the command with 'which cmake'. If that
+     * fails, it tries again with bash. n case this fails again,
+     * it returns null. Otherwise, a correctly constructed ProcessBuilder
+     * object is returned. 
+     * 
+     * @param cmd The command to be executed
+     * @param args A list of arguments for the given command
+     * @return A ProcessBuilder object if the command was found or null otherwise.
+     */
+    protected def createCommand(String cmd, List<String> args) {
+        // Make sure the command is found in the PATH.
+        print('''--- Looking for command «cmd» ... ''')
+        val whichBuilder = new ProcessBuilder(#["which", cmd])
+        val whichReturn = whichBuilder.start().waitFor()
+        if (whichReturn == 0) {
+            println("SUCCESS")
+            return new ProcessBuilder(#[cmd] + args)
+        }
+        println("FAILED")
+        // Try running with bash.
+        // The --login option forces bash to look for and load the first of
+        // ~/.bash_profile, ~/.bash_login, and ~/.bashrc that it finds.
+        print('''--- Trying again with bash ... ''')
+        val bashCommand = #["bash", "--login", "-c", '''which «cmd»''']
+        val bashBuilder = new ProcessBuilder(bashCommand)
+        val bashReturn = bashBuilder.start().waitFor()
+        if (bashReturn == 0) {
+            println("SUCCESS")
+            return new ProcessBuilder(#["bash", "--login", "-c", '''«cmd» «args.join(" ")»'''])
+        }
+        println("FAILED")
+        return null as ProcessBuilder
+    }
+    
+    /**
      * Return the target.
      */
     def findTarget(Resource resource) {
