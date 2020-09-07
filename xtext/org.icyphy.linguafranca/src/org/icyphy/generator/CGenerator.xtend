@@ -681,7 +681,7 @@ class CGenerator extends GeneratorBase {
             if (!federate.isSingleton) {
                 fileToCompile = filename + '_' + federate.name
             }
-            executeCommand(compileCCommand(fileToCompile, true), directory)
+            runCCompiler(directory, fileToCompile, true)
         }
         // Also compile the RTI files if there is more than one federate.
         if (federates.length > 1) {
@@ -2337,21 +2337,20 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protocCommand = newArrayList
-        protocCommand.addAll("protoc-c", "--c_out=src-gen", filename)
-        if (executeCommand(protocCommand, directory) != 0) {
-            return reportError(
-                "Protocol buffer compiler failed." +
-                    "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c." +
-                    "\nMake sure that your PATH variable includes the directory where protoc-c is installed," +
-                    "\ntypically /usr/local/bin. You can set PATH in ~/.bash_profile on Linux or Mac.")
+        val protoc = createCommand("protoc-c", #["--c_out=src-gen", filename])
+        if (protoc === null) {
+            return
         }
-        val nameSansProto = filename.substring(0, filename.length - 6)
-        compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
-            ".pb-c.c")
 
-        compileLibraries.add('-l')
-        compileLibraries.add('protobuf-c')
+        val returnCode = protoc.execute()
+        if (returnCode == 0) {
+            val nameSansProto = filename.substring(0, filename.length - 6)
+            compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
+                ".pb-c.c")
+
+            compileLibraries.add('-l')
+            compileLibraries.add('protobuf-c')    
+        }
     }
     
     /**
