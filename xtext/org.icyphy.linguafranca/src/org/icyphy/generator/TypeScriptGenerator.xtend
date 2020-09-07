@@ -301,13 +301,8 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // FIXME: Perhaps add a compileCommand option to the target directive, as in C.
         // Here, we just use a generic compile command.
-        var typeCheckCommand = newArrayList()
-
-        // If $tsc is run with no arguments, it uses the tsconfig file.
-        typeCheckCommand.addAll(tscPath)
-        
         println("Type Checking")
-        val tsc = createCommand("tsc")
+        val tsc = createCommand(tscPath)
         if (tsc !== null && tsc.executeCommand() == 0) {
             // Babel will compile TypeScript to JS even if there are type errors
             // so only run compilation if tsc found no problems.
