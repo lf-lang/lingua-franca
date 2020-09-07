@@ -919,7 +919,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         try {
             val stdout = new ByteArrayOutputStream()
             val stderr = new ByteArrayOutputStream()
-            val returnCode = builder.runSubprocess(stdout, stderr)
+            val returnCode = builder.runSubprocess(#[stdout], #[stderr])
             if (stdout.size() > 0) {
                 println("--- Standard output from command:")
                 println(stdout.toString())
@@ -954,7 +954,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             builder.command(bashCommand)
             val stdout = new ByteArrayOutputStream()
             val stderr = new ByteArrayOutputStream()
-            val returnCode = builder.runSubprocess(stdout, stderr)
+            val returnCode = builder.runSubprocess(#[stdout], #[stderr])
             if (stdout.size() > 0) {
                 println("--- Standard output from command:")
                 println(stdout.toString())
@@ -975,6 +975,49 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             return returnCode
         }
+    }
+    
+    /**
+     * Run a given command and record its output.
+     * 
+     * @param cmd the command to be executed
+     * @param errStream a stream object to forward the commands error messages to
+     * @param outStrram a stream object to forward the commands output messages to
+     * @return the commands return code
+     */
+    protected def execute(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
+        println('''--- In directory: «cmd.directory»''')
+        println('''--- Executing command: «cmd.command.join(" ")»''')
+
+        val outStreams = #[System.out as OutputStream]
+        val errStreams = #[System.err as OutputStream]
+        if (outStream !== null) { outStreams.add(outStream) } 
+        if (errStream !== null) { errStreams.add(errStream) }
+
+        // Execute the command. Write output to the System output,
+        // but also keep copies in outStream and errStream
+        return cmd.runSubprocess(outStreams, errStreams)
+    }
+
+    /**
+     * Run a given command and record its error messages.
+     * 
+     * @param cmd the command to be executed
+     * @param errStream a stream object to forward the commands error messages to
+     * @return the commands return code
+     */
+    protected def execute(ProcessBuilder cmd) {
+        return cmd.execute(null, null)
+    }
+    
+    /**
+     * Run a given command.
+     * 
+     * @param cmd the command to be executed
+     * @return the commands return code
+     */
+    protected def execute(ProcessBuilder cmd, OutputStream errStream) {
+        return cmd.execute(errStream, null)
     }
     
     /**
@@ -2127,22 +2170,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         println('******** directory: ' + directory)
         println('******** mode: ' + mode)
     }
-    
-    /**
-     * Execute a process while forwarding output and error to system streams.
-     *
-     * Executing a process directly with `processBuiler.start()` could
-     * lead to a deadlock as the subprocess blocks when output or error
-     * buffers are full. This method ensures that output and error messages
-     * are continuously read and forwards them to the system's output and
-     * error streams.
-     *
-     * @param processBuilder The process to be executed.
-     * @author{Christian Menard <christian.menard@tu-dresden.de}
-     */
-    protected def runSubprocess(ProcessBuilder processBuilder) {
-        return runSubprocess(processBuilder, System.out, System.err);
-    }
 
     /**
      * Execute a process while forwarding output and error streams.
@@ -2157,16 +2184,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param errStream The stream to forward the process' error messages to.
      * @author{Christian Menard <christian.menard@tu-dresden.de}
      */
-    protected def runSubprocess(ProcessBuilder processBuilder,
-                                OutputStream outStream,
-                                OutputStream errStream) {
+    private def runSubprocess(ProcessBuilder processBuilder,
+                              List<OutputStream> outStream,
+                              List<OutputStream> errStream) {
         val process = processBuilder.start()
 
         var outThread = new Thread([|
                 var buffer = newByteArrayOfSize(64)
                 var len = process.getInputStream().read(buffer)
                 while(len != -1) {
-                    outStream.write(buffer, 0, len)
+                    for (os : outStream) {
+                        os.write(buffer, 0, len)
+                    }
                     len = process.getInputStream().read(buffer)
                 }
             ])
@@ -2176,7 +2205,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 var buffer = newByteArrayOfSize(64)
                 var len = process.getErrorStream().read(buffer)
                 while(len != -1) {
-                    errStream.write(buffer, 0, len)
+                    for (es : errStream) {
+                        es.write(buffer, 0, len)
+                    }
                     len = process.getErrorStream().read(buffer)
                 }
             ])
