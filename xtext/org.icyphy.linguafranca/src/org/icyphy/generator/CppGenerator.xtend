@@ -998,9 +998,6 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def void doCompile(IFileSystemAccess2 fsa) {
-        var makeCmd = newArrayList()
-        var cmakeCmd = newArrayList()
-
         val srcGenPath = fsa.getAbsolutePath('/')
         val rootPath = srcGenPath.substring(0, srcGenPath.length() - "/src-gen".length())
 
@@ -1009,40 +1006,27 @@ class CppGenerator extends GeneratorBase {
         val buildPath = '''«rootPath»/build/«filename»'''
         val reactorCppPath = '''«rootPath»/build/reactor-cpp'''
         
-        // Make sure cmake is found in the PATH.
-        var cmakeTest = newArrayList()
-        var cmake = "cmake"
-        cmakeTest.addAll("which", cmake)
-        var cmakeTestBuilder = new ProcessBuilder(cmakeTest)
-        var cmakeTestReturn = cmakeTestBuilder.start().waitFor()
-        if (cmakeTestReturn != 0) {
-            // Info on MaxOSX PATH variable here: https://scriptingosx.com/2017/05/where-paths-come-from/
-            println("WARNING: cmake not found on PATH: " +
-                cmakeTestBuilder.environment.get("PATH"))
-            cmake = "/opt/local/bin/cmake"
-            println("Trying " + cmake)
-            cmakeTest.clear
-            cmakeTest.addAll("which", cmake)
-            cmakeTestReturn = cmakeTestBuilder.start().waitFor()
-            if (cmakeTestReturn != 0) {
-                reportError(
-                    "cmake not found on PATH nor in /opt/local/bin.\n" +
-                        "See https://cmake.org/install to install cmake " +
-                        "or adjust the global PATH variable on your platform (e.g. /etc/paths).")
-                return
-            }
-        }
         var buildDir = new File(buildPath)
         if (!buildDir.exists()) buildDir.mkdirs()
 
-        makeCmd.addAll("make",
-            "-j" + Runtime.getRuntime().availableProcessors(), "install")
-        cmakeCmd.addAll(cmake, '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
-            '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''', srcPath)
+        val makeBuilder = createCommand("make", #[
+            '''-j«Runtime.getRuntime().availableProcessors()»''',
+            "install"])
+        if (makeBuilder === null) {
+            reportError("make was not found!")
+            return
+        }
+        val cmakeBuilder = createCommand("cmake", #[
+            '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
+            '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
+            srcPath])
+        if (cmakeBuilder === null) {
+            reportError("cmake was not found!")
+            return
+        }
 
         println("--- In directory: " + buildDir)
-        println("--- Running: " + cmakeCmd.join(' '))
-        var cmakeBuilder = new ProcessBuilder(cmakeCmd)
+        println("--- Running: " + cmakeBuilder.command.join(" "))
         cmakeBuilder.directory(buildDir)
         var cmakeEnv = cmakeBuilder.environment();
         if (targetCompiler !== null) {
@@ -1052,11 +1036,10 @@ class CppGenerator extends GeneratorBase {
         val cmakeReturnCode = cmakeBuilder.runSubprocess();
         if (cmakeReturnCode != 0) {
             reportError("cmake terminated with an error code!")
-        } else if (cmakeReturnCode == 0) {
+        } else {
             // If cmake succeeded, run make.
             println("--- In directory: " + buildDir)
-            println("--- Running: " + makeCmd.join(" "))
-            var makeBuilder = new ProcessBuilder(makeCmd)
+            println("--- Running: " + makeBuilder.command.join(" "))
             makeBuilder.directory(buildDir)
             val makeReturnCode = makeBuilder.runSubprocess()
 
