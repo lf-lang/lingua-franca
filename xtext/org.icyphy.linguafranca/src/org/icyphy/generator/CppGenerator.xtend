@@ -1025,31 +1025,26 @@ class CppGenerator extends GeneratorBase {
             return
         }
 
-        println("--- In directory: " + buildDir)
-        println("--- Running: " + cmakeBuilder.command.join(" "))
         cmakeBuilder.directory(buildDir)
-        var cmakeEnv = cmakeBuilder.environment();
         if (targetCompiler !== null) {
+            val cmakeEnv = cmakeBuilder.environment();
             cmakeEnv.put("CXX", targetCompiler);
         }
 
-        val cmakeReturnCode = cmakeBuilder.runSubprocess();
-        if (cmakeReturnCode != 0) {
-            reportError("cmake terminated with an error code!")
-        } else {
+        val cmakeReturnCode = cmakeBuilder.execute();       
+        if (cmakeReturnCode == 0) {
             // If cmake succeeded, run make.
-            println("--- In directory: " + buildDir)
-            println("--- Running: " + makeBuilder.command.join(" "))
             makeBuilder.directory(buildDir)
-            val makeReturnCode = makeBuilder.runSubprocess()
-
+            val makeReturnCode = makeBuilder.execute()
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
                 println('''Generated source code is in «srcPath»''')
                 println('''Compiled binary is in «installPath»/bin/«filename»''')
             } else {
-                reportError("make terminated with an error code!")
+                reportError('''make failed with error code «makeReturnCode»''')
             }
+        } else {
+            reportError('''cmake failed with error code «cmakeReturnCode»''')
         }
     }
 
