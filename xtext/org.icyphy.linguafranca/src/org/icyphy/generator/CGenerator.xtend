@@ -2798,14 +2798,15 @@ class CGenerator extends GeneratorBase {
                 var j = 0
                 for (multiportInstance : output.instances) {
                     var numDestinations = multiportInstance.numDestinationReactors
-                    pr(initializeTriggerObjects, '''
+                    // This has to appear after memory is allocated for the output array.
+                    pr(initializeTriggerObjectsEnd, '''
                         «nameOfSelfStruct»->__«output.name»[«j»].num_destinations = «numDestinations»;
                     ''')
                     j++
                 }
             } else {
                 var numDestinations = output.numDestinationReactors
-                pr(initializeTriggerObjects, '''
+                pr(initializeTriggerObjectsEnd, '''
                     «nameOfSelfStruct»->__«output.name».num_destinations = «numDestinations»;
                 ''')
             }
@@ -2830,7 +2831,7 @@ class CGenerator extends GeneratorBase {
                         if (port.multiportIndex >= 0) {
                             portIndex = '[' + port.multiportIndex + ']'
                         }
-                        pr(initializeTriggerObjects, '''
+                        pr(initializeTriggerObjectsEnd, '''
                             «nameOfSelfStruct»->__«port.parent.name».«port.name»«portIndex».num_destinations = «numDestinations»;
                         ''')
                     }
