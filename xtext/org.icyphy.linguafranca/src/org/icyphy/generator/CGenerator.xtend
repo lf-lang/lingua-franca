@@ -671,6 +671,24 @@ class CGenerator extends GeneratorBase {
         refreshProject()
     }
     
+    /** Invoke the compiler on the generated code. */
+    protected def compileCode() {
+        // If there is more than one federate, compile each one.
+        var fileToCompile = filename // base file name.
+        for (federate : federates) {
+            // Empty string means no federates were defined, so we only
+            // compile one file.
+            if (!federate.isSingleton) {
+                fileToCompile = filename + '_' + federate.name
+            }
+            executeCommand(compileCCommand(fileToCompile, true), directory)
+        }
+        // Also compile the RTI files if there is more than one federate.
+        if (federates.length > 1) {
+            compileRTI()
+        }
+    }
+    
     /** Overwrite the generated code after compile with a
      * clean version.
      */
