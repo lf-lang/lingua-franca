@@ -803,7 +803,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         val stderr = new ByteArrayOutputStream()
-        val returnCode = compile.execute(stderr)
+        val returnCode = compile.executeCommand(stderr)
 
         if (returnCode != 0 && mode !== Mode.INTEGRATED) {
             reportError('''«targetCompiler»r returns error code «returnCode»''')
@@ -910,103 +910,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     } 
     
     /**
-     * Execute the command given by the specified list of strings, print the
-     * command, its return code, and its output to stderr and stdout, and
-     * return the return code, which is 0 if the command succeeds.
-     * 
-     * If the command fails to execute, then a second attempt is made using a
-     * Bash shell with the --login option, which sources the user's 
-     * ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
-     * is first found) before running the command. This helps to ensure that
-     * the user's PATH variable is set according to their usual environment,
-     * assuming that they use a bash shell.
-     * 
-     * More information: Unfortunately, at least on a Mac if you are running
-     * within Eclipse, the PATH variable is extremely limited; supposedly, it
-     * is given by the default provided in /etc/paths, but at least on my machine,
-     * it does not even include directories in that file for some reason.
-     * One way to add a directory like
-     * /usr/local/bin to the path once-and-for-all is this:
-     * 
-     * sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
-     * 
-     * But asking users to do that is not ideal. Hence, we try a more hack-y
-     * approach of just trying to execute using a bash shell.
-     * Also note that while ProcessBuilder can configured to use custom
-     * environment variables, these variables do not affect the command that is
-     * to be executed but merely the environment in which the command executes.
-     * 
-     * @param command The command.
-     * @param directory The directory in which to execute the command.
-     * @return 0 if the command succeeds, otherwise, an error code.
-     */
-    protected def executeCommand(ArrayList<String> command, String directory) {
-        println("--- In directory: " + directory)
-        println("--- Executing command: " + command.join(" "))
-        var builder = new ProcessBuilder(command);
-        builder.directory(new File(directory));
-        try {
-            val stdout = new ByteArrayOutputStream()
-            val stderr = new ByteArrayOutputStream()
-            val returnCode = builder.runSubprocess(#[stdout], #[stderr])
-            if (stdout.size() > 0) {
-                println("--- Standard output from command:")
-                println(stdout.toString())
-                println("--- End of standard output.")
-            }
-            if (stderr.size() > 0) {
-                println("--- Standard error from command:")
-                println(stderr.toString())
-                println("--- End of standard error.")
-            }
-            if (returnCode !== 0) {
-                // Throw an exception, which will be caught below for a second attempt.
-                throw new Exception("Command returns error code " + returnCode)
-            }
-            // For warnings (vs. errors), the return code is 0.
-            // But we still want to mark the IDE.
-            if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
-                reportCommandErrors(stderr.toString())
-            }
-            return returnCode
-        } catch (Exception ex) {
-            
-            println("--- Exception: " + ex)
-            // Try running with bash.
-            // The --login option forces bash to look for and load the first of
-            // ~/.bash_profile, ~/.bash_login, and ~/.bashrc that it finds.
-            var bashCommand = new ArrayList<String>()
-            bashCommand.addAll("bash", "--login", "-c")
-            bashCommand.addAll(command.join(" "))
-            // bashCommand.addAll("bash", "--login", "-c", 'ls', '-a')
-            println("--- Attempting instead to run: " + bashCommand.join(" "))
-            builder.command(bashCommand)
-            val stdout = new ByteArrayOutputStream()
-            val stderr = new ByteArrayOutputStream()
-            val returnCode = builder.runSubprocess(#[stdout], #[stderr])
-            if (stdout.size() > 0) {
-                println("--- Standard output from command:")
-                println(stdout.toString())
-                println("--- End of standard output.")
-            }
-            if (stderr.size() > 0) {
-                println("--- Standard error from command:")
-                println(stderr.toString())
-                println("--- End of standard error.")
-            }
-            
-            if (returnCode !== 0) {
-                if (mode === Mode.INTEGRATED) {
-                    reportCommandErrors(stderr.toString())
-                } else {
-                    reportError("Bash command returns error code " + returnCode)
-                }
-            }
-            return returnCode
-        }
-    }
-    
-    /**
      * Run a given command and record its output.
      * 
      * @param cmd the command to be executed
@@ -1014,7 +917,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param outStrram a stream object to forward the commands output messages to
      * @return the commands return code
      */
-    protected def execute(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
+    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
         println('''--- In directory: «cmd.directory»''')
         println('''--- Executing command: «cmd.command.join(" ")»''')
 
@@ -1037,8 +940,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param errStream a stream object to forward the commands error messages to
      * @return the commands return code
      */
-    protected def execute(ProcessBuilder cmd) {
-        return cmd.execute(null, null)
+    protected def executeCommand(ProcessBuilder cmd) {
+        return cmd.executeCommand(null, null)
     }
     
     /**
@@ -1047,8 +950,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param cmd the command to be executed
      * @return the commands return code
      */
-    protected def execute(ProcessBuilder cmd, OutputStream errStream) {
-        return cmd.execute(errStream, null)
+    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream) {
+        return cmd.executeCommand(errStream, null)
     }
     
     /**

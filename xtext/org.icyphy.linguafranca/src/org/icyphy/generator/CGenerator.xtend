@@ -2321,7 +2321,7 @@ class CGenerator extends GeneratorBase {
         if (protoc !== null) {
             return
         }
-        val returnCode = protoc.execute()
+        val returnCode = protoc.executeCommand()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
             compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
