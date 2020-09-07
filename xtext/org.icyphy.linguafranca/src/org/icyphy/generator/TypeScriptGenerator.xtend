@@ -241,7 +241,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         if (runNpmInstall) {
             val npmInstall = createCommand("npm", #["install"])
-            if (npmInstall !== null && npmInstall.execute() !== 0) {
+            if (npmInstall !== null && npmInstall.executeCommand() !== 0) {
                 reportError(resource.findTarget, "ERROR: npm install command failed."
                     + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
@@ -272,8 +272,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 return
             }
 
-            protoc.directory(new File (directory))
-            val returnCode = protoc.execute()
+            val returnCode = protoc.executeCommand()
             if (returnCode == 0) {
                 val nameSansProto = filename.substring(0, filename.length - 6)
                 compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
@@ -309,14 +308,14 @@ class TypeScriptGenerator extends GeneratorBase {
         
         println("Type Checking")
         val tsc = createCommand("tsc")
-        if (tsc !== null && tsc.execute() == 0) {
+        if (tsc !== null && tsc.executeCommand() == 0) {
             // Babel will compile TypeScript to JS even if there are type errors
             // so only run compilation if tsc found no problems.
             val babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
             // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
             val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"])
             println("Compiling")
-            if (babel !== null && babel.execute() == 0) {
+            if (babel !== null && babel.executeCommand() == 0) {
                 println("SUCCESS (compiling generated TypeScript code)")                
             } else {
                 reportError("Compiler failed.")
