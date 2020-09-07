@@ -775,39 +775,28 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         fOut.close()
     }
     
-
-    /** Invoke the compiler on the generated code. */
-    def compileCode() {
-
-        // If there is more than one federate, compile each one.
-        var fileToCompile = filename // base file name.
-        for (federate : federates) {
-            // Empty string means no federates were defined, so we only
-            // compile one file.
-            if (!federate.isSingleton) {
-                fileToCompile = filename + '_' + federate.name
-            }
-            executeCommand(compileCommand(fileToCompile, true), directory)
-        }
-        // Also compile the RTI files if there is more than one federate.
-        if (federates.length > 1) {
-            compileRTI()
-        }
-    }
-    
-    /** Invoke the compiler on the generated RTI */
+    /** Invoke the C compiler on the generated RTI 
+     * 
+     * The C RTI is used across targets. Thus we need to be able to compile 
+     * it from GeneratorBase. 
+     */
     def compileRTI() {
         var fileToCompile = filename + '_RTI'
-        executeCommand(compileCommand(fileToCompile, false), directory)
+        executeCommand(compileCCommand(fileToCompile, false), directory)
     }
     
     /** Return a command to compile the specified C file.
+     * 
+     * This produces a C specific compile command. Since this command is
+     * used across targets to build the RTI, it needs to be available in
+     * GeneratorBase.
+     * 
      *  @param fileToCompile The C filename without the .c extension.
      *  @param doNotLinkIfNoMain If true, the compile command will have a
      *  `-c` flag when there is no main reactor. If false, the compile command
      *  will never have a `-c` flag.
      */
-    protected def compileCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
+    protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
         val cFilename = getTargetFileName(fileToCompile);            
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
         val relativeBinFilename = "bin" + File.separator + fileToCompile;
