@@ -1028,12 +1028,12 @@ class CppGenerator extends GeneratorBase {
         }
         
         // run cmake
-        val cmakeReturnCode = cmakeBuilder.execute();
+        val cmakeReturnCode = cmakeBuilder.executeCommand();
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, prepare and run make
             makeBuilder.directory(buildDir)
-            val makeReturnCode = makeBuilder.execute()
+            val makeReturnCode = makeBuilder.executeCommand()
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
