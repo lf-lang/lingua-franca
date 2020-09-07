@@ -1025,9 +1025,32 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * 
      * This method makes sure that the given command is executable,
      * It first tries to find the command with 'which cmake'. If that
-     * fails, it tries again with bash. n case this fails again,
+     * fails, it tries again with bash. In case this fails again,
      * it returns null. Otherwise, a correctly constructed ProcessBuilder
      * object is returned. 
+     * 
+     * A bit more context:
+     * If the command cannot be found directly, then a second attempt is made using a
+     * Bash shell with the --login option, which sources the user's 
+     * ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
+     * is first found) before running the command. This helps to ensure that
+     * the user's PATH variable is set according to their usual environment,
+     * assuming that they use a bash shell.
+     * 
+     * More information: Unfortunately, at least on a Mac if you are running
+     * within Eclipse, the PATH variable is extremely limited; supposedly, it
+     * is given by the default provided in /etc/paths, but at least on my machine,
+     * it does not even include directories in that file for some reason.
+     * One way to add a directory like
+     * /usr/local/bin to the path once-and-for-all is this:
+     * 
+     * sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+     * 
+     * But asking users to do that is not ideal. Hence, we try a more hack-y
+     * approach of just trying to execute using a bash shell.
+     * Also note that while ProcessBuilder can configured to use custom
+     * environment variables, these variables do not affect the command that is
+     * to be executed but merely the environment in which the command executes.
      * 
      * @param cmd The command to be executed
      * @return A ProcessBuilder object if the command was found or null otherwise.
@@ -1039,7 +1062,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * Creates a ProcessBuilder for a given command and its arguments.
      * 
-     * This method makes sure that the given command is executable,
+     * This method ensures that the given command is executable,
      * It first tries to find the command with 'which cmake'. If that
      * fails, it tries again with bash. n case this fails again,
      * it returns null. Otherwise, a correctly constructed ProcessBuilder
@@ -1071,6 +1094,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             return new ProcessBuilder(#["bash", "--login", "-c", '''«cmd» «args.join(" ")»'''])
         }
         println("FAILED")
+        reportError("The command " + cmd + " could not be found.\n" +
+                    "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
+                    "You can set PATH in ~/.bash_profile on Linux or Mac.")
         return null as ProcessBuilder
     }
     

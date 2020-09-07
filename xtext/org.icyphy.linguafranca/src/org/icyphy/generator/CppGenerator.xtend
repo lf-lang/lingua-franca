@@ -1012,30 +1012,29 @@ class CppGenerator extends GeneratorBase {
         val makeBuilder = createCommand("make", #[
             '''-j«Runtime.getRuntime().availableProcessors()»''',
             "install"])
-        if (makeBuilder === null) {
-            reportError("make was not found!")
-            return
-        }
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
             '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
             srcPath])
-        if (cmakeBuilder === null) {
-            reportError("cmake was not found!")
+        if (makeBuilder === null || cmakeBuilder === null) {
             return
         }
 
+        // prepare cmake
         cmakeBuilder.directory(buildDir)
         if (targetCompiler !== null) {
             val cmakeEnv = cmakeBuilder.environment();
             cmakeEnv.put("CXX", targetCompiler);
         }
+        
+        // run cmake
+        val cmakeReturnCode = cmakeBuilder.execute();
 
-        val cmakeReturnCode = cmakeBuilder.execute();       
         if (cmakeReturnCode == 0) {
-            // If cmake succeeded, run make.
+            // If cmake succeeded, prepare and run make
             makeBuilder.directory(buildDir)
             val makeReturnCode = makeBuilder.execute()
+
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
                 println('''Generated source code is in «srcPath»''')
