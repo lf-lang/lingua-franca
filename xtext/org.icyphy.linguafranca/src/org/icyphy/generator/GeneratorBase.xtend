@@ -803,7 +803,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         val stderr = new ByteArrayOutputStream()
-        compile.directory(new File(directory))
         val returnCode = compile.execute(stderr)
 
         if (returnCode != 0 && mode !== Mode.INTEGRATED) {
@@ -942,8 +941,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @return 0 if the command succeeds, otherwise, an error code.
      */
     protected def executeCommand(ArrayList<String> command, String directory) {
-        println("In directory: " + directory)
-        println("Executing command: " + command.join(" "))
+        println("--- In directory: " + directory)
+        println("--- Executing command: " + command.join(" "))
         var builder = new ProcessBuilder(command);
         builder.directory(new File(directory));
         try {
@@ -1123,7 +1122,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val bashReturn = bashBuilder.start().waitFor()
         if (bashReturn == 0) {
             println("SUCCESS")
-            return new ProcessBuilder(#["bash", "--login", "-c", '''«cmd» «args.join(" ")»'''])
+            val builder = new ProcessBuilder(#["bash", "--login", "-c", '''«cmd» «args.join(" ")»'''])
+            builder.directory(new File(directory))
+            return builder
         }
         println("FAILED")
         reportError("The command " + cmd + " could not be found.\n" +
