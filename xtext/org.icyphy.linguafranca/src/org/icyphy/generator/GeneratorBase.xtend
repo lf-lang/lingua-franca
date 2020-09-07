@@ -782,7 +782,38 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def compileRTI() {
         var fileToCompile = filename + '_RTI'
-        executeCommand(compileCCommand(fileToCompile, false), directory)
+        runCCompiler(directory, fileToCompile, false)
+    }
+    
+    /** 
+     * Run the C compiler.
+     * 
+     * This is required here in order to allow any target to compile the RTI.
+     * 
+     * @param directory the directory to run the compiler in
+     * @param the source file to compile
+     * param doNotLinkIfNoMain If true, the compile command will have a
+     *  `-c` flag when there is no main reactor. If false, the compile command
+     *  will never have a `-c` flag.
+     */
+    def runCCompiler(String directory, String file, boolean doNotLinkIfNoMain) {
+        val compile = compileCCommand(file, doNotLinkIfNoMain)
+        if (compile === null) {
+            return
+        }
+
+        val stderr = new ByteArrayOutputStream()
+        compile.directory(new File(directory))
+        val returnCode = compile.execute(stderr)
+
+        if (returnCode != 0 && mode !== Mode.INTEGRATED) {
+            reportError('''«targetCompiler»r returns error code «returnCode»''')
+        }
+        // For warnings (vs. errors), the return code is 0.
+        // But we still want to mark the IDE.
+        if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
+            reportCommandErrors(stderr.toString())
+        }
     }
     
     /** Return a command to compile the specified C file.
@@ -801,35 +832,34 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
         val relativeBinFilename = "bin" + File.separator + fileToCompile;
 
-        var compileCommand = newArrayList
-        compileCommand.add(targetCompiler)
+        var compileArgs = newArrayList
         val flags = targetCompilerFlags.split(' ')
-        compileCommand.addAll(flags)
-        compileCommand.add(relativeSrcFilename)
-        compileCommand.addAll(compileAdditionalSources)
-        compileCommand.addAll(compileLibraries)
+        compileArgs.addAll(flags)
+        compileArgs.add(relativeSrcFilename)
+        compileArgs.addAll(compileAdditionalSources)
+        compileArgs.addAll(compileLibraries)
         
         // Only set the output file name if it hasn't already been set
-        // using a target property or command line flag.
-        if (compileCommand.forall[it.trim != "-o"]) {
-            compileCommand.addAll("-o", relativeBinFilename)
+        // using a target property or Args line flag.
+        if (compileArgs.forall[it.trim != "-o"]) {
+            compileArgs.addAll("-o", relativeBinFilename)
         }
 
         // If threaded computation is requested, add a -pthread option.
         if (targetThreads !== 0) {
-            compileCommand.add("-pthread")
+            compileArgs.add("-pthread")
         }
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
         // Then again, I think this only makes sense when we can do linking.
         // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
         if (doNotLinkIfNoMain && main === null) {
-            compileCommand.add("-c") // FIXME: revisit
+            compileArgs.add("-c") // FIXME: revisit
             if (mode === Mode.STANDALONE) {
                 reportError("ERROR: Did not output executable; no main reactor found.")
             }
         }
-        return compileCommand
+        return createCommand(targetCompiler, compileArgs)
     }
 
     ////////////////////////////////////////////
@@ -989,8 +1019,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         println('''--- In directory: «cmd.directory»''')
         println('''--- Executing command: «cmd.command.join(" ")»''')
 
-        val outStreams = #[System.out as OutputStream]
-        val errStreams = #[System.err as OutputStream]
+        var List<OutputStream> outStreams = newArrayList
+        var List<OutputStream> errStreams = newArrayList
+        outStreams.add(System.out)
+        outStreams.add(System.err)
         if (outStream !== null) { outStreams.add(outStream) } 
         if (errStream !== null) { errStreams.add(errStream) }
 
