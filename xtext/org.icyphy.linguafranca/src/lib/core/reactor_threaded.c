@@ -85,7 +85,6 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
-    // printf("DEBUG: schedule_copy: Allocating memory for payload (token value): %p\n", container);
     // Initialize token with an array size of length and a reference count of 0.
     token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
