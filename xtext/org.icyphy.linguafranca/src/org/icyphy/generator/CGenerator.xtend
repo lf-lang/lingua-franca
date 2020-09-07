@@ -2338,10 +2338,9 @@ class CGenerator extends GeneratorBase {
      */
      def processProtoFile(String filename) {
         val protoc = createCommand("protoc-c", #["--c_out=src-gen", filename])
-        if (protoc === null) {
+        if (protoc !== null) {
             return
         }
-
         val returnCode = protoc.execute()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
@@ -2350,6 +2349,8 @@ class CGenerator extends GeneratorBase {
 
             compileLibraries.add('-l')
             compileLibraries.add('protobuf-c')    
+        } else {
+            reportError("protoc-c returns error code " + returnCode)
         }
     }
     
