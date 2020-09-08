@@ -1,0 +1,42 @@
+// Check reaction to multiport input of a contained reactor.
+target C {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Destination(width:int(1)) {
+    state s:int(6);
+    input[width] in:int;
+    reaction(in) {=
+        int sum = 0;
+        for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) sum += in[i]->value;
+        }
+        printf("Sum of received: %d.\n", sum);
+        if (sum != self->s) {
+            printf("ERROR: Expected %d.\n", self->s);
+            exit(1);
+        }
+        self->s += 16;
+    =}
+    reaction(shutdown) {=
+        if (self->s <= 6) {
+            fprintf(stderr, "ERROR: Destination received no input!\n");
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+main reactor MultiportFromReaction {
+    timer t(0, 200 msec);
+    state s:int(0);
+    reaction(t) -> b.in {=
+        for(int i = 0; i < b.in_width; i++) {
+            printf("Before SET, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
+            SET(b.in[i], self->s++);
+            printf("AFTER set, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
+            printf("AFTER set, b.in[%d]->value has value %d\n", i, b.in[i]->value);
+        }
+    =}
+    b = new Destination(width = 4);
+}
