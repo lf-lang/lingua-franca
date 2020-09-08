@@ -918,13 +918,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @return the commands return code
      */
     protected def executeCommand(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
-        println('''--- In directory: «cmd.directory»''')
+        println('''--- In directory: «cmd.directory.absolutePath»''')
         println('''--- Executing command: «cmd.command.join(" ")»''')
 
         var List<OutputStream> outStreams = newArrayList
         var List<OutputStream> errStreams = newArrayList
         outStreams.add(System.out)
-        outStreams.add(System.err)
+        errStreams.add(System.err)
         if (outStream !== null) { outStreams.add(outStream) } 
         if (errStream !== null) { errStreams.add(errStream) }
 
