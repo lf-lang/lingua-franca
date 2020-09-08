@@ -301,24 +301,32 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // FIXME: Perhaps add a compileCommand option to the target directive, as in C.
         // Here, we just use a generic compile command.
+
         println("Type Checking")
+        // If $tsc is run with no arguments, it uses the tsconfig file.
         val tsc = createCommand(tscPath)
-        if (tsc !== null && tsc.executeCommand() == 0) {
-            // Babel will compile TypeScript to JS even if there are type errors
-            // so only run compilation if tsc found no problems.
-            val babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
-            // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
-            val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"])
-            println("Compiling")
-            if (babel !== null && babel.executeCommand() == 0) {
-                println("SUCCESS (compiling generated TypeScript code)")                
+        if (tsc !== null) {
+            tsc.directory(new File(projectPath))
+            if (tsc.executeCommand() == 0) {
+                // Babel will compile TypeScript to JS even if there are type errors
+                // so only run compilation if tsc found no problems.
+                val babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
+                // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
+                println("Compiling")
+                val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"])
+                if (babel !== null) {
+                    babel.directory(new File(projectPath))
+                    if (babel.executeCommand() == 0) {
+                        println("SUCCESS (compiling generated TypeScript code)")                
+                    } else {
+                        reportError("Compiler failed.")
+                    }   
+                }
             } else {
-                reportError("Compiler failed.")
+                reportError("Type checking failed.")
             }
-        } else {
-            reportError("Type checking failed.")
         }
-        
+
         // If this is a federated execution, generate the C RTI
         
         // FIXME: DO THE COMMENT BELOW
