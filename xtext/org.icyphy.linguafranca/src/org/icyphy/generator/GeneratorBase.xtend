@@ -832,8 +832,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val relativeBinFilename = "bin" + File.separator + fileToCompile;
 
         var compileArgs = newArrayList
-        val flags = targetCompilerFlags.split(' ')
-        compileArgs.addAll(flags)
+        if (targetCompilerFlags !== null && !targetCompilerFlags.isEmpty()) {
+            val flags = targetCompilerFlags.split(' ')
+            compileArgs.addAll(flags)
+        }
         compileArgs.add(relativeSrcFilename)
         compileArgs.addAll(compileAdditionalSources)
         compileArgs.addAll(compileLibraries)
