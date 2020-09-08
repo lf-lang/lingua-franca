@@ -9,7 +9,7 @@
 // than 800 msec to complete 200 msec of logical time.
 // See ThreadedMultiport for a parameterized version of this.
 target Python {
-    timeout: 20 sec
+    timeout: 2 sec
 };
 reactor Source {
 	timer t(0, 200 msec);
@@ -20,11 +20,11 @@ reactor Source {
 		self.s+=1
 	=}
 }
-reactor TakeTime(instance:int(0)) {
+reactor TakeTime {
 	input _in:int;
 	output out:int;
 	reaction(_in) -> out {=
-        print("instance " + str(instance) + " received " + str(_in.value))
+        print("Received " + str(_in.value))
 
         offset:int = 0
         for i in range(100000000):
@@ -33,20 +33,20 @@ reactor TakeTime(instance:int(0)) {
         _out:int = _in.value + offset
         SET(out, _out)
 
-        print("instance " + str(instance) + " outputting " + str(out.value))
+        print("Outputting " + str(out.value))
 	=}
 }
 reactor Destination(width:int(4)) {
 	state s:int(400000000);
 	input[width] _in:int;
 	reaction(_in) {=
-		sum = 0
+		sm = 0
 		for i in range(_in_width):
             print("_in[" + str(i) + "]=" + str(_in[i].value))
-            sum += _in[i].value
+            sm += _in[i].value
 
-		print("Sum of received: " + str(sum))
-		if sum != self.s:
+		print("Sum of received: " + str(sm))
+		if sm != self.s:
 			sys.stderr.write("ERROR: Expected " + str(self.s))
 			exit(1)
 		self.s += _in_width

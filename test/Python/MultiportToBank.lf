@@ -1,0 +1,36 @@
+ // Check multiport output to bank of recipients.
+target Python {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source {
+    output[3] out:int;
+    reaction(startup) -> out {=
+        for i in range(out_width):
+            SET(out[i], i)
+    =}
+}
+reactor Destination(instance:int(0)) {
+    input _in:int;
+    state received:bool(0);
+    reaction(_in) {=
+        print("Destination " + str(instance) + " received " + str(_in.value))
+        if instance != _in.value:
+            sys.stderr.write("ERROR: Expected " + str(instance))
+            exit(1)
+        self.received = True
+    =}
+    reaction(shutdown) {=
+        if self.received is not True:
+            sys.stderr.write("ERROR: Destination " + str(instance) + " received no input!\n")
+            exit(1)
+        print("Success.")
+    =}
+}
+
+main reactor MultiportToBank { 
+    a = new Source();
+    b = new[3] Destination();
+    a.out -> b._in;
+}
