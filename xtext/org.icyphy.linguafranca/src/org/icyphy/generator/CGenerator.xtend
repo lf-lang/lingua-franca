@@ -2823,14 +2823,14 @@ class CGenerator extends GeneratorBase {
                 var j = 0
                 for (multiportInstance : output.instances) {
                     var numDestinations = multiportInstance.numDestinationReactors
-                    pr(initializeTriggerObjects, '''
+                    pr(initializeTriggerObjectsEnd, '''
                         «nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "num_destinations")» = «numDestinations»;
                     ''')
                     j++
                 }
             } else {
                 var numDestinations = output.numDestinationReactors
-                pr(initializeTriggerObjects, '''
+                pr(initializeTriggerObjectsEnd, '''
                     «nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "num_destinations")» = «numDestinations»;
                 ''')
             }
