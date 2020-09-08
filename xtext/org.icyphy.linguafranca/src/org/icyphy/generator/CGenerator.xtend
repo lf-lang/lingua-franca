@@ -2147,7 +2147,7 @@ class CGenerator extends GeneratorBase {
                         if (reactorBelongsToFederate(sourcePort.parent, federate)) {
                             // If this is a multiport, then the port struct on the self
                             // struct is a pointer. Otherwise, it is the struct itself.
-                            var multiportIndex = '.'
+                            var multiportIndex = stackStructOperator // '.'
                             if (sourcePort.multiportIndex >= 0) {
                                 multiportIndex = '[' + sourcePort.multiportIndex + ']->'
                             }
@@ -2475,6 +2475,14 @@ class CGenerator extends GeneratorBase {
         «portName»->«member»
     '''
     
+    
+    /**
+     * Return the operator used to retrieve struct members
+     */
+    def getStackStructOperator() '''
+    .
+    '''
+    
     /**
      * Generates C code to retrieve port.member
      * This function is used for clarity and is called whenever struct is allocated on stack memory.
@@ -2613,46 +2621,8 @@ class CGenerator extends GeneratorBase {
                             // If the width is given as a numeric constant, then add that constant
                             // to the output count. Otherwise, assume it is a reference to one or more parameters.
                             val widthSpec = multiportWidthSpecInC(port, effect.container, instance)
-                            // Allocate memory where the data will produced by the reaction will be stored
-                            // and made available to the input of the contained reactor.
-                            // This is done differently for ports like "c.in" than "out".
-                            // This has to go at the end of the initialize_trigger_objects() function
-                            // because the self struct of contained reactors has not yet been defined.
-                            if (effect.container === null) {
-                                // This has form "out".
-                                val portStructType = variableStructType(port, reactorClass)
-                                pr(initializeTriggerObjectsEnd, '''
-                                    «nameOfSelfStruct»->__«port.name»__width = «widthSpec»;
-                                    // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                                    «nameOfSelfStruct»->__«port.name» = («portStructType»*)malloc(sizeof(«portStructType») 
-                                            * «nameOfSelfStruct»->__«port.name»__width); 
-                                ''')
-                                pr(initialization, '''
-                                    for (int i = 0; i < «widthSpec»; i++) {
-                                        «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index» + i]
-                                                = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i].is_present;
-                                    }
-                                ''')
-                            } else {
-                                // This has form "c.in".
-                                val containerName = effect.container.name
-                                val portStructType = variableStructType(port, effect.container.reactorClass)
-                                pr(initializeTriggerObjectsEnd, '''
-                                    «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
-                                    // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                                    «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                            * «nameOfSelfStruct»->__«containerName».«port.name»__width);
-                                    for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«port.name»__width; i++) {
-                                        «nameOfSelfStruct»->__«containerName».«port.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
-                                    }
-                                ''')
-                                pr(initialization, '''
-                                    for (int i = 0; i < «widthSpec»; i++) {
-                                        «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index» + i]
-                                                = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i]->is_present;
-                                    }
-                                ''')
-                            }
+                            
+                            initializeReactionEffectMultiport(initializeTriggerObjectsEnd, initialization, effect, instance, reactionCount, index)
                             // Append the width of this port to an expression for the total number of
                             // outputs from this reaction.
                             try {
@@ -2853,7 +2823,7 @@ class CGenerator extends GeneratorBase {
                         numDestinations += port.dependentPorts.size
                         // If it is a multiport, then the struct port object is a pointer.
                         // Otherwise, it is the actual port struct.
-                        var portIndex = '.'
+                        var portIndex = stackStructOperator // '.'
                         if (port.multiportIndex >= 0) {
                             portIndex = '[' + port.multiportIndex + ']->'
                         }
@@ -2944,7 +2914,7 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * A function used to generate initalization code for an output multiport
+     * A function used to generate initialization code for an output multiport
      * @param builder The generated code is put into builder
      * @param output The output port to be initialized
      * @name
@@ -2956,6 +2926,67 @@ class CGenerator extends GeneratorBase {
             // Allocate memory for multiport output.
             «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(«variableStructType(output, reactor)») * «nameOfSelfStruct»->__«output.name»__width); 
         ''')
+    }
+    
+    /**
+     * Generate instantiation and initialization code for an output multiport of a reaction.
+     * The instantiations and the initializations are put into two separate StringBuilders in case delayed initialization is desirable
+     * @param instantiation The StringBuilder used to put code that allocates overall memory for a multiport
+     * @param initialization The StringBuilderused to put code that initializes members of a multiport
+     * @param effect The output effect of a given reaction
+     * @param instance The reaction instance itself
+     * @param reactionIdx The index of the reaction in the Reactor
+     * @param startIdx The index used to figure out the starting position of the output_produced array
+     */
+    def initializeReactionEffectMultiport(StringBuilder instantiation, StringBuilder initialization, VarRef effect, ReactorInstance instance, int reationIdx, String startIdx)
+    {
+        val port = effect.variable as Port
+        val reactorClass = instance.definition.reactorClass
+        val nameOfSelfStruct = selfStructName(instance)
+        // If the width is given as a numeric constant, then add that constant
+        // to the output count. Otherwise, assume it is a reference to one or more parameters.
+        val widthSpec = multiportWidthSpecInC(port, effect.container, instance)
+        // Allocate memory where the data will produced by the reaction will be stored
+        // and made available to the input of the contained reactor.
+        // This is done differently for ports like "c.in" than "out".
+        // This has to go at the end of the initialize_trigger_objects() function
+        // because the self struct of contained reactors has not yet been defined.
+        // FIXME: The following mallocs are not freed by the destructor!
+        if (effect.container === null) {
+            // This has form "out".
+            val portStructType = variableStructType(port, reactorClass)
+            pr(instantiation, '''
+                «nameOfSelfStruct»->__«port.name»__width = «widthSpec»;
+                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
+                «nameOfSelfStruct»->__«port.name» = («portStructType»*)malloc(sizeof(«portStructType») 
+                        * «nameOfSelfStruct»->__«port.name»__width); 
+            ''')
+            pr(initialization, '''
+                for (int i = 0; i < «widthSpec»; i++) {
+                    «nameOfSelfStruct»->___reaction_«reationIdx».output_produced[«startIdx» + i]
+                            = &«nameOfSelfStruct»->«getStackPortMember('''__«ASTUtils.toText(effect)»[i]''', "is_present")»;
+                }
+            ''')
+        } else {
+            // This has form "c.in".
+            val containerName = effect.container.name
+            val portStructType = variableStructType(port, effect.container.reactorClass)
+            pr(instantiation, '''
+                «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
+                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
+                «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                        * «nameOfSelfStruct»->__«containerName».«port.name»__width);
+                for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«port.name»__width; i++) {
+                    «nameOfSelfStruct»->__«containerName».«port.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
+                }
+            ''')
+            pr(initialization, '''
+                for (int i = 0; i < «widthSpec»; i++) {
+                    «nameOfSelfStruct»->___reaction_«reationIdx».output_produced[«startIdx» + i]
+                            = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i]->is_present;
+                }
+            ''')
+        }
     }
     
     /**
