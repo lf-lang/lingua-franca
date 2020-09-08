@@ -858,9 +858,10 @@ class PythonGenerator extends CGenerator {
      * @param output The output port to be initialized
      * @name
      */
-    override initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorDecl reactor) {
+    override initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorInstance instance) {
+        val reactor = instance.definition.reactorClass
         pr(builder, '''
-            «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, nameOfSelfStruct)»;
+            «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
             // Allocate memory for multiport output.
             «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(PyObject *) * «nameOfSelfStruct»->__«output.name»__width);
             
