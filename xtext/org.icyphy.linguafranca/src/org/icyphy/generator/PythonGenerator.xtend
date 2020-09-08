@@ -449,6 +449,7 @@ class PythonGenerator extends CGenerator {
      def pythonCompileCommand() {
          
          var compileCommand = newArrayList
+         compileCommand.add("python3 setup.py build && ")
          compileCommand.add("python3 -m pip install .")
          
          return compileCommand
